@@ -29,9 +29,6 @@ The CLI stores configuration in `~/.beecli/config.json`:
 # Login with email and password
 beecli auth login -e <email> -p <password>
 
-# Login with custom API URL
-beecli auth login -e <email> -p <password> --api-url <url>
-
 # Logout and clear credentials
 beecli auth logout
 

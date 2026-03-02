@@ -41,6 +41,12 @@ sanitize_message() {
         exit 1
     fi
 
+    # Check for newlines (can inject multiple commands)
+    if [[ "$input" == *$'\n'* ]]; then
+        echo "ERROR: Task content contains newlines."
+        exit 1
+    fi
+
     # Check for dangerous command prefixes
     local first_word
     first_word=$(echo "$input" | awk '{print $1}' | tr '[:upper:]' '[:lower:]')

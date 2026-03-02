@@ -6,7 +6,7 @@ metadata:
     "openclaw": {
       "emoji": "⏰",
       "user-invocable": true,
-      "requires": { "bins": ["openclaw"] }
+      "requires": { "bins": ["openclaw"], "tools": ["session_status"] }
     }
   }
 ---
@@ -100,6 +100,7 @@ User-specified task content must be sanitized before passing to cron:
    - Command substitution: `$()`, backticks `` ` ``
    - Shell metacharacters: `;`, `|`, `&`, `>`, `<`
    - Double quotes: `"` (breaks CLI quoting)
+   - Newlines: `\n` (can inject multiple commands)
    - Dangerous command prefixes: `sudo`, `rm`, `wget`, `curl`, `bash`, etc.
 
 2. **Sanitization Script**:

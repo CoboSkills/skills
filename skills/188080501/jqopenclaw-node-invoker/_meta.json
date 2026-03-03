@@ -1,0 +1,11 @@
+{
+  "owner": "188080501",
+  "slug": "jqopenclaw-node-invoker",
+  "displayName": "JQOpenClawNode skill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772460858485,
+    "commit": null
+  },
+  "history": []
+}

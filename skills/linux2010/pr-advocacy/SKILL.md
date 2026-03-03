@@ -6,7 +6,7 @@ Actively monitor, respond to, and drive Pull Request reviews to completion. This
 ## Core Responsibilities
 
 ### 1. PR Status Monitoring
-- Check PR status every heartbeat cycle (4 hours)
+- Check PR status every heartbeat cycle (1 hour)
 - Monitor CI/CD check results
 - Track reviewer comments and requested changes
 - Identify blocking vs non-blocking feedback
@@ -28,6 +28,35 @@ Actively monitor, respond to, and drive Pull Request reviews to completion. This
 - **Yellow Status**: Minor feedback, passing checks → Respond and wait
 - **Red Status**: Failing checks or major feedback → Immediate action required
 - **Stale Status**: No activity for 48+ hours → Gentle ping to reviewers
+
+## PR Status Processing Rules
+
+### OPEN State Handling
+When a PR is in OPEN state:
+- **Check for maintainer/reviewer comments** pointing out issues
+- **If feedback requires changes**:
+  - Analyze the specific feedback content
+  - Create fixes according to maintainer suggestions
+  - Automatically commit changes to the PR branch
+  - Update PR description if needed
+  - Record fix details for learning
+- **If no issues found**:
+  - Continue monitoring CI/CD status
+  - Wait for merge approval
+
+### CLOSED/REJECTED State Handling  
+When a PR is CLOSED or REJECTED:
+- **Immediately remove from active tracking list**
+- **Stop all monitoring activities** for this PR
+- **Record closure reason** for future learning and improvement
+- **Do not attempt to resubmit** unless explicitly instructed
+
+### MERGED State Handling
+When a PR is successfully MERGED:
+- **Remove from active tracking list**
+- **Add to merged records** for success tracking
+- **Celebrate the contribution!**
+- **Update skills and workflows** based on successful patterns
 
 ## Implementation Guidelines
 
@@ -76,14 +105,22 @@ Let me know if you need any additional changes!
 ## Automation Integration
 
 ### Heartbeat Integration
-- Integrate with existing heartbeat monitoring system
+- Integrate with existing heartbeat monitoring system (every hour)
 - Add PR status to daily summary reports
 - Escalate stale PRs after 48 hours of inactivity
 
 ### Memory Tracking
 - Maintain PR tracking list in workspace memory
+- **Automatically clean up closed/rejected PRs** from tracking list
 - Record resolution outcomes for learning
 - Update core memory with successful advocacy patterns
+
+### Automatic Response Workflow
+1. **Detect feedback** on OPEN PRs
+2. **Analyze requirements** and create appropriate fixes
+3. **Commit changes** to existing PR branch
+4. **Update tracking status** and notify maintainers
+5. **Handle closure** by removing from active monitoring
 
 ## Success Metrics
 

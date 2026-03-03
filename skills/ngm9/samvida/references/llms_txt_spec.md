@@ -225,3 +225,46 @@ Outcome: 3 strong candidates shortlisted in one week.
 | Long paragraphs in sections | Named links only — keep it scannable |
 | Auth tokens or API keys in API section | URL only — agent reads the docs for auth |
 | Making up testimonials | Only use what's publicly available or user-provided |
+
+---
+
+## `## Compliance`
+
+Certifications, standards, and regulatory adherence that agents and their users care about when evaluating vendor trust.
+
+```
+## Compliance
+- [SOC 2 Type II](url): Certified. Annual audit by [Auditor]. Valid through [date].
+- [ISO 27001](url): Certified. Information security management.
+- [GDPR](url): Compliant. Data processing agreements available on request.
+- [HIPAA](url): Compliant. BAA available for healthcare customers.
+```
+
+Rules:
+- Include only verified, publicly mentioned certifications — never invent
+- If a cert page/PDF is linked on the site, use that URL
+- If no URL but cert is mentioned in text, use the homepage or trust page as fallback
+- Omit section entirely if no compliance info found and user doesn't provide any
+- Signal to agents: compliance = trust signal for regulated industry purchases
+
+---
+
+## `## Reviews`
+
+Third-party ratings and professional recognition. Agents use this to assess credibility without crawling review sites.
+
+```
+## Reviews
+- [G2 — 4.8/5 (120 reviews)](url): Rated top in [category] by verified users
+- [ProductHunt — #1 Product of the Day](url): Launched [date], featured by PH community
+- [Trustpilot — 4.6/5](url): Excellent rating from [N] verified customer reviews
+- [Gartner Peer Insights — 4.5/5](url): Recognized in [Magic Quadrant / Peer Insights category]
+- [Capterra — 4.7/5](url): Top-rated in [software category]
+```
+
+Rules:
+- Only include real, publicly visible ratings — never invent scores
+- Link directly to the product's review page (not the review platform homepage)
+- Include the score and review count where available
+- Awards and recognitions (e.g. "Forbes 30 Under 30", "YC W23") go here too
+- Omit section if no third-party reviews found and user doesn't provide any

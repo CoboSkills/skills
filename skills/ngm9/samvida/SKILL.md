@@ -166,7 +166,7 @@ Generate the complete `llms.txt` using ALL information gathered:
 **Generation rules:**
 1. Follow the spec format exactly: H1 title → blockquote summary → H2 sections → named links
 2. Every bullet = `- [Title](url): description` — no plain text bullets
-3. Section order: Services → Team → Clients & Testimonials → For Agents → Pricing → API → Links → Optional
+3. Section order: Services → Team → Clients & Testimonials → Compliance → Reviews → For Agents → Pricing → API → Links → Optional
 4. **`## Team`**: Always include. Use crawled/user-provided data. If none available, omit silently.
 5. **`## Clients & Testimonials`**: Always try to include. Structure:
    - ICP bullets first (who the business serves)
@@ -174,7 +174,9 @@ Generate the complete `llms.txt` using ALL information gathered:
    - Each subsection: blockquote with verbatim/lightly-cleaned quote, optional Problem: and Outcome: lines
    - If you only have a name + one-liner with no detail, a single bullet is fine
    - Never invent quotes or outcomes
-6. **`## For Agents`**: ALWAYS include. If no API info: add the "coming soon" notice + contact email. Never skip.
+6. **`## Compliance`**: Include if any certifications or standards (SOC 2, ISO 27001, GDPR, HIPAA, etc.) are mentioned anywhere on the site or by the user. Omit if none found.
+7. **`## Reviews`**: Include if any third-party ratings, scores, awards, or recognitions (G2, ProductHunt, Trustpilot, Gartner, Capterra, Forbes, YC, etc.) are mentioned. Omit if none found.
+8. **`## For Agents`**: ALWAYS include. If no API info: add the "coming soon" notice + contact email. Never skip.
 7. **`## Pricing`**: If unknown, link to pricing page with no summary. If no pricing page, omit.
 8. **`## API`**: Document URL only — no auth details, no secrets.
 9. **`## Optional`**: FAQs, blog, case studies, anything supplementary.

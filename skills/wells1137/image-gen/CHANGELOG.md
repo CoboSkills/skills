@@ -5,23 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.0] - 2026-03-02
-
-### Security
-- **Added strict input validation** for all CLI parameters (model, aspect-ratio, action, mode, num-images, index, upscale-type, variation-type) against explicit allow-lists. Invalid inputs are now rejected before any API call is made.
-- **Added prompt length limit** (max 4000 characters) to prevent abuse.
-- **Added `"use strict"` directive** to enforce stricter JavaScript parsing.
-- **Added Security & Transparency section** to SKILL.md, explicitly documenting all external endpoints contacted and behaviors the skill does NOT perform.
-- **Added security documentation** to CONTRIBUTING.md with endpoint and behavior transparency.
-
-### Fixed
-- **Updated CONTRIBUTING.md**: Replaced all outdated TTAPI_KEY references with LEGNEXT_KEY (provider was switched in v1.1.0).
-- **Updated model table** in CONTRIBUTING.md to correctly show Legnext.ai as the Midjourney provider.
-- **Truncated prompt in stderr logging** to avoid leaking full prompts in logs.
+## [2.0.0] - 2026-03-03
 
 ### Changed
-- **Improved error messages** with more descriptive validation feedback.
-- **Added explicit code comments** documenting which external endpoints each function connects to.
+- **Simplified SKILL.md**: Removed the complex 3-step async/poll workflow from the main instructions. The script already handles all polling internally — the SKILL.md now reflects this with a single, clean "run and get result" pattern.
+- **Unified output format**: All models now return a consistent `{ success, model, imageUrl, images, jobId }` shape, making it easier to handle results uniformly.
+- **Clearer model selection table**: Added "Speed" column so agents can make better trade-off decisions.
+- **Added "Use when" trigger**: SKILL.md now starts with a clear activation condition so the agent knows exactly when to invoke this skill.
+- **Documented `--reference-images` for Nano Banana**: Pass comma-separated URLs for character/style consistency across sequential image generations.
+
+---
+
+## [1.3.0] - 2026-02-25
+
+### Added
+- **Non-blocking async mode for Midjourney** (`--async` flag). Submit a job and return immediately with `job_id`, without waiting for completion. This prevents the bot from being blocked while waiting for image generation.
+- **Status poll mode** (`--poll --job-id <id>`). Check job status once and return immediately — no waiting. Returns `status: "completed"`, `"pending"`, `"processing"`, or `"failed"`.
+- Updated SKILL.md with mandatory async workflow documentation. All Midjourney requests should now use `--async` + periodic `--poll` to avoid blocking the bot.
+
+### Changed
+- `--async` flag is supported for all Midjourney actions: `imagine`, `upscale`, `variation`, `reroll`.
 
 ---
 

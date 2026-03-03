@@ -1,0 +1,11 @@
+{
+  "owner": "mhmalvi",
+  "slug": "lead-enrichment-pipeline",
+  "displayName": "Lead Capture & Tracking Pipeline",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1772550479042,
+    "commit": null
+  },
+  "history": []
+}

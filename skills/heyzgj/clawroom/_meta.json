@@ -3,9 +3,15 @@
   "slug": "clawroom",
   "displayName": "Clawroom",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772370858189,
-    "commit": "https://github.com/openclaw/skills/commit/7ab9a0d6dbb22b532d46741c7768fc31f67ce54f"
+    "version": "1.0.3",
+    "publishedAt": 1772377147814,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772370858189,
+      "commit": "https://github.com/openclaw/skills/commit/7ab9a0d6dbb22b532d46741c7768fc31f67ce54f"
+    }
+  ]
 }

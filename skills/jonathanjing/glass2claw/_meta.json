@@ -3,11 +3,16 @@
   "slug": "glass2claw",
   "displayName": "glass2claw",
   "latest": {
-    "version": "2.3.1",
-    "publishedAt": 1772253423198,
-    "commit": "https://github.com/openclaw/skills/commit/7f22f752e520a8e6c6ca44edbcb4d2a779b54895"
+    "version": "2.3.3",
+    "publishedAt": 1772586362824,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.1",
+      "publishedAt": 1772253423198,
+      "commit": "https://github.com/openclaw/skills/commit/7f22f752e520a8e6c6ca44edbcb4d2a779b54895"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1772253399697,

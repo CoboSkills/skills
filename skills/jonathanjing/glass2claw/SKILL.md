@@ -1,6 +1,7 @@
 ---
 name: glass2claw
 description: "Ray-Ban glasses → voice command → WhatsApp → OpenClaw auto-routes your photo into the right database. Hands-free life logging."
+version: "2.3.3"
 metadata:
   {
     "openclaw":
@@ -12,6 +13,17 @@ metadata:
 ---
 
 # glass2claw: From Your Eyes to Your Database — Instantly
+
+## 🛠️ Installation
+
+### 1. Ask OpenClaw (Recommended)
+Tell OpenClaw: *"Install the glass2claw skill."* The agent will handle the installation and configuration automatically.
+
+### 2. Manual Installation (CLI)
+If you prefer the terminal, run:
+```bash
+clawhub install glass2claw
+```
 
 You're wearing your **Meta Ray-Ban glasses**. You see a wine label, a business card, a tea tin. You say:
 

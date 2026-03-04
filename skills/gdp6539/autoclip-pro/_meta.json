@@ -1,11 +1,17 @@
 {
   "owner": "gdp6539",
   "slug": "autoclip-pro",
-  "displayName": "AutoClip Pro - 视频批量处理技能包",
+  "displayName": "AutoClip Pro",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772458982605,
-    "commit": "https://github.com/openclaw/skills/commit/82c0853ddd864e05ad674879d0c2312f5e41059a"
+    "version": "1.0.1",
+    "publishedAt": 1772598373503,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772458982605,
+      "commit": "https://github.com/openclaw/skills/commit/82c0853ddd864e05ad674879d0c2312f5e41059a"
+    }
+  ]
 }

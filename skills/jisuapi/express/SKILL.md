@@ -116,7 +116,7 @@ python3 skills/express/express.py type
 
 ## 常见错误码
 
-来自 [官方快递文档](https://www.jisuapi.com/api/express) 的业务错误码：
+来自 [极速数据快递文档](https://www.jisuapi.com/api/express) 的业务错误码：
 
 | 代号 | 说明                 |
 |------|----------------------|

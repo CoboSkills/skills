@@ -1,13 +1,18 @@
 {
   "owner": "ivangdavila",
   "slug": "image-generation",
-  "displayName": "Image Generation",
+  "displayName": "AI Image Generation",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1771447797134,
-    "commit": "https://github.com/openclaw/skills/commit/f304dfe8e5b11371448d7cbdb2d0f0034f9c2003"
+    "version": "1.0.3",
+    "publishedAt": 1772451932596,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1771447797134,
+      "commit": "https://github.com/openclaw/skills/commit/f304dfe8e5b11371448d7cbdb2d0f0034f9c2003"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1770860921673,

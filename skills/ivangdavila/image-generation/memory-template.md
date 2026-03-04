@@ -1,46 +1,39 @@
-# Memory Setup — Image Generation
+# Memory Template - Image Generation
 
-## Initial Setup
-
-Create directory on first use:
-```bash
-mkdir -p ~/image-generation
-touch ~/image-generation/memory.md
-```
-
-## memory.md Template
-
-Copy to `~/image-generation/memory.md`:
+Copy this into `~/image-generation/memory.md` on first use.
 
 ```markdown
 # Image Generation Memory
 
-## Provider
-<!-- Preferred provider. Format: "provider: status" -->
-<!-- Examples: midjourney: active subscription, dall-e: api configured -->
+## Status
+status: ongoing
+version: 1
+last: YYYY-MM-DD
+integration: workspace
 
-## Projects
-<!-- What they're creating. Format: "project: description" -->
-<!-- Examples: product shots: e-commerce catalog, book covers: fantasy series -->
+## Context
+- Preferred model families used recently
+- Typical output formats (social post, product hero, banner, icon set)
+- Quality vs speed preference observed from past requests
 
-## Preferences
-<!-- Settings that work. Format: "setting: value" -->
-<!-- Examples: style: cinematic lighting, resolution: 1024x1024 draft -->
+## Active Projects
+- Project name and current visual direction
+- Required consistency constraints (brand colors, character identity, aspect ratio)
 
----
-*Last updated: YYYY-MM-DD*
+## Working Recipes
+- Prompt snippets that produced reliable outcomes
+- Model routing rules that reduced retries
+
+## Legacy Mapping (Optional)
+- Previous Provider entries map to Context
+- Previous Projects entries map to Active Projects
+- Previous Preferences entries map to Working Recipes
+
+## Notes
+- Temporary experiments to revisit
+- Known failure patterns to avoid
 ```
 
-## Optional: history.md
+## Optional History File
 
-For users who want to track past generations:
-
-```markdown
-# Generation History
-
-## Recent
-<!-- Last 10 generations. Format: "date | prompt | provider | result" -->
-
-## Successful Prompts
-<!-- Prompts that worked well for reuse -->
-```
+Create `~/image-generation/history.md` only if the user wants a running log.

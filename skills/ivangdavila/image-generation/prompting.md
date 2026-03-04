@@ -1,139 +1,104 @@
-# Image Prompting Guide
+# Image Prompting Guide (2026)
 
-Techniques for writing effective image generation prompts.
+Use this format to get reliable outputs across GPT Image, Gemini image models, Imagen 4, and FLUX.
 
 ## Prompt Structure
 
-**Basic formula:**
 ```
-[Subject] + [Style] + [Lighting] + [Composition] + [Quality modifiers]
-```
-
-**Example:**
-```
-A red fox in a snowy forest, digital art style, golden hour lighting, 
-close-up portrait, highly detailed, 8k resolution
+[Objective]
+[Subject and constraints]
+[Style and camera language]
+[Exact text requirements]
+[What must stay unchanged]
 ```
 
-## Subject Description
+## Objective-First Template
 
-- Start with the main subject
-- Be specific: "a tabby cat" not "a cat"
-- Include pose/action: "sitting", "running", "looking at camera"
-- Describe clothing/accessories if relevant
-
-## Style Keywords
-
-**Art Styles:**
-- photorealistic, hyperrealistic
-- digital art, concept art
-- oil painting, watercolor
-- anime, manga style
-- 3D render, CGI
-
-**Photography Styles:**
-- portrait photography
-- street photography
-- product photography
-- macro photography
-- cinematic still
-
-**Artist References:**
-- "in the style of [artist]"
-- "inspired by Studio Ghibli"
-- "art nouveau style"
-
-## Lighting
-
-- golden hour, sunset lighting
-- studio lighting, soft box
-- dramatic lighting, chiaroscuro
-- neon lighting, cyberpunk
-- natural light, overcast
-- backlit, rim lighting
-
-## Composition
-
-- close-up, extreme close-up
-- full body shot
-- wide angle, panoramic
-- bird's eye view, top down
-- low angle, worm's eye view
-- rule of thirds
-
-## Quality Modifiers
-
-**Positive:**
-- highly detailed, intricate details
-- sharp focus, crisp
-- 8k, 4k resolution
-- professional photography
-- award winning
-
-**Avoid (often overused):**
-- "beautiful" (too vague)
-- "amazing" (doesn't help)
-- "perfect" (triggers nothing specific)
-
-## Negative Prompts
-
-Tell the model what to avoid:
-
-```
-Negative: blurry, low quality, distorted, disfigured, 
-bad anatomy, wrong proportions, watermark, signature,
-text, logo, ugly, duplicate, morbid, mutilated
+```text
+Goal: Create a launch poster for a coffee brand.
+Subject: Single cup on wooden table, early morning light.
+Style: Editorial product photography, clean composition.
+Exact text: "MORNING BREW" at top, "Now in store" subtitle.
+Keep unchanged: Cup shape and logo alignment.
 ```
 
-**Per-model support:**
-- Stable Diffusion: Full support
-- Midjourney: `--no [element]`
-- DALL-E: Not supported
-- Flux: Limited support
+## Model-Specific Prompting
 
-## Prompt Length
+### GPT Image
 
-| Model | Optimal Length |
-|-------|---------------|
-| DALL-E 3 | 20-100 words |
-| Midjourney | 20-60 words |
-| Stable Diffusion | 75-150 tokens |
-| Flux | Up to 512 tokens |
+- Works best with explicit structure and exact text strings
+- Add constraints in order of importance
+- For edits, write what to preserve and what to modify
 
-Longer isn't always better — be concise and specific.
+### Gemini Image (Nano Banana alias)
 
-## Weights & Emphasis
+- Best for iterative edits in conversation
+- Split changes step-by-step instead of one giant prompt
+- Re-anchor key invariants every turn: "keep subject identity and framing"
 
-**Stable Diffusion / ComfyUI:**
+### Imagen 4
+
+- Use concise descriptive prompts for fast batches
+- Keep style tokens stable across batch requests
+- Use Ultra for final pass, Fast for ideation
+
+### FLUX / FLUX Kontext
+
+- Be explicit about scene geometry and material details
+- For Kontext edits, include preservation constraints first
+- Keep one dominant style direction to avoid drift
+
+## Style and Camera Keyword Bank
+
+- Lighting: golden hour, studio softbox, rim light, overcast daylight
+- Photography: macro shot, cinematic still, portrait photography, product hero shot
+- Composition: close-up, wide angle, top-down, rule of thirds
+- Texture: matte finish, glossy reflections, brushed metal, film grain
+
+## Text-in-Image Pattern
+
+```text
+Exact text: "SUMMER DROP"
+Typography: bold geometric sans serif, all caps
+Placement: centered top third
+Legibility constraints: high contrast, no decorative distortion
 ```
-(important element:1.5)  # More weight
-[less important:0.5]     # Less weight
+
+## Editing Pattern
+
+```text
+Edit request:
+- Change: Replace background with modern office interior
+- Keep: Person identity, face, clothing, camera angle
+- Avoid: Extra objects, text overlays, heavy color shift
 ```
 
-**Midjourney:**
+## Iteration Loop
+
+1. Generate 2-4 low-cost drafts
+2. Score each draft against one goal only
+3. Keep best draft and run one focused edit
+4. Final render at higher tier
+
+## Negative Constraint Pattern
+
+Use explicit exclusion constraints when models drift:
+
+```text
+Avoid: watermark, extra text, duplicated limbs, oversaturated colors, logo distortions
 ```
-element:: 2  # Double weight
-```
 
-## Seeds for Consistency
+Support varies by provider, so validate per model.
 
-Lock the seed to reproduce results:
-- Same seed + same prompt = same image
-- Useful for character consistency
-- Change seed to explore variations
+## Consistency Controls
 
-## Iterative Refinement
+- Reuse aspect ratio and framing terms across revisions
+- Keep seed fixed when the provider supports seeds
+- Preserve one canonical prompt scaffold for a project
 
-1. Start with simple prompt
-2. Generate, evaluate
-3. Add specificity where needed
-4. Remove elements that don't help
-5. Repeat until satisfied
+## Common Failures
 
-## Common Mistakes
-
-- **Too vague:** "a nice picture" → "a serene lake at sunset, reflection"
-- **Too long:** Models ignore later tokens
-- **Conflicting styles:** "realistic anime" confuses models
-- **Missing context:** "a person" → "a young woman with red hair, wearing..."
-- **Overloading:** Too many concepts compete for attention
+- Too many artistic styles in one prompt
+- Missing preservation constraints in edits
+- No exact text specification for typography tasks
+- Requesting final quality before validating composition

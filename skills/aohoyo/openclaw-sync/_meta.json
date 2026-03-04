@@ -1,0 +1,11 @@
+{
+  "owner": "aohoyo",
+  "slug": "openclaw-sync",
+  "displayName": "OpenClaw 数据同步",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772466738203,
+    "commit": null
+  },
+  "history": []
+}

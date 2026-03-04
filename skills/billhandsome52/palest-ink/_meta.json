@@ -1,11 +1,17 @@
 {
   "owner": "billhandsome52",
   "slug": "palest-ink",
-  "displayName": "Palest Ink - Activity Recorder",
+  "displayName": "Palest Ink - Activity Tracker",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772502125574,
-    "commit": "https://github.com/openclaw/skills/commit/596b87c122f43a85b0583468f7932cd2d6d7ee34"
+    "version": "0.1.0",
+    "publishedAt": 1772605191857,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772502125574,
+      "commit": "https://github.com/openclaw/skills/commit/596b87c122f43a85b0583468f7932cd2d6d7ee34"
+    }
+  ]
 }

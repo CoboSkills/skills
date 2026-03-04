@@ -1,263 +1,158 @@
 ---
 name: palest-ink
-description: Record and query user activities (git operations, web browsing, commands, etc.) with automatic storage, daily report generation, and flexible search capabilities. Use when: (1) recording daily activities for later reference, (2) generating daily/weekly activity reports, (3) searching historical records by type, keywords, or tags, (4) tracking what work was done on specific topics (plugins, features, etc.), (5) understanding productivity patterns or reviewing past work.
+description: >
+  Track and recall your daily activities including git commits, web browsing,
+  shell commands, and VS Code edits. Use this skill whenever the user asks about
+  their recent activity, wants a daily report or summary, asks "what did I do
+  today/yesterday/this week", wants to find a specific commit or webpage they
+  visited, asks about browsing history, needs to recall any past work activity,
+  or queries about specific content they viewed online. Also trigger when the
+  user mentions palest-ink, activity tracking, daily log, work journal, daily
+  report, or activity summary. Trigger for questions like "which website had
+  info about X", "when did I commit the code for Y", "show my git activity".
+tools: Read, Glob, Grep, Bash
 ---
 
-# Palest Ink
+# Palest Ink (淡墨) — Activity Tracker & Daily Reporter
+
+> 好记性不如烂笔头 — The faintest ink is better than the strongest memory.
 
 ## Overview
 
-Palest Ink automatically records and indexes user activities, making it easy to review daily work, search for specific operations, and generate activity reports. Think of it as an intelligent activity journal that helps you track what you've done, when you did it, and what was accomplished.
+Palest Ink tracks the user's daily activities automatically:
+- **Git operations**: commits, pushes, pulls, branch switches
+- **Web browsing**: Chrome & Safari history with page content summaries
+- **Shell commands**: zsh/bash command history with execution duration
+- **VS Code edits**: recently opened/edited files
+- **App focus**: which application is in the foreground, with time duration
+- **File changes**: files modified in watched directories
 
-## Quick Start
+All data is stored locally at `~/.palest-ink/data/YYYY/MM/DD.jsonl`.
 
-Palest Ink stores all data in `~/.palest-ink/` with the following structure:
+## Setup Check
 
-```
-~/.palest-ink/
-├── records.json          # All activity records
-├── daily_reports/        # Generated daily reports
-└── config.json           # Configuration (tags, categories, etc.)
-```
+Before answering any query, first check if Palest Ink is installed:
 
-### First Time Setup
-
-1. Initialize storage directory (automatic on first record)
-2. Record activities using the CLI
-3. Generate reports or query records as needed
-
-## Core Capabilities
-
-### 1. Recording Activities
-
-Record different types of activities:
-
-**Git Operations**
 ```bash
-# Record a git commit
-palest-ink record git --message "Fix authentication bug" --repo my-app --commit abc123 --tags bugfix,auth
-
-# Record a merge or PR work
-palest-ink record git --message "Merge feature/user-profile" --repo my-app --pr 156 --tags feature,merge
+test -f ~/.palest-ink/config.json && echo "INSTALLED" || echo "NOT_INSTALLED"
 ```
 
-**Web Browsing**
+If NOT installed, tell the user:
+> Palest Ink is not yet set up. To install, run:
+> ```bash
+> bash <SKILL_PATH>/../../collectors/install.sh
+> ```
+> This will set up automatic tracking of git, browsing, and shell activity.
+
+Then stop and wait for the user to install.
+
+## Answering Queries
+
+### Daily Report / "What did I do today?"
+
+Run the report generator:
+
 ```bash
-# Record visiting a webpage
-palest-ink record web --url "https://example.com/docs/api" --title "API Documentation" --tags docs,reference
+python3 <SKILL_PATH>/scripts/report.py --date today
 ```
 
-**Command/Task**
+For yesterday: `--date yesterday`
+For a specific date: `--date 2026-03-03`
+For the whole week: `--week`
+
+Read the output and present it conversationally to the user. Highlight notable patterns
+(focused work sessions, frequent topics, etc).
+
+### Searching for Specific Activities
+
+Use the query tool to search activity records:
+
 ```bash
-# Record a command or task
-palest-ink record task --command "npm install package-name" --desc "Install dependencies" --tags setup
+python3 <SKILL_PATH>/scripts/query.py --date today --type git_commit --search "plugin"
 ```
 
-**Custom Notes**
+**Common query patterns:**
+
+| User asks about... | Arguments |
+|---------------------|-----------|
+| A git commit | `--type git_commit --search "keyword"` |
+| A webpage about X | `--type web_visit --search-content "keyword"` |
+| Shell commands | `--type shell_command --search "keyword"` |
+| VS Code files | `--type vscode_edit --search "keyword"` |
+| App focus / screen time | `--type app_focus --summary` |
+| File changes in project | `--type file_change --search "project"` |
+| Everything today | `--date today --summary` |
+| Date range | `--from 2026-03-01 --to 2026-03-07` |
+
+**Important:** When the user searches for web page content (e.g., "which website talked about homebrew"),
+use `--search-content` instead of `--search`. This searches within page content summaries and keywords,
+not just URLs and titles.
+
+### Status Check
+
+Show collector status and data statistics:
+
 ```bash
-# Free-form note
-palest-ink record note --content "Discussed project timeline with team" --tags meeting
+python3 <SKILL_PATH>/scripts/status.py
 ```
 
-### 2. Querying Records
+If the output contains "CLEANUP RECOMMENDED", proactively tell the user:
+> "Your palest-ink data is approaching 2 GB. Would you like me to clean up older records?"
 
-Search through your activity history:
+If the user agrees, first show a dry-run preview:
 
-**By Type**
 ```bash
-# Find all git operations
-palest-ink query --type git
-
-# Find all web pages visited
-palest-ink query --type web
+python3 ~/.palest-ink/bin/cleanup.py --dry-run
 ```
 
-**By Keywords**
+Present the preview (how many files, date range, records count, space to free).
+Then ask for explicit confirmation before actually deleting:
+
 ```bash
-# Search for records containing "plugin"
-palest-ink query --keywords "plugin"
-
-# Search multiple keywords
-palest-ink query --keywords "plugin,authentication"
+python3 ~/.palest-ink/bin/cleanup.py --force
 ```
 
-**By Date Range**
-```bash
-# Today's activities
-palest-ink query --today
+Options:
+- `--max-size N` — threshold in GB (default: 2.0)
+- `--keep-days N` — always keep the most recent N days (default: 30)
+- `--dry-run` — preview only, no changes
+- `--force` — skip the interactive prompt (use after user confirms in chat)
 
-# Last 7 days
-palest-ink query --days 7
+## Fallback: Direct File Reading
 
-# Specific date range
-palest-ink query --from 2026-03-01 --to 2026-03-03
-```
+If scripts fail or for simple lookups, read the JSONL files directly:
 
-**By Tags**
-```bash
-# Records tagged "bugfix"
-palest-ink query --tags bugfix
+1. Construct the file path: `~/.palest-ink/data/YYYY/MM/DD.jsonl`
+2. Use Grep to search: `grep "keyword" ~/.palest-ink/data/2026/03/03.jsonl`
+3. Each line is a JSON object with fields: `ts`, `type`, `source`, `data`
 
-# Multiple tags (OR logic)
-palest-ink query --tags "bugfix,feature"
+## Data Schema
 
-# Require multiple tags (AND logic)
-palest-ink query --tags "bugfix" --tags "plugin"
-```
+### Activity Types
 
-**Combined Search**
-```bash
-# Git commits mentioning "plugin" in last 7 days
-palest-ink query --type git --keywords "plugin" --days 7
+- `git_commit` — data: repo, branch, hash, message, files_changed, insertions, deletions
+- `git_push` — data: repo, branch, remote, remote_url
+- `git_pull` — data: repo, branch, is_squash
+- `git_checkout` — data: repo, from_ref, to_branch
+- `web_visit` — data: url, title, visit_duration_seconds, browser, content_summary, content_keywords
+- `shell_command` — data: command, duration_seconds (null if not available)
+- `vscode_edit` — data: file_path, workspace, language
+- `app_focus` — data: app_name, window_title, duration_seconds
+- `file_change` — data: path, workspace, language, event
 
-# Web pages about documentation from yesterday
-palest-ink query --type web --tags docs --days 1
-```
+### Web Visit Content
 
-### 3. Generating Reports
+Web visits include a `content_summary` field (up to 800 chars of page text) and
+`content_keywords` (extracted keywords). This enables content-based search.
 
-Generate daily or periodic reports:
+Example: if user browsed a page about "Homebrew installation guide", the content_summary
+will contain the actual page text, making it searchable even if the URL/title don't mention it.
 
-**Daily Report**
-```bash
-# Generate report for today
-palest-ink report --day today
+## Tips for Good Answers
 
-# Generate report for specific date
-palest-ink report --day 2026-03-03
-
-# Save report to file
-palest-ink report --day today --output ~/Desktop/report.md
-```
-
-**Weekly Summary**
-```bash
-# Last 7 days summary
-palest-ink report --week
-
-# Custom range summary
-palest-ink report --from 2026-03-01 --to 2026-03-07 --output weekly.md
-```
-
-**Report Sections**
-Reports include:
-- Git operations (commits, merges, PRs)
-- Web pages visited
-- Commands/tasks executed
-- Notes captured
-- Tag-based groupings
-- Time distribution by category
-
-## Usage Examples
-
-**Example 1: Track plugin development**
-```bash
-# Record git work
-palest-ink record git --message "Add plugin system" --repo my-app --tags plugin,feature
-palest-ink record git --message "Fix plugin loading bug" --repo my-app --tags plugin,bugfix
-
-# Query all plugin-related work
-palest-ink query --keywords plugin --type git
-```
-
-**Example 2: Find documentation you referenced**
-```bash
-# Record web visits
-palest-ink record web --url "https://docs.example.com" --title "API Docs" --tags docs
-palest-ink record web --url "https://github.com/example/repo" --title "Repo" --tags reference
-
-# Later, find all documentation visits
-palest-ink query --type web --tags docs
-```
-
-**Example 3: Generate daily work summary**
-```bash
-# Throughout the day, record activities
-palest-ink record git --message "Refactor auth module" --repo my-app --tags refactoring
-palest-ink record task --command "pytest tests/" --desc "Run tests" --tags testing
-
-# End of day, generate report
-palest-ink report --day today --output ~/daily_report.md
-```
-
-## Advanced Features
-
-### Tag Management
-
-Define frequently-used tags in `~/.palest-ink/config.json`:
-
-```json
-{
-  "tags": {
-    "categories": ["bugfix", "feature", "refactoring", "docs", "testing"],
-    "projects": ["my-app", "other-project"],
-    "custom": []
-  }
-}
-```
-
-### Automatic Capture
-
-For frequent operations, consider shell aliases or git hooks:
-
-**Git post-commit hook example**
-```bash
-#!/bin/bash
-# .git/hooks/post-commit
-COMMIT_MSG=$(git log -1 --pretty=%B)
-palest-ink record git --message "$COMMIT_MSG" --repo $(basename $(git rev-parse --show-toplevel)) --commit $(git rev-parse HEAD)
-```
-
-**Browser bookmarklet (manual)**
-```javascript
-// Bookmarklet to record current page
-javascript:(function(){window.open('palest-ink://record/web?url='+encodeURIComponent(location.href)+'&title='+encodeURIComponent(document.title))})();
-```
-
-## Best Practices
-
-1. **Record immediately** - Capture activities as they happen, not retroactively
-2. **Use descriptive tags** - Tags make searching much more effective
-3. **Include context** - Add repo names, commit hashes, or full URLs
-4. **Regular reports** - Generate weekly reports to track progress
-5. **Review and prune** - Periodically clean up old or irrelevant records
-
-## Troubleshooting
-
-**Storage location not found?**
-- First record automatically creates `~/.palest-ink/`
-- Manually create: `mkdir -p ~/.palest-ink/daily_reports`
-
-**Query returns no results?**
-- Check date range with `--days` or specific dates
-- Try broader keywords
-- Use `--list-tags` to see all available tags
-
-**Report generation fails?**
-- Ensure `records.json` exists and is valid JSON
-- Check output directory permissions
-- Try with `--day today` for simplicity
-
-## Resources
-
-### scripts/
-
-- **`palest-ink`** - Main CLI entry point (shell script)
-  - Handles record, query, report subcommands
-  - Manages JSON storage
-  - Formats output
-
-- **`record.py`** - Recording backend (Python)
-  - Validates record formats
-  - Updates `records.json`
-  - Handles timestamps and IDs
-
-- **`query.py`** - Search backend (Python)
-  - Implements search logic
-  - Supports filters (type, tags, date, keywords)
-  - Returns structured results
-
-- **`report.py`** - Report generator (Python)
-  - Generates markdown reports
-  - Groups by category and time
-  - Calculates statistics
+1. When showing git activity, include the commit message and changed files
+2. When showing web visits, include both the title and a brief content summary
+3. For "what did I do" questions, give a narrative summary, not just raw data
+4. Group related activities together (e.g., "You worked on project X, making 5 commits...")
+5. If the search returns too many results, help the user narrow down
+6. Mention the time of activities to give temporal context

@@ -1,6 +1,6 @@
 ---
 name: frontend-slides
-description: Create stunning, animation-rich HTML presentations from scratch or by converting PowerPoint files. Use when the user wants to build a presentation, convert a PPT/PPTX to web, create solution decks (解决方案PPT), presales/sales pitch, or client proposal. Ideal for sales and presales teams making solution presentations. Helps non-designers discover their aesthetic through visual exploration rather than abstract choices.
+description: Create stunning, animation-rich HTML presentations from scratch or by converting PowerPoint files. Use for solution decks, presales/sales pitches, client proposals, pitch decks, teaching tutorials, conference talks, and internal presentations. Ideal for sales and presales teams. Helps non-designers discover their aesthetic through visual exploration rather than abstract choices.
 ---
 
 # Frontend Slides Skill
@@ -9,13 +9,177 @@ Create zero-dependency, animation-rich HTML presentations that run entirely in t
 
 **Reference files:** When generating CSS, image processing, PPT extraction, HTML structure, edit button, or animation code, read the corresponding file under `reference/` (and STYLE_PRESETS.md for presets and CSS Gotchas) so output is correct and complete.
 
-## Core Philosophy
+---
 
-1. **Zero Dependencies** — Single HTML files with inline CSS/JS. No npm, no build tools.
-2. **Show, Don't Tell** — Generate visual previews so users pick what they like, not abstract choices.
-3. **Distinctive Design** — Avoid generic "AI slop" aesthetics. Every presentation should feel custom-crafted.
-4. **Production Quality** — Well-commented, accessible, performant code.
-5. **Viewport Fitting (CRITICAL)** — Every slide MUST fit exactly within the viewport. No scrolling within slides, ever.
+## 🧠 Core Design Philosophy
+
+### 1. Visual Style & Material
+
+**Principle**: Form follows function. All visual decisions (color, layout, material) must serve the user's mental model and business goals.
+
+| Style Position | Use Cases | Core Characteristics |
+|---|---|---|
+| **Future & Depth** | Frontier exploration, tech product launches | Frosted glass + dark mode, halos and transparency for layering |
+| **Efficiency & Speed** | Professional tools, data dashboards | Clean flat style + Bento UI, clear boundaries, modular |
+| **Trust & Professional** | Finance, formal presentations, enterprise solutions | Swiss minimalism, generous whitespace, relies on typography and strict grids |
+| **Care & Resonance** | Humanities, lifestyle, brand stories | Low-saturation natural colors + extreme rounding, ultra-soft diffuse shadows |
+| **Immersion & Expression** | Entertainment, narrative, creative showcases | Skeuomorphic materials + high-contrast emotional colors, breaks conventional grids |
+
+**Style Selection Rules:**
+- Solution deck / presales proposal → Trust & Professional (Swiss Modern) or Efficiency & Speed (Bento UI)
+- Product launch / tech showcase → Future & Depth (Dark Botanical / Electric Studio)
+- Brand story / humanities content → Care & Resonance (Pastel Geometry / Vintage Editorial)
+- Creative proposal / marketing campaign → Immersion & Expression (Neon Cyber / Creative Voltage)
+
+### 2. Spatial & Typography Organization
+
+- **Density Hierarchy**: Density is inversely proportional to importance. Core focus areas need low density / large margins. Data lists need high density / small margins.
+- **Typography System**:
+  - Prefer modern sans-serif fonts (Clash Display, Satoshi, DM Sans)
+  - Establish significant **weight** and **size** contrast between headings and body
+  - Body line-height: `leading-[1.5]` or `leading-[1.6]` for visual breathability
+- **Font Size Constraints**:
+  - Minimum readable size: `12px` (annotations only)
+  - Standard body: `14px/16px`
+  - Headings use `clamp()` for responsive scaling
+
+### 3. Affordance & Resilience
+
+Although the output is static HTML, when handling multiple similar components (lists, navigation, card groups), **you must hardcode and render different interaction states within the same container** to exhaustively show the component's full lifecycle.
+
+- **⚠️ Warning**: Do not rely solely on Tailwind's `hover:` pseudo-class for interactions. You must directly change the base class of specific items to make states **simultaneously visible** in static screenshots!
+- **Example**: In a card group, first card uses default state, second card uses `bg-white/10` to simulate hover state, third card uses `border-cyan-400` to simulate selected state
+
+### 4. System Integrity Constraints
+
+**All design decisions must map to the following limited variable set (no odd numbers, decimals, or random values allowed):**
+
+| System | Constraints |
+|---|---|
+| **Color System** | Primary color defines brand; **complementary color** for strong guidance; **analogous colors** for soft guidance. No arbitrary colors |
+| **Spatial Spacing (8-Point Grid)** | Spacing and padding limited to: `8` / `12` / `16` / `20` / `24` / `32` / `40` (strictly apply to gap and padding) |
+| **Corner Radius** | Choose based on style, default starts at `rounded-[12px]`. Care style can use `rounded-[24px]` or `rounded-full` |
+| **Size Minimums** | Minimum click hotspot `44px`; minimum readable size `12px`; standard body `14px/16px` |
+| **Shadow Control** | Must use diffuse lighting like `shadow-[0_10px_30px_rgba(0,0,0,0.08)]`, no harsh shadows |
+
+---
+
+### 5. 🌀 Emerging Design Trends 2026
+
+Integrate the following four trends organically into presentation design. Select 1-2 dominant trends based on content theme.
+
+#### Trend 1: Ghostly Agency
+**Core**: Agentic UX — The interface acts like a translucent butler, preparing everything before the user asks
+
+| Design Strategy | Implementation | Use Cases |
+|---|---|---|
+| **Predictive Presence** | Progressive content reveal (`.reveal` animations trigger in stages) | AI products, automation services, intelligent assistants |
+| **Invisible Butler** | Translucent elements + subtle floating animations (`opacity: 0.6~0.8`, `animation: float 3s ease-in-out`) | Backend systems, data dashboards, settings interfaces |
+| **Intent Visualization** | Use halos/particles to suggest "thinking" (`box-shadow` pulse animations) | AI-generated content, smart recommendations |
+
+**CSS Prompt Examples:**
+```css
+/* Ghostly Float */
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.ghostly-card { background: rgba(255,255,255,0.06); backdrop-filter: blur(12px); animation: float 4s ease-in-out infinite; }
+
+/* Predictive Halo */
+@keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(0,212,255,0.3); } 50% { box-shadow: 0 0 40px rgba(0,212,255,0.6); } }
+.agentic-hint { animation: pulse-glow 2s ease-in-out infinite; }
+```
+
+---
+
+#### 趋势二：粗砺真实 (The Grain of Truth)
+**核心**：Imperfect & Organic — 反秩序审美，有瑕疵的真实感
+
+| 设计策略 | 实现方式 | 适用场景 |
+|---|---|---|
+| **数字褶皱** | SVG 噪点纹理叠加 (`background-image: url("data:image/svg+xml,...")` 含 `<feTurbulence>`) | 创意品牌、独立工作室、手作品牌 |
+| **有机排版** | 轻微旋转 (`transform: rotate(-1deg~2deg)`), 非严格对齐 | 艺术展览、音乐活动、个人作品集 |
+| **触觉质感** | 颗粒感背景 + 不规则边框 (`border-radius: 48% 52% 50% 50% / 50% 48% 52% 50%`) | 生活方式、食品、时尚 |
+
+**CSS Prompt Examples:**
+```css
+/* Grain Texture Background */
+.grain-overlay { background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E"); }
+
+/* Organic Shape */
+.organic-shape { border-radius: 48% 52% 50% 50% / 50% 48% 52% 50%; transform: rotate(-1.5deg); }
+```
+
+---
+
+#### Trend 3: Liminal Multimodality
+**Core**: Multimodal Seamlessness — Experience flows between voice, gesture, eye tracking, and touch
+
+| Design Strategy | Implementation | Use Cases |
+|---|---|---|
+| **Sensory Flow** | Wave animations suggest voice interaction (`animation: wave 1.5s ease-in-out`) | Voice assistants, podcasts, audio products |
+| **Spatial Hints** | 3D perspective + parallax scroll hints (`perspective: 1000px; transform: translateZ()`) | AR/VR, spatial computing, metaverse |
+| **Multimodal Icons** | Visual elements of sound waves, gesture outlines, eye tracking paths | Cross-device experiences, seamless collaboration tools |
+
+**CSS Prompt Examples:**
+```css
+/* Voice Wave */
+@keyframes wave { 0%, 100% { height: 8px; } 50% { height: 24px; } }
+.voice-wave span { display: inline-block; width: 4px; background: #00d4ff; animation: wave 1s ease-in-out infinite; }
+.voice-wave span:nth-child(2) { animation-delay: 0.1s; }
+.voice-wave span:nth-child(3) { animation-delay: 0.2s; }
+
+/* Spatial Perspective */
+.liminal-space { perspective: 1000px; transform-style: preserve-3d; }
+.depth-layer { transform: translateZ(50px); }
+```
+
+---
+
+#### Trend 4: Emotional Sovereignty
+**Core**: Hyper-Personalized Ethical — Design for "resonance" rather than "retention"
+
+| Design Strategy | Implementation | Use Cases |
+|---|---|---|
+| **Transparent Explanation** | "Why this recommendation" tooltip (`data-explanation` shows on hover) | Healthcare, education, finance, AI recommendations |
+| **User Confirmation** | Clear "Accept/Reject" options, not default checkboxes | Privacy settings, data collection, personalization options |
+| **Personalized Visuals** | Dynamic color adjustment based on content theme (`--user-theme` CSS variables) | Personal dashboards, learning platforms, health apps |
+
+**CSS Prompt Examples:**
+```css
+/* Explanatory Hint */
+.explainable-ui { position: relative; }
+.explainable-ui::after {
+  content: attr(data-explanation);
+  position: absolute; bottom: 100%; left: 0;
+  background: rgba(0,0,0,0.9); color: #fff;
+  padding: 8px 12px; border-radius: 8px;
+  font-size: 12px; max-width: 280px;
+  opacity: 0; transform: translateY(8px); transition: all 0.2s;
+}
+.explainable-ui:hover::after { opacity: 1; transform: translateY(0); }
+
+/* Personalized Theme Variables */
+:root { --user-primary: #00d4ff; --user-secondary: #7b2fff; --user-accent: #00ffa3; }
+.personalized-card { border-left: 4px solid var(--user-primary); }
+```
+
+---
+
+### Trend Application Decision Tree
+
+```
+User Need → Select Dominant Trends
+
+AI / Automation Products → Ghostly Agency + Emotional Sovereignty
+Creative / Art Content → Grain of Truth + Immersion & Expression
+Tech / Frontier Launches → Ghostly Agency + Liminal Multimodality
+Humanities / Lifestyle → Grain of Truth + Care & Resonance
+Enterprise / Professional → Emotional Sovereignty + Trust & Professional
+```
+
+**⚠️ Notes:**
+- Apply maximum **2 trends per presentation** to avoid visual chaos
+- Trends serve content — never use trends for trends' sake
+- Explain trend options to users during Style Discovery phase
 
 ---
 
@@ -81,7 +245,7 @@ When purpose is **solution deck / 解决方案汇报 / 售前方案 / 投标演�
 
 Ask these five in one form (AskUserQuestion) or in sequence:
 
-1. **Purpose:** What is this presentation for? — Solution deck (解决方案PPT) | Pitch deck | Teaching/Tutorial | Conference talk | Internal presentation
+1. **Purpose:** What is this presentation for? — Solution deck (解决方案 PPT) | Pitch deck | Teaching/Tutorial | Conference talk | Internal presentation
 2. **Length:** Approximately how many slides? — Short (5–10) | Medium (10–20) | Long (20+)
 3. **Content:** Do you have content ready or need help? — I have all content ready | I have rough notes | I have topic only
 4. **Images:** No images | ./assets | Other (let user type/paste folder path, e.g. ~/Desktop/screenshots)

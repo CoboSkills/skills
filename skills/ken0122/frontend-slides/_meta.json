@@ -3,9 +3,15 @@
   "slug": "frontend-slides",
   "displayName": "Frontend Slides",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772365651883,
-    "commit": "https://github.com/openclaw/skills/commit/4262ab4d507974978df4d414c9706e518d276331"
+    "version": "2.0.1",
+    "publishedAt": 1772534164815,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772365651883,
+      "commit": "https://github.com/openclaw/skills/commit/4262ab4d507974978df4d414c9706e518d276331"
+    }
+  ]
 }

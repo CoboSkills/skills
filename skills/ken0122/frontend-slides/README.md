@@ -1,6 +1,6 @@
 # Frontend Slides
 
-A skill for creating stunning, animation-rich HTML presentations — from scratch or by converting PowerPoint files. **面向销售与售前**：适合制作**解决方案 PPT、客户汇报、投标演示**（Solution deck / 售前方案）。
+A skill for creating stunning, animation-rich HTML presentations - from scratch or by converting PowerPoint files. **For Sales & Presales Teams**: Ideal for creating **solution decks, client presentations, and bid proposals**.
 
 ## What This Does
 
@@ -8,11 +8,11 @@ A skill for creating stunning, animation-rich HTML presentations — from scratc
 
 ### Key Features
 
-- **Zero Dependencies** — Single HTML files with inline CSS/JS. No npm, no build tools, no frameworks.
-- **Visual Style Discovery** — Can't articulate design preferences? No problem. Pick from generated visual previews.
-- **PPT Conversion** — Convert existing PowerPoint files to web, preserving all images and content.
-- **Anti-AI-Slop** — Curated distinctive styles that avoid generic AI aesthetics (bye-bye, purple gradients on white).
-- **Production Quality** — Accessible, responsive, well-commented code you can customize.
+- **Zero Dependencies** - Single HTML files with inline CSS/JS. No npm, no build tools, no frameworks.
+- **Visual Style Discovery** - Can't articulate design preferences? No problem. Pick from generated visual previews.
+- **PPT Conversion** - Convert existing PowerPoint files to web, preserving all images and content.
+- **Anti-AI-Slop** - Curated distinctive styles that avoid generic AI aesthetics (bye-bye, purple gradients on white).
+- **Production Quality** - Accessible, responsive, well-commented code you can customize.
 
 ## Installation
 
@@ -20,10 +20,10 @@ A skill for creating stunning, animation-rich HTML presentations — from scratc
 
 If you use [OpenClaw](https://docs.openclaw.ai/) or ClawHub:
 
-- **CLI (if skill is on ClawHub):**  
+- **CLI (if skill is on ClawHub):**
   `clawhub install frontend-slides`
-- **Manual:** Copy this repo (or `SKILL.md`, `STYLE_PRESETS.md`, and the `reference/` folder) into your OpenClaw workspace skills directory, e.g.  
-  `./skills/frontend-slides/`  
+- **Manual:** Copy this repo (or `SKILL.md`, `STYLE_PRESETS.md`, and the `reference/` folder) into your OpenClaw workspace skills directory, e.g.
+  `./skills/frontend-slides/`
   Then reload or restart the runtime.
 
 ### For Cursor Users
@@ -33,7 +33,7 @@ Place the skill in your project or user skills directory so the agent can load i
 - **Project skill:** `.cursor/skills/frontend-slides/` (copy this repo's `SKILL.md` and `STYLE_PRESETS.md` there)
 - **User skill:** see Cursor docs for user-level skills path
 
-Then trigger by describing what you need, e.g.: “用 frontend-slides 做一份解决方案 PPT” or “Create a solution deck with the frontend-slides skill”.
+Then trigger by describing what you need, e.g.: "Create a solution deck with the frontend-slides skill" or "Make a presales presentation".
 
 ### For Claude Code Users
 
@@ -90,20 +90,20 @@ The skill will:
 ## Included Styles
 
 ### Dark Themes
-- **Neon Cyber** — Futuristic, techy, particle effects
-- **Midnight Executive** — Premium, corporate, trustworthy
-- **Deep Space** — Cinematic, inspiring, vast
-- **Terminal Green** — Developer-focused, hacker aesthetic
+- **Neon Cyber** - Futuristic, techy, particle effects
+- **Midnight Executive** - Premium, corporate, trustworthy
+- **Deep Space** - Cinematic, inspiring, vast
+- **Terminal Green** - Developer-focused, hacker aesthetic
 
 ### Light Themes
-- **Paper & Ink** — Editorial, literary, refined
-- **Swiss Modern** — Clean, Bauhaus-inspired, geometric
-- **Soft Pastel** — Friendly, playful, creative
-- **Warm Editorial** — Magazine-style, photographic
+- **Paper & Ink** - Editorial, literary, refined
+- **Swiss Modern** - Clean, Bauhaus-inspired, geometric
+- **Soft Pastel** - Friendly, playful, creative
+- **Warm Editorial** - Magazine-style, photographic
 
 ### Specialty
-- **Brutalist** — Raw, bold, attention-grabbing
-- **Gradient Wave** — Modern SaaS aesthetic
+- **Brutalist** - Raw, bold, attention-grabbing
+- **Gradient Wave** - Modern SaaS aesthetic
 
 ## Output Example
 
@@ -171,8 +171,8 @@ This skill was born from the belief that:
 
 Created by [@zarazhangrui](https://github.com/zarazhangrui) with Claude Code.
 
-Inspired by the "Vibe Coding" philosophy — building beautiful things without being a traditional software engineer.
+Inspired by the "Vibe Coding" philosophy - building beautiful things without being a traditional software engineer.
 
 ## License
 
-MIT — Use it, modify it, share it.
+MIT - Use it, modify it, share it.

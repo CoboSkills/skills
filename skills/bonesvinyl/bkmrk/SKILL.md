@@ -46,6 +46,7 @@ X-API-Key: {BKMRK_API_KEY}
 ```
 
 All query parameters are optional:
+- `bookmark_id` — Fetch a specific bookmark by UUID (use to check status after submit)
 - `status` — Filter by card status: `new`, `staged`, `done`, `trashed`
 - `project_id` — Filter by project UUID
 - `min_score` — Minimum relevance score (e.g. `7`)
@@ -127,9 +128,15 @@ X-API-Key: {BKMRK_API_KEY}
   "name": "My Project",
   "description": "What this project does",
   "tech_stack": ["React", "Node.js"],
-  "focus_areas": ["performance", "auth"]
+  "focus_areas": ["performance", "auth"],
+  "analysis_persona": "You are a senior React developer focused on performance optimization and server components.",
+  "scoring_bias": "Prioritize: React Server Components, streaming SSR, bundle optimization. Deprioritize: Vue, Angular, jQuery."
 }
 ```
+
+Optional persona fields:
+- `analysis_persona` — A role description injected into Claude's system prompt when analyzing bookmarks against this project. Makes analysis domain-aware rather than generic. Example: "You are a senior iOS developer focused on SwiftUI patterns, performance optimization, and Claude AI integration for music apps."
+- `scoring_bias` — What topics to weight highly or deprioritize for this project. Example: "Prioritize: SwiftUI, barcode scanning, vinyl/music, AI agents, Claude skills. Deprioritize: web frameworks, marketing tools."
 
 **Update a project:**
 ```
@@ -140,7 +147,9 @@ X-API-Key: {BKMRK_API_KEY}
 {
   "id": "<project-uuid>",
   "description": "Updated description",
-  "tech_stack": ["React", "Next.js"]
+  "tech_stack": ["React", "Next.js"],
+  "analysis_persona": "You are a full-stack Next.js engineer...",
+  "scoring_bias": "Prioritize: App Router, Server Actions, edge runtime."
 }
 ```
 
@@ -193,7 +202,7 @@ Supported URL types:
 
 Optionally include `"project_ids": ["<uuid>"]` to analyze against specific projects. Returns 202 with `bookmark_id` and `job_id`. Results appear in 1-2 minutes.
 
-Limits: Free 5/month, Pro 50/month, Scale 200/month.
+Submissions count towards your monthly bookmark cap (Pro 200/month, Scale 500/month). Requires a paid plan.
 
 ### Create Account (Onboarding)
 
@@ -229,9 +238,10 @@ Returns an API key immediately. No OAuth needed.
 2. `POST /api/status` with batch `"status": "trashed"` — clear them out
 
 ### Submit and verify
-1. `POST /api/agent/submit` with a URL — submit for analysis
-2. Wait 1-2 minutes
-3. `POST /api/agent/query` with `{"q": "hostname"}` — verify it was analyzed
+1. `POST /api/agent/submit` with a URL — returns `bookmark_id`
+2. `GET /api/agent/library?bookmark_id=<uuid>` — check status
+   - If `"status": "processing"` → analysis still running, wait 30-60s and retry
+   - If `items` array has results → analysis complete, show the user the score, explanation, and action
 
 ## Full API Documentation
 

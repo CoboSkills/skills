@@ -1,12 +1,12 @@
 ---
 name: agent-bom
 description: >-
-  AI supply chain security scanner — check packages for CVEs, look up MCP servers
-  in the 427+ server threat registry, assess blast radius, generate SBOMs, enforce
+  AI agent infrastructure security scanner — check packages for CVEs, look up MCP servers
+  in the 427+ server security metadata registry, assess blast radius, generate SBOMs, enforce
   compliance (OWASP, MITRE ATLAS, EU AI Act, NIST AI RMF). Use when the user
   mentions vulnerability scanning, dependency security, SBOM generation, MCP server
   trust, or AI supply chain risk.
-version: 0.38.1
+version: 0.55.0
 license: Apache-2.0
 compatibility: >-
   Requires Python 3.11+. Install via pipx or pip. Optional: Docker for container
@@ -18,12 +18,25 @@ metadata:
   pypi: https://pypi.org/project/agent-bom/
   smithery: https://smithery.ai/server/agent-bom/agent-bom
   scorecard: https://securityscorecards.dev/viewer/?uri=github.com/msaad00/agent-bom
-  tests: 2099
+  tests: 3056
+  install:
+    pipx: agent-bom
+    pip: agent-bom
+    docker: ghcr.io/msaad00/agent-bom:0.55.0
   openclaw:
     requires:
       bins: []
       env: []
-    optional_env: []
+    optional_env:
+      - NVD_API_KEY
+      - SNYK_TOKEN
+      - AGENT_BOM_CLICKHOUSE_URL
+    optional_bins:
+      - syft
+      - grype
+      - kubectl
+      - semgrep
+      - docker
     emoji: "\U0001F6E1"
     homepage: https://github.com/msaad00/agent-bom
     source: https://github.com/msaad00/agent-bom
@@ -32,11 +45,33 @@ metadata:
       - darwin
       - linux
       - windows
-    file_reads: []
+    file_reads:
+      - "~/.cursor/mcp.json"
+      - "~/Library/Application Support/Claude/claude_desktop_config.json"
+      - "~/.claude/settings.json"
+      - "~/.windsurf/mcp.json"
+      - "~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json"
+      - "user-provided SBOM files (CycloneDX/SPDX JSON)"
+      - "user-provided SKILL.md files (for skill_trust analysis)"
     file_writes: []
     network_endpoints:
-      - url: "https://trustworthy-solace-production-14a6.up.railway.app/sse"
-        purpose: "Optional remote MCP endpoint — queries public vulnerability databases (OSV, NVD, EPSS, KEV) and the bundled registry. Local-first scanning recommended."
+      - url: "https://api.osv.dev/v1"
+        purpose: "OSV vulnerability database — batch CVE lookup for packages"
+        auth: false
+      - url: "https://services.nvd.nist.gov/rest/json/cves/2.0"
+        purpose: "NVD CVSS v4 enrichment — optional API key increases rate limit"
+        auth: false
+      - url: "https://api.first.org/data/v1/epss"
+        purpose: "EPSS exploit probability scores"
+        auth: false
+      - url: "https://api.deps.dev/v3alpha"
+        purpose: "Google deps.dev — transitive dependency resolution and license enrichment"
+        auth: false
+      - url: "https://api.snyk.io"
+        purpose: "Snyk vulnerability enrichment (requires SNYK_TOKEN)"
+        auth: true
+      - url: "https://agent-bom-mcp.up.railway.app/sse"
+        purpose: "Optional remote MCP endpoint — local-first scanning recommended"
         auth: false
     telemetry: false
     persistence: false
@@ -57,7 +92,7 @@ databases (OSV, NVD, EPSS, KEV) are queried directly from your machine.
 
 ```bash
 pipx install agent-bom
-agent-bom scan              # auto-discover 18 MCP clients + scan
+agent-bom scan              # auto-discover 20 MCP clients + scan
 agent-bom check langchain   # check a specific package
 agent-bom where             # show all discovery paths
 ```
@@ -78,7 +113,7 @@ agent-bom where             # show all discovery paths
 ### As a Docker Container
 
 ```bash
-docker run --rm ghcr.io/msaad00/agent-bom:0.38.1 scan
+docker run --rm ghcr.io/msaad00/agent-bom:0.55.0 scan
 ```
 
 ### Self-Hosted SSE Server
@@ -89,14 +124,14 @@ docker run -p 8080:8080 agent-bom-sse
 # Connect: { "type": "sse", "url": "http://localhost:8080/sse" }
 ```
 
-## Available MCP Tools (14 tools)
+## Available MCP Tools (18 tools)
 
 | Tool | Description |
 |------|-------------|
 | `scan` | Full discovery + vulnerability scan pipeline |
 | `check` | Check a package for CVEs (OSV, NVD, EPSS, KEV) |
 | `blast_radius` | Map CVE impact chain across agents, servers, credentials |
-| `registry_lookup` | Look up MCP server in 427+ server threat registry |
+| `registry_lookup` | Look up MCP server in 427+ server security metadata registry |
 | `compliance` | OWASP LLM/Agentic Top 10, EU AI Act, MITRE ATLAS, NIST AI RMF |
 | `remediate` | Prioritized remediation plan for vulnerabilities |
 | `verify` | Package integrity + SLSA provenance check |
@@ -105,14 +140,18 @@ docker run -p 8080:8080 agent-bom-sse
 | `policy_check` | Evaluate results against security policy |
 | `diff` | Compare two scan reports (new/resolved/persistent) |
 | `marketplace_check` | Pre-install trust check with registry cross-reference |
+| `code_scan` | SAST scanning via Semgrep with CWE-based compliance mapping |
 | `where` | Show MCP client config discovery paths |
 | `inventory` | List discovered agents, servers, packages |
+| `context_graph` | Agent context graph with lateral movement analysis |
+| `analytics_query` | Query vulnerability trends, posture history, and runtime events from ClickHouse |
+| `cis_benchmark` | Run CIS benchmark checks against AWS or Snowflake accounts |
 
 ## MCP Resources
 
 | Resource | Description |
 |----------|-------------|
-| `registry://servers` | Browse 427+ MCP server threat intelligence registry |
+| `registry://servers` | Browse 427+ MCP server security metadata registry |
 | `policy://template` | Default security policy template |
 
 ## Example Workflows
@@ -144,7 +183,7 @@ configurations), a convenience endpoint is available:
   "mcpServers": {
     "agent-bom": {
       "type": "sse",
-      "url": "https://trustworthy-solace-production-14a6.up.railway.app/sse"
+      "url": "https://agent-bom-mcp.up.railway.app/sse"
     }
   }
 }
@@ -175,8 +214,8 @@ installation or self-host your own instance.
 
 - **Source**: [github.com/msaad00/agent-bom](https://github.com/msaad00/agent-bom) (Apache-2.0)
 - **PyPI**: [pypi.org/project/agent-bom](https://pypi.org/project/agent-bom/)
-- **Smithery**: 99/100 quality score
-- **Sigstore signed**: `agent-bom verify agent-bom@0.38.1`
-- **2,099 tests** with automated security scanning (CodeQL + OpenSSF Scorecard)
+- **Smithery**: [smithery.ai/server/agent-bom](https://smithery.ai/server/agent-bom/agent-bom)
+- **Sigstore signed**: `agent-bom verify agent-bom@0.55.0`
+- **3,050+ tests** with automated security scanning (CodeQL + OpenSSF Scorecard)
 - **OpenSSF Scorecard**: [securityscorecards.dev](https://securityscorecards.dev/viewer/?uri=github.com/msaad00/agent-bom)
 - **No telemetry**: Zero tracking, zero analytics

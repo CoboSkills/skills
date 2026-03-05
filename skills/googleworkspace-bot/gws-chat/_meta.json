@@ -1,0 +1,11 @@
+{
+  "owner": "googleworkspace-bot",
+  "slug": "gws-chat",
+  "displayName": "Gws Chat",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772665481118,
+    "commit": null
+  },
+  "history": []
+}

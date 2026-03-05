@@ -256,3 +256,71 @@ super-self-improving calibrate
 3. **预防优先** > 事后纠正
 4. **透明可解释** > 黑箱学习
 5. **用户控制** > 自主推断
+
+---
+
+## 💰 Token监控 / Token Monitoring
+
+### 功能 / Features
+- 📊 实时token消耗追踪 / Real-time token consumption tracking
+- ⚠️ 异常消耗预警 / Abnormal consumption alerts
+- 📈 使用趋势分析 / Usage trend analysis
+- 💵 成本估算 / Cost estimation
+
+### 指标 / Metrics
+| 指标 | 说明 |
+|------|------|
+| session_tokens | 当前会话消耗 |
+| total_tokens | 总会话消耗 |
+| cache_efficiency | 缓存效率 |
+| avg_tokens_per_turn | 每轮平均消耗 |
+| cost_estimate | 成本估算 |
+
+### 告警规则 / Alert Rules
+```
+- 超过平均2倍 → 警告
+- 超过平均3倍 → 严重告警
+- 缓存效率<50% → 优化建议
+- 接近限制(80%) → 提醒
+```
+
+---
+
+## 🤖 Agent调度优化 / Agent Scheduling Optimization
+
+### 功能 / Features
+- 🎯 智能任务分配 / Intelligent task allocation
+- ⚡ 负载均衡 / Load balancing
+- 🔄 自动扩缩容 / Auto scaling
+- 📊 性能最优化 / Performance optimization
+
+### 调度策略 / Scheduling Strategies
+| 策略 | 适用场景 |
+|------|---------|
+| round_robin | 均衡负载 |
+| shortest_queue | 最少等待 |
+| skill_match | 技能匹配 |
+| cost_efficiency | 成本优先 |
+| performance_based | 性能最优 |
+
+### 优化规则 / Optimization Rules
+1. 根据任务类型选择最佳agent
+2. 监控agent负载并动态调整
+3. 缓存常用上下文减少重复
+4. 预测任务复杂度分配资源
+5. 定期评估并优化策略
+
+### 性能指标 / Performance Metrics
+| 指标 | 说明 |
+|------|------|
+| task_completion_time | 任务完成时间 |
+| success_rate | 成功率 |
+| queue_wait_time | 等待时间 |
+| resource_utilization | 资源利用率 |
+| user_satisfaction | 用户满意度 |
+
+### 自动调优 / Auto-tuning
+- 收集历史性能数据
+- 分析瓶颈和优化点
+- 动态调整调度参数
+- 持续监控效果

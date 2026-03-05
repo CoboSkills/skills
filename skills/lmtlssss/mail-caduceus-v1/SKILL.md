@@ -1,6 +1,6 @@
 ---
 name: mail-caduceus
-description: "Total-control Microsoft 365 + Cloudflare mail/domain skill with one-line bootstrap, audit, optimization, and lane provisioning."
+description: "Stop landing in junk. Mail Caduceus automates inbox reliability at scale with branded sender lanes, trust hardening, and full lifecycle control from one mailbox."
 homepage: https://github.com/lmtlssss/mail-caduceus
 metadata: {"openclaw":{"emoji":"📬","requires":{"bins":["bash","pwsh","python3","jq","rg"],"env":["ENTRA_CLIENT_ID","ENTRA_TENANT_ID","ENTRA_CLIENT_SECRET","EXCHANGE_DEFAULT_MAILBOX","EXCHANGE_ORGANIZATION","CLOUDFLARE_API_TOKEN","CLOUDFLARE_ZONE_ID"]}}}
 ---

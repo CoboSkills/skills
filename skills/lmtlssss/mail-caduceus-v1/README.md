@@ -1,8 +1,8 @@
 # Mail Caduceus
 
-Mail Caduceus is a production OpenClaw skill for Microsoft 365 + Cloudflare email/domain control.
+Mail Caduceus helps you stop landing in junk by automating inbox reliability at scale with branded sender lanes, trust hardening, and full lifecycle control.
 
-Version: `1.0.1`
+Version: `1.0.3`
 
 ## Highlights
 

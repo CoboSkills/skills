@@ -100,7 +100,7 @@ TODAY="$(date -u +%Y-%m-%d)"
 
 printf '%s\n' "${NEW_VERSION}" > VERSION
 
-sed -i -E "s/^Version: `([0-9]+\.[0-9]+\.[0-9]+)`$/Version: `${NEW_VERSION}`/" README.md
+sed -i -E 's/^Version: `([0-9]+\.[0-9]+\.[0-9]+)`$/Version: `'"${NEW_VERSION}"'`/' README.md
 
 CHANGELOG_BODY="$(awk 'BEGIN{seen=0} /^# Changelog/{seen=1; next} {if(seen) print}' CHANGELOG.md)"
 cat > CHANGELOG.md <<EOF_CHANGELOG

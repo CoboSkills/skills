@@ -1,0 +1,11 @@
+{
+  "owner": "sebclawops",
+  "slug": "presidio-pii-skill",
+  "displayName": "Presidio Pii Scrubber for sensitive info",
+  "latest": {
+    "version": "0.1.1",
+    "publishedAt": 1772665383546,
+    "commit": null
+  },
+  "history": []
+}

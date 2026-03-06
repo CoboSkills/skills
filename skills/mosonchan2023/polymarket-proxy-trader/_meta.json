@@ -1,11 +1,17 @@
 {
   "owner": "mosonchan2023",
   "slug": "polymarket-proxy-trader",
-  "displayName": "Polymarket Proxy Trader + Balance Fix",
+  "displayName": "Polymarket Proxy Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772685619685,
-    "commit": "https://github.com/openclaw/skills/commit/b2cf4a1e807dd7cd67cb633671870a7a469b002d"
+    "version": "1.0.1",
+    "publishedAt": 1772774032192,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772685619685,
+      "commit": "https://github.com/openclaw/skills/commit/b2cf4a1e807dd7cd67cb633671870a7a469b002d"
+    }
+  ]
 }

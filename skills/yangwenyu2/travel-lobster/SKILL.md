@@ -141,11 +141,32 @@ export OPENROUTER_API_KEY=your_key_here
 
 ## Security
 
-- **Credentials**: Only `OPENROUTER_API_KEY` env var is used, declared in frontmatter above. The skill never scans config files, never logs keys, never embeds them in prompts
-- **Network scope**: Prompt explicitly restricts the agent to public websites only — private/internal IPs (10.x, 172.16-31.x, 192.168.x, localhost) are forbidden. For stronger guarantees, use network-level egress controls
-- **File access**: All reads/writes are within the skill's workspace directory only. Files created: `memory/travel-journal.md` (postcard archive), `.travel-config` (chat target + agent name), `logs/travel-lobster.log`. No system files or other workspace files are modified
-- **Variable substitution**: Uses `envsubst` (not `sed`/`eval`) to prevent shell injection
-- **Error handling**: All error messages are sanitized — only error types are printed, never auth tokens, API responses, or headers
-- **Persistence**: The skill creates `openclaw cron` one-shot jobs (self-loop) and a watchdog that can only restart the loop. It does not set `always: true`, does not modify system config, and does not escalate privileges
-- **Isolation**: `.gitignore` excludes all runtime data (`.travel-config`, `memory/`, `logs/`, `*.png`). Published package contains no user data
-- **Recommended**: Run first few trips manually to verify behavior before enabling the full self-scheduling loop
+### What this skill reads
+- **Workspace identity files** (read-only, during setup only): `IDENTITY.md`, `SOUL.md`, `USER.md` — standard OpenClaw workspace files used to detect agent name, user name, timezone, and language. Only specific fields are extracted via grep (e.g., `**Name:**`); file contents are not stored or transmitted
+- **Travel journal** (read-write, each trip): `memory/travel-journal.md` — the skill's own persistent memory, created by setup.sh
+
+### What this skill writes
+All writes are within the user's OpenClaw workspace (`$OPENCLAW_WORKSPACE`, default `~/.openclaw/workspace`):
+- `memory/travel-journal.md` — postcard archive, knowledge graph, seeds, stats
+- `.travel-config` — agent name, user name, timezone, chat target (inside skill directory)
+- `logs/travel-lobster.log` — scheduling log with timestamps
+
+### What this skill does NOT access
+- No system config files (`openclaw.json`, `.env`, etc.)
+- No credentials files (API key comes only from `OPENROUTER_API_KEY` env var)
+- No files outside the OpenClaw workspace
+
+### Credentials
+Only `OPENROUTER_API_KEY` env var is required (declared in frontmatter). The key is passed to `openrouter.ai` for image generation. It is never logged, embedded in prompts, or written to disk.
+
+### Network
+The agent prompt restricts exploration to public websites and explicitly forbids private/internal IPs (10.x, 172.16-31.x, 192.168.x, localhost). This is a prompt-level policy, not a technical network control. For stronger enforcement, add OS-level egress rules or run in a container with network restrictions.
+
+### Persistence
+The skill schedules one-shot `openclaw cron` jobs (self-loop) and includes an optional hourly watchdog. It does not set `always: true`. To disable autonomous behavior, simply don't enable the cron/watchdog and run trips manually.
+
+### Other
+- Variable substitution uses `envsubst` (not `sed`/`eval`) to prevent shell injection
+- Error messages are sanitized — only error types are printed, never auth tokens or API responses
+- `.gitignore` excludes all runtime data; published package contains no user data
+- **Recommended**: Run first few trips manually (`bash travel.sh <chat_id> <channel> 1 1`) to verify behavior before enabling the full self-scheduling loop

@@ -1,11 +1,10 @@
 ---
 name: xhs-cover
-version: 1.0.1
-description: 生成小红书风格封面图片。使用场景：(1) 用户要求生成小红书封面 (2) 用户要求生成社交媒体封面图 (3) 用户要求为笔记/文章生成配图 (4) 用户询问 credit 余额或生成历史。
+version: 1.0.3
+description: 生成小红书风格封面图片。使用场景：(1) 用户要求生成小红书封面 (2) 用户要求生成社交媒体封面图 (3) 用户为笔记/文章生成配图 (4) 用户询问 credit 余额或生成历史。
 requires:
   binaries:
     - mcporter
-    - jq
   env:
     XHS_COVER_API_URL:
       description: API 地址
@@ -27,15 +26,20 @@ sendsDataTo:
 ## 环境要求
 
 - `mcporter` - MCP 客户端
-- `jq` - JSON 处理工具
+
+## 快速配置
+
+```bash
+# 1. 安装 mcporter
+npm i -g mcporter
+
+# 2. 设置 API Key
+export XHS_COVER_API_KEY="xhs_your_api_key"  # 在 xhscover.cn/dashboard 获取
+```
 
 ## 快速使用
 
 ```bash
-# 设置环境变量
-export XHS_COVER_API_URL="https://api.xhscover.cn"
-export XHS_COVER_API_KEY="xhs_your_api_key"  # 在 xhscover.cn/dashboard 获取
-
 # 生成封面（默认 3:4 竖版）
 ./scripts/xhs-cover.sh generate "5个习惯让你越来越自律"
 
@@ -44,6 +48,9 @@ export XHS_COVER_API_KEY="xhs_your_api_key"  # 在 xhscover.cn/dashboard 获取
 
 # 查询余额
 ./scripts/xhs-cover.sh balance
+
+# 查看历史
+./scripts/xhs-cover.sh history
 
 # 查看帮助
 ./scripts/xhs-cover.sh help
@@ -69,7 +76,7 @@ export XHS_COVER_API_KEY="xhs_your_api_key"  # 在 xhscover.cn/dashboard 获取
 
 ## 数据流向
 
-本技能通过 mcporter 调用 `@emit/xhs-cover-mcp-server` MCP 服务，该服务会将您的：
+本技能通过 mcporter ad-hoc 模式调用 `@emit/xhs-cover-mcp-server` MCP 服务，该服务会将您的：
 - 封面文案
 - API Key
 

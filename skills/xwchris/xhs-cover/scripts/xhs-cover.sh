@@ -1,6 +1,6 @@
 #!/bin/bash
 # xhs-cover.sh - 小红书封面生成脚本
-# 配合 mcporter 调用 @emit/xhs-cover-mcp-server
+# 使用 mcporter ad-hoc 模式调用 MCP server
 
 set -e
 
@@ -48,48 +48,30 @@ generate_cover() {
   info "宽高比: ${ratio}"
   info "..."
   
-  local result
-  result=$(mcporter call @emit/xhs-cover-mcp-server.generate_cover \
-    text="$text" \
-    aspectRatio="$ratio" \
-    XHS_COVER_API_URL="$API_URL" \
-    XHS_COVER_API_KEY="$API_KEY" \
-    --output json 2>&1)
-  
-  if echo "$result" | jq -e '.success == true' > /dev/null 2>&1; then
-    local url=$(echo "$result" | jq -r '.resultUrl')
-    local cost=$(echo "$result" | jq -r '.creditCost')
-    success "✓ 生成成功!"
-    info "图片链接: ${url}"
-    info "消耗 credits: ${cost}"
-  else
-    local err=$(echo "$result" | jq -r '.error // .message // "未知错误"' 2>/dev/null || echo "$result")
-    error "生成失败: ${err}"
-  fi
+  mcporter call \
+    --stdio "npx" \
+    --stdio-arg "-y" \
+    --stdio-arg "@emit/xhs-cover-mcp-server" \
+    --env "XHS_COVER_API_URL=$API_URL" \
+    --env "XHS_COVER_API_KEY=$API_KEY" \
+    xhs_generate_cover \
+    text:"$text" \
+    aspectRatio:"$ratio" \
+    --output text 2>&1
 }
 
 # 查询余额
 get_balance() {
   check_config
   
-  info "查询余额..."
-  
-  local result
-  result=$(mcporter call @emit/xhs-cover-mcp-server.get_credits \
-    XHS_COVER_API_URL="$API_URL" \
-    XHS_COVER_API_KEY="$API_KEY" \
-    --output json 2>&1)
-  
-  if echo "$result" | jq -e '.balance' > /dev/null 2>&1; then
-    local balance=$(echo "$result" | jq -r '.balance')
-    local used=$(echo "$result" | jq -r '.totalUsed')
-    success "✓ 余额: ${balance} credits"
-    info "已使用: ${used} credits"
-    info "可生成: $((balance / 10)) 张封面"
-  else
-    local err=$(echo "$result" | jq -r '.error // .message // "未知错误"' 2>/dev/null || echo "$result")
-    error "查询失败: ${err}"
-  fi
+  mcporter call \
+    --stdio "npx" \
+    --stdio-arg "-y" \
+    --stdio-arg "@emit/xhs-cover-mcp-server" \
+    --env "XHS_COVER_API_URL=$API_URL" \
+    --env "XHS_COVER_API_KEY=$API_KEY" \
+    xhs_get_credits \
+    --output text 2>&1
 }
 
 # 获取历史
@@ -100,11 +82,15 @@ get_history() {
   
   info "获取最近 ${limit} 条记录..."
   
-  mcporter call @emit/xhs-cover-mcp-server.get_history \
-    limit="$limit" \
-    XHS_COVER_API_URL="$API_URL" \
-    XHS_COVER_API_KEY="$API_KEY" \
-    --output json 2>&1 | jq '.tasks[] | {prompt, status, resultUrl, createdAt}'
+  mcporter call \
+    --stdio "npx" \
+    --stdio-arg "-y" \
+    --stdio-arg "@emit/xhs-cover-mcp-server" \
+    --env "XHS_COVER_API_URL=$API_URL" \
+    --env "XHS_COVER_API_KEY=$API_KEY" \
+    xhs_get_history \
+    limit:"$limit" \
+    --output text 2>&1
 }
 
 # 显示帮助

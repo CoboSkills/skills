@@ -14,25 +14,7 @@ All graph data stays on your machine. No data is sent to ClawHub or MindGraph ma
 
 ---
 
-## Step 1: Install the Binary
-
-The server binary is not bundled in the skill (ClawHub only supports text files). Run setup once after installing:
-
-```bash
-bash skills/mindgraph-rs/scripts/setup.sh
-```
-
-This downloads the pre-built Linux x86_64 binary from [GitHub Releases](https://github.com/shuruheel/mindgraph-rs/releases). The binary is ~30MB. **macOS / ARM / other platforms** must build from source:
-
-```bash
-git clone https://github.com/shuruheel/mindgraph-rs.git
-cd mindgraph-rs && cargo build --release
-cp target/release/mindgraph-server skills/mindgraph-rs/scripts/
-```
-
----
-
-## Step 2: Start the Server
+## Step 1: Start the Server
 
 Add the following to your `~/.openclaw/openclaw.json` under the `"services"` key:
 

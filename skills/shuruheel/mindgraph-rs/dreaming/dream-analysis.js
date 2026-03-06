@@ -68,19 +68,42 @@ function proposal(base) {
 async function analyzeSchemaCompliance() {
   const proposals = [];
 
+  // NOTE: 'description' is NOT a valid server prop for Decision/Goal nodes.
+  // The server enforces strict schemas and strips unknown fields.
+  // ONLY list props that the server actually accepts per node type.
+  // Verified server schemas (2026-03-05):
+  //   Decision:    _type, question, status, decided_option_uid, decided_at, decision_rationale, reversibility
+  //   Project:     _type, name, description, status, started_at, target_completion
+  //   Question:    _type, text, question_type, scope, status, importance, tractability, blocking_factors
+  //   Goal:        _type, deadline, description, goal_type, priority, progress, status, success_criteria
+  //   Task:        _type, assigned_to, created_by, deadline, depends_on_task_uids, description, parent_goal_uid, priority, result_summary, status, task_type
+  //   Constraint:  _type, constraint_type, description, hard, unit, value
+  //   Observation: _type, content, observation_type, session_uid, timestamp
+  //   Entity:      _type, entity_type (+ varies)
+  //
+  // Fields that DON'T exist and get silently stripped:
+  //   - project_type (not in Project schema — use description or tags)
+  //   - question_text (not in Question schema — use 'text')
+  //   - description on Decision (not in schema — use summary or decision_rationale)
   const requiredProps = {
     Claim:        ['content'],
     Constraint:   ['description'],
-    Goal:         ['description', 'status'],
-    Decision:     ['description', 'status'],
-    Project:      ['description', 'project_type'],
+    Goal:         ['status'],           // description is in Goal props schema
+    Decision:     ['status'],           // no description prop — use summary (top-level) or decision_rationale
+    Project:      ['description'],      // description IS in Project props schema; project_type is NOT
     Entity:       ['entity_type'],
     Preference:   ['key', 'value'],
     Observation:  ['content'],
     Evidence:     ['description'],
-    Question:     ['question_text'],
-    OpenQuestion: ['question_text'],
+    Question:     ['text'],             // server uses 'text', NOT 'question_text'
+    OpenQuestion: ['text'],             // same — 'text' not 'question_text'
   };
+
+  // Additional check: nodes that need a non-empty summary for FTS searchability
+  const needsSummary = new Set([
+    'Decision', 'Goal', 'Project', 'Constraint', 'Entity',
+    'Observation', 'Claim', 'Pattern', 'Task'
+  ]);
 
   const validPriorities   = ['low', 'medium', 'high', 'critical'];
   // Decision statuses use a different vocabulary from Goal/Project:
@@ -130,11 +153,7 @@ async function analyzeSchemaCompliance() {
           !statusList.includes(node.props.status)) {
         invalid.push({ prop: 'status', current: node.props.status, expected: statusList });
       }
-      // Project: project_type must be one of the valid values when present
-      if (node.node_type === 'Project' && node.props?.project_type &&
-          !validProjectTypes.includes(node.props.project_type)) {
-        invalid.push({ prop: 'project_type', current: node.props.project_type, expected: validProjectTypes });
-      }
+      // NOTE: project_type is not in server schema — skip validation (2026-03-05)
       // Decision: flag when status=made but decided_at is null (data quality gap)
       if (node.node_type === 'Decision' &&
           node.props?.status === 'made' &&
@@ -144,18 +163,41 @@ async function analyzeSchemaCompliance() {
         missing.push('decision_rationale');
       }
 
+      // Check summary (top-level, not in props) for FTS searchability
+      if (needsSummary.has(node.node_type) && (!node.summary || node.summary.length < 10)) {
+        const fallback =
+          node.props?.description ||
+          node.props?.decision_rationale ||
+          node.props?.content ||
+          node.props?.policy_text ||
+          null;
+        if (fallback && fallback.length > 10) {
+          missing.push('summary');
+        }
+      }
+
       if (missing.length || invalid.length) {
         // ── Synthesize suggested values from available sibling fields ──
         const suggested = {};
 
         for (const prop of missing) {
-          if (prop === 'description') {
-            // Try siblings in priority order
+          if (prop === 'summary') {
+            // summary is a top-level field — evolve('update') can set it directly
             const fallback =
-              node.props?.decision_rationale ||   // Decision: rationale IS the description
-              node.props?.content ||              // Observation/Claim
-              node.props?.policy_text ||          // MemoryPolicy
-              node.summary ||                     // generic summary
+              node.props?.description ||
+              node.props?.decision_rationale ||
+              node.props?.content ||
+              node.props?.policy_text ||
+              null;
+            if (fallback) suggested.summary = fallback.slice(0, 300);
+          }
+          if (prop === 'description') {
+            // Only for types where description IS a valid server prop (Constraint, Evidence)
+            const fallback =
+              node.props?.decision_rationale ||
+              node.props?.content ||
+              node.props?.policy_text ||
+              node.summary ||
               null;
             if (fallback) suggested.description = fallback.slice(0, 500);
           }
@@ -163,19 +205,14 @@ async function analyzeSchemaCompliance() {
             const fallback = node.props?.description || node.summary || null;
             if (fallback) suggested.content = fallback.slice(0, 500);
           }
-          if (prop === 'question_text') {
-            // Priority: props.text (ingestion shorthand) > props.question (alt field) > label if it looks like a question > summary
+          if (prop === 'text') {
+            // For Question/OpenQuestion: 'text' is the server field name (NOT 'question_text')
             const fallback =
-              node.props?.text ||
               node.props?.question ||
               (node.label && (node.label.includes('?') || node.label.split(' ').length > 3) ? node.label : null) ||
               node.summary ||
               null;
-            if (fallback) suggested.question_text = fallback.slice(0, 500);
-          }
-          if (prop === 'project_type') {
-            const s = (node.props?.status || '').toLowerCase();
-            suggested.project_type = ['archived','completed'].includes(s) ? 'portfolio' : 'active' // note: 'completed' is valid for Project (not Decision);
+            if (fallback) suggested.text = fallback.slice(0, 500);
           }
           if (prop === 'status') {
             suggested.status = 'active'; // safe default for Goal/Decision
@@ -205,24 +242,26 @@ async function analyzeSchemaCompliance() {
                   finalized: 'completed', final: 'completed', 'in-progress': 'active', open: 'active' };
             suggested.status = normalize[cur] || (node.node_type === 'Decision' ? 'made' : 'active');
           }
-          if (inv.prop === 'project_type') {
-            const s = (node.props?.status || '').toLowerCase();
-            suggested.project_type = ['archived','completed'].includes(s) ? 'portfolio' : 'active' // note: 'completed' is valid for Project (not Decision);
-          }
+          // project_type is not in the server schema — skip
         }
 
+        // If we have suggested values, this is an actionable schema_fix (auto-apply).
+        // If no suggested values, it's a data_gap — flagged for review, not auto-applied.
+        // This prevents the dreamer from re-generating the same empty proposal every night.
+        const hasSuggestions = Object.keys(suggested).length > 0;
         proposals.push(proposal({
-          type: 'schema_fix',
+          type: hasSuggestions ? 'schema_fix' : 'data_gap',
           target: { uid: node.uid, label: node.label, node_type: node.node_type },
-          action: `Fix ${missing.length + invalid.length} schema issue(s)`,
+          action: hasSuggestions 
+            ? `Fix ${missing.length + invalid.length} schema issue(s)` 
+            : `Data gap: ${missing.length + invalid.length} field(s) need manual input`,
           reason: [
             missing.length ? `Missing: ${missing.join(', ')}` : null,
             invalid.length ? `Invalid: ${invalid.map(i => `${i.prop}="${i.current}"`).join(', ')}` : null,
           ].filter(Boolean).join(' · '),
           impact: missing.length > 2 ? 'high' : 'medium',
           schema_violation: { missing_props: missing, invalid_props: invalid },
-          // new_value carries the synthesized suggestions — shown directly in the cockpit card
-          new_value: Object.keys(suggested).length > 0 ? suggested : undefined,
+          new_value: hasSuggestions ? suggested : undefined,
         }));
       }
     }
@@ -256,23 +295,24 @@ async function analyzeDataQuality() {
     }
 
     for (const node of allNodes) {
-      // Decision: description is missing but decision_rationale has content → copy it over
+      // Decision: summary is missing/short but decision_rationale has content → copy to summary
+      // NOTE: Decision schema does NOT have 'description' prop — use 'summary' (top-level field)
       if (node.node_type === 'Decision') {
-        const hasDec = node.props?.description && node.props.description.trim();
+        const hasSummary = node.summary && node.summary.trim().length > 20;
         const hasRat = node.props?.decision_rationale && node.props.decision_rationale.trim();
-        if (!hasDec && hasRat) {
+        if (!hasSummary && hasRat) {
           proposals.push(proposal({
             type: 'data_enrichment',
             target: { uid: node.uid, label: node.label, node_type: node.node_type },
-            action: 'Copy decision_rationale → description',
-            reason: 'description is missing but decision_rationale has content. Use rationale as description to satisfy schema and improve discoverability.',
+            action: 'Copy decision_rationale → summary',
+            reason: 'Summary is missing/short but decision_rationale has content. Use rationale as summary for FTS and discoverability.',
             impact: 'low',
-            new_value: { description: node.props.decision_rationale.slice(0, 500) },
+            new_value: { summary: node.props.decision_rationale.slice(0, 500) },
           }));
         }
 
         // Completed decisions with no decided_at and no rationale — genuinely incomplete
-        if (node.props?.status === 'completed' && !node.props?.decided_at && !hasRat && !hasDec) {
+        if (node.props?.status === 'completed' && !node.props?.decided_at && !hasRat && !hasSummary) {
           proposals.push(proposal({
             type: 'data_gap',
             target: { uid: node.uid, label: node.label, node_type: node.node_type },
@@ -283,23 +323,12 @@ async function analyzeDataQuality() {
         }
       }
 
-      // Project: missing project_type — suggest based on status
-      if (node.node_type === 'Project' && !node.props?.project_type) {
-        const status = (node.props?.status || '').toLowerCase();
-        const suggested = (status === 'archived' || status === 'completed') ? 'portfolio' : 'active';
-        proposals.push(proposal({
-          type: 'schema_fix',
-          target: { uid: node.uid, label: node.label, node_type: node.node_type },
-          action: `Set project_type = "${suggested}"`,
-          reason: `project_type is missing. Based on status="${status}", suggested value is "${suggested}". ` +
-                  `Valid values: active (currently working on), portfolio (past work for applications/outreach), internal (tooling/infra).`,
-          impact: 'medium',
-          new_value: { project_type: suggested },
-        }));
-      }
+      // NOTE: project_type is NOT in the server schema for Project nodes.
+      // It gets silently stripped on write. Removed this proposal generator (2026-03-05).
 
-      // Project/Goal: missing success_criteria — suggest generic baseline
-      if (['Project', 'Goal'].includes(node.node_type) && 
+      // Goal: missing success_criteria — suggest generic baseline
+      // NOTE: success_criteria is in Goal schema but NOT in Project schema
+      if (node.node_type === 'Goal' && 
           (!node.props?.success_criteria || node.props.success_criteria.length === 0)) {
         const type = node.node_type;
         proposals.push(proposal({
@@ -1263,6 +1292,43 @@ async function analyzeDuplicateNodes() {
   return proposals;
 }
 
+// ─── Analyzer 16: Orphan Node Detection ────────────────────────────────────────
+// Finds nodes with zero edges (both directions) and proposes wiring them.
+
+async function analyzeOrphanNodes() {
+  const proposals = [];
+
+  try {
+    const checkTypes = ['Observation', 'Decision', 'Claim', 'Constraint', 'Task', 'Entity'];
+    
+    for (const t of checkTypes) {
+      const r = await mg.getNodes({ nodeType: t, limit: 200 });
+      const nodes = (r.items || r || []).filter(n => !n.tombstone_at);
+      
+      for (const n of nodes) {
+        const outEdges = await mg.getEdges(n.uid);
+        const inEdges = (await mg.request('GET', `/edges?to_uid=${n.uid}`)) || [];
+        const liveOut = Array.isArray(outEdges) ? outEdges.filter(e => !e.tombstone_at) : [];
+        const liveIn = Array.isArray(inEdges) ? inEdges.filter(e => !e.tombstone_at) : [];
+        
+        if (liveOut.length === 0 && liveIn.length === 0) {
+          proposals.push(proposal({
+            type: 'orphan_wire',
+            target: { uid: n.uid, label: n.label, node_type: n.node_type },
+            action: `Wire orphan [${n.node_type}] "${n.label}" to a relevant entity or project`,
+            reason: `Node has 0 edges — invisible to graph traversal. Created ${new Date(n.created_at * 1000).toISOString().slice(0, 10)}.`,
+            impact: 'medium',
+          }));
+        }
+      }
+    }
+  } catch (e) {
+    console.error('Orphan detection failed:', e.message);
+  }
+
+  return proposals;
+}
+
 // ─── Registry & Exports ───────────────────────────────────────────────────────
 
 const analyzers = [
@@ -1285,6 +1351,7 @@ const analyzers = [
   { name: 'trivial_decisions',      fn: analyzeTrivialDecisions,      schedule: 'mon_thu' },
   { name: 'embedding_analysis',     fn: analyzeEmbeddings,            schedule: 'daily' },
   { name: 'rich_enrichment',        fn: analyzeRichEnrichment,        schedule: 'daily' },
+  { name: 'orphan_detection',       fn: analyzeOrphanNodes,           schedule: 'daily' },
 ];
 
 // Which analyzers to run by schedule
@@ -1329,4 +1396,5 @@ module.exports = {
   analyzeDuplicateNodes,
   analyzeTaskSuggestions,
   analyzeTrivialDecisions,
+  analyzeOrphanNodes,
 };

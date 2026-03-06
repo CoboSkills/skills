@@ -1,207 +1,84 @@
 ---
-name: mindgraph-rs
-description: "A high-performance, structured knowledge graph memory system for AI agents. Provides 18 cognitive tools for reasoning, decision tracking, and goal management. Runs fully local — no cloud, no external graph store. PRIVACY: The server never calls home. The optional extraction scripts read session transcripts and send summaries to your configured LLM provider (Gemini/Anthropic/Moonshot) — same provider your agent already uses. Extraction and dreaming are opt-in."
+name: mindgraph
+version: 5.0.0
+description: "Structured knowledge graph with 18 cognitive tools for agent memory and reasoning"
+author: shuruheel
 ---
 
-# MindGraph 🧠
+# MindGraph Skill
 
-MindGraph transforms AI memory from flat text files into a traversable, evidence-backed cognitive layer. It runs entirely on your machine using a Rust server backed by CozoDB, with a strict 28-node ontology and built-in vector search.
-
----
-
-## Quick Start
-
-```bash
-# 1. Install the skill
-clawhub install mindgraph-rs
-
-# 2. Download the server binary (Linux x86_64)
-bash skills/mindgraph-rs/scripts/setup.sh
-
-# 3. Start the server
-bash skills/mindgraph-rs/scripts/start.sh
-
-# 4. Use the client in your agent
-const mg = require('./skills/mindgraph-rs/scripts/mindgraph-client.js');
-await mg.ingest('My first observation', 'Something worth remembering.', 'observation');
-
-# 5. (Optional) Register the bootstrap hook for automatic context injection
-#    See "Bootstrap Context Injection" section below
-```
-
-> **Not on Linux x86_64?** See [INTEGRATION.md](references/INTEGRATION.md) for build-from-source instructions.
+MindGraph is a **structured knowledge graph index** for sub-agents, cross-file constraint lookups, and semantic search. Files (MEMORY.md, daily notes) are canonical — MindGraph provides structured relationships and search on top of them.
 
 ---
 
-## How It Works
+## Design Conventions
 
-The skill has two parts:
-
-| Component | What it does | External calls? |
-|-----------|-------------|-----------------|
-| **mindgraph-server** | Stores and queries the graph (CozoDB + vector search) | ❌ None — fully local |
-| **extract.js + scripts** | Reads session transcripts, extracts nodes via LLM | ✅ To your configured LLM provider (opt-in) |
-
-Graph data never leaves your machine. Extraction uses the same LLM provider your agent already trusts.
+1.  **Agent Identity:** Always pass `agent_id: 'jaadu'` (or `claude` if in that context) to ensure accurate `changed_by` provenance.
+2.  **Atomic Bundling:** Use bundle endpoints (`/epistemic/argument`, `/action/procedure`, `/agent/plan`) to create related nodes and edges in a single transaction.
+3.  **Narration:** Narrate before writing to `/memory/config` or `/agent/governance` as these modify behavioral rules.
+4.  **Session Framing:** Call `POST /memory/session (action: open)` at the start of each conversation and use the `session_uid` for trace entries and distillation.
 
 ---
 
-## ⚠️ Privacy Disclosure
+## Cognitive Layer Endpoints (The 18 Tools)
 
-The extraction scripts (`extract.js`, heartbeat flow) read your conversation transcripts and send excerpts to your LLM provider for summarization and node extraction. Specifically:
-- **Reads:** Session JSONL transcripts from `agents/main/sessions/`
-- **Reads:** `~/.openclaw/openclaw.json` to find your provider API keys
-- **Transmits:** Conversation summaries to your configured LLM (Gemini, Anthropic, or Moonshot)
-
-**What is NOT transmitted:** Raw transcripts, graph database contents, or any data to ClawHub or MindGraph maintainers.
-
-You can use the server + 18 cognitive tools entirely without extraction — see [INTEGRATION.md](references/INTEGRATION.md).
-
----
-
-## The 18 Cognitive Tools
-
-Use these via `mindgraph-client.js` — never add nodes manually.
-
-### Reality Layer
-- `mg.ingest` — Capture sources, snippets, or observations
-- `mg.manageEntity` — Create, alias, or merge entities (Person, Org, Concept, etc.)
+### Reality Layer (Raw Input)
+- **POST /reality/ingest:** Capture `source` (web/paper/book), `snippet` (auto-links to source), or `observation`.
+- **POST /reality/entity:** `create` (dedup-safe via `find_or_create_entity` — checks alias + case-insensitive match before creating, returns `{node, created: bool}`), `alias`, `resolve`, `fuzzy_resolve`, or `merge`.
 
 ### Epistemic Layer (Reasoning)
-- `mg.addArgument` — Atomic Toulmin bundle (Claim + Evidence + Warrant)
-- `mg.addInquiry` — Record hypotheses, anomalies, and open questions
-- `mg.addStructure` — Crystallize concepts, patterns, and models
+- **POST /epistemic/argument:** Atomic Toulmin bundle. Creates `Claim` + `Evidence` + `Warrant` + `Argument` nodes and wires `Supports`, `HasWarrant`, `HasPremise`, and `HasConclusion` edges.
+- **POST /epistemic/inquiry:** Record `hypothesis`, `anomaly`, `assumption`, `question`, or `open_question`. Handles `AnomalousTo`, `Tests`, and `Addresses` edges.
+- **POST /epistemic/structure:** Crystallize `concept`, `pattern`, `mechanism`, `model`, `analogy`, `theorem`, or `equation`. Handles `AnalogousTo` and `TransfersTo` edges.
 
 ### Intent Layer (Commitments)
-- `mg.addCommitment` — Declare goals, projects, or milestones
-- `mg.deliberate` — Open decisions, add options, resolve choices
+- **POST /intent/commitment:** Declare `goal`, `project`, or `milestone`. Propose before creating Goals/Projects.
+- **POST /intent/deliberation:** Manage `open_decision`, `add_option`, `add_constraint`, or `resolve` (creates `DecidedOn` edge).
 
 ### Action Layer (Workflows)
-- `mg.procedure` — Design flows, steps, and affordances
-- `mg.risk` — Assess severity and likelihood for any node
+- **POST /action/procedure:** Design `create_flow`, `add_step`, `add_affordance`, or `add_control` (wires `ComposedOf`, `StepUses`, `Controls`).
+- **POST /action/risk:** `assess` a node (severity/likelihood) or `get_assessments`.
 
 ### Memory Layer (Persistence)
-- `mg.sessionOp` — Open, trace, and close conversational sessions
-- `mg.distill` — Synthesize sessions into durable summaries
-- `mg.memoryConfig` — Manage system-wide preferences and policies
+- **POST /memory/session:** `open`, `trace` (real-time recording), or `close` (links to summary).
+- **POST /memory/distill:** synthesis of a session into a durable `Summary` node.
+- **POST /memory/config:** `set_preference`, `set_policy`, `get_preferences`, or `get_policies`.
 
 ### Agent Layer (Control)
-- `mg.plan` — Create tasks and execution steps
-- `mg.governance` — Set safety budgets and request approvals
-- `mg.execution` — Register agent runs and track outcomes
+- **POST /agent/plan:** `create_task`, `create_plan`, `add_step`, or `update_status`.
+- **POST /agent/governance:** `create_policy`, `set_budget`, `request_approval`, or `resolve_approval`.
+- **POST /agent/execution:** `start`, `complete`, `fail`, or `register_agent`.
+
+### Memory Layer — Journal (Phase 0.5.6)
+- **Journal nodes** via `POST /node` with `node_type: "Journal"`. Props: `content`, `session_uid`, `journal_type` (note/investigation/debug/reasoning), `tags`.
+- Use `Follows` edges between Journal nodes for temporal sequencing (debugging arcs, reasoning chains).
 
 ### Connective Tissue
-- `mg.retrieve` — Unified search (text, semantic, goals, questions)
-- `mg.traverse` — Navigate graph (chains, neighborhood, paths, subgraphs)
-- `mg.evolve` — Mutate, tombstone (cascade), and decay salience
+- **POST /retrieve:** Unified search modes: `text`, `semantic`, `hybrid` (RRF fusion of FTS + vector, k=60 — falls back to FTS-only if no embeddings), `active_goals`, `open_questions`, `weak_claims`, `pending_approvals`, `layer`, `recent`.
+- **POST /traverse:** Navigation modes: `chain`, `neighborhood`, `path`, `subgraph`.
+- **POST /evolve:** Mutation: `update` (propsPatch now validated — returns 422 with `unknown_props_fields` for invalid fields), `tombstone` (with cascade), `restore`, `decay`, `history`, `snapshot`.
+
+### Full-Content FTS (Phase 0.5.2)
+FTS indexes **all user-authored text** across 35+ string fields and 43+ Vec<String> fields — not just label and summary. Auto-indexed on insert/update. Run `node reindex-search.js` after upgrading to reindex existing nodes.
 
 ---
 
-## Design Principles
+## Client API (mindgraph-client.js)
 
-1. **Text is canonical; graph is logic** — Your Markdown files remain the source of truth. MindGraph provides relational logic and fast retrieval on top.
-2. **Tools > nodes** — Always use the 18 cognitive tools, never raw node creation.
-3. **Epistemic separation** — Separate speculation from verified facts.
-4. **Opt-in extraction** — The server works fully without any scripts.
-
----
-
-## Client API Example
+The client library wraps these cognitive endpoints. See `mindgraph-client.js` for full method signatures.
 
 ```javascript
-const mg = require('./skills/mindgraph-rs/scripts/mindgraph-client.js');
-
-// Evidence-backed reasoning
+const mg = require('./mindgraph-client.js');
+// Example: Atomic Toulmin Bundle
 await mg.addArgument({
-  claim: { label: "System is ready for launch", content: "All milestones completed." },
-  evidence: [{ label: "QA Report", description: "Zero critical bugs in final audit." }],
-  warrant: { label: "Launch policy", explanation: "Zero critical bugs = launch ready." }
+  claim: { label: "Succession crisis likely", content: "Khamenei's death creates a power vacuum" },
+  evidence: [{ label: "IRGC mobilization", description: "Reports of IRGC units entering Tehran" }],
+  warrant: { label: "Historical precedent", explanation: "Regime transitions in Iran are often IRGC-led" }
 });
 
-// Session framing
-const { session_uid } = await mg.sessionOp({ action: 'open', label: 'Morning review' });
-await mg.sessionOp({ action: 'trace', sessionUid: session_uid, note: 'Checked Q1 goals.' });
-
-// Semantic search
-const results = await mg.retrieve('active_goals');
+// Phase 0.5 additions:
+await mg.addJournal("Debug: propsPatch issue", "Full investigation notes...", { journalType: 'investigation', tags: ['bug'] });
+await mg.hybridSearch("propsPatch validation", { limit: 5 });  // Server-side RRF
+await mg.findOrCreateEntity("Aaron Goh", "Person");  // Dedup-safe
+await mg.addFollowsEdge(journalUid1, journalUid2);   // Temporal chain
 ```
-
----
-
-## Nightly Dreaming System
-
-The dreaming system runs 18 analyzers against your graph every night to maintain epistemic health autonomously.
-
-```bash
-# Run manually
-node scripts/dreaming/dream-agent.js --all --apply --report
-
-# Run description enrichment pass (LLM-enriches thin nodes)
-node scripts/dreaming/enrich-descriptions.js --limit 30
-
-# Re-embed all nodes after enrichment
-export OPENAI_API_KEY=sk-...
-node scripts/dreaming/apply-embeddings.js
-```
-
-**What the analyzers do:**
-- `schema_compliance` — enforces field types and required props
-- `data_quality` — copies rationale → description, flags incomplete decisions
-- `weak_claims` — finds claims with low confidence
-- `recency_salience` — boosts recently accessed nodes
-- `duplicate_nodes` — merges near-identical nodes
-- `trending` — detects recently active node clusters
-- `task_suggestions` — proposes tasks from stalled goals
-- `edge_type_consistency` — fixes RELEVANT_TO → semantic edges
-- `bridge_nodes` — detects disconnected clusters
-- `inference_chains` — finds implied edges missing from graph
-- ...and 8 more
-
-**Auto-applied safely:** `salience_boost`, `confidence_update`, `salience_decay`, `edge_addition`, `task_suggestion`, `schema_fix`, `data_enrichment`, `dedup`, `trending`
-
-**Review-only (surfaced in report):** `answer_question`, `belief_revision`, `data_gap`, `decision_expired`, `goal_review`, `source_drift`
-
-**Enrichment runs weekly (Sunday)** automatically when `dream-agent.js` runs, or anytime with `--enrich`.
-
----
-
-## Bootstrap Context Injection (OpenClaw Hook)
-
-MindGraph ships an OpenClaw hook that automatically injects graph context into every session before your agent reads its first message — no manual `mg.retrieve()` calls needed at startup.
-
-**What it injects into `BOOTSTRAP.md`:**
-- Active Goals, Projects, Constraints, recent Decisions and Observations (fixed queries)
-- Top 6 semantically relevant nodes based on your recent daily notes (dynamic, requires `OPENAI_API_KEY`)
-
-### Setup (OpenClaw)
-
-**1. Register the hook in `openclaw.json`:**
-```json
-{
-  "hooks": [
-    {
-      "event": "agent:bootstrap",
-      "handler": "skills/mindgraph-rs/hooks/mindgraph-context/handler.ts"
-    }
-  ]
-}
-```
-
-**2. Add `OPENAI_API_KEY` to your workspace `.env`** (for semantic search at bootstrap):
-```bash
-echo "OPENAI_API_KEY=sk-..." >> ~/.openclaw/workspace/.env
-```
-
-**3. Restart the gateway** — the hook fires on every new session automatically.
-
-**For sub-agents and crons:** Pass a task description via a `.mindgraph-task-{sessionId}.tmp` file in the workspace — the hook will use it for task-specific semantic context retrieval instead of daily notes.
-
-> The hook is fully silent on failure — it never blocks session start.
-
----
-
-## References
-- [INTEGRATION.md](references/INTEGRATION.md) — Full setup guide, binary install, build from source, OpenClaw service config
-- [SCHEMA.md](references/SCHEMA.md) — Complete 28-node ontology and edge types
-- [API.md](references/API.md) — Detailed signatures for all 18 tools
-- [MAINTENANCE.md](references/MAINTENANCE.md) — Heartbeat watchdog, nightly dreaming, and graph hygiene

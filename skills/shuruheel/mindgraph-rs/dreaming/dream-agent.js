@@ -37,11 +37,13 @@ async function runDreamSession(options = {}) {
   console.log(`   Time: ${timestamp}`);
   
   // ─── 1. Open Graph Session ───────────────────────────────────────────────────
+  // Label includes HH:MM UTC to distinguish multiple runs on the same day
+  const timeTag = new Date().toISOString().slice(11, 16); // "HH:MM"
   let mgSessionUid = null;
   try {
     const mgSession = await mg.sessionOp({ 
       action: 'open', 
-      label: `Dream Session ${sessionDate}`, 
+      label: `Dream Session ${sessionDate} ${timeTag} UTC`, 
       focus: 'Nightly graph optimization and maintenance',
       agent_id: 'dreamer'
     });
@@ -158,7 +160,6 @@ async function runDreamSession(options = {}) {
     seen.add(typeKey);
     if (uid !== 'none') seenContent[uid].add(contentKey);
     uniqueProposals.push(p);
-    }
   }
   
   stats.totalProposals = uniqueProposals.length;

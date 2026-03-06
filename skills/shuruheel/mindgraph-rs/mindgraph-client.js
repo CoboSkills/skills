@@ -10,13 +10,16 @@ const path = require('path');
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 function loadConfig() {
-  const configPath = path.join(process.env.HOME, '.openclaw', 'mindgraph.json');
-  const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  const mg = config;
+  const configPath = process.env.MINDGRAPH_CONFIG_PATH || path.join(process.env.HOME, '.openclaw', 'mindgraph.json');
+  let config = {};
+  if (fs.existsSync(configPath)) {
+    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+  }
+
   return {
-    baseUrl: `http://${mg.bind || '127.0.0.1'}:${mg.port || 18790}`,
-    token: mg.token || '',
-    defaultAgent: mg.default_agent || 'jaadu',
+    baseUrl: process.env.MINDGRAPH_URL || `http://${config.bind || '127.0.0.1'}:${config.port || 18790}`,
+    token: process.env.MINDGRAPH_TOKEN || config.token || '',
+    defaultAgent: process.env.MINDGRAPH_AGENT || config.default_agent || 'jaadu',
   };
 }
 
@@ -60,10 +63,14 @@ async function request(method, path, body = null) {
 function sanitizeLabel(label) {
   if (!label || typeof label !== 'string') return label;
   return label
-    .replace(/[-.\/\\:()\[\]]/g, ' ') // Replace special chars with spaces for FTS safety
+    .replace(/'/g, "'")
+    .replace(/'/g, "'")
+    .replace(/[:\\\/]/g, ' ')
     .replace(/\+/g, 'and')
-    .replace(/[\^~*?]/g, '')           // Strip FTS operators
-    .replace(/'/g, "''")              // Escape single quotes for Cozo
+    .replace(/\^/g, '')
+    .replace(/~/g, '')
+    .replace(/\*/g, '')
+    .replace(/\?/g, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
 }
@@ -71,7 +78,7 @@ function sanitizeLabel(label) {
 // ─── 1. Reality Layer (Ingest) ────────────────────────────────────────────────
 
 async function ingest(label, content, action = 'observation', opts = {}) {
-  const result = await request('POST', '/reality/ingest', {
+  return request('POST', '/reality/ingest', {
     action, // 'source', 'snippet', 'observation'
     label: sanitizeLabel(label),
     content,
@@ -83,17 +90,12 @@ async function ingest(label, content, action = 'observation', opts = {}) {
     salience: opts.salience,
     agent_id: opts.agentId || CONFIG.defaultAgent,
   });
-  // Embed immediately so semantic retrieval works without waiting for nightly dreamer
-  const uid = result?.uid || result?.observation_uid || result?.source_uid || result?.snippet_uid;
-  const embedText = [label, content].filter(Boolean).join(' ').slice(0, 2000);
-  if (uid) embedNode(uid, embedText).catch(() => {});
-  return result;
 }
 
 // ─── 2. Reality Layer (Entity) ────────────────────────────────────────────────
 
 async function manageEntity(opts = {}) {
-  const result = await request('POST', '/reality/entity', {
+  return request('POST', '/reality/entity', {
     action: opts.action, // 'create', 'alias', 'resolve', 'fuzzy_resolve', 'merge'
     label: opts.label ? sanitizeLabel(opts.label) : undefined,
     entity_type: opts.entityType,
@@ -104,16 +106,7 @@ async function manageEntity(opts = {}) {
     merge_uid: opts.mergeUid,
     limit: opts.limit,
     agent_id: opts.agentId || CONFIG.defaultAgent,
-    props: opts.props,
   });
-  // Embed immediately so semantic retrieval works without waiting for nightly dreamer
-  if (opts.action === 'create') {
-    const uid = result?.uid || result?.entity_uid;
-    const desc = opts.props?.description || opts.text || '';
-    const embedText = [opts.label, desc].filter(Boolean).join(' ').slice(0, 2000);
-    if (uid) embedNode(uid, embedText).catch(() => {});
-  }
-  return result;
 }
 
 // ─── 3. Epistemic Layer (Argument) ───────────────────────────────────────────
@@ -341,100 +334,24 @@ async function execution(opts = {}) {
 
 // ─── 16. Connective Tissue (Retrieve) ────────────────────────────────────────
 
-async function embedText(text) {
-  // Embed query text client-side via OpenAI — server has no HTTP client
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY not set — cannot embed query for semantic search');
-  const https = require('https');
-  const body = JSON.stringify({ input: text, model: 'text-embedding-3-small' });
-  return new Promise((resolve, reject) => {
-    const req = https.request({
-      hostname: 'api.openai.com',
-      path: '/v1/embeddings',
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body),
-      },
-    }, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.error) return reject(new Error(parsed.error.message));
-          resolve(parsed.data[0].embedding);
-        } catch (e) { reject(e); }
-      });
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
-
-async function embedNode(uid, text) {
-  // Embed a single node immediately after creation — don't wait for nightly dreamer
-  if (!uid || !text) return;
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return; // silently skip if no key (e.g. sub-agent without env)
-  try {
-    const vector = await embedText(text);
-    await request('PUT', `/node/${uid}/embedding`, { embedding: vector });
-  } catch (e) {
-    // Non-fatal — dreamer will catch it tonight if this fails
-  }
-}
-
-async function lookupEntity(nameOrTopic, opts = {}) {
-  // Reliable mid-conversation entity lookup: FTS first (exact/partial label match),
-  // then semantic as fallback. Returns array of matching nodes.
-  const limit = opts.limit || 3;
-  try {
-    // 1. FTS search — fast, exact, no embedding required
-    const ftsResults = await search(nameOrTopic, { limit: limit * 2 });
-    const ftsNodes = Array.isArray(ftsResults) ? ftsResults : (ftsResults?.items || []);
-    const ftsHits = ftsNodes
-      .map(r => r.node || r)
-      .filter(n => n && !n.tombstone_at)
-      .slice(0, limit);
-
-    if (ftsHits.length > 0) return ftsHits;
-
-    // 2. Semantic fallback — slower, broader
-    const semResults = await retrieve('semantic', { query: nameOrTopic, limit: limit * 2 });
-    return (Array.isArray(semResults) ? semResults : [])
-      .filter(n => (n.score || 0) > 0.45 && !n.tombstone_at)
-      .slice(0, limit);
-  } catch (e) {
-    return []; // never throw — lookup is best-effort
-  }
-}
-
-async function retrieve(mode, opts = {}) {
-  // Semantic mode: embed query client-side, then POST /embeddings/search
-  if (mode === 'semantic') {
-    if (!opts.query) throw new Error('retrieve("semantic") requires opts.query');
-    const vector = await embedText(opts.query);
-    const results = await request('POST', '/embeddings/search', {
-      query: vector,              // server field name is 'query', not 'vector'
-      k: opts.k || opts.limit || 10,
-    });
-    // Normalize: server returns [{node, score}], flatten to [{...nodeFields, score}]
-    if (Array.isArray(results)) {
-      return results.map(r => ({ ...r.node, score: r.score }));
+async function retrieve(action, opts = {}) {
+  // For semantic action, embed client-side and use /embeddings/search
+  // (server's semantic action requires inline embedding provider we don't have)
+  if (action === 'semantic' && opts.query) {
+    try {
+      const queryVec = await embedQuery(opts.query);
+      const k = opts.k || opts.limit || 10;
+      const results = await request('POST', '/embeddings/search', { query: queryVec, k });
+      const items = Array.isArray(results) ? results : (results?.results || results?.items || []);
+      return { results: items };
+    } catch (e) {
+      // Fall back to server-side retrieve if embedding fails
+      return request('POST', '/retrieve', { action, ...opts });
     }
-    return results;
-  }
-
-  // contradictions: direct GET endpoint, not /retrieve
-  if (mode === 'contradictions') {
-    return request('GET', '/contradictions');
   }
 
   return request('POST', '/retrieve', {
-    action: mode,   // server expects 'action', not 'mode'
+    action,
     query: opts.query,
     k: opts.k,
     threshold: opts.threshold,
@@ -486,7 +403,7 @@ async function evolve(action, uid, opts = {}) {
 // ─── Low-level CRUD (Backward Compatibility) ───────────────────────────────
 
 async function addNode(label, props, opts = {}) {
-  const result = await request('POST', '/node', {
+  return request('POST', '/node', {
     label: sanitizeLabel(label),
     props,
     confidence: opts.confidence,
@@ -494,12 +411,6 @@ async function addNode(label, props, opts = {}) {
     summary: opts.summary,
     agent_id: opts.agentId || CONFIG.defaultAgent,
   });
-  // Embed immediately so semantic retrieval works without waiting for nightly dreamer
-  const uid = result?.uid;
-  const desc = props?.description || opts.summary || '';
-  const text = [label, desc].filter(Boolean).join(' ').slice(0, 2000);
-  if (uid) embedNode(uid, text).catch(() => {});
-  return result;
 }
 
 async function getNode(uid) {
@@ -545,25 +456,6 @@ async function edgesTo(uid, edgeType) {
   return Array.isArray(result) ? result : (result?.items ?? result ?? []);
 }
 
-async function edgeBetween(fromUid, toUid, edgeType) {
-  // Returns the edge if one exists between fromUid → toUid, else null
-  const params = new URLSearchParams({ from_uid: fromUid, to_uid: toUid });
-  if (edgeType) params.set('edge_type', edgeType);
-  const result = await request('GET', `/edges?${params}`);
-  const arr = Array.isArray(result) ? result : (result?.items ?? []);
-  return arr.length > 0 ? arr[0] : null;
-}
-
-async function openDecisions(opts = {}) {
-  // Retrieve Decision nodes with status = 'open'
-  const result = await getNodes({ nodeType: 'Decision', limit: opts.limit ?? 100, offset: opts.offset ?? 0 });
-  const items = Array.isArray(result) ? result : (result?.items ?? []);
-  return items.filter(n => {
-    const status = n.props?.status ?? n.props?.decision_status;
-    return !status || status === 'open';
-  });
-}
-
 async function stats() {
   return request('GET', '/stats');
 }
@@ -591,6 +483,92 @@ async function getNodes(opts = {}) {
   params.set('limit', opts.limit || 100);
   params.set('offset', opts.offset || 0);
   return request('GET', `/nodes?${params}`);
+}
+
+// ─── Journal (Phase 0.5.6) ────────────────────────────────────────────────────
+
+async function addJournal(label, content, opts = {}) {
+  return request('POST', '/node', {
+    label: sanitizeLabel(label),
+    node_type: 'Journal',
+    summary: opts.summary || content.slice(0, 300),
+    props: {
+      _type: 'Journal',
+      content,
+      session_uid: opts.sessionUid || null,
+      journal_type: opts.journalType || 'note',
+      tags: opts.tags || [],
+    },
+    confidence: opts.confidence,
+    salience: opts.salience,
+    agent_id: opts.agentId || CONFIG.defaultAgent,
+  });
+}
+
+// ─── Hybrid Search (Phase 0.5.4 — client-side RRF) ───────────────────────────
+
+/**
+ * Embed a query string using OpenAI's text-embedding-3-small model.
+ * Returns a 1536-dim vector.
+ */
+async function embedQuery(text) {
+  const ocConfig = JSON.parse(fs.readFileSync(path.join(process.env.HOME, '.openclaw', 'openclaw.json'), 'utf8'));
+  const apiKey = ocConfig.env?.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY not found');
+
+  const { default: fetch } = await import('node-fetch').catch(() => ({ default: globalThis.fetch }));
+  const res = await fetch('https://api.openai.com/v1/embeddings', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+    body: JSON.stringify({ input: text, model: 'text-embedding-3-small' }),
+  });
+  if (!res.ok) throw new Error(`Embedding API error ${res.status}`);
+  const data = await res.json();
+  return data.data[0].embedding;
+}
+
+/**
+ * Hybrid search using server-side RRF (Phase 0.5.4).
+ * Uses /retrieve with action:"hybrid" — server fuses FTS (BM25) + vector (HNSW)
+ * with Reciprocal Rank Fusion (k=60). Falls back to FTS-only if no embeddings.
+ */
+async function hybridSearch(query, opts = {}) {
+  const limit = opts.limit || 10;
+  const result = await request('POST', '/retrieve', {
+    action: 'hybrid',
+    query,
+    k: opts.k || limit,
+    node_types: opts.nodeTypes,
+    layer: opts.layer,
+    limit,
+  });
+  const items = result?.results || result?.items || (Array.isArray(result) ? result : []);
+  return items.map(item => {
+    const node = item.node || item;
+    return { node, score: item.score || 0 };
+  });
+}
+
+// ─── Find or Create Entity (Phase 0.5.3 — client wrapper) ────────────────────
+
+/**
+ * Dedup-safe entity creation via server-side find_or_create_entity (Phase 0.5.3).
+ * The /reality/entity create action now checks alias + case-insensitive label
+ * match before creating. Returns {node, created: bool}.
+ */
+async function findOrCreateEntity(label, entityType = 'Person', opts = {}) {
+  return manageEntity({
+    action: 'create',
+    label,
+    entityType,
+    ...opts,
+  });
+}
+
+// ─── Follows Edge Helper (Phase 0.5.5) ───────────────────────────────────────
+
+async function addFollowsEdge(fromUid, toUid, opts = {}) {
+  return link(fromUid, toUid, 'Follows', opts);
 }
 
 // ─── Exports ──────────────────────────────────────────────────────────────────
@@ -636,18 +614,18 @@ module.exports = {
   traverse,
   // 18. Evolve
   evolve,
+  // Phase 0.5 additions
+  addJournal,
+  hybridSearch,
+  findOrCreateEntity,
+  addFollowsEdge,
   // Low-level & Compat
   addNode,
   getNode,
   updateNode,
   deleteNode,
   link,
-  embedNode,
-  lookupEntity,
-  request, // low-level HTTP — use sparingly
   getEdges,
   edgesTo,
-  edgeBetween,
-  openDecisions,
   sanitizeLabel,
 };

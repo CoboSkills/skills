@@ -3,11 +3,16 @@
   "slug": "mindgraph-rs",
   "displayName": "MindGraph",
   "latest": {
-    "version": "1.14.1",
-    "publishedAt": 1772580064633,
-    "commit": "https://github.com/openclaw/skills/commit/61c693ef6d7058b1b3c778f212282e3d88357d63"
+    "version": "5.0.1",
+    "publishedAt": 1772770381139,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.14.1",
+      "publishedAt": 1772580064633,
+      "commit": "https://github.com/openclaw/skills/commit/61c693ef6d7058b1b3c778f212282e3d88357d63"
+    },
     {
       "version": "1.7.0",
       "publishedAt": 1772507176451,

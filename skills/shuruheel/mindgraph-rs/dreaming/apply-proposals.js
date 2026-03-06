@@ -141,25 +141,59 @@ async function applyProposal(proposal) {
       break;
     }
 
-    case 'schema_fix': {
-      const nv = proposal.new_value;
-      if (!nv) break;
-      await mg.evolve('update', proposal.target.uid, {
-        propsPatch: nv,
-        reason: `dream: ${proposal.reason}`,
-        agent_id: 'dreamer'
-      });
-      break;
-    }
-
+    case 'schema_fix':
     case 'data_enrichment': {
       const nv = proposal.new_value;
       if (!nv) break;
-      await mg.evolve('update', proposal.target.uid, {
-        propsPatch: nv,
-        reason: `dream: ${proposal.reason}`,
-        agent_id: 'dreamer'
-      });
+      const uid = proposal.target.uid;
+      
+      // Read current node to get existing props
+      const currentNode = await mg.getNode(uid);
+      if (!currentNode) break;
+      
+      // Separate top-level fields (summary, label, confidence, salience)
+      // from props fields. The server's evolve endpoint can update summary/label/etc
+      // but propsPatch is silently ignored — we must use PATCH with full merged props.
+      const topLevelFields = ['summary', 'label', 'confidence', 'salience'];
+      const evolveUpdate = {};
+      const propsUpdate = {};
+      
+      for (const [key, value] of Object.entries(nv)) {
+        if (topLevelFields.includes(key)) {
+          evolveUpdate[key] = value;
+        } else if (key === 'description' || key === 'content') {
+          // 'description' and 'content' should map to summary for FTS searchability
+          // AND to props if the server schema allows it
+          if (!currentNode.summary || currentNode.summary.length < (value).length) {
+            evolveUpdate.summary = value;
+          }
+          propsUpdate[key] = value;
+        } else {
+          propsUpdate[key] = value;
+        }
+      }
+      
+      // Apply top-level updates via evolve (these work)
+      if (Object.keys(evolveUpdate).length > 0) {
+        await mg.evolve('update', uid, {
+          ...evolveUpdate,
+          reason: `dream: ${proposal.reason}`,
+          agent_id: 'dreamer'
+        });
+      }
+      
+      // Apply props updates via PATCH with full merged props (must include _type)
+      if (Object.keys(propsUpdate).length > 0 && currentNode.props?._type) {
+        const mergedProps = { ...currentNode.props, ...propsUpdate };
+        try {
+          await mg.updateNode(uid, { props: mergedProps }, { 
+            reason: `dream: ${proposal.reason}` 
+          });
+        } catch (e) {
+          // If PATCH fails (strict schema), the summary update above is the fallback
+          // This is expected for node types that don't accept arbitrary props
+        }
+      }
       break;
     }
 
@@ -208,6 +242,7 @@ async function applyProposal(proposal) {
     case 'goal_review':       // Stale goal needs status check
     case 'source_drift':      // Source file changed since node was extracted
     case 'system':            // System-level observations
+    case 'orphan_wire':       // Orphan node needs wiring — requires review
       console.log(`   ⏭ review-only (${proposal.type}): ${proposal.target?.label || '?'}`);
       return;
 

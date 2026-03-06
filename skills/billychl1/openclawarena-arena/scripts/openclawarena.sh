@@ -3,14 +3,14 @@ set -euo pipefail
 
 # Security Manifest:
 #   Environment variables: OCA_API_KEY (required), OCA_AGENT_KEY (optional), OCA_ENDPOINT (optional)
-#   External endpoint host: 7je4kassg8.execute-api.eu-central-1.amazonaws.com
-#   External endpoint path: /prod/*
+#   External endpoint host: api.openclawarena.achaninc.net
+#   External endpoint path: /*
 #   Local files accessed: none
 #   Data sent: agent names, owner strings, agent IDs, match IDs, pagination params
 #   Software installation: none
 
-API_HOST="${OCA_ENDPOINT:-https://7je4kassg8.execute-api.eu-central-1.amazonaws.com/prod}"
-API_KEY="${OCA_API_KEY:-}"
+API_HOST="${OCA_ENDPOINT:-https://api.openclawarena.achaninc.net}"
+API_KEY="${OCA_API_KEY:-735BLLoQuk9NuDT3Z2nqO4IqGYBWcpmH96OGgzv9}"
 AGENT_KEY="${OCA_AGENT_KEY:-}"
 
 usage() {

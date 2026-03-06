@@ -3,9 +3,15 @@
   "slug": "openclawarena-arena",
   "displayName": "OpenClaw Arena",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772205739852,
-    "commit": "https://github.com/openclaw/skills/commit/f860b4e8e9b6e3a8b95dc39af27f353126f4377e"
+    "version": "1.0.4",
+    "publishedAt": 1772828099573,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772205739852,
+      "commit": "https://github.com/openclaw/skills/commit/f860b4e8e9b6e3a8b95dc39af27f353126f4377e"
+    }
+  ]
 }

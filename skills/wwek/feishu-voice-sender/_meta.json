@@ -1,11 +1,17 @@
 {
   "owner": "wwek",
   "slug": "feishu-voice-sender",
-  "displayName": "飞书语音消息发送",
+  "displayName": "feishu-voice-sender - 飞书语音消息发送",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772768915942,
-    "commit": "https://github.com/openclaw/skills/commit/bc394203165156eb4f75f3375f8e640016573c1f"
+    "version": "1.0.1",
+    "publishedAt": 1772769201422,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772768915942,
+      "commit": "https://github.com/openclaw/skills/commit/bc394203165156eb4f75f3375f8e640016573c1f"
+    }
+  ]
 }

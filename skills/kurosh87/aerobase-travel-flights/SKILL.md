@@ -36,7 +36,11 @@ User: "Compare these 3 flights for jetlag impact"
 → Recommends optimal choice
 ```
 
-## API Endpoints
+## API Documentation
+
+Full API docs: https://aerobase.app/developers
+
+OpenAPI spec: https://aerobase.app/api/v1/openapi
 
 **POST /api/v1/flights/score**
 

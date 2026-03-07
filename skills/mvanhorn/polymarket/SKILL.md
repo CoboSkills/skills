@@ -1,247 +1,135 @@
 ---
 name: polymarket
-description: Query Polymarket prediction markets - check odds, trending markets, search events, track prices and momentum. Includes watchlist alerts, resolution calendar, momentum scanner, and paper trading (simulated, no real money).
+version: "1.1.0"
+description: Query and trade on Polymarket prediction markets — check odds, trending markets, search events, view order books, place trades, and manage positions. Now available to US developers.
+author: mvanhorn
+license: MIT
+repository: https://github.com/mvanhorn/clawdbot-skill-polymarket
 homepage: https://polymarket.com
-user-invocable: true
-disable-model-invocation: true
 metadata:
-  openclaw:
+  clawdbot:
     emoji: "📊"
-    requires:
-      bins: [python3]
+    tags:
+      - prediction-markets
+      - polymarket
+      - trading
+      - odds
+      - betting
 ---
 
 # Polymarket
 
-Query [Polymarket](https://polymarket.com) prediction markets. Check odds, find trending markets, search events, track price movements.
+Query [Polymarket](https://polymarket.com) prediction markets and trade from the terminal.
 
-## Quick Start
+## Setup
+
+**Read-only commands work immediately** (no install needed).
+
+For trading, order books, and price history, install the [Polymarket CLI](https://github.com/Polymarket/polymarket-cli):
 
 ```bash
-# Trending markets
-python3 {baseDir}/scripts/polymarket.py trending
-
-# Search
-python3 {baseDir}/scripts/polymarket.py search "trump"
-
-# Biggest movers
-python3 {baseDir}/scripts/polymarket.py movers
-
-# What's resolving soon
-python3 {baseDir}/scripts/polymarket.py calendar
+curl -sSL https://raw.githubusercontent.com/Polymarket/polymarket-cli/main/install.sh | sh
 ```
 
----
+For trading, set up a wallet:
 
-## After Install — Suggested Setup
-
-### 1. Add to Morning Briefing
-Add Polymarket to your daily cron:
-```
-polymarket featured + polymarket movers --timeframe 24h
-```
-
-### 2. Watch Markets You Care About
 ```bash
-# Watch with price target alert
-python3 {baseDir}/scripts/polymarket.py watch add trump-2028 --alert-at 60
-
-# Watch with change alert (±10% from current)
-python3 {baseDir}/scripts/polymarket.py watch add bitcoin-100k --alert-change 10
+python3 {baseDir}/scripts/polymarket.py wallet-setup
 ```
 
-### 3. Set Up Hourly Alerts (Cron)
-```bash
-# Check watchlist every hour, only notify on alerts
-python3 {baseDir}/scripts/polymarket.py alerts --quiet
-```
-
-### 4. Weekly Category Digests
-```bash
-# Every Sunday: politics digest
-python3 {baseDir}/scripts/polymarket.py digest politics
-```
-
-### 5. Paper Trade to Track Predictions
-```bash
-python3 {baseDir}/scripts/polymarket.py buy trump-2028 100  # $100 on Trump
-python3 {baseDir}/scripts/polymarket.py portfolio           # Check P&L
-```
-
----
+Or manually configure `~/.config/polymarket/config.json` with your private key. See the [CLI docs](https://github.com/Polymarket/polymarket-cli) for details.
 
 ## Commands
 
-### Core
+### Browse Markets (no CLI needed)
 
 ```bash
-# Trending markets (by 24h volume)
+# Trending/active markets
 python3 {baseDir}/scripts/polymarket.py trending
 
-# Featured/high-profile markets
-python3 {baseDir}/scripts/polymarket.py featured
-
 # Search markets
-python3 {baseDir}/scripts/polymarket.py search "giannis"
+python3 {baseDir}/scripts/polymarket.py search "trump"
 
-# Get event by slug
-python3 {baseDir}/scripts/polymarket.py event trump-2028
+# Get specific event by slug
+python3 {baseDir}/scripts/polymarket.py event "fed-decision-in-october"
 
-# Browse by category
+# Get markets by category
 python3 {baseDir}/scripts/polymarket.py category politics
+python3 {baseDir}/scripts/polymarket.py category crypto
 ```
 
-### Watchlist + Alerts (NEW)
+### Order Book & Prices (CLI required, no wallet)
 
 ```bash
-# Add to watchlist
-python3 {baseDir}/scripts/polymarket.py watch add trump-2028
-python3 {baseDir}/scripts/polymarket.py watch add bitcoin-100k --alert-at 70
-python3 {baseDir}/scripts/polymarket.py watch add fed-rate-cut --alert-change 15
+# Order book for a token
+python3 {baseDir}/scripts/polymarket.py book TOKEN_ID
 
-# Watch specific outcome in multi-market
-python3 {baseDir}/scripts/polymarket.py watch add giannis-trade --outcome warriors
-
-# List watchlist with current prices
-python3 {baseDir}/scripts/polymarket.py watch list
-
-# Remove from watchlist
-python3 {baseDir}/scripts/polymarket.py watch remove trump-2028
-
-# Check for alerts (for cron)
-python3 {baseDir}/scripts/polymarket.py alerts
-python3 {baseDir}/scripts/polymarket.py alerts --quiet  # Only output if triggered
+# Price history
+python3 {baseDir}/scripts/polymarket.py price-history TOKEN_ID --interval 1d
 ```
 
-### Resolution Calendar (NEW)
+### Wallet (CLI required)
 
 ```bash
-# Markets resolving in next 7 days
-python3 {baseDir}/scripts/polymarket.py calendar
-
-# Markets resolving in next 3 days
-python3 {baseDir}/scripts/polymarket.py calendar --days 3
-
-# More results
-python3 {baseDir}/scripts/polymarket.py calendar --days 14 --limit 20
+python3 {baseDir}/scripts/polymarket.py wallet-setup
+python3 {baseDir}/scripts/polymarket.py wallet-show
+python3 {baseDir}/scripts/polymarket.py wallet-balance
+python3 {baseDir}/scripts/polymarket.py wallet-balance --token TOKEN_ID
 ```
 
-### Momentum Scanner (NEW)
+### Trading (CLI + wallet required)
+
+All trades require `--confirm` to execute. Without it, the order is previewed only.
 
 ```bash
-# Biggest movers (24h)
-python3 {baseDir}/scripts/polymarket.py movers
+# Buy limit order: 10 shares at $0.50
+python3 {baseDir}/scripts/polymarket.py --confirm trade buy --token TOKEN_ID --price 0.50 --size 10
 
-# Weekly movers
-python3 {baseDir}/scripts/polymarket.py movers --timeframe 1w
+# Sell limit order
+python3 {baseDir}/scripts/polymarket.py --confirm trade sell --token TOKEN_ID --price 0.70 --size 10
 
-# Monthly movers with volume filter
-python3 {baseDir}/scripts/polymarket.py movers --timeframe 1m --min-volume 50
+# Market order: buy $5 worth
+python3 {baseDir}/scripts/polymarket.py --confirm trade buy --token TOKEN_ID --market-order --amount 5
 ```
 
-### Category Digests (NEW)
+### Orders & Positions (CLI + wallet required)
 
 ```bash
-# Politics digest
-python3 {baseDir}/scripts/polymarket.py digest politics
+# List open orders
+python3 {baseDir}/scripts/polymarket.py orders
 
-# Crypto digest
-python3 {baseDir}/scripts/polymarket.py digest crypto
+# Cancel a specific order
+python3 {baseDir}/scripts/polymarket.py --confirm orders --cancel ORDER_ID
 
-# Sports digest
-python3 {baseDir}/scripts/polymarket.py digest sports
+# Cancel all orders
+python3 {baseDir}/scripts/polymarket.py --confirm orders --cancel all
+
+# View positions
+python3 {baseDir}/scripts/polymarket.py positions
+python3 {baseDir}/scripts/polymarket.py positions --address 0xYOUR_WALLET
 ```
 
-Categories: `politics`, `crypto`, `sports`, `tech`, `business`
+## Example Chat Usage
 
-### Paper Trading (NEW)
+- "What are the odds Trump wins 2028?"
+- "Trending on Polymarket?"
+- "Search Polymarket for Bitcoin"
+- "Show me the order book for [token]"
+- "Buy 10 shares of YES on [market] at $0.45"
+- "What are my open positions?"
+- "Cancel all my orders"
 
-```bash
-# Buy $100 of a market
-python3 {baseDir}/scripts/polymarket.py buy trump-2028 100
+## ⚠️ Safety Notes
 
-# Buy specific outcome
-python3 {baseDir}/scripts/polymarket.py buy giannis-trade 50 --outcome warriors
-
-# View portfolio
-python3 {baseDir}/scripts/polymarket.py portfolio
-
-# Sell position
-python3 {baseDir}/scripts/polymarket.py sell trump-2028
-```
-
-Starts with $10,000 paper cash. Track your predictions without real money.
-
----
-
-## Data Storage
-
-Watchlist and portfolio stored in `~/.polymarket/`:
-- `watchlist.json` — Watched markets and alert thresholds
-- `portfolio.json` — Paper positions and trade history
-
----
-
-## Cron Examples
-
-### Hourly Alert Check
-```
-0 * * * * python3 ~/.../polymarket.py alerts --quiet
-```
-
-### Daily Morning Brief
-```
-0 7 * * * python3 ~/.../polymarket.py movers && python3 ~/.../polymarket.py calendar --days 1
-```
-
-### Weekly Digests
-```
-0 10 * * 0 python3 ~/.../polymarket.py digest politics
-0 10 * * 0 python3 ~/.../polymarket.py digest crypto
-```
-
----
-
-## Output Features
-
-Markets show:
-- **Current odds** (Yes/No prices)
-- **Price momentum** (24h/1wk/1mo changes with arrows)
-- **Volume** (total + 24h activity)
-- **Time remaining**
-- **Bid/ask spread**
-
----
+- **Real money.** Trades execute on Polygon with real USDC. Double-check everything.
+- **All trades require `--confirm`.** Without it, you get a preview only.
+- **The CLI is experimental.** The Polymarket team warns: "Use at your own risk and do not use with large amounts of funds."
+- **Private key security.** Your key is stored in `~/.config/polymarket/config.json`. Keep it safe.
+- **Gas fees.** On-chain operations (approvals, splits, redeems) require MATIC for gas.
 
 ## API
 
-Uses the public Gamma API (no auth required for reading):
+Read-only commands use the public Gamma API (no auth):
 - Base URL: `https://gamma-api.polymarket.com`
-- Docs: https://docs.polymarket.com
 
----
-
-## Security & Permissions
-
-**No API key or authentication required.** This skill uses Polymarket's public Gamma API.
-
-**What this skill does:**
-- Makes HTTPS GET requests to `gamma-api.polymarket.com` (public, unauthenticated)
-- Reads market data: odds, volumes, event details, price history
-- Paper trading is **local simulation only** — stored in `~/.polymarket/` as JSON files
-- No real money, no wallet, no blockchain transactions
-
-**What this skill does NOT do:**
-- Does not connect to any wallet or financial account
-- Does not execute real trades or transactions
-- Does not require or handle any credentials or API keys
-- Does not send any personal data externally
-- Cannot be invoked autonomously by the agent (`disable-model-invocation: true`)
-
-**Data stored locally:** `~/.polymarket/watchlist.json`, `~/.polymarket/portfolio.json`
-
-Review `scripts/polymarket.py` before first use to verify behavior.
-
-## Note
-
-This is read-only + paper trading. Real trading requires wallet authentication (not implemented).
+Trading commands wrap the official [Polymarket CLI](https://github.com/Polymarket/polymarket-cli) (Rust binary).

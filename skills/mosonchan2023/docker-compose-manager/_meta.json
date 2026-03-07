@@ -1,0 +1,11 @@
+{
+  "owner": "mosonchan2023",
+  "slug": "docker-compose-manager",
+  "displayName": "Docker Compose Manager",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772845146913,
+    "commit": null
+  },
+  "history": []
+}

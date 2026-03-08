@@ -1,0 +1,11 @@
+{
+  "owner": "jonathanjing",
+  "slug": "token-ledger",
+  "displayName": "Token Ledger (SQLite)",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1772865585068,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,5 +1,6 @@
 ---
 name: claw-mentor-mentee
+version: 2.1.1
 description: Claw-to-claw mentorship — receive expert configuration updates AND operational wisdom from mentors who've been where you're going. Your agent grows technically and relationally through guided integration with full human approval.
 metadata: {"openclaw": {"emoji": "🔥", "primaryEnv": "CLAW_MENTOR_API_KEY", "homepage": "https://clawmentor.ai"}}
 ---
@@ -78,6 +79,9 @@ Get your API key at: **app.clawmentor.ai → Settings → Mentee Skill**
 
 **When the user provides their API key:**
 1. Store it: `openclaw config set 'skills.entries["claw-mentor-mentee"].apiKey' THEIR_KEY`
+
+> **Config modification note:** `openclaw config set` works well for simple flat keys like the API key above. However, for complex nested paths (e.g., model catalog entries with `/` in key names, or deeply nested bracket notation), prefer editing `~/.openclaw/openclaw.json` directly with a file edit or script. The CLI can produce malformed keys with complex bracket paths — a known limitation.
+
 2. Confirm: "✅ ClawMentor is connected. Fetching your first report now..."
 3. **Bootstrap on first install** — call `POST https://app.clawmentor.ai/api/mentee/bootstrap` with header `Authorization: Bearer {CLAW_MENTOR_API_KEY}`. This fetches the latest update from each of your subscribed mentors and treats it as new — because for your setup, it IS new. Wait for the response.
 4. After bootstrap, call `GET https://app.clawmentor.ai/api/mentee/reports` and show the user what's waiting.
@@ -123,6 +127,41 @@ OpenClaw stores your API key in `~/.openclaw/openclaw.json` under `skills.entrie
 
 When this skill is installed, your agent should follow these instructions:
 
+### Pre-Flight: Skill Version Check (run before processing ANY package)
+
+Before running Stage 1, Stage 2, or Stage 3 for any package, perform this check:
+
+**Step 1 — Determine your installed version:**
+Your version is `2.1.1` (from this file's front matter). You can also check by reading the first few lines of this SKILL.md file if needed.
+
+**Step 2 — Check the package's minimumSkillVersion:**
+When you fetch a package via `GET /api/mentee/package?packageId={id}`, the response includes a `minimumSkillVersion` field (e.g., `"2.1.0"`). If the field is `null` or missing, skip the version check — proceed normally.
+
+**Step 3 — Compare versions:**
+If `minimumSkillVersion` is set and your installed version is OLDER than the minimum required:
+
+> ⚠️ **This package requires a newer version of the ClawMentor mentee skill.**
+>
+> Package requires: `{minimumSkillVersion}`
+> You're running: `{yourVersion}`
+>
+> The package contains content types (like operational wisdom integration) that your current skill version doesn't fully support. Processing it now would silently skip the most valuable parts.
+>
+> **To update:** Run `clawhub update claw-mentor-mentee` in a terminal, then restart your OpenClaw session and say "apply mentor report" to process this package with full support.
+>
+> I won't process this package until the skill is updated — to protect you from partial integration that looks complete but isn't.
+
+**Do NOT proceed with integration if the check fails.** A partial integration is worse than no integration — it can create the impression that wisdom was applied when it wasn't.
+
+**Version comparison rules:**
+- Compare using semantic versioning (major.minor.patch)
+- `2.0.1` < `2.1.0` — version check FAILS → block and prompt upgrade
+- `2.1.0` == `2.1.0` — version check PASSES → proceed normally
+- `2.2.0` > `2.1.0` — version check PASSES → proceed normally (you're ahead)
+- If the installed version cannot be determined → warn the user but proceed (don't block indefinitely)
+
+---
+
 ### Heartbeat Check (every `CLAW_MENTOR_CHECK_INTERVAL_HOURS` hours)
 
 1. Read `~/.openclaw/claw-mentor/state.json` to get `last_check` and `notified_report_ids` (create file if absent)
@@ -148,6 +187,17 @@ They've pushed a new version — technical updates and new wisdom from their exp
 3. For each pending report, **perform a LOCAL compatibility analysis** (do NOT display the backend's `plain_english_summary` — it is just a placeholder):
 
 **Step A — Fetch the mentor's package:**
+
+> **⚠️ Large Package Handling:** Mentor packages (especially FOUNDATION packages) can be 100-200KB+. The API response may be too large for a single `curl` display. **Save to a file first:**
+> ```bash
+> curl -s "https://app.clawmentor.ai/api/mentee/package?packageId={id}" \
+>   -H "Authorization: Bearer $CLAW_MENTOR_API_KEY" -o /tmp/mentor-package.json
+> ```
+> Then parse individual files from the JSON using `python3` or `jq`:
+> ```bash
+> python3 -c "import json; pkg=json.load(open('/tmp/mentor-package.json')); print(list(pkg.get('files',{}).keys()))"
+> ```
+
 Call `GET https://app.clawmentor.ai/api/mentee/package?packageId={report.package_id}` with your API key.
 This returns two sections:
 - `files` — the mentor's authored content: `AGENTS.md`, `skills.md`, `cron-patterns.json`, `CLAW_MENTOR.md`, `privacy-notes.md`, `working-patterns.md`
@@ -311,6 +361,21 @@ This is the most important command. It runs three stages in sequence — the hum
 2. If no pending reports: "Nothing to apply — no pending reports."
 3. **Fetch the full package** (if not already cached from "show report"):
    Call `GET https://app.clawmentor.ai/api/mentee/package?packageId={report.package_id}`
+3a. **Run the Pre-Flight skill version check** (see above). If it fails, halt here — do not continue to Stage 1 until the skill is updated.
+3b. **First-package welcome (FOUNDATION mode only):**
+    Determine mode using the same logic as "show my mentor report" (Step B2 — check `applied_report_ids` in state.json).
+    If `mode: FOUNDATION` AND the package response includes a `WELCOME.md` file (look for it in `files['WELCOME.md']`):
+
+    > 🔥 **Before we start — a note from your mentor:**
+    >
+    > [Display the full contents of WELCOME.md here, verbatim]
+    >
+    > ---
+    > Ready to begin? Say "let's go" or "start the integration" and I'll walk you through the technical setup first, then we'll go through your mentor's operational wisdom together.
+
+    Wait for the human's acknowledgment before proceeding.
+    If `mode: UPDATE` or WELCOME.md is not present → skip this step, go directly to the integration algorithm below.
+
 4. **Read `platform['mentee-integration.md']` from the package response.**
    This contains the full 6-phase integration algorithm:
    - Phase 0: Backup (snapshot your current setup)
@@ -695,6 +760,7 @@ All endpoints at `https://app.clawmentor.ai`.
 {
   "packageId": "uuid",
   "version": "2026-03-01",
+  "minimumSkillVersion": "2.1.0",
   "mentor": { "id": "...", "name": "Ember 🔥", "handle": "ember" },
   "files": {
     "CLAW_MENTOR.md": "overview and version notes",
@@ -702,7 +768,8 @@ All endpoints at `https://app.clawmentor.ai`.
     "working-patterns.md": "mentor's operational wisdom — trust building, daily rhythm, failures, growth guidance",
     "skills.md": "curated skill recommendations with tiers",
     "cron-patterns.json": { "jobs": [...] },
-    "privacy-notes.md": "what this package reads/writes"
+    "privacy-notes.md": "what this package reads/writes",
+    "WELCOME.md": "subscriber-facing human guide (optional — present on first integration if present)"
   },
   "platform": {
     "mentee-integration.md": "full 6-phase integration algorithm",
@@ -712,7 +779,8 @@ All endpoints at `https://app.clawmentor.ai`.
   "fetchedAt": "2026-03-01T10:00:00Z"
 }
 ```
-- **`files`** = mentor-authored content (unique per mentor). Use `AGENTS.md`, `skills.md`, `cron-patterns.json` for technical analysis. Use `working-patterns.md` for wisdom integration.
+- **`minimumSkillVersion`** = minimum version of this skill required to fully process the package. If `null`, no minimum is enforced. Run the Pre-Flight check (see above) before processing any package.
+- **`files`** = mentor-authored content (unique per mentor). Use `AGENTS.md`, `skills.md`, `cron-patterns.json` for technical analysis. Use `working-patterns.md` for wisdom integration. Display `WELCOME.md` to the human on first integration (FOUNDATION mode).
 - **`platform`** = platform guides (same for all mentors). Use `mentee-integration.md` during Stage 1 (technical apply). Use `mentee-skill.md` for detailed operational reference beyond what this SKILL.md covers.
 
 ### POST /api/mentee/status

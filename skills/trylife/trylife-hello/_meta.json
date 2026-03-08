@@ -1,0 +1,11 @@
+{
+  "owner": "trylife",
+  "slug": "trylife-hello",
+  "displayName": "hello",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1772929179941,
+    "commit": null
+  },
+  "history": []
+}

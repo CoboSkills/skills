@@ -18,13 +18,17 @@ from fpdf import FPDF
 
 
 # 文泉驿正黑 (WenQuanYi Zen Hei) — 系统自带中文字体
-FONT_PATH = "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc"
-FONT_NAME = "WenQuanYi"
+# Updated path to use font within the skill directory for portability
+FONT_PATH = os.path.join(os.path.dirname(__file__), "../fonts/SimSun.ttf")
+FONT_NAME = "SimSun"
 
 
 class HLAReportPDF(FPDF):
     def __init__(self):
         super().__init__()
+        # Ensure the font file exists before adding
+        if not os.path.exists(FONT_PATH):
+            raise FileNotFoundError(f"TTF Font file not found at: {FONT_PATH}. Please ensure SimSun.ttf is in the skill's fonts/ directory.")
         self.add_font(FONT_NAME, "", FONT_PATH)
         self.set_auto_page_break(auto=True, margin=15)
 
@@ -38,11 +42,11 @@ class HLAReportPDF(FPDF):
         self.set_y(-15)
         self.set_font(FONT_NAME, "", 8)
         self.set_text_color(128, 128, 128)
-        self.cell(0, 10, f"Page {self.page_no()}/{{nb}}", align="C")
+        self.cell(0, 10, f"Page {self.page_no()}/{{nb}}", align=\"C\")
 
 
 def _classify_line(line: str):
-    """判断行的类型，返回 (font_size, is_bold_sim, color_rgb)"""
+    \"\"\"判断行的类型，返回 (font_size, is_bold_sim, color_rgb)\"\"\"
     stripped = line.strip()
 
     # 主标题
@@ -151,13 +155,15 @@ def main():
     if args.output:
         out_path = args.output
     else:
-        default_dir = os.path.expanduser("~/openclaw-reports/HLA")
+        # Default to a specific output folder within workspace/output
+        default_dir = os.path.join(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../output')))
         os.makedirs(default_dir, exist_ok=True)
         name = args.patient if args.patient else "report"
         out_path = os.path.join(default_dir, f"{name}_DFS.pdf")
 
     out = generate_pdf(report, out_path, args.patient)
-    print(f"✅ PDF 生成: {out}")
+    # Only print the absolute path of the generated PDF for programmatic use
+    print(os.path.abspath(out))
 
 
 if __name__ == "__main__":

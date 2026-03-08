@@ -3,11 +3,16 @@
   "slug": "apple-developer-toolkit",
   "displayName": "Apple Developer Toolkit",
   "latest": {
-    "version": "1.260225.3",
-    "publishedAt": 1772024910167,
-    "commit": "https://github.com/openclaw/skills/commit/7b8bb02804c384409231395185fb7dc880f5eceb"
+    "version": "1.260308.2",
+    "publishedAt": 1772919680657,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.260225.3",
+      "publishedAt": 1772024910167,
+      "commit": "https://github.com/openclaw/skills/commit/7b8bb02804c384409231395185fb7dc880f5eceb"
+    },
     {
       "version": "4.0.0",
       "publishedAt": 1771791686937,

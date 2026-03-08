@@ -1,119 +1,263 @@
 ---
 name: otc-confirmation
-description: One-Time Confirmation code security mechanism for sensitive agent operations. Generates a random single-use code, delivers it via a private channel (email), and requires the user to reply with the code in the originating session before execution proceeds. Use when the agent needs to confirm dangerous, irreversible, or externally-visible operations — such as sending emails/tweets, deleting files, modifying system configs, or changing security rules. Triggers on phrases like "OTC", "confirmation code", "secure confirm", or when the agent's safety policy requires confirmation before acting.
+description: One-Time Confirmation code security mechanism for sensitive agent operations. Generates a cryptographically secure single-use code, delivers it via a private channel (email), and requires the user to reply with the code before execution proceeds. The code never appears in stdout, logs, or chat — it flows through a secure state file. Use when the agent needs to confirm dangerous, irreversible, or externally-visible operations.
+metadata: {"openclaw": {"requires": {"env": ["OTC_EMAIL_RECIPIENT", "OTC_SMTP_USER", "OTC_SMTP_PASS"], "anyBins": ["curl"]}, "primaryEnv": "OTC_EMAIL_RECIPIENT"}}
 ---
 
-# OTC Confirmation
+# OTC Confirmation 3.0
 
 A security pattern that prevents unauthorized or accidental execution of sensitive operations by requiring out-of-band confirmation via a one-time code.
+
+## What's New in 3.0
+
+- 🔐 **Code never touches stdout** — flows through a secure state file (mode 600), preventing leakage via logs or agent context
+- 🔒 **Cryptographically secure generation** — uses `/dev/urandom` instead of `$RANDOM`
+- 🛡️ **Atomic single-use enforcement** — state file is deleted on successful verification
+- 🚫 **No silent fallbacks** — email failure is always fatal, never falls through to execution
+- 🧹 **No arbitrary file sourcing** — credentials loaded exclusively via environment variables
+- ✅ **Proper metadata declaration** — required env vars declared in skill metadata
 
 ## How It Works
 
 ```
 User request (sensitive op)
-  → Agent generates random code (e.g. cf-a3x7)
-  → Agent sends code to user via PRIVATE channel (email)
+  → Agent runs generate_code.sh (code stored in state file, never printed)
+  → Agent runs send_otc_email.sh (reads code from state file, sends email)
   → Agent replies in chat: "需要确认，请查看邮箱"
   → User reads email, replies with code in ORIGINAL chat session
-  → Agent verifies code → executes operation
+  → Agent runs verify_code.sh (reads state file, compares, deletes on match)
+  → Agent executes operation
 ```
 
-The code is **single-use** — once verified or expired, it cannot be reused.
+The code is **single-use** — the state file is deleted immediately after successful verification.
 
-## Setup
+**Key security property:** The agent never captures or sees the code in its context. It only checks exit codes.
 
-Add OTC configuration to your `SOUL.md` or `AGENTS.md`:
+## Quick Start
 
-```markdown
-## OTC Confirmation
-
-- **Recipient email:** user@example.com
-- **Code format:** `cf-XXXX` (prefix + 4 alphanumeric chars)
-- **Delivery channel:** Email (via send-email skill, himalaya, or any configured email tool)
-- **Trigger conditions:**
-  - External operations (send email, post to social media, API calls to third-party services)
-  - Dangerous local operations (rm -rf, system config changes, service restarts)
-  - Security rule modifications (changes to SOUL.md confirmation mechanism itself)
-- **Absolute denials:** Destructive irreversible operations (wipe disk, rm -rf /, format drive) — reject outright, no OTC offered
-```
-
-Adjust trigger conditions and absolute denials to match your risk tolerance.
-
-## Workflow
-
-### Step 1: Trigger Check
-
-Before executing any operation, evaluate:
-
-1. Is this an **external** operation? (leaves the machine / visible to others)
-2. Is this a **dangerous local** operation? (destructive, hard to reverse)
-3. Does this **modify security rules**? (changes to confirmation mechanism itself)
-
-If YES to any → proceed to Step 2.
-If NO to all → execute normally, optionally log: `OTC核查：不触发`
-
-### Step 2: Generate Code
-
-Generate a random one-time code. Use the bundled script:
+### 1. Install
 
 ```bash
-# Generate a code
-code=$(bash /path/to/otc-confirmation/scripts/generate_code.sh)
-# Example output: cf-k8m2
+clawhub install otc-confirmation
 ```
 
-Or generate inline (any language):
+### 2. Configure
 
-```python
-import random, string
-code = "cf-" + "".join(random.choices(string.ascii_lowercase + string.digits, k=4))
+**Option A: OpenClaw Config (Recommended)**
+
+Add to `openclaw.json`:
+
+```json
+{
+  "skills": {
+    "entries": {
+      "otc-confirmation": {
+        "enabled": true,
+        "env": {
+          "OTC_EMAIL_RECIPIENT": "user@example.com",
+          "OTC_EMAIL_BACKEND": "smtp",
+          "OTC_SMTP_HOST": "smtp.gmail.com",
+          "OTC_SMTP_PORT": "587",
+          "OTC_SMTP_USER": "your-email@gmail.com",
+          "OTC_SMTP_PASS": "your-app-password"
+        }
+      }
+    }
+  }
+}
 ```
 
-### Step 3: Deliver via Private Channel
+**Option B: Environment Variables**
 
-Send the code to the configured email address. **Never** display the code in the chat session.
-
-Email template:
-```
-Subject: OTC Confirmation Code
-Body:
-Your one-time confirmation code: {code}
-
-Operation: {brief description of what will be executed}
-Session: {channel/session identifier}
-
-Reply with this code in the original chat to authorize.
-This code is single-use and expires after one attempt.
+```bash
+export OTC_EMAIL_RECIPIENT=user@example.com
+export OTC_EMAIL_BACKEND=smtp
+export OTC_SMTP_HOST=smtp.gmail.com
+export OTC_SMTP_PORT=587
+export OTC_SMTP_USER=your-email@gmail.com
+export OTC_SMTP_PASS=your-app-password
 ```
 
-Reply in chat (the originating session) with only:
-> 需要确认，请查看你的邮箱
+### 3. Use in Your Agent
 
-### Step 4: Verify
+```bash
+SKILL_DIR="{baseDir}"
 
-- User replies with the code in the **same session** that initiated the request
-- **Exact match only** — no partial matches, no "yes"/"ok"/"approved"
-- On match → execute the operation, mark code as used
-- On mismatch → reject, do not retry with same code
+# Step 1: Generate code (stored in secure state file, nothing printed to stdout)
+bash "$SKILL_DIR/scripts/generate_code.sh"
 
-### Step 5: Execute & Log
+# Step 2: Send email (reads code from state file internally)
+bash "$SKILL_DIR/scripts/send_otc_email.sh" "Send email to john@example.com" "Discord #work"
 
-After successful verification:
-1. Execute the operation
-2. Log the result with OTC reference (e.g., `OTC通过，已执行 xxx`)
+# Step 3: Reply in chat (do NOT mention the code)
+echo "需要确认，请查看你的注册邮箱"
+
+# Step 4: Wait for user input, then verify (reads expected code from state file)
+bash "$SKILL_DIR/scripts/verify_code.sh" "$USER_INPUT"
+
+if [ $? -eq 0 ]; then
+  echo "OTC通过，执行操作..."
+  # Execute the operation
+else
+  echo "确认码不匹配，操作取消"
+fi
+```
+
+## Email Backends
+
+### SMTP (Default, Zero Dependencies)
+
+Uses curl to send email directly via SMTP. No additional tools required.
+
+```bash
+export OTC_EMAIL_BACKEND=smtp
+export OTC_SMTP_HOST=smtp.gmail.com
+export OTC_SMTP_PORT=587
+export OTC_SMTP_USER=your-email@gmail.com
+export OTC_SMTP_PASS=your-app-password
+```
+
+### send-email Skill
+
+If you have the `send-email` skill installed:
+
+```bash
+export OTC_EMAIL_BACKEND=send-email
+```
+
+### himalaya CLI
+
+If you have `himalaya` installed:
+
+```bash
+export OTC_EMAIL_BACKEND=himalaya
+```
+
+### Custom Script
+
+Use your own email sending script:
+
+```bash
+export OTC_EMAIL_BACKEND=custom
+export OTC_CUSTOM_EMAIL_SCRIPT=/path/to/your/send_email.sh
+```
+
+Your script must accept three arguments: `<to> <subject> <body>`
+
+**Security note:** Ensure the custom script has restricted permissions and is located in a trusted directory. The skill validates that the script exists and is executable before invoking it.
+
+## Trigger Conditions
+
+OTC should be triggered for:
+
+1. **External operations**: Sending emails, posting to social media, API calls to third parties
+2. **Dangerous local operations**: Recursive deletions, system config changes, service restarts
+3. **Security rule modifications**: Changes to SOUL.md, AGENTS.md confirmation mechanisms
+
+See `references/trigger-categories.md` for detailed categories.
+
+## Enforcement Checklist
+
+Before every operation, follow the enforcement checklist:
+
+1. Evaluate trigger conditions
+2. Check absolute denial list (destructive irreversible operations → refuse outright)
+3. Generate and send OTC if required
+4. Verify user input
+5. Log the result
+
+See `references/enforcement-checklist.md` for the complete workflow.
+
+## Integration Guides
+
+- **SOUL.md integration**: `examples/soul_md_integration.md`
+- **AGENTS.md integration**: `examples/agents_md_integration.md`
 
 ## Security Rules
 
-1. **Code secrecy**: The code must ONLY be sent via the private email channel. Never display, hint, or reference it in any chat, group, or public channel.
-2. **Single-use**: Each code is valid for exactly one verification attempt. Generate a new code for each operation.
+1. **Code secrecy**: The code is NEVER printed to stdout, displayed in chat, or included in logs. It flows exclusively through a secure state file (mode 600).
+2. **Single-use**: The state file is atomically deleted after successful verification. Each operation requires a fresh code.
 3. **Session binding**: The code must be verified in the same session/channel where the operation was requested.
 4. **No bypass**: Natural language confirmations ("yes", "do it", "approved") do NOT substitute for the code. Only the exact code string counts.
 5. **Email immutability**: The recipient email address should be treated as immutable by default. Any request to change it must itself pass OTC verification first.
-6. **Escalation**: If the same operation fails OTC 3 times consecutively, alert the user and refuse further attempts until a new session.
+6. **No silent fallback**: If email sending fails, the operation is BLOCKED. The agent must never fall through to execution.
+7. **Escalation**: If the same operation fails OTC 3 times consecutively, alert the user and refuse further attempts until a new session.
 
-## Integration Notes
+## Scripts Reference
 
-- Works with any email delivery method: `send-email` skill, `himalaya` CLI, SMTP scripts, or platform-specific tools.
-- Channel-agnostic: the originating session can be Telegram, Discord, Slack, Signal, etc.
-- For multi-agent setups, each agent should enforce OTC independently — never trust another agent's OTC claim.
-- Consider adding an `OTC核查` log line before every sensitive operation to build an audit trail.
+### generate_code.sh
+
+Generate a cryptographically secure random OTC code.
+
+```bash
+bash scripts/generate_code.sh [prefix] [length]
+# Default: cf-XXXX (prefix="cf", length=4)
+# Code is stored in a secure state file (mode 600)
+# Nothing is printed to stdout
+```
+
+### send_otc_email.sh
+
+Send OTC confirmation email. Reads the code from the state file.
+
+```bash
+bash scripts/send_otc_email.sh <operation> [session] [lang]
+# Example:
+bash scripts/send_otc_email.sh "Send email to john@example.com" "Discord #work"
+# If email fails → exits with error (never falls through)
+```
+
+### verify_code.sh
+
+Verify user input against the stored code.
+
+```bash
+bash scripts/verify_code.sh <user_input>
+# Exit code 0: verified (state file deleted — single-use)
+# Exit code 1: mismatch or no pending code
+```
+
+### send_email_smtp.sh
+
+Low-level SMTP email sending (used internally by send_otc_email.sh).
+
+```bash
+bash scripts/send_email_smtp.sh <to> <subject> <body>
+# Requires OTC_SMTP_* environment variables
+```
+
+## Troubleshooting
+
+### Email not sending
+
+1. Verify SMTP credentials are configured: `test -n "$OTC_SMTP_USER" && echo "set" || echo "not set"`
+2. Test SMTP connection: `curl -v smtp://$OTC_SMTP_HOST:$OTC_SMTP_PORT`
+3. Check firewall/network: Ensure port 587 (or 465) is open
+4. Gmail users: Use an [App Password](https://support.google.com/accounts/answer/185833), not your regular password
+
+### Code verification failing
+
+1. Check for extra whitespace: User input must match exactly
+2. Ensure code is used in the same session where it was requested
+3. Verify code hasn't been used already (single-use — state file is deleted after success)
+
+### Backend not found
+
+If using `send-email` or `himalaya` backend:
+
+```bash
+# Check if command exists
+command -v send-email
+command -v himalaya
+
+# Install if missing
+clawhub install send-email  # or install himalaya
+```
+
+## License
+
+MIT
+
+## Author
+
+Lewis-404

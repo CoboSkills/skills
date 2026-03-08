@@ -1,11 +1,17 @@
 {
   "owner": "lewis-404",
   "slug": "otc-confirmation",
-  "displayName": "OTC Confirmation",
+  "displayName": "Otc Confirmation",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772776995762,
-    "commit": "https://github.com/openclaw/skills/commit/69604a9ed4a513338e4fd897221d0dd8f34600e5"
+    "version": "3.1.0",
+    "publishedAt": 1772954879537,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772776995762,
+      "commit": "https://github.com/openclaw/skills/commit/69604a9ed4a513338e4fd897221d0dd8f34600e5"
+    }
+  ]
 }

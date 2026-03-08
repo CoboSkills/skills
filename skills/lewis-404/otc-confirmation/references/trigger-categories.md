@@ -1,62 +1,84 @@
-# OTC Trigger Decision Guide
+# OTC Trigger Categories
 
-Use this reference when customizing which operations require OTC confirmation.
+This document defines which operations require OTC confirmation.
 
-## Risk Categories
+## Category 1: External Operations
 
-### Category A: External Operations (always require OTC)
+Operations that leave the machine or are visible to others:
 
-Operations that leave the machine or are visible to external parties:
+- **Email**: Sending emails via any method (SMTP, CLI tools, API)
+- **Social Media**: Posting to Twitter/X, Facebook, LinkedIn, etc.
+- **Messaging**: Sending messages to external chat platforms
+- **API Calls**: POST/PUT/DELETE requests to third-party services
+- **File Uploads**: Uploading files to cloud storage or public servers
+- **Webhooks**: Triggering external webhooks or notifications
 
-| Operation | Example |
-|-----------|---------|
-| Send email | `send-email`, `himalaya send` |
-| Post to social media | Twitter/X, LinkedIn, Reddit |
-| Comment on external platforms | GitHub issues/PRs, forums |
-| Send messages to other users | Slack DM, Discord DM, Telegram forward |
-| API calls to third-party services | Webhooks, SaaS integrations |
-| Publish content | Blog posts, wiki edits on shared platforms |
+## Category 2: Dangerous Local Operations
 
-### Category B: Dangerous Local Operations (require OTC)
+Operations that are destructive or hard to reverse:
 
-Operations that are hard or impossible to reverse:
+- **File Deletion**:
+  - Recursive force deletion of directories
+  - Bulk file removal operations
+  - Deleting entire project or data directories
 
-| Operation | Example |
-|-----------|---------|
-| Delete files/directories | `rm -rf`, bulk delete |
-| Modify system configuration | `/etc/`, system preferences |
-| Stop/restart services | `systemctl stop`, process kill |
-| Change permissions recursively | `chmod -R`, `chown -R` |
-| Database mutations | DROP TABLE, DELETE without WHERE |
-| Credential/secret changes | Rotate API keys, change passwords |
+- **System Configuration**:
+  - Modifying system files under `/etc`
+  - Changing system-wide settings
+  - Editing firewall rules
+  - Modifying network configuration
 
-### Category C: Security Rule Changes (require OTC)
+- **Service Management**:
+  - Stopping critical services
+  - Restarting production services
+  - Disabling system daemons
 
-Changes to the confirmation mechanism itself:
+- **Permission Changes**:
+  - Recursive permission changes on directories
+  - Recursive ownership changes
 
-| Operation | Example |
-|-----------|---------|
-| Modify OTC email address | Change recipient |
-| Alter trigger conditions | Relax or remove checks |
-| Change SOUL.md security sections | Edit safety rules |
-| Disable OTC mechanism | Remove or bypass flow |
+- **Disk Operations**:
+  - Formatting drives
+  - Partitioning disks
+  - Mounting/unmounting filesystems
 
-### Category D: Absolute Denials (reject outright, no OTC)
+## Category 3: Security Rule Modifications
 
-Operations so destructive that no confirmation should enable them:
+Operations that change the confirmation mechanism itself:
 
-| Operation | Example |
-|-----------|---------|
-| Wipe entire disk | `dd if=/dev/zero`, format |
-| Delete system directories | `rm -rf /`, `rm -rf /System` |
-| Disable all security | Remove all safeguards at once |
+- **SOUL.md Changes**: Any edits to OTC mechanism, trigger conditions, or email configuration
+- **AGENTS.md Changes**: Modifications to security rules or confirmation workflows
+- **OTC Configuration**: Changes to openclaw.json OTC settings
+- **Access Control**: Modifying user permissions or authentication rules
 
-## Customization
+## Category 4: Absolute Denials (No OTC Offered)
 
-Adjust categories based on your environment:
+Operations that are too dangerous to allow even with confirmation.
+These are **always refused outright** — no confirmation code is offered:
 
-- **Stricter**: Move more operations into Category A/B
-- **Relaxed**: Move low-risk items (e.g., git push to personal repo) out of OTC scope
-- **Team context**: In multi-agent setups, require OTC for cross-agent commands
+- Wiping or formatting system drives
+- Deleting root-level system directories
+- Overwriting boot sectors or partition tables
+- Any irreversible operation that would render the system unbootable
 
-Add your customized trigger list to `SOUL.md` or `AGENTS.md` so the agent loads it every session.
+## Decision Examples
+
+### Requires OTC ✅
+
+- Sending an email to a colleague
+- Deleting an old project directory
+- Restarting a web server
+- Modifying the OTC configuration itself
+
+### Does NOT Require OTC ❌
+
+- Reading files or listing directories
+- Creating new files or folders
+- Copying or backing up files
+- Running diagnostic commands (ps, df, etc.)
+
+### Absolute Denial 🚫
+
+- Wiping entire disks or system partitions
+- Deleting critical OS directories
+- Any command designed to destroy the system

@@ -3,9 +3,15 @@
   "slug": "typescript-coder",
   "displayName": "TypeScript Coder",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772766134466,
-    "commit": "https://github.com/openclaw/skills/commit/894b192950940515f73c2a0a2281dcbf38235b35"
+    "version": "2.0.0",
+    "publishedAt": 1772844330930,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772766134466,
+      "commit": "https://github.com/openclaw/skills/commit/894b192950940515f73c2a0a2281dcbf38235b35"
+    }
+  ]
 }

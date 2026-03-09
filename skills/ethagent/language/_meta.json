@@ -1,0 +1,11 @@
+{
+  "owner": "ethagent",
+  "slug": "language",
+  "displayName": "Language",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1772978365610,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,13 +1,18 @@
 {
   "owner": "odrobnik",
   "slug": "who-growth-charts",
-  "displayName": "Who Growth Charts",
+  "displayName": "WHO Growth Charts",
   "latest": {
-    "version": "1.2.2",
-    "publishedAt": 1772570433107,
-    "commit": "https://github.com/openclaw/skills/commit/17dab2e4e427c4d9dd26b16821145aea9b2beb02"
+    "version": "1.2.3",
+    "publishedAt": 1772921485242,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.2",
+      "publishedAt": 1772570433107,
+      "commit": "https://github.com/openclaw/skills/commit/17dab2e4e427c4d9dd26b16821145aea9b2beb02"
+    },
     {
       "version": "1.2.1",
       "publishedAt": 1770964197630,

@@ -18,6 +18,7 @@ from scipy import stats, interpolate
 from datetime import datetime
 from pathlib import Path
 import json
+import os
 import sys
 import urllib.request
 import ssl

@@ -1,0 +1,53 @@
+---
+name: prompt-generator
+description: "AI prompt generator for image and text. AI绘画提示词、AI画图、Midjourney提示词、MJ提示词、Stable Diffusion提示词、SD提示词、DALL-E提示词、AI绘图、AI生图、AI画画、文生图提示词、text-to-image prompt、写作提示词、ChatGPT提示词、Claude提示词、prompt engineering、提示词工程、提示词优化、负面提示词、negative prompt、画风提示词、风格提示词。Generate image prompts for Midjourney/SD/DALL-E and writing prompts for ChatGPT/Claude. Use when: (1) generating AI image/art prompts, (2) creating Midjourney/Stable Diffusion/DALL-E prompts, (3) translating Chinese descriptions to English prompts, (4) enhancing or optimizing existing prompts, (5) batch generating prompt variations, (6) creating writing prompts, (7) any AI art or prompt engineering task. 适用场景：生成AI绘画提示词、Midjourney出图、SD出图、中文转英文提示词、优化提示词、批量生成提示词变体。纯本地模板生成，不依赖外部API。"
+---
+
+# Prompt Generator
+
+AI绘画/写作提示词生成器。基于模板+随机组合，纯本地运行。
+
+## 为什么用这个 Skill？ / Why This Skill?
+
+- **平台专属格式**：Midjourney带`--ar --v`参数，SD带quality tags + negative prompt，不是通用提示词
+- **中翻英**：中文描述自动翻译成专业英文提示词，包含风格、光影、质量词
+- **负面提示词**：自动生成negative prompt，避免常见出图问题
+- Compared to asking AI directly: platform-specific formatting (MJ params, SD quality tags, negative prompts), built-in style presets, and batch variation generation
+
+## Commands
+
+All commands via `scripts/prompt.sh`:
+
+```bash
+# 通用AI绘画提示词（英文，含正面+负面提示词）
+prompt.sh image "主题" [--style realistic|anime|oil|watercolor|3d|pixel|cyberpunk|fantasy]
+
+# Midjourney专用（含 --ar --v 参数）
+prompt.sh midjourney "主题"
+
+# Stable Diffusion专用（含quality tags + negative prompt）
+prompt.sh sd "主题"
+
+# 写作提示词
+prompt.sh writing "主题" [--tone formal|casual|creative|academic]
+
+# 中文翻译成英文提示词
+prompt.sh translate "中文描述"
+
+# 增强/优化已有提示词
+prompt.sh enhance "基础提示词"
+
+# 批量生成变体
+prompt.sh batch "主题" --count 5
+
+# 帮助
+prompt.sh help
+```
+
+## Usage Notes
+
+- 绘画提示词输出均为英文（AI绘画标准）
+- 自动包含quality boosters和negative prompt
+- Midjourney格式: `/imagine prompt: ... --ar 16:9 --v 6`
+- SD格式: 正面提示词 + Negative prompt 分开显示
+- 支持中文主题输入，自动处理

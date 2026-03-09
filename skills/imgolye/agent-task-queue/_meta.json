@@ -1,0 +1,11 @@
+{
+  "owner": "imgolye",
+  "slug": "agent-task-queue",
+  "displayName": "Agent Task Queue",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1772895505313,
+    "commit": null
+  },
+  "history": []
+}

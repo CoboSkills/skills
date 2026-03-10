@@ -1,11 +1,22 @@
 ---
 name: snooker
 description: Look up snooker rankings, results, player profiles, live matches and head-to-head records via api.snooker.org.
+version: 0.2.5
+metadata:
+  openclaw:
+    requires:
+      env:
+        - SNOOKER_API_KEY
+      bins:
+        - python3
+    primaryEnv: SNOOKER_API_KEY
 ---
 
 # Snooker
 
 Query live snooker data — rankings, results, player profiles, and more.
+
+Requires an API key from api.snooker.org. Please note that the current API rate limit is 10 requests per minute.
 
 ## Script
 

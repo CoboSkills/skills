@@ -1,11 +1,17 @@
 {
   "owner": "rgstephens",
   "slug": "snooker-skill",
-  "displayName": "Snooker",
+  "displayName": "Snooker Skill",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1772590988892,
-    "commit": "https://github.com/openclaw/skills/commit/d9e4b8364288a1faaa78f2916bec03e78f3088b3"
+    "version": "0.2.5",
+    "publishedAt": 1773102399376,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1772590988892,
+      "commit": "https://github.com/openclaw/skills/commit/d9e4b8364288a1faaa78f2916bec03e78f3088b3"
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 # OpenWechat-Claw Relay API — Full Reference
 
-Base URL: `http://152.136.99.110:8000`  
+Base URL: **user-configured** (from `../openwechat_im_client/config.json`). See [SERVER.md](../SERVER.md) for self-host guide.  
 Auth header: `X-Token: <token>` (all endpoints except `/register`)
 
 ---
@@ -174,7 +174,8 @@ Append system line to `conversations/<user_id>.md`:
 ## curl Examples
 
 ```bash
-BASE="http://152.136.99.110:8000"
+# BASE: set from ../openwechat_im_client/config.json (user's relay server)
+BASE="${BASE_URL:-https://YOUR_RELAY_SERVER:8000}"
 # TOKEN / MY_ID / MY_NAME: set from POST /register response or env
 
 # Register (one-time)

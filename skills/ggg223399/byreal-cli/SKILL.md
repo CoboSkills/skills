@@ -1,6 +1,18 @@
 ---
 name: byreal-cli
 description: "Byreal DEX (Solana) all-in-one CLI: query pools/tokens/TVL, analyze pool APR & risk, open/close/claim CLMM positions, token swap, wallet & balance management. Use when user mentions Byreal, LP, liquidity, pools, DeFi positions, token swap, or Solana DEX operations."
+metadata:
+  openclaw:
+    homepage: https://github.com/byreal-git/byreal-cli
+    requires:
+      bins:
+        - byreal-cli
+      config:
+        - ~/.config/byreal/keys/
+    install:
+      - kind: node
+        package: "@byreal-io/byreal-cli"
+        global: true
 ---
 
 # Byreal LP Management
@@ -59,4 +71,3 @@ byreal-cli update install
 5. **Large amounts (>$1000)** require explicit confirmation
 6. **High slippage (>200 bps)** must warn user
 7. **Check wallet before write ops** — run `wallet address` before any wallet-required command
-

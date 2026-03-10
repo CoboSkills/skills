@@ -3,11 +3,16 @@
   "slug": "unifai",
   "displayName": "UnifAI",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772715338204,
-    "commit": "https://github.com/openclaw/skills/commit/ceed9c4abb05e21953d9ca57695718396afda129"
+    "version": "1.0.3",
+    "publishedAt": 1773077738067,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772715338204,
+      "commit": "https://github.com/openclaw/skills/commit/ceed9c4abb05e21953d9ca57695718396afda129"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1772566196353,

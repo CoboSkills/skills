@@ -1,11 +1,19 @@
 ---
 name: destiny-fusion-pro
-description: 专业命理融合咨询（紫微斗数 + 八字）。默认东八区北京口径（Asia/Shanghai, longitude=120.0），全离线运行（不联网、无 headless 浏览器依赖）；排盘图为可选项，失败不影响文本报告输出。
+description: Premium destiny consultation skill combining Ziwei Doushu and Bazi in one offline workflow. Use when the user wants a flagship, consultation-style report from birth date and time with unified calculation rules, dual-system cross-checking, optional chart images, and polished markdown or JSON deliverables for yearly outlook, decade luck cycles, relationships, career, wealth, and risk themes.
 ---
 
 # Destiny Fusion Pro
 
-一条命令生成完整报告（推荐）：
+Generate a **consultation-grade destiny report** by combining **Ziwei Doushu + Bazi** under one consistent calculation standard.
+
+Core appeal:
+- One input, two systems, one unified report
+- Offline-first and reproducible
+- Text report is the primary deliverable; chart image is optional enhancement
+- Suitable for both human-readable consultation and structured automation output
+
+## Recommended Command
 
 ```bash
 python scripts/fortune_fusion.py \
@@ -19,39 +27,49 @@ python scripts/fortune_fusion.py \
   --format markdown
 ```
 
-## 默认口径
-- 时区：`Asia/Shanghai`
-- 经度：`120.0`（北京基准）
-- 紫微引擎：`--engine py`
-- 报告默认：优先尝试输出 `JPG` 排盘图（依赖缺失会自动跳过，不影响文本报告）
+## Default Standard
 
-## 常用参数
-- `--engine py|js|dual`：主引擎 / 备用 / 双引擎对照
-- `--template lite|pro|executive`：简版 / 标准咨询版 / 高管版
-- `--chart none|svg|jpg`：是否输出排盘图
-- `--chart-quality 1-100`：JPG 质量，默认 `92`
-- `--chart-backend auto|cairosvg`：JPG 渲染后端
-  - `auto`：使用 `cairosvg`（纯离线、无浏览器）
-- `--format markdown|json`：报告格式
+- Timezone: `Asia/Shanghai`
+- Longitude: `120.0` (Beijing standard)
+- Ziwei engine: `py`
+- Report priority: text-first; chart export may be attempted when enabled
 
-## 输出内容
-1. 排盘口径（时区、经度、统一计算时间）
-2. 紫微斗数全盘（命身宫、十二宫、年度四化）
-3. 八字深度（四柱、十神、藏干、大运、流年）
-4. 综合咨询（事业、关系、健康、财务、风险边界）
+## Deliverables
 
-想了解报告背后的解读框架，可查看：`references/ziwei-methodology.md`
+A strong output should include:
+1. Calculation standard (timezone, longitude, unified calculation time)
+2. Ziwei full-plate facts (命宫 / 身宫 / 十二宫 / annual transformations)
+3. Bazi facts (四柱 / 日主 / 十神 / 藏干 / 大运 / 流年)
+4. Cross-system synthesis
+   - personality baseline
+   - career / money / relationship / health themes
+   - current-cycle opportunity and risk boundaries
+5. Caution notes about time ambiguity or interpretation limits
 
-## 依赖
-```bash
-python -m venv .venv
-.venv/bin/pip install -U iztro-py lunar-python
-npm install iztro
-```
+## Common Parameters
 
-若需 JPG 导出，再安装：
-```bash
-.venv/bin/pip install -U cairosvg pillow
-```
+- `--engine py|js|dual`: primary / fallback / dual-engine cross-check
+- `--template lite|pro|executive`: lighter / standard / premium consulting density
+- `--chart none|svg|jpg`: chart export mode
+- `--chart-quality 1-100`: JPG quality, default `92`
+- `--chart-backend auto|cairosvg`: offline image backend
+- `--format markdown|json`: final output format
 
-如果未安装图片依赖或图片生成失败，skill 会自动跳过排盘图，不影响文本报告输出。
+## Output Style Guardrails
+
+- Write **fact first, interpretation second, advice last**.
+- Prefer trend language and probability language; avoid absolute prophecy.
+- Make cross-system consistency visible: note where Ziwei and Bazi reinforce each other vs diverge.
+- If chart rendering fails, continue with the text report instead of failing the whole workflow.
+- If birth time is near a boundary, explicitly recommend dual-plate comparison.
+
+## Scope Boundary
+
+- Fully offline; use no web search or headless browser.
+- Produce analysis only; not medical, legal, or investment advice.
+- Optional chart export should never block the report.
+
+## References
+
+- `references/ziwei-methodology.md`
+- `references/positioning.md`

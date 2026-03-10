@@ -1,36 +1,13 @@
 ---
 name: acpx
 description: Enhanced terminal AI agent orchestrator with parallel execution, health checks, and workflow presets.
-version: 4.0.6
-author: qriiz112
-email: christianovianto@gmail.com
-homepage: https://github.com/qriiz112/acpx-orchestrator
-license: MIT
-binaries: [acpx]
-install: npm install -g acpx
+metadata: {"version": "4.0.0", "author": "qriiz112", "email": "christianovianto@gmail.com", "license": "MIT"}
+requires: {"bins": ["acpx"], "optional": ["opencode", "pi", "kimi", "kilo", "codex", "claude"]}
 ---
 
 # acpx v4.0 - Agent Orchestrator
 
 Enhanced CLI wrapper di atas acpx dengan fitur orchestration: parallel, health check, workflows.
-
-## ⚠️ Warnings & Security Notes
-
-| Item | Status | Description |
-|------|--------|-------------|
-| **Required Binary** | ✅ | `acpx` (installed via npm) |
-| **Optional Binaries** | ℹ️ | `opencode`, `pi`, `kimi`, `kilo`, `codex`, `claude`, `gemini` |
-| **File Write** | ⚠️ | Agents write files to **current directory** |
-| **Install Command** | ⚠️ | `npm install -g acpx` — verify package on npm/GitHub first |
-| **Credentials** | ✅ | No credentials or env vars requested |
-| **Persistence** | ✅ | `always: false`, autonomous invocation allowed |
-
-### Security Considerations
-
-- **Scope:** This orchestrator spawns subagents and executes arbitrary tasks via CLI
-- **File Access:** Agents can create/modify files in the working directory
-- **Review Tasks:** Treat task files and agent commands as untrusted input unless reviewed
-- **Install Risk:** npm packages can execute install scripts — prefer sandboxed installs
 
 ## Quick Start
 
@@ -55,8 +32,8 @@ acpx workflow review
 | `discover` | List installed agents | `acpx discover` |
 | `health` | Test all agents | `acpx health` |
 | `run` | Run single agent | `acpx run opencode "task"` |
-| `parallel` | Run agents **simultaneously** (independent tasks only) | `acpx parallel tasks.txt [cwd]` |
-| `batch` | Run agents **sequentially** (for dependent tasks) | `acpx batch tasks.txt [cwd]` |
+| `parallel` | Run agents parallel from file | `acpx parallel tasks.txt` |
+| `batch` | Run agents sequential from file | `acpx batch tasks.txt` |
 | `watch` | Watch agent status | `acpx watch opencode` |
 | `kill` | Kill agent sessions | `acpx kill opencode` |
 | `workflow` | Run preset workflow | `acpx workflow review` |
@@ -82,26 +59,9 @@ kimi --print --yolo --prompt 'Review changes'
 ```
 
 ```bash
-acpx parallel tasks.txt [cwd]  # Run parallel (INDEPENDENT tasks only!)
-acpx batch tasks.txt [cwd]     # Run sequential (for dependent tasks)
+acpx parallel tasks.txt  # Run parallel
+acpx batch tasks.txt     # Run sequential
 ```
-
-**⚠️ Important:**
-- Agents write files to **current directory** by default
-- `parallel` = tasks run **simultaneously** → use for **independent** tasks
-- `batch` = tasks run **one-by-one** → use for **dependent** tasks
-- Use full paths or specify working directory as 2nd argument
-
-**Example tasks.txt:**
-```
-# Task 1: Create file
-opencode exec 'Create app.js with Express server'
-
-# Task 2: Review file (depends on task 1)
-kimi --print --yolo --prompt 'Review app.js'
-```
-
-Run with: `acpx batch tasks.txt` (sequential, task 2 waits for task 1)
 
 ## Spawn via OpenClaw
 

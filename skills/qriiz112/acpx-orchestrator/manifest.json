@@ -1,31 +1,40 @@
 {
-  "name": "acpx-orchestrator",
-  "version": "4.0.6",
+  "name": "acpx",
+  "version": "4.0.0",
   "description": "Enhanced terminal AI agent orchestrator with parallel execution, health checks, and workflow presets",
   "author": "qriiz112",
   "email": "christianovianto@gmail.com",
-  "homepage": "https://github.com/qriiz112/acpx-orchestrator",
-  "repository": "https://github.com/qriiz112/acpx-orchestrator.git",
-  "license": "MIT",
   "tags": ["agents", "orchestration", "cli", "automation", "acp", "ai", "terminal"],
-  "binaries": {
-    "required": ["acpx"],
-    "optional": ["opencode", "pi", "kimi", "kilo", "codex", "claude", "gemini"]
+  "license": "MIT",
+  "requirements": {
+    "binaries": ["acpx"],
+    "optional": ["opencode", "pi", "kimi", "kilo", "codex", "claude", "gemini"],
+    "note": "Install at least one ACP agent (opencode/pi) or CLI agent (kimi/kilo)"
   },
   "install": {
-    "command": "npm install -g acpx"
+    "npm": ["acpx"],
+    "optional": {
+      "acp-agents": ["opencode-ai", "@anthropic-ai/pi"],
+      "cli-agents": ["kimi-cli", "kilocode"]
+    }
   },
-  "requires": {
-    "bins": ["acpx"]
+  "commands": [
+    "acpx discover",
+    "acpx health",
+    "acpx run <agent> <task>",
+    "acpx parallel <file>",
+    "acpx batch <file>",
+    "acpx watch <agent>",
+    "acpx kill <agent>",
+    "acpx workflow <name>",
+    "acpx json <agent> <task>"
+  ],
+  "workflows": ["review", "refactor", "test", "debug"],
+  "agents": {
+    "acp": ["opencode", "pi"],
+    "cli": ["kimi", "kilo", "gemini"],
+    "pty": ["codex", "claude", "cline"]
   },
-  "suggests": {
-    "bins": ["opencode", "pi", "kimi", "kilo", "codex", "claude", "gemini"]
-  },
-  "warnings": {
-    "scope": "Agents write files to current directory and spawn subagents",
-    "install": "npm install -g acpx (verify package before install)",
-    "note": "No credentials requested, always=false"
-  },
-  "always": false,
-  "autonomous": true
+  "homepage": "https://github.com/qriiz112/acpx-orchestrator",
+  "repository": "https://github.com/qriiz112/acpx-orchestrator.git"
 }

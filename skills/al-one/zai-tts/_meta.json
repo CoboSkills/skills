@@ -1,0 +1,11 @@
+{
+  "owner": "al-one",
+  "slug": "zai-tts",
+  "displayName": "🗣️ Text-to-speech using GLM-TTS for generating audio",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1772778637697,
+    "commit": null
+  },
+  "history": []
+}

@@ -3,9 +3,15 @@
   "slug": "feishu-tts-edge",
   "displayName": "飞书发语音(edge)",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772761588472,
-    "commit": "https://github.com/openclaw/skills/commit/b4b25aefe2f7784a43d17a20672c56490e31f6df"
+    "version": "1.0.1",
+    "publishedAt": 1773113912749,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772761588472,
+      "commit": "https://github.com/openclaw/skills/commit/b4b25aefe2f7784a43d17a20672c56490e31f6df"
+    }
+  ]
 }

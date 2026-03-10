@@ -169,6 +169,31 @@ async function main() {
   }
   console.log(`  [OK] ${prefixedRoles.length} Agent SOUL.md + MEMORY.md`);
 
+  // Agent methodology references
+  const skillDir = path.join(__dirname, '..');
+  const refMap = {
+    'product-lead': ['references/methodology.md'],
+    'growth-lead': ['references/methodology.md'],
+    'content-chief': ['references/methodology.md'],
+    'intel-analyst': ['references/methodology.md'],
+    'data-analyst': ['references/methodology.md'],
+    'fullstack-dev': ['references/methodology.md', 'references/coding-behavior-fallback.md'],
+    'chief-of-staff': ['references/dashboard-template.md', 'references/strategy-methodology.md'],
+  };
+  let refCount = 0;
+  for (const r of prefixedRoles) {
+    const refs = refMap[r.id] || [];
+    for (const ref of refs) {
+      const src = path.join(skillDir, 'references', 'agent-refs', r.id, path.basename(ref));
+      if (fs.existsSync(src)) {
+        const dest = path.join(workDir, `agents/${r.pid}/${ref}`);
+        w(dest, fs.readFileSync(src, 'utf8'));
+        refCount++;
+      }
+    }
+  }
+  if (refCount > 0) console.log(`  [OK] ${refCount} methodology references`);
+
   // Inboxes
   for (const r of prefixedRoles) {
     w(path.join(workDir, `shared/inbox/to-${r.pid}.md`), `# Inbox - ${names[r.id]}\n\n(No messages)\n\n## Processed\n`);

@@ -1,6 +1,6 @@
 # Calendar Tools Reference
 
-Complete input/output schemas for the 7 calendar tools. All are read-only and idempotent. TOON is the default output format for tools that support it (~40% fewer tokens than JSON).
+Complete input/output schemas for the 6 calendar tools documented below. All are read-only and idempotent. TOON is the default output format for tools that support it (~40% fewer tokens than JSON).
 
 ## Tool Annotations
 

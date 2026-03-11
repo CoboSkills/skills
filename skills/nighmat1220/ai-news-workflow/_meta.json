@@ -1,0 +1,11 @@
+{
+  "owner": "nighmat1220",
+  "slug": "ai-news-workflow",
+  "displayName": "AI领域重点企业资讯抓取与简报生成",
+  "latest": {
+    "version": "0.1.3",
+    "publishedAt": 1773202838790,
+    "commit": null
+  },
+  "history": []
+}

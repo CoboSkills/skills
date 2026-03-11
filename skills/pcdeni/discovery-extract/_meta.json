@@ -1,0 +1,11 @@
+{
+  "owner": "pcdeni",
+  "slug": "discovery-extract",
+  "displayName": "Discovery Engine",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1773254814046,
+    "commit": null
+  },
+  "history": []
+}

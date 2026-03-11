@@ -1,0 +1,11 @@
+{
+  "owner": "agenticio",
+  "slug": "insurance",
+  "displayName": "Insurance",
+  "latest": {
+    "version": "2.1.0",
+    "publishedAt": 1773065745466,
+    "commit": null
+  },
+  "history": []
+}

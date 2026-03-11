@@ -18,6 +18,27 @@ Generate EIP-681 compliant payment links that work with MetaMask and other Ether
 
 **No API keys. No servers. No configuration.**
 
+## Installation
+
+### Prerequisites
+
+- **Python 3.8+** - Required to run the script
+- **Node.js (optional)** - Required only for QR code generation (`npx qrcode`)
+
+### Quick Install
+
+No additional dependencies needed! The skill uses:
+- Python standard library only
+- `npx qrcode` for QR codes (auto-downloads on first use)
+
+### Run the Skill
+
+```bash
+python3 scripts/eth_payment.py create --to 0xYourAddress --amount 0.1
+```
+
+---
+
 ## Quick Start
 
 ```bash

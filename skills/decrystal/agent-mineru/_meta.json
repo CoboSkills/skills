@@ -1,0 +1,11 @@
+{
+  "owner": "decrystal",
+  "slug": "agent-mineru",
+  "displayName": "agent-mineru",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773130862137,
+    "commit": null
+  },
+  "history": []
+}

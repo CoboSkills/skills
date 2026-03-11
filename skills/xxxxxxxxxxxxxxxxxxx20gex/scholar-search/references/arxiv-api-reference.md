@@ -77,7 +77,7 @@ arXiv 的 Legacy API 在官方手册中只有一个查询接口（`method_name=q
 
 | 语法项 | 格式 | 含义 | 示例 |
 | --- | --- | --- | --- |
-| `submittedDate` | `[YYYYMMDDTTTT+TO+YYYYMMDDTTTT]` | 过滤提交时间区间（GMT，24 小时制到分钟） | `submittedDate:[202301010600+TO+202401010600]` |
+| `submittedDate` | `[YYYYMMDDTTTT TO YYYYMMDDTTTT]` | 过滤提交时间区间（GMT，24 小时制到分钟） | `submittedDate:[202301010600 TO 202401010600]` |
 
 ### 4.3 布尔与分组
 
@@ -181,53 +181,48 @@ arXiv 的 Legacy API 在官方手册中只有一个查询接口（`method_name=q
 ---
 
 ## 9. 使用示例（可直接复制）
-
-命令占位符约定：
-- 文档中的 `{baseDir}` 表示技能目录根路径（`skills/scholar-search`）。
-- 统一脚本路径写法：`{baseDir}/scripts/scholar-search.py`。
+- 统一脚本路径写法：`scripts/scholar-search.py`。
 
 ### 9.1 基础关键词检索
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source arxiv --params '{"search_query":"all:electron","start":0,"max_results":10}'
+python scripts/scholar-search.py --source arxiv --params '{"search_query":"all:electron","start":0,"max_results":10}'
 ```
 
 ### 9.2 分类 + 布尔检索 + 按提交时间倒序
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source arxiv --params '{"search_query":"cat:cs.CL AND all:multimodal","start":0,"max_results":20,"sortBy":"submittedDate","sortOrder":"descending"}'
+python scripts/scholar-search.py --source arxiv --params '{"search_query":"cat:cs.CL AND all:multimodal","start":0,"max_results":20,"sortBy":"submittedDate","sortOrder":"descending"}'
 ```
 
 ### 9.3 指定作者 + 时间区间过滤
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source arxiv --params '{"search_query":"au:del_maestro AND submittedDate:[202301010600+TO+202401010600]","start":0,"max_results":50}'
+python scripts/scholar-search.py --source arxiv --params '{"search_query":"au:del_maestro AND submittedDate:[202301010600 TO 202401010600]","start":0,"max_results":50}'
 ```
 
 ### 9.4 精确 ID 拉取（最新版本）
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source arxiv --params '{"id_list":"cond-mat/0207270"}'
+python scripts/scholar-search.py --source arxiv --params '{"id_list":"cond-mat/0207270"}'
 ```
 
 ### 9.5 精确 ID 拉取（指定版本）
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source arxiv --params '{"id_list":"cond-mat/0207270v1"}'
+python scripts/scholar-search.py --source arxiv --params '{"id_list":"cond-mat/0207270v1"}'
 ```
 
 ### 9.6 `id_list` + `search_query` 组合过滤
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source arxiv --params '{"id_list":"cond-mat/0207270,hep-ex/0307015v1","search_query":"cat:hep-ex"}'
+python scripts/scholar-search.py --source arxiv --params '{"id_list":"cond-mat/0207270,hep-ex/0307015v1","search_query":"cat:hep-ex"}'
 ```
 
-### 9.8 在本仓库脚本中调用（`{baseDir}/scripts/scholar-search.py`）
+### 9.7 在本仓库脚本中调用（`scripts/scholar-search.py`）
 
-```powershell
-python {baseDir}/scripts/scholar-search.py `
-  --source arxiv `
-  --params '{"search_query":"cat:cs.CL AND all:multimodal","start":0,"max_results":10,"sortBy":"submittedDate","sortOrder":"descending"}'
+```bash
+python scripts/scholar-search.py --source arxiv --params '{"search_query":"cat:cs.CL AND all:multimodal","start":0,"max_results":10,"sortBy":"submittedDate","sortOrder":"descending"}'
 ```
 
 

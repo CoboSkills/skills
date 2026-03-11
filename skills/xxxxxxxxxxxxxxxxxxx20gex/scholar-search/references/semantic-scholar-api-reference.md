@@ -18,8 +18,7 @@
 
 1. `Accept: application/json`
 2. `x-api-key: <YOUR_API_KEY>`（可选但建议；配额和稳定性更好）
-3. 命令中的 `{baseDir}` 表示技能目录根路径（`skills/scholar-search`）。
-4. 统一脚本路径写法：`{baseDir}/scripts/scholar-search.py`。
+3. 统一脚本路径写法：`scripts/scholar-search.py`。
 
 通用参数约定：
 
@@ -58,7 +57,7 @@
 示例：
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint paper/search --params '{"query":"large language model","limit":10,"offset":0,"fields":"paperId,title,year,authors,abstract,citationCount"}'
+python scripts/scholar-search.py --source semantic_scholar --endpoint paper/search --params '{"query":"large language model","limit":10,"offset":0,"fields":"paperId,title,year,authors,abstract,citationCount"}'
 ```
 
 ### A2. Paper title search (single best match)
@@ -85,7 +84,7 @@ python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint 
 示例：
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint paper/search/match --params '{"query":"Attention Is All You Need","fields":"paperId,title,year,authors"}'
+python scripts/scholar-search.py --source semantic_scholar --endpoint paper/search/match --params '{"query":"Attention Is All You Need","fields":"paperId,title,year,authors"}'
 ```
 
 ### A3. Paper details
@@ -113,7 +112,7 @@ python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint 
 示例：
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint paper/DOI:10.1038/nrn3241 --params '{"fields":"paperId,title,year,authors,abstract,referenceCount,citationCount,externalIds"}'
+python scripts/scholar-search.py --source semantic_scholar --endpoint paper/DOI:10.1038/nrn3241 --params '{"fields":"paperId,title,year,authors,abstract,referenceCount,citationCount,externalIds"}'
 ```
 
 ### A4. Paper authors
@@ -131,7 +130,7 @@ python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint 
 示例：
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint paper/CorpusId:215416146/authors --params '{"fields":"authorId,name,hIndex,paperCount","limit":20}'
+python scripts/scholar-search.py --source semantic_scholar --endpoint paper/CorpusId:215416146/authors --params '{"fields":"authorId,name,hIndex,paperCount","limit":20}'
 ```
 
 ### A5. Paper citations
@@ -150,7 +149,7 @@ python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint 
 示例：
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint paper/CorpusId:215416146/citations --params '{"fields":"contexts,isInfluential,citingPaper.title,citingPaper.year","limit":20}'
+python scripts/scholar-search.py --source semantic_scholar --endpoint paper/CorpusId:215416146/citations --params '{"fields":"contexts,isInfluential,citingPaper.title,citingPaper.year","limit":20}'
 ```
 
 ### A6. Paper references
@@ -168,7 +167,7 @@ python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint 
 示例：
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint paper/CorpusId:215416146/references --params '{"fields":"contexts,isInfluential,citedPaper.title,citedPaper.year","limit":20}'
+python scripts/scholar-search.py --source semantic_scholar --endpoint paper/CorpusId:215416146/references --params '{"fields":"contexts,isInfluential,citedPaper.title,citedPaper.year","limit":20}'
 ```
 
 ### A7. Paper autocomplete
@@ -187,7 +186,7 @@ python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint 
 示例：
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint paper/autocomplete --params '{"query":"semanti"}'
+python scripts/scholar-search.py --source semantic_scholar --endpoint paper/autocomplete --params '{"query":"semanti"}'
 ```
 
 ### A8. Snippet text search
@@ -226,7 +225,7 @@ python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint 
 示例：
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint snippet/search --params '{"query":"transformer architecture","limit":5}'
+python scripts/scholar-search.py --source semantic_scholar --endpoint snippet/search --params '{"query":"transformer architecture","limit":5}'
 ```
 
 ---
@@ -252,7 +251,7 @@ python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint 
 示例：
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint author/search --params '{"query":"Yann LeCun","fields":"name,url,paperCount,citationCount","limit":5,"offset":0}'
+python scripts/scholar-search.py --source semantic_scholar --endpoint author/search --params '{"query":"Yann LeCun","fields":"name,url,paperCount,citationCount","limit":5,"offset":0}'
 ```
 
 ### B2. Author details
@@ -268,7 +267,7 @@ python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint 
 示例：
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint author/1741101 --params '{"fields":"name,affiliations,paperCount,citationCount,hIndex"}'
+python scripts/scholar-search.py --source semantic_scholar --endpoint author/1741101 --params '{"fields":"name,affiliations,paperCount,citationCount,hIndex"}'
 ```
 
 ### B3. Author papers
@@ -291,7 +290,7 @@ python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint 
 示例：
 
 ```bash
-python {baseDir}/scripts/scholar-search.py --source semantic_scholar --endpoint author/1741101/papers --params '{"publicationDateOrYear":"2019:2024","fields":"paperId,title,year,citationCount","limit":20}'
+python scripts/scholar-search.py --source semantic_scholar --endpoint author/1741101/papers --params '{"publicationDateOrYear":"2019:2024","fields":"paperId,title,year,citationCount","limit":20}'
 ```
 
 ---

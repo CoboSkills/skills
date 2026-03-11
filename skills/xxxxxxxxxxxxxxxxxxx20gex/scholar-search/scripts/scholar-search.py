@@ -330,11 +330,10 @@ def main() -> int:
 
     api_key: Optional[str] = None
     if args.source == "semantic_scholar":
-        # 仅 semantic_scholar 请求需要 API Key；arxiv 模式不应被此检查阻断。
         api_key = _resolve_s2_api_key(Path(__file__).resolve().parent / ".env")
         if api_key is None:
-            print(json.dumps({"error": "S2_API_KEY 未设置（请先设置环境变量，或在 scripts/.env 中配置）"}, ensure_ascii=False))
-            return 1
+            print(json.dumps({"error": "S2_API_KEY 未设置（semantic_scholar搜索可能会被限速或限流）"}, ensure_ascii=False))
+            
     result = execute_scholar_search(
         source=args.source,
         endpoint=args.endpoint,

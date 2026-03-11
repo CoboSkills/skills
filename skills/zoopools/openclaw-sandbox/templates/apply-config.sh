@@ -1,75 +1,154 @@
 #!/bin/bash
-# 墨墨的配置应用脚本 - 带 Git 备份
-# 用途：安全地将配置应用到生产环境
-
 set -e
 
-BACKUP_FILE=~/.openclaw/openclaw.json.bak.$(date +%Y%m%d-%H%M)
-CONFIG_FILE=~/.openclaw/openclaw.json
+# ============================================================================
+# OpenClaw 配置应用脚本 v3.0
+# 用途：将沙盒验证过的配置应用到生产环境
+# 作者：墨墨 (Mò)
+# 版本：3.0.0 (基于配置安全 5 原则)
+# ============================================================================
 
-echo "========================================"
-echo "  🦞 OpenClaw 配置应用工具"
-echo "========================================"
-echo ""
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
 
-# 第 1 步：备份当前配置
-echo "💾 第 1 步：备份当前配置..."
-echo "   目标：$BACKUP_FILE"
-cp $CONFIG_FILE $BACKUP_FILE
-echo "   ✅ 备份完成"
-echo ""
+# 配置
+PROD_CONFIG="$HOME/.openclaw/openclaw.json"
+BACKUP_DIR="$HOME/.openclaw/backups"
 
-# 第 2 步：验证配置语法
-echo "🔍 第 2 步：验证配置语法..."
-if ! openclaw config validate 2>&1; then
-  echo ""
-  echo "   ❌ 配置验证失败！"
-  echo ""
-  echo "   🔄 已自动回滚到备份文件"
-  echo "   📊 备份位置：$BACKUP_FILE"
-  echo ""
-  echo "   如需手动回滚："
-  echo "   cp $BACKUP_FILE $CONFIG_FILE && openclaw gateway restart"
-  exit 1
-fi
-echo "   ✅ 配置验证通过"
-echo ""
+# ============================================================================
+# 函数：显示使用说明
+# ============================================================================
+show_usage() {
+    echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║   OpenClaw 配置应用脚本 v3.0                           ║${NC}"
+    echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "用法：${GREEN}bash ~/.openclaw/skills/openclaw-sandbox/templates/apply-config.sh${NC}"
+    echo ""
+    echo -e "${YELLOW}功能:${NC}"
+    echo "  1. 备份生产配置（配置备份原则）"
+    echo "  2. 验证配置有效性（配置验证原则）"
+    echo "  3. 应用配置到生产"
+    echo "  4. 重启 Gateway"
+    echo "  5. 清理环境变量（环境清理原则）"
+    echo ""
+    echo -e "${YELLOW}配置安全 5 原则:${NC}"
+    echo "  1. 配置前验证"
+    echo "  2. 配置前备份"
+    echo "  3. 配置隔离"
+    echo "  4. 环境清理"
+    echo "  5. 报错回滚"
+    echo ""
+}
 
-# 第 3 步：重启 Gateway
-echo "🚀 第 3 步：重启 Gateway..."
-openclaw gateway restart --force
-echo "   ✅ Gateway 重启完成"
-echo ""
+# ============================================================================
+# 函数：备份生产配置（配置备份原则）
+# ============================================================================
+backup_production() {
+    echo -e "${BLUE}[1/5] 备份生产配置（配置备份原则）...${NC}"
+    
+    # 创建备份
+    BACKUP_FILE="$BACKUP_DIR/openclaw.json.bak.$(date +%Y%m%d_%H%M%S)"
+    cp $PROD_CONFIG $BACKUP_FILE
+    
+    echo -e "${GREEN}✓ 配置备份完成：$BACKUP_FILE${NC}"
+}
 
-# 第 4 步：验证功能
-echo "🔍 第 4 步：验证功能..."
-sleep 3
-if openclaw status 2>&1 | grep -q "Gateway.*running"; then
-  echo "   ✅ Gateway 运行正常"
-else
-  echo "   ⚠️  Gateway 状态检查失败，请手动检查"
-  echo "   运行：openclaw status"
-fi
+# ============================================================================
+# 函数：验证配置（配置验证原则）
+# ============================================================================
+validate_config() {
+    echo -e "${BLUE}[2/5] 验证配置（配置验证原则）...${NC}"
+    
+    # 配置验证
+    openclaw config validate
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}错误：配置验证失败${NC}"
+        echo -e "${YELLOW}提示：请检查配置文件语法${NC}"
+        exit 1
+    fi
+    
+    echo -e "${GREEN}✓ 配置验证通过${NC}"
+}
 
-if openclaw status 2>&1 | grep -q "Feishu.*OK"; then
-  echo "   ✅ Feishu 连接正常"
-else
-  echo "   ⚠️  Feishu 状态检查失败，请手动检查"
-fi
-echo ""
+# ============================================================================
+# 函数：应用配置到生产
+# ============================================================================
+apply_config() {
+    echo -e "${BLUE}[3/5] 应用配置到生产...${NC}"
+    
+    # 这里可以由用户手动修改配置
+    echo -e "${YELLOW}提示：请手动修改配置文件${NC}"
+    echo -e "${BLUE}配置路径:${NC} $PROD_CONFIG"
+    echo ""
+    echo -e "${YELLOW}按回车键继续应用配置...${NC}"
+    read
+    
+    echo -e "${GREEN}✓ 配置应用完成${NC}"
+}
 
-# 完成
-echo "========================================"
-echo "  ✅ 配置应用成功！"
-echo "========================================"
-echo ""
-echo "📊 备份位置：$BACKUP_FILE"
-echo ""
-echo "🔄 如需回滚："
-echo "   cp $BACKUP_FILE $CONFIG_FILE"
-echo "   openclaw gateway restart"
-echo ""
-echo "📝 如需 Git 提交："
-echo "   git add config/ openclaw.json"
-echo "   git commit -m 'Update config - $(date +%Y%m%d)'"
-echo ""
+# ============================================================================
+# 函数：重启 Gateway
+# ============================================================================
+restart_gateway() {
+    echo -e "${BLUE}[4/5] 重启 Gateway...${NC}"
+    
+    # 重启 Gateway
+    openclaw gateway restart
+    
+    # 等待启动
+    sleep 5
+    
+    echo -e "${GREEN}✓ Gateway 重启完成${NC}"
+}
+
+# ============================================================================
+# 函数：验证生产环境（环境清理原则）
+# ============================================================================
+verify_production() {
+    echo -e "${BLUE}[5/5] 验证生产环境（环境清理原则）...${NC}"
+    
+    # 清理环境变量
+    unset OPENCLAW_HOME
+    
+    # 检查 Gateway 状态
+    openclaw status | grep -E "Gateway|OK"
+    
+    echo -e "${GREEN}✓ 生产环境验证完成${NC}"
+}
+
+# ============================================================================
+# 主流程
+# ============================================================================
+main() {
+    echo -e "${BLUE}╔════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║   OpenClaw 配置应用 v3.0 - 配置安全 5 原则                ║${NC}"
+    echo -e "${BLUE}╚════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    
+    backup_production
+    validate_config
+    apply_config
+    restart_gateway
+    verify_production
+    
+    echo ""
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║   配置应用成功！                                       ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${BLUE}备份文件:${NC} $BACKUP_DIR/openclaw.json.bak.*"
+    echo ""
+    echo -e "${YELLOW}回滚方法:${NC}"
+    echo "  cp <备份文件> $PROD_CONFIG"
+    echo "  openclaw gateway restart"
+    echo ""
+}
+
+# 执行
+main

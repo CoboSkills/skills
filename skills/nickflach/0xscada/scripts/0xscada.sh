@@ -4,7 +4,8 @@
 set -euo pipefail
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-SCADA_DIR="$(cd "$SKILL_DIR/../../.." && pwd)"   # repo root
+# Allow SCADA_DIR to be configured via environment, defaulting to the expected repo root
+SCADA_DIR="${SCADA_DIR:-$(cd "$SKILL_DIR/../../.." && pwd)}"
 PORT="${SCADA_PORT:-5000}"
 BASE_URL="http://localhost:$PORT"
 
@@ -17,21 +18,34 @@ is_running() {
 
 cmd_start() {
   if is_running; then
-    echo "0xSCADA already running"
+    echo "0xSCADA already running on $BASE_URL"
     return 0
   fi
 
-  echo "Starting 0xSCADA..."
-  cd "$SCADA_DIR"
-  npm run dev &
-  sleep 5
-
-  if is_running; then
-    echo "0xSCADA started successfully on $BASE_URL"
-  else
-    echo "Failed to start 0xSCADA"
+  # Security validation: Ensure we are running the actual 0xSCADA project
+  if [[ ! -f "$SCADA_DIR/server/index.ts" || ! -f "$SCADA_DIR/package.json" ]]; then
+    echo "Error: SCADA_DIR ($SCADA_DIR) does not appear to contain the 0xSCADA project."
+    echo "Expected to find server/index.ts and package.json."
+    echo "Please set the SCADA_DIR environment variable to the correct 0xSCADA repository root."
     exit 1
   fi
+
+  echo "Starting 0xSCADA from $SCADA_DIR..."
+  cd "$SCADA_DIR"
+  npm run dev &
+  
+  # Wait for server to start
+  echo "Waiting for server to initialize..."
+  for i in {1..15}; do
+    if is_running; then
+      echo "0xSCADA started successfully on $BASE_URL"
+      return 0
+    fi
+    sleep 2
+  done
+
+  echo "Failed to start 0xSCADA within the expected time."
+  exit 1
 }
 
 cmd_status() {

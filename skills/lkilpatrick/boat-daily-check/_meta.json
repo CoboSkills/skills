@@ -1,0 +1,11 @@
+{
+  "owner": "lkilpatrick",
+  "slug": "boat-daily-check",
+  "displayName": "Victron Power System Monitor - Boat, RV and Power Systems",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773112737389,
+    "commit": null
+  },
+  "history": []
+}

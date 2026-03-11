@@ -1,0 +1,66 @@
+{
+  "name": "openclaw-security-scanner",
+  "version": "1.0.3",
+  "slug": "openclaw-security-scanner",
+  "description": "Security expert for OpenClaw deployments. Scans for vulnerabilities in network config, channel policies, and tool permissions. Provides safe remediation with rollback plans. Fully offline - no external network access required.",
+  "homepage": "https://github.com/openclaw/openclaw/tree/main/skills/openclaw-security-scanner",
+  "license": "MIT",
+  "author": "DTClaw Team",
+  "tags": ["security", "audit", "scanner", "hardening", "compliance"],
+  "minOpenClawVersion": "2026.3.0",
+  "entryPoint": "SKILL.md",
+  "scripts": {
+    "scan": "python3 scripts/security_scan.py",
+    "cli": "python3 scripts/cli.py"
+  },
+  "files": [
+    "SKILL.md",
+    "scripts/security_scan.py",
+    "scripts/cli.py",
+    "references/permission-management.md",
+    "references/remediation-playbook.md"
+  ],
+  "commands": [
+    {
+      "name": "security-scan",
+      "description": "Run full security audit",
+      "script": "scripts/cli.py",
+      "args": ["$@"]
+    }
+  ],
+  "changelog": [
+    {
+      "version": "1.0.3",
+      "date": "2026-03-10",
+      "changes": [
+        "Add primary config path ~/.openclaw/openclaw.json and update /etc path to openclaw.json",
+        "Add PortDetectionMode enum with CONFIG_ONLY / PROCESS_CHECK / MULTI_SOURCE modes",
+        "Add get_port_from_running_process() to query live gateway port via CLI",
+        "Add get_port_from_config() helper with proper fallback to default port",
+        "Fix scan_ports: use actual_port (not config_port) in Finding title and description",
+        "Fix get_port_from_running_process: cast returned port value to int to prevent type mismatch"
+      ]
+    },
+    {
+      "version": "1.0.2",
+      "date": "2026-03-09",
+      "changes": [
+        "Removed external network access (GitHub API fetching)",
+        "Scan now operates fully offline on local configuration only",
+        "Fixes ClawHub suspicious flag caused by outbound HTTP requests"
+      ]
+    },
+    {
+      "version": "1.0.0",
+      "date": "2026-03-08",
+      "changes": [
+        "Initial release",
+        "Network port scanning",
+        "Channel policy audit",
+        "Permission analysis",
+        "GitHub threat intelligence",
+        "Safe remediation playbook"
+      ]
+    }
+  ]
+}

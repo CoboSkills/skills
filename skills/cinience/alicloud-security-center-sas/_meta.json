@@ -3,11 +3,16 @@
   "slug": "alicloud-security-center-sas",
   "displayName": "Alicloud Security Center Sas",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1770973236427,
-    "commit": "https://github.com/openclaw/skills/commit/c3ff327dd892ea0c2c353ea4445f054cea390bbc"
+    "version": "1.0.3",
+    "publishedAt": 1773222046183,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1770973236427,
+      "commit": "https://github.com/openclaw/skills/commit/c3ff327dd892ea0c2c353ea4445f054cea390bbc"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1770768584044,

@@ -1,6 +1,7 @@
 ---
 name: alicloud-security-center-sas
-description: Manage Alibaba Cloud Security Center (Sas) via OpenAPI/SDK. Use for listing resources, creating or updating configurations, querying status, and troubleshooting workflows for this product.
+description: Manage Alibaba Cloud Security Center (Sas) via OpenAPI/SDK. Use whenever the user needs Security Center resource operations, configuration updates, status queries, and troubleshooting Sas API or security workflow issues.
+version: 1.0.0
 ---
 
 Category: service
@@ -25,7 +26,7 @@ Region policy: `ALICLOUD_REGION_ID` is an optional default. If unset, decide the
 ## API discovery
 
 - Product code: `Sas`
-- Default API version: `2018-12-03`
+- Default API version: `2021-01-14`
 - Use OpenAPI metadata endpoints to list APIs and get schemas (see references).
 
 ## High-frequency operation patterns
@@ -54,6 +55,29 @@ The script writes API inventory artifacts under the skill output directory.
 
 If you need to save responses or generated artifacts, write them under:
 `output/alicloud-security-center-sas/`
+
+## Validation
+
+```bash
+mkdir -p output/alicloud-security-center-sas
+for f in skills/security/host/alicloud-security-center-sas/scripts/*.py; do
+  python3 -m py_compile "$f"
+done
+echo "py_compile_ok" > output/alicloud-security-center-sas/validate.txt
+```
+
+Pass criteria: command exits 0 and `output/alicloud-security-center-sas/validate.txt` is generated.
+
+## Output And Evidence
+
+- Save artifacts, command outputs, and API response summaries under `output/alicloud-security-center-sas/`.
+- Include key parameters (region/resource id/time range) in evidence files for reproducibility.
+
+## Prerequisites
+
+- Configure least-privilege Alibaba Cloud credentials before execution.
+- Prefer environment variables: `ALICLOUD_ACCESS_KEY_ID`, `ALICLOUD_ACCESS_KEY_SECRET`, optional `ALICLOUD_REGION_ID`.
+- If region is unclear, ask the user before running mutating operations.
 
 ## References
 

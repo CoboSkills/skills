@@ -3,9 +3,15 @@
   "slug": "antivirus",
   "displayName": "Antivirus",
   "latest": {
-    "version": "1.1.2",
-    "publishedAt": 1770466525950,
-    "commit": "https://github.com/openclaw/skills/commit/265676e0e956f55f9fca1d373e2461183757c0a2"
+    "version": "6.8.20",
+    "publishedAt": 1773291557682,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.2",
+      "publishedAt": 1770466525950,
+      "commit": "https://github.com/openclaw/skills/commit/265676e0e956f55f9fca1d373e2461183757c0a2"
+    }
+  ]
 }

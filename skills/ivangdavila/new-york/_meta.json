@@ -1,11 +1,17 @@
 {
   "owner": "ivangdavila",
   "slug": "new-york",
-  "displayName": "New York",
+  "displayName": "New York (State)",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1771376027594,
-    "commit": "https://github.com/openclaw/skills/commit/8fd5fd876ae75d7ac289b26514071a96ed78e06b"
+    "version": "1.0.1",
+    "publishedAt": 1773316043756,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1771376027594,
+      "commit": "https://github.com/openclaw/skills/commit/8fd5fd876ae75d7ac289b26514071a96ed78e06b"
+    }
+  ]
 }

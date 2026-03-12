@@ -3,11 +3,16 @@
   "slug": "aws-solution-architect",
   "displayName": "Aws Solution Architect",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1770402396459,
-    "commit": "https://github.com/openclaw/skills/commit/f10045eb2ce969bf5b120d5e3565f853c993772d"
+    "version": "2.1.1",
+    "publishedAt": 1773070271055,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1770402396459,
+      "commit": "https://github.com/openclaw/skills/commit/f10045eb2ce969bf5b120d5e3565f853c993772d"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1769737480802,

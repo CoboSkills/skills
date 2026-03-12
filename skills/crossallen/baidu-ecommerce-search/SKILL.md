@@ -1,13 +1,6 @@
 ---
 name: baidu-ecommerce-search
-description: 百度电商搜索，包括cps商品查询、榜单、商品参数、品牌品类知识等能力
-keywords:
-  - 电商搜索
-  - ecommerce search
-  - 商品查询
-  - 榜单
-  - 商品参数
-  - CPS
+description: Baidu e-commerce search, including CPS product search, rankings, product specifications, brand and category knowledge.百度电商搜索,包括cps商品查询、榜单、商品参数、品牌品类知识等能力
 homepage: https://openai.baidu.com
 metadata: {"openclaw":{"emoji":"🛒","slug":"baidu-ecommerce-search","requires":{"bins":["python3"],"env":["BAIDU_EC_SEARCH_TOKEN"]},"primaryEnv":"BAIDU_EC_SEARCH_TOKEN"}}
 ---

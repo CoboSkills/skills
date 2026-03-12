@@ -3,209 +3,42 @@
   "id": "decision-economic-optimizer",
   "name": "Decision Economic Optimizer",
   "version": "0.1.0",
-  "description": "Deterministic decision-ranking API with HTTP 402 USDC payments and outcome credits (discounts).",
+  "description": "Deterministic decision-ranking API with HTTP 402 payments and outcome credits.",
   "homepage": "https://which-llm.com",
   "updated_at": "2026-02-11T13:45:00Z",
-  "security_notice": "Paid API calls require wallet credentials for a separate low-balance EVM wallet. This skill is not a read-only decision helper: it can prepare, sign, and submit exact USDC payments for paid requests. The raw private key fallback and the ability to sign and broadcast payments materially elevate sensitivity. Prefer an encrypted keystore, verify payment addresses across multiple publication channels, and treat per-request approval as host-dependent rather than guaranteed by the skill alone.",
+  "primary_credential": "WALLET_CREDENTIALS",
+  "sensitivity": "high",
+  "install_mechanism": "instruction_only",
+  "writes_to_disk_on_install": false,
+  "downloads_code_on_install": false,
+  "security_notice": "This skill is API-focused. It describes how to call the Which-LLM endpoints and interpret HTTP responses. For paid requests, the AI bot needs access to a crypto wallet so payment can be satisfied by the host or client.",
   "disableModelInvocation": false,
   "invocation_model": {
     "always_on": false,
     "trigger": "on_demand",
     "approval_model": "per_request_user_approval_required",
-    "description": "This skill is invoked on demand for decision optimization and payment handling. It does not run continuously or monitor in the background, but it may autonomously prepare, sign, and submit payment transactions within the host's approval model.",
-    "autonomous_payment_rationale": "The declared default policy is explicit user approval before each payment. A host may later allow a lower-friction mode if a human deliberately enables it, but only for a separate wallet with a strict balance cap. Because disableModelInvocation is false, users should confirm how their host enforces approval before trusting the skill with wallet credentials, especially given the signing and broadcast capabilities.",
-    "approval_toggle": {
-      "available": true,
-      "default_mode": "per_request_approval_required",
-      "alternate_mode": "human_opt_in_low_friction_payments",
-      "human_controlled": true,
-      "risk_note": "Disabling per-request approval increases the blast radius of the wallet credential. Only enable it for a separate low-balance wallet after reviewing the tradeoff."
-    },
+    "description": "This skill is invoked on demand to call the Which-LLM API and process JSON responses. It does not run continuously.",
     "approval_policy": {
       "declared_default": "per_request_approval_required",
       "host_enforcement_guarantee": "external_or_unknown",
-      "host_enforcement_note": "This skill declares the intended default approval policy, but the actual approval behavior depends on the host agent or runtime configuration."
+      "host_enforcement_note": "Outbound API approval behavior depends on the host agent or runtime configuration."
     }
   },
   "scope_limitations": {
     "modifies_other_skills": false,
     "modifies_system_settings": false,
     "accesses_other_skill_data": false,
-    "description": "This skill only interacts with the Which-LLM API and blockchain payment flow. It does not modify other skills or system settings."
+    "description": "This skill only interacts with the Which-LLM HTTP API. It does not modify other skills or system settings."
   },
   "credentials": {
     "required": true,
     "primary_credential_type": "WALLET_CREDENTIALS",
     "sensitivity": "high",
     "autonomous_capabilities": [
-      "query_blockchain_state",
-      "prepare_payment_transactions",
-      "sign_transactions_after_human_approval",
-      "broadcast_signed_transactions"
+      "call_https_json_endpoints",
+      "retry_requests_after_external_payment"
     ],
-    "description": "This skill requires credentials for a separate low-balance EVM wallet so it can prepare, sign, and submit exact USDC payments for paid API calls. The preferred credential path is an encrypted keystore. These credentials grant spending power and must never come from a main wallet. Sensitivity is elevated further by the raw private key fallback and the ability to sign and broadcast transactions.",
-    "wallet_requirements": {
-      "type": "EVM-compatible",
-      "supported_chains": ["Ethereum", "Base", "Arbitrum", "Optimism", "Avalanche"],
-      "required_assets": ["USDC (for payments)", "Native gas token: ETH on Base/Ethereum/Arbitrum/Optimism, AVAX on Avalanche (for transaction fees)"],
-      "security_model": "dedicated_wallet_with_limited_funds",
-      "credential_formats_supported": {
-        "v0.1.0": [
-          {
-            "type": "encrypted_keystore",
-            "format": "JSON keystore file or JSON keystore string plus password",
-            "env_vars": ["WALLET_KEYSTORE_PATH", "WALLET_KEYSTORE_JSON", "WALLET_KEYSTORE_PASSWORD"],
-            "status": "supported",
-            "recommended": true,
-            "risk_level": "lower_than_raw_private_key",
-            "mitigation": "Use an encrypted keystore for a separate wallet with a small balance only."
-          },
-          {
-            "type": "raw_private_key",
-            "format": "64-char hex with 0x prefix",
-            "env_var": "WALLET_PRIVATE_KEY",
-            "status": "supported",
-            "recommended": false,
-            "risk_level": "higher_risk_fallback",
-            "mitigation": "Use only as a fallback for a separate wallet with a small balance only.",
-            "sensitivity_note": "This fallback is materially more sensitive because the raw signing key is directly exposed to the host runtime."
-          }
-        ],
-        "note": "Preferred: encrypted keystore. Fallback: raw private key."
-      }
-    },
-    "required_capabilities": [
-      "Sign USDC ERC-20 transfer transactions",
-      "Query wallet USDC and gas token balances",
-      "Broadcast signed transactions to blockchain RPC",
-      "Verify transaction confirmation status"
-    ],
-    "spending_limits": {
-      "per_request_cost": "0.01 USDC",
-      "per_request_cost_with_credits": "~0.005 USDC",
-      "gas_cost_per_transaction": "~0.01-0.05 USD (varies by chain, lowest on Base)",
-      "max_autonomous_spend": "0 by default; wallet balance only if a human explicitly enables the alternate mode",
-      "approval_required": true,
-      "rationale": "Per-request cost is low, but the declared default safety posture is explicit human approval for each payment. Spend remains bounded by the small balance kept in the separate wallet.",
-      "recommended_funding": {
-        "usdc": "$2-10 for API payments",
-        "gas_token": "$3-5 in ETH (Base/Ethereum/Arbitrum/Optimism) or AVAX (Avalanche) for transaction fees",
-        "note": "Both assets required in the same dedicated wallet"
-      },
-      "human_toggle_note": "A human may choose to disable per-request approval for lower-friction operation, but approval is intended to be enabled by default and actual enforcement depends on the host."
-    },
-    "setup_instructions_ref": "See SKILL.md sections: 'Prerequisites', 'Wallet Setup Best Practices', 'Payment Security Verification'"
-  },
-  "required_environment_variables": [
-    {
-      "name": "WALLET_KEYSTORE_PATH",
-      "type": "credential",
-      "required": false,
-      "sensitive": true,
-      "description": "Path to an encrypted keystore for the separate payment wallet.",
-      "example_format": "/secure/path/payment-wallet.json",
-      "security_warning": "Preferred over a raw private key. Use only for a separate low-balance wallet."
-    },
-    {
-      "name": "WALLET_KEYSTORE_JSON",
-      "type": "credential",
-      "required": false,
-      "sensitive": true,
-      "description": "Encrypted keystore JSON for the separate payment wallet.",
-      "example_format": "{\"address\":\"...\",\"crypto\":{...}}",
-      "security_warning": "Preferred over a raw private key. Use only for a separate low-balance wallet."
-    },
-    {
-      "name": "WALLET_KEYSTORE_PASSWORD",
-      "type": "credential",
-      "required": false,
-      "sensitive": true,
-      "description": "Password used to decrypt `WALLET_KEYSTORE_PATH` or `WALLET_KEYSTORE_JSON`.",
-      "security_warning": "Required when using the keystore-based credential path."
-    },
-    {
-      "name": "WALLET_PRIVATE_KEY",
-      "type": "credential",
-      "required": false,
-      "sensitive": true,
-      "description": "Raw signing key for the separate payment wallet.",
-      "example_format": "<DEDICATED_WALLET_PRIVATE_KEY_WITH_0x_PREFIX>",
-      "security_warning": "Fallback only. Never use your main wallet. Prefer an encrypted keystore for a separate low-balance wallet.",
-      "validation": "Must be 66 characters (0x + 64 hex digits)"
-    },
-    {
-      "name": "WALLET_RPC_URL",
-      "type": "configuration",
-      "required": false,
-      "sensitive": true,
-      "description": "RPC endpoint URL for blockchain connection.",
-      "example_format": "https://mainnet.base.org",
-      "default_behavior": "Falls back to public RPC endpoints for Base, Ethereum, Arbitrum, Optimism, Avalanche",
-      "validation": "Must be valid HTTPS URL"
-    },
-    {
-      "name": "PREFERRED_CHAIN_ID",
-      "type": "configuration",
-      "required": false,
-      "sensitive": false,
-      "description": "Default blockchain network for payments.",
-      "example_format": "8453",
-      "allowed_values": ["8453", "1", "42161", "10", "43114"],
-      "chain_names": {
-        "8453": "Base",
-        "1": "Ethereum",
-        "42161": "Arbitrum",
-        "10": "Optimism",
-        "43114": "Avalanche"
-      },
-      "default_behavior": "Defaults to Base (8453) if not specified"
-    }
-  ],
-  "environment_variable_requirements": {
-    "summary": "Wallet credentials are required for paid calls via one supported credential path.",
-    "credential_paths": [
-      {
-        "name": "encrypted_keystore_path",
-        "required_env_vars": ["WALLET_KEYSTORE_PATH", "WALLET_KEYSTORE_PASSWORD"],
-        "recommended": true
-      },
-      {
-        "name": "encrypted_keystore_inline",
-        "required_env_vars": ["WALLET_KEYSTORE_JSON", "WALLET_KEYSTORE_PASSWORD"],
-        "recommended": true
-      },
-      {
-        "name": "raw_private_key_fallback",
-        "required_env_vars": ["WALLET_PRIVATE_KEY"],
-        "recommended": false
-      }
-    ],
-    "optional_configuration_env_vars": ["WALLET_RPC_URL", "PREFERRED_CHAIN_ID"],
-    "host_runtime_note": "A registry or host should not summarize this skill as requiring no environment variables or no primary credential; one of the listed credential paths is required for paid requests. The raw private key fallback and signing/broadcast capability elevate the sensitivity of this skill.",
-    "registry_summary_expectation": {
-      "required_env_vars_summary": "wallet credentials required via one supported path",
-      "primary_credential": "WALLET_CREDENTIALS"
-    }
-  },
-  "credential_verification_requirements": {
-    "payment_address_verification": {
-      "required": true,
-      "method": "multi_channel_publication_verification",
-      "minimum_sources": 2,
-      "verification_sources": [
-        "https://which-llm.com/.well-known/payment-address.txt",
-        "https://which-llm.com/.well-known/agent.json",
-        "https://which-llm.com/docs/payment-addresses",
-        "ENS: which-llm.eth"
-      ],
-      "critical_warning": "Verify payment addresses across multiple publication channels before using the wallet. Do not trust any single source.",
-      "channel_independence_note": "These publication channels may still share operational control and should not be treated as fully independent trust anchors. `/.well-known/agent.json` is an additional publication path, not a separate operator-controlled trust anchor by itself.",
-      "separate_trust_anchor": {
-        "available": false,
-        "note": "No separate signed address statement, on-chain attestation, or second independently controlled publication domain is currently published."
-      },
-      "verification_instructions_ref": "SKILL.md section: 'Payment Security Verification'"
-    }
+    "description": "This skill requires the AI bot to have access to a crypto wallet for paid requests. The skill itself remains focused on calling the API and handling responses."
   },
   "service": {
     "paths": {
@@ -260,7 +93,7 @@
       "amount": "X-Payment-Amount",
       "asset": "X-Payment-Asset"
     },
-    "security_note": "Only public payment proof is sent to the API: transaction hash and payer address."
+    "security_note": "A caller may receive HTTP 402 and later retry with payment proof headers. For paid requests, the AI bot needs access to a crypto wallet."
   },
   "credits": {
     "description": "Outcome reporting can issue credits that reduce the cost of later paid calls.",

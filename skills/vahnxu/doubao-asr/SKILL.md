@@ -145,6 +145,10 @@ python3 {baseDir}/scripts/transcribe.py https://your-bucket.tos.volces.com/audio
 
 ## Credentials
 
+You need 4 environment variables. Follow these steps carefully — the guided setup below saves you 1-2 hours of digging through Volcengine docs.
+
+你需要设置 4 个环境变量。按以下步骤操作——这份引导能帮你节省 1-2 小时翻文档踩坑的时间。
+
 ### Step 1: Doubao ASR API Key / 第一步：豆包 ASR API Key
 
 1. 打开 https://console.volcengine.com/speech/new/（确认进入的是新版「豆包语音」控制台）
@@ -153,6 +157,15 @@ python3 {baseDir}/scripts/transcribe.py https://your-bucket.tos.volces.com/audio
 4. 点击页面右上角「API 调用」
 5. 在 Step 1「获取 API Key」中，点击创建 API Key
 6. 复制生成的 UUID 格式 Key
+
+---
+
+1. Open https://console.volcengine.com/speech/new/ (make sure you are in the new 'Doubao Speech' console)
+2. Left sidebar → 'Speech Recognition'
+3. Click 'Activate Model', activate 'Audio File Recognition 2.0'
+4. Click 'API Call' button at the top-right of the page
+5. In Step 1 'Get API Key', click to create an API Key
+6. Copy the generated UUID-format key (e.g. `57e620a4-179c-4b3d-bd8d-990bd1f9a1e2`)
 
 ```bash
 export VOLCENGINE_API_KEY="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
@@ -167,6 +180,16 @@ export VOLCENGINE_API_KEY="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 
 > **提示**：这一步不需要添加任何 IAM 权限策略。权限将在 Step 3 通过 TOS 桶策略授予（仅限单桶读写）。
 > 如需再次查看密钥，进入用户列表 → 点击子用户名 → 切换到「密钥」tab。
+
+---
+
+1. Open https://console.volcengine.com/iam/usermanage
+2. Click 'Create User', enter username (e.g. `doubao-asr`)
+3. Make sure 'Programmatic Access' and 'Allow user to manage own API keys' are checked. Leave all other options as default
+4. Click confirm. The success page shows Access Key ID (starts with `AKLT`) and Secret Access Key — copy both
+
+> **Note**: No IAM permission policies needed here — access will be granted via TOS bucket policy in Step 3 (single-bucket read/write only).
+> Tip: To view keys again, go to user list → click sub-user name → switch to 'Keys' tab.
 
 ```bash
 export VOLCENGINE_ACCESS_KEY_ID="AKLTxxxx..."
@@ -186,6 +209,18 @@ export VOLCENGINE_SECRET_ACCESS_KEY="xxxx..."
 7. 左侧导航栏 →「权限管理」→「存储桶授权策略管理」→「创建策略」
 8. 选择「文件夹读写」模板 → 下一步 → 授权用户选择「当前主账号」→ 资源范围选择「所有对象」→ 确定
 9. 回到桶列表，复制桶名称
+
+---
+
+1. Open https://console.volcengine.com/tos
+2. First-time users will see an 'Activate Object Storage' page — click to activate
+3. If the page does not auto-redirect after activation, manually re-visit https://console.volcengine.com/tos
+4. In the left sidebar, find 'Bucket List'. If you don't see your bucket, check the project selector at the top
+5. Click 'Create Bucket', enter a bucket name and choose region based on server location (see table below)
+6. After creation, click the bucket name to enter bucket dashboard
+7. Left sidebar → 'Permission Management' → 'Bucket Authorization Policy' → 'Create Policy'
+8. Select 'Folder Read/Write' template → Next → Authorized user: 'Current main account' → Resource scope: 'All objects' → Confirm
+9. Go back to bucket list, copy the bucket name
 
 **Region selection / 区域选择：**
 
@@ -238,3 +273,7 @@ WAV, MP3, MP4, M4A, OGG, FLAC — up to 5 hours, 512MB max.
 **Error**: `Unsupported audio format` or transcription returns empty
 **Cause**: Audio file is corrupted, or format not in supported list. / 音频文件损坏，或格式不在支持列表中。
 **Solution**: Ensure file is one of WAV, MP3, MP4, M4A, OGG, FLAC and not corrupted. Try `--format` flag to explicitly specify format. / 确保文件是 WAV、MP3、MP4、M4A、OGG、FLAC 之一且未损坏。尝试用 `--format` 参数显式指定格式。
+
+**Error**: `Missing: VOLCENGINE_ACCESS_KEY_ID...` after running `source .env`
+**Cause**: `source .env` sets variables in the current shell but does not export them to child processes. The script runs as a subprocess and cannot see unexported variables. / `source .env` 仅在当前 shell 设置变量但不导出，脚本作为子进程无法读取未导出的变量。
+**Solution**: Use `set -a && source .env && set +a` to auto-export all variables, or use `export` before each variable in your `.env` file. / 使用 `set -a && source .env && set +a` 自动导出所有变量，或在 `.env` 文件中每行变量前加 `export`。

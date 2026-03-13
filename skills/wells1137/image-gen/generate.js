@@ -2,47 +2,24 @@
 /**
  * image-gen skill — generate.js
  * Unified image generation script for OpenClaw.
- *
- * Supported models:
- *   Midjourney (via Legnext.ai), Flux Pro/Dev/Schnell, SDXL Lightning,
- *   Nano Banana Pro, Ideogram v3, Recraft v3 (all via fal.ai)
- *
- * External endpoints contacted:
- *   - api.legnext.ai  (Midjourney proxy — requires LEGNEXT_KEY)
- *   - gateway.fal.ai  (fal.ai models — requires FAL_KEY)
- *
- * This script does NOT:
- *   - Write to the filesystem (no token persistence, no caching)
- *   - Contact any endpoints other than those listed above
- *   - Execute dynamic code (no eval, no Function constructor)
- *   - Collect or exfiltrate user data
+ * Supports: Midjourney (Legnext.ai), Flux Pro/Dev/Schnell, SDXL Lightning,
+ *           Nano Banana Pro (Gemini), Ideogram v3, Recraft v3 (all via fal.ai)
  *
  * Usage:
  *   node generate.js --model <id> --prompt "<text>" [options]
  *   node generate.js --model midjourney --action upscale --index 2 --job-id <id>
+ *   node generate.js --model nano-banana --prompt "<text>" --reference-images "url1,url2"
+ *
+ * Async (non-blocking) mode for Midjourney:
+ *   node generate.js --model midjourney --prompt "<text>" --async
+ *     → Submits job and returns immediately with job_id (does NOT wait)
+ *   node generate.js --model midjourney --poll --job-id <id>
+ *     → Checks job status once and returns immediately (no waiting)
  */
-
-"use strict";
 
 import { fal } from "@fal-ai/client";
 import https from "https";
 import { parseArgs } from "util";
-
-// ── Constants ─────────────────────────────────────────────────────────────
-const ALLOWED_MODELS = [
-  "midjourney", "flux-pro", "flux-dev", "flux-schnell",
-  "sdxl", "nano-banana", "ideogram", "recraft",
-];
-
-const ALLOWED_ASPECT_RATIOS = [
-  "1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "21:9",
-];
-
-const ALLOWED_ACTIONS = ["", "upscale", "variation", "reroll", "describe"];
-
-const ALLOWED_MODES = ["turbo", "fast", "relax"];
-
-const MAX_PROMPT_LENGTH = 4000;
 
 // ── Parse CLI arguments ────────────────────────────────────────────────────
 const { values: args } = parseArgs({
@@ -52,51 +29,19 @@ const { values: args } = parseArgs({
     "aspect-ratio":     { type: "string", default: "1:1" },
     "num-images":       { type: "string", default: "1" },
     "negative-prompt":  { type: "string", default: "" },
-    action:             { type: "string", default: "" },
-    index:              { type: "string", default: "1" },
-    "job-id":           { type: "string", default: "" },
-    "upscale-type":     { type: "string", default: "0" },
-    "variation-type":   { type: "string", default: "0" },
-    mode:               { type: "string", default: "turbo" },
+    action:             { type: "string", default: "" },   // upscale | variation | reroll
+    index:              { type: "string", default: "1" },  // 1-4 for MJ actions
+    "job-id":           { type: "string", default: "" },   // MJ jobId for actions
+    "upscale-type":     { type: "string", default: "0" },  // 0=Subtle, 1=Creative
+    "variation-type":   { type: "string", default: "0" },  // 0=Subtle, 1=Strong
+    mode:               { type: "string", default: "turbo" }, // turbo | fast | relax
     seed:               { type: "string", default: "" },
+    async:              { type: "boolean", default: false }, // submit and return immediately
+    poll:               { type: "boolean", default: false }, // check status once, no wait
+    "reference-images": { type: "string", default: "" },   // comma-separated URLs for nano-banana context
   },
   strict: false,
 });
-
-// ── Input validation ──────────────────────────────────────────────────────
-function validateInputs() {
-  if (!ALLOWED_MODELS.includes(args["model"])) {
-    error(`Invalid model: "${args["model"]}". Allowed: ${ALLOWED_MODELS.join(", ")}`);
-  }
-  if (!ALLOWED_ASPECT_RATIOS.includes(args["aspect-ratio"])) {
-    error(`Invalid aspect ratio: "${args["aspect-ratio"]}". Allowed: ${ALLOWED_ASPECT_RATIOS.join(", ")}`);
-  }
-  if (!ALLOWED_ACTIONS.includes(args["action"])) {
-    error(`Invalid action: "${args["action"]}". Allowed: upscale, variation, reroll, describe`);
-  }
-  if (!ALLOWED_MODES.includes(args["mode"])) {
-    error(`Invalid mode: "${args["mode"]}". Allowed: ${ALLOWED_MODES.join(", ")}`);
-  }
-  const numImages = parseInt(args["num-images"], 10);
-  if (isNaN(numImages) || numImages < 1 || numImages > 4) {
-    error(`Invalid num-images: "${args["num-images"]}". Must be 1-4.`);
-  }
-  if (args["prompt"] && args["prompt"].length > MAX_PROMPT_LENGTH) {
-    error(`Prompt too long (${args["prompt"].length} chars). Maximum: ${MAX_PROMPT_LENGTH}.`);
-  }
-  const index = parseInt(args["index"], 10);
-  if (isNaN(index) || index < 1 || index > 4) {
-    error(`Invalid index: "${args["index"]}". Must be 1-4.`);
-  }
-  const upscaleType = parseInt(args["upscale-type"], 10);
-  if (isNaN(upscaleType) || (upscaleType !== 0 && upscaleType !== 1)) {
-    error(`Invalid upscale-type: "${args["upscale-type"]}". Must be 0 (Subtle) or 1 (Creative).`);
-  }
-  const variationType = parseInt(args["variation-type"], 10);
-  if (isNaN(variationType) || (variationType !== 0 && variationType !== 1)) {
-    error(`Invalid variation-type: "${args["variation-type"]}". Must be 0 (Subtle) or 1 (Strong).`);
-  }
-}
 
 const MODEL          = args["model"];
 const PROMPT         = args["prompt"];
@@ -108,8 +53,14 @@ const INDEX          = parseInt(args["index"], 10) || 1;
 const JOB_ID         = args["job-id"];
 const UPSCALE_TYPE   = parseInt(args["upscale-type"], 10) || 0;
 const VARIATION_TYPE = parseInt(args["variation-type"], 10) || 0;
-const MODE           = args["mode"] || "turbo";
+const MODE           = args["mode"] || "turbo";  // turbo (~10-20s), fast (~30-60s), relax (free but slow)
 const SEED           = args["seed"] ? parseInt(args["seed"], 10) : undefined;
+const ASYNC_MODE     = args["async"] === true;
+const POLL_MODE      = args["poll"] === true;
+// Reference images: comma-separated URLs (for nano-banana context/character consistency)
+const REFERENCE_IMAGES = args["reference-images"]
+  ? args["reference-images"].split(",").map(u => u.trim()).filter(Boolean)
+  : [];
 
 // ── Environment variables ──────────────────────────────────────────────────
 const FAL_KEY      = process.env.FAL_KEY;
@@ -140,7 +91,6 @@ function arToWidthHeight(ar) {
   };
   return map[ar] || [1024, 1024];
 }
-
 function arToFalImageSize(ar) {
   const map = {
     "1:1":  "square_hd",
@@ -152,149 +102,132 @@ function arToFalImageSize(ar) {
   return map[ar] || "square_hd";
 }
 
-// ── Output helpers ─────────────────────────────────────────────────────────
-function output(data) {
-  console.log(JSON.stringify(data, null, 2));
+// ── Output helper ──────────────────────────────────────────────────────────
+function output(obj) {
+  process.stdout.write(JSON.stringify(obj, null, 2) + "\n");
 }
-
-function error(msg, details) {
-  console.error(JSON.stringify({ success: false, error: msg, details }, null, 2));
+function error(msg, detail) {
+  output({ success: false, error: msg, detail });
   process.exit(1);
 }
 
-// ── Legnext.ai HTTP helper ─────────────────────────────────────────────────
-// Connects ONLY to api.legnext.ai for Midjourney image generation.
+// ── Legnext.ai helpers ─────────────────────────────────────────────────────
 function legnextRequest(method, path, body) {
   return new Promise((resolve, reject) => {
-    const payload = body ? JSON.stringify(body) : null;
-    const options = {
-      hostname: "api.legnext.ai",
-      path: `/api/v1${path}`,
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": LEGNEXT_KEY,
-        ...(payload && { "Content-Length": Buffer.byteLength(payload) }),
-      },
+    // Legnext API v1: base path is /api/v1/, auth via x-api-key header
+    const fullPath = path.startsWith("/api/") ? path : "/api/v1" + path;
+    const isGet = method === "GET";
+    const data = isGet ? null : JSON.stringify(body);
+    const headers = {
+      "Content-Type": "application/json",
+      "x-api-key": LEGNEXT_KEY,
     };
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
+    if (!isGet && data) headers["Content-Length"] = Buffer.byteLength(data);
+    const req = https.request({
+      hostname: "api.legnext.ai",
+      path: fullPath,
+      method,
+      headers,
+    }, (res) => {
+      let raw = "";
+      res.on("data", c => raw += c);
       res.on("end", () => {
-        try { resolve(JSON.parse(data)); }
-        catch (e) { reject(new Error(`Invalid JSON response from api.legnext.ai: ${data.slice(0, 200)}`)); }
+        try { resolve(JSON.parse(raw)); }
+        catch { resolve({ _raw: raw }); }
       });
     });
     req.on("error", reject);
-    if (payload) req.write(payload);
+    if (!isGet && data) req.write(data);
     req.end();
   });
 }
 
-async function legnextPoll(jobId, maxWait = 300_000, interval = 5_000) {
-  const deadline = Date.now() + maxWait;
-  while (Date.now() < deadline) {
-    const res = await legnextRequest("GET", `/job/${jobId}`);
-    const status = res.status;
-    if (status === "completed") return res;
-    if (status === "failed") throw new Error(`Midjourney job failed: ${res.error?.message || "unknown error"}`);
+async function legnextPoll(jobId, maxWaitMs = 120000, intervalMs = 5000) {
+  const start = Date.now();
+  while (true) {
+    const res = await legnextRequest("GET", `/job/${jobId}`, {});
+    const status = res.status || res.state;
+    // Check for real errors: error.code != 0 means actual error
+    if (!res || res._raw) error("Legnext poll error: invalid response", res);
+    if (res.error && res.error.code && res.error.code !== 0) error("Legnext poll error: " + (res.error.message || JSON.stringify(res.error)), res);
+    if (status === "not_found") error("Job not found", { jobId });
+    if (status === "failed" || status === "error") {
+      const msg = (res.error && res.error.message) || res.error_message || JSON.stringify(res);
+      error("Midjourney generation failed: " + msg);
+    }
+    if (status === "completed" || status === "done") return res;
     process.stderr.write(`[MJ] Status: ${status} ...\n`);
-    await new Promise((r) => setTimeout(r, interval));
+    if (Date.now() - start > maxWaitMs) error("Timeout waiting for Midjourney job", { jobId });
+    await new Promise(r => setTimeout(r, intervalMs));
   }
-  throw new Error(`Midjourney job ${jobId} timed out after ${maxWait / 1000}s`);
 }
 
 // ── Midjourney via Legnext.ai ──────────────────────────────────────────────
 async function generateMidjourney() {
   if (!LEGNEXT_KEY) error("LEGNEXT_KEY is not set. Please configure it in your OpenClaw skill env.");
 
-  // ── Upscale action ─────────────────────────────────────────────────────
-  if (ACTION === "upscale" && JOB_ID) {
-    const imageNo = INDEX - 1;
-    process.stderr.write(`[MJ] Upscaling image ${INDEX} (imageNo=${imageNo}, type=${UPSCALE_TYPE}) from job ${JOB_ID}\n`);
-    const res = await legnextRequest("POST", "/upscale", {
-      jobId: JOB_ID,
-      imageNo,
-      type: UPSCALE_TYPE,
-    });
-    if (!res.job_id) error("Legnext upscale submission failed", res);
-    process.stderr.write(`[MJ] Upscale job submitted: ${res.job_id}\n`);
-    const result = await legnextPoll(res.job_id);
-    output({
-      success: true,
-      model: "midjourney",
-      action: "upscale",
-      jobId: res.job_id,
-      imageUrl: result.output?.image_url || null,
-    });
+  // ── Poll-only mode ─────────────────────────────────────────────────────
+  if (POLL_MODE) {
+    if (!JOB_ID) error("--job-id is required for --poll mode.");
+    const res = await legnextRequest("GET", `/job/${JOB_ID}`, {});
+    const status = res.status || res.state;
+    if (status === "completed" || status === "done") {
+      output({
+        success: true,
+        model: "midjourney",
+        jobId: JOB_ID,
+        status: "completed",
+        imageUrl: res.output?.image_url || null,
+        imageUrls: res.output?.image_urls || [],
+        seed: res.output?.seed || null,
+      });
+    } else {
+      output({ success: false, model: "midjourney", jobId: JOB_ID, status: status || "unknown", pending: true });
+    }
     return;
   }
 
-  // ── Variation action ───────────────────────────────────────────────────
-  if (ACTION === "variation" && JOB_ID) {
-    const imageNo = INDEX - 1;
-    process.stderr.write(`[MJ] Creating variation for image ${INDEX} (imageNo=${imageNo}, type=${VARIATION_TYPE}) from job ${JOB_ID}\n`);
-    const body = {
-      jobId: JOB_ID,
-      imageNo,
-      type: VARIATION_TYPE,
-    };
-    if (PROMPT) body.remixPrompt = PROMPT;
-    const res = await legnextRequest("POST", "/variation", body);
-    if (!res.job_id) error("Legnext variation submission failed", res);
-    process.stderr.write(`[MJ] Variation job submitted: ${res.job_id}\n`);
-    const result = await legnextPoll(res.job_id);
+  // ── Action mode: upscale / variation / reroll ──────────────────────────
+  if (ACTION === "upscale" || ACTION === "variation" || ACTION === "reroll") {
+    if (!JOB_ID) error(`--job-id is required for --action ${ACTION}.`);
+    let endpoint, body;
+    if (ACTION === "upscale") {
+      endpoint = "/diffusion/upscale";
+      body = { job_id: JOB_ID, index: INDEX, type: UPSCALE_TYPE };
+    } else if (ACTION === "variation") {
+      endpoint = "/diffusion/variation";
+      body = { job_id: JOB_ID, index: INDEX, type: VARIATION_TYPE };
+    } else {
+      endpoint = "/diffusion/reroll";
+      body = { job_id: JOB_ID };
+    }
+    process.stderr.write(`[MJ] Running ${ACTION} on job ${JOB_ID}...\n`);
+    const res = await legnextRequest("POST", endpoint, body);
+    if (!res.job_id) error(`Legnext ${ACTION} failed`, res);
+    const newJobId = res.job_id;
+    process.stderr.write(`[MJ] ${ACTION} job submitted: ${newJobId}\n`);
+    if (ASYNC_MODE) {
+      output({ success: true, model: "midjourney", action: ACTION, jobId: newJobId, status: "submitted", pending: true });
+      return;
+    }
+    const result = await legnextPoll(newJobId);
     output({
       success: true,
       model: "midjourney",
-      action: "variation",
-      jobId: res.job_id,
-      imageUrl: result.output?.image_url || null,
-      imageUrls: result.output?.image_urls || [],
-    });
-    return;
-  }
-
-  // ── Reroll action ──────────────────────────────────────────────────────
-  if (ACTION === "reroll" && JOB_ID) {
-    process.stderr.write(`[MJ] Rerolling job ${JOB_ID}\n`);
-    const res = await legnextRequest("POST", "/reroll", { jobId: JOB_ID });
-    if (!res.job_id) error("Legnext reroll submission failed", res);
-    process.stderr.write(`[MJ] Reroll job submitted: ${res.job_id}\n`);
-    const result = await legnextPoll(res.job_id);
-    output({
-      success: true,
-      model: "midjourney",
-      action: "reroll",
-      jobId: res.job_id,
+      action: ACTION,
+      jobId: newJobId,
       imageUrl: result.output?.image_url || null,
       imageUrls: result.output?.image_urls || [],
     });
     return;
   }
 
-  // ── Describe action ────────────────────────────────────────────────────
-  if (ACTION === "describe" && JOB_ID) {
-    process.stderr.write(`[MJ] Describing job ${JOB_ID}\n`);
-    const res = await legnextRequest("POST", "/describe", { jobId: JOB_ID });
-    if (!res.job_id) error("Legnext describe submission failed", res);
-    const result = await legnextPoll(res.job_id);
-    output({
-      success: true,
-      model: "midjourney",
-      action: "describe",
-      jobId: res.job_id,
-      description: result.output?.text || null,
-    });
-    return;
-  }
-
-  // ── Standard imagine ───────────────────────────────────────────────────
-  if (!PROMPT) error("--prompt is required for Midjourney generation.");
-
+  // ── Imagine mode ───────────────────────────────────────────────────────
+  if (!PROMPT) error("--prompt is required.");
   let mjPrompt = PROMPT;
   if (AR && AR !== "1:1") {
-    mjPrompt += ` --ar ${AR}`;
+    const arMap = { "16:9": "16:9", "9:16": "9:16", "4:3": "4:3", "3:4": "3:4", "3:2": "3:2", "2:3": "2:3", "21:9": "21:9" };
+    if (arMap[AR]) mjPrompt += ` --ar ${arMap[AR]}`;
   }
   if (MODE === "turbo") {
     mjPrompt += " --turbo";
@@ -303,18 +236,27 @@ async function generateMidjourney() {
   } else if (MODE === "relax") {
     mjPrompt += " --relax";
   }
-
-  process.stderr.write(`[MJ] Submitting imagine via Legnext.ai (mode=${MODE}): "${mjPrompt.slice(0, 100)}..."\n`);
+  process.stderr.write(`[MJ] Submitting imagine via Legnext.ai (mode=${MODE}): "${mjPrompt}"\n`);
   const res = await legnextRequest("POST", "/diffusion", {
     text: mjPrompt,
   });
-
   if (!res.job_id) error("Legnext imagine submission failed", res);
   const jobId = res.job_id;
   process.stderr.write(`[MJ] Job submitted: ${jobId}\n`);
-
+  if (ASYNC_MODE) {
+    output({
+      success: true,
+      model: "midjourney",
+      provider: "legnext.ai",
+      jobId,
+      status: "submitted",
+      pending: true,
+      prompt: mjPrompt,
+      message: `✅ Midjourney job submitted! job_id: ${jobId}\n\nGeneration takes ~10-20s (turbo) or ~30-60s (fast). I'll notify you when it's done.\n\nTo check manually: node generate.js --model midjourney --poll --job-id ${jobId}`,
+    });
+    return;
+  }
   const result = await legnextPoll(jobId);
-
   output({
     success: true,
     model: "midjourney",
@@ -329,20 +271,15 @@ async function generateMidjourney() {
 }
 
 // ── fal.ai models ──────────────────────────────────────────────────────────
-// Connects ONLY to fal.ai (gateway.fal.ai) for image generation.
 async function generateFal(modelKey) {
   if (!FAL_KEY) error("FAL_KEY is not set. Please configure it in your OpenClaw skill env.");
   fal.config({ credentials: FAL_KEY });
-
   const modelId = FAL_MODELS[modelKey];
   if (!modelId) error(`Unknown fal.ai model key: ${modelKey}`);
   if (!PROMPT) error("--prompt is required.");
-
   const [width, height] = arToWidthHeight(AR);
   const imageSize = arToFalImageSize(AR);
-
   let input = {};
-
   if (modelKey === "flux-pro") {
     input = {
       prompt: PROMPT,
@@ -384,6 +321,10 @@ async function generateFal(modelKey) {
       image_size: imageSize,
       num_images: Math.min(NUM_IMAGES, 4),
       ...(SEED !== undefined && { seed: SEED }),
+      // Reference images for character/scene consistency (up to 14 images)
+      ...(REFERENCE_IMAGES.length > 0 && {
+        reference_images: REFERENCE_IMAGES.map(url => ({ url })),
+      }),
     };
   } else if (modelKey === "ideogram") {
     input = {
@@ -401,8 +342,10 @@ async function generateFal(modelKey) {
       num_images: Math.min(NUM_IMAGES, 4),
     };
   }
-
   process.stderr.write(`[fal] Calling ${modelId} ...\n`);
+  if (REFERENCE_IMAGES.length > 0) {
+    process.stderr.write(`[fal] Using ${REFERENCE_IMAGES.length} reference image(s) for context consistency\n`);
+  }
   const result = await fal.subscribe(modelId, {
     input,
     onQueueUpdate(update) {
@@ -413,11 +356,9 @@ async function generateFal(modelKey) {
       }
     },
   });
-
   const images = (result.data?.images || []).map((img) =>
     typeof img === "string" ? img : img.url
   );
-
   output({
     success: true,
     model: modelKey,
@@ -432,17 +373,14 @@ async function generateFal(modelKey) {
 
 // ── Main ───────────────────────────────────────────────────────────────────
 async function main() {
-  validateInputs();
-
   if (MODEL === "midjourney") {
     await generateMidjourney();
   } else if (FAL_MODELS[MODEL]) {
     await generateFal(MODEL);
   } else {
-    error(`Unknown model: "${MODEL}". Valid options: ${ALLOWED_MODELS.join(", ")}`);
+    error(`Unknown model: "${MODEL}". Valid options: midjourney, flux-pro, flux-dev, flux-schnell, sdxl, nano-banana, ideogram, recraft`);
   }
 }
-
 main().catch((err) => {
   error(err.message, err.stack);
 });

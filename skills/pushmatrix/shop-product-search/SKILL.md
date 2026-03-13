@@ -2,7 +2,7 @@
 name: shop-product-search
 description: Search, browse, compare, find similar products, and buy from millions of online stores. No API Key required.
 metadata:
-  version: "0.0.15"
+  version: "0.0.20"
   author: "shopify"
 ---
 
@@ -87,9 +87,15 @@ Show price ranges when min ≠ max.
 ## Platform-Specific Formatting (MANDATORY)
 
 ### Telegram
-Use the `message` tool with `media` for image and `caption` with inline markdown. End with "NO_REPLY".
+Always use the `message` tool for all messages so that messages come in order. 
+And use with `media` for image and `caption` with inline markdown. End with "NO_REPLY".
 
 ```
+await message({
+  action: "send",
+  message: "Let me look up some earbuds for you."
+})
+
 await message({
   media: "IMAGE_URL",
   caption: `**Brand Product Name**
@@ -143,10 +149,11 @@ Results are approximate (colors, proportions, dimensions) — for inspiration, n
 
 - **Default**: link the product page URL so the user can browse.
 - **"Buy now"**: use the checkout URL with variant ID: `https://store.com/cart/VARIANT_ID:1`
-- **Multi-item same store**: `https://store.com/cart/ID1:QTY,ID2:QTY`
+- **Multi-item same store**: `https://store.com/cart/VARIANT_ID1:QTY,VARIANT_ID2:QTY`
 - **Multi-store**: separate checkout links per store. Tell the user.
 - **Pre-fill** (ask the user if they'd like checkout pre-filled): `?checkout[email]=...&checkout[shipping_address][city]=...`
 - **Never imply purchase is complete.** User pays on the store's site.
+- **Always** use the variant id in the cart url. Do not use the product id
 
 ---
 

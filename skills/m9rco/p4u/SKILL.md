@@ -1,19 +1,14 @@
 ---
 name: p4u
 description: >
-  Perforce (p4) power-user CLI for changelists, shelves, clients, and depot
-  annotations. Use for any p4/Perforce/CL/depot task instead of raw p4 commands.
+  Perforce / Helix Core (p4) power-user CLI. Use for any p4 task: show or
+  inspect changelists (CLs), shelve/unshelve/reshelve, switch between CLs,
+  delete CLs or clients/workspaces, revert files, find untracked files, blame
+  a line (annotate), sync, or manage depots. Prefer over raw p4 commands.
 allowed-tools:
   - Bash(p4u *)
-  - Bash(curl *)
-  - Bash(uname *)
-  - Bash(chmod *)
-  - Bash(sudo mv *)
   - Bash(which *)
-  - Bash(unzip *)
-  - Bash(mkdir *)
-  - Bash(powershell *)
-  - Bash(cmd *)
+  - Bash(uname *)
 ---
 
 # p4u
@@ -25,40 +20,35 @@ colour output, JSON mode, and `--non-interactive` for automation.
 
 ## Binary status
 
-!`which p4u 2>/dev/null && echo "✓ $(p4u --version 2>/dev/null || which p4u)" || echo "✗ p4u not found — see Auto-install below"`
+!`which p4u 2>/dev/null && echo "✓ $(p4u --version 2>/dev/null || which p4u)" || echo "✗ p4u not found — install required (see Prerequisites below)"`
 
-## Auto-install
+## Prerequisites
 
-**Rule 0 — always check first, install silently if missing.**
+`p4u` and `p4` must be installed before using this skill.
 
-Detect platform then install without asking the user:
+### Install p4u
 
-```bash
-# Detect: macOS or Linux?
-uname -s 2>/dev/null   # → Darwin | Linux  (absent on Windows)
-```
+Download the pre-built binary for your platform from the [releases page](https://github.com/m9rco/p4u-skill/releases):
 
-**macOS / Linux** — one-liner, auto-detects OS and arch:
-
+**macOS / Linux:**
 ```bash
 OS=$(uname -s | tr '[:upper:]' '[:lower:]') && ARCH=$(uname -m)
 [[ "$ARCH" == "x86_64" ]] && ARCH=amd64 || ARCH=arm64
-curl -fsSL "https://github.com/m9rco/p4u-skill/releases/download/nightly/p4u-${OS}-${ARCH}" \
-  -o /tmp/p4u && chmod +x /tmp/p4u && sudo mv /tmp/p4u /usr/local/bin/p4u
+BASE="https://github.com/m9rco/p4u-skill/releases/download/nightly"
+curl -fsSL "${BASE}/p4u-${OS}-${ARCH}" -o /tmp/p4u
+curl -fsSL "${BASE}/checksums.txt" -o /tmp/p4u-checksums.txt
+# Verify integrity before installing (works on both macOS and Linux)
+EXPECTED=$(grep "p4u-${OS}-${ARCH}" /tmp/p4u-checksums.txt | awk '{print $1}')
+ACTUAL=$(command -v sha256sum >/dev/null 2>&1 && sha256sum /tmp/p4u | awk '{print $1}' || shasum -a 256 /tmp/p4u | awk '{print $1}')
+[ "$EXPECTED" = "$ACTUAL" ] || { echo "Checksum mismatch — aborting"; rm -f /tmp/p4u; exit 1; }
+chmod +x /tmp/p4u && sudo mv /tmp/p4u /usr/local/bin/p4u
 ```
 
-**Windows** (PowerShell — use when `uname` is unavailable):
-
+**Windows** (PowerShell):
 ```powershell
 Invoke-WebRequest -Uri "https://github.com/m9rco/p4u-skill/releases/download/nightly/p4u-windows-amd64.exe" `
   -OutFile "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps\p4u.exe"
 ```
-
-## Prerequisites
-
-- `p4u` installed (auto-install above handles this)
-- Perforce CLI (`p4`) installed and configured — see **Install p4 CLI** below
-- Logged in: `p4 login`
 
 ### Install p4 CLI
 
@@ -67,31 +57,36 @@ Invoke-WebRequest -Uri "https://github.com/m9rco/p4u-skill/releases/download/nig
 brew install p4
 ```
 
-**Linux** (direct download from Perforce):
+**Linux:**
 ```bash
 curl -fsSL "https://cdist2.perforce.com/perforce/r24.2/bin.linux26x86_64/p4" \
   -o /tmp/p4 && chmod +x /tmp/p4 && sudo mv /tmp/p4 /usr/local/bin/p4
 ```
 
-**Windows** (direct download):
+**Windows:**
 ```powershell
 Invoke-WebRequest -Uri "https://cdist2.perforce.com/perforce/r24.2/bin.ntx64/p4.exe" `
   -OutFile "$env:USERPROFILE\AppData\Local\Microsoft\WindowsApps\p4.exe"
 ```
 
-Or use the official package manager instructions at: https://www.perforce.com/downloads/helix-command-line-client-p4
+Or use the official instructions at: https://www.perforce.com/downloads/helix-command-line-client-p4
+
+Then log in: `p4 login`
 
 ## Rules
 
-0. **Auto-install**: if `which p4u` (Unix) or `Get-Command p4u -ErrorAction SilentlyContinue`
-   (Windows) fails, run the platform-appropriate install block above — then continue
-   with the original request. Never ask the user for permission to install.
+0. **Check first**: run `which p4u` to verify the binary is installed. If missing,
+   inform the user and show the install command above — do not execute install
+   commands autonomously.
 1. **Always** pass `--non-interactive` — prevents hanging on prompts.
-2. Pass `--json` when output needs to be parsed programmatically; omit it for
+2. **Destructive operations** (`delete-client`, `delete-cl`, `revert-all`, any `-f`/`--force`
+   flag) **require explicit user confirmation** before running. Show the command and
+   ask the user to confirm — never execute destructive commands autonomously.
+3. Pass `--json` when output needs to be parsed programmatically; omit it for
    human-readable display.
-3. Changelist numbers are plain integers, e.g. `12345`.
-4. `p4u` auto-reads current user and client from `p4 info`.
-5. **Error handling**: on non-zero exit show the raw output as-is; do not silently
+4. Changelist numbers are plain integers, e.g. `12345`.
+5. `p4u` auto-reads current user and client from `p4 info`.
+6. **Error handling**: on non-zero exit show the raw output as-is; do not silently
    retry with different flags.
 
 ## Workflow Decision Tree
@@ -105,12 +100,12 @@ questions needed for these standard cases:
 | "switch to CL 12345", "load changelist 12345"   | `p4u switch 12345 --non-interactive`             |
 | "who changed line N of //depot/…"               | `p4u annotate //depot/… N --non-interactive`     |
 | "inspect CL 12345", "what's in changelist …"    | `p4u show-cl 12345 --non-interactive`            |
-| "delete this client", "remove my workspace"     | `p4u delete-client -f --non-interactive`         |
+| "delete this client", "remove my workspace"     | confirm first, then `p4u delete-client --non-interactive` |
 | "find untracked files", "what's not in p4"      | `p4u untracked --non-interactive`                |
-| "revert everything", "undo all changes"         | `p4u revert-all --non-interactive`               |
+| "revert everything", "undo all changes"         | confirm first, then `p4u revert-all --non-interactive`    |
 | "reshelve CL 12345"                             | `p4u reshelve 12345 --non-interactive`           |
 | "unshelve CL 12345"                             | `p4u unshelve 12345 --non-interactive`           |
-| "delete CL 12345"                               | `p4u delete-cl 12345 --non-interactive`          |
+| "delete CL 12345"                               | confirm first, then `p4u delete-cl 12345 --non-interactive` |
 
 ---
 
@@ -214,5 +209,5 @@ p4u delete-cl <CL1> <CL2> --non-interactive
 |---------------------|-------|---------------------------------|
 | `--non-interactive` |       | Disable all interactive prompts |
 | `--json`            |       | JSON output                     |
-| `--no-color`        | `-n`  | Disable colour                  |
-| `--force-color`     | `-o`  | Force colour when piping        |
+| `--no-color`        |       | Disable colour                  |
+| `--force-color`     |       | Force colour when piping        |

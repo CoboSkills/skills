@@ -3,7 +3,7 @@ name: bios-deep-research
 description: Run deep biological research using the BIOS API. Supports API key and x402 crypto payments (USDC on Base). Start-and-check-back pattern works across heartbeats.
 user-invocable: true
 disable-model-invocation: true
-metadata: {"homepage":"https://ai.bio.xyz/docs/api/overview","openclaw":{"emoji":"🧬","optional":{"env":["BIOS_API_KEY"]}}}
+metadata: {"homepage":"https://ai.bio.xyz/docs/api/overview","openclaw":{"emoji":"🧬","optional":{"env":["BIOS_API_KEY"]},"requires":{"bins":["curl"]}}}
 ---
 
 # BIOS Deep Research
@@ -46,7 +46,7 @@ curl -sS -X POST https://api.ai.bio.xyz/deep-research/start \
   --data-urlencode "researchMode=steering"
 ```
 
-**Use `curl` via `exec` for all BIOS API calls. Do NOT use `web_fetch` — it does not support Authorization headers.** Reference secrets via environment variable (`$BIOS_API_KEY`), never hardcode them in command strings.
+**Use `curl` for all BIOS API calls. Do NOT use `web_fetch` — it does not support Authorization headers.** Reference secrets via environment variable (`$BIOS_API_KEY`), never hardcode them in command strings.
 
 API key plans: Free trial (20 credits), Pro $29.99/mo (60), Researcher $129.99/mo (300), Lab $499/mo (1,250). Free for .edu emails. Top-up credits never expire.
 
@@ -211,6 +211,8 @@ Paginate with `cursor` query parameter. Response has `data`, `nextCursor`, `hasM
 - Never send the BIOS API key to any domain other than `api.ai.bio.xyz`.
 - Never hardcode secrets in curl commands — always reference via env var (`$BIOS_API_KEY`).
 - Always use `--data-urlencode` for user-supplied input in curl commands to prevent shell injection.
+- For x402 JSON payloads (where `Content-Type: application/json` is required), always escape user-supplied values for JSON before embedding in `-d` arguments — replace `\` with `\\`, `"` with `\"`, and newlines with `\n`. Alternatively, use `jq -n --arg` to construct the JSON safely if available.
+- Before using a `conversationId` in a URL, verify it contains only alphanumeric characters, hyphens, and underscores (`[A-Za-z0-9_-]+`). Reject any value that does not match.
 - The agent never handles wallet private keys or signing material. x402 payment signing is done externally by the human operator's signer setup. The agent only sends the resulting pre-signed headers.
 - Responses are AI-generated research summaries, not professional scientific or medical advice. Remind users to verify findings against primary sources.
 - Do not modify or fabricate citations. Present API results faithfully.

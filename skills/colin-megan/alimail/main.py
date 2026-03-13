@@ -1,16 +1,48 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+查找阿里邮箱员工邮箱脚本 - OpenClaw Skill
+支持命令行参数和环境变量配置
+"""
+
 import os
 import requests
 import time
+import sys
+import json
+from pathlib import Path
 
 
 class AliMailAction:
     def __init__(self):
+        self._load_config_fallback()
         # 实时读取环境变量，自动处理前后空格
-        self.cid = (os.getenv("ALIMAIL_CLIENT_ID") or "").strip()
-        self.secret = (os.getenv("ALIMAIL_CLIENT_SECRET") or "").strip()
+        self.cid = os.getenv("ALIMAIL_CLIENT_ID")
+        self.secret = os.getenv("ALIMAIL_CLIENT_SECRET")
         self.base = "https://alimail-cn.aliyuncs.com"
         self._token = None
         self._exp = 0
+
+    def _load_config_fallback(self):
+        """
+        If environment variables are missing, try to load from openclaw.json
+        如果环境变量缺失，尝试从 openclaw.json 加载
+        """
+        if not os.getenv("ALIMAIL_CLIENT_ID"):
+            config_path = Path.home() / ".openclaw" / "openclaw.json"
+            if config_path.exists():
+                try:
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        config = json.load(f)
+                        # Ensure the path matches your JSON structure
+                        # 确保路径匹配您的 JSON 结构：skills -> entries -> alimail -> env
+                        env_cfg = config.get("skills", {}).get("entries", {}).get("alimail", {}).get("env", {})
+                        if env_cfg:
+                            os.environ["ALIMAIL_CLIENT_ID"] = env_cfg.get("ALIMAIL_CLIENT_ID", "")
+                            os.environ["ALIMAIL_CLIENT_SECRET"] = env_cfg.get("ALIMAIL_CLIENT_SECRET", "")
+                except Exception as e:
+                    # Debug print to stderr so it doesn't break JSON output
+                    print(f"DEBUG: Failed to load config file: {e}", file=sys.stderr)
 
     def _auth(self):
         if not self.cid or not self.secret:
@@ -50,10 +82,10 @@ class AliMailAction:
         headers = {"Authorization": f"Bearer {token}"}
 
         try:
+
             res = requests.get(url, params=params, headers=headers, timeout=10)
             res.raise_for_status()
             data = res.json()
-
             # 数据清洗：确保返回的是 AI 易读的英文 Key 结构
             refined = [
                 {
@@ -67,11 +99,21 @@ class AliMailAction:
             return {"status": "api_failed", "details": str(e)}
 
 
-def handler(args):
+def handler(name):
     # 兼容处理：尝试从 args 或 args['params'] 中获取 name
-    name = args.get("name") or args.get("params", {}).get("name")
+    # name = args.get("name") or args.get("params", {}).get("name")
     if not name:
         return {"status": "error", "message": "Parameter 'name' is required"}
 
     client = AliMailAction()
     return client.run(name)
+
+
+if __name__ == "__main__":
+
+    if len(sys.argv) <= 1:
+        print({"status": "error", "message": "Parameter 'name' is required"})
+        sys.exit(1)
+    # asyncio.sleep(2)  # 异步等待2秒
+    result = handler(sys.argv[1])
+    print(json.dumps(result, ensure_ascii=False))

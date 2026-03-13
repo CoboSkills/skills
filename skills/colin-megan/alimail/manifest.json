@@ -2,7 +2,7 @@
   "name": "alimail",
   "title": "阿里邮箱企业助手",
   "description": "通过姓名查询企业内部员工的邮箱、工号等信息",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "author": "OpenClaw Contributor",
   "entrypoint": "main.py",
   "type": "skill",

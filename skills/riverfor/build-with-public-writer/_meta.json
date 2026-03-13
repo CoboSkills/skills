@@ -3,9 +3,15 @@
   "slug": "build-with-public-writer",
   "displayName": "Build with Public Writer",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1772504323871,
-    "commit": "https://github.com/openclaw/skills/commit/d42a139985fe7cf2df30f5d4fa1112c5f49cdf6f"
+    "version": "1.1.1",
+    "publishedAt": 1773382669502,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1772504323871,
+      "commit": "https://github.com/openclaw/skills/commit/d42a139985fe7cf2df30f5d4fa1112c5f49cdf6f"
+    }
+  ]
 }

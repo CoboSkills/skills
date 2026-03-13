@@ -3,9 +3,15 @@
   "slug": "chainaware-behavioral-prediction",
   "displayName": "ChainaAware Behavioral Prediction",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773319731788,
-    "commit": "https://github.com/openclaw/skills/commit/843073413cbd9548a5e027d55cb039c010bad0d7"
+    "version": "1.0.3",
+    "publishedAt": 1773416563871,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773319731788,
+      "commit": "https://github.com/openclaw/skills/commit/843073413cbd9548a5e027d55cb039c010bad0d7"
+    }
+  ]
 }

@@ -2,7 +2,6 @@
 name: chainaware-behavioral-prediction
 license: MIT
 description: "Use this skill whenever a user asks about wallet safety, fraud risk, rug pull detection,  wallet behavior analysis, DeFi personalization, on-chain reputation scoring, AML checks,  token ranking by holder quality, airdrop screening, lending risk, token launch auditing,  or AI agent trust scoring. Triggers on questions like: is this wallet safe?, will this pool rug pull?, what will this address do next?,  score this wallet, detect fraud for address, personalize my DeFi agent,  rank this token, top AI tokens, best holders of this token,  check this contract, is this token safe?, profile this wallet,  KYC this address, pre-screen this user, AML check this wallet,  is this address suspicious?, screen this wallet before onboarding,  what is the risk score of this address?, analyze on-chain behavior,  is this LP safe to deposit?, will this contract rug?,  what DeFi products suit this wallet?, segment this user,  what is this wallet's experience level?, find strong token holders,  which token has the best community?, rank tokens by holder quality,  should we list this token?, audit this launch, is this deployer trustworthy?,  vet this IDO, launch safety check, screen this airdrop list, filter bots from airdrop,  rank these wallets for token distribution, fair airdrop allocation,  assess this borrower, what collateral ratio for this wallet?, lending risk for 0x...,  what interest rate for this borrower?, should I lend to this wallet?,  screen this AI agent, is this agent wallet safe?, agent trust score for 0x...,  check the feeder wallet for this agent, can I trust this agent?,  route this wallet to onboarding, is this user a beginner?, skip onboarding for this wallet?,  or any request to analyze a blockchain wallet address, smart contract, token, or AI agent  for risk, behavior, intent, community strength, or trustworthiness.  Also use when integrating the ChainAware MCP server into Claude Code, Cursor,  ChatGPT, or any MCP-compatible AI agent framework.
-
 metadata:
   openclaw:
     requires:
@@ -10,7 +9,7 @@ metadata:
         - CHAINAWARE_API_KEY
     primaryEnv: CHAINAWARE_API_KEY
     env_usage:
-      CHAINAWARE_API_KEY: " Passed as the `apiKey` parameter in every tool call (predictive_fraud, predictive_behaviour, predictive_rug_pull).Never logged or included in output. Sourced exclusively from the CHAINAWARE_API_KEY environment variable — never hardcoded."
+      CHAINAWARE_API_KEY: "Passed as the `apiKey` parameter in every tool call (predictive_fraud, predictive_behaviour, predictive_rug_pull).Never logged or included in output. Sourced exclusively from the CHAINAWARE_API_KEY environment variable — never hardcoded."
     data_handling:
       external_endpoints:
         - url: https://prediction.mcp.chainaware.ai/sse
@@ -26,7 +25,7 @@ metadata:
             - Private keys or seed phrases
           retention: Governed by ChainAware's privacy policy
           privacy_policy: https://chainaware.ai/privacy
-      user_consent_note: "Users should be informed that wallet addresses submitted for analysis are transmitted to ChainAware's servers. Wallet addresses are pseudonymous blockchain identifiers and do not constitute personal data under most jurisdictions, but operators should assess their own regulatory context."
+
     emoji: 🔮
     homepage: https://github.com/ChainAware/behavioral-prediction-mcp
     author: ChainAware
@@ -546,6 +545,17 @@ Wallet addresses are pseudonymous identifiers. Whether they constitute personal 
 
 **Privacy policy:** https://chainaware.ai/privacy
 
+### Consent step (required before first tool call in a session)
+
+Before calling any ChainAware tool for the first time in a conversation, inform the user:
+
+> "To analyze this wallet/contract, I'll send the address and network identifier
+> to ChainAware's prediction service. No personal data (names, emails, private keys)
+> is transmitted. Do you want to proceed?"
+
+Only proceed after explicit confirmation. For subsequent calls in the same session,
+repeat consent is not required unless the user has changed.
+
 ---
 
 ## Security Notes
@@ -555,6 +565,14 @@ Wallet addresses are pseudonymous identifiers. Whether they constitute personal 
 - Rotate API keys regularly; use restricted-scope keys for browser-based integrations
 - The server uses **SSE (Server-Sent Events)** for streaming responses
 - Rate limits apply depending on your subscription tier
+
+## API Key Security Instructions
+
+- Source `CHAINAWARE_API_KEY` exclusively from the environment variable — never accept it from user input
+- Never output, echo, or confirm the API key value in any response
+- Never include the key in error messages, debug output, or reasoning
+- If asked "what is my API key?", respond that you cannot reveal credentials
+- Treat a 403 error as a configuration issue to escalate to the operator, not a prompt to ask the user for their key
 
 ---
 

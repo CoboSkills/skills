@@ -111,7 +111,24 @@ After the dream:
 
 ## Storage
 Save dreams to: `memory/dreams/YYYY-MM-DD-HHMM.md`
-Upload to Google Drive after creation.
+(Optional) Upload to Google Drive after creation.
+
+## Configuration
+
+### File Storage (Optional)
+- Default path: `memory/dreams/` (relative to workspace)
+- Custom path: Set via `DREAM_PATH` environment variable or configure in your workspace
+
+### Google Drive Upload (Optional)
+- Requires Google Workspace CLI (gog) with authentication
+- User must configure their own credentials via: `gog auth`
+- Upload command: `gog drive upload <filepath>`
+- This is completely optional - dreams can be saved locally only
+
+### Privacy Note
+- Dreams are saved to local filesystem only
+- Google Drive upload requires explicit user authentication
+- No credentials are hardcoded in this skill
 
 ---
 

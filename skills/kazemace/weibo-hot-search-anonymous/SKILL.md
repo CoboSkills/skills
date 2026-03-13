@@ -1,7 +1,7 @@
 ---
 name: weibo-hot-search-anonymous
 description: 无需登录微博账号，匿名抓取微博实时热搜榜并保存为 Markdown 文件。当用户说"获取微博热搜"、"抓取热搜"、"微博热搜榜"、"不用登录查热搜"、"匿名获取热搜"、"get Weibo hot search"、"weibo trending" 时使用。
-version: 1.0.0
+version: 1.1.0
 metadata:
   openclaw:
     requires:
@@ -58,9 +58,9 @@ ${BUN_X} {baseDir}/scripts/weibo-hot-search.ts --output ./data/hotsearch.md
 
 | 排名 | 热搜词 | 热度 | 标签 |
 |------|--------|------|------|
-| 1 | 某热搜词 | - | 置顶 |
-| 2 | 另一个热搜 | 1046777 | - |
-| 3 | 热搜三 | 764477 | 新 |
+| 1 | [某热搜词](https://s.weibo.com/weibo?q=%23某热搜词%23) | - | 置顶 |
+| 2 | [另一个热搜](https://s.weibo.com/weibo?q=%23另一个热搜%23) | 1046777 | - |
+| 3 | [热搜三](https://s.weibo.com/weibo?q=%23热搜三%23) | 764477 | 新 |
 ...
 ```
 

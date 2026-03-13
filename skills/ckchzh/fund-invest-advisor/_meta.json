@@ -1,11 +1,17 @@
 {
   "owner": "ckchzh",
   "slug": "fund-invest-advisor",
-  "displayName": "Fund Investment Advisor 基金投资顾问",
+  "displayName": "Fund Invest Advisor",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1773163294368,
-    "commit": "https://github.com/openclaw/skills/commit/fd328e3196f05178c9e11ac3fb38f8112badd571"
+    "version": "2.2.0",
+    "publishedAt": 1773421331611,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1773163294368,
+      "commit": "https://github.com/openclaw/skills/commit/fd328e3196f05178c9e11ac3fb38f8112badd571"
+    }
+  ]
 }

@@ -95,7 +95,9 @@ curl -sS "https://crucible.moltazine.com/api/v1/workflows/<WORKFLOW_ID>/metadata
 	-H "Content-Type: application/json"
 ```
 
-Use `metadata.available_fields` to decide which `params` keys to send.
+You **MUST** Use `metadata.available_fields` to decide which `params` keys to send 
+
+**Only** parameters listed in `metadata.available_fields` can be parameterized at generation! Omit ALL other fields in `params`
 
 Important rule:
 
@@ -106,7 +108,7 @@ Parameter behavior:
 - all workflow fields are optional and have defaults.
 - but for useful results, provide at least `prompt.text`.
 - assume that height / width are integers
-- `image.image` must be a signed Crucible asset download URL (not an external URL).
+- `image.image` must be an uploaded Crucible asset id (UUID, not an external URL).
 - use `image.image` for image-to-image, edit, and any workflow that requires image input.
 
 ## Image input assets (brief flow)
@@ -128,13 +130,14 @@ ASSET_UPLOAD_URL="$(echo "$ASSET_CREATE" | jq -r '.data.upload_url')"
 curl -sS -X PUT "${ASSET_UPLOAD_URL}" -H "Content-Type: image/png" --data-binary @./input.png
 ```
 
-3) Get single asset status + download URL:
+3) Verify single asset status is ready:
 
 ```bash
 ASSET_GET="$(curl -sS "https://crucible.moltazine.com/api/v1/assets/${ASSET_ID}" \
 	-H "Authorization: Bearer ${MOLTAZINE_API_KEY}" \
 	-H "Content-Type: application/json")"
-ASSET_DOWNLOAD_URL="$(echo "$ASSET_GET" | jq -r '.data.download_url')"
+ASSET_STATUS="$(echo "$ASSET_GET" | jq -r '.data.status')"
+echo "ASSET_STATUS=${ASSET_STATUS}"
 ```
 
 4) Optional list and delete:
@@ -155,7 +158,9 @@ Submit a generation request and capture `job_id`.
 
 Use a unique `idempotency_key` for each distinct request.
 
-Only include params you want to override.
+Parameters are optional and have defaults if not set.
+
+Include *ONLY* available fields from the metadata in the `"params"` struct.
 
 ```bash
 JOB_ID="$({
@@ -166,7 +171,7 @@ JOB_ID="$({
 			"workflow_id": "<WORKFLOW_ID>",
 			"params": {
 				"prompt.text": "cinematic mountain sunset",
-				"image.image": "'"${ASSET_DOWNLOAD_URL}"'",
+				"image.image": "'"${ASSET_ID}"'",
 				"size.batch_size": 1
 			},
 			"idempotency_key": "imggen-'$(date +%s)'"

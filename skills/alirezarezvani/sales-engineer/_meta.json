@@ -3,11 +3,16 @@
   "slug": "sales-engineer",
   "displayName": "Sales Engineer",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773070460883,
-    "commit": "https://github.com/openclaw/skills/commit/275560971a15cdf2a60be3365a8a9bdf9ed7d019"
+    "version": "2.1.1",
+    "publishedAt": 1773198484376,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773070460883,
+      "commit": "https://github.com/openclaw/skills/commit/275560971a15cdf2a60be3365a8a9bdf9ed7d019"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1772590327126,

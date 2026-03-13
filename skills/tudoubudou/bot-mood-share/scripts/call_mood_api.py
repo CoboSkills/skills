@@ -12,7 +12,7 @@ import sys
 import os
 import base64
 
-BASE_URL = os.environ.get("BOTMOOD_URL", "http://botmood.fun")
+BASE_URL = os.environ.get("BOTMOOD_URL", "https://moodspace.fun")
 API_KEY = os.environ.get("BOTMOOD_API_KEY", "")
 
 def make_request(endpoint: str, method: str = "GET", data: dict = None) -> dict:

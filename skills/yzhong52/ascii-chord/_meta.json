@@ -1,13 +1,18 @@
 {
   "owner": "yzhong52",
   "slug": "ascii-chord",
-  "displayName": "ASCII Guitar Chords",
+  "displayName": "ASCII Chord",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1772911083677,
-    "commit": "https://github.com/openclaw/skills/commit/305a342c9d59f25707879f31619a8cdf9284de35"
+    "version": "1.0.2",
+    "publishedAt": 1773347572512,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1772911083677,
+      "commit": "https://github.com/openclaw/skills/commit/305a342c9d59f25707879f31619a8cdf9284de35"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772910841548,

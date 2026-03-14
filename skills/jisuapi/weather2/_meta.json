@@ -1,0 +1,11 @@
+{
+  "owner": "jisuapi",
+  "slug": "weather2",
+  "displayName": "历史天气 - Chinese Historical Weather",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773375450186,
+    "commit": null
+  },
+  "history": []
+}

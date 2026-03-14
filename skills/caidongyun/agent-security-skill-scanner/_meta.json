@@ -1,0 +1,11 @@
+{
+  "owner": "caidongyun",
+  "slug": "agent-security-skill-scanner",
+  "displayName": "Agent Security Skill Scanner",
+  "latest": {
+    "version": "2.0.1-beta",
+    "publishedAt": 1773462902155,
+    "commit": null
+  },
+  "history": []
+}

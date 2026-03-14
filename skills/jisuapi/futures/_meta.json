@@ -1,0 +1,11 @@
+{
+  "owner": "jisuapi",
+  "slug": "futures",
+  "displayName": "期货查询 - Chinese Futures Inquiry",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773375088710,
+    "commit": null
+  },
+  "history": []
+}

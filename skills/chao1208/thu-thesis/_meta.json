@@ -3,9 +3,15 @@
   "slug": "thu-thesis",
   "displayName": "清华毕业论文 Word→PDF 一键转换",
   "latest": {
-    "version": "1.1.6",
-    "publishedAt": 1773507049011,
-    "commit": "https://github.com/openclaw/skills/commit/c24c555321397d3ffc560bce7d8a1238d704a659"
+    "version": "1.1.7",
+    "publishedAt": 1773507973644,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.6",
+      "publishedAt": 1773507049011,
+      "commit": "https://github.com/openclaw/skills/commit/c24c555321397d3ffc560bce7d8a1238d704a659"
+    }
+  ]
 }

@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "clearbit-integration",
+  "displayName": "Clearbit",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773378149582,
+    "commit": null
+  },
+  "history": []
+}

@@ -3,9 +3,15 @@
   "slug": "save-token",
   "displayName": "Save Token",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773327033875,
-    "commit": "https://github.com/openclaw/skills/commit/81201153b477795c130ff4b8e830dad54b6e8281"
+    "version": "1.0.1",
+    "publishedAt": 1773327495231,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773327033875,
+      "commit": "https://github.com/openclaw/skills/commit/81201153b477795c130ff4b8e830dad54b6e8281"
+    }
+  ]
 }

@@ -5,86 +5,29 @@ description: |
   
   TRIGGERS: Use when token cost is high, conversation is long, files read multiple times, or before complex tasks.
   
-  Automatically deduplicates repeated content in conversation context before each task.
-  Reduces token consumption by removing duplicate text blocks, keeping only one instance.
+  Guiding skill that helps agents identify and avoid sending duplicate context to LLM APIs.
+  Teaches agents to recognize repeated content and summarize instead of re-sending.
   
   触发条件：Token 成本高、对话长、文件多次读取、复杂任务前。
-  自动去重上下文重复内容，降低 Token 消耗。
+  指导 Agent 识别重复内容，避免重复发送，从而节省 Token。
 
 metadata: {"clawdbot":{"emoji":"💰","triggers":["token","cost","duplicate","重复","节省","context","上下文","optimize","优化"],"categories":["productivity","cost-saving","optimization"]}}
 ---
 
 # 💰 Save Token | Token 节省器
 
-> Automatically deduplicates repeated content in conversation context before each task.
+> A guiding skill that teaches agents how to save tokens by avoiding duplicate context.
 > 
-> 在每次任务执行前自动去重上下文中的重复内容。
+> 指导 Agent 如何通过避免重复上下文来节省 Token 的技能。
 
-## 🎯 Problem Solved | 解决的问题
+## ⚠️ Important Clarification | 重要说明
 
-| Problem | Solution | 问题 | 解决方案 |
-|---------|----------|------|----------|
-| **Repeated context in long conversations** | Auto-deduplicate identical text blocks | 长对话中上下文重复 | 自动去重相同文本块 |
-| **Wasted tokens on duplicate content** | Keep only one instance of repeated text | 重复内容浪费 Token | 仅保留一份重复文本 |
-| **Unpredictable costs** | Show token savings before/after | 成本不可预测 | 显示去重前后的 Token 节省量 |
-
-## ✨ How It Works | 工作原理
-
-### 自动触发（推荐）
-
-Agent 在执行任务前会自动调用此 Skill：
-
-1. **扫描上下文**：识别当前对话历史中的所有文本块
-2. **检测重复**：找出完全相同的大段文本（≥100字符）
-3. **去重处理**：删除重复实例，只保留最早出现的版本
-4. **报告结果**：显示节省的 Token 数量
-
-### 手动调用
-
-```bash
-# 在任务开始前手动触发
-请先调用 save-token skill 去重上下文，然后再执行任务
-```
-
-## 📋 Deduplication Rules | 去重规则
-
-| Rule | Description | 规则 | 描述 |
-|------|-------------|------|------|
-| **Minimum length** | Only deduplicate blocks ≥100 characters | 最小长度 | 仅去重≥100字符的文本块 |
-| **Exact match** | Must be character-for-character identical | 完全匹配 | 必须字符级完全相同 |
-| **Keep first** | Retain the earliest occurrence | 保留首次 | 保留最早出现的版本 |
-| **Preserve structure** | Maintain message order and roles | 保持结构 | 维持消息顺序和角色 |
-
-## 🔍 What Gets Deduplicated | 去重范围
-
-| Content Type | Deduped? | 内容类型 | 是否去重 |
-|--------------|----------|----------|----------|
-| User messages | ✅ Yes | 用户消息 | ✅ 是 |
-| Assistant responses | ✅ Yes | 助手回复 | ✅ 是 |
-| System prompts | ❌ No (keep all) | 系统提示 | ❌ 否（保留全部） |
-| Tool outputs | ✅ Yes | 工具输出 | ✅ 是 |
-| File contents | ✅ Yes | 文件内容 | ✅ 是 |
-
-## 📊 Example Output | 输出示例
-
-```
-🔍 Scanning context for duplicates...
-📊 Found 3 duplicate blocks:
-   - Block 1: 500 chars (appears 3 times) → saved 1000 chars
-   - Block 2: 320 chars (appears 2 times) → saved 320 chars
-   - Block 3: 150 chars (appears 2 times) → saved 150 chars
-
-💰 Total saved: 1470 chars (~368 tokens)
-✅ Context optimized. Ready to proceed with task.
-```
-
-## ⚠️ Important Notes | 重要说明
-
-| Note | Description | 说明 | 描述 |
-|------|-------------|------|------|
-| **Before task only** | Call this BEFORE starting the main task | 仅在任务前 | 在开始主任务前调用 |
-| **No data loss** | Duplicates are removed, unique content preserved | 无数据丢失 | 仅删除重复，保留独特内容 |
-| **Report savings** | Always show how many tokens were saved | 报告节省 | 始终显示节省了多少 Token |
+| Clarification | 说明 |
+|---------------|------|
+| **This is a guiding skill** | Skill itself cannot modify agent's runtime context |
+| **Agent performs the action** | Agent follows the guidance to optimize context |
+| **这是一个指导性 Skill** | Skill 本身不能修改 Agent 的运行时上下文 |
+| **由 Agent 执行操作** | Agent 遵循指导来优化上下文 |
 
 ## 🎯 When to Use | 使用时机
 
@@ -96,24 +39,141 @@ Agent 在执行任务前会自动调用此 Skill：
 
 | Situation | Action | 场景 | 操作 |
 |-----------|--------|------|------|
-| User mentions "token" or "cost" | Invoke save-token immediately | 用户提到 token 或成本 | 立即调用 save-token |
-| Starting a new complex task | Auto-invoke save-token first | 开始新复杂任务 | 先自动调用 save-token |
-| Long conversation (>10 turns) | Check for duplicates | 长对话（>10轮） | 检查重复 |
-| File was read multiple times | Deduplicate file content | 文件被多次读取 | 去重文件内容 |
-| Repeated error messages | Clean up duplicate errors | 重复错误消息 | 清理重复错误 |
+| User mentions "token" or "cost" | Apply save-token strategies | 用户提到 token 或成本 | 应用 save-token 策略 |
+| Long conversation (>10 turns) | Summarize old context | 长对话（>10轮） | 摘要旧上下文 |
+| File read multiple times | Reference previous read, don't re-read | 文件被多次读取 | 引用之前的读取，不重复读取 |
+| Repeated error messages | Summarize error pattern, don't repeat full error | 重复错误消息 | 摘要错误模式，不重复完整错误 |
 
-## 🔄 Integration | 集成方式
+## 📋 Token-Saving Strategies | 节省 Token 策略
 
-This skill is designed to be called automatically before each task:
+### Strategy 1: Summarize Instead of Re-sending | 策略1：摘要代替重发
+
+**When**: Old conversation context is no longer directly relevant
+**当**：旧对话上下文不再直接相关时
+
+**Do**:
+- Summarize key points from earlier conversation
+- Replace full history with concise summary
+- Keep only the most relevant recent messages
+
+**做法**：
+- 摘要早期对话的关键点
+- 用简洁摘要替换完整历史
+- 只保留最相关的最近消息
+
+**Example**:
+```
+❌ Bad: Re-sending 50 turns of conversation (10,000+ tokens)
+✅ Good: "Previous context: User was analyzing stock investment strategies. 
+   Key decisions made: prioritize low P/E, check cash flow. 
+   Now focusing on: specific company analysis."
+```
+
+### Strategy 2: Reference Instead of Repeat | 策略2：引用代替重复
+
+**When**: Same file/content needs to be referenced again
+**当**：需要再次引用同一文件/内容时
+
+**Do**:
+- Don't re-read the entire file
+- Reference the key information already extracted
+- Only read new sections if needed
+
+**做法**：
+- 不要重新读取整个文件
+- 引用已提取的关键信息
+- 仅在需要时读取新部分
+
+**Example**:
+```
+❌ Bad: Reading the same 200KB file again
+✅ Good: "As we found earlier in the file, the revenue is $50M..."
+```
+
+### Strategy 3: De-duplicate Identical Blocks | 策略3：去重相同块
+
+**When**: Identical text appears multiple times in context
+**当**：相同文本在上下文中多次出现时
+
+**Do**:
+- Identify identical blocks (≥100 characters)
+- Keep only the first occurrence
+- Note what was removed
+
+**做法**：
+- 识别相同块（≥100字符）
+- 只保留首次出现
+- 记录删除了什么
+
+**Example**:
+```
+❌ Bad: Same error message appears 5 times (500 chars × 5 = 2500 chars)
+✅ Good: "[Error message appeared 5 times, showing once]: Connection timeout..."
+```
+
+### Strategy 4: Compress Verbose Output | 策略4：压缩冗长输出
+
+**When**: Tool output or file content is very long
+**当**：工具输出或文件内容很长时
+
+**Do**:
+- Extract only relevant parts
+- Summarize the rest
+- Note the source for reference
+
+**做法**：
+- 只提取相关部分
+- 摘要其余部分
+- 记录来源以供参考
+
+**Example**:
+```
+❌ Bad: Including full 1000-line log file
+✅ Good: "Log file (1000 lines): Key errors on lines 45, 78, 234. 
+   Pattern: Connection drops every 5 minutes. Full log available if needed."
+```
+
+## 🔄 Workflow | 工作流程
 
 ```
-User Request → save-token (deduplicate) → Main Task Execution
+1. Agent receives task
+2. Agent checks context size and duplicate content
+3. If context > threshold OR duplicates found:
+   a. Apply appropriate strategy from above
+   b. Report token savings to user
+4. Proceed with optimized context
 ```
 
-For best results, configure as a pre-task hook in your agent configuration.
+## 📊 Reporting Format | 报告格式
+
+When applying token-saving strategies, inform the user:
+
+```
+💡 Token Optimization Applied:
+- Strategy: [Strategy Name]
+- Context before: X tokens
+- Context after: Y tokens  
+- Saved: Z tokens (P%)
+```
+
+## ⚠️ What This Skill Cannot Do | 此 Skill 不能做的事
+
+| Cannot Do | Reason | 不能做 | 原因 |
+|-----------|--------|--------|------|
+| Directly modify context | Skill is guidance, not execution | 直接修改上下文 | Skill 是指导，不是执行 |
+| Automatically delete content | Agent must decide what to keep | 自动删除内容 | Agent 必须决定保留什么 |
+| Guarantee exact savings | Depends on implementation | 保证精确节省量 | 取决于实现方式 |
+
+## ✅ What This Skill Does | 此 Skill 能做的事
+
+| Does | Description | 能做 | 描述 |
+|------|-------------|------|------|
+| Provide strategies | Teaches how to save tokens | 提供策略 | 教如何节省 Token |
+| Identify opportunities | Helps recognize when to apply | 识别机会 | 帮助识别何时应用 |
+| Guide implementation | Shows best practices | 指导实现 | 展示最佳实践 |
 
 ## 📝 Version | 版本
 
-- Version: 1.0.0
-- Author: User
-- Created: 2026-03-12
+- Version: 1.1.0
+- Updated: 2026-03-12
+- Change: Clarified that this is a guiding skill, not an execution script

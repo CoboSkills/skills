@@ -1,10 +1,13 @@
 ---
 name: voice2notion
-version: 1.1.0
-description: 将语音记录保存到 Notion 数据库。手动获取转录后，自动提取关键信息并写入数据库。
+version: 1.2.0
+description: 语音录音转录并保存到 Notion 数据库。使用 faster-whisper 转录，自动提取关键信息并写入数据库。
 author: JiabaoChen
-tags: [notion, voice, recording]
+tags: [voice, transcription, notion, faster-whisper]
 readiness: manual-install
+install:
+  python: "uv pip install faster-whisper"
+  model: "faster-whisper 模型文件（首次运行自动下载）"
 config:
   - path: ~/.config/notion/api_key
     description: Notion API Key 文件
@@ -20,14 +23,12 @@ config:
 
 ## 功能
 
-- 保存语音记录到 Notion 数据库
+- 语音转录（faster-whisper）
 - 自动提取关键信息
+- 保存到 Notion 数据库
 - 保存录音文件链接
 
-> ⚠️ **注意**: 本 skill 不包含语音转录功能。建议使用以下方式获取转录：
-> - 飞书语音转文字
-> - Whisper API（OpenAI）
-> - 其他在线语音转文字服务
+> 💡 推荐使用 `medium` 或 `large` 模型以获得更好的转录效果
 
 ## 前置要求
 
@@ -46,7 +47,17 @@ https://www.notion.so/4e667ba767e2414a9f89041471d5f85d
 
 ### 2. 安装依赖
 
-本 skill 不需要安装转录依赖。
+```bash
+# 创建虚拟环境
+cd ~/.openclaw
+uv venv .venv
+source .venv/bin/activate
+
+# 安装 faster-whisper
+uv pip install faster-whisper
+```
+
+> ⚠️ 首次转录时会自动下载模型（约 140MB for base，~1GB for medium）
 
 ### 3. 配置 Notion
 
@@ -71,12 +82,13 @@ export NOTION_DATABASE_ID="你的数据库ID"
 
 ## 工作流程
 
-### Step 1: 获取转录
-- 使用飞书或其他工具将语音转为文字
+### Step 1: 接收语音并转录
+- 用户发送语音消息（.m4a）
+- 使用 faster-whisper 转录为文字
 
-### Step 2: 整理信息
-- 润色转录文本
-- 提取关键要点和待办事项
+### Step 2: 润色并提取信息
+- 润色转录文本（修正错误、补全字词、语句通顺）
+- 提取数据库字段
 
 ### Step 3: 添加到数据库
 - 在数据库中创建记录
@@ -84,6 +96,28 @@ export NOTION_DATABASE_ID="你的数据库ID"
 - 保存录音文件链接
 
 ---
+
+## 转录命令
+
+```bash
+# 激活虚拟环境
+cd ~/.openclaw
+source .venv/bin/activate
+
+# 转录音频（使用 medium 模型，效果更好）
+python3 << 'EOF'
+from faster_whisper import WhisperModel
+
+# 可选模型: tiny, base, small, medium, large
+# larger = better accuracy, slower speed
+model = WhisperModel('medium', device='cpu', compute_type='int8')
+segments, info = model.transcribe('/path/to/audio.m4a')
+
+text = ' '.join([s.text.strip() for s in segments])
+print(f"语言: {info.language}")
+print(f"转录: {text}")
+EOF
+```
 
 ## 保存录音文件
 

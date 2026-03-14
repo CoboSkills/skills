@@ -1,0 +1,11 @@
+{
+  "owner": "mattboston",
+  "slug": "gsm-sms-gateway",
+  "displayName": "SMS Gateway",
+  "latest": {
+    "version": "0.0.4",
+    "publishedAt": 1773513478589,
+    "commit": null
+  },
+  "history": []
+}

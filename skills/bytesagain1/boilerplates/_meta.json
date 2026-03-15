@@ -3,9 +3,15 @@
   "slug": "boilerplates",
   "displayName": "Boilerplates",
   "latest": {
-    "version": "2.3.0",
-    "publishedAt": 1773447531865,
-    "commit": "https://github.com/openclaw/skills/commit/e53082413f7cddca063983d1732bf59f39dda4a2"
+    "version": "1.0.3",
+    "publishedAt": 1773612445155,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.3.0",
+      "publishedAt": 1773447531865,
+      "commit": "https://github.com/openclaw/skills/commit/e53082413f7cddca063983d1732bf59f39dda4a2"
+    }
+  ]
 }

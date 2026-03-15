@@ -22,3 +22,23 @@ Run any command: `boilerplates <command> [args]`
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Show help
+boilerplates help
+
+# Run
+boilerplates run
+```
+
+- Run `boilerplates help` for all commands
+
+## Output
+
+Results go to stdout. Save with `boilerplates run > output.txt`.
+
+## Output
+
+Results go to stdout. Save with `boilerplates run > output.txt`.

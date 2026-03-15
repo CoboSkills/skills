@@ -3,9 +3,15 @@
   "slug": "cli-anything-xingyue",
   "displayName": "Cli Anything",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773560936398,
-    "commit": "https://github.com/openclaw/skills/commit/2e692ee6911a3cdc4d02528090df97210525da5f"
+    "version": "1.0.2",
+    "publishedAt": 1773561076633,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773560936398,
+      "commit": "https://github.com/openclaw/skills/commit/2e692ee6911a3cdc4d02528090df97210525da5f"
+    }
+  ]
 }

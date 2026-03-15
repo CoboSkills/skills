@@ -2,7 +2,7 @@
 name: cli-anything
 description: 基于 HKUDS/CLI-Anything 仓库重构的 OpenClaw Skill。为任意软件生成 CLI 工具，让 AI Agent 可以控制它。通过分析软件源代码，自动生成可被 AI 调用的命令行接口。支持 GIMP、Blender、LibreOffice、OBS 等软件。
 version: 1.0.0
-author: HKUDS (Original) | 星月 (OpenClaw Adaptation)
+author: HKUDS
 homepage: https://github.com/HKUDS/CLI-Anything
 commands:
   - /cli-list - 列出所有可用的 CLI 工具
@@ -16,8 +16,6 @@ metadata: {"clawdbot":{"emoji":"🔧","requires":{"bins":["git","python3","pip"]
 # CLI-Anything for OpenClaw
 
 > 🔧 基于 [HKUDS/CLI-Anything](https://github.com/HKUDS/CLI-Anything) 仓库重构
-> 
-> 原作者: HKUDS | 适配: 星月 🌙
 
 让任意软件都能被 AI Agent 驱动。
 

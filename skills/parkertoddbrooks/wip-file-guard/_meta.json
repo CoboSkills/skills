@@ -3,11 +3,16 @@
   "slug": "wip-file-guard",
   "displayName": "Wip File Guard",
   "latest": {
-    "version": "1.9.28",
-    "publishedAt": 1773601357370,
-    "commit": "https://github.com/openclaw/skills/commit/b3fe00cc50ffff093402c7803999b4bef6d99f30"
+    "version": "1.9.29",
+    "publishedAt": 1773612852000,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.9.28",
+      "publishedAt": 1773601357370,
+      "commit": "https://github.com/openclaw/skills/commit/b3fe00cc50ffff093402c7803999b4bef6d99f30"
+    },
     {
       "version": "1.9.6",
       "publishedAt": 1773334521662,

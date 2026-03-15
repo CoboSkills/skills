@@ -22,3 +22,19 @@ Run any command: `awesome-cloudflare <command> [args]`
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Show help
+awesome-cloudflare help
+
+# Run
+awesome-cloudflare run
+```
+
+- Run `awesome-cloudflare help` for all commands
+
+## Configuration
+
+Set `AWESOME_CLOUDFLARE_DIR` to change data directory. Default: `~/.local/share/awesome-cloudflare/`

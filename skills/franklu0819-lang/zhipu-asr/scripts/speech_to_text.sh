@@ -64,13 +64,14 @@ if [ "$FILE_EXT" != "wav" ] && [ "$FILE_EXT" != "mp3" ]; then
     TEMP_AUDIO=$(mktemp --suffix=.mp3)
 
     # Convert to mp3 with optimal settings for ASR
+    # Using libmp3lame for compatibility. ar=16000, ac=1 (mono) as per Zhipu best practices.
     ffmpeg -i "$AUDIO_FILE" \
         -acodec libmp3lame \
         -ar 16000 \
         -ac 1 \
         -b:a 64k \
         -y \
-        "$TEMP_AUDIO" 2>&1 | grep -E "(Duration|size=)" || true
+        "$TEMP_AUDIO" 2>/dev/null
 
     # Replace AUDIO_FILE with converted file
     AUDIO_FILE="$TEMP_AUDIO"
@@ -98,6 +99,16 @@ if [ "$FILE_SIZE" -gt "$MAX_SIZE" ]; then
     echo "Error: File size exceeds 25 MB limit" >&2
     echo "Current size: $(($FILE_SIZE / 1024 / 1024)) MB" >&2
     exit 1
+fi
+
+# Check duration if ffmpeg is available
+if command -v ffprobe &> /dev/null; then
+    DURATION=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$AUDIO_FILE")
+    # Compare with 30s limit (allow a tiny margin for float comparison in shell)
+    if (( $(echo "$DURATION > 30.5" | bc -l) )); then
+        echo "Error: Audio duration ($DURATION s) exceeds 30 second limit" >&2
+        exit 1
+    fi
 fi
 
 # Build base payload

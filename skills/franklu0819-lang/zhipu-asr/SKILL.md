@@ -5,7 +5,7 @@ metadata:
   {
     "openclaw":
       {
-        "requires": { "bins": ["jq"], "env": ["ZHIPU_API_KEY"] },
+        "requires": { "bins": ["jq", "curl", "ffmpeg"], "env": ["ZHIPU_API_KEY"] },
       },
   }
 ---

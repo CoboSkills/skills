@@ -7,158 +7,101 @@ description: >
 
 # Publora — TikTok
 
-Post and schedule TikTok video content via the Publora API.
+TikTok platform skill for the Publora API. For auth, core scheduling, media upload, and workspace/webhook docs, see the `publora` core skill.
 
-> **Prerequisite:** Install the `publora` core skill for auth setup and getting platform IDs.
+**Base URL:** `https://api.publora.com/api/v1`  
+**Header:** `x-publora-key: sk_YOUR_KEY`  
+**Platform ID format:** `tiktok-{userId}`
 
-## Platform ID Format
+## Platform Limits (API)
 
-`tiktok-{userId}` — where `{userId}` is assigned during OAuth account connection in the Publora dashboard.
+> ⚠️ TikTok API is stricter than native app for captions and duration.
 
-Get your exact ID from `GET /api/v1/platform-connections`.
+| Property | API Limit | Native App |
+|----------|-----------|-----------|
+| Caption | **2,200 characters** | 4,000 characters |
+| Video duration | **10 min** | 60 min |
+| Video size | 4 GB | — |
+| Video format | MP4, MOV, WebM | — |
+| Images | ❌ Video only | — |
+| Text only | ❌ Video required | — |
+| Daily posts | 15–20 posts/day | — |
+| Rate limit | 2 videos/minute | — |
 
-## Requirements
+**Common errors:**
+- `spam_risk_too_many_posts` — daily limit reached, wait 24h
+- `duration_check_failed` — video must be 3s–10min
+- `unaudited_client_can_only_post_to_private_accounts` — app needs TikTok audit
 
-- TikTok account connected via **OAuth** through the Publora dashboard
-- **Video is required** — TikTok does not support text-only or image-only posts
+> ⚠️ If your TikTok app is not audited by TikTok, all posts will be **private** by default.
 
-## Supported Content
+## Upload a TikTok Video
 
-| Type | Supported | Notes |
-|------|-----------|-------|
-| Text only | ❌ | Not supported |
-| Images | ❌ | Not supported as standalone posts |
-| Video | ✅ | MP4 format, minimum 23 FPS |
+TikTok requires video. Use the 3-step upload workflow:
 
-## Character Limits
+```javascript
+// Step 1: Create post (draft without scheduledTime, or scheduled)
+const post = await fetch('https://api.publora.com/api/v1/create-post', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'x-publora-key': 'sk_YOUR_KEY' },
+  body: JSON.stringify({
+    content: 'Your TikTok caption here #trending',
+    platforms: ['tiktok-123456789'],
+    scheduledTime: '2026-03-20T18:00:00.000Z'
+  })
+}).then(r => r.json());
 
-| Element | Limit |
-|---------|-------|
-| Video caption | 2,200 characters |
-| Hashtags | Included in caption character count |
+// Step 2: Get upload URL
+const upload = await fetch('https://api.publora.com/api/v1/get-upload-url', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'x-publora-key': 'sk_YOUR_KEY' },
+  body: JSON.stringify({
+    postGroupId: post.postGroupId,
+    fileName: 'video.mp4',
+    contentType: 'video/mp4',
+    type: 'video'
+  })
+}).then(r => r.json());
 
-## Post a TikTok Video
+// Step 3: Upload video to S3
+await fetch(upload.uploadUrl, {
+  method: 'PUT',
+  headers: { 'Content-Type': 'video/mp4' },
+  body: videoFileBytes
+});
+```
+
+## Python Example
 
 ```python
 import requests
 
 HEADERS = { 'Content-Type': 'application/json', 'x-publora-key': 'sk_YOUR_KEY' }
 
-# Step 1: Create post with TikTok settings
+# Step 1: Create post
 post = requests.post('https://api.publora.com/api/v1/create-post', headers=HEADERS, json={
-    'content': 'How we built our startup in 60 seconds #startup #tech #coding',
-    'platforms': ['tiktok-99887766'],
-    'platformSettings': {
-        'tiktok': {
-            'viewerSetting': 'PUBLIC_TO_EVERYONE',
-            'allowComments': True,
-            'allowDuet': True,
-            'allowStitch': True,
-            'commercialContent': False,
-            'brandOrganic': False,
-            'brandedContent': False
-        }
-    }
+    'content': 'Your TikTok caption #viral',
+    'platforms': ['tiktok-123456789'],
+    'scheduledTime': '2026-03-20T18:00:00.000Z'
 }).json()
-post_group_id = post['postGroupId']
 
 # Step 2: Get upload URL
 upload = requests.post('https://api.publora.com/api/v1/get-upload-url', headers=HEADERS, json={
-    'fileName': 'video.mp4', 'contentType': 'video/mp4',
-    'type': 'video', 'postGroupId': post_group_id
+    'postGroupId': post['postGroupId'],
+    'fileName': 'video.mp4',
+    'contentType': 'video/mp4',
+    'type': 'video'
 }).json()
 
-# Step 3: Upload to S3
+# Step 3: Upload
 with open('video.mp4', 'rb') as f:
     requests.put(upload['uploadUrl'], headers={'Content-Type': 'video/mp4'}, data=f)
 ```
 
-## Post a Private/Restricted Video
-
-```python
-json={
-    'content': 'Preview of our upcoming feature for close friends only',
-    'platforms': ['tiktok-99887766'],
-    'platformSettings': {
-        'tiktok': {
-            'viewerSetting': 'MUTUAL_FOLLOW_FRIENDS',
-            'allowComments': True,
-            'allowDuet': False,
-            'allowStitch': False,
-            'commercialContent': False,
-            'brandOrganic': False,
-            'brandedContent': False
-        }
-    }
-}
-```
-
-## Schedule a TikTok Post
-
-```python
-json={
-    'content': 'Day in the life of a founder 📱 #founder #startup #dayinthelife',
-    'platforms': ['tiktok-99887766'],
-    'scheduledTime': '2026-03-16T18:00:00.000Z',
-    'platformSettings': {
-        'tiktok': {
-            'viewerSetting': 'PUBLIC_TO_EVERYONE',
-            'allowComments': True,
-            'allowDuet': True,
-            'allowStitch': True,
-            'commercialContent': False,
-            'brandOrganic': False,
-            'brandedContent': False
-        }
-    }
-}
-```
-
-## platformSettings Reference
-
-### Viewer Settings
-
-| Value | Description |
-|-------|-------------|
-| `PUBLIC_TO_EVERYONE` | Anyone can view the video |
-| `MUTUAL_FOLLOW_FRIENDS` | Only mutual followers can view |
-| `FOLLOWER_OF_CREATOR` | Only your followers can view |
-| `SELF_ONLY` | Only you can view (draft-like behavior) |
-
-### Interaction Settings
-
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `allowComments` | boolean | `true` | Whether viewers can comment |
-| `allowDuet` | boolean | `true` | Whether viewers can create Duets |
-| `allowStitch` | boolean | `true` | Whether viewers can Stitch your video |
-
-### Commercial Content Settings
-
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `commercialContent` | boolean | `false` | Whether this is commercial content |
-| `brandOrganic` | boolean | `false` | Organic brand promotion (your own brand) |
-| `brandedContent` | boolean | `false` | Paid partnership or sponsored content |
-
-⚠️ **Important:** If `brandOrganic` or `brandedContent` is `true`, then `commercialContent` must also be `true`. Publora returns a validation error if this rule is violated.
-
 ## Platform Quirks
 
-- **Video required** — TikTok rejects text-only or image-only posts
-- **Minimum 23 FPS** — videos below this frame rate are rejected by TikTok
-- **MP4 only** — convert other formats before uploading
-- **Commercial content disclosure** — required for branded/sponsored content; violating TikTok guidelines risks account penalties
-- **SELF_ONLY** posts cannot receive comments from others
-- **Processing time** — TikTok processes videos after upload; the post may not appear immediately on the profile
-- **Max upload size:** 512 MB
-
-## Tips for TikTok
-
-- **Vertical 9:16 format** — anything else gets cropped
-- **Hook in first 1–3 seconds** — critical for watch time and algorithm performance
-- **Caption up to 2,200 chars** — use it for context, but the video tells the story
-- **Best lengths:** 7–15 seconds for viral content; 60+ for educational
-- **Best times:** 6–10 PM weekdays; 9–11 AM weekends
-- **Trending sounds** dramatically increase reach when applicable
-- **Hashtags count toward caption** character limit
+- **Video only** — TikTok does not support images or text-only posts via API
+- **Minimum duration**: 3 seconds; maximum via API: 10 minutes
+- **Unaudited apps post privately** — videos will be set to private if the Publora TikTok app hasn't passed TikTok's audit
+- **Caption limit is 2,200 via API** (not 4,000 like native) — keep captions concise
+- **Daily limit**: 15–20 posts/day enforced by TikTok

@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: book-recommend
 description: "书单推荐助手。个性化推荐、书籍摘要、同类书推荐、阅读清单、读书会方案、年度书单。Book recommendation with personalized picks, summaries, similar books, reading lists, book clubs, and annual lists. Use when you need book recommend capabilities. Triggers on: book recommend."
+author: BytesAgain
 ---
 
 # Book Recommend Skill

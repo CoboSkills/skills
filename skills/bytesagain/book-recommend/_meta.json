@@ -3,11 +3,16 @@
   "slug": "book-recommend",
   "displayName": "Book Recommend",
   "latest": {
-    "version": "2.3.1",
-    "publishedAt": 1773610575082,
-    "commit": "https://github.com/openclaw/skills/commit/cae54921f4b4756c6f129db8c74e924854ff9eb0"
+    "version": "2.3.4",
+    "publishedAt": 1773664892105,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.1",
+      "publishedAt": 1773610575082,
+      "commit": "https://github.com/openclaw/skills/commit/cae54921f4b4756c6f129db8c74e924854ff9eb0"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773420959209,

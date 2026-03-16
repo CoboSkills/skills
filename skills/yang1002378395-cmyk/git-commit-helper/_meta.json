@@ -1,11 +1,17 @@
 {
   "owner": "yang1002378395-cmyk",
   "slug": "git-commit-helper",
-  "displayName": "Git提交助手",
+  "displayName": "Git Commit Helper",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773237338906,
-    "commit": "https://github.com/openclaw/skills/commit/0d1afba1797138ee7356bb20fd26eec8545c759a"
+    "version": "1.1.0",
+    "publishedAt": 1773643732649,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773237338906,
+      "commit": "https://github.com/openclaw/skills/commit/0d1afba1797138ee7356bb20fd26eec8545c759a"
+    }
+  ]
 }

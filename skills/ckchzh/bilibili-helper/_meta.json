@@ -3,11 +3,16 @@
   "slug": "bilibili-helper",
   "displayName": "Bilibili Helper",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1773421217358,
-    "commit": "https://github.com/openclaw/skills/commit/eecd159a71c2bce1e4d83fe8a9c6ca9ac7b73592"
+    "version": "2.3.4",
+    "publishedAt": 1773664802969,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1773421217358,
+      "commit": "https://github.com/openclaw/skills/commit/eecd159a71c2bce1e4d83fe8a9c6ca9ac7b73592"
+    },
     {
       "version": "2.0.0",
       "publishedAt": 1773348170700,

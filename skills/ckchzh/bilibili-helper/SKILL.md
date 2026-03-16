@@ -1,7 +1,9 @@
 ---
+version: "2.0.0"
 name: Bilibili Helper
-description: >-
+description: "Bilibili Creator Helper. Use when you need bilibili helper capabilities. Triggers on: bilibili helper."
   B站创作助手。视频标题优化、标签推荐、简介模板、投稿策略、UP主运营、弹幕互动。Bilibili video creator assistant. B站运营、视频SEO、粉丝增长、投币收藏、充电计划。Use when creating content for Bilibili.
+author: BytesAgain
 ---
 
 # bilibili-helper
@@ -33,8 +35,6 @@ bili.sh help
 - 需要写视频口播脚本
 - 需要B站运营建议和内容策划
 
-## How It Works
-
 脚本使用 Python 生成符合B站平台调性的内容模板，包含标题公式、简介结构、标签策略等。
 
 ## Commands
@@ -50,3 +50,9 @@ bili.sh help
 ## Output
 
 所有输出为纯文本，直接可用于B站平台。
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+- Run `bilibili-helper help` for all commands
+

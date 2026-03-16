@@ -1,11 +1,17 @@
 {
   "owner": "alirezarezvani",
   "slug": "cs-landing-page-generator",
-  "displayName": "Landing Page Generator",
+  "displayName": "landing-page-generator",
   "latest": {
-    "version": "2.1.2",
-    "publishedAt": 1773206653151,
-    "commit": "https://github.com/openclaw/skills/commit/781c5cdf69d5f84b7634db1eec87481da9f3c2bc"
+    "version": "1.0.0",
+    "publishedAt": 1773244282456,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.1.2",
+      "publishedAt": 1773206653151,
+      "commit": "https://github.com/openclaw/skills/commit/781c5cdf69d5f84b7634db1eec87481da9f3c2bc"
+    }
+  ]
 }

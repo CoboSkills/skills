@@ -1,9 +1,10 @@
 ---
 name: lyrics
-version: 1.0.0
+version: "2.0.0"
 author: BytesAgain
 license: MIT-0
 tags: [lyrics, tool, utility]
+description: "Lyrics - command-line tool for everyday use"
 ---
 
 # Lyrics
@@ -49,6 +50,7 @@ lyrics export json
 
 ---
 *Powered by BytesAgain | bytesagain.com*
+*Feedback & Feature Requests: https://bytesagain.com/feedback*
 
 ## Output
 

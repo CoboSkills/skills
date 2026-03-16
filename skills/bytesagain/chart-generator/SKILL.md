@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: chart-generator
 description: "Data visualization tool producing SVG charts. Use when you need bar charts, line charts, pie charts, tables, sparklines, gauges, or any data visualization from raw numbers. Triggers on: chart, graph, visualization, bar chart, pie chart, line chart, data plot, SVG."
+author: BytesAgain
 ---
 
 # Chart Generator
@@ -95,3 +97,10 @@ $ chart.sh bar "销售:85,市场:62,研发:93,运维:41" --title "部门预算(�
 $ chart.sh sparkline "3,7,2,8,5,9,1,6"
 ▃▆▁█▄█▁▅
 ```
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+## Commands
+
+Use `chart-generator help` to see all available commands.

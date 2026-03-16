@@ -26,7 +26,7 @@ $env:JISU_API_KEY="your_appkey_here"
 
 ## 脚本路径
 
-脚本文件：`skill/stockhistory/stockhistory.py`
+脚本文件：`skills/stockhistory/stockhistory.py`
 
 ## 使用方式
 
@@ -36,10 +36,10 @@ $env:JISU_API_KEY="your_appkey_here"
 
 ```bash
 # 指定时间范围
-python3 skill/stockhistory/stockhistory.py query '{"code":"300917","startdate":"2020-12-24","enddate":"2020-12-25"}'
+python3 skills/stockhistory/stockhistory.py query '{"code":"300917","startdate":"2020-12-24","enddate":"2020-12-25"}'
 
 # 仅股票代码（startdate/enddate 可选，不传由接口默认）
-python3 skill/stockhistory/stockhistory.py query '{"code":"300917"}'
+python3 skills/stockhistory/stockhistory.py query '{"code":"300917"}'
 ```
 
 请求 JSON：
@@ -63,7 +63,7 @@ python3 skill/stockhistory/stockhistory.py query '{"code":"300917"}'
 按分类分页获取股票列表，当前文档中 classid 为 1（沪深股市）。
 
 ```bash
-python3 skill/stockhistory/stockhistory.py list '{"classid":1,"pagenum":1,"pagesize":10}'
+python3 skills/stockhistory/stockhistory.py list '{"classid":1,"pagenum":1,"pagesize":10}'
 ```
 
 请求 JSON：
@@ -87,7 +87,7 @@ python3 skill/stockhistory/stockhistory.py list '{"classid":1,"pagenum":1,"pages
 根据股票代码获取单只股票详情。
 
 ```bash
-python3 skill/stockhistory/stockhistory.py detail '{"code":"300917"}'
+python3 skills/stockhistory/stockhistory.py detail '{"code":"300917"}'
 ```
 
 请求 JSON：
@@ -180,6 +180,6 @@ python3 skill/stockhistory/stockhistory.py detail '{"code":"300917"}'
 
 1. 用户提问：「300917 最近一周的历史走势 / K 线数据有吗？」  
 2. 代理根据当前日期计算 startdate/enddate，调用：  
-   `python3 skill/stockhistory/stockhistory.py query '{"code":"300917","startdate":"2025-02-24","enddate":"2025-03-02"}'`  
+   `python3 skills/stockhistory/stockhistory.py query '{"code":"300917","startdate":"2025-02-24","enddate":"2025-03-02"}'`  
 3. 从返回的 `list` 中提取 date、openningprice、closingprice、maxprice、minprice、tradenum、changepercent 等，用文字或建议用户用图表绘制 K 线、涨跌幅走势。  
-4. 需要先选股票时，可调用 `list` 获取沪深列表，或结合 `skill/stock` 的实时接口做「历史 + 实时」组合查询。
+4. 需要先选股票时，可调用 `list` 获取沪深列表，或结合 `skills/stock` 的实时接口做「历史 + 实时」组合查询。

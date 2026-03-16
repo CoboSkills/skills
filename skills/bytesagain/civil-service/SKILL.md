@@ -1,7 +1,9 @@
 ---
+version: "2.0.0"
 name: Civil Service Exam
-description: >-
+description: "Civil Service Exam Assistant. Use when you need civil service capabilities. Triggers on: civil service."
   公务员考试助手。申论写作、行测技巧、面试模拟、时政热点、备考计划、真题分析。Civil service exam prep. 公务员、国考、省考、申论。
+author: BytesAgain
 ---
 # Civil Service Exam
 
@@ -25,6 +27,33 @@ description: >-
 | `plan` | plan |
 | `essay` | essay |
 
-
 ---
 *Civil Service Exam by BytesAgain*
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+## Examples
+
+```bash
+# Show help
+civil-service help
+
+# Run
+civil-service run
+```
+
+- Run `civil-service help` for all commands
+
+## Commands
+
+Run `civil-service help` to see all available commands.
+
+## When to Use
+
+- Quick civil tasks from terminal
+- Automation pipelines
+
+## Output
+
+Results go to stdout. Save with `civil-service run > output.txt`.

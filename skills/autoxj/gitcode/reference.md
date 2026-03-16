@@ -160,8 +160,8 @@
 | GET | `/repos/{owner}/{repo}/pulls/{number}/files/json` | PR 文件列表（仅 JSON） | 文件列表 JSON | [PR 文件 JSON](https://docs.gitcode.com/docs/apis/get-api-v-5-repos-owner-repo-pulls-number-files-json) |
 | GET | `/repos/{owner}/{repo}/pulls/{number}/commits` | PR 提交列表 | 提交列表 | [PR 提交列表](https://docs.gitcode.com/docs/apis/get-api-v-5-repos-owner-repo-pulls-number-commits) |
 | GET | `/repos/{owner}/{repo}/pulls/{number}/issues` | PR 关联的 issues | 关联 Issue 列表 | [PR 关联 issues](https://docs.gitcode.com/docs/apis/get-api-v-5-repos-owner-repo-pulls-number-issues) |
-| POST | `/repos/{owner}/{repo}/pulls/{number}/comments` | 创建 PR 评论 | 新建评论对象 | [创建 PR 评论](https://docs.gitcode.com/docs/apis/post-api-v-5-repos-owner-repo-pulls-number-comments) |
-| GET | `/repos/{owner}/{repo}/pulls/{number}/comments` | 获取 PR 评论列表 | 评论列表 | [获取 PR 评论](https://docs.gitcode.com/docs/apis/get-api-v-5-repos-owner-repo-pulls-number-comments) |
+| POST | `/repos/{owner}/{repo}/pulls/{number}/comments` | 创建 PR 评论（普通评论或代码行评论，后者需 path+position） | 新建评论对象 | [创建 PR 评论](https://docs.gitcode.com/docs/apis/post-api-v-5-repos-owner-repo-pulls-number-comments) |
+| GET | `/repos/{owner}/{repo}/pulls/{number}/comments` | 获取 PR 评论列表（可用 comment_type 筛选类型） | 评论列表 | [获取 PR 评论](https://docs.gitcode.com/docs/apis/get-api-v-5-repos-owner-repo-pulls-number-comments) |
 | GET | `/repos/{owner}/{repo}/pulls/comments/{id}` | 获取 PR 某条评论 | 单条评论 | [获取 PR 评论](https://docs.gitcode.com/docs/apis/get-api-v-5-repos-owner-repo-pulls-comments-id) |
 | PATCH | `/repos/{owner}/{repo}/pulls/comments/{id}` | 更新 PR 某条评论 | 更新后的评论 | [更新 PR 评论](https://docs.gitcode.com/docs/apis/patch-api-v-5-repos-owner-repo-pulls-comments-id) |
 | DELETE | `/repos/{owner}/{repo}/pulls/comments/{id}` | 删除 PR 某条评论 | 操作结果 | [删除 PR 评论](https://docs.gitcode.com/docs/apis/delete-api-v-5-repos-owner-repo-pulls-comments-id) |

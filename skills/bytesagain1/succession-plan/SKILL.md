@@ -1,7 +1,9 @@
 ---
+version: "2.0.0"
 name: Succession Plan
 description: "Succession Planner. Use when you need succession plan capabilities. Triggers on: succession plan."
   继任计划。关键岗位识别、人才评估、发展路径、过渡方案、知识转移、紧急继任。Succession planning. 继任、人才管理。
+author: BytesAgain
 ---
 # Succession Plan
 

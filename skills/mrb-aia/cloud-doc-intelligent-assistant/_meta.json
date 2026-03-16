@@ -3,11 +3,16 @@
   "slug": "cloud-doc-intelligent-assistant",
   "displayName": "cloud-doc-intelligent-assistant",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1773229246792,
-    "commit": "https://github.com/openclaw/skills/commit/f4e4c6d9b8c908052533c5471a909a85b3738a04"
+    "version": "1.0.8",
+    "publishedAt": 1773662138931,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1773229246792,
+      "commit": "https://github.com/openclaw/skills/commit/f4e4c6d9b8c908052533c5471a909a85b3738a04"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1773139018487,

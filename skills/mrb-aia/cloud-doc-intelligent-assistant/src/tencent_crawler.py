@@ -13,15 +13,6 @@ from bs4 import BeautifulSoup
 TENCENT_DOC_DETAIL_API = "https://cloud.tencent.com/document/cgi/document/getDocPageDetail"
 TENCENT_DOC_URL_TEMPLATE = "https://cloud.tencent.com/document/product/{product_id}/{doc_id}"
 TENCENT_SEARCH_API_V2 = "https://cloud.tencent.com/portal/search/api/result/startup"
-_TENCENT_BROWSER_HEADERS = {
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-    "Cache-Control": "no-cache",
-    "Pragma": "no-cache",
-    "sec-ch-ua": '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
-    "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": '"macOS"',
-}
 
 
 class TencentDocCrawler:
@@ -31,13 +22,6 @@ class TencentDocCrawler:
         self.request_delay = request_delay
         self.timeout = timeout
         self.session = requests.Session()
-        self.session.headers.update({
-            **_TENCENT_BROWSER_HEADERS,
-            "User-Agent": (
-                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
-            ),
-        })
         self.last_request_time = 0.0
 
     def _rate_limit(self) -> None:
@@ -98,10 +82,6 @@ class TencentDocCrawler:
                     TENCENT_SEARCH_API_V2,
                     json=payload,
                     timeout=self.timeout,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Referer": f"https://cloud.tencent.com/search/{encoded_name}/7_1",
-                    },
                 )
                 response.raise_for_status()
                 result = response.json()
@@ -211,12 +191,6 @@ class TencentDocCrawler:
                 TENCENT_DOC_DETAIL_API,
                 json=payload,
                 timeout=self.timeout,
-                headers={
-                    "Content-Type": "application/json",
-                    "Referer": referer,
-                    "sec-fetch-mode": "cors",
-                    "sec-fetch-site": "same-origin",
-                },
             )
             response.raise_for_status()
             result = response.json()

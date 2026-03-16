@@ -1,7 +1,6 @@
 """文档爬虫模块 - 使用阿里云文档 JSON API"""
 
 import logging
-import random
 import time
 from datetime import datetime
 from typing import List, Optional
@@ -13,19 +12,6 @@ from bs4 import BeautifulSoup
 from .models import Document
 from .utils import compute_content_hash
 
-_USER_AGENTS = [
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
-]
-
-_BROWSER_HEADERS = {
-    "Accept": "application/json, text/plain, */*",
-    "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
-    "Cache-Control": "no-cache",
-    "Pragma": "no-cache",
-    "Referer": "https://help.aliyun.com/",
-}
 
 ALIYUN_DOC_API = "https://help.aliyun.com/help/json/document_detail.json"
 ALIYUN_SEARCH_API = "https://help.aliyun.com/help/json/search.json"
@@ -54,16 +40,13 @@ class DocumentCrawler:
         self.max_retries = max_retries
         self.timeout = timeout
         self.session = requests.Session()
-        self.session.headers.update({**_BROWSER_HEADERS, "User-Agent": random.choice(_USER_AGENTS)})
         self.last_request_time = 0.0
         self._consecutive_failures = 0
 
     def _rate_limit(self) -> None:
         elapsed = time.time() - self.last_request_time
-        jitter = random.uniform(0.2, 0.8)
-        delay = self.request_delay + jitter
-        if elapsed < delay:
-            time.sleep(delay - elapsed)
+        if elapsed < self.request_delay:
+            time.sleep(self.request_delay - elapsed)
         self.last_request_time = time.time()
 
     @staticmethod
@@ -72,9 +55,6 @@ class DocumentCrawler:
         if not alias.startswith("/"):
             alias = "/" + alias
         return alias.rstrip("/")
-
-    def _rotate_user_agent(self) -> None:
-        self.session.headers["User-Agent"] = random.choice(_USER_AGENTS)
 
     def _fetch_api_data(self, api_url: str, params: dict, api_name: str) -> Optional[dict]:
         last_error = None
@@ -97,7 +77,6 @@ class DocumentCrawler:
                 logging.error(f"{api_name} 失败 (尝试 {attempt}/{self.max_retries}): {exc}")
                 if attempt < self.max_retries:
                     wait = min(3 * (2 ** (attempt - 1)), 30)
-                    self._rotate_user_agent()
                     time.sleep(wait)
         self._consecutive_failures += 1
         logging.error(f"{api_name} 最终失败: params={params}, error={last_error}")

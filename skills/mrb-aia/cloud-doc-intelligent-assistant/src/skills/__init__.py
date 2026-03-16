@@ -13,24 +13,10 @@ class DocAssistant:
 
     Args:
         config_path: 配置文件路径
-        llm_api_key: LLM API Key，传入后覆盖 config.yaml 中的值
-        llm_api_base: LLM API Base URL，传入后覆盖 config.yaml 中的值
-        llm_model: LLM 模型名称，传入后覆盖 config.yaml 中的值
     """
 
-    def __init__(
-        self,
-        config_path: str = "config.yaml",
-        llm_api_key: str = "",
-        llm_api_base: str = "",
-        llm_model: str = "",
-    ):
-        self._runtime = SkillRuntime(
-            config_path,
-            llm_api_key=llm_api_key,
-            llm_api_base=llm_api_base,
-            llm_model=llm_model,
-        )
+    def __init__(self, config_path: str = "config.yaml", **kwargs):
+        self._runtime = SkillRuntime(config_path)
         self._fetch_doc = FetchDocSkill(self._runtime)
         self._check_changes = CheckChangesSkill(self._runtime)
         self._compare_docs = CompareDocsSkill(self._runtime)

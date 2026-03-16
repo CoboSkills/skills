@@ -16,19 +16,8 @@ class AsyncDocAssistant:
     3. 使用 get_task_result 获取任务结果
     """
     
-    def __init__(
-        self,
-        config_path: str = "config.yaml",
-        llm_api_key: str = "",
-        llm_api_base: str = "",
-        llm_model: str = "",
-    ):
-        self._assistant = DocAssistant(
-            config_path=config_path,
-            llm_api_key=llm_api_key,
-            llm_api_base=llm_api_base,
-            llm_model=llm_model,
-        )
+    def __init__(self, config_path: str = "config.yaml", **kwargs):
+        self._assistant = DocAssistant(config_path=config_path)
         self._task_queue = get_task_queue()
     
     # ========== 同步方法（保持兼容性）==========

@@ -53,7 +53,8 @@ class AiflowNotifier(NotifierBase):
         self.webhook_url = webhook_url
         self.retry_count = retry_count
         self.timeout = timeout
-        self.notify_users = notify_users or ["alimujiangayiziba"]
+        # 默认为空列表，由配置文件指定通知用户
+        self.notify_users = notify_users or []
 
     def _build_message_text(self, notification: Notification) -> str:
         lines = [f"📢 {notification.title}", "", f"📝 {notification.summary}", ""]

@@ -3,18 +3,9 @@
 
 # 爬虫配置
 crawler:
-  request_delay: 0.3  # 降低延迟，从 1.0 秒减到 0.3 秒
-  max_retries: 2      # 减少重试次数，从 3 次减到 2 次
-  timeout: 15         # 降低超时时间，从 30 秒减到 15 秒
-
-# 大模型配置（环境变量优先）
-llm:
-  provider: "dashscope"
-  model: "${LLM_MODEL:qwen-turbo}"  # qwen-turbo 速度快，成本低
-  api_key: "${LLM_API_KEY}"  # 必需：通义千问 API Key
-  api_base: "${LLM_API_BASE:https://dashscope.aliyuncs.com/compatible-mode/v1}"
-  max_tokens: 500      # 减少 token 数量，从 1000 减到 500，摘要更简洁
-  temperature: 0.1     # 降低温度，提高生成速度和稳定性
+  request_delay: 1.0  # 请求间隔（秒），建议 1-2 秒，避免触发速率限制
+  max_retries: 2      # 最大重试次数
+  timeout: 15         # 请求超时时间（秒）
 
 # 存储配置
 storage:

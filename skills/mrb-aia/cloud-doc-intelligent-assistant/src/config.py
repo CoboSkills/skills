@@ -51,14 +51,6 @@ class Config:
             "baidu": {"enabled": False, "products": []},
             "volcano": {"enabled": False, "products": []},
         },
-        "llm": {
-            "provider": "dashscope",
-            "model": "${LLM_MODEL:qwen-turbo}",
-            "api_key": "${LLM_API_KEY}",
-            "api_base": "${LLM_API_BASE:https://dashscope.aliyuncs.com/compatible-mode/v1}",
-            "max_tokens": 1000,
-            "temperature": 0.3,
-        },
         "notifications": [
             {"type": "file", "enabled": True, "output_dir": "./notifications"},
         ],
@@ -121,7 +113,7 @@ class Config:
         return obj
 
     def validate(self) -> None:
-        for section in ['crawler', 'llm', 'notifications', 'storage']:
+        for section in ['crawler', 'notifications', 'storage']:
             if section not in self._config:
                 raise ConfigError(f"缺少必需的配置节: {section}")
 

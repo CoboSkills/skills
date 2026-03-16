@@ -23,14 +23,8 @@ class BaiduDocCrawler:
         self.request_delay = request_delay
         self.timeout = timeout
         self.session = requests.Session()
-        self.session.headers.update({
-            "Accept": "application/json, text/plain, */*",
-            "Content-Type": "application/json",
-            "Origin": "https://cloud.baidu.com",
-            "Referer": "https://cloud.baidu.com/search",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        })
         self.last_request_time = 0.0
+        # 每次实例化生成随机 UID，不暴露真实用户信息
         self.search_uid = uuid.uuid4().hex
 
     def _rate_limit(self) -> None:
@@ -91,13 +85,10 @@ class BaiduDocCrawler:
                 "status": "ONLINE",
             }
             try:
-                # URL encode query_text to avoid HTTP header encoding errors with Chinese characters
-                encoded_query = quote(query_text, safe='')
                 resp = self.session.post(
                     BAIDU_SEARCH_API,
                     json=payload,
                     timeout=self.timeout,
-                    headers={"Referer": f"https://cloud.baidu.com/search/{encoded_query}/all-{page_no}"},
                 )
                 resp.raise_for_status()
                 data = resp.json()

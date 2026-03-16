@@ -31,13 +31,11 @@ class VolcanoDocCrawler:
         self.request_delay = request_delay
         self.timeout = timeout
         self.session = requests.Session()
+        # 火山云 API 需要特定的请求头才能访问
         self.session.headers.update({
             "accept": "application/json",
-            "content-type": "application/json",
-            "origin": "https://www.volcengine.com",
             "referer": "https://www.volcengine.com/docs",
             "x-use-bff-version": "1",
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
         })
         self.last_request_time = 0.0
         self._lib_id_cache: Dict[str, str] = {}
@@ -185,25 +183,16 @@ class VolcanoDocCrawler:
 
         while True:
             self._rate_limit()
+            # 移除可能包含用户标识的参数，只保留必要的查询参数
             params = {
-                "Caller": "volcengine",
-                "Did": "83875146",
-                "Uid": "0",
-                "UUID": "11_000J3vkCWUxPtPrMwlQ3ilQxfn2UtC",
-                "UidType": "14",
                 "Query": query_text,
                 "Offset": current_offset,
                 "Limit": PAGE_SIZE,
                 "Type": "all",
             }
-            headers = {
-                "accept": "application/json",
-                "referer": f"https://www.volcengine.com/docs/search?q={quote(query_text, safe='')}",
-                "x-use-bff-version": "1",
-            }
             try:
                 resp = self.session.get(
-                    VOLCANO_SEARCH_ALL_API, params=params, headers=headers, timeout=self.timeout
+                    VOLCANO_SEARCH_ALL_API, params=params, timeout=self.timeout
                 )
                 resp.raise_for_status()
                 data = resp.json()

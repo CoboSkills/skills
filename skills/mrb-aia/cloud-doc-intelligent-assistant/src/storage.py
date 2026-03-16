@@ -255,6 +255,58 @@ class DocumentStorage:
         doc_id = self.save_document(doc)
         self.save_version(doc_id, doc.content, doc.content_hash, doc.metadata)
 
+    def search_local(self, keyword: str, cloud: Optional[str] = None, limit: int = 50) -> List[DocModel]:
+        """从本地数据库按关键词搜索已存储的文档
+        
+        Args:
+            keyword: 搜索关键词，匹配 title 或 url
+            cloud: 云厂商过滤（通过 url 域名判断）
+            limit: 最大返回数量
+            
+        Returns:
+            匹配的文档列表（含最新版本内容）
+        """
+        cloud_domain_map = {
+            "aliyun": "help.aliyun.com",
+            "tencent": "cloud.tencent.com",
+            "baidu": "cloud.baidu.com",
+            "volcano": "volcengine.com",
+        }
+        session = self.get_session()
+        try:
+            query = session.query(DocumentDB)
+            # 按关键词模糊匹配 title 或 url
+            if keyword:
+                kw = f"%{keyword}%"
+                query = query.filter(
+                    (DocumentDB.title.ilike(kw)) | (DocumentDB.url.ilike(kw))
+                )
+            # 按云厂商过滤
+            if cloud and cloud in cloud_domain_map:
+                domain = cloud_domain_map[cloud]
+                query = query.filter(DocumentDB.url.ilike(f"%{domain}%"))
+            db_docs = query.order_by(DocumentDB.updated_at.desc()).limit(limit).all()
+            documents = []
+            for db_doc in db_docs:
+                latest_version = (
+                    session.query(DocumentVersionDB)
+                    .filter_by(document_id=db_doc.id)
+                    .order_by(DocumentVersionDB.version.desc())
+                    .first()
+                )
+                content = latest_version.content if latest_version else ""
+                metadata = self._deserialize_metadata(
+                    latest_version.metadata_json if latest_version else db_doc.metadata_json
+                )
+                documents.append(DocModel(
+                    url=db_doc.url, title=db_doc.title, content=content,
+                    content_hash=db_doc.content_hash, last_modified=db_doc.last_modified,
+                    crawled_at=db_doc.updated_at, metadata=metadata,
+                ))
+            return documents
+        finally:
+            session.close()
+
     def save_change(self, scan_id: int, document_id: int, change_type: str,
                     diff: Optional[str] = None, summary: Optional[str] = None) -> int:
         session = self.get_session()

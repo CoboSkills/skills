@@ -1,12 +1,13 @@
 ---
+version: "2.0.0"
 name: Crypto Tax Calculator
-version: 1.0.0
-description: Calculate crypto capital gains taxes with FIFO/LIFO/average cost methods, multi-country tax law support, and HTML report generation.
+description: "Calculate crypto capital gains taxes with FIFO/LIFO/average cost methods, multi-country tax law support, and HTML report generation. Use when you need crypto tax calc capabilities. Triggers on: crypto tax calc."
+author: BytesAgain
 ---
 
 # Crypto Tax Calculator 📊
 
-A comprehensive cryptocurrency tax calculation engine. Import your trades, select your jurisdiction, and generate professional tax reports.
+A complete cryptocurrency tax calculation engine. Import your trades, select your jurisdiction, and generate professional tax reports.
 
 ## Workflow Overview
 
@@ -101,3 +102,14 @@ bash scripts/crypto-tax-calc.sh compare --input FILE --country CODE
 ⚠️ This tool is for **informational purposes only**. It is NOT tax advice. Consult a qualified tax professional for your specific situation.
 
 ⚠️ Tax laws change frequently. Always verify current rates and rules with your local tax authority.
+---
+💬 Feedback & Feature Requests: https://bytesagain.com/feedback
+Powered by BytesAgain | bytesagain.com
+
+## Commands
+
+- `import` — Import
+- `calculate` — Calculate
+- `add` — Add
+- `report` — Report
+- `compare-methods` — Compare Methods

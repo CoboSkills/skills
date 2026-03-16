@@ -1,258 +1,258 @@
 ---
 name: baostock
-description: Free China A-share data platform — supports K-line, financial data, and industry classification queries with no registration required.
-version: 1.1.0
+description: BaoStock 免费A股数据平台 - 支持K线、财务数据、行业分类查询，无需注册即可使用。
+version: 1.2.0
 homepage: https://www.baostock.com
 metadata: {"clawdbot":{"emoji":"📊","requires":{"bins":["python3"]}}}
 ---
 
-# BaoStock (Free China A-Share Data Platform)
+# BaoStock（免费A股数据平台）
 
-[BaoStock](https://www.baostock.com) is a free, open-source data platform for China A-share securities. No registration or API key is required, and it returns `pandas.DataFrame`.
+[BaoStock](https://www.baostock.com) 是一个免费的开源中国A股证券数据平台。无需注册或API Key，返回 `pandas.DataFrame`。
 
-## Installation
+## 安装
 
 ```bash
 pip install baostock --upgrade
 ```
 
-Verify the installation:
+验证安装：
 
 ```bash
 python3 -c "import baostock as bs; lg = bs.login(); print(lg.error_msg); bs.logout()"
 ```
 
-Expected output: `login success!`.
+预期输出：`login success!`。
 
-## Basic Usage
+## 基本用法
 
-Each session must begin with `bs.login()` and end with `bs.logout()`:
+每个会话必须以 `bs.login()` 开始，以 `bs.logout()` 结束：
 
 ```python
 import baostock as bs
 import pandas as pd
 
-# Log in to the system
+# 登录系统
 lg = bs.login()
 
-# ... perform data queries here ...
+# ... 在此执行数据查询 ...
 
-# Log out of the system
+# 登出系统
 bs.logout()
 ```
 
-Use `.get_data()` to retrieve the DataFrame from query results:
+使用 `.get_data()` 从查询结果中获取DataFrame：
 
 ```python
 rs = bs.query_all_stock()
 df = rs.get_data()
 ```
 
-## Core API
+## 核心API
 
-### 1. query_all_stock — Get All Securities List
+### 1. query_all_stock — 获取全部证券列表
 
-Retrieves all stock/index codes for a specified trading day.
+获取指定交易日的全部股票/指数代码。
 
 ```python
-# Get all securities codes for a specified date
+# 获取指定日期所有证券代码
 rs = bs.query_all_stock(day="2024-01-02")
 df = rs.get_data()
-# Returns fields: code (securities code), tradeStatus (trading status), code_name (securities name)
+# 返回字段: code(证券代码), tradeStatus(交易状态), code_name(证券名称)
 ```
 
-- **day** — Date string `YYYY-MM-DD` (default: today). Returns an empty DataFrame on non-trading days.
+- **day** — 日期字符串 `YYYY-MM-DD`（默认今天）。非交易日返回空DataFrame。
 
-### 2. query_history_k_data_plus — K-Line Data
+### 2. query_history_k_data_plus — K线数据
 
-Retrieves historical K-line data (OHLCV + indicators).
+获取历史K线数据（开高低收量 + 指标）。
 
 ```python
-# Get daily K-line data for ICBC
+# 获取工商银行日K线数据
 rs = bs.query_history_k_data_plus(
     "sh.601398",
     "date,code,open,high,low,close,volume,amount,pctChg",
     start_date="2024-01-01",
     end_date="2024-06-30",
-    frequency="d",       # Frequency: d (daily), w (weekly), m (monthly), 5/15/30/60 (minute)
-    adjustflag="3"       # Adjustment: 1 (forward), 2 (backward), 3 (none, default)
+    frequency="d",       # 频率: d(日线), w(周线), m(月线), 5/15/30/60(分钟线)
+    adjustflag="3"       # 复权: 1(后复权), 2(前复权), 3(不复权，默认)
 )
 df = rs.get_data()
 ```
 
-**Parameters:**
+**参数说明：**
 
-- **code** — Stock code, format `sh.600000` or `sz.000001`
-- **fields** — Comma-separated field names (see below)
-- **start_date / end_date** — `YYYY-MM-DD` format
-- **frequency** — `d` (daily), `w` (weekly), `m` (monthly), `5`/`15`/`30`/`60` (minute). Indices have no minute-level data.
-- **adjustflag** — `1` (forward adjustment), `2` (backward adjustment), `3` (no adjustment, default)
+- **code** — 股票代码，格式 `sh.600000` 或 `sz.000001`
+- **fields** — 逗号分隔的字段名（见下方）
+- **start_date / end_date** — `YYYY-MM-DD` 格式
+- **frequency** — `d`(日线), `w`(周线), `m`(月线), `5`/`15`/`30`/`60`(分钟线)。指数无分钟级数据。
+- **adjustflag** — `1`(后复权), `2`(前复权), `3`(不复权，默认)
 
-**Available fields for daily data:**
+**日线可用字段：**
 
-`date` (date), `code` (securities code), `open` (open price), `high` (high price), `low` (low price), `close` (close price), `preclose` (previous close price), `volume` (volume), `amount` (turnover), `adjustflag` (adjustment flag), `turn` (turnover rate), `tradestatus` (trading status), `pctChg` (percent change), `peTTM` (trailing P/E ratio), `pbMRQ` (P/B ratio), `psTTM` (trailing P/S ratio), `pcfNcfTTM` (trailing P/CF ratio), `isST` (is ST stock)
+`date`(日期), `code`(证券代码), `open`(开盘价), `high`(最高价), `low`(最低价), `close`(收盘价), `preclose`(昨收价), `volume`(成交量), `amount`(成交额), `adjustflag`(复权标志), `turn`(换手率), `tradestatus`(交易状态), `pctChg`(涨跌幅), `peTTM`(滚动市盈率), `pbMRQ`(市净率), `psTTM`(滚动市销率), `pcfNcfTTM`(滚动市现率), `isST`(是否ST)
 
-**Available fields for minute data:**
+**分钟线可用字段：**
 
-`date` (date), `time` (time), `code` (securities code), `open` (open price), `high` (high price), `low` (low price), `close` (close price), `volume` (volume), `amount` (turnover), `adjustflag` (adjustment flag)
+`date`(日期), `time`(时间), `code`(证券代码), `open`(开盘价), `high`(最高价), `low`(最低价), `close`(收盘价), `volume`(成交量), `amount`(成交额), `adjustflag`(复权标志)
 
-### 3. query_trade_dates — Trading Calendar
+### 3. query_trade_dates — 交易日历
 
 ```python
-# Get the trading calendar for a specified range
+# 获取指定范围的交易日历
 rs = bs.query_trade_dates(start_date="2024-01-01", end_date="2024-12-31")
 df = rs.get_data()
-# Returns fields: calendar_date (calendar date), is_trading_day (whether it is a trading day)
+# 返回字段: calendar_date(日历日期), is_trading_day(是否交易日)
 ```
 
-### 4. query_stock_industry — Industry Classification
+### 4. query_stock_industry — 行业分类
 
 ```python
-# Get industry classification for all stocks
+# 获取全部股票行业分类
 rs = bs.query_stock_industry()
 df = rs.get_data()
-# Returns fields: updateDate (update date), code (securities code), code_name (securities name), industry (industry), industryClassification (industry classification)
+# 返回字段: updateDate(更新日期), code(证券代码), code_name(证券名称), industry(行业), industryClassification(行业分类)
 ```
 
-### 5. query_stock_basic — Stock Basic Information
+### 5. query_stock_basic — 股票基本信息
 
 ```python
-# Get basic information for a specified stock
+# 获取指定股票基本信息
 rs = bs.query_stock_basic(code="sh.601398")
 df = rs.get_data()
-# Returns fields: code (securities code), code_name (securities name), ipoDate (IPO date), outDate (delisting date), type (type), status (status)
+# 返回字段: code(证券代码), code_name(证券名称), ipoDate(上市日期), outDate(退市日期), type(类型), status(状态)
 ```
 
-- **type** — `1` stock, `2` index, `3` other
-- **status** — `1` listed, `0` delisted
+- **type** — `1` 股票, `2` 指数, `3` 其他
+- **status** — `1` 上市, `0` 退市
 
-### 6. query_dividend_data — Dividend Information
+### 6. query_dividend_data — 分红信息
 
 ```python
-# Get dividend data for a specified stock
+# 获取指定股票分红数据
 rs = bs.query_dividend_data(code="sh.601398", year="2023", yearType="report")
 df = rs.get_data()
 ```
 
-- **yearType** — `report` (reporting period) or `operate` (implementation period)
+- **yearType** — `report`(报告期) 或 `operate`(实施期)
 
-### 7. Financial Data (Quarterly)
+### 7. 财务数据（季度）
 
-#### Profitability
+#### 盈利能力
 
 ```python
-# Get profitability indicators (ROE, net profit margin, gross margin, etc.)
+# 获取盈利能力指标（ROE、净利润率、毛利率等）
 rs = bs.query_profit_data(code="sh.601398", year=2023, quarter=4)
 df = rs.get_data()
 ```
 
-#### Operational Efficiency
+#### 营运能力
 
 ```python
-# Get operational efficiency indicators (inventory turnover, accounts receivable turnover, etc.)
+# 获取营运能力指标（存货周转率、应收账款周转率等）
 rs = bs.query_operation_data(code="sh.601398", year=2023, quarter=4)
 df = rs.get_data()
 ```
 
-#### Growth Capability
+#### 成长能力
 
 ```python
-# Get growth indicators (YoY revenue growth, YoY net profit growth, etc.)
+# 获取成长能力指标（营收同比增长、净利润同比增长等）
 rs = bs.query_growth_data(code="sh.601398", year=2023, quarter=4)
 df = rs.get_data()
 ```
 
-#### Solvency
+#### 偿债能力
 
 ```python
-# Get solvency indicators (current ratio, quick ratio, etc.)
+# 获取偿债能力指标（流动比率、速动比率等）
 rs = bs.query_balance_data(code="sh.601398", year=2023, quarter=4)
 df = rs.get_data()
 ```
 
-#### Cash Flow
+#### 现金流
 
 ```python
-# Get cash flow data
+# 获取现金流数据
 rs = bs.query_cash_flow_data(code="sh.601398", year=2023, quarter=4)
 df = rs.get_data()
 ```
 
-#### DuPont Analysis
+#### 杜邦分析
 
 ```python
-# Get DuPont analysis data (ROE decomposition: profit margin × asset turnover × equity multiplier)
+# 获取杜邦分析数据（ROE分解：利润率×资产周转率×权益乘数）
 rs = bs.query_dupont_data(code="sh.601398", year=2023, quarter=4)
 df = rs.get_data()
 ```
 
-### 8. Index Data
+### 8. 指数数据
 
-#### Index Constituent Stocks
+#### 指数成分股
 
 ```python
-# Get CSI 300 constituent stocks
+# 获取沪深300成分股
 rs = bs.query_hs300_stocks()
 df = rs.get_data()
 
-# Get SSE 50 constituent stocks
+# 获取上证50成分股
 rs = bs.query_sz50_stocks()
 df = rs.get_data()
 
-# Get CSI 500 constituent stocks
+# 获取中证500成分股
 rs = bs.query_zz500_stocks()
 df = rs.get_data()
 ```
 
-## Full Example: Download Daily K-Line Data and Save as CSV
+## 完整示例: Download Daily K-Line Data and Save as CSV
 
 ```python
 import baostock as bs
 import pandas as pd
 
-# Log in to the system
+# 登录系统
 bs.login()
 
-# Get Kweichow Moutai 2024 daily K-line data (backward adjusted)
+# 获取贵州茅台2024年日K线数据（后复权）
 rs = bs.query_history_k_data_plus(
     "sh.600519",
     "date,code,open,high,low,close,volume,amount,pctChg,peTTM",
     start_date="2024-01-01",
     end_date="2024-12-31",
     frequency="d",
-    adjustflag="2"  # Backward adjustment
+    adjustflag="2"  # 后复权
 )
 df = rs.get_data()
 
-# Save to CSV file
+# 保存到CSV文件
 df.to_csv("kweichow_moutai_2024.csv", index=False)
 print(df.head())
 
-# Log out of the system
+# 登出系统
 bs.logout()
 ```
 
-## Stock Code Format
+## 股票代码格式
 
-- Shanghai: `sh.600000`, `sh.601398`
-- Shenzhen: `sz.000001`, `sz.300750`
-- Beijing: `bj.430047`
-- Indices: `sh.000001` (SSE Composite Index), `sh.000300` (CSI 300)
+- 上海证券交易所: `sh.600000`, `sh.601398`
+- 深圳证券交易所: `sz.000001`, `sz.300750`
+- 北京证券交易所: `bj.430047`
+- 指数: `sh.000001`(上证综指), `sh.000300`(沪深300)
 
-## Usage Tips
+## 使用技巧
 
-- **No registration or API key required** — just call `bs.login()` to get started.
-- Sessions may time out after prolonged inactivity — simply call `bs.login()` again.
-- **Not thread-safe** — for parallel downloads, use `multiprocessing` (multi-process), not threading (multi-thread).
-- Data coverage: A-shares from 1990 to present.
-- Financial data is provided quarterly, with approximately a 2-month delay after the reporting period ends.
+- **无需注册或API Key** — 直接调用 `bs.login()` 即可开始。
+- 长时间不活动会话可能超时 — 重新调用 `bs.login()` 即可。
+- **非线程安全** — 并行下载请使用 `multiprocessing`（多进程），而非threading（多线程）。
+- 数据覆盖范围：A股自1990年至今。
+- 财务数据按季度提供，报告期结束后约有2个月的延迟。
 - Documentation: http://baostock.com/baostock/index.php/Python_API%E6%96%87%E6%A1%A3
 
 ---
 
-## Advanced Examples
+## 进阶示例
 
-### Batch Download Data for Multiple Stocks
+### 批量下载多只股票数据
 
 ```python
 import baostock as bs
@@ -260,33 +260,33 @@ import pandas as pd
 
 bs.login()
 
-# Define the list of stocks to download
+# 定义要下载的股票列表
 stock_list = ["sh.600519", "sh.601398", "sz.000001", "sz.300750", "sh.601318"]
 
 all_data = []
 for code in stock_list:
-    # Get daily K-line data (forward adjusted)
+    # 获取日K线数据（前复权）
     rs = bs.query_history_k_data_plus(
         code,
         "date,code,open,high,low,close,volume,amount,pctChg,turn,peTTM,pbMRQ",
         start_date="2024-01-01",
         end_date="2024-06-30",
         frequency="d",
-        adjustflag="1"  # Forward adjustment
+        adjustflag="1"  # 前复权
     )
     df = rs.get_data()
     all_data.append(df)
-    print(f"Downloaded {code}, {len(df)} records")
+    print(f"已下载 {code}，共 {len(df)} 条记录")
 
-# Merge all data
+# 合并所有数据
 combined = pd.concat(all_data, ignore_index=True)
 combined.to_csv("multi_stock_baostock.csv", index=False)
-print(f"Total merged records: {len(combined)}")
+print(f"合并总记录数: {len(combined)}")
 
 bs.logout()
 ```
 
-### Get Full Market Stock List and Filter
+### 获取全市场股票列表并筛选
 
 ```python
 import baostock as bs
@@ -298,24 +298,24 @@ bs.login()
 rs = bs.query_all_stock(day="2024-06-28")
 df = rs.get_data()
 
-# Filter actively trading stocks (exclude indices and suspended stocks)
+# 筛选正常交易的股票（排除指数和停牌股）
 stocks = df[df["tradeStatus"] == "1"]
-# Filter Shanghai A-shares (starting with sh.6)
+# 筛选上海A股（sh.6开头）
 sh_stocks = stocks[stocks["code"].str.startswith("sh.6")]
-print(f"Shanghai A-shares: {len(sh_stocks)} stocks")
+print(f"沪市A股: {len(sh_stocks)} 只")
 
-# Filter Shenzhen main board (starting with sz.00)
+# 筛选深圳主板（sz.00开头）
 sz_main = stocks[stocks["code"].str.startswith("sz.00")]
-print(f"Shenzhen main board: {len(sz_main)} stocks")
+print(f"深圳主板: {len(sz_main)} 只")
 
-# Filter ChiNext board (starting with sz.30)
+# 筛选创业板（sz.30开头）
 gem = stocks[stocks["code"].str.startswith("sz.30")]
-print(f"ChiNext board: {len(gem)} stocks")
+print(f"创业板: {len(gem)} 只")
 
 bs.logout()
 ```
 
-### Calculate Technical Indicators
+### 计算技术指标
 
 ```python
 import baostock as bs
@@ -324,7 +324,7 @@ import numpy as np
 
 bs.login()
 
-# Get Ping An Bank daily K-line data
+# 获取平安银行日K线数据
 rs = bs.query_history_k_data_plus(
     "sz.000001",
     "date,close,volume",
@@ -337,7 +337,7 @@ df = rs.get_data()
 df["close"] = df["close"].astype(float)
 df["volume"] = df["volume"].astype(float)
 
-# Calculate moving averages
+# 计算均线
 df["MA5"] = df["close"].rolling(5).mean()
 df["MA10"] = df["close"].rolling(10).mean()
 df["MA20"] = df["close"].rolling(20).mean()
@@ -353,20 +353,20 @@ df["MACD"] = 2 * (df["DIF"] - df["DEA"])
 df["VOL_MA5"] = df["volume"].rolling(5).mean()
 df["VOL_MA10"] = df["volume"].rolling(10).mean()
 
-# Detect golden cross / death cross signals
+# 检测金叉/死叉信号
 df["signal"] = 0
-df.loc[(df["MA5"] > df["MA20"]) & (df["MA5"].shift(1) <= df["MA20"].shift(1)), "signal"] = 1   # Golden cross
-df.loc[(df["MA5"] < df["MA20"]) & (df["MA5"].shift(1) >= df["MA20"].shift(1)), "signal"] = -1  # Death cross
+df.loc[(df["MA5"] > df["MA20"]) & (df["MA5"].shift(1) <= df["MA20"].shift(1)), "signal"] = 1   # 金叉
+df.loc[(df["MA5"] < df["MA20"]) & (df["MA5"].shift(1) >= df["MA20"].shift(1)), "signal"] = -1  # 死叉
 
 golden_cross = df[df["signal"] == 1]
 death_cross = df[df["signal"] == -1]
-print(f"Golden crosses: {len(golden_cross)}, Death crosses: {len(death_cross)}")
-print("Golden cross dates:", golden_cross["date"].tolist())
+print(f"金叉次数: {len(golden_cross)}, 死叉次数: {len(death_cross)}")
+print("金叉日期:", golden_cross["date"].tolist())
 
 bs.logout()
 ```
 
-### Get CSI 300 Constituent Stocks and Download Data
+### 获取沪深300成分股并下载数据
 
 ```python
 import baostock as bs
@@ -374,12 +374,12 @@ import pandas as pd
 
 bs.login()
 
-# Get CSI 300 constituent stocks
+# 获取沪深300成分股
 rs = bs.query_hs300_stocks()
 hs300 = rs.get_data()
-print(f"CSI 300 has {len(hs300)} constituent stocks")
+print(f"沪深300共 {len(hs300)} 只成分股")
 
-# Download daily K-line data for the first 10 constituent stocks
+# 下载前10只成分股的日K线数据
 for _, row in hs300.head(10).iterrows():
     code = row["code"]
     name = row["code_name"]
@@ -397,7 +397,7 @@ for _, row in hs300.head(10).iterrows():
 bs.logout()
 ```
 
-### Get Financial Data and Analyze
+### 获取财务数据并分析
 
 ```python
 import baostock as bs
@@ -405,7 +405,7 @@ import pandas as pd
 
 bs.login()
 
-# Get profitability data for multiple bank stocks
+# 获取多只银行股的盈利能力数据
 bank_codes = ["sh.601398", "sh.601939", "sh.601288", "sh.600036", "sh.601166"]
 profit_data = []
 
@@ -416,10 +416,10 @@ for code in bank_codes:
         profit_data.append(df.iloc[0])
 
 profit_df = pd.DataFrame(profit_data)
-# View ROE and net profit margin
+# 查看ROE和净利润率
 print(profit_df[["code", "roeAvg", "npMargin", "gpMargin"]])
 
-# Get growth capability data
+# 获取成长能力数据
 growth_data = []
 for code in bank_codes:
     rs = bs.query_growth_data(code=code, year=2023, quarter=4)
@@ -428,13 +428,13 @@ for code in bank_codes:
         growth_data.append(df.iloc[0])
 
 growth_df = pd.DataFrame(growth_data)
-# View revenue growth rate and net profit growth rate
+# 查看营收增长率和净利润增长率
 print(growth_df[["code", "YOYEquity", "YOYAsset", "YOYNI"]])
 
 bs.logout()
 ```
 
-### Full Example: Simple Backtesting Framework
+### 完整示例: Simple Backtesting Framework
 
 ```python
 import baostock as bs
@@ -443,7 +443,7 @@ import numpy as np
 
 bs.login()
 
-# Get Ping An Bank 2023 daily K-line data (forward adjusted)
+# 获取平安银行2023年日K线数据（前复权）
 rs = bs.query_history_k_data_plus(
     "sz.000001",
     "date,open,high,low,close,volume",
@@ -456,27 +456,27 @@ df = rs.get_data()
 for col in ["open", "high", "low", "close", "volume"]:
     df[col] = df[col].astype(float)
 
-# Dual moving average strategy backtest
+# 双均线策略回测
 df["MA5"] = df["close"].rolling(5).mean()
 df["MA20"] = df["close"].rolling(20).mean()
 
-initial_cash = 100000  # Initial capital: 100,000
+initial_cash = 100000  # 初始资金：10万
 cash = initial_cash
-shares = 0             # Shares held
-trades = []            # Trade log
+shares = 0             # 持有股数
+trades = []            # 交易记录
 
 for i in range(20, len(df)):
-    # Golden cross buy signal
+    # 金叉 buy signal
     if df["MA5"].iloc[i] > df["MA20"].iloc[i] and df["MA5"].iloc[i-1] <= df["MA20"].iloc[i-1]:
         if cash > 0:
             buy_price = df["close"].iloc[i]
-            shares = int(cash / buy_price / 100) * 100  # Round down to lots (100 shares)
+            shares = int(cash / buy_price / 100) * 100  # 向下取整到手（100股）
             cost = shares * buy_price
             cash -= cost
             trades.append({"date": df["date"].iloc[i], "action": "BUY",
                           "price": buy_price, "shares": shares, "cash": cash})
 
-    # Death cross sell signal
+    # 死叉 sell signal
     elif df["MA5"].iloc[i] < df["MA20"].iloc[i] and df["MA5"].iloc[i-1] >= df["MA20"].iloc[i-1]:
         if shares > 0:
             sell_price = df["close"].iloc[i]
@@ -485,14 +485,14 @@ for i in range(20, len(df)):
                           "price": sell_price, "shares": shares, "cash": cash})
             shares = 0
 
-# Calculate final returns
+# 计算最终收益
 final_value = cash + shares * df["close"].iloc[-1]
 total_return = (final_value - initial_cash) / initial_cash * 100
 
-print(f"Initial capital: {initial_cash:.2f}")
-print(f"Final portfolio value: {final_value:.2f}")
-print(f"Total return: {total_return:.2f}%")
-print(f"Number of trades: {len(trades)}")
+print(f"初始资金: {initial_cash:.2f}")
+print(f"最终组合价值: {final_value:.2f}")
+print(f"总收益率: {total_return:.2f}%")
+print(f"交易次数: {len(trades)}")
 for t in trades:
     print(f"  {t['date']} {t['action']} {t['shares']} shares @ {t['price']:.2f}")
 
@@ -503,6 +503,6 @@ bs.logout()
 
 ## 社区与支持
 
-由 **大佬量化 (Boss Quant)** 维护 — 量化交易教学与策略研发团队。
+由 **大佬量化 (BossQuant)** 维护 — 量化交易教学与策略研发团队。
 
-微信客服: **bossquant1** · [Bilibili](https://space.bilibili.com/48693330) · 搜索 **大佬量化** on 微信公众号 / Bilibili / 抖音
+微信客服: **bossquant1** · [Bilibili](https://space.bilibili.com/48693330) · 搜索 **大佬量化** — 微信公众号 / Bilibili / 抖音

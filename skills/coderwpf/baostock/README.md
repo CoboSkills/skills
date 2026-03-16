@@ -1,6 +1,6 @@
 # BaoStock 数据平台 Skill
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://www.baostock.com)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://www.baostock.com)
 [![License](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 [![ClawHub](https://img.shields.io/badge/ClawHub-BossQuant-purple.svg)](https://clawhub.com)
 
@@ -72,7 +72,7 @@ Apache License 2.0
 
 ## 📊 更新日志
 
-### v1.1.0 (2026-03-01)
+### v1.2.0 (2026-03-15)
 - 🎉 初始版本发布
 - 📊 支持 A 股全量数据查询
 

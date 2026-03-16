@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: survey-designer
 description: "问卷设计工具。创建专业问卷、添加题型、设置逻辑跳转、数据分析、模板库、多格式导出。Survey designer with question types, skip logic, analysis, templates, and export. Use when you need survey designer capabilities. Triggers on: survey designer."
+author: BytesAgain
 ---
 # survey-designer
 
@@ -27,7 +29,6 @@ A: 主要输出Markdown格式，方便复制和编辑。
   nps             nps
 ```
 
-
 ## 专业建议
 
 - 控制长度** — 理想5-15题，超过20题完成率骤降
@@ -42,16 +43,7 @@ A: 主要输出Markdown格式，方便复制和编辑。
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
 
-## How It Works
-
-Reads input, processes with built-in logic, outputs structured results.
-
-## Tips
-
 - Run `survey-designer help` for all commands
-- No API keys required
-- Works offline
-
 
 ## Commands
 

@@ -3,11 +3,16 @@
   "slug": "survey-designer",
   "displayName": "Survey Designer",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773539276735,
-    "commit": "https://github.com/openclaw/skills/commit/902c4763284ec5278ae3f96350c2f652f0c85273"
+    "version": "1.0.6",
+    "publishedAt": 1773673963705,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773539276735,
+      "commit": "https://github.com/openclaw/skills/commit/902c4763284ec5278ae3f96350c2f652f0c85273"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1773446947976,

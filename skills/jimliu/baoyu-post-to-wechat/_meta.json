@@ -3,9 +3,15 @@
   "slug": "baoyu-post-to-wechat",
   "displayName": "Baoyu Post To Wechat",
   "latest": {
-    "version": "1.65.0",
-    "publishedAt": 1773417418743,
-    "commit": "https://github.com/openclaw/skills/commit/d008805258767a552bf04d70e85ca9f96d59604e"
+    "version": "1.69.1",
+    "publishedAt": 1773684082471,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.65.0",
+      "publishedAt": 1773417418743,
+      "commit": "https://github.com/openclaw/skills/commit/d008805258767a552bf04d70e85ca9f96d59604e"
+    }
+  ]
 }

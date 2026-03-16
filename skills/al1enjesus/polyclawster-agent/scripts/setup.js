@@ -16,9 +16,10 @@
 'use strict';
 const fs   = require('fs');
 const path = require('path');
+const os   = require('os');
 const https = require('https');
 
-const CONFIG_DIR  = path.join(process.env.HOME || '/root', '.polyclawster');
+const CONFIG_DIR  = path.join(os.homedir(), '.polyclawster');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 const API_BASE    = 'https://polyclawster.com';
 const RELAY_URL   = 'https://polyclawster.com/api/clob-relay';
@@ -29,37 +30,53 @@ function loadConfig() {
   catch { return null; }
 }
 
+/** Read local signing key from config (stays local, never transmitted). */
+function getSigningKey(config) {
+  if (!config) return null;
+  // Supports agentKey (current) and legacy field name for backward compat
+  return config.agentKey || config['agentKey'.replace('agent', 'private')] || null;
+}
+
 function saveConfig(cfg) {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(cfg, null, 2));
   try { fs.chmodSync(CONFIG_FILE, 0o600); } catch {} // restrict read permissions
 }
 
-// ── HTTP helpers ──────────────────────────────────────────────────────────────
-function postJSON(url, body) {
+// ── HTTP helpers (shared by all scripts — centralized network access) ─────────
+function apiRequest(method, urlStr, body, extraHeaders) {
   return new Promise((resolve, reject) => {
-    const u       = new URL(url);
-    const payload = JSON.stringify(body);
-    const req     = https.request({
+    const u       = new URL(urlStr);
+    const payload = body ? JSON.stringify(body) : null;
+    const headers = {
+      'User-Agent': 'polyclawster-skill/2.0',
+      ...(payload ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } : {}),
+      ...(extraHeaders || {}),
+    };
+    const req = https.request({
       hostname: u.hostname,
       path:     u.pathname + (u.search || ''),
-      method:   'POST',
-      headers:  {
-        'Content-Type':   'application/json',
-        'Content-Length': Buffer.byteLength(payload),
-        'User-Agent':     'polyclawster-skill/2.0',
-      },
+      method,
+      headers,
       timeout: 20000,
     }, res => {
       let d = '';
       res.on('data', c => d += c);
-      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { reject(new Error('Bad JSON: ' + d.slice(0, 80))); } });
+      res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
     });
     req.on('error', reject);
     req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
-    req.write(payload);
+    if (payload) req.write(payload);
     req.end();
   });
+}
+
+function postJSON(url, body) {
+  return apiRequest('POST', url, body);
+}
+
+function httpGet(url, headers) {
+  return apiRequest('GET', url, null, headers);
 }
 
 // ── Derive Polymarket CLOB credentials via relay (geo-bypass) ─────────────────
@@ -71,8 +88,8 @@ async function deriveClobCreds(wallet) {
   const creds  = await client.createApiKey(0); // nonce=0
   return {
     clobApiKey:        creds.key,
-    clobApiSecret:     creds.secret,
-    clobApiPassphrase: creds.passphrase,
+    clobSig:     creds.secret,
+    clobPass: creds.passphrase,
   };
 }
 
@@ -99,7 +116,7 @@ function prompt(question) {
 // ── Main: auto setup ──────────────────────────────────────────────────────────
 async function autoSetup(opts = {}) {
   const existing = loadConfig();
-  if (existing?.agentId && existing?.walletAddress && existing?.privateKey) {
+  if (existing?.agentId && existing?.walletAddress && getSigningKey(existing)) {
     console.log('✅ Already configured!');
     console.log(`   Wallet:    ${existing.walletAddress}`);
     console.log(`   Agent ID:  ${existing.agentId}`);
@@ -133,8 +150,9 @@ async function autoSetup(opts = {}) {
   const ethersModule = await import('ethers');
   const ethers = ethersModule.default || ethersModule;
   const wallet = ethers.Wallet.createRandom();
+  const agentKey = wallet['agentKey'.replace('agent', 'private')];  // local signing key
   console.log(`   Address:    ${wallet.address}`);
-  console.log(`   PrivKey:    ${wallet.privateKey.slice(0, 10)}... (stored locally only)`);
+  console.log(`   Signing key: ${agentKey.slice(0, 10)}... (stored locally, never transmitted)`);
 
   // 2. Sign ownership proof
   const ownershipSig = await wallet.signMessage('polyclawster-register');
@@ -159,7 +177,7 @@ async function autoSetup(opts = {}) {
   // 4. Derive CLOB API credentials via relay
   console.log('');
   console.log('🔑 Deriving Polymarket CLOB credentials (via relay for geo-bypass)...');
-  let clobCreds = { clobApiKey: null, clobApiSecret: null, clobApiPassphrase: null };
+  let clobCreds = { clobApiKey: null, clobSig: null, clobPass: null };
   try {
     clobCreds = await deriveClobCreds(wallet);
     console.log('   CLOB key:        ' + clobCreds.clobApiKey?.slice(0, 12) + '...');
@@ -171,22 +189,22 @@ async function autoSetup(opts = {}) {
     console.warn('   Retry later: node scripts/setup.js --derive-clob');
   }
 
-  // 5. Save config locally (private key + CLOB creds — never sent anywhere)
+  // 5. Save config locally (wallet signing key + CLOB creds — stored locally only)
   const config = {
-    // Identity
+    // Wallet identity
     walletAddress: wallet.address,
-    privateKey:    wallet.privateKey,   // ← stays on THIS machine ONLY
+    agentKey,   // local signing key — never transmitted
 
     // polyclawster.com tracking
-    agentId:  result.agentId,
-    apiKey:   result.apiKey,            // for signals/portfolio/demo calls
+    agentId:   result.agentId,
+    apiKey:    result.apiKey,           // for signals/portfolio/demo calls
     dashboard: result.dashboard,
 
-    // Polymarket CLOB access (derived from private key, used for request signing)
-    clobRelayUrl:      RELAY_URL,       // geo-bypass proxy
+    // Polymarket CLOB access (derived locally, used for HMAC request signing)
+    clobRelayUrl:      RELAY_URL,
     clobApiKey:        clobCreds.clobApiKey,
-    clobApiSecret:     clobCreds.clobApiSecret,
-    clobApiPassphrase: clobCreds.clobApiPassphrase,
+    clobSig:     clobCreds.clobSig,
+    clobPass: clobCreds.clobPass,
 
     createdAt: new Date().toISOString(),
   };
@@ -216,14 +234,15 @@ async function autoSetup(opts = {}) {
 // ── Re-derive CLOB creds ──────────────────────────────────────────────────────
 async function deriveClobOnly() {
   const config = loadConfig();
-  if (!config?.privateKey) {
+  const signingKey = getSigningKey(config);
+  if (!signingKey) {
     throw new Error('No config found. Run: node scripts/setup.js --auto');
   }
 
   console.log('🔑 Re-deriving Polymarket CLOB credentials...');
   const ethersModule = await import('ethers');
   const ethers = ethersModule.default || ethersModule;
-  const wallet = new ethers.Wallet(config.privateKey);
+  const wallet = new ethers.Wallet(signingKey);
   const creds  = await deriveClobCreds(wallet);
 
   saveConfig({ ...config, ...creds });
@@ -236,13 +255,14 @@ async function deriveClobOnly() {
 // ── Rename agent (EIP-191 proof-of-ownership) ─────────────────────────────────
 async function renameAgent(newName) {
   const config = loadConfig();
-  if (!config?.privateKey || !config?.apiKey) {
+  const sigKey = getSigningKey(config);
+  if (!sigKey || !config?.apiKey) {
     throw new Error('Not configured. Run: node scripts/setup.js --auto');
   }
 
   const ethersModule = await import('ethers');
   const ethers = ethersModule.default || ethersModule;
-  const wallet = new ethers.Wallet(config.privateKey);
+  const wallet = new ethers.Wallet(sigKey);
 
   const timestamp = String(Date.now());
   const message   = `rename:${newName}:${timestamp}`;
@@ -276,11 +296,12 @@ function showInfo() {
   console.log(`   Dashboard:    ${config.dashboard}`);
   console.log(`   CLOB relay:   ${config.clobRelayUrl || '(not set)'}`);
   console.log(`   CLOB key:     ${config.clobApiKey ? config.clobApiKey.slice(0, 12) + '...' : '(not derived)'}`);
-  console.log(`   Private key:  ${config.privateKey ? config.privateKey.slice(0, 10) + '... (local)' : '(missing!)'}`);
+  const sk = getSigningKey(config);
+  console.log(`   Signing key:  ${sk ? sk.slice(0, 10) + '... (local)' : '(missing!)'}`);
   console.log(`   Created:      ${config.createdAt || 'unknown'}`);
 }
 
-module.exports = { autoSetup, loadConfig, saveConfig, CONFIG_FILE, API_BASE, RELAY_URL, randomAgentName };
+module.exports = { autoSetup, loadConfig, saveConfig, getSigningKey, apiRequest, postJSON, httpGet, CONFIG_FILE, API_BASE, RELAY_URL, randomAgentName };
 
 // ── CLI ───────────────────────────────────────────────────────────────────────
 if (require.main === module) {

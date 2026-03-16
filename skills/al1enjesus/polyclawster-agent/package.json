@@ -1,7 +1,7 @@
 {
   "name": "polyclawster",
-  "version": "1.7.0",
-  "description": "Trade on Polymarket prediction markets. Non-custodial: your agent signs orders locally. Relay mode (geo-bypass) or Direct mode (EAP) — sync on-chain trades without relay.",
+  "version": "2.0.1",
+  "description": "Trade on Polymarket prediction markets. Non-custodial: your agent signs orders locally, private key never leaves your machine. Submits via polyclawster.com relay (geo-bypass).",
   "homepage": "https://polyclawster.com",
   "repository": {
     "type": "git",
@@ -30,7 +30,8 @@
   "author": "Virix Labs <general@virixlabs.com>",
   "license": "MIT",
   "dependencies": {
+    "@polymarket/clob-client": "^5.3.0",
     "ethers": "^5.7.1",
-    "@polymarket/clob-client": "^5.3.0"
+    "oauth-1.0a": "^2.2.6"
   }
 }

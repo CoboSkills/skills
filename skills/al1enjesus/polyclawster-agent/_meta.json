@@ -1,13 +1,18 @@
 {
   "owner": "al1enjesus",
   "slug": "polyclawster-agent",
-  "displayName": "Polyclawster Agent",
+  "displayName": "Polyclawster",
   "latest": {
-    "version": "1.7.0",
-    "publishedAt": 1773314671376,
-    "commit": "https://github.com/openclaw/skills/commit/7f744d952efc2b28ad35fc00ee6787ce5c127e76"
+    "version": "2.0.1",
+    "publishedAt": 1773420796616,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.7.0",
+      "publishedAt": 1773314671376,
+      "commit": "https://github.com/openclaw/skills/commit/7f744d952efc2b28ad35fc00ee6787ce5c127e76"
+    },
     {
       "version": "1.5.2",
       "publishedAt": 1773136666133,

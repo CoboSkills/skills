@@ -3,11 +3,16 @@
   "slug": "prompt-token-counter",
   "displayName": "Prompt Token Counter",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1773631444461,
-    "commit": "https://github.com/openclaw/skills/commit/2737a440e9b74cc12a79d415f9557cce315988e5"
+    "version": "1.0.11",
+    "publishedAt": 1773638267772,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1773631444461,
+      "commit": "https://github.com/openclaw/skills/commit/2737a440e9b74cc12a79d415f9557cce315988e5"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1773488649797,

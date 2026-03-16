@@ -65,9 +65,9 @@ The skill helps identify token consumption of workspace components:
 - **Memory & persona**: AGENTS.md, SOUL.md, IDENTITY.md, USER.md, MEMORY.md, TOOLS.md, etc.
 - **Skills**: Each SKILL.md under `~/.openclaw/skills/` or `workspace/skills/`
 
-Example audit:
+Example audit (batch mode, multiple files):
 ```bash
-python -m scripts.cli -m gpt-4o -c -f AGENTS.md -f SOUL.md -f MEMORY.md
+python -m scripts.cli -m gpt-4o -c AGENTS.md SOUL.md MEMORY.md
 ```
 
 ## When to Trigger

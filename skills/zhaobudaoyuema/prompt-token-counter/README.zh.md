@@ -65,9 +65,9 @@
 - **Memory 与 persona**：AGENTS.md、SOUL.md、IDENTITY.md、USER.md、MEMORY.md、TOOLS.md 等
 - **Skills**：`~/.openclaw/skills/` 或 `workspace/skills/` 下的每个 SKILL.md
 
-审计示例：
+审计示例（批量多文件）：
 ```bash
-python -m scripts.cli -m gpt-4o -c -f AGENTS.md -f SOUL.md -f MEMORY.md
+python -m scripts.cli -m gpt-4o -c AGENTS.md SOUL.md MEMORY.md
 ```
 
 ## 何时触发

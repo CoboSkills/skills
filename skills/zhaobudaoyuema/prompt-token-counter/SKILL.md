@@ -1,6 +1,6 @@
 ---
 name: prompt-token-counter
-version: 1.0.9
+version: 1.0.10
 description: "Count tokens and estimate costs for 300+ LLM models. Primary use: audit OpenClaw workspace token consumption (memory, persona, skills)."
 trigger: "token count, cost estimate, prompt length, API cost, OpenClaw audit, workspace token usage, memory/persona/skills tokens, context window limit"
 ---
@@ -51,19 +51,19 @@ Skills are loaded per session. Count each `SKILL.md`:
 
 1. **Locate workspace:** Resolve `~/.openclaw/workspace` (or config override).
 2. **Collect files:** List all memory/persona files and `SKILL.md` paths above.
-3. **Count tokens:** For each file, run `python -m scripts.cli -f <path> -m <model> -c`.
+3. **Count tokens:** Run `python -m scripts.cli <path1> <path2> ... -m <model> -c` (batch mode).
 4. **Summarize:** Group by category (memory, persona, skills), report total and per-file.
 
 **Example audit command (PowerShell):**
 ```powershell
 $ws = "$env:USERPROFILE\.openclaw\workspace"
-python -m scripts.cli -m gpt-4o -c -f "$ws\AGENTS.md" -f "$ws\SOUL.md" -f "$ws\USER.md" -f "$ws\IDENTITY.md" -f "$ws\MEMORY.md" -f "$ws\TOOLS.md"
+python -m scripts.cli -m gpt-4o -c "$ws\AGENTS.md" "$ws\SOUL.md" "$ws\USER.md" "$ws\IDENTITY.md" "$ws\MEMORY.md" "$ws\TOOLS.md"
 ```
 
 **Example audit (Bash):**
 ```bash
 WS=~/.openclaw/workspace
-python -m scripts.cli -m gpt-4o -c -f "$WS/AGENTS.md" -f "$WS/SOUL.md" -f "$WS/USER.md" -f "$WS/IDENTITY.md" -f "$WS/MEMORY.md" -f "$WS/TOOLS.md"
+python -m scripts.cli -m gpt-4o -c "$WS/AGENTS.md" "$WS/SOUL.md" "$WS/USER.md" "$WS/IDENTITY.md" "$WS/MEMORY.md" "$WS/TOOLS.md"
 ```
 
 ---
@@ -82,9 +82,10 @@ prompt_token_counter/
     │   ├── models.py           # 300+ models
     │   └── pricing.py          # Pricing data
     └── examples/               # Script examples
-        ├── count_prompt.sh / .ps1
-        ├── estimate_cost.sh / .ps1
-        └── batch_compare.sh
+        ├── count_prompt.py
+        ├── estimate_cost.py
+        ├── batch_compare.py
+        └── benchmark_token_ratio.py
 ```
 
 Invoke: `python -m scripts.cli` from project root.
@@ -140,8 +141,10 @@ Run: `python publish_npm.py` (after `npm login`).
 
 ## CLI Usage
 
+**Default:** Read from local file(s). No segmentation. Supports multiple file paths for batch execution.
+
 ```bash
-python -m scripts.cli [OPTIONS] [TEXT ...]
+python -m scripts.cli [OPTIONS] [FILE ...]
 ```
 
 | Option | Short | Description |
@@ -158,21 +161,23 @@ python -m scripts.cli [OPTIONS] [TEXT ...]
 ### Examples
 
 ```bash
-# Inline text
-python -m scripts.cli -m gpt-4 "Hello, world!"
+# Multiple local files (default batch mode)
+python -m scripts.cli file1.txt file2.txt -m gpt-4
+python -m scripts.cli AGENTS.md SOUL.md MEMORY.md -m gpt-4o -c
 
-# File with cost
+# Single file with -f
 python -m scripts.cli -f input.txt -m claude-3-opus -c
 
-# Multiple files (OpenClaw audit)
-python -m scripts.cli -v -c -f AGENTS.md -f SOUL.md -f MEMORY.md -m gpt-4o
+# Inline text (when arg is not an existing file path)
+python -m scripts.cli -m gpt-4 "Hello, world!"
 
 # List models
 python -m scripts.cli -l
 
 # Run bundled example scripts
-bash scripts/examples/count_prompt.sh "Hello, world!" gpt-4
-.\scripts\examples\count_prompt.ps1 "Hello, world!" gpt-4
+python scripts/examples/count_prompt.py file1.txt file2.txt -m gpt-4
+python scripts/examples/estimate_cost.py "Your text" gpt-4
+python scripts/examples/batch_compare.py file1.txt -m gpt-4 claude-3-opus
 ```
 
 ---

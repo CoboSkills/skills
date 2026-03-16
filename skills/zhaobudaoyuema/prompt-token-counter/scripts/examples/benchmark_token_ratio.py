@@ -15,7 +15,6 @@ from typing import Optional
 SAMPLE_TEXT = r"""
 ---
 name: prompt-token-counter
-version: 1.0.6
 description: "Count tokens and estimate costs for 300+ LLM models. Primary use: audit OpenClaw workspace token consumption (memory, persona, skills)."
 trigger: "token count, cost estimate, prompt length, API cost, OpenClaw audit, workspace token usage, memory/persona/skills tokens, context window limit"
 ---
@@ -90,9 +89,10 @@ prompt_token_counter/
     │   ├── models.py           # 300+ models
     │   └── pricing.py          # Pricing data
     └── examples/               # Script examples
-        ├── count_prompt.sh / .ps1
-        ├── estimate_cost.sh / .ps1
-        └── batch_compare.sh
+        ├── count_prompt.py
+        ├── estimate_cost.py
+        ├── batch_compare.py
+        └── benchmark_token_ratio.py
 ```
 
 Invoke: `python -m scripts.cli` from project root.
@@ -179,8 +179,9 @@ python -m scripts.cli -v -c -f AGENTS.md -f SOUL.md -f MEMORY.md -m gpt-4o
 python -m scripts.cli -l
 
 # Run bundled example scripts
-bash scripts/examples/count_prompt.sh "Hello, world!" gpt-4
-.\scripts\examples\count_prompt.ps1 "Hello, world!" gpt-4
+python scripts/examples/count_prompt.py "Hello, world!" gpt-4
+python scripts/examples/estimate_cost.py "Your text" gpt-4
+python scripts/examples/batch_compare.py "Compare text" gpt-4 claude-3-opus
 ```
 
 ---

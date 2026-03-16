@@ -48,19 +48,14 @@ for both simple token counting and detailed cost analysis workflows.
 """
 
 import argparse
-import re
 import sys
 import urllib.parse
 import urllib.request
-from typing import List, Tuple
+from pathlib import Path
+from typing import List, Optional, Tuple
 
 from .core import TokenCounter, get_supported_models, estimate_cost
 from .exceptions import UnsupportedModelError, TokenizationError
-
-
-def _split_segments(text: str) -> List[str]:
-    parts = re.split(r"\n\s*\n", text)
-    return [part for part in parts if part.strip()]
 
 
 def _read_file(path: str) -> str:
@@ -76,21 +71,23 @@ def _read_url(url: str) -> str:
         return response.read().decode("utf-8", errors="replace")
 
 
-def _collect_inputs(argv: List[str]) -> List[Tuple[str, str]]:
-    items: List[Tuple[str, str]] = []
+def _collect_inputs(argv: List[str]) -> List[Tuple[str, str, Optional[str]]]:
+    """Collect inputs. Returns list of (source, value, label) where label is path for display."""
+    items: List[Tuple[str, str, Optional[str]]] = []
     i = 0
     while i < len(argv):
         arg = argv[i]
         if arg in {"--file", "-f"}:
             if i + 1 >= len(argv):
                 raise ValueError("--file requires a path")
-            items.append(("file", argv[i + 1]))
+            path = argv[i + 1]
+            items.append(("file", path, path))
             i += 2
             continue
         if arg in {"--url", "-u"}:
             if i + 1 >= len(argv):
                 raise ValueError("--url requires a URL")
-            items.append(("url", argv[i + 1]))
+            items.append(("url", argv[i + 1], argv[i + 1]))
             i += 2
             continue
         if arg in {"--model", "-m", "--currency"}:
@@ -102,7 +99,12 @@ def _collect_inputs(argv: List[str]) -> List[Tuple[str, str]]:
         if arg.startswith("-"):
             i += 1
             continue
-        items.append(("text", arg))
+        # Positional: treat as file path if it exists, else inline text
+        p = Path(arg)
+        if p.is_file():
+            items.append(("file", arg, arg))
+        else:
+            items.append(("text", arg, None))
         i += 1
     return items
 
@@ -173,18 +175,18 @@ def main() -> None:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  scripts --model gpt-4 "Hello, world!"
+  scripts file1.txt file2.txt --model gpt-4
   scripts --file input.txt --model claude-3-opus-20240229
-  scripts --url https://example.com/text.txt --model gpt-4
+  scripts --cost --model gpt-4 AGENTS.md SOUL.md MEMORY.md
   scripts --list-models
-  scripts --cost --model gpt-4 "Your text here"
         """
     )
 
     parser.add_argument(
-        "text",
+        "paths",
         nargs="*",
-        help="One or more text segments to count tokens for"
+        metavar="FILE",
+        help="Local file path(s) to count tokens (default input mode). Multiple paths supported for batch."
     )
 
     parser.add_argument(
@@ -246,21 +248,30 @@ Examples:
             parser.error("Model name is required unless using --list-models")
 
         inputs = _collect_inputs(sys.argv[1:])
-        inputs.extend(("text", item) for item in (args.text or []))
+        # Also add positional paths from argparse (in case -m was before paths)
+        for p in (args.paths or []):
+            if Path(p).is_file():
+                if not any(src == "file" and val == p for src, val, _ in inputs):
+                    inputs.append(("file", p, p))
+            else:
+                if not any(src == "text" and val == p for src, val, _ in inputs):
+                    inputs.append(("text", p, None))
 
         if not inputs:
-            parser.error("Provide text, --file, or --url inputs")
+            parser.error("Provide local file path(s), --file, or --url inputs")
 
-        segments: List[Tuple[str, str]] = []
-        for source, value in inputs:
+        items: List[Tuple[str, str, Optional[str]]] = []
+        for source, value, label in inputs:
             if source == "text":
-                segments.append((source, value))
+                items.append((source, value, label))
                 continue
             try:
                 if source == "file":
                     content = _read_file(value)
+                    items.append((source, content, value))
                 elif source == "url":
                     content = _read_url(value)
+                    items.append((source, content, value))
                 else:
                     continue
             except FileNotFoundError:
@@ -270,12 +281,11 @@ Examples:
                 print(f"Error reading {source} '{value}': {e}", file=sys.stderr)
                 sys.exit(1)
 
-            for segment in _split_segments(content):
-                segments.append((source, segment))
-
         try:
-            for index, (source, segment) in enumerate(segments, start=1):
-                token_count = TokenCounter(args.model).count(segment)
+            counter = TokenCounter(args.model)
+            for index, (source, content, label) in enumerate(items, start=1):
+                token_count = counter.count(content)
+                prefix = f"{label}: " if label else f"{index}) "
                 if args.cost:
                     cost = estimate_cost(
                         token_count,
@@ -284,9 +294,9 @@ Examples:
                         currency=args.currency,
                     )
                     cost_display = _format_cost(cost, args.currency)
-                    print(f"{index}) tokens={token_count} cost={cost_display}")
+                    print(f"{prefix}tokens={token_count} cost={cost_display}")
                 else:
-                    print(f"{index}) tokens={token_count}")
+                    print(f"{prefix}tokens={token_count}")
 
         except UnsupportedModelError as e:
             print(f"Error: {e}", file=sys.stderr)

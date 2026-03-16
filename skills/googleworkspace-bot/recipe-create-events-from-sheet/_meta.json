@@ -3,11 +3,16 @@
   "slug": "recipe-create-events-from-sheet",
   "displayName": "Recipe Create Events From Sheet",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773393367294,
-    "commit": "https://github.com/openclaw/skills/commit/e6a8d0be52768aff2871ed3656d416d35aa8d62f"
+    "version": "1.0.2",
+    "publishedAt": 1773432599037,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773393367294,
+      "commit": "https://github.com/openclaw/skills/commit/e6a8d0be52768aff2871ed3656d416d35aa8d62f"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772929590309,

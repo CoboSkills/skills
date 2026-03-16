@@ -1,11 +1,17 @@
 {
   "owner": "parkertoddbrooks",
   "slug": "wip-repo-init",
-  "displayName": "Ai Dir Template",
+  "displayName": "Wip Repo Init",
   "latest": {
-    "version": "1.9.13",
-    "publishedAt": 1773455423205,
-    "commit": "https://github.com/openclaw/skills/commit/772f6cf3c238923b2d4782012cfedc0c65b55064"
+    "version": "1.9.40",
+    "publishedAt": 1773699757520,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.9.13",
+      "publishedAt": 1773455423205,
+      "commit": "https://github.com/openclaw/skills/commit/772f6cf3c238923b2d4782012cfedc0c65b55064"
+    }
+  ]
 }

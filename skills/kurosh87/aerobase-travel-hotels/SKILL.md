@@ -1,96 +1,67 @@
 ---
 name: aerobase-hotels
+version: 3.1.6
 description: Hotel search with jetlag-friendly features, day-use availability, and price comparison
-metadata: {"openclaw": {"emoji": "🏨", "primaryEnv": "AEROBASE_API_KEY", "user-invocable": true}}
+metadata: {"openclaw": {"emoji": "🏨", "primaryEnv": "AEROBASE_API_KEY", "user-invocable": true, "homepage": "https://aerobase.app"}}
 ---
 
-# Hotel Booking & Layover Accommodation
+# Hotel Booking & Layover Accommodation 🏨
 
-Frame hotel recommendations in terms of recovery: "Your layover is 9 hours. An 8-minute shuttle
-to the Hilton gives you 5 hours of sleep at a time when your body clock says 2 AM — $89 for the
-room could save you a full day of jetlag on the next leg."
+Use this skill when users need places to stay that help with transit flow and recovery, including short layover stay options.
 
-## Search (v1 API - Preferred)
+## Setup
 
-**GET /api/v1/hotels** — Search hotels with filters
-Query params: `airport`, `city`, `country`, `chain`, `tier`, `stars`, `jetlagFriendly`, `search`, `limit`, `offset`
-Returns: hotels with jetlagFeatures, amenities, pricing
+Use this skill by getting a free API key at https://aerobase.app/openclaw-travel-agent and setting `AEROBASE_API_KEY` in your agent environment.
+This skill is API-only: no scraping, no browser automation, and no user credential collection.
 
-Example: `GET /api/v1/hotels?airport=JFK&jetlagFriendly=true`
+Usage is capped at 5 requests/day for free users.
+Upgrade to Pro ($10.99) at https://aerobase.app/openclaw-travel-agent for 500 API calls/month.
 
-## Search (Legacy)
+## Agent API Key Protocol
 
-**POST /api/hotels/search** — `{ destination, checkin, checkout, guests }`
-2. **RATES**: GET /api/hotels/rates/{hotelId} — rooms, cancellation policies, nightly rates
-3. **PREBOOK**: POST /api/hotels/prebook — validate rate, get prebookId (price may change!)
-4. **BOOK**: POST /api/hotels/book — `{ prebookId, guests, payment }` → confirmation
-5. **MANAGE**: GET /api/hotels/bookings, DELETE /api/hotels/bookings/{id}
+- Base URL: `https://aerobase.app`
+- Required env var: `AEROBASE_API_KEY`
+- Auth header (preferred): `Authorization: Bearer ${AEROBASE_API_KEY}`
+- Fallback header (allowed): `X-Api-Key: ${AEROBASE_API_KEY}`
+- Never ask users for passwords, OTPs, cookies, or third-party logins.
+- Never print raw API keys in output; redact as `sk_live_***`.
 
-## Special
+### Request rules
 
-- **GET /api/dayuse?airport={code}** — Day-use hotels for layover passengers (book by the day, no overnight stay)
-- **GET /api/hotels?dayuse=true** — Filter hotels to day-use only
-- **GET /api/hotels/near-airport/{code}** — airport-adjacent hotels
+- Use only Aerobase endpoints documented in this skill.
+- Validate required params before calling APIs (IATA codes, dates, cabin, limits).
+- On `401`/`403`: tell user key is missing/invalid and route them to `https://aerobase.app/openclaw-travel-agent`.
+- On `429`: explain free-tier quota (`5 requests/day`) and suggest Pro (`$10.99/month`, 500 API calls/month) or Lifetime ($149.99, 500 API calls/month).
+- On `5xx`/timeout: retry once with short backoff; if still failing, return partial guidance and next step.
+- Use concise responses: top options first, then 1-2 follow-up actions.
 
-## Always
+## What this skill does
 
-- Show cancellation policy before booking
-- Layovers > 8 hours: recommend day-use hotels
-- Consider jetlag recovery: blackout curtains, gym, pool for long-haul arrivals
+- Search hotels with jetlag-friendly filters.
+- Find day-use options for long layovers.
+- Compare rates with recovery-relevant features first.
 
-## Rate Limits
+## Search endpoints
 
-- Search: max 20/hr. Rates: max 10/hr. Prebook: max 5/hr (holds inventory).
-- Book: max 2/hr (irreversible payment). Near-airport: max 10/hr.
+**GET /api/v1/hotels**  
+Filters: `airport`, `city`, `country`, `chain`, `tier`, `stars`, `jetlagFriendly`, `search`, `limit`, `offset`
 
-## Data Sources — Hotels
+**GET /api/dayuse**  
+Filters: `airport` or `city`, `country`, `search`, `maxPrice`, `sort`, `limit`, `offset`
 
-### Primary: LiteAPI (FREE, always query first)
-- Hit LiteAPI for availability, pricing, and property details FIRST
-- Returns structured JSON: property name, price, rating, amenities, photos
-- No rate limits concern at current usage
-- Response time: fast, no browser overhead
+## Output expectations
 
-### Secondary: Browser (concurrent enrichment)
-Launch browser search IN PARALLEL with LiteAPI call for:
-- Visual verification of property (screenshots)
-- Reviews/ratings from Booking.com that LiteAPI may not include
-- Price comparison across OTAs (Booking.com vs Google Hotels vs LiteAPI)
-- Neighborhood context (Google Maps street view, nearby attractions)
+- Include cancellation policy and layover fit when recommending options.
+- If layover is over 8 hours, show day-use candidates first.
+- Highlight jetlag recovery amenities (nap zones, showers, low-noise options).
 
-### Workflow
-1. User asks "Find hotels in Tokyo for March 15-20"
-2. IMMEDIATELY fire two concurrent requests:
-   a. LiteAPI query (structured data, fast)
-   b. Browser → Booking.com search (visual enrichment, slower)
-3. Show LiteAPI results first (they arrive faster)
-4. Enrich with browser data as it arrives: "I also found these on Booking.com for comparison..."
-5. Highlight price differences: "LiteAPI shows $120/night, Booking.com has $135 for the same property"
+## Usage limits
 
-### Scrapling — Booking.com Hotel Search
+- Free: 5 requests/day
+- Pro: 500 API calls/month (upgrade at $10.99/month)
+- Lifetime: $149.99 for 500 API calls/month
 
-Use Scrapling `/search` for structured hotel extraction:
+## Safety
 
-Reference: [Scrapling Documentation](https://scrapling.readthedocs.io/en/latest/overview.html)
-
-```
-POST {SCRAPLING_URL}/search
-{"site":"booking","destination":"Tokyo","checkin":"2026-03-15","checkout":"2026-03-22","guests":2}
-```
-Returns: `{"results": [{"name":"..","price":"..","rating":"..","location":".."}], "count": N}`
-
-**Note:** Booking.com is in the "challenge" tier — consent walls may block search params.
-If `challenge != "pass"` and count is 0, fall back to native browser with PROXY.
-
-### Browser — Google Hotels Workflow (DIRECT, no proxy)
-1. Navigate to https://www.google.com/travel/hotels
-2. Dismiss cookie consent if shown
-3. Type destination, wait for suggestions
-4. Results show aggregated prices from multiple booking sites
-5. Useful for: "Is LiteAPI's price competitive?"
-
-### When to SKIP browser entirely
-- User just wants quick availability check → LiteAPI only
-- User asks for specific hotel by name → LiteAPI lookup, no need to scrape
-- Budget/simple queries → LiteAPI is sufficient
-- Only use browser when user wants comparison, reviews, or visual confirmation
+- Never ask for user card details, loyalty IDs, or account secrets.
+- Keep the conversation focused on public booking metadata and user constraints only.

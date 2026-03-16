@@ -48,8 +48,16 @@ Notation: `[memory]` `[qmd]` `[acp]` = use if available, fallback if not.
 **ACP access**: `sessions_spawn(runtime="acp")` may not be available (platform limitation). Use **acpx CLI** as the reliable path:
 
 ```bash
+# Detect paths dynamically (run once per session)
+# Windows:
+#   ACPX = %APPDATA%\npm\node_modules\openclaw\extensions\acpx\node_modules\.bin\acpx.cmd
+#   AGENT = node %APPDATA%/npm/node_modules/@zed-industries/claude-agent-acp/dist/index.js
+# macOS/Linux:
+#   ACPX = $(npm root -g)/openclaw/extensions/acpx/node_modules/.bin/acpx
+#   AGENT = node $(npm root -g)/@zed-industries/claude-agent-acp/dist/index.js
+
 # One-shot execution via acpx (works from any session type)
-cmd /c "C:\Users\beyou\AppData\Roaming\npm\node_modules\openclaw\extensions\acpx\node_modules\.bin\acpx.cmd --verbose --agent \"node C:/Users/beyou/AppData/Roaming/npm/node_modules/@zed-industries/claude-agent-acp/dist/index.js\" exec \"<your prompt>\" 2>&1"
+acpx --verbose --agent "<AGENT>" exec "<your prompt>" 2>&1
 ```
 
 If `sessions_spawn(runtime="acp")` is available in your session, use it. Otherwise fall back to acpx CLI via `exec`.
@@ -163,8 +171,8 @@ When done: openclaw system event --text "Done: <summary>" --mode now
 # Option A: sessions_spawn (if available in your session)
 sessions_spawn(runtime: "acp", task: <prompt>, cwd: <project-dir>, mode: "run")
 
-# Option B: acpx CLI (always works)
-exec: acpx --agent "node C:/Users/beyou/AppData/Roaming/npm/node_modules/@zed-industries/claude-agent-acp/dist/index.js" exec "<prompt>"
+# Option B: acpx CLI (always works, detect AGENT path per above)
+exec: acpx --agent "<AGENT>" exec "<prompt>"
 # Set cwd to project dir in exec command
 ```
 

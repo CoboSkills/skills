@@ -28,26 +28,26 @@ $env:JISU_API_KEY="your_appkey_here"
 
 ## 脚本路径
 
-脚本文件：`skill/hotsearch/hotsearch.py`
+脚本文件：`skills/hotsearch/hotsearch.py`
 
 ## 使用方式
 
 ### 1. 微博热搜（/hotsearch/weibo）
 
 ```bash
-python3 skill/hotsearch/hotsearch.py weibo
+python3 skills/hotsearch/hotsearch.py weibo
 ```
 
 ### 2. 百度热搜（/hotsearch/baidu）
 
 ```bash
-python3 skill/hotsearch/hotsearch.py baidu
+python3 skills/hotsearch/hotsearch.py baidu
 ```
 
 ### 3. 抖音热搜（/hotsearch/douyin）
 
 ```bash
-python3 skill/hotsearch/hotsearch.py douyin
+python3 skills/hotsearch/hotsearch.py douyin
 ```
 
 无需额外 JSON 参数，脚本直接输出接口 `result` 数组。
@@ -94,6 +94,6 @@ python3 skill/hotsearch/hotsearch.py douyin
 ## 在 OpenClaw 中的推荐用法
 
 1. 用户提问：「现在微博/百度/抖音上有什么热搜？」  
-2. 代理按平台调用对应命令，比如微博热搜：`python3 skill/hotsearch/hotsearch.py weibo`。  
+2. 代理按平台调用对应命令，比如微博热搜：`python3 skills/hotsearch/hotsearch.py weibo`。  
 3. 从返回数组中选取前 N 条（如前 10 条），读取 `title`、`link/linkurl`、`score`，用自然语言总结热点内容，并附上若干可点击的链接。  
 

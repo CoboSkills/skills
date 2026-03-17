@@ -3,6 +3,10 @@
 """
 GitHub监听器 - 所有智能体共享
 
+版权声明：MIT License | Copyright (c) 2026 思捷娅科技 (SJYKJ)
+GitHub: https://github.com/zhaog100/xiaomili-personal-skills
+ClawHub: https://clawhub.com
+
 功能：
 - 监听GitHub Issue评论
 - 识别新评论
@@ -35,13 +39,21 @@ class GitHubMonitor:
         self.callback = callback
         self.running = True
         
-        # 启动监听线程
-        monitor_thread = threading.Thread(target=self._monitor_loop, daemon=True)
-        monitor_thread.start()
+        # 启动监听线程（非daemon，保持运行）
+        self.monitor_thread = threading.Thread(target=self._monitor_loop, daemon=False)
+        self.monitor_thread.start()
         
         print(f"✅ GitHub监听已启动")
         print(f"   仓库: {self.repo}")
         print(f"   检查间隔: {self.check_interval}秒")
+        
+        # 主线程阻塞，保持监听
+        try:
+            while self.running:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            print("\n⏹️ 收到停止信号")
+            self.stop()
     
     def stop(self):
         """停止监听"""

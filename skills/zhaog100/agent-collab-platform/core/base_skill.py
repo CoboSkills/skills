@@ -3,11 +3,16 @@
 """
 基础技能类 - 所有智能体的基类
 
+版权声明：MIT License | Copyright (c) 2026 思捷娅科技 (SJYKJ)
+GitHub: https://github.com/zhaog100/xiaomili-personal-skills
+ClawHub: https://clawhub.com
+
 功能：
 - 统一初始化
 - 共享GitHub监听
 - 共享消息路由
 - 共享状态管理
+- 核心规则约束（严谨、全面、承前启后）
 """
 
 import json
@@ -15,7 +20,15 @@ import subprocess
 from datetime import datetime
 
 class BaseSkill:
-    """所有智能体的基类"""
+    """所有智能体的基类
+    
+    核心规则（强制）：
+    1. 做事必须严谨 - 所有操作必须验证
+    2. 看问题要全面 - 多维度分析
+    3. 看内容要承前启后 - 联系上下文
+    4. Git推送必须遵守仓库分配 - 公共信息→origin，个人信息→xiaomili/xiaomila
+    5. 技能发布前必须拉取历史版本并对比差异 - 避免覆盖远程新版本
+    """
     
     def __init__(self, agent_id, role, repo='zhaog100/openclaw-skills'):
         """初始化技能
@@ -94,7 +107,7 @@ class BaseSkill:
         """获取显示名称"""
         display_names = {
             'agent_a': '小米辣（PM代理）🌶️',
-            'agent_b': '小米粒（Dev代理）🌾',
+            'agent_b': '小米粒（思捷娅科技Dev代理）🌾',
             'agent_c': '智能体C',
             'agent_d': '智能体D'
         }

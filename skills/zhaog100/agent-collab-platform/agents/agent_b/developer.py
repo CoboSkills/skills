@@ -3,6 +3,10 @@
 """
 开发实现模块 v2.0 - GitHub Issue协作
 
+版权声明：MIT License | Copyright (c) 2026 思捷娅科技 (SJYKJ)
+GitHub: https://github.com/zhaog100/xiaomili-personal-skills
+ClawHub: https://clawhub.com
+
 功能：
 - 根据技术设计开发
 - 代码生成
@@ -191,7 +195,7 @@ class Developer:
 
 **下一步**：继续完成剩余任务
 
-🌾 小米粒（Dev代理）
+🌾 小米粒（思捷娅科技Dev代理）
 """
         
         return progress_doc

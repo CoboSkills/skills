@@ -3,6 +3,10 @@
 """
 Issue处理器 - 所有智能体共享
 
+版权声明：MIT License | Copyright (c) 2026 思捷娅科技 (SJYKJ)
+GitHub: https://github.com/zhaog100/xiaomili-personal-skills
+ClawHub: https://clawhub.com
+
 功能：
 - 创建Issue
 - 获取Issue

@@ -4,7 +4,7 @@
 agent-collab-platform - 智能体协作平台统一入口
 
 版本: v1.0.0
-创建者: 小米粒（Dev代理）
+创建者: 思捷娅科技 (SJYKJ)
 创建时间: 2026-03-15
 """
 
@@ -15,7 +15,7 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 __version__ = '1.0.0'
-__author__ = '小米粒 (miliger)'
+__author__ = '思捷娅科技'
 
 def main():
     """主入口"""
@@ -79,7 +79,7 @@ agent-collab-platform v{__version__} - 智能体协作平台
     ├── agent_a/            PM代理（小米辣）
     └── agent_b/            Dev代理（小米粒）
 
-创建者: 小米粒 (miliger)
+创建者: 思捷娅科技 (SJYKJ)
 GitHub: https://github.com/zhaog100/xiaomili-personal-skills
 """)
 

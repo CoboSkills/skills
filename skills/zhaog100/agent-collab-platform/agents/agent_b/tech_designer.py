@@ -3,6 +3,10 @@
 """
 技术设计模块 v2.0 - GitHub Issue协作
 
+版权声明：MIT License | Copyright (c) 2026 思捷娅科技 (SJYKJ)
+GitHub: https://github.com/zhaog100/xiaomili-personal-skills
+ClawHub: https://clawhub.com
+
 功能：
 - 从PRD提取需求
 - 生成技术设计
@@ -225,7 +229,7 @@ class TechDesigner:
 
 **下一步**：等待小米辣（PM）Review，通过后开始开发实现
 
-🌾 小米粒（Dev代理）
+🌾 小米粒（思捷娅科技Dev代理）
 """
         
         return tech_doc

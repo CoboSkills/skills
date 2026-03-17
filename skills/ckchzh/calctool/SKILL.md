@@ -1,7 +1,7 @@
 ---
 name: CalcTool
 description: "Command-line calculator with scientific functions. Basic arithmetic, percentage calculations, unit conversions, tip calculator, loan payment calculator, and scientific functions (sqrt, power, log, trig). Quick math from your terminal without opening a separate app."
-version: "1.0.0"
+version: "2.0.0"
 author: "BytesAgain"
 tags: ["calculator","math","arithmetic","scientific","convert","finance","utility"]
 categories: ["Utility", "Productivity"]
@@ -25,6 +25,8 @@ calctool loan 300000 6.5 30
 ---
 Powered by BytesAgain | bytesagain.com
 
-## Tips
-
 - Run `calctool help` for all commands
+
+---
+*Powered by BytesAgain | bytesagain.com*
+*Feedback & Feature Requests: https://bytesagain.com/feedback*

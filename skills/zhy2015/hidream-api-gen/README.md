@@ -6,6 +6,15 @@ This repository provides Python scripts and modules that handle parameter valida
 
 [中文介绍](#中文介绍)
 
+## Security & Data Privacy
+
+This tool implements an API client for HiDream/OpenClaw. To ensure transparency and security:
+
+- **Credential Storage**: API tokens are stored locally in `~/.config/openclaw/hidream_config.json` with restrictive permissions (`0600`).
+- **File Access**: Scripts may read local image/video files provided via command-line arguments or function calls for the purpose of base64 encoding and transmission to the API.
+- **Environment Variables**: Sensitive information can be passed via environment variables (`HIDREAM_AUTHORIZATION`) to avoid persistent storage.
+- **Data Exfiltration**: No data is transmitted to any destination other than the official HiDream/OpenClaw endpoints.
+
 ## Features
 
 - **Multi-Model Support**: Ready-to-use scripts for popular models:
@@ -29,10 +38,23 @@ pip install requests
 
 ### Configuration
 
+You can configure your API token in two ways:
+
+**Method 1: Interactive (Recommended)**
+
+Run the configuration script and follow the prompts:
+
+```bash
+python3 scripts/configure.py
+```
+This will save your token to `~/.config/openclaw/hidream_config.json`.
+
+**Method 2: Environment Variable**
+
 Get your API token from [vivago.ai/platform/token](https://vivago.ai/platform/token) and set it:
 
 ```bash
-export OPENCLAW_AUTHORIZATION="your-sk-token"
+export HIDREAM_AUTHORIZATION="your-sk-token"
 ```
 
 ### Usage (Python)
@@ -65,6 +87,15 @@ python3 scripts/kling.py --version "Q2.5T-std" --prompt "A flying car"
 
 本项目提供了封装好的 Python 脚本和模块，处理了参数校验、Payload 构建以及与 API 的通信细节。
 
+## 安全与数据隐私
+
+本工具是 HiDream/OpenClaw 的 API 客户端实现。为确保透明度与安全性：
+
+- **凭据存储**：API Token 本地存储于 `~/.config/openclaw/hidream_config.json`，并设置了严格的权限（`0600`）。
+- **文件访问**：脚本可能会读取通过命令行参数或函数调用提供的本地图像/视频文件，其目的是进行 base64 编码并传输至 API。
+- **环境变量**：敏感信息可以通过环境变量（`HIDREAM_AUTHORIZATION`）传递，以避免持久化存储。
+- **数据泄露防护**：除官方 HiDream/OpenClaw 接口外，不会将任何数据传输至其他目的地。
+
 ## 功能特性
 
 - **多模型支持**：开箱即用的主流模型支持：
@@ -88,10 +119,23 @@ pip install requests
 
 ### 配置
 
+你可以通过以下两种方式配置 API Token：
+
+**方法 1: 交互式配置 (推荐)**
+
+运行配置脚本并按照提示操作：
+
+```bash
+python3 scripts/configure.py
+```
+这会将你的 Token 保存到 `~/.config/openclaw/hidream_config.json`。
+
+**方法 2: 环境变量**
+
 前往 [vivago.ai/platform/token](https://vivago.ai/platform/token) 获取 API Token 并设置环境变量：
 
 ```bash
-export OPENCLAW_AUTHORIZATION="your-sk-token"
+export HIDREAM_AUTHORIZATION="your-sk-token"
 ```
 
 ### 使用示例 (Python)

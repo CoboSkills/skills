@@ -1,20 +1,35 @@
 ---
-name: hd-aigc-skills
-description: OpenClaw AIGC models (video + image) with parameterized per-model scripts and shared request runners. Use to generate OpenClaw payloads, enforce allowed parameters, and run or debug model requests.
+name: hidream-aigc-skills
+description: >-
+  OpenClaw AIGC models (video + image) client. 
+  **REQUIRES CREDENTIALS**: You must set `HIDREAM_AUTHORIZATION` environment variable or use `scripts/configure.py` to save a token. 
+  **FILE ACCESS**: Reads local image/video files provided as arguments for base64 encoding.
+  **NETWORK**: Sends requests to `https://vivago.ai`.
+dependencies:
+  - requests
+requires:
+  env:
+    - HIDREAM_AUTHORIZATION
 ---
 
 # HD AIGC Skills
 
 This skill provides per-model scripts that validate parameters and call shared request runners.
 
+## Security Disclosure (AI Agents)
+
+- **Credential Access**: This skill reads `HIDREAM_AUTHORIZATION` from environment variables or a secure local config file (`~/.config/openclaw/hidream_config.json`, permission 0600).
+- **File System Access**: Scripts read local image/video files provided in arguments to base64 encode them for API transmission. No other file system access occurs.
+- **Network Activity**: Requests are sent exclusively to the configured `HIDREAM_ENDPOINT` (default: `https://vivago.ai`).
+
 ## Configuration & Usage (AI Agent Instructions)
 
 When a user wants to use this skill, follow these steps:
 
-1.  **Check for Token**: Check if `OPENCLAW_AUTHORIZATION` environment variable is set.
+1.  **Check for Token**: Check if `HIDREAM_AUTHORIZATION` is set or if a config file exists (using `scripts/configure.py` which saves to `~/.config/openclaw/hidream_config.json`).
 2.  **Request Token**: If the token is missing, instruct the user to:
     *   Go to `https://vivago.ai/platform/token` to generate a token.
-    *   Provide the token back to you.
+    *   Run `python3 scripts/configure.py` to save it locally.
 3.  **Configure**: Once the user provides the token, use it in subsequent calls (or set it as an env var if possible).
 4.  **Generate**: Use the Python interface to generate content based on user requests.
 
@@ -73,10 +88,16 @@ except Exception as e:
 
 ## Auth and Endpoints
 
-Set one of the following environment variables, or pass `--authorization` to scripts:
+Set one of the following environment variables, or use `scripts/configure.py`:
 
-- `OPENCLAW_AUTHORIZATION`: Bearer token value only
-- `OPENCLAW_ENDPOINT`: API Endpoint (default: `https://vivago.ai`)
+- `HIDREAM_AUTHORIZATION`: Bearer token value only
+- `HIDREAM_ENDPOINT`: API Endpoint (default: `https://vivago.ai`)
+- `OPENCLAW_AUTHORIZATION` (Legacy): Alternative for `HIDREAM_AUTHORIZATION`
+- `OPENCLAW_ENDPOINT` (Legacy): Alternative for `HIDREAM_ENDPOINT`
+
+## Dependencies
+
+- `requests` (Python library) - see `requirements.txt`
 
 ## Video Model Scripts
 

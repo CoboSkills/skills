@@ -14,10 +14,11 @@ from typing import Any
 
 import requests
 
+from .config import get_token
 
 DEFAULT_TIMEOUT = 300
 DEFAULT_POLL_INTERVAL = 5
-ENDPOINT = os.getenv("OPENCLAW_ENDPOINT", "https://vivago.ai")
+ENDPOINT = os.getenv("HIDREAM_ENDPOINT") or os.getenv("OPENCLAW_ENDPOINT", "https://vivago.ai")
 
 
 def parse_images(value: str | None) -> list[str]:
@@ -29,10 +30,14 @@ def parse_images(value: str | None) -> list[str]:
         if not image:
             continue
         if os.path.exists(image):
-            with open(image, "rb") as f:
-                image_bytes = f.read()
-                image_base64 = base64.b64encode(image_bytes).decode("utf-8")
-                images.append(image_base64)
+            # Security Note: Reading local file for base64 encoding
+            try:
+                with open(image, "rb") as f:
+                    image_bytes = f.read()
+                    image_base64 = base64.b64encode(image_bytes).decode("utf-8")
+                    images.append(image_base64)
+            except Exception as e:
+                 raise ValueError(f"Failed to read image file '{image}': {e}")
         else:
             # Assume it's a URL or base64 string
             images.append(image)
@@ -57,10 +62,10 @@ def _headers(authorization: str) -> dict[str, str]:
 def submit_task_and_poll_result(
     payload: dict[str, Any], path: str, authorization, poll_timeout: int
 ) -> dict[str, Any]:
-    authorization = authorization or os.getenv("OPENCLAW_AUTHORIZATION", "")
+    authorization = authorization or get_token()
     if not authorization:
         raise ValueError(
-            "Missing authorization. Pass --authorization or set OPENCLAW_AUTHORIZATION."
+            "Missing authorization. Run 'scripts/configure.py' or set HIDREAM_AUTHORIZATION."
         )
     endpoint = f"{ENDPOINT}{path}"
     headers = _headers(authorization)

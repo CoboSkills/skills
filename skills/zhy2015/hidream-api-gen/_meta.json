@@ -1,11 +1,17 @@
 {
   "owner": "zhy2015",
   "slug": "hidream-api-gen",
-  "displayName": "Hd Aigc Skills",
+  "displayName": "Hidream Aigc",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773371063692,
-    "commit": "https://github.com/openclaw/skills/commit/69362600268f5ce1724fc5c86bfde4a2ea6e313e"
+    "version": "0.1.8",
+    "publishedAt": 1773652654424,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773371063692,
+      "commit": "https://github.com/openclaw/skills/commit/69362600268f5ce1724fc5c86bfde4a2ea6e313e"
+    }
+  ]
 }

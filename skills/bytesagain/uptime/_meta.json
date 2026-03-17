@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain",
+  "slug": "uptime",
+  "displayName": "Uptime",
+  "latest": {
+    "version": "1.0.6",
+    "publishedAt": 1773664276349,
+    "commit": null
+  },
+  "history": []
+}

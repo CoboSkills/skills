@@ -14,7 +14,7 @@ import os
 import re
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import List, Dict
 import httpx
 
 # █████████████████████████████████████████████████████████████████████████
@@ -68,7 +68,8 @@ if not EM_API_KEY:
 
 
 TOOL_NAME = "股票基金筛选"
-DEFAULT_OUTPUT_DIR = Path("workspace") / "MX_StockPick"
+DEFAULT_OUTPUT_DIR = Path.cwd() / "miaoxiang" / "MX_StockPick"
+print('默认输出目录为：',DEFAULT_OUTPUT_DIR.absolute())
 # MCP 服务器地址
 MCP_URL = "https://ai-saas.eastmoney.com/proxy/b/mcp/tool/selectSecurity"
 
@@ -97,17 +98,14 @@ def get_metadata(
             },
         },
     }
-
-
-
-def _build_column_map(columns: list[dict[str, Any]]) -> dict[str, str]:
+def _build_column_map(columns: List[Dict]) -> Dict:
     """
     从 MCP 返回的 columns 构建 英文列名 -> 中文列名 的映射。
     支持常见字段名：field/name/key -> displayName/title/label。
     """
-    name_map: dict[str, str] = {}
+    name_map = {}
     for col in columns or []:
-        if not isinstance(col, dict):
+        if not isinstance(col, Dict):
             continue
         en_key = col.get("field", "") or col.get("name", "") or col.get("key", "")
         cn_name = col.get("displayName", "") or col.get("title", "") or col.get("label", "")
@@ -117,11 +115,11 @@ def _build_column_map(columns: list[dict[str, Any]]) -> dict[str, str]:
     return name_map
 
 
-def _columns_order(columns: list[dict[str, Any]]) -> list[str]:
+def _columns_order(columns: List[Dict]) -> List[str]:
     """按 columns 顺序返回英文列名列表，用于 CSV 表头顺序。"""
-    order: list[str] = []
+    order = []
     for col in columns or []:
-        if not isinstance(col, dict):
+        if not isinstance(col, Dict):
             continue
         en_key = col.get("field") or col.get("name") or col.get("key")
         if en_key is not None:
@@ -129,7 +127,7 @@ def _columns_order(columns: list[dict[str, Any]]) -> list[str]:
     return order
 
 
-def _parse_partial_results_table(partial_results: str) -> list[dict[str, str]]:
+def _parse_partial_results_table(partial_results: str) -> List[Dict]:
     """
     将 partialResults 的 Markdown 表格字符串解析为行字典列表。
     格式: "|序号|代码|名称|...|\\n|---|\\n|1|000001|平安银行|...|"
@@ -141,7 +139,7 @@ def _parse_partial_results_table(partial_results: str) -> list[dict[str, str]]:
         return []
 
     # 表头行：按 | 分割，去掉首尾空
-    def split_cells(line: str) -> list[str]:
+    def split_cells(line: str) -> List[str]:
         return [c.strip() for c in line.split("|") if c.strip() != ""]
 
     header_cells = split_cells(lines[0])
@@ -151,7 +149,7 @@ def _parse_partial_results_table(partial_results: str) -> list[dict[str, str]]:
     data_start = 1
     if data_start < len(lines) and re.match(r"^[\s\|\-]+$", lines[data_start]):
         data_start = 2
-    rows: list[dict[str, str]] = []
+    rows = []
     for i in range(data_start, len(lines)):
         cells = split_cells(lines[i])
         if len(cells) != len(header_cells):
@@ -165,10 +163,10 @@ def _parse_partial_results_table(partial_results: str) -> list[dict[str, str]]:
 
 
 def _datalist_to_rows(
-        datalist: list[dict[str, Any]],
-        column_map: dict[str, str],
-        column_order: list[str],
-) -> list[dict[str, str]]:
+        datalist: List[Dict],
+        column_map: Dict,
+        column_order: List[str],
+) -> List[Dict]:
     """
     将 datalist 中每行的英文键按 column_map 替换为中文键，保证顺序与 partialResults 风格一致。
     覆盖全部 datalist 数据。
@@ -176,11 +174,11 @@ def _datalist_to_rows(
     if not datalist:
         return []
 
-    rows: list[dict[str, str]] = []
+    rows = []
     for row in datalist:
-        if not isinstance(row, dict):
+        if not isinstance(row, Dict):
             continue
-        cn_row: dict[str, str] = {}
+        cn_row = {}
         for en_key in column_order:
             if en_key not in row:
                 continue
@@ -188,7 +186,7 @@ def _datalist_to_rows(
             val = row[en_key]
             if val is None:
                 cn_row[cn_name] = ""
-            elif isinstance(val, (dict, list)):
+            elif isinstance(val, (Dict, List)):
                 cn_row[cn_name] = json.dumps(val, ensure_ascii=False)
             else:
                 cn_row[cn_name] = str(val)
@@ -197,11 +195,35 @@ def _datalist_to_rows(
     return rows
 
 
+def _drop_columns_for_sector(rows: List[Dict], select_type: str) -> List[Dict]:
+    """
+    当选择类型为“板块”时，移除不需要输出的列。
+    目前按需求移除：
+    - 板块编码
+    - 指数内码
+    """
+    if select_type != "板块" or not rows:
+        return rows
+
+    blocked = {"板块编码", "指数内码"}
+    cleaned_rows = []
+    for row in rows:
+        if not isinstance(row, Dict):
+            continue
+        cleaned_row = {
+            k: v
+            for k, v in row.items()
+            if str(k).strip() not in blocked
+        }
+        cleaned_rows.append(cleaned_row)
+    return cleaned_rows
+
+
 async def query_MX_StockPick(
         query: str,
         selectType: str,
-        output_dir: Path | None = None
-) -> dict[str, Any]:
+        output_dir: Path
+) -> Dict:
     """
     通过自然语言查询进行选股（A股/港股/美股）、选板块、选基金；
     使用 MCP 股票基金筛选工具，将返回的 datalist 按 columns 转为中文列名 CSV 并生成描述文件。
@@ -209,16 +231,14 @@ async def query_MX_StockPick(
     Args:
         query: 自然语言查询，如「股价大于1000元的股票」「港股科技龙头」「新能源板块」「白酒主题基金」
         selectType: 选股指定标的类型，格式：A股、港股、美股、基金、ETF、可转债、板块
-        output_dir: 保存 CSV 和描述文件的目录；默认 workspace/MX‑StockPick
+        output_dir: 保存 CSV 和描述文件的目录；默认 workspace/MX_StockPick
 
     Returns:
         包含 csv_path, description_path, row_count, query，selectType；若失败则含 error。
     """
-    output_dir = output_dir or Path(os.environ.get("MX‑StockPick_OUTPUT_DIR", str(DEFAULT_OUTPUT_DIR)))
-    output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    result: dict[str, Any] = {
+    result = {
         "csv_path": None,
         "description_path": None,
         "row_count": 0,
@@ -228,28 +248,35 @@ async def query_MX_StockPick(
 
     try:
         raw = await mcp_single_call_v2(
-            TOOL_NAME,
             {"query": query, "selectType": selectType},
         )
     except Exception as e:
         result["error"] = f"MCP 调用失败: {e!s}"
         return result
 
-    if not raw or not isinstance(raw, dict):
+    if not raw or not isinstance(raw, Dict):
         result["error"] = "MCP 返回为空或非 JSON 对象"
         result["raw_preview"] = str(raw)[:500] if raw else ""
         return result
 
-    # 使用 datalist（全量），兼容不同命名；若无则回退到解析 partialResults 表格字符串
-    dataList = raw.get("allResults", {}).get("result", {}).get("dataList", [])
+    # 使用 datalist（全量），兼容 allResults/result 为 None 的场景
+    all_results = raw.get("allResults")
+    if not isinstance(all_results, dict):
+        all_results = {}
+    result_node = all_results.get("result")
+    if not isinstance(result_node, dict):
+        result_node = {}
+
+    # 若无 datalist 则回退到解析 partialResults 表格字符串
+    dataList = result_node.get("dataList", [])
     if not isinstance(dataList, list):
         dataList = []
 
-    columns = raw.get("allResults", {}).get("result", {}).get("columns", [])
+    columns = result_node.get("columns", [])
     if not isinstance(columns, list):
         columns = []
 
-    rows: list[dict[str, str]] = []
+    rows = []
     data_source = ""
 
     if dataList:
@@ -269,6 +296,11 @@ async def query_MX_StockPick(
             result["error"] = "无符合问句要求的"+selectType
         else:
             result["error"] = "返回中无有效 datalist 且 partialResults 无法解析或为空"
+        return result
+
+    rows = _drop_columns_for_sector(rows, selectType)
+    if not rows:
+        result["error"] = "过滤板块字段后无可输出数据"
         return result
 
     fieldnames = list(rows[0].keys())
@@ -316,7 +348,7 @@ def run_cli() -> None:
                         help='选股指定标的类型', required=True)
     args = parser.parse_args()
 
-    print(f"选股问句: {args.query}，选股类型: {args.selectType}")
+    print(f"Query: {args.query}，SelectType: {args.selectType}")
 
     if not args.query:
         print("用法: python -m scripts.get_data --query \"查询文本\" --select-type \"查询领域\"")
@@ -325,7 +357,7 @@ def run_cli() -> None:
 
     async def _main() -> None:
         out_dir = Path(os.environ.get("MX_StockPick_OUTPUT_DIR", str(DEFAULT_OUTPUT_DIR)))
-        r = await query_MX_StockPick(args.query, output_dir=out_dir, selectType=args.selectType)
+        r = await query_MX_StockPick(args.query, args.selectType, output_dir=out_dir)
         if "error" in r:
             print(f"错误: {r['error']}", file=sys.stderr)
             if "raw_preview" in r:
@@ -335,11 +367,16 @@ def run_cli() -> None:
         print(f"描述: {r['description_path']}")
         print(f"行数: {r['row_count']}")
 
-    asyncio.run(_main())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    try:
+        loop.run_until_complete(_main())
+    finally:
+        loop.close()
 
 
 # MCP 调用函数
-async def mcp_single_call_v2(tool_name, arguments):
+async def mcp_single_call_v2(arguments):
     """MCP 异步调用函数"""
 
     query = arguments.get("query", "")

@@ -1,0 +1,11 @@
+{
+  "owner": "scottrao635-svg",
+  "slug": "multi-bot-dedup",
+  "displayName": "多机器人去重消息",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773668105960,
+    "commit": null
+  },
+  "history": []
+}

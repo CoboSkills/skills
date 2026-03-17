@@ -3,7 +3,7 @@
 ## Default base
 
 - Default mother image comes from **Halfire Labs**.
-- The bundled default file is `assets/default-mother-image.jpg`.
+- The bundled default file is `assets/default-mother-image.png`.
 - Use it automatically unless the user explicitly asks to replace it.
 - The default mother image is the main stability anchor for avatar generation.
 - Keep the bundled default mother image as a square, non-stretched avatar reference whenever possible.
@@ -21,6 +21,8 @@
 - no physical mouth
 - no open mouth
 - no antennae by default
+- no biological face parts should appear outside the screen face
+- claws must never be replaced by hands or humanoid arms
 
 ## Asset protection rule
 

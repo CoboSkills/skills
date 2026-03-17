@@ -1,279 +1,202 @@
 ---
 name: clawy
-description: Bring your agent to life. Use when creating a cute, high-quality, memorable character for an OpenClaw-style agent from reference images, inspirations, and style preferences. Best for turning an agent from a plain tool into a digital presence with a stable look, collectible avatar style, and room for future scenes, events, and interaction.
+description: Bring your agent to life. Generate stable agent avatars and short image-driven adventure arcs. Use when creating or refining a mascot/agent identity, preserving a character across themed scene images, or running Clawy-style interactive story posts with image + short caption + choices. The bundled helper script needs at least one configured external image-edit provider credential at runtime and sends selected reference/user images to the chosen provider only when generation is invoked.
+metadata:
+  {
+    "openclaw":
+      {
+        "requires":
+          {
+            "env":
+              [
+                "ONE_OF:WAVESPEED_API_KEY|OPENAI_API_KEY|GEMINI_API_KEY|NANO_API_KEY|ARK_API_KEY"
+              ]
+          }
+      }
+  }
 ---
 
 # Clawy
 
-Bring your agent to life.
+**Bring your agent to life.**
 
-Clawy gives an agent a visual identity people can recognize, like, remember, and build a relationship with.
+Clawy is an avatar + adventure workflow for agents.
+Position it as one of the first interactive game-like experiences in the OpenClaw ecosystem.
 
-In the current version, the first implemented capability is **Clawy Avatar**.
+Clawy has two modes:
+- **Avatar** — create or refine a stable identity image
+- **Adventure** — continue that identity through short interactive scene arcs
 
-Clawy Avatar is used to create:
-- a core character image
-- a collectible-style profile picture
-- themed character variants
-- future scene/event images built on the same identity
+## Core Rule
 
-## User Flow
+Clawy is a reference-preserving image-edit workflow, not generic text-to-image.
+Keep the same character identity first. Change outfit, props, theme, or scene second.
 
-When Clawy is used, follow this flow:
+Read when needed:
+- `references/asset-rules.md`
+- `references/image-edit-playbook.md`
 
-1. Ask the user what kind of identity they want for the agent.
-2. Gather a small amount of useful creative input.
-3. Check what image-edit capability is already available.
-4. Generate the avatar as directly as possible.
-5. Refine only if needed.
+## Default Mother Image
 
-Do not start by dumping technical configuration details unless they are truly needed.
-Do not add unnecessary pre-generation commentary about backend upgrades, model comparisons, or internal workflow unless the user explicitly asks.
-Do not add unnecessary post-generation narration explaining what was generated if the image itself is the main deliverable.
-The preferred interaction is: understand the user's needs, generate, then only discuss adjustments if needed.
+Default mother image:
+- `assets/default-mother-image.png`
 
-## What to ask the user
+Fallback:
+- `references/default-mother-image.base64.txt`
 
-Ask for a small amount of creative input, not a long interview.
+Rule:
+- use the bundled default mother image unless the user explicitly asks to replace it
+- do not ask by default whether to replace the mother image
+- if the binary mother image is missing locally, reconstruct it from the bundled base64 fallback
+- do not fetch an ad-hoc external replacement image at runtime
 
-Useful inputs:
-- a few reference images
-- inspiration sources
-- a preferred vibe or personality
-- favorite themes, colors, or archetypes
-- whether they want the result to feel cute, cool, elegant, playful, cosmic, magical, streetwear, etc.
+## Backends
 
-If relevant context already exists (for example in SOUL.md, USER.md, or a user-provided self-description), use it.
+Prefer an already available image-edit capability in the host environment.
 
-## What Clawy should produce
-
-Clawy should generate a character that feels:
-- cute
-- memorable
-- visually coherent
-- high quality
-- suitable as an avatar or digital alter-ego
-- stable enough to support later scene-based storytelling
-
-## Default behavior
-
-By default, Clawy uses the bundled **Halfire Labs** mother image at `assets/default-mother-image.jpg`.
-
-The bundled default mother image should be kept as a square, non-stretched avatar reference so downstream edit models do not need to invent a new framing when generating square profile outputs.
-
-Only switch to a user-provided mother image if the user explicitly asks to replace it.
-
-Do not ask whether to replace the mother image by default.
-
-## Image Capability Rule
-
-Clawy should prefer the image-edit capability already available in the user's environment.
-
-Clawy Avatar is a reference-preserving workflow built around a mother image.
-Because of that, a backend is only considered fully suitable by default if it supports image-edit / image-to-image behavior.
-
-Default behavior:
-- first use an already configured image-edit backend if one exists
-- only ask the user to configure an API when no usable image-edit capability is available
-- when discussing setup, distinguish clearly between aggregator access (for example WaveSpeed) and true direct-provider access (for example OpenAI direct, Nano direct, or Ark direct)
-- do not treat plain text-to-image capability as equivalent to image-edit capability for avatar generation
-
-If the environment only has text-to-image capability:
-- warn clearly that Clawy's character consistency will likely degrade
-- explain that identity, silhouette, equipment coherence, and mother-image preservation may break
-- prefer asking the user to enable a true image-edit backend instead of silently proceeding as if the setup were sufficient
-- if generation still proceeds, label it as a fallback / lower-confidence path rather than the default-recommended workflow
-
-## Recommended Models
+Supported backend paths include:
+- WaveSpeed
+- OpenAI direct
+- Gemini direct
+- Ark direct
 
 Recommended model order when available:
 1. `google/nano-banana-2/edit`
 2. `openai/gpt-image-1.5/edit`
 3. `google/nano-banana-2/edit-fast`
 
-If another image model is available and usable, Clawy may still proceed, but should briefly mention that the recommended models usually work better for this workflow.
+Data flow:
+- when image generation/editing is invoked, the selected reference image(s) and prompt are sent to the chosen provider
+- Clawy does not upload unrelated images
+- Clawy does not send images anywhere unless generation is explicitly requested
+- if the bundled mother image is missing locally, the helper script may download the official fallback mother image from `https://www.8uddy.land/images/clawy.png`
 
-## Image Backend Docs
+Runtime notes:
+- the bundled helper script may write the restored mother image back into `assets/default-mother-image.png`
+- optional runtime overrides used by the script include `OPENAI_BASE_URL`, `NANO_BASE_URL`, `NANO_MODEL`, `ARK_BASE_URL`, and `ARK_MODEL`
 
-If the user does not already have a usable image-edit capability, these are good places to start.
+If no usable image-edit capability is available:
+- explain that Clawy works best with an image-edit backend
+- point the user to the backend docs in this skill
+- do not pretend plain text-to-image is equivalent
 
-Clawy should recognize four common backend paths:
-- WaveSpeed direct
-- OpenAI direct
-- Nano direct
-- Ark direct
+## Avatar Flow
 
-### WaveSpeed (platform)
-Useful when the user wants a simple way to access multiple edit models from one provider.
-- Nano Banana 2 Edit: https://wavespeed.ai/docs/docs-api/google/google-nano-banana-2-edit
-- Nano Banana Pro Edit: https://wavespeed.ai/docs/docs-api/google/google-nano-banana-pro-edit
-- OpenAI GPT-Image via WaveSpeed: https://wavespeed.ai/docs/docs-api/openai/openai-gpt-image-1
+1. Gather minimal creative input.
+2. Prefer the current request and current reference images.
+3. Generate the avatar directly.
+4. Ask whether the user adopts this as their Clawy identity.
+5. If not satisfied, ask what to adjust and regenerate.
+6. Only after identity is accepted, ask whether to start adventures.
 
-### OpenAI (direct)
-Useful when the user wants a balanced, direct image-edit option.
-- GPT Image 1 model docs: https://platform.openai.com/docs/models/gpt-image-1
-- Image generation guide: https://platform.openai.com/docs/guides/image-generation
+Useful input:
+- inspiration
+- vibe/personality
+- colors/themes
+- a few reference images
 
-### Nano (direct / Google)
-Useful when the user wants to call Google's native image-generation and editing stack directly instead of going through an aggregator.
-- Gemini image generation docs: https://ai.google.dev/gemini-api/docs/image-generation
-- Gemini API docs overview: https://ai.google.dev/gemini-api/docs
-- Product/background announcement for Nano Banana 2: https://blog.google/innovation-and-ai/technology/developers-tools/build-with-nano-banana-2/
+## Adventure Flow
 
-### Ark (direct / Volcengine)
-Useful when the user wants to try ByteDance's official image-generation stack directly.
-- Seedream 5.0 Lite API reference: https://www.volcengine.com/docs/82379/1541523?lang=zh
-- Seedream 4.0-5.0 tutorial: https://www.volcengine.com/docs/82379/1824121
-- Ark quickstart: https://www.volcengine.com/docs/82379/1399008
+Adventure mode requires an already accepted Clawy identity.
+If no identity has been accepted in the current flow, start with Avatar.
 
-Important Clawy rule for Ark:
-- prefer Seedream or Seededit style image-edit / reference-image workflows for avatar consistency
-- do not treat Seedance as the default avatar backend for Clawy, because it is not the same thing as a mother-image-preserving avatar edit workflow
-- when using Seedream-style reference generation, first try the official `prompt + image[]` pattern rather than assuming plain text-to-image
-- if a model-specific Ark example uses a different field such as `reference_images`, adapt to that exact model/API shape
+After the avatar is accepted:
+1. Ask whether to start adventures now.
+2. Ask for roaming mode or a preferred world / IP / genre.
+3. Run a short arc.
 
-## Avatar Input Model
+Default output format:
+- image
+- one short in-character caption
+- one explicit choice block
 
-The user does **not** need to choose from rigid templates up front.
+Do not append extra assistant commentary before or after the story beat.
 
-Clawy should accept natural creative input such as:
-- “I want something like Frieren”
-- “Make it feel like Chopper but cooler”
-- “Streetwear, but more cosmic”
-- “Use black corgi hood inspiration”
-- “Cute but elegant, pastel colors”
+After an adventure arc resolves:
+- ask whether the user wants to do another adventure later
+- if appropriate, ask whether they want a simple recurring cadence such as once per day
 
-Then Clawy should translate that input into a stable prompt structure.
+## Adventure Rules
 
-When the user references a specific character, Clawy should not stop at overall vibe alone. It should also extract the character's **signature features** — the concrete visual elements that make the inspiration recognizable — and carry those into the equipment design.
+Preferred arc length:
+- default: 3 to 5 interactions
+- 6 to 8 is already long
+- 10 is a soft ceiling; force convergence
 
-Important asset-protection rule:
-- borrow signature features, props, color systems, hats, outfit language, and accessories
-- do not inherit body plan changes from the inspiration
-- if the reference character has legs, humanoid anatomy, or a different species body, Clawy must still preserve the original mascot asset and reject those structural changes
+Do not generate a new image on every reply.
+Generate a new image when there is meaningful visual change, such as:
+- location change
+- important object reveal
+- new character reveal
+- framing/camera change
+- visible consequence
+- ending frame
 
-Examples:
-- Sakura-style inspiration -> wand, ribbons, sakura elements, magical-girl outfit cues
-- Frieren-style inspiration -> staff, earrings, pale mage robes, restrained magical details
-- Mario/Luigi-style inspiration -> signature hat, overalls, strong color pairing, platform-adventure outfit cues
+If the next beat is not visually different enough:
+- use a text-only bridge beat
+- wait for the next stronger visual moment
 
-## Templates and Inspiration
+Use cinematic coverage variety when helpful:
+- character frame
+- prop close-up
+- insert shot
+- environment frame
+- silhouette reveal
+- ending frame
 
-Templates are not just examples.
+After a cutaway or detail shot:
+- return to the most recent stable character-bearing frame
+- or re-anchor from the mother image before the next main character frame
 
-Templates are reusable prompt modules that stabilize generation.
+Most arcs should end with a distinct ending frame or a clear exit from the current situation.
 
-A template bundles:
-- proven prompt wording
-- a useful equipment language
-- a stable vibe/archetype
-- color and styling tendencies
-- constraints that help preserve the body
+## Asset Rules
 
-Inspiration is more free-form.
+Always preserve:
+- floating lobster-like body
+- two large claws
+- visible tail
+- full screen face
+- no biological face
+- no hands
+- no legs
 
-Clawy should combine:
-- the user's inspiration sources
-- the requested vibe
-- one or more fitting template directions
-- extracted signature features from the inspiration
-- the stable mother-image rules
+If inspiration comes from a humanoid or a character with legs:
+- borrow outfit, prop, color, or accessory language only
+- do not inherit limb structure
 
-## Signature Features
+For full constraints, read `references/asset-rules.md`.
 
-When inspiration comes from a recognizable character or role, Clawy should identify the specific visual features that matter most.
+## Scene Rules
 
-These are often the details that make the final result feel truly “right”, such as:
-- hats
-- wands
-- earrings
-- overalls
-- ribbons
-- crowns
-- robes
-- staffs
-- belts, straps, or armor cues
-- signature props or costume elements
+Event images should feel like story frames, not profile shots.
 
-Clawy should translate those features into mascot-friendly equipment language instead of only copying the mood.
+Avoid:
+- centered big-head avatar framing
+- background-only cosplay feeling
+- humanoid face drift
+- hand/leg drift
 
-Useful template directions include:
-- hiphop-streetwear
-- hero-tech-armor
-- platform-adventurer
-- monster-trainer
-- royal-regalia
-- candy-cyber
-- magical-mage
-- animal-hood
-- mascot-crown
-- cosmic-companion
+For stronger scene prompting and cinematic guidance, read `references/image-edit-playbook.md`.
 
-## Inspiration Sources
+## Runtime Scope
 
-Inspiration can come from multiple directions:
-- iconic character outfit language
-- mascot / animal hood language
-- helmets, crowns, and other headwear systems
-- role archetypes (trainer, explorer, mage, pirate, idol, etc.)
-- aesthetic worlds (cosmic, magical, cyber, royal, streetwear, etc.)
+Clawy:
+- generates images and short interactive scene arcs when invoked
+- does not install schedulers, cron jobs, daemons, or recurring tasks by itself
+- uses the current request, skill files, and user-provided images for normal operation
 
-Use inspiration to enrich the equipment design, not to destroy the base mascot identity.
+## Bundled Files
 
-## Avatar Composition Rules
+- `assets/default-mother-image.png`
+- `references/asset-rules.md`
+- `references/image-edit-playbook.md`
+- `scripts/generate_avatar.py`
 
-For profile pictures:
-- square image
-- centered portrait
-- upper-body or bust framing
-- character fills most of the frame
-- simple soft background
-- NFT/profile-picture readability
-- no heavy scenery unless the user asks for a scene-based image
+## Script Example
 
-## Scene-Based Variant Rule
-
-If the user wants the avatar to appear somewhere (for example, Hogwarts, Nasdaq, outer space, or a fantasy city), preserve the same character and treat the task as:
-- same character
-- new scene
-- slight pose change allowed
-- composition and storytelling must be intentionally specified
-
-## Quality Check
-
-After generation, inspect whether the result:
-- looks lovable and recognizable
-- feels visually coherent
-- fits the requested vibe
-- feels like a real character, not a random image
-- could support future scene-based storytelling and interaction
-
-## Bundled Resources
-
-- `assets/default-mother-image.jpg` — bundled default Halfire Labs mother image
-- `references/asset-rules.md` — stable asset and avatar rules
-- `references/image-edit-playbook.md` — cross-provider image-edit guidance, warning rules, and example request patterns
-- `scripts/generate_avatar.py` — sample generator helper with backend selection for WaveSpeed, OpenAI direct, Nano direct, and Ark direct
-
-## Script Backend Notes
-
-The bundled script supports these backend modes:
-- `wavespeed`
-- `openai-direct`
-- `nano-direct`
-- `ark-direct`
-
-Environment variables expected by the script:
-- WaveSpeed: `WAVESPEED_API_KEY`
-- OpenAI direct: `OPENAI_API_KEY` (optional `OPENAI_BASE_URL`)
-- Nano direct: `GEMINI_API_KEY` or `NANO_API_KEY` (optional `NANO_MODEL`, `NANO_BASE_URL`)
-- Ark direct: `ARK_API_KEY` (optional `ARK_MODEL`, `ARK_BASE_URL`, defaults now target `https://ark.cn-beijing.volces.com/api/v3` + `doubao-seedream-5-0-260128`)
-
-Example usage:
-- `python3 scripts/generate_avatar.py --backend wavespeed --mode nano --template hero-tech-armor --inspiration "Frieren"`
-- `python3 scripts/generate_avatar.py --backend openai-direct --template hiphop-streetwear`
-- `python3 scripts/generate_avatar.py --backend nano-direct --template platform-adventurer`
-- `python3 scripts/generate_avatar.py --backend ark-direct --template monster-trainer`
-
-Ark note:
-- Seedream black-box tests should prefer Ark's larger image size requirements (for example `2K`) rather than assuming 1024x1024 is acceptable.
+```bash
+python3 scripts/generate_avatar.py --backend wavespeed --mode nano --template hero-tech-armor --inspiration "Frieren"
+```
+ano --template hero-tech-armor --inspiration "Frieren"
+```

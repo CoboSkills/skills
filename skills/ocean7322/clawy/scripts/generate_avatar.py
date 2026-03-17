@@ -54,7 +54,15 @@ ALL_MODE_CHOICES = ["nano", "openai", "fast", "auto"]
 
 
 def default_mother_image() -> Path:
-    return Path(__file__).resolve().parent.parent / "assets" / "default-mother-image.jpg"
+    skill_dir = Path(__file__).resolve().parent.parent
+    asset_path = skill_dir / "assets" / "default-mother-image.png"
+    if asset_path.exists():
+        return asset_path
+
+    asset_path.parent.mkdir(parents=True, exist_ok=True)
+    fallback_url = "https://www.8uddy.land/images/clawy.png"
+    asset_path.write_bytes(http_get_bytes(fallback_url))
+    return asset_path
 
 
 def guess_mime(path: Path) -> str:

@@ -3,11 +3,16 @@
   "slug": "ai-cost-calculator",
   "displayName": "Ai Cost Calculator",
   "latest": {
-    "version": "1.0.42",
-    "publishedAt": 1773631823391,
-    "commit": "https://github.com/openclaw/skills/commit/aa37507cb68852f36172fb8d3ede959b99772c4b"
+    "version": "1.2.3",
+    "publishedAt": 1773649829523,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.42",
+      "publishedAt": 1773631823391,
+      "commit": "https://github.com/openclaw/skills/commit/aa37507cb68852f36172fb8d3ede959b99772c4b"
+    },
     {
       "version": "1.5.1",
       "publishedAt": 1773594341629,

@@ -26,7 +26,7 @@ $env:JISU_API_KEY="your_appkey_here"
 
 ## 脚本路径
 
-脚本文件：`skill/qrcode/qrcode.py`
+脚本文件：`skills/qrcode/qrcode.py`
 
 ## 使用方式
 
@@ -39,7 +39,7 @@ $env:JISU_API_KEY="your_appkey_here"
 ### 1. 二维码生成（/qrcode/generate）
 
 ```bash
-python3 skill/qrcode/qrcode.py generate '{
+python3 skills/qrcode/qrcode.py generate '{
   "text": "https://www.jisuapi.com/api/sms",
   "width": 300,
   "tempid": 1,
@@ -73,7 +73,7 @@ python3 skill/qrcode/qrcode.py generate '{
 ### 2. 二维码识别（/qrcode/read）
 
 ```bash
-python3 skill/qrcode/qrcode.py read '{
+python3 skills/qrcode/qrcode.py read '{
   "qrcode": "https://api.jisuapi.com/qrcode/static/images/sample/1.png"
 }'
 ```
@@ -93,7 +93,7 @@ python3 skill/qrcode/qrcode.py read '{
 ### 3. 获取二维码模板样例（/qrcode/template）
 
 ```bash
-python3 skill/qrcode/qrcode.py template '{}'
+python3 skills/qrcode/qrcode.py template '{}'
 ```
 
 返回字段：

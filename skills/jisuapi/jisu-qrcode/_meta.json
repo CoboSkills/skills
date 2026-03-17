@@ -3,9 +3,15 @@
   "slug": "jisu-qrcode",
   "displayName": "二维码生成识别 - QR Code Generation And Recognition",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773395913561,
-    "commit": "https://github.com/openclaw/skills/commit/83a6612537e0275ddb16cd48542595875513058c"
+    "version": "1.0.1",
+    "publishedAt": 1773641066537,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773395913561,
+      "commit": "https://github.com/openclaw/skills/commit/83a6612537e0275ddb16cd48542595875513058c"
+    }
+  ]
 }

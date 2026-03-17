@@ -3,9 +3,15 @@
   "slug": "youtube-memberships-level",
   "displayName": "YouTube Memberships Level",
   "latest": {
-    "version": "0.10.6-3",
-    "publishedAt": 1773331711803,
-    "commit": "https://github.com/openclaw/skills/commit/035e0091c6f8b6762601d404ad2fa1339f80df92"
+    "version": "0.10.7-dev",
+    "publishedAt": 1773497065788,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.10.6-3",
+      "publishedAt": 1773331711803,
+      "commit": "https://github.com/openclaw/skills/commit/035e0091c6f8b6762601d404ad2fa1339f80df92"
+    }
+  ]
 }

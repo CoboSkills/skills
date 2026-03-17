@@ -1,0 +1,11 @@
+{
+  "owner": "biocrfhkust-cloud",
+  "slug": "self-improving-agent-2",
+  "displayName": "Self Improvement",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1773624786876,
+    "commit": null
+  },
+  "history": []
+}

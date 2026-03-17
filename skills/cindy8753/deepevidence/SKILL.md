@@ -87,7 +87,7 @@ When you present DeepEvidence output to the user, you MUST produce a **structure
 
 If the user asks to integrate DeepEvidence into an app, use standard OpenAI SDKs with:
 
-- **Base URL**：`https://deepevidence.cn/api/v1`
+- **Base URL**：`https://deepevid.medsci.cn/`
 - **Model**：`deepevidence-agent-v1` (fixed value; do not invent other model names)
 - **API key**: read from `DEEPEVIDENCE_API_KEY`
 - **Logging/observability**: log only minimal metadata (latency, status, token usage); avoid logging patient-identifiable or sensitive content
@@ -100,7 +100,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key=os.environ["DEEPEVIDENCE_API_KEY"],
-    base_url="https://deepevidence.cn/api/v1",
+    base_url="https://deepevid.medsci.cn/",
 )
 
 resp = client.chat.completions.create(
@@ -184,7 +184,7 @@ Choose one strategy:
 Minimal HTTP API example (curl):
 
 ```bash
-curl https://deepevidence.cn/api/v1/chat/completions \
+curl https://deepevid.medsci.cn//chat/completions \
   -H "Authorization: Bearer $DEEPEVIDENCE_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{

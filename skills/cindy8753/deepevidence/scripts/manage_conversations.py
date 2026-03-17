@@ -14,7 +14,7 @@ Usage:
 
 Environment:
     DEEPEVIDENCE_API_KEY    Required. API key for authentication.
-    DEEPEVIDENCE_BASE_URL   Optional. Default: https://deepevidence.cn/api/v1
+    DEEPEVIDENCE_BASE_URL   Optional. Default: https://deepevid.medsci.cn/
     DEEPEVIDENCE_USER_ID    Optional. Default external user ID.
 """
 
@@ -109,7 +109,7 @@ def get_config():
     if not api_key:
         print("Error: DEEPEVIDENCE_API_KEY environment variable is not set.")
         sys.exit(1)
-    base_url = os.environ.get("DEEPEVIDENCE_BASE_URL", "https://deepevidence.cn/api/v1")
+    base_url = os.environ.get("DEEPEVIDENCE_BASE_URL", "https://deepevid.medsci.cn/")
     user_id = os.environ.get("DEEPEVIDENCE_USER_ID")
     return api_key, base_url, user_id
 

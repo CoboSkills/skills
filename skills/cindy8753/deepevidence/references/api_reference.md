@@ -2,7 +2,7 @@
 
 Complete API specification for the DeepEvidence OpenAI-compatible interface.
 
-**Base URL**: `https://deepevidence.cn/api/v1`
+**Base URL**: `https://deepevid.medsci.cn/`
 
 ---
 

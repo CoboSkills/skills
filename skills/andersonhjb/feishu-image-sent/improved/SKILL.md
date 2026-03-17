@@ -3,7 +3,7 @@
 **智能图片发送工具，支持系统截图、本地图片发送，自动处理大图片压缩和双版本发送。**
 
 ## 📌 技能位置
-**管理目录**: `/Users/bornforthis/.openclaw/workspace/skills/feishu-image-sender/improved/`
+**管理目录**: `/Users/bornforthis/.openclaw/skills/feishu-image-sender/improved/`
 
 ## 🚀 新增功能
 
@@ -141,7 +141,7 @@ feishu-image-sender/improved/
 │   ├── interactive.sh     # 交互式截图脚本
 │   └── utils.py           # 工具函数
 ├── config/                 # 配置目录
-│   └── settings.conf      # 配置文件
+│   └── settings.sh      # 配置文件
 └── examples/               # 示例目录
     ├── small_image.png     # 小图片示例
     ├── medium_image.jpg    # 中等图片示例
@@ -160,7 +160,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UTILS_FILE="$SCRIPT_DIR/utils.py"
 
 # 加载配置
-source "$SCRIPT_DIR/config/settings.conf"
+source "$SCRIPT_DIR/config/settings.sh"
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 TEMP_FILE="/tmp/screenshot_${TIMESTAMP}.png"
@@ -427,7 +427,7 @@ if __name__ == "__main__":
 
 ## ⚙️ 配置文件
 
-### settings.conf
+### settings.sh
 
 ```bash
 # 飞书图片发送配置

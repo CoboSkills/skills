@@ -6,7 +6,7 @@ set -e
 # 获取脚本所在目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UTILS_FILE="$SCRIPT_DIR/../utils.py"
-CONFIG_FILE="$SCRIPT_DIR/../config/settings.conf"
+CONFIG_FILE="$SCRIPT_DIR/../config/settings.sh"
 
 # 加载配置
 if [ -f "$CONFIG_FILE" ]; then

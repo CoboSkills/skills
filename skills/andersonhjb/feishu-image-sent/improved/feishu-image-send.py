@@ -14,7 +14,7 @@ from pathlib import Path
 # 获取脚本所在目录
 SCRIPT_DIR = Path(__file__).parent
 UTILS_FILE = SCRIPT_DIR / "utils.py"
-CONFIG_FILE = SCRIPT_DIR / "config" / "settings.conf"
+CONFIG_FILE = SCRIPT_DIR / "config" / "settings.sh"
 
 def load_config():
     """加载配置文件"""

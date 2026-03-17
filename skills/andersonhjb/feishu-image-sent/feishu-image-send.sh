@@ -14,8 +14,8 @@ fi
 
 # 获取文件大小 (字节)
 FILE_SIZE=$(stat -f%z "$IMAGE_PATH")
-# 设置大小阈值，例如 5MB = 5242880 字节
-THRESHOLD=5242880
+# 设置大小阈值，飞书图片最大限制为 10MB = 10485760 字节
+THRESHOLD=10485760
 
 FILENAME=$(basename "$IMAGE_PATH")
 WORKSPACE_PATH="/Users/bornforthis/.openclaw/workspace/$FILENAME"

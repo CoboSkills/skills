@@ -3,9 +3,15 @@
   "slug": "nostrwalletconnect",
   "displayName": "NostrWalletConnect",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1773431794731,
-    "commit": "https://github.com/openclaw/skills/commit/3d839383855451258633b80d02460e1fc20f5e3c"
+    "version": "0.1.2",
+    "publishedAt": 1773700511087,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1773431794731,
+      "commit": "https://github.com/openclaw/skills/commit/3d839383855451258633b80d02460e1fc20f5e3c"
+    }
+  ]
 }

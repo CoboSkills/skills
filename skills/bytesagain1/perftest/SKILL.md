@@ -1,7 +1,7 @@
 ---
 name: PerfTest
 description: "Performance testing and benchmarking tool. Measure command execution time, benchmark disk IO, test network throughput, compare command performance, and generate reports."
-version: "1.0.0"
+version: "2.0.0"
 author: "BytesAgain"
 tags: ["benchmark","performance","speed","test","profiling"]
 categories: ["Developer Tools", "Utility"]

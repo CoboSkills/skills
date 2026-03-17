@@ -1,52 +1,52 @@
 ---
 name: rqalpha
-description: RQAlpha — open-source event-driven backtesting framework by RiceQuant, supporting A-shares and futures with modular architecture.
-version: 1.0.0
+description: RQAlpha 米筐开源事件驱动回测框架 - 支持A股和期货，模块化架构，可自由扩展。
+version: 1.1.0
 homepage: https://github.com/ricequant/rqalpha
 metadata: {"clawdbot":{"emoji":"🍚","requires":{"bins":["python3"]}}}
 ---
 
-# RQAlpha (RiceQuant Backtesting Framework)
+# RQAlpha（米筐开源回测框架）
 
-[RQAlpha](https://github.com/ricequant/rqalpha) is an open-source, event-driven backtesting framework developed by [RiceQuant](https://www.ricequant.com). It provides a complete solution for strategy development, backtesting, and paper trading for China A-shares and futures markets. Highly modular with a plugin (mod) system.
+[RQAlpha](https://github.com/ricequant/rqalpha) 是 [米筐科技](https://www.ricequant.com) 开发的开源事件驱动回测框架。提供A股和期货市场的策略开发、回测和模拟交易完整解决方案。高度模块化，支持插件（Mod）系统扩展。
 
 > Docs: https://rqalpha.readthedocs.io/
 
-## Installation
+## 安装
 
 ```bash
 pip install rqalpha
 
-# Download built-in bundle data (A-share daily data)
+# 下载内置数据包（A股日线数据）
 rqalpha download-bundle
 ```
 
-## Strategy Structure
+## 策略结构
 
 ```python
 def init(context):
-    """Called once at strategy start — set up subscriptions and parameters."""
+    """策略启动时调用一次 — 设置订阅和参数"""
     context.stock = '000001.XSHE'
     context.fired = False
 
 def handle_bar(context, bar_dict):
-    """Called on every bar — main trading logic."""
+    """每根K线调用 — 主要交易逻辑"""
     if not context.fired:
         order_shares(context.stock, 1000)
         context.fired = True
 
 def before_trading(context):
-    """Called before market open each day."""
+    """每个交易日开盘前调用"""
     pass
 
 def after_trading(context):
-    """Called after market close each day."""
+    """每个交易日收盘后调用"""
     pass
 ```
 
-## Running a Backtest
+## 运行回测
 
-### Command Line
+### 命令行
 
 ```bash
 rqalpha run \
@@ -86,74 +86,74 @@ print(result)
 
 ---
 
-## Symbol Format
+## 代码格式
 
-| Market | Suffix | Example |
+| 市场 | 后缀 | 示例 |
 |---|---|---|
-| Shanghai A-shares | `.XSHG` | `600000.XSHG` (SPDB) |
-| Shenzhen A-shares | `.XSHE` | `000001.XSHE` (Ping An Bank) |
-| Index | `.XSHG/.XSHE` | `000300.XSHG` (CSI 300) |
-| Futures | `.XSGE/.XDCE/.XZCE/.CCFX` | `IF2401.CCFX` (CSI 300 futures) |
+| 上海A股 | `.XSHG` | `600000.XSHG`（浦发银行） |
+| 深圳A股 | `.XSHE` | `000001.XSHE`（平安银行） |
+| 指数 | `.XSHG/.XSHE` | `000300.XSHG`（沪深300） |
+| 期货 | `.XSGE/.XDCE/.XZCE/.CCFX` | `IF2401.CCFX`（沪深300期货） |
 
 ---
 
-## Order Functions
+## 下单函数
 
 ```python
-# Buy/sell by share count
-order_shares('000001.XSHE', 1000)       # Buy 1000 shares
-order_shares('000001.XSHE', -500)       # Sell 500 shares
+# 按股数买卖
+order_shares('000001.XSHE', 1000)       # 买入1000股
+order_shares('000001.XSHE', -500)       # 卖出500股
 
-# Buy by lot (1 lot = 100 shares)
-order_lots('000001.XSHE', 10)           # Buy 10 lots (1000 shares)
+# 按手买入（1手=100股）
+order_lots('000001.XSHE', 10)           # 买入10手（1000股）
 
-# Buy by value
-order_value('000001.XSHE', 50000)       # Buy 50,000 CNY worth
+# 按金额买入
+order_value('000001.XSHE', 50000)       # 买入5万元
 
-# Buy by percentage of portfolio
-order_percent('000001.XSHE', 0.5)       # Buy 50% of portfolio value
+# 按组合比例买入
+order_percent('000001.XSHE', 0.5)       # 买入组合值50%的仓位
 
-# Target position
-order_target_value('000001.XSHE', 100000)   # Adjust to 100,000 CNY
-order_target_percent('000001.XSHE', 0.3)    # Adjust to 30% of portfolio
+# 目标仓位
+order_target_value('000001.XSHE', 100000)   # 调整到10万元
+order_target_percent('000001.XSHE', 0.3)    # 调整到组合的30%
 
-# Cancel order
+# 撤单
 cancel_order(order_id)
 ```
 
-## Data Query Functions
+## 数据查询函数
 
 ```python
 def handle_bar(context, bar_dict):
-    # Current bar data
+    # 当前K线数据
     bar = bar_dict['000001.XSHE']
     price = bar.close
     volume = bar.volume
     dt = bar.datetime
 
-    # Historical data (returns DataFrame)
+    # 历史数据（返回DataFrame）
     prices = history_bars('000001.XSHE', bar_count=20, frequency='1d',
                           fields=['close', 'volume', 'open', 'high', 'low'])
 
-    # Check if stock is tradable
+    # 检查股票是否可交易
     tradable = is_valid_price(bar.close)
 
-    # Check if suspended
+    # 检查是否停牌
     suspended = is_suspended('000001.XSHE')
 ```
 
-## Portfolio & Position
+## 投资组合与持仓
 
 ```python
 def handle_bar(context, bar_dict):
-    # Portfolio info
-    cash = context.portfolio.cash                    # Available cash
-    total = context.portfolio.total_value            # Total portfolio value
-    market_value = context.portfolio.market_value    # Position market value
-    pnl = context.portfolio.pnl                      # Total PnL
-    returns = context.portfolio.daily_returns        # Daily return
+    # 组合信息
+    cash = context.portfolio.cash                    # 可用资金
+    total = context.portfolio.total_value            # 总资产
+    market_value = context.portfolio.market_value    # 持仓市值
+    pnl = context.portfolio.pnl                      # 总盈亏
+    returns = context.portfolio.daily_returns        # 日收益率
 
-    # Position info
+    # 持仓信息
     positions = context.portfolio.positions
     for stock, pos in positions.items():
         print(f'{stock}: quantity={pos.quantity}, '
@@ -163,17 +163,17 @@ def handle_bar(context, bar_dict):
               f'pnl={pos.pnl:.2f}')
 ```
 
-## Scheduler
+## 定时调度
 
 ```python
 from rqalpha.api import *
 
 def init(context):
-    # Run function at specific time every trading day
+    # 每个交易日指定时间运行函数
     scheduler.run_daily(rebalance, time_rule=market_open(minute=5))
-    # Run weekly (every Monday)
+    # 每周运行（每周一）
     scheduler.run_weekly(weekly_task, tradingday=1, time_rule=market_open(minute=5))
-    # Run monthly (first trading day)
+    # 每月运行（首个交易日）
     scheduler.run_monthly(monthly_task, tradingday=1, time_rule=market_open(minute=5))
 
 def rebalance(context, bar_dict):
@@ -182,9 +182,9 @@ def rebalance(context, bar_dict):
 
 ---
 
-## Mod System (Plugins)
+## Mod系统（插件）
 
-RQAlpha's modular architecture allows extending functionality via mods:
+RQAlpha的模块化架构允许通过Mod扩展功能：
 
 ```python
 config = {
@@ -196,36 +196,36 @@ config = {
         },
         "sys_simulation": {
             "enabled": True,
-            "matching_type": "current_bar",    # Order matching: current_bar or next_bar
-            "slippage": 0.01,                  # Slippage (CNY)
+            "matching_type": "current_bar",    # 撮合方式：current_bar或next_bar
+            "slippage": 0.01,                  # 滑点（元）
         },
         "sys_transaction_cost": {
             "enabled": True,
-            "commission_rate": 0.0003,         # Commission rate
-            "tax_rate": 0.001,                 # Stamp tax (sell only)
-            "min_commission": 5,               # Minimum commission
+            "commission_rate": 0.0003,         # 手续费率
+            "tax_rate": 0.001,                 # 印花税（仅卖出）
+            "min_commission": 5,               # 最低手续费
         },
     },
 }
 ```
 
-### Available Built-in Mods
+### 可用内置Mod
 
-| Mod | Description |
+| Mod | 说明 |
 |---|---|
-| `sys_analyser` | Performance analysis and plotting |
-| `sys_simulation` | Order matching simulation |
-| `sys_transaction_cost` | Commission and tax calculation |
-| `sys_accounts` | Account management |
-| `sys_benchmark` | Benchmark tracking |
-| `sys_progress` | Progress bar display |
-| `sys_risk` | Risk management checks |
+| `sys_analyser` | 绩效分析和图表绘制 |
+| `sys_simulation` | 撮合模拟 |
+| `sys_transaction_cost` | 手续费和税费计算 |
+| `sys_accounts` | 账户管理 |
+| `sys_benchmark` | 基准追踪 |
+| `sys_progress` | 进度条显示 |
+| `sys_risk` | 风险管理检查 |
 
 ---
 
-## Advanced Examples
+## 进阶示例
 
-### Dual Moving Average Crossover Strategy
+### 双均线交叉策略
 
 ```python
 import numpy as np
@@ -260,7 +260,7 @@ def handle_bar(context, bar_dict):
     pass
 ```
 
-### Multi-Stock Equal-Weight Rebalancing
+### 多股等权重调仓
 
 ```python
 from rqalpha.api import *
@@ -271,12 +271,12 @@ def init(context):
     scheduler.run_monthly(rebalance, tradingday=1, time_rule=market_open(minute=30))
 
 def rebalance(context, bar_dict):
-    # Sell stocks not in target list
+    # 卖出不在目标列表中的股票
     for stock in list(context.portfolio.positions.keys()):
         if stock not in context.stocks:
             order_target_percent(stock, 0)
 
-    # Equal-weight allocation
+    # 等权分配
     weight = 0.95 / len(context.stocks)
     for stock in context.stocks:
         if not is_suspended(stock):
@@ -289,19 +289,162 @@ def handle_bar(context, bar_dict):
 
 ---
 
-## Tips
+## 使用技巧
 
-- RQAlpha is a local-only framework — no cloud dependency, ideal for offline research.
-- Use `rqalpha download-bundle` to get free built-in daily data for A-shares.
-- The mod system allows plugging in custom data sources, brokers, and risk modules.
-- For live trading, connect via `rqalpha-mod-vnpy` to use vn.py's broker gateways.
-- Supports both daily and minute-level backtesting.
+- RQAlpha是纯本地框架，无云端依赖，适合离线研究。
+- 使用 `rqalpha download-bundle` 获取免费内置A股日线数据。
+- Mod系统允许插入自定义数据源、券商接口和风控模块。
+- 实盘交易可通过 `rqalpha-mod-vnpy` 连接vn.py的券商网关。
+- 支持日线和分钟级回测。
 - Docs: https://rqalpha.readthedocs.io/
+
+## 常见错误处理
+
+| 错误 | 原因 | 解决方法 |
+|------|------|----------|
+| `Bundle not found` | 未下载数据包 | 运行 `rqalpha download-bundle` |
+| `Insufficient cash` | 可用资金不足 | 检查 `context.portfolio.cash` |
+| `Order Creation Failed: suspended` | 股票停牌 | 用 `is_suspended()` 提前检查 |
+| `No data for instrument` | 股票代码错误 | 检查代码格式（如 `.XSHG` / `.XSHE`） |
+
+## 绩效分析输出
+
+运行回测后，`sys_analyser` Mod会输出以下指标：
+
+| 指标 | 说明 |
+|------|------|
+| `total_returns` | 总收益率 |
+| `annualized_returns` | 年化收益率 |
+| `benchmark_total_returns` | 基准总收益率 |
+| `alpha` | Alpha值 |
+| `beta` | Beta值 |
+| `sharpe` | 夏普比率 |
+| `sortino` | Sortino比率 |
+| `max_drawdown` | 最大回撤 |
+| `tracking_error` | 跟踪误差 |
+| `information_ratio` | 信息比率 |
+| `volatility` | 波动率 |
+
+## 进阶示例：RSI均值回归策略
+
+```python
+import numpy as np
+from rqalpha.api import *
+
+def init(context):
+    context.stock = '000001.XSHE'
+    context.rsi_period = 14
+    context.oversold = 30
+    context.overbought = 70
+
+def handle_bar(context, bar_dict):
+    prices = history_bars(context.stock, context.rsi_period + 2, '1d', fields=['close'])
+    if len(prices) < context.rsi_period + 1:
+        return
+
+    closes = prices['close']
+    deltas = np.diff(closes)
+    gains = np.where(deltas > 0, deltas, 0)
+    losses = np.where(deltas < 0, -deltas, 0)
+    avg_gain = np.mean(gains[-context.rsi_period:])
+    avg_loss = np.mean(losses[-context.rsi_period:])
+
+    if avg_loss == 0:
+        rsi = 100
+    else:
+        rsi = 100 - 100 / (1 + avg_gain / avg_loss)
+
+    pos = context.portfolio.positions.get(context.stock)
+    has_pos = pos is not None and pos.quantity > 0
+
+    if rsi < context.oversold and not has_pos:
+        order_target_percent(context.stock, 0.9)
+        logger.info(f'RSI={rsi:.1f} 超卖买入')
+    elif rsi > context.overbought and has_pos:
+        order_target_percent(context.stock, 0)
+        logger.info(f'RSI={rsi:.1f} 超买卖出')
+```
+
+## 进阶示例：止损止盈策略
+
+```python
+from rqalpha.api import *
+import numpy as np
+
+def init(context):
+    context.stock = '600519.XSHG'
+    context.entry_price = 0
+    context.stop_loss = 0.05
+    context.take_profit = 0.15
+    scheduler.run_daily(trade, time_rule=market_open(minute=5))
+
+def trade(context, bar_dict):
+    bar = bar_dict[context.stock]
+    price = bar.close
+    prices = history_bars(context.stock, 21, '1d', fields=['close'])
+    ma20 = np.mean(prices['close'][-20:])
+
+    pos = context.portfolio.positions.get(context.stock)
+    has_pos = pos is not None and pos.quantity > 0
+
+    if not has_pos:
+        if price > ma20:
+            order_target_percent(context.stock, 0.9)
+            context.entry_price = price
+            logger.info(f'买入: price={price:.2f}, ma20={ma20:.2f}')
+    else:
+        if context.entry_price > 0:
+            pnl = (price - context.entry_price) / context.entry_price
+            if pnl <= -context.stop_loss:
+                order_target_percent(context.stock, 0)
+                logger.info(f'止损: pnl={pnl:.2%}')
+                context.entry_price = 0
+            elif pnl >= context.take_profit:
+                order_target_percent(context.stock, 0)
+                logger.info(f'止盈: pnl={pnl:.2%}')
+                context.entry_price = 0
+
+def handle_bar(context, bar_dict):
+    pass
+```
+
+## 进阶示例：期货双均线CTA策略
+
+```python
+import numpy as np
+from rqalpha.api import *
+
+def init(context):
+    context.symbol = 'IF2401.CCFX'
+    context.fast = 5
+    context.slow = 20
+
+def handle_bar(context, bar_dict):
+    prices = history_bars(context.symbol, context.slow + 1, '1d', fields=['close'])
+    if len(prices) < context.slow:
+        return
+
+    closes = prices['close']
+    fast_ma = np.mean(closes[-context.fast:])
+    slow_ma = np.mean(closes[-context.slow:])
+    prev_fast = np.mean(closes[-context.fast-1:-1])
+    prev_slow = np.mean(closes[-context.slow-1:-1])
+
+    pos = context.portfolio.positions.get(context.symbol)
+    long_qty = pos.buy_quantity if pos else 0
+
+    if prev_fast <= prev_slow and fast_ma > slow_ma and long_qty == 0:
+        buy_open(context.symbol, 1)
+        logger.info(f'开多: fast_ma={fast_ma:.2f} > slow_ma={slow_ma:.2f}')
+    elif prev_fast >= prev_slow and fast_ma < slow_ma and long_qty > 0:
+        sell_close(context.symbol, long_qty)
+        logger.info(f'平多: fast_ma={fast_ma:.2f} < slow_ma={slow_ma:.2f}')
+```
 
 ---
 
 ## 社区与支持
 
-由 **大佬量化 (Boss Quant)** 维护 — 量化交易教学与策略研发团队。
+由 **大佬量化 (BossQuant)** 维护 — 量化交易教学与策略研发团队。
 
-微信客服: **bossquant1** · [Bilibili](https://space.bilibili.com/48693330) · 搜索 **大佬量化** on 微信公众号 / Bilibili / 抖音
+微信客服: **bossquant1** · [Bilibili](https://space.bilibili.com/48693330) · 搜索 **大佬量化** — 微信公众号 / Bilibili / 抖音

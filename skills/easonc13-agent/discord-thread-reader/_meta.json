@@ -1,0 +1,11 @@
+{
+  "owner": "easonc13-agent",
+  "slug": "discord-thread-reader",
+  "displayName": "Discord Context",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773610755313,
+    "commit": null
+  },
+  "history": []
+}

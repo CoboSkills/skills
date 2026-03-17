@@ -1,0 +1,11 @@
+{
+  "owner": "topmediai",
+  "slug": "tts-topmediai",
+  "displayName": "TopMediai TTS",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773664198078,
+    "commit": null
+  },
+  "history": []
+}

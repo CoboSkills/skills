@@ -1,0 +1,11 @@
+{
+  "owner": "uiueux",
+  "slug": "comfyui-runninghub",
+  "displayName": "Run ComfyUI on Runninghub(e.g.photo-retouching)",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773543046973,
+    "commit": null
+  },
+  "history": []
+}

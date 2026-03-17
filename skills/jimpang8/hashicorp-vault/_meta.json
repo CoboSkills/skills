@@ -3,9 +3,15 @@
   "slug": "hashicorp-vault",
   "displayName": "HashiCorp Vault",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773509109759,
-    "commit": "https://github.com/openclaw/skills/commit/f600703e3a95913e9cf5079b559f2ffd48ce5e8e"
+    "version": "0.2.1",
+    "publishedAt": 1773548522353,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773509109759,
+      "commit": "https://github.com/openclaw/skills/commit/f600703e3a95913e9cf5079b559f2ffd48ce5e8e"
+    }
+  ]
 }

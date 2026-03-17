@@ -54,18 +54,18 @@ If `VAULT_ADDR` is missing, set it first:
 export VAULT_ADDR='https://vault.example.com'
 ```
 
-For Jim's local Vault, use the tested local endpoint:
+For a local lab Vault, an example endpoint is:
 
 ```bash
-export VAULT_ADDR='http://192.168.1.106:8200'
+export VAULT_ADDR='http://192.168.1.101:8200'
 vault status
 curl -s "$VAULT_ADDR/v1/sys/health"
 ```
 
-Notes for the local environment:
-- `http://192.168.1.106:8200` responded successfully.
-- `https://192.168.1.106:8200` returned a wrong-version TLS error, so this endpoint is HTTP, not HTTPS.
-- `vault.jimcom2.local` did not resolve from this runtime, so prefer the IP unless local DNS/mDNS is fixed.
+Notes:
+- Replace the example address with your actual Vault endpoint.
+- Some local test deployments use plain HTTP instead of HTTPS.
+- Prefer reading tokens from a local file or environment variable instead of echoing them in chat.
 
 Verify auth before assuming a path is missing:
 
@@ -90,6 +90,21 @@ If output is unclear, use JSON:
 vault kv get -format=json secret/my-app
 vault secrets list -format=json
 ```
+
+## Helper scripts
+
+This skill includes simple wrappers that auto-load local settings:
+
+```bash
+{baseDir}/scripts/vault-list.sh secret/openclaw
+{baseDir}/scripts/vault-get.sh secret/openclaw/openclaw-test
+{baseDir}/scripts/vault-put.sh secret/openclaw/demo status=ok source=openclaw
+```
+
+Behavior:
+- Defaults `VAULT_ADDR` to `http://192.168.1.101:8200`
+- Loads `VAULT_TOKEN` from `~/.vault-token` if not already exported
+- Uses `vault kv` commands for the common KV v2 workflow
 
 ## Write secrets
 

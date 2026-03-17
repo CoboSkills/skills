@@ -29,18 +29,16 @@ vault kv get -format=json secret/my-app
 
 ## Local endpoint example
 
-For Jim's local lab Vault from this runtime, the reachable endpoint is:
+For a local lab Vault, a generic example is:
 
 ```bash
-export VAULT_ADDR='http://192.168.1.106:8200'
+export VAULT_ADDR='http://192.168.1.101:8200'
 ```
 
-Observed behavior:
-- `http://192.168.1.106:8200/v1/sys/health` returned HTTP 200
-- `https://192.168.1.106:8200/v1/sys/health` failed with `wrong version number`
-- `vault.jimcom2.local` did not resolve here
-
-So prefer the IP + HTTP unless local name resolution is fixed.
+Notes:
+- Replace the example address with your actual Vault endpoint.
+- If HTTPS fails with a TLS version or certificate error, verify whether the server is actually serving plain HTTP.
+- If a hostname does not resolve, use a working IP or fix local DNS/mDNS.
 
 ## Useful write commands
 

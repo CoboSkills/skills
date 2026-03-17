@@ -1,0 +1,11 @@
+{
+  "owner": "ckchzh",
+  "slug": "geoip",
+  "displayName": "Geoip",
+  "latest": {
+    "version": "1.0.6",
+    "publishedAt": 1773663770728,
+    "commit": null
+  },
+  "history": []
+}

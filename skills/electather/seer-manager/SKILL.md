@@ -9,6 +9,16 @@ description: >-
 metadata:
   author: electather
   repo: https://github.com/electather/seer-cli
+env:
+  - name: SEER_SERVER
+    description: Full URL of your Seer instance (e.g. https://seer.example.com)
+    required: true
+  - name: SEER_API_KEY
+    description: API key for authenticating with the Seer server
+    required: true
+  - name: SEER_MCP_AUTH_TOKEN
+    description: Bearer token for authenticating MCP HTTP transport clients (required when running the HTTP server; omit for stdio transport)
+    required: false
 ---
 
 # seer-cli
@@ -17,11 +27,73 @@ CLI for interacting with a [Seer](https://github.com/seerr/app) media request ma
 
 ## Installation
 
+Download the latest release archive and checksum file from the [Releases page](https://github.com/electather/seer-cli/releases/latest), verify, and install:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/electather/seer-cli/main/install.sh | sh
+# Replace <os> and <arch> with your platform (linux/darwin, amd64/arm64)
+curl -fsSL https://github.com/electather/seer-cli/releases/latest/download/seer-cli_<version>_<os>_<arch>.tar.gz -o seer-cli.tar.gz
+curl -fsSL https://github.com/electather/seer-cli/releases/latest/download/seer-cli_<version>_checksums.txt -o checksums.txt
+grep seer-cli_<version>_<os>_<arch>.tar.gz checksums.txt | sha256sum -c
+tar -xzf seer-cli.tar.gz
+sudo mv seer-cli /usr/local/bin/
 ```
 
-Installs the latest stable release to `/usr/local/bin`. Supports Linux and macOS (amd64 / arm64).
+Supports Linux and macOS (amd64 / arm64).
+
+## Docker
+
+Run the MCP HTTP server in a container next to your Seer instance:
+
+```bash
+# With Bearer token auth
+docker run --rm \
+  -e SEER_SERVER=http://your-seer-instance:5055 \
+  -e SEER_API_KEY=your-api-key \
+  -e SEER_MCP_AUTH_TOKEN=your-secret-token \
+  -p 8811:8811 \
+  ghcr.io/electather/seer-cli:latest
+```
+
+MCP endpoint: `http://localhost:8811/mcp` — set `Authorization: Bearer your-secret-token` in your MCP client.
+
+For clients that cannot send custom headers (e.g. claude.ai remote MCP), use a secret path prefix:
+
+```bash
+docker run --rm \
+  -e SEER_SERVER=http://your-seer-instance:5055 \
+  -e SEER_API_KEY=your-api-key \
+  -e SEER_MCP_ROUTE_TOKEN=your-secret-path \
+  -e SEER_MCP_NO_AUTH=true \
+  -e SEER_MCP_CORS=true \
+  -p 8811:8811 \
+  ghcr.io/electather/seer-cli:latest
+```
+
+MCP endpoint: `http://localhost:8811/your-secret-path/mcp` — no auth header required.
+
+At least one of `SEER_MCP_AUTH_TOKEN`, `SEER_MCP_ROUTE_TOKEN`, or `SEER_MCP_NO_AUTH=true` must be set for HTTP transport.
+
+### docker-compose deployment
+
+Use the included `docker-compose.yml` to deploy alongside Seer:
+
+```bash
+SEER_API_KEY=xxx SEER_MCP_AUTH_TOKEN=secret docker compose up -d
+```
+
+The default `SEER_SERVER` in the compose file points to `http://seer:5055` (the Seer service name). Override it if your Seer instance is elsewhere.
+
+### Running CLI commands via Docker
+
+Override the default CMD to run any CLI command:
+
+```bash
+docker run --rm \
+  -e SEER_SERVER=http://your-seer-instance:5055 \
+  -e SEER_API_KEY=your-api-key \
+  ghcr.io/electather/seer-cli:latest \
+  status system
+```
 
 ## Setup
 
@@ -241,6 +313,89 @@ seer-cli overriderule delete 1              # delete rule
 seer-cli status system                      # server version + status
 seer-cli status appdata                     # app data volume info
 ```
+
+## MCP Server
+
+`seer-cli mcp serve` starts a Model Context Protocol server that exposes the Seer API as tools. This lets AI agents (including Claude Desktop) use seer-cli without invoking the CLI directly.
+
+### stdio transport (Claude Desktop)
+
+Claude Desktop spawns the process and communicates over stdin/stdout. No authentication or network configuration required.
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS):
+
+```json
+{
+  "mcpServers": {
+    "seer": {
+      "command": "/usr/local/bin/seer-cli",
+      "args": ["mcp", "serve"],
+      "env": {
+        "SEER_SERVER": "https://your-seer-instance.com",
+        "SEER_API_KEY": "your-api-key"
+      }
+    }
+  }
+}
+```
+
+### HTTP transport
+
+For MCP clients that connect over HTTP with Bearer token auth:
+
+```bash
+seer-cli mcp serve --transport http --addr :8811 --auth-token mysecrettoken
+```
+
+Endpoint: `http://localhost:8811/mcp` — set `Authorization: Bearer mysecrettoken` in your client.
+
+For clients that cannot send custom headers (e.g. claude.ai remote MCP), use a secret path prefix via `--route-token` (or `SEER_MCP_ROUTE_TOKEN`):
+
+```bash
+# Add --cors if connecting from a browser-based client (e.g. claude.ai)
+seer-cli mcp serve --transport http --addr :8811 --route-token abc123 --no-auth --cors
+# Endpoint becomes: http://localhost:8811/abc123/mcp
+```
+
+Both methods can be combined for defense in depth:
+
+```bash
+seer-cli mcp serve --transport http --route-token abc123 --auth-token mysecrettoken
+```
+
+All flags are configurable via environment variables:
+
+| Flag | Environment variable | Default |
+|------|---------------------|---------|
+| `--transport` | `SEER_MCP_TRANSPORT` | `stdio` |
+| `--addr` | `SEER_MCP_ADDR` | `:8811` |
+| `--auth-token` | `SEER_MCP_AUTH_TOKEN` | — |
+| `--no-auth` | `SEER_MCP_NO_AUTH` | `false` |
+| `--route-token` | `SEER_MCP_ROUTE_TOKEN` | — |
+| `--cors` | `SEER_MCP_CORS` | `false` |
+| `--tls-cert` | `SEER_MCP_TLS_CERT` | — |
+| `--tls-key` | `SEER_MCP_TLS_KEY` | — |
+
+> Pass `--cors` (or `SEER_MCP_CORS=true`) to enable CORS headers for browser-based clients (e.g. claude.ai). Disabled by default.
+
+> The HTTP transport does not implement OAuth 2.0. Use stdio for Claude Desktop.
+
+### MCP tools available
+
+| Category | Tools |
+|---|---|
+| Search | `search_multi`, `search_discover_movies`, `search_discover_tv`, `search_trending` |
+| Movies | `movies_get`, `movies_recommendations`, `movies_similar`, `movies_ratings` |
+| TV | `tv_get`, `tv_season`, `tv_recommendations`, `tv_similar`, `tv_ratings` |
+| Requests | `request_list`, `request_get`, `request_create`, `request_approve`, `request_decline`, `request_delete`, `request_count` |
+| Media | `media_list`, `media_status_update` |
+| Issues | `issue_list`, `issue_get`, `issue_create`, `issue_status_update`, `issue_count` |
+| Users | `users_list`, `users_get`, `users_quota` |
+| People & Collections | `person_get`, `person_credits`, `collection_get` |
+| Services | `service_radarr_list`, `service_sonarr_list` |
+| Settings | `settings_about`, `settings_jobs_list`, `settings_jobs_run` |
+| Watchlist & Blocklist | `watchlist_add`, `watchlist_remove`, `blocklist_list`, `blocklist_add`, `blocklist_remove` |
+| System | `status_system` |
 
 ## Common Workflows
 

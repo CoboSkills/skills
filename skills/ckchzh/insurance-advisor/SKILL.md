@@ -1,6 +1,8 @@
 ---
+version: "2.0.0"
 name: insurance-advisor
 description: "保险方案顾问。险种推荐、产品对比、保费计算、理赔指南、定期寿险、健康险方案。Insurance advisor with recommendation, comparison, premium calculation, claim guide, term life, health insurance. Use when you need insurance advisor capabilities. Triggers on: insurance advisor."
+author: BytesAgain
 ---
 # insurance-advisor
 
@@ -25,7 +27,6 @@ description: "保险方案顾问。险种推荐、产品对比、保费计算、
   medical         medical
 ```
 
-
 ## 专业建议
 
 - 医保** — 国家医保是基础，优先参保
@@ -39,3 +40,9 @@ description: "保险方案顾问。险种推荐、产品对比、保费计算、
 ---
 💬 Feedback & Feature Requests: https://bytesagain.com/feedback
 Powered by BytesAgain | bytesagain.com
+
+## Commands
+
+Run `insurance-advisor help` to see all available commands.
+
+- Run `insurance-advisor help` for all commands

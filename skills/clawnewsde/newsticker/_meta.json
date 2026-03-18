@@ -1,0 +1,11 @@
+{
+  "owner": "clawnewsde",
+  "slug": "newsticker",
+  "displayName": "claw://News",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773789214815,
+    "commit": null
+  },
+  "history": []
+}

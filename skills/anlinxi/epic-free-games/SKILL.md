@@ -1,0 +1,130 @@
+---
+name: epic-free-games
+description: >
+  Auto-claim free games from Epic Games Store. 2026 latest page adaptation with 
+  persistent login state, completes the full claim process (Get → Place Order → Confirm).
+  自动领取 Epic Games Store 每周免费游戏。2026年最新页面适配，支持持久化登录状态，
+  自动完成完整领取流程（获取 → 下订单 → 确认领取）。
+metadata:
+  openclaw:
+    requires:
+      commands: ["agent-browser"]
+---
+
+# Epic Free Games Auto Claimer / Epic 免费游戏自动领取
+
+Auto-claim weekly free games from Epic Games Store.
+
+自动领取 Epic Games Store 每周免费游戏。
+
+## ⚠️ Risk Warning / 风险提示
+
+**English:**
+- **Account Risk**: Automated tools may violate Epic's Terms of Service. Use at your own risk. Account suspension is possible.
+- **Human Verification**: hCaptcha/Cloudflare verification cannot be bypassed automatically. Manual intervention required when prompted.
+- **Educational Purpose**: This tool is for learning purposes only. Do not abuse it.
+- **No Warranty**: Use at your own risk. The author is not responsible for any consequences.
+
+**中文：**
+- **账号风险**：自动化工具可能违反 Epic 服务条款，使用风险自负。可能导致账号封禁。
+- **人机验证**：无法自动绕过 hCaptcha/Cloudflare 验证，需要手动处理。
+- **仅供学习**：本工具仅供学习研究使用，请勿滥用。
+- **免责声明**：使用风险自负，作者不对任何后果负责。
+
+## Features / 功能特点
+
+- **2026 Latest Adaptation / 2026年最新适配** - Uses stable `data-testid` selectors / 使用稳定的 `data-testid` 选择器
+- **Persistent Login / 持久化登录** - Login once, works forever (saves cookies) / 一次登录，永久生效（保存 Cookie）
+- **Full Claim Process / 完整领取流程** - Get → Place Order → Confirm / 获取 → 0元下订单 → 确认领取
+- **Cron Support / 定时任务支持** - Auto-claim every Thursday / 每周四自动领取
+
+## Quick Start / 快速开始
+
+```bash
+# First time login (manual login required) / 首次登录（需要手动登录一次）
+python scripts/claim.py --login
+
+# Auto-claim free games / 自动领取免费游戏
+python scripts/claim.py
+
+# Show browser window (for captcha handling) / 显示浏览器窗口（用于处理验证码）
+python scripts/claim.py --headed
+
+# View help / 查看帮助
+python scripts/claim.py --help
+```
+
+## Usage Steps / 使用步骤
+
+### 1. First Login / 首次登录
+
+```bash
+python scripts/claim.py --login
+```
+
+Opens browser window for manual Epic login. After login, auth state is saved to `epic_auth.json`.
+
+打开浏览器窗口，手动登录 Epic 账号。登录完成后，登录状态会保存到 `epic_auth.json`。
+
+### 2. Auto Claim / 自动领取
+
+```bash
+python scripts/claim.py
+```
+
+Automatically:
+1. Opens Epic free games page / 打开 Epic 免费游戏页面
+2. Loads saved auth state / 加载保存的登录状态
+3. Clicks "Get" button / 点击"获取"按钮
+4. Clicks "Place Order" for $0 purchase / 点击"下订单"完成 0 元购买
+5. Confirms success / 确认领取成功
+
+### 3. Cron Task / 定时任务
+
+Set up cron for weekly auto-claim:
+
+设置定时任务，每周四自动领取：
+
+```bash
+# Every Thursday at 00:20 / 每周四 00:20 执行
+20 0 * * 4 cd /path/to/epic-free-games && python scripts/claim.py
+```
+
+## CLI Arguments / 命令行参数
+
+| Argument | Description |
+|----------|-------------|
+| `--login` | First-time login mode / 首次登录模式 |
+| `--headed` | Show browser window / 显示浏览器窗口 |
+| `--timeout N` | Wait timeout in seconds / 等待超时时间（秒） |
+| `--auth-file FILE` | Auth state file path / 登录状态文件路径 |
+
+## Files / 文件说明
+
+```
+epic-free-games/
+├── SKILL.md           # This file / 本说明文件
+├── scripts/
+│   └── claim.py       # Main script / 主脚本
+└── epic_auth.json     # Auth state (auto-generated) / 登录状态缓存（自动生成）
+```
+
+## Dependencies / 依赖
+
+- [agent-browser](https://github.com/vercel-labs/agent-browser) - Browser automation CLI / 浏览器自动化 CLI
+
+Install / 安装：
+```bash
+npm install -g agent-browser
+agent-browser install
+```
+
+## Limitations / 限制
+
+1. **Cloudflare/hCaptcha** - Cannot bypass automatically, use `--headed` for manual handling / 无法自动绕过，使用 `--headed` 手动处理
+2. **Login Expiry** - Re-run `--login` if session expires / 登录过期时重新运行 `--login`
+3. **Already Owned** - Script detects and skips owned games / 脚本会检测并跳过已拥有游戏
+
+## License / 许可证
+
+MIT License - Use at your own risk / 使用风险自负

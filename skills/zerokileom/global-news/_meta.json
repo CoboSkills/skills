@@ -1,0 +1,11 @@
+{
+  "owner": "zerokileom",
+  "slug": "global-news",
+  "displayName": "Global News",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773827096395,
+    "commit": null
+  },
+  "history": []
+}

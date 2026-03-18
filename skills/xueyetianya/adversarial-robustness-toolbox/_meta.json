@@ -3,11 +3,16 @@
   "slug": "adversarial-robustness-toolbox",
   "displayName": "Adversarial Robustness Toolbox",
   "latest": {
-    "version": "2.3.4",
-    "publishedAt": 1773610386881,
-    "commit": "https://github.com/openclaw/skills/commit/8a3c6eacf7f0a5ccb2723fbc32c745af9770bd3f"
+    "version": "2.0.1",
+    "publishedAt": 1773809980724,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.4",
+      "publishedAt": 1773610386881,
+      "commit": "https://github.com/openclaw/skills/commit/8a3c6eacf7f0a5ccb2723fbc32c745af9770bd3f"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1773447311078,

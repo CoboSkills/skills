@@ -1,0 +1,11 @@
+{
+  "owner": "krishnakumarmahadevan-cmd",
+  "slug": "k8s-security-posture-scorecard",
+  "displayName": "Kubernetes Security Posture Scorecard",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773810666086,
+    "commit": null
+  },
+  "history": []
+}

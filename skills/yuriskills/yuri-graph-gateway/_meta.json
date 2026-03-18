@@ -1,0 +1,11 @@
+{
+  "owner": "yuriskills",
+  "slug": "yuri-graph-gateway",
+  "displayName": "A transparent proxy for the Facebook Graph API. Replace the domain, pass your Yuri API token, and call any Facebook endpoint — no Facebook access token needed on the client side.",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773812990586,
+    "commit": null
+  },
+  "history": []
+}

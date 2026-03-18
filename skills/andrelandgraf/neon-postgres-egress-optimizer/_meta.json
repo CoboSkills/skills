@@ -1,0 +1,11 @@
+{
+  "owner": "andrelandgraf",
+  "slug": "neon-postgres-egress-optimizer",
+  "displayName": "Neon Postgres Egress Optimizer",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773783039693,
+    "commit": null
+  },
+  "history": []
+}

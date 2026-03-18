@@ -1,0 +1,11 @@
+{
+  "owner": "weidd130",
+  "slug": "bwinvoice-verification",
+  "displayName": "Invoice Verification Service",
+  "latest": {
+    "version": "0.4.5",
+    "publishedAt": 1773837662403,
+    "commit": null
+  },
+  "history": []
+}

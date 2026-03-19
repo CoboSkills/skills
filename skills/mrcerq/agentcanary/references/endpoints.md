@@ -70,14 +70,84 @@ These endpoints handle authentication and payments. Not gated by tier.
 
 ## Indicators
 
-AC proprietary indicators with history and summary views.
+AC proprietary indicators with history and summary views. 36 indicators across macro, technical, crypto, and liquidity categories.
 
 | Method | Endpoint | Tier | Description |
 |--------|----------|------|-------------|
-| GET | `/indicators` | Explorer | List all available indicators |
+| GET | `/indicators` | Explorer | List all 36 available indicators |
 | GET | `/indicators/summary` | Builder | Dashboard summary of all indicators |
 | GET | `/indicators/:name` | Varies | Single indicator current value |
 | GET | `/indicators/:name/history` | Varies | Historical values for indicator |
+
+### Featured Indicator: Bull Market Support Band
+
+The Bull Market Support Band (BMSB) is a widely-used BTC cycle indicator combining the 20-week SMA and 21-week EMA. When BTC trades above both, bull structure is intact. Below = broken.
+
+**Request:** `GET /indicators/bull-market-support-band`
+
+**Response:**
+```json
+{
+  "indicator": "bull-market-support-band",
+  "category": "technical",
+  "tier": "builder",
+  "date": "2026-03-18",
+  "signal": "bearish",
+  "level": "BELOW_BAND",
+  "btcPrice": 74495.15,
+  "bmsb": 79644,
+  "sma20w": 79754,
+  "ema21w": 79534,
+  "pctFromBand": -6.46,
+  "interpretation": "BTC 6.5% below BMSB. Bull market structure broken.",
+  "timestamp": "2026-03-18T04:04:53.830Z"
+}
+```
+
+**Signal values:** `bullish` (above band) | `bearish` (below band) | `cautious` (testing band)
+**Level values:** `ABOVE_BAND` | `BELOW_BAND` | `TESTING_BAND`
+
+### Available Indicators (36 total)
+
+| Indicator | Category | Tier |
+|-----------|----------|------|
+| `composite-risk-score` | macro | explorer |
+| `sector-rotation` | macro | signal |
+| `dispersion-regime` | macro | signal |
+| `cape-ratio` | macro | signal |
+| `hindenburg-omen` | macro | signal |
+| `narrative-momentum` | narrative | signal |
+| `geopolitical-risk` | macro | signal |
+| `insider-signals` | institutional | signal |
+| `oil-futures-curve` | macro | builder |
+| `war-commodity-disruption` | macro | signal |
+| `21ema-trend` | technical | builder |
+| `alt-funding-spike` | crypto | signal |
+| `alt-volatility-spike` | crypto | signal |
+| `btc-dominance` | crypto | builder |
+| `btc-leverage-risk` | crypto | signal |
+| `btc-liquidation-heatmap` | crypto | signal |
+| `btc-momentum-reversal` | technical | signal |
+| `btc-exchange-flows` | crypto | signal |
+| `btc-oi-funding` | crypto | signal |
+| `btc-orderbook-imbalance` | crypto | signal |
+| `btc-pi-cycle` | technical | builder |
+| `btc-quintile-model` | technical | signal |
+| `btc-whale-activity` | crypto | signal |
+| `bull-market-support-band` | technical | builder |
+| `cross-asset-volatility` | macro | signal |
+| `derivatives-structure-shift` | crypto | signal |
+| `ethbtc-ratio` | crypto | builder |
+| `global-safety-override` | macro | signal |
+| `gold-btc-correlation` | macro | signal |
+| `large-trades-whale-orders` | crypto | signal |
+| `liquidation-ranges` | crypto | signal |
+| `ma-trend-reversal` | technical | signal |
+| `midtier-alt-crash` | crypto | signal |
+| `social-sentiment` | sentiment | signal |
+| `stablecoin-composite` | liquidity | builder |
+| `stablecoin-vs-tcmc` | liquidity | signal |
+| `wyckoff-structure` | technical | signal |
 
 ---
 

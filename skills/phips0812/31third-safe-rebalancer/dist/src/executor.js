@@ -23,28 +23,24 @@ export function encodeTradeData(trades, config) {
     return encodeAbiParameters([tradeArrayParam, configParam], [trades, config]);
 }
 export function encodeScheduleTradeCall(args) {
-    const tradeData = encodeTradeData(args.trades, args.config);
-    return encodeFunctionData({
-        abi: executorModuleAbi,
-        functionName: 'scheduleTrade',
-        args: [args.approvals, tradeData, BigInt(args.validForSeconds)]
-    });
+    void args;
+    throw new Error('scheduleTrade is not supported by the simplified ExecutorModule.');
 }
 export function encodeExecuteTradeNowCall(args) {
-    const tradeData = encodeTradeData(args.trades, args.config);
+    void args.approvals;
     return encodeFunctionData({
         abi: executorModuleAbi,
-        functionName: 'executeTradeNow',
-        args: [args.approvals, tradeData]
+        functionName: 'execute',
+        args: [args.trades, args.config]
     });
 }
 export async function simulateExecuteTradeNow(params) {
-    const data = encodeTradeData(params.trades, params.config);
+    void params.approvals;
     const request = {
         address: params.executorModule,
         abi: executorModuleAbi,
-        functionName: 'executeTradeNow',
-        args: [params.approvals, data]
+        functionName: 'execute',
+        args: [params.trades, params.config]
     };
     if (params.account) {
         request.account = params.account;
@@ -65,12 +61,12 @@ export async function checkPoliciesVerbose(params) {
     };
 }
 export async function executeTradeNow(params) {
-    const data = encodeTradeData(params.trades, params.config);
+    void params.approvals;
     const request = {
         address: params.executorModule,
         abi: executorModuleAbi,
-        functionName: 'executeTradeNow',
-        args: [params.approvals, data]
+        functionName: 'execute',
+        args: [params.trades, params.config]
     };
     if (params.account) {
         request.account = params.account;

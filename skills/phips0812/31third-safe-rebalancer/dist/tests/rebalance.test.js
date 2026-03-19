@@ -4,13 +4,10 @@ import { checkDrift, validateTrade } from '../src/balancer.js';
 import { automation, check_drift, execute_rebalance, plan_rebalance, readConfigFromEnv, rebalance_now, validate_trade } from '../index.js';
 import { batchTradeAbi } from '../src/contracts.js';
 const SAFE = '0x1000000000000000000000000000000000000001';
-const REGISTRY = '0x1d4999242A24C8588c4f5dB7dFF1D74Df6bC746A';
-const CUSTOM_REGISTRY = '0x2000000000000000000000000000000000000002';
+const PRICE_ORACLE = '0x1d4999242A24C8588c4f5dB7dFF1D74Df6bC746A';
+const CUSTOM_PRICE_ORACLE = '0x2000000000000000000000000000000000000002';
 const TOKEN_A = '0x3000000000000000000000000000000000000003';
 const TOKEN_B = '0x4000000000000000000000000000000000000004';
-const FEED_A = '0x5000000000000000000000000000000000000005';
-const FEED_B = '0x6000000000000000000000000000000000000006';
-const NOW_SEC = BigInt(Math.floor(Date.now() / 1000));
 const EXECUTOR_MODULE = '0x7000000000000000000000000000000000000007';
 const SAMPLE_TRADES = [{
         exchangeName: 'mock',
@@ -57,22 +54,14 @@ describe('31third-safe-rebalancer', () => {
                 return 54n * 10n ** 18n;
             if (address === TOKEN_B && functionName === 'balanceOf' && args?.[0] === SAFE)
                 return 46n * 10n ** 18n;
-            if (address === REGISTRY && functionName === 'getFeed' && args?.[0] === TOKEN_A)
-                return FEED_A;
-            if (address === REGISTRY && functionName === 'getFeed' && args?.[0] === TOKEN_B)
-                return FEED_B;
-            if ((address === FEED_A || address === FEED_B) && functionName === 'decimals')
-                return 8;
-            if (address === FEED_A && functionName === 'latestRoundData')
-                return [1n, 1n * 10n ** 8n, 0n, NOW_SEC, 1n];
-            if (address === FEED_B && functionName === 'latestRoundData')
-                return [1n, 1n * 10n ** 8n, 0n, NOW_SEC, 1n];
+            if (address === PRICE_ORACLE && functionName === 'getPrice18')
+                return 1n * 10n ** 18n;
             throw new Error(`Unhandled readContract ${address}:${functionName}`);
         });
         const result = await checkDrift({
             publicClient,
             safeAddress: SAFE,
-            tokenFeedRegistry: REGISTRY,
+            priceOracle: PRICE_ORACLE,
             policies
         });
         expect(result.exceedsThreshold).toBe(true);
@@ -90,7 +79,7 @@ describe('31third-safe-rebalancer', () => {
         });
         const result = await validateTrade({
             publicClient,
-            tokenFeedRegistry: REGISTRY,
+            priceOracle: PRICE_ORACLE,
             policies,
             trade: {
                 from: TOKEN_A,
@@ -115,7 +104,7 @@ describe('31third-safe-rebalancer', () => {
                 { token: TOKEN_A, bps: 5_000 },
                 { token: TOKEN_B, bps: 5_000 }
             ],
-            tokenFeedRegistry: REGISTRY,
+            priceOracle: PRICE_ORACLE,
             driftThresholdBps: 300
         };
         const publicClient = mockPublicClient(({ address, functionName, args }) => {
@@ -129,16 +118,8 @@ describe('31third-safe-rebalancer', () => {
                 return 54n * 10n ** 18n;
             if (address === TOKEN_B && functionName === 'balanceOf' && args?.[0] === SAFE)
                 return 46n * 10n ** 18n;
-            if (address === REGISTRY && functionName === 'getFeed' && args?.[0] === TOKEN_A)
-                return FEED_A;
-            if (address === REGISTRY && functionName === 'getFeed' && args?.[0] === TOKEN_B)
-                return FEED_B;
-            if ((address === FEED_A || address === FEED_B) && functionName === 'decimals')
-                return 8;
-            if (address === FEED_A && functionName === 'latestRoundData')
-                return [1n, 1n * 10n ** 8n, 0n, NOW_SEC, 1n];
-            if (address === FEED_B && functionName === 'latestRoundData')
-                return [1n, 1n * 10n ** 8n, 0n, NOW_SEC, 1n];
+            if (address === PRICE_ORACLE && functionName === 'getPrice18')
+                return 1n * 10n ** 18n;
             throw new Error(`Unhandled readContract ${address}:${functionName}`);
         });
         const result = await automation({
@@ -152,7 +133,7 @@ describe('31third-safe-rebalancer', () => {
         expect(result.notify).toBe(true);
         expect(result.message).toContain('Drift alert');
     });
-    it('check_drift uses tokenFeedRegistry from policy snapshot', async () => {
+    it('check_drift uses priceOracle from policy snapshot', async () => {
         const config = {
             safeAddress: SAFE,
             chainId: 8453,
@@ -165,7 +146,7 @@ describe('31third-safe-rebalancer', () => {
                 { token: TOKEN_A, bps: 5_000 },
                 { token: TOKEN_B, bps: 5_000 }
             ],
-            tokenFeedRegistry: CUSTOM_REGISTRY,
+            priceOracle: CUSTOM_PRICE_ORACLE,
             driftThresholdBps: 300
         };
         const publicClient = mockPublicClient(({ address, functionName, args }) => {
@@ -179,16 +160,8 @@ describe('31third-safe-rebalancer', () => {
                 return 54n * 10n ** 18n;
             if (address === TOKEN_B && functionName === 'balanceOf' && args?.[0] === SAFE)
                 return 46n * 10n ** 18n;
-            if (address === CUSTOM_REGISTRY && functionName === 'getFeed' && args?.[0] === TOKEN_A)
-                return FEED_A;
-            if (address === CUSTOM_REGISTRY && functionName === 'getFeed' && args?.[0] === TOKEN_B)
-                return FEED_B;
-            if ((address === FEED_A || address === FEED_B) && functionName === 'decimals')
-                return 8;
-            if (address === FEED_A && functionName === 'latestRoundData')
-                return [1n, 1n * 10n ** 8n, 0n, NOW_SEC, 1n];
-            if (address === FEED_B && functionName === 'latestRoundData')
-                return [1n, 1n * 10n ** 8n, 0n, NOW_SEC, 1n];
+            if (address === CUSTOM_PRICE_ORACLE && functionName === 'getPrice18')
+                return 1n * 10n ** 18n;
             throw new Error(`Unhandled readContract ${address}:${functionName}`);
         });
         const result = await check_drift({
@@ -199,7 +172,7 @@ describe('31third-safe-rebalancer', () => {
         expect(result.shouldRebalance).toBe(true);
         expect(result.maxDriftBps).toBe(400);
     });
-    it('validate_trade uses tokenFeedRegistry from policy snapshot', async () => {
+    it('validate_trade uses priceOracle from policy snapshot', async () => {
         const config = {
             safeAddress: SAFE,
             chainId: 8453,
@@ -209,22 +182,14 @@ describe('31third-safe-rebalancer', () => {
         const policies = {
             assetUniverseTokens: [TOKEN_A, TOKEN_B],
             targetAllocations: [],
-            tokenFeedRegistry: CUSTOM_REGISTRY,
+            priceOracle: CUSTOM_PRICE_ORACLE,
             maxSlippageBps: 100
         };
         const publicClient = mockPublicClient(({ address, functionName, args }) => {
             if ((address === TOKEN_A || address === TOKEN_B) && functionName === 'decimals')
                 return 18;
-            if (address === CUSTOM_REGISTRY && functionName === 'getFeed' && args?.[0] === TOKEN_A)
-                return FEED_A;
-            if (address === CUSTOM_REGISTRY && functionName === 'getFeed' && args?.[0] === TOKEN_B)
-                return FEED_B;
-            if ((address === FEED_A || address === FEED_B) && functionName === 'decimals')
-                return 8;
-            if (address === FEED_A && functionName === 'latestRoundData')
-                return [1n, 1n * 10n ** 8n, 0n, NOW_SEC, 1n];
-            if (address === FEED_B && functionName === 'latestRoundData')
-                return [1n, 1n * 10n ** 8n, 0n, NOW_SEC, 1n];
+            if (address === CUSTOM_PRICE_ORACLE && functionName === 'getPrice18')
+                return 1n * 10n ** 18n;
             throw new Error(`Unhandled readContract ${address}:${functionName}`);
         });
         const result = await validate_trade({
@@ -263,34 +228,24 @@ describe('31third-safe-rebalancer', () => {
         expect(result.maxDriftBps).toBe(0);
         expect(result.explanation).toContain('No StaticAllocation policy');
     });
-    it('validate_trade rejects stale oracle data when max age is exceeded', async () => {
+    it('validate_trade rejects missing oracle prices', async () => {
         const config = {
             safeAddress: SAFE,
             chainId: 8453,
             rpcUrl: 'https://mainnet.base.org',
-            executorModuleAddress: '0x7000000000000000000000000000000000000007',
-            oracleMaxAgeSeconds: 60
+            executorModuleAddress: '0x7000000000000000000000000000000000000007'
         };
         const policies = {
             assetUniverseTokens: [TOKEN_A, TOKEN_B],
             targetAllocations: [],
-            tokenFeedRegistry: CUSTOM_REGISTRY,
+            priceOracle: CUSTOM_PRICE_ORACLE,
             maxSlippageBps: 100
         };
-        const staleSec = NOW_SEC - 3600n;
-        const publicClient = mockPublicClient(({ address, functionName, args }) => {
+        const publicClient = mockPublicClient(({ address, functionName }) => {
             if ((address === TOKEN_A || address === TOKEN_B) && functionName === 'decimals')
                 return 18;
-            if (address === CUSTOM_REGISTRY && functionName === 'getFeed' && args?.[0] === TOKEN_A)
-                return FEED_A;
-            if (address === CUSTOM_REGISTRY && functionName === 'getFeed' && args?.[0] === TOKEN_B)
-                return FEED_B;
-            if ((address === FEED_A || address === FEED_B) && functionName === 'decimals')
-                return 8;
-            if (address === FEED_A && functionName === 'latestRoundData')
-                return [1n, 1n * 10n ** 8n, 0n, staleSec, 1n];
-            if (address === FEED_B && functionName === 'latestRoundData')
-                return [1n, 1n * 10n ** 8n, 0n, staleSec, 1n];
+            if (address === CUSTOM_PRICE_ORACLE && functionName === 'getPrice18')
+                return 0n;
             throw new Error(`Unhandled readContract ${address}:${functionName}`);
         });
         const result = await validate_trade({
@@ -305,7 +260,7 @@ describe('31third-safe-rebalancer', () => {
             }
         });
         expect(result.valid).toBe(false);
-        expect(result.reason).toContain('stale');
+        expect(result.reason).toContain('missing valid price');
     });
     it('plan_rebalance fails fast when TOT_API_KEY is missing', async () => {
         const config = {
@@ -385,9 +340,7 @@ describe('31third-safe-rebalancer', () => {
         };
         const publicClient = {
             readContract: vi.fn(async (args) => {
-                if (args.functionName === 'scheduler')
-                    return EXECUTOR_MODULE;
-                if (args.functionName === 'registry')
+                if (args.functionName === 'executor')
                     return EXECUTOR_MODULE;
                 return [false, TOKEN_A, 'Policy failed'];
             })
@@ -415,9 +368,7 @@ describe('31third-safe-rebalancer', () => {
         const simulateContract = vi.fn(async () => ({}));
         const publicClient = {
             readContract: vi.fn(async (args) => {
-                if (args.functionName === 'scheduler')
-                    return EXECUTOR_MODULE;
-                if (args.functionName === 'registry')
+                if (args.functionName === 'executor')
                     return EXECUTOR_MODULE;
                 return [true, TOKEN_A, 'ok'];
             }),
@@ -449,9 +400,7 @@ describe('31third-safe-rebalancer', () => {
         const simulateContract = vi.fn(async () => ({}));
         const publicClient = {
             readContract: vi.fn(async (args) => {
-                if (args.functionName === 'scheduler')
-                    return EXECUTOR_MODULE;
-                if (args.functionName === 'registry')
+                if (args.functionName === 'executor')
                     return EXECUTOR_MODULE;
                 return [true, TOKEN_A, 'ok'];
             }),
@@ -486,9 +435,7 @@ describe('31third-safe-rebalancer', () => {
         };
         const publicClient = {
             readContract: vi.fn(async (args) => {
-                if (args.functionName === 'scheduler')
-                    return EXECUTOR_MODULE;
-                if (args.functionName === 'registry')
+                if (args.functionName === 'executor')
                     return EXECUTOR_MODULE;
                 return [true, TOKEN_A, 'ok'];
             }),
@@ -519,9 +466,7 @@ describe('31third-safe-rebalancer', () => {
         };
         const publicClient = {
             readContract: vi.fn(async (args) => {
-                if (args.functionName === 'scheduler')
-                    return EXECUTOR_MODULE;
-                if (args.functionName === 'registry')
+                if (args.functionName === 'executor')
                     return EXECUTOR_MODULE;
                 return [true, TOKEN_A, 'ok'];
             }),
@@ -543,7 +488,7 @@ describe('31third-safe-rebalancer', () => {
             retryDelayMs: 0
         })).rejects.toThrow('FAILED_TOKEN_NOT_TRADEABLE');
     });
-    it('execute_rebalance fast-fails when scheduler and registry differ', async () => {
+    it('execute_rebalance fast-fails when signer wallet is not executor', async () => {
         const config = {
             safeAddress: SAFE,
             chainId: 8453,
@@ -552,14 +497,12 @@ describe('31third-safe-rebalancer', () => {
         };
         const publicClient = {
             readContract: vi.fn(async (args) => {
-                if (args.functionName === 'scheduler')
+                if (args.functionName === 'executor')
                     return TOKEN_A;
-                if (args.functionName === 'registry')
-                    return TOKEN_B;
                 return [true, TOKEN_A, 'ok'];
             })
         };
-        const walletClient = { account: { address: EXECUTOR_MODULE }, writeContract: vi.fn(async () => '0xabc') };
+        const walletClient = { account: { address: TOKEN_B }, writeContract: vi.fn(async () => '0xabc') };
         await expect(execute_rebalance({
             config,
             publicClient,
@@ -567,36 +510,7 @@ describe('31third-safe-rebalancer', () => {
             trades: SAMPLE_TRADES,
             approvals: SAMPLE_APPROVALS,
             batchConfig: SAMPLE_CONFIG
-        })).rejects.toThrow(`SCHEDULER_REGISTRY_MISMATCH: scheduler=${TOKEN_A} registry=${TOKEN_B}`);
-    });
-    it('execute_rebalance fast-fails when signer wallet is not registry', async () => {
-        const config = {
-            safeAddress: SAFE,
-            chainId: 8453,
-            rpcUrl: 'https://mainnet.base.org',
-            executorModuleAddress: EXECUTOR_MODULE
-        };
-        const publicClient = {
-            readContract: vi.fn(async (args) => {
-                if (args.functionName === 'scheduler')
-                    return TOKEN_A;
-                if (args.functionName === 'registry')
-                    return TOKEN_A;
-                return [true, TOKEN_A, 'ok'];
-            })
-        };
-        const walletClient = {
-            account: { address: TOKEN_B },
-            writeContract: vi.fn(async () => '0xabc')
-        };
-        await expect(execute_rebalance({
-            config,
-            publicClient,
-            walletClient,
-            trades: SAMPLE_TRADES,
-            approvals: SAMPLE_APPROVALS,
-            batchConfig: SAMPLE_CONFIG
-        })).rejects.toThrow(`EXECUTOR_WALLET_NOT_REGISTRY: wallet=${TOKEN_B} registry=${TOKEN_A} scheduler=${TOKEN_A}`);
+        })).rejects.toThrow(`EXECUTOR_WALLET_NOT_EXECUTOR: wallet=${TOKEN_B} executor=${TOKEN_A}`);
     });
     it('execute_rebalance fails when executor wallet address is zero', async () => {
         const config = {
@@ -607,9 +521,7 @@ describe('31third-safe-rebalancer', () => {
         };
         const publicClient = {
             readContract: vi.fn(async (args) => {
-                if (args.functionName === 'scheduler')
-                    return TOKEN_A;
-                if (args.functionName === 'registry')
+                if (args.functionName === 'executor')
                     return TOKEN_A;
                 return [true, TOKEN_A, 'ok'];
             })
@@ -650,9 +562,7 @@ describe('31third-safe-rebalancer', () => {
         const simulateContract = vi.fn(async () => ({}));
         const publicClient = {
             readContract: vi.fn(async (args) => {
-                if (args.functionName === 'scheduler')
-                    return EXECUTOR_MODULE;
-                if (args.functionName === 'registry')
+                if (args.functionName === 'executor')
                     return EXECUTOR_MODULE;
                 return [true, TOKEN_A, 'ok'];
             }),
@@ -726,9 +636,7 @@ describe('31third-safe-rebalancer', () => {
             };
             const publicClient = {
                 readContract: vi.fn(async (args) => {
-                    if (args.functionName === 'scheduler')
-                        return EXECUTOR_MODULE;
-                    if (args.functionName === 'registry')
+                    if (args.functionName === 'executor')
                         return EXECUTOR_MODULE;
                     if (args.functionName === 'checkPoliciesVerbose')
                         return [true, TOKEN_A, 'ok'];

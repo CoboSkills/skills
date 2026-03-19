@@ -4,6 +4,7 @@ import { HARDCODED_TOKEN_FEED_REGISTRY_ADDRESS } from './contracts.js';
 import {
   assetUniversePolicyAbi,
   executorModuleAbi,
+  priceOracleAbi,
   slippagePolicyAbi,
   staticAllocationPolicyAbi
 } from './contracts.js';
@@ -16,6 +17,7 @@ export interface TargetAllocation {
 export interface PolicySnapshot {
   assetUniverseTokens: Address[];
   targetAllocations: TargetAllocation[];
+  priceOracle?: Address;
   tokenFeedRegistry?: Address;
   driftThresholdBps?: number;
   toleranceThresholdBps?: number;
@@ -85,10 +87,10 @@ export async function readPolicySnapshot(
     }
 
     if (kind === 'staticallocation') {
-      const feedRegistry = (await publicClient.readContract({
+      const priceOracle = (await publicClient.readContract({
         address: policyState.policy,
         abi: staticAllocationPolicyAbi,
-        functionName: 'feedRegistry'
+        functionName: 'priceOracle'
       })) as Address;
 
       const driftThresholdBps = (await publicClient.readContract({
@@ -111,7 +113,12 @@ export async function readPolicySnapshot(
 
       snapshot.driftThresholdBps = Number(driftThresholdBps);
       snapshot.toleranceThresholdBps = Number(toleranceThresholdBps);
-      snapshot.tokenFeedRegistry = feedRegistry;
+      snapshot.priceOracle = priceOracle;
+      snapshot.tokenFeedRegistry = (await publicClient.readContract({
+        address: priceOracle,
+        abi: priceOracleAbi,
+        functionName: 'feedRegistry'
+      })) as Address;
       snapshot.targetAllocations = targets.map((item) => ({
         token: item.token,
         bps: Number(item.bps)
@@ -120,10 +127,10 @@ export async function readPolicySnapshot(
     }
 
     if (kind === 'slippage') {
-      const feedRegistry = (await publicClient.readContract({
+      const priceOracle = (await publicClient.readContract({
         address: policyState.policy,
         abi: slippagePolicyAbi,
-        functionName: 'feedRegistry'
+        functionName: 'priceOracle'
       })) as Address;
 
       const maxSlippageBps = (await publicClient.readContract({
@@ -132,7 +139,12 @@ export async function readPolicySnapshot(
         functionName: 'maxSlippageBps'
       })) as bigint;
 
-      snapshot.tokenFeedRegistry = snapshot.tokenFeedRegistry ?? feedRegistry;
+      snapshot.priceOracle = snapshot.priceOracle ?? priceOracle;
+      snapshot.tokenFeedRegistry = snapshot.tokenFeedRegistry ?? (await publicClient.readContract({
+        address: priceOracle,
+        abi: priceOracleAbi,
+        functionName: 'feedRegistry'
+      })) as Address;
       snapshot.maxSlippageBps = Number(maxSlippageBps);
     }
   }

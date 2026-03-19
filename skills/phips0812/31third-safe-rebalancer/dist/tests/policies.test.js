@@ -7,8 +7,8 @@ const POLICY_B = '0x3000000000000000000000000000000000000003';
 const POLICY_C = '0x4000000000000000000000000000000000000004';
 const TOKEN_A = '0x5000000000000000000000000000000000000005';
 const TOKEN_B = '0x6000000000000000000000000000000000000006';
-const FEED_REGISTRY = '0x7000000000000000000000000000000000000007';
-const SLIPPAGE_FEED_REGISTRY = '0x8000000000000000000000000000000000000008';
+const PRICE_ORACLE = '0x7000000000000000000000000000000000000007';
+const FEED_REGISTRY = '0x8000000000000000000000000000000000000008';
 function mockPublicClient(readContractImpl) {
     return {
         readContract: async (args) => readContractImpl(args)
@@ -54,8 +54,8 @@ describe('policies', () => {
             }
             if (address === POLICY_A && functionName === 'getTokens')
                 return [TOKEN_A, TOKEN_B];
-            if (address === POLICY_B && functionName === 'feedRegistry')
-                return FEED_REGISTRY;
+            if (address === POLICY_B && functionName === 'priceOracle')
+                return PRICE_ORACLE;
             if (address === POLICY_B && functionName === 'driftThresholdBps')
                 return 250n;
             if (address === POLICY_B && functionName === 'toleranceThresholdBps')
@@ -65,8 +65,10 @@ describe('policies', () => {
                     { token: TOKEN_A, bps: 6_000 },
                     { token: TOKEN_B, bps: 4_000 }
                 ];
-            if (address === POLICY_C && functionName === 'feedRegistry')
-                return SLIPPAGE_FEED_REGISTRY;
+            if (address === POLICY_C && functionName === 'priceOracle')
+                return PRICE_ORACLE;
+            if (address === PRICE_ORACLE && functionName === 'feedRegistry')
+                return FEED_REGISTRY;
             if (address === POLICY_C && functionName === 'maxSlippageBps')
                 return 80n;
             throw new Error(`Unexpected call: ${address}:${functionName}`);
@@ -80,6 +82,7 @@ describe('policies', () => {
         expect(snapshot.driftThresholdBps).toBe(250);
         expect(snapshot.toleranceThresholdBps).toBe(100);
         expect(snapshot.maxSlippageBps).toBe(80);
+        expect(snapshot.priceOracle).toBe(PRICE_ORACLE);
         expect(snapshot.tokenFeedRegistry).toBe(FEED_REGISTRY);
     });
     it('readPolicySnapshot falls back to hardcoded feed registry when none configured', async () => {

@@ -6,7 +6,6 @@ import {
   checkPoliciesVerbose,
   decodeRebalancingTxData,
   encodeExecuteTradeNowCall,
-  encodeScheduleTradeCall,
   encodeTradeData,
   executeTradeNow,
   normalizeRebalancingAllowances,
@@ -34,24 +33,7 @@ const APPROVALS: TokenApproval[] = [{ token: TOKEN_A, amount: 1_000n }];
 const CONFIG: BatchTradeConfig = { checkFeelessWallets: true, revertOnError: true };
 
 describe('executor', () => {
-  it('encodes scheduleTrade exactly as executor ABI expects', () => {
-    const encoded = encodeScheduleTradeCall({
-      approvals: APPROVALS,
-      trades: TRADES,
-      config: CONFIG,
-      validForSeconds: 300
-    });
-
-    const expected = encodeFunctionData({
-      abi: executorModuleAbi,
-      functionName: 'scheduleTrade',
-      args: [APPROVALS, encodeTradeData(TRADES, CONFIG), 300n]
-    });
-
-    expect(encoded).toBe(expected);
-  });
-
-  it('encodes executeTradeNow exactly as executor ABI expects', () => {
+  it('encodes execute exactly as executor ABI expects', () => {
     const encoded = encodeExecuteTradeNowCall({
       approvals: APPROVALS,
       trades: TRADES,
@@ -60,8 +42,8 @@ describe('executor', () => {
 
     const expected = encodeFunctionData({
       abi: executorModuleAbi,
-      functionName: 'executeTradeNow',
-      args: [APPROVALS, encodeTradeData(TRADES, CONFIG)]
+      functionName: 'execute',
+      args: [TRADES, CONFIG]
     });
 
     expect(encoded).toBe(expected);
@@ -80,7 +62,7 @@ describe('executor', () => {
 
     expect(simulateContract).toHaveBeenCalledTimes(1);
     const simulateArgs = (simulateContract as any).mock.calls[0][0];
-    expect(simulateArgs.functionName).toBe('executeTradeNow');
+    expect(simulateArgs.functionName).toBe('execute');
     expect(simulateArgs.account).toBeUndefined();
   });
 
@@ -97,7 +79,7 @@ describe('executor', () => {
 
     expect(writeContract).toHaveBeenCalledTimes(1);
     const writeArgs = (writeContract as any).mock.calls[0][0];
-    expect(writeArgs.functionName).toBe('executeTradeNow');
+    expect(writeArgs.functionName).toBe('execute');
     expect(txHash).toBe('0xdeadbeef');
   });
 

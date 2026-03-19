@@ -1,7 +1,6 @@
 import { privateKeyToAccount } from 'viem/accounts';
 import { createPublicClient, createWalletClient, formatUnits, http, isAddress } from 'viem';
 import { buildBaseEntriesFromAssetUniverse, checkDrift, planRebalancingWithSdk, validateTrade } from './src/balancer.js';
-import { HARDCODED_TOKEN_FEED_REGISTRY_ADDRESS } from './src/contracts.js';
 import { checkPoliciesVerbose, decodeRebalancingTxData, executeTradeNow, normalizeRebalancingAllowances, simulateExecuteTradeNow } from './src/executor.js';
 import { readPolicySnapshot } from './src/policies.js';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -63,13 +62,31 @@ export function createViemClients(config) {
 export async function check_drift(params) {
     const publicClient = params.publicClient ?? createViemClients(params.config).publicClient;
     const policies = params.policies ?? await readPolicySnapshot(publicClient, params.config.executorModuleAddress);
-    const tokenFeedRegistry = policies.tokenFeedRegistry ?? HARDCODED_TOKEN_FEED_REGISTRY_ADDRESS;
+    if (policies.targetAllocations.length === 0) {
+        return {
+            shouldRebalance: false,
+            thresholdBps: 0,
+            maxDriftBps: 0,
+            explanation: 'No StaticAllocation policy detected. Drift checks require target allocations.',
+            why: 'No StaticAllocation policy detected. Drift checks require target allocations.',
+            tokens: []
+        };
+    }
+    if (!policies.priceOracle) {
+        return {
+            shouldRebalance: false,
+            thresholdBps: policies.driftThresholdBps ?? 0,
+            maxDriftBps: 0,
+            explanation: 'No priceOracle configured on StaticAllocation policy.',
+            why: 'Drift is unavailable because the active StaticAllocation policy has no priceOracle.',
+            tokens: []
+        };
+    }
     const drift = await checkDrift({
         publicClient,
         safeAddress: params.config.safeAddress,
-        tokenFeedRegistry,
-        policies,
-        oracleMaxAgeSeconds: params.config.oracleMaxAgeSeconds
+        priceOracle: policies.priceOracle,
+        policies
     });
     const why = drift.exceedsThreshold
         ? `${drift.explanation} Rebalancing is recommended because drift exceeds the ${drift.thresholdBps} bps threshold.`
@@ -92,13 +109,11 @@ export async function check_drift(params) {
 export async function validate_trade(params) {
     const publicClient = params.publicClient ?? createViemClients(params.config).publicClient;
     const policies = params.policies ?? await readPolicySnapshot(publicClient, params.config.executorModuleAddress);
-    const tokenFeedRegistry = policies.tokenFeedRegistry ?? HARDCODED_TOKEN_FEED_REGISTRY_ADDRESS;
     const validation = await validateTrade({
         publicClient,
-        tokenFeedRegistry,
+        priceOracle: policies.priceOracle,
         policies,
-        trade: params.trade,
-        oracleMaxAgeSeconds: params.config.oracleMaxAgeSeconds
+        trade: params.trade
     });
     return {
         valid: validation.ok,
@@ -148,25 +163,13 @@ export async function execute_rebalance(params) {
     if (!walletClient) {
         throw new Error('EXECUTOR_WALLET_NOT_SET: set EXECUTOR_WALLET_PRIVATE_KEY or inject walletClient.');
     }
-    const scheduler = (await publicClient.readContract({
+    const executor = (await publicClient.readContract({
         address: params.config.executorModuleAddress,
         abi: [
-            { type: 'function', name: 'scheduler', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
-            { type: 'function', name: 'registry', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] }
+            { type: 'function', name: 'executor', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] }
         ],
-        functionName: 'scheduler'
+        functionName: 'executor'
     }));
-    const registry = (await publicClient.readContract({
-        address: params.config.executorModuleAddress,
-        abi: [
-            { type: 'function', name: 'scheduler', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] },
-            { type: 'function', name: 'registry', stateMutability: 'view', inputs: [], outputs: [{ type: 'address' }] }
-        ],
-        functionName: 'registry'
-    }));
-    if (scheduler.toLowerCase() !== registry.toLowerCase()) {
-        throw new Error(`SCHEDULER_REGISTRY_MISMATCH: scheduler=${scheduler} registry=${registry}`);
-    }
     const walletAddress = await resolveWalletAddress(walletClient);
     if (!walletAddress) {
         throw new Error('EXECUTOR_WALLET_NOT_SET: executor wallet address unavailable from wallet client.');
@@ -174,8 +177,8 @@ export async function execute_rebalance(params) {
     if (walletAddress.toLowerCase() === ZERO_ADDRESS) {
         throw new Error('EXECUTOR_WALLET_ZERO_ADDRESS: executor wallet cannot be zero address.');
     }
-    if (walletAddress.toLowerCase() !== registry.toLowerCase()) {
-        throw new Error(`EXECUTOR_WALLET_NOT_REGISTRY: wallet=${walletAddress} registry=${registry} scheduler=${scheduler}`);
+    if (walletAddress.toLowerCase() !== executor.toLowerCase()) {
+        throw new Error(`EXECUTOR_WALLET_NOT_EXECUTOR: wallet=${walletAddress} executor=${executor}`);
     }
     const defaultBatchConfig = {
         checkFeelessWallets: true,
@@ -245,19 +248,18 @@ export async function execute_rebalance(params) {
 function resolveExecutionArgs(input) {
     if (input.rebalancing) {
         const decoded = decodeRebalancingTxData(input.rebalancing.txData);
-        const approvals = normalizeRebalancingAllowances(input.rebalancing.requiredAllowances);
         return {
             trades: decoded.trades,
-            approvals,
+            approvals: normalizeRebalancingAllowances(input.rebalancing.requiredAllowances),
             config: decoded.config
         };
     }
-    if (!input.trades || !input.approvals) {
-        throw new Error('Provide either { rebalancing } or both { trades, approvals }.');
+    if (!input.trades) {
+        throw new Error('Provide either { rebalancing } or { trades }.');
     }
     return {
         trades: input.trades,
-        approvals: input.approvals,
+        approvals: input.approvals ?? [],
         config: input.batchConfig
     };
 }
@@ -399,10 +401,10 @@ export function help() {
             'validate_trade: enforce Asset Universe and Slippage policy boundaries',
             'automation: configurable heartbeat that emits alert payloads when drift exceeds threshold',
             'plan_rebalance: build a rebalance plan from Safe balances (asset-universe bounded) + deployed target allocations via 31Third SDK',
-            'execute_rebalance: accepts SDK rebalancing response or explicit trades/approvals, verifies scheduler==registry, runs checkPoliciesVerbose + simulation, retries unknown failures once, then executes through ExecutorModule',
-            'Execution authorization: the signing wallet must equal ExecutorModule.registry in execute-now mode, otherwise execution is rejected',
+            'execute_rebalance: accepts SDK rebalancing response or explicit trades, verifies the signer matches ExecutorModule.executor, runs checkPoliciesVerbose + simulation, retries unknown failures once, then executes through ExecutorModule',
+            'Execution authorization: the signing wallet must equal ExecutorModule.executor, otherwise execution is rejected',
             'rebalance_now: one-step rebalance from on-chain policies (drift check -> plan -> execute) for single-wallet executor setups',
-            'Execution contract: map requiredAllowances -> approvals, decode txData as batchTrade(trades,config), ABI re-encode trade tuple payload, run checkPoliciesVerbose, and only executeTradeNow if scheduler==registry',
+            'Execution contract: decode txData as batchTrade(trades,config), run checkPoliciesVerbose, and submit execute(trades,config) through ExecutorModule',
             'smoke (CLI): read-only preflight for config, chain/policy access, drift, optional planning, and optional simulation'
         ],
         requiredEnv: [

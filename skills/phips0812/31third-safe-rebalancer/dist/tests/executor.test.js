@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { encodeFunctionData } from 'viem';
 import { batchTradeAbi, executorModuleAbi } from '../src/contracts.js';
-import { checkPoliciesVerbose, decodeRebalancingTxData, encodeExecuteTradeNowCall, encodeScheduleTradeCall, encodeTradeData, executeTradeNow, normalizeRebalancingAllowances, simulateExecuteTradeNow } from '../src/executor.js';
+import { checkPoliciesVerbose, decodeRebalancingTxData, encodeExecuteTradeNowCall, executeTradeNow, normalizeRebalancingAllowances, simulateExecuteTradeNow } from '../src/executor.js';
 const EXECUTOR = '0x1000000000000000000000000000000000000001';
 const TOKEN_A = '0x2000000000000000000000000000000000000002';
 const TOKEN_B = '0x3000000000000000000000000000000000000003';
@@ -17,21 +17,7 @@ const TRADES = [{
 const APPROVALS = [{ token: TOKEN_A, amount: 1000n }];
 const CONFIG = { checkFeelessWallets: true, revertOnError: true };
 describe('executor', () => {
-    it('encodes scheduleTrade exactly as executor ABI expects', () => {
-        const encoded = encodeScheduleTradeCall({
-            approvals: APPROVALS,
-            trades: TRADES,
-            config: CONFIG,
-            validForSeconds: 300
-        });
-        const expected = encodeFunctionData({
-            abi: executorModuleAbi,
-            functionName: 'scheduleTrade',
-            args: [APPROVALS, encodeTradeData(TRADES, CONFIG), 300n]
-        });
-        expect(encoded).toBe(expected);
-    });
-    it('encodes executeTradeNow exactly as executor ABI expects', () => {
+    it('encodes execute exactly as executor ABI expects', () => {
         const encoded = encodeExecuteTradeNowCall({
             approvals: APPROVALS,
             trades: TRADES,
@@ -39,8 +25,8 @@ describe('executor', () => {
         });
         const expected = encodeFunctionData({
             abi: executorModuleAbi,
-            functionName: 'executeTradeNow',
-            args: [APPROVALS, encodeTradeData(TRADES, CONFIG)]
+            functionName: 'execute',
+            args: [TRADES, CONFIG]
         });
         expect(encoded).toBe(expected);
     });
@@ -55,7 +41,7 @@ describe('executor', () => {
         });
         expect(simulateContract).toHaveBeenCalledTimes(1);
         const simulateArgs = simulateContract.mock.calls[0][0];
-        expect(simulateArgs.functionName).toBe('executeTradeNow');
+        expect(simulateArgs.functionName).toBe('execute');
         expect(simulateArgs.account).toBeUndefined();
     });
     it('executeTradeNow calls walletClient.writeContract and returns tx hash', async () => {
@@ -69,7 +55,7 @@ describe('executor', () => {
         });
         expect(writeContract).toHaveBeenCalledTimes(1);
         const writeArgs = writeContract.mock.calls[0][0];
-        expect(writeArgs.functionName).toBe('executeTradeNow');
+        expect(writeArgs.functionName).toBe('execute');
         expect(txHash).toBe('0xdeadbeef');
     });
     it('checkPoliciesVerbose reads policy validation result', async () => {

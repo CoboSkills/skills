@@ -2,18 +2,13 @@ import type { Address, PublicClient } from 'viem';
 import { parseAbi } from 'viem';
 import { calculateRebalancing, type RebalancingResponse } from '@31third/sdk';
 
-import { tokenFeedRegistryAbi } from './contracts.js';
+import { priceOracleAbi } from './contracts.js';
 import type { PolicySnapshot, TargetAllocation } from './policies.js';
 
 const erc20Abi = parseAbi([
   'function balanceOf(address account) view returns (uint256)',
   'function decimals() view returns (uint8)',
   'function symbol() view returns (string)'
-]);
-
-const chainlinkFeedAbi = parseAbi([
-  'function decimals() view returns (uint8)',
-  'function latestRoundData() view returns (uint80,int256,uint256,uint256,uint80)'
 ]);
 
 export interface DriftToken {
@@ -92,92 +87,29 @@ async function readTokenDecimals(publicClient: PublicClient, token: Address): Pr
   return Number(decimals);
 }
 
-async function readTokenFeed(publicClient: PublicClient, tokenFeedRegistry: Address, token: Address): Promise<Address> {
+async function readPrice18(publicClient: PublicClient, priceOracle: Address, token: Address): Promise<bigint> {
   return (await publicClient.readContract({
-    address: tokenFeedRegistry,
-    abi: tokenFeedRegistryAbi,
-    functionName: 'getFeed',
+    address: priceOracle,
+    abi: priceOracleAbi,
+    functionName: 'getPrice18',
     args: [token]
-  })) as Address;
+  })) as bigint;
 }
 
-async function readPriceAndDecimals(
-  publicClient: PublicClient,
-  feed: Address,
-  oracleMaxAgeSeconds?: number
-): Promise<{ price: bigint; decimals: number; staleReason?: string }> {
-  const decimals = (await publicClient.readContract({
-    address: feed,
-    abi: chainlinkFeedAbi,
-    functionName: 'decimals'
-  })) as number;
-
-  const latestRoundData = (await publicClient.readContract({
-    address: feed,
-    abi: chainlinkFeedAbi,
-    functionName: 'latestRoundData'
-  })) as [bigint, bigint, bigint, bigint, bigint];
-
-  const roundId = latestRoundData[0];
-  const answer = latestRoundData[1];
-  const updatedAt = latestRoundData[3];
-  const answeredInRound = latestRoundData[4];
-
-  if (updatedAt === 0n) {
-    return { price: 0n, decimals: Number(decimals), staleReason: 'oracle returned zero updatedAt timestamp' };
-  }
-
-  if (answeredInRound < roundId) {
-    return {
-      price: 0n,
-      decimals: Number(decimals),
-      staleReason: 'oracle round is incomplete (answeredInRound < roundId)'
-    };
-  }
-
-  if (typeof oracleMaxAgeSeconds === 'number') {
-    const nowSec = BigInt(Math.floor(Date.now() / 1000));
-    const ageSeconds = nowSec > updatedAt ? nowSec - updatedAt : 0n;
-    if (ageSeconds > BigInt(oracleMaxAgeSeconds)) {
-      return {
-        price: 0n,
-        decimals: Number(decimals),
-        staleReason: `oracle price is stale (age ${ageSeconds.toString()}s > ${oracleMaxAgeSeconds}s)`
-      };
-    }
-  }
-
-  if (answer <= 0n) {
-    return { price: 0n, decimals: Number(decimals), staleReason: 'oracle answer is non-positive' };
-  }
-
-  return { price: answer, decimals: Number(decimals) };
-}
-
-function usdValueLikePolicy(amount: bigint, tokenDecimals: number, price: bigint, priceDecimals: number): bigint {
-  if (amount === 0n || price === 0n) {
+function usdValue18(amount: bigint, tokenDecimals: number, price18: bigint): bigint {
+  if (amount === 0n || price18 === 0n) {
     return 0n;
   }
-
-  let value = (amount * price) / tenPow(tokenDecimals);
-
-  if (priceDecimals > 18) {
-    value = value / tenPow(priceDecimals - 18);
-  } else if (priceDecimals < 18) {
-    value = value * tenPow(18 - priceDecimals);
-  }
-
-  return value;
+  return (amount * price18) / tenPow(tokenDecimals);
 }
 
 export async function checkDrift(params: {
   publicClient: PublicClient;
   safeAddress: Address;
-  tokenFeedRegistry: Address;
+  priceOracle: Address;
   policies: PolicySnapshot;
-  oracleMaxAgeSeconds?: number;
 }): Promise<DriftResult> {
-  const { publicClient, safeAddress, tokenFeedRegistry, policies, oracleMaxAgeSeconds } = params;
+  const { publicClient, safeAddress, priceOracle, policies } = params;
 
   if (policies.targetAllocations.length === 0) {
     return {
@@ -195,7 +127,7 @@ export async function checkDrift(params: {
 
   const raw = await Promise.all(
     tokens.map(async (token) => {
-      const [symbol, decimals, balance, feed] = await Promise.all([
+      const [symbol, decimals, balance, price18] = await Promise.all([
         readTokenSymbol(publicClient, token),
         readTokenDecimals(publicClient, token),
         publicClient.readContract({
@@ -204,20 +136,19 @@ export async function checkDrift(params: {
           functionName: 'balanceOf',
           args: [safeAddress]
         }) as Promise<bigint>,
-        readTokenFeed(publicClient, tokenFeedRegistry, token)
+        readPrice18(publicClient, priceOracle, token)
       ]);
 
-      const { price, decimals: priceDecimals, staleReason } = await readPriceAndDecimals(
-        publicClient,
-        feed,
-        oracleMaxAgeSeconds
-      );
-      if (staleReason) {
-        throw new Error(`Stale or invalid price for ${token}: ${staleReason}`);
+      if (price18 <= 0n) {
+        throw new Error(`Missing or stale price for ${token} on PriceOracle ${priceOracle}.`);
       }
-      const valueUsd18 = usdValueLikePolicy(balance, decimals, price, priceDecimals);
 
-      return { token, symbol, balance, valueUsd18 };
+      return {
+        token,
+        symbol,
+        balance,
+        valueUsd18: usdValue18(balance, decimals, price18)
+      };
     })
   );
 
@@ -260,12 +191,11 @@ export async function checkDrift(params: {
 
 export async function validateTrade(params: {
   publicClient: PublicClient;
-  tokenFeedRegistry: Address;
+  priceOracle?: Address;
   policies: PolicySnapshot;
   trade: TradeCandidate;
-  oracleMaxAgeSeconds?: number;
 }): Promise<TradeValidationResult> {
-  const { publicClient, tokenFeedRegistry, policies, trade, oracleMaxAgeSeconds } = params;
+  const { publicClient, priceOracle, policies, trade } = params;
 
   if (policies.assetUniverseTokens.length > 0) {
     const normalized = new Set(policies.assetUniverseTokens.map((token) => token.toLowerCase()));
@@ -278,40 +208,30 @@ export async function validateTrade(params: {
   }
 
   if (typeof policies.maxSlippageBps === 'number') {
-    const [fromFeed, toFeed, fromTokenDecimals, toTokenDecimals] = await Promise.all([
-      readTokenFeed(publicClient, tokenFeedRegistry, trade.from),
-      readTokenFeed(publicClient, tokenFeedRegistry, trade.to),
+    if (!priceOracle) {
+      return {
+        ok: false,
+        reason: 'Slippage validation failed: no priceOracle configured on the active policies.'
+      };
+    }
+
+    const [fromPrice18, toPrice18, fromTokenDecimals, toTokenDecimals] = await Promise.all([
+      readPrice18(publicClient, priceOracle, trade.from),
+      readPrice18(publicClient, priceOracle, trade.to),
       readTokenDecimals(publicClient, trade.from),
       readTokenDecimals(publicClient, trade.to)
     ]);
 
-    const [fromPriceData, toPriceData] = await Promise.all([
-      readPriceAndDecimals(publicClient, fromFeed, oracleMaxAgeSeconds),
-      readPriceAndDecimals(publicClient, toFeed, oracleMaxAgeSeconds)
-    ]);
-
-    if (fromPriceData.staleReason || toPriceData.staleReason) {
+    if (fromPrice18 === 0n || toPrice18 === 0n) {
       return {
         ok: false,
-        reason: `Slippage validation failed: ${fromPriceData.staleReason ?? toPriceData.staleReason}`
+        reason: 'Slippage validation failed: missing valid price for one or more trade tokens.'
       };
     }
 
-    if (fromPriceData.price === 0n || toPriceData.price === 0n) {
-      return {
-        ok: false,
-        reason: 'Slippage validation failed: missing valid price feed answer for one or more trade tokens.'
-      };
-    }
-
-    const numerator = (trade.fromAmount * fromPriceData.price) / tenPow(fromTokenDecimals);
-    let expectedTo = (numerator * tenPow(toTokenDecimals)) / toPriceData.price;
-
-    if (fromPriceData.decimals > toPriceData.decimals) {
-      expectedTo = expectedTo / tenPow(fromPriceData.decimals - toPriceData.decimals);
-    } else if (toPriceData.decimals > fromPriceData.decimals) {
-      expectedTo = expectedTo * tenPow(toPriceData.decimals - fromPriceData.decimals);
-    }
+    const expectedTo =
+      (trade.fromAmount * fromPrice18 * tenPow(toTokenDecimals)) /
+      (tenPow(fromTokenDecimals) * toPrice18);
 
     const minAllowed = (expectedTo * BigInt(10_000 - policies.maxSlippageBps)) / 10_000n;
     if (trade.minToReceiveBeforeFees < minAllowed) {

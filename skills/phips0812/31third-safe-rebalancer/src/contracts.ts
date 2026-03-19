@@ -4,6 +4,7 @@ import executorArtifact from '../abi/ExecutorModule.json' with { type: 'json' };
 import assetUniverseArtifact from '../abi/AssetUniversePolicy.json' with { type: 'json' };
 import staticAllocationArtifact from '../abi/StaticAllocationPolicy.json' with { type: 'json' };
 import slippageArtifact from '../abi/SlippagePolicy.json' with { type: 'json' };
+import priceOracleArtifact from '../abi/PriceOracle.json' with { type: 'json' };
 import tokenFeedRegistryArtifact from '../abi/TokenFeedRegistry.json' with { type: 'json' };
 import batchTradeArtifact from '../abi/IBatchTrade.json' with { type: 'json' };
 
@@ -11,6 +12,7 @@ export const executorModuleAbi = executorArtifact.abi as Abi;
 export const assetUniversePolicyAbi = assetUniverseArtifact.abi as Abi;
 export const staticAllocationPolicyAbi = staticAllocationArtifact.abi as Abi;
 export const slippagePolicyAbi = slippageArtifact.abi as Abi;
+export const priceOracleAbi = priceOracleArtifact.abi as Abi;
 export const tokenFeedRegistryAbi = tokenFeedRegistryArtifact.abi as Abi;
 export const batchTradeAbi = batchTradeArtifact.abi as Abi;
 export const HARDCODED_BATCH_TRADE_ADDRESS = '0xD20c024560ccA40288C05BAB650ac087ae9b0f6e' as Address;

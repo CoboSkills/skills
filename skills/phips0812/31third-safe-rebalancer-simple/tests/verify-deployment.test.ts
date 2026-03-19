@@ -5,9 +5,9 @@ import { verify_deployment_config } from '../index.js';
 const troubleshootingSummary = `
 Safe=0x8987f6e8Dc890E7Bb0EF41179e47F8aB5Ef46Bd1
 ExecutorModule=0x2D133d3085a7db8B54b175ec595C7ED4e430e2D8 | Deployed
-Scheduler=0xd488ebA2e5534af8DA6c0BC3915189024DFcAff5
-Registry=0xd488ebA2e5534af8DA6c0BC3915189024DFcAff5
+Executor=0xd488ebA2e5534af8DA6c0BC3915189024DFcAff5
 BatchTrade=0xD20c024560ccA40288C05BAB650ac087ae9b0f6e
+PriceOracle=0x1111111111111111111111111111111111111111
 FeedRegistry=0x1d4999242A24C8588c4f5dB7dFF1D74Df6bC746A
 CooldownSec=3600
 
@@ -35,8 +35,7 @@ describe('verify_deployment_config', () => {
         fetchOnChainDeploymentFn: async () => ({
           safeAddress: '0x8987f6e8Dc890E7Bb0EF41179e47F8aB5Ef46Bd1',
           executorModuleAddress: '0x2D133d3085a7db8B54b175ec595C7ED4e430e2D8',
-          scheduler: '0xd488ebA2e5534af8DA6c0BC3915189024DFcAff5',
-          registry: '0xd488ebA2e5534af8DA6c0BC3915189024DFcAff5',
+          executor: '0xd488ebA2e5534af8DA6c0BC3915189024DFcAff5',
           batchTrade: '0xD20c024560ccA40288C05BAB650ac087ae9b0f6e',
           cooldownSec: 3600,
           assetUniversePolicy: '0xF1A8d4ad61a8147B4Ca61D1b9f5817Dc81697900',
@@ -51,9 +50,11 @@ describe('verify_deployment_config', () => {
             { tokenAddress: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913', allocationPercent: 10 },
             { tokenAddress: '0x4200000000000000000000000000000000000006', allocationPercent: 90 }
           ],
+          staticPriceOracle: '0x1111111111111111111111111111111111111111',
           staticFeedRegistry: '0x1d4999242A24C8588c4f5dB7dFF1D74Df6bC746A',
           slippagePolicy: '0xFB5AFfB6B5495Da3EF84a10b31ffa126E3E70BF1',
           maxSlippagePercent: 0.5,
+          slippagePriceOracle: '0x1111111111111111111111111111111111111111',
           slippageFeedRegistry: '0x1d4999242A24C8588c4f5dB7dFF1D74Df6bC746A'
         })
       }
@@ -70,8 +71,7 @@ describe('verify_deployment_config', () => {
         fetchOnChainDeploymentFn: async () => ({
           safeAddress: '0x8987f6e8Dc890E7Bb0EF41179e47F8aB5Ef46Bd1',
           executorModuleAddress: '0x2D133d3085a7db8B54b175ec595C7ED4e430e2D8',
-          scheduler: '0xd488ebA2e5534af8DA6c0BC3915189024DFcAff5',
-          registry: '0xd488ebA2e5534af8DA6c0BC3915189024DFcAff5',
+          executor: '0xd488ebA2e5534af8DA6c0BC3915189024DFcAff5',
           batchTrade: '0xD20c024560ccA40288C05BAB650ac087ae9b0f6e',
           cooldownSec: 900,
           assetUniversePolicy: '0xF1A8d4ad61a8147B4Ca61D1b9f5817Dc81697900',
@@ -86,9 +86,11 @@ describe('verify_deployment_config', () => {
             { tokenAddress: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913', allocationPercent: 10 },
             { tokenAddress: '0x4200000000000000000000000000000000000006', allocationPercent: 90 }
           ],
+          staticPriceOracle: '0x1111111111111111111111111111111111111111',
           staticFeedRegistry: '0x1d4999242A24C8588c4f5dB7dFF1D74Df6bC746A',
           slippagePolicy: '0xFB5AFfB6B5495Da3EF84a10b31ffa126E3E70BF1',
           maxSlippagePercent: 0.5,
+          slippagePriceOracle: '0x1111111111111111111111111111111111111111',
           slippageFeedRegistry: '0x1d4999242A24C8588c4f5dB7dFF1D74Df6bC746A'
         })
       }

@@ -3,6 +3,7 @@ import { Contract, JsonRpcProvider, isAddress } from 'ethers';
 import {
   assetUniversePolicyAbi,
   executorModuleAbi,
+  priceOracleAbi,
   slippagePolicyAbi,
   staticAllocationPolicyAbi
 } from './contracts.js';
@@ -31,9 +32,9 @@ export interface VerifyDeploymentResult {
 interface ParsedTroubleshootingSummary {
   safeAddress?: string;
   executorModuleAddress?: string;
-  scheduler?: string;
-  registry?: string;
+  executor?: string;
   batchTrade?: string;
+  priceOracle?: string;
   feedRegistry?: string;
   cooldownSec?: number;
   assetUniversePolicy?: string;
@@ -54,8 +55,7 @@ interface DeploymentEnvSnapshot {
 interface OnChainDeploymentSnapshot {
   safeAddress: string;
   executorModuleAddress: string;
-  scheduler: string;
-  registry: string;
+  executor: string;
   batchTrade: string;
   cooldownSec: number;
   assetUniversePolicy?: string;
@@ -64,9 +64,11 @@ interface OnChainDeploymentSnapshot {
   staticAllocationDriftThresholdPercent?: number;
   staticAllocationToleranceThresholdPercent?: number;
   staticAllocationTargets: Array<{ tokenAddress: string; allocationPercent: number }>;
+  staticPriceOracle?: string;
   staticFeedRegistry?: string;
   slippagePolicy?: string;
   maxSlippagePercent?: number;
+  slippagePriceOracle?: string;
   slippageFeedRegistry?: string;
 }
 
@@ -159,9 +161,10 @@ function parseTroubleshootingSummary(input: string): ParsedTroubleshootingSummar
 
     if (key === 'Safe') parsed.safeAddress = address;
     if (key === 'ExecutorModule') parsed.executorModuleAddress = address;
-    if (key === 'Scheduler') parsed.scheduler = address;
-    if (key === 'Registry') parsed.registry = address;
+    if (key === 'Executor') parsed.executor = address;
+    if (key === 'Registry' && !parsed.executor) parsed.executor = address;
     if (key === 'BatchTrade') parsed.batchTrade = address;
+    if (key === 'PriceOracle') parsed.priceOracle = address;
     if (key === 'FeedRegistry') parsed.feedRegistry = address;
     if (key === 'AssetUniversePolicy') parsed.assetUniversePolicy = address;
     if (key === 'StaticAllocationPolicy') parsed.staticAllocationPolicy = address;
@@ -210,15 +213,14 @@ async function defaultFetchOnChainDeployment(
   rpcUrl: string
 ): Promise<OnChainDeploymentSnapshot> {
   const provider = new JsonRpcProvider(rpcUrl);
-  const executor = new Contract(executorModuleAddress, executorModuleAbi, provider);
+  const executorModule = new Contract(executorModuleAddress, executorModuleAbi, provider);
 
-  const [safeAddress, scheduler, registry, batchTrade, cooldownRaw, policiesRaw] = await Promise.all([
-    executor.safe() as Promise<string>,
-    executor.scheduler() as Promise<string>,
-    executor.registry() as Promise<string>,
-    executor.batchTrade() as Promise<string>,
-    executor.cooldown() as Promise<bigint>,
-    executor.getPoliciesWithTypes() as Promise<any[]>
+  const [safeAddress, executor, batchTrade, cooldownRaw, policiesRaw] = await Promise.all([
+    executorModule.safe() as Promise<string>,
+    executorModule.executor() as Promise<string>,
+    executorModule.batchTrade() as Promise<string>,
+    executorModule.cooldown() as Promise<bigint>,
+    executorModule.getPoliciesWithTypes() as Promise<any[]>
   ]);
 
   const policies = (policiesRaw as any[]).map(normalizePolicyState);
@@ -243,49 +245,45 @@ async function defaultFetchOnChainDeployment(
   let staticAllocationDriftThresholdPercent: number | undefined;
   let staticAllocationToleranceThresholdPercent: number | undefined;
   let staticAllocationTargets: Array<{ tokenAddress: string; allocationPercent: number }> = [];
+  let staticPriceOracle: string | undefined;
   let staticFeedRegistry: string | undefined;
   if (staticAllocationPolicy) {
     const staticAllocation = new Contract(staticAllocationPolicy, staticAllocationPolicyAbi, provider);
-    const [driftThresholdBpsRaw, toleranceThresholdBpsRaw, targetsRaw, feedRegistry] = await Promise.all([
+    const [driftThresholdBpsRaw, toleranceThresholdBpsRaw, targetsRaw, priceOracle] = await Promise.all([
       staticAllocation.driftThresholdBps() as Promise<bigint>,
       staticAllocation.toleranceThresholdBps() as Promise<bigint>,
       staticAllocation.getAllTargets() as Promise<any[]>,
-      staticAllocation.feedRegistry() as Promise<string>
+      staticAllocation.priceOracle() as Promise<string>
     ]);
 
     staticAllocationDriftThresholdPercent = bpsToPercent(Number(driftThresholdBpsRaw));
     staticAllocationToleranceThresholdPercent = bpsToPercent(Number(toleranceThresholdBpsRaw));
-    staticFeedRegistry = feedRegistry;
-    staticAllocationTargets = targetsRaw.map((target) => {
-      const tokenAddress = target?.token ?? (Array.isArray(target) ? target[0] : undefined);
-      const bps = target?.bps ?? (Array.isArray(target) ? target[1] : undefined);
-      if (typeof tokenAddress !== 'string' || typeof bps === 'undefined') {
-        throw new Error('Invalid target entry on StaticAllocation policy.');
-      }
-      return {
-        tokenAddress,
-        allocationPercent: bpsToPercent(Number(bps))
-      };
-    });
+    staticPriceOracle = priceOracle;
+    staticFeedRegistry = await new Contract(priceOracle, priceOracleAbi, provider).feedRegistry() as string;
+    staticAllocationTargets = targetsRaw.map((target) => ({
+      tokenAddress: target?.token ?? target?.[0],
+      allocationPercent: bpsToPercent(Number(target?.bps ?? target?.[1]))
+    }));
   }
 
   let maxSlippagePercent: number | undefined;
+  let slippagePriceOracle: string | undefined;
   let slippageFeedRegistry: string | undefined;
   if (slippagePolicy) {
     const slippage = new Contract(slippagePolicy, slippagePolicyAbi, provider);
-    const [maxSlippageBpsRaw, feedRegistry] = await Promise.all([
+    const [maxSlippageBpsRaw, priceOracle] = await Promise.all([
       slippage.maxSlippageBps() as Promise<bigint>,
-      slippage.feedRegistry() as Promise<string>
+      slippage.priceOracle() as Promise<string>
     ]);
     maxSlippagePercent = bpsToPercent(Number(maxSlippageBpsRaw));
-    slippageFeedRegistry = feedRegistry;
+    slippagePriceOracle = priceOracle;
+    slippageFeedRegistry = await new Contract(priceOracle, priceOracleAbi, provider).feedRegistry() as string;
   }
 
   return {
     safeAddress,
     executorModuleAddress,
-    scheduler,
-    registry,
+    executor,
     batchTrade,
     cooldownSec: Number(cooldownRaw),
     assetUniversePolicy,
@@ -294,9 +292,11 @@ async function defaultFetchOnChainDeployment(
     staticAllocationDriftThresholdPercent,
     staticAllocationToleranceThresholdPercent,
     staticAllocationTargets,
+    staticPriceOracle,
     staticFeedRegistry,
     slippagePolicy,
     maxSlippagePercent,
+    slippagePriceOracle,
     slippageFeedRegistry
   };
 }
@@ -409,6 +409,7 @@ export async function verify_deployment_config(params: {
   const fetchOnChainDeploymentFn = params.deps?.fetchOnChainDeploymentFn ?? defaultFetchOnChainDeployment;
   const chain = await fetchOnChainDeploymentFn(executorModuleAddress, rpcUrl);
 
+  const chainPriceOracle = chain.staticPriceOracle ?? chain.slippagePriceOracle;
   const chainFeedRegistry = chain.staticFeedRegistry ?? chain.slippageFeedRegistry;
   const checks: VerificationCheck[] = [
     buildCheck({
@@ -428,16 +429,9 @@ export async function verify_deployment_config(params: {
       format: (value) => value
     }),
     buildCheck({
-      field: 'Scheduler',
-      summaryValue: summary.scheduler,
-      chainValue: chain.scheduler,
-      equals: addressesEqual,
-      format: (value) => value
-    }),
-    buildCheck({
-      field: 'Registry',
-      summaryValue: summary.registry,
-      chainValue: chain.registry,
+      field: 'Executor',
+      summaryValue: summary.executor,
+      chainValue: chain.executor,
       equals: addressesEqual,
       format: (value) => value
     }),
@@ -445,6 +439,13 @@ export async function verify_deployment_config(params: {
       field: 'BatchTrade',
       summaryValue: summary.batchTrade,
       chainValue: chain.batchTrade,
+      equals: addressesEqual,
+      format: (value) => value
+    }),
+    buildCheck({
+      field: 'PriceOracle',
+      summaryValue: summary.priceOracle,
+      chainValue: chainPriceOracle,
       equals: addressesEqual,
       format: (value) => value
     }),
@@ -521,6 +522,15 @@ export async function verify_deployment_config(params: {
   ];
 
   const warnings: string[] = [];
+  if (
+    chain.staticPriceOracle &&
+    chain.slippagePriceOracle &&
+    !addressesEqual(chain.staticPriceOracle, chain.slippagePriceOracle)
+  ) {
+    warnings.push(
+      `On-chain price oracles differ: staticAllocation=${chain.staticPriceOracle}, slippage=${chain.slippagePriceOracle}.`
+    );
+  }
   if (
     chain.staticFeedRegistry &&
     chain.slippageFeedRegistry &&

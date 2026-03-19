@@ -25,8 +25,7 @@ describe('rebalance_now', () => {
                 executeRebalancingFn: executeRebalancingFn,
                 createExecutorSignerFn: () => ({ getAddress: async () => '0x3000000000000000000000000000000000000003' }),
                 loadPlanInputsFn: async () => ({
-                    scheduler: '0x3000000000000000000000000000000000000003',
-                    registry: '0x3000000000000000000000000000000000000003',
+                    executor: '0x3000000000000000000000000000000000000003',
                     baseEntries: [{ tokenAddress: '0xaaa', amount: '1' }],
                     targetEntries: [{ tokenAddress: '0xbbb', allocation: 1 }],
                     effectiveMaxSlippage: 0.01,
@@ -40,26 +39,7 @@ describe('rebalance_now', () => {
         expect(executeRebalancingFn).toHaveBeenCalledTimes(1);
         expect(wait).toHaveBeenCalledTimes(1);
     });
-    it('fails when scheduler and registry differ', async () => {
-        await expect(rebalance_now({
-            config,
-            deps: {
-                calculateRebalancingFn: vi.fn(),
-                executeRebalancingFn: vi.fn(),
-                createExecutorSignerFn: () => ({ getAddress: async () => '0x3000000000000000000000000000000000000003' }),
-                loadPlanInputsFn: async () => ({
-                    scheduler: '0x3000000000000000000000000000000000000003',
-                    registry: '0x4000000000000000000000000000000000000004',
-                    baseEntries: [],
-                    targetEntries: [],
-                    effectiveMaxSlippage: 0.01,
-                    effectiveMaxPriceImpact: 0.01,
-                    notes: []
-                })
-            }
-        })).rejects.toThrow('SCHEDULER_REGISTRY_MISMATCH');
-    });
-    it('fails when executor wallet is not registry', async () => {
+    it('fails when executor wallet does not match executor', async () => {
         await expect(rebalance_now({
             config,
             deps: {
@@ -67,8 +47,7 @@ describe('rebalance_now', () => {
                 executeRebalancingFn: vi.fn(),
                 createExecutorSignerFn: () => ({ getAddress: async () => '0x5000000000000000000000000000000000000005' }),
                 loadPlanInputsFn: async () => ({
-                    scheduler: '0x3000000000000000000000000000000000000003',
-                    registry: '0x3000000000000000000000000000000000000003',
+                    executor: '0x3000000000000000000000000000000000000003',
                     baseEntries: [],
                     targetEntries: [],
                     effectiveMaxSlippage: 0.01,
@@ -76,7 +55,7 @@ describe('rebalance_now', () => {
                     notes: []
                 })
             }
-        })).rejects.toThrow('EXECUTOR_WALLET_NOT_REGISTRY');
+        })).rejects.toThrow('EXECUTOR_WALLET_NOT_EXECUTOR');
     });
     it('skips when drift is below threshold', async () => {
         const calculateRebalancingFn = vi.fn(async () => ({ txData: '0x1234', requiredAllowances: [] }));
@@ -87,12 +66,11 @@ describe('rebalance_now', () => {
                 executeRebalancingFn: vi.fn(),
                 createExecutorSignerFn: () => ({ getAddress: async () => '0x3000000000000000000000000000000000000003' }),
                 loadPlanInputsFn: async () => ({
-                    scheduler: '0x3000000000000000000000000000000000000003',
-                    registry: '0x3000000000000000000000000000000000000003',
+                    executor: '0x3000000000000000000000000000000000000003',
                     baseEntries: [{ tokenAddress: '0xaaa', amount: '1' }],
                     targetEntries: [{ tokenAddress: '0xbbb', allocation: 1 }],
                     driftThresholdBps: 300,
-                    feedRegistry: '0x9000000000000000000000000000000000000009',
+                    priceOracle: '0x9000000000000000000000000000000000000009',
                     effectiveMaxSlippage: 0.01,
                     effectiveMaxPriceImpact: 0.01,
                     notes: []

@@ -2,11 +2,13 @@ import ExecutorModuleArtifact from '../abi/ExecutorModule.json' with { type: 'js
 import AssetUniversePolicyArtifact from '../abi/AssetUniversePolicy.json' with { type: 'json' };
 import StaticAllocationPolicyArtifact from '../abi/StaticAllocationPolicy.json' with { type: 'json' };
 import SlippagePolicyArtifact from '../abi/SlippagePolicy.json' with { type: 'json' };
+import PriceOracleArtifact from '../abi/PriceOracle.json' with { type: 'json' };
 
 export const executorModuleAbi = ExecutorModuleArtifact.abi;
 export const assetUniversePolicyAbi = AssetUniversePolicyArtifact.abi;
 export const staticAllocationPolicyAbi = StaticAllocationPolicyArtifact.abi;
 export const slippagePolicyAbi = SlippagePolicyArtifact.abi;
+export const priceOracleAbi = PriceOracleArtifact.abi;
 
 export const erc20Abi = [
   {
@@ -22,38 +24,5 @@ export const erc20Abi = [
     stateMutability: 'view',
     inputs: [],
     outputs: [{ name: '', type: 'uint8' }]
-  }
-] as const;
-
-export const tokenFeedRegistryAbi = [
-  {
-    type: 'function',
-    name: 'getFeed',
-    stateMutability: 'view',
-    inputs: [{ name: 'token', type: 'address' }],
-    outputs: [{ name: '', type: 'address' }]
-  }
-] as const;
-
-export const aggregatorV3Abi = [
-  {
-    type: 'function',
-    name: 'decimals',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint8' }]
-  },
-  {
-    type: 'function',
-    name: 'latestRoundData',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [
-      { name: 'roundId', type: 'uint80' },
-      { name: 'answer', type: 'int256' },
-      { name: 'startedAt', type: 'uint256' },
-      { name: 'updatedAt', type: 'uint256' },
-      { name: 'answeredInRound', type: 'uint80' }
-    ]
   }
 ] as const;

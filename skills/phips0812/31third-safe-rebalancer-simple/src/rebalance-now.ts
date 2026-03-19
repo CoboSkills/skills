@@ -2,13 +2,12 @@ import { calculateRebalancing, executeRebalancing, type RebalancingResponse } fr
 import { Contract, JsonRpcProvider, Wallet, isAddress } from 'ethers';
 
 import {
-  aggregatorV3Abi,
   assetUniversePolicyAbi,
   erc20Abi,
   executorModuleAbi,
+  priceOracleAbi,
   slippagePolicyAbi,
-  staticAllocationPolicyAbi,
-  tokenFeedRegistryAbi
+  staticAllocationPolicyAbi
 } from './contracts.js';
 
 export interface RuntimeConfig {
@@ -34,8 +33,7 @@ export interface RebalanceNowResult {
   executed: boolean;
   skipped: boolean;
   txHash?: string;
-  scheduler: string;
-  registry: string;
+  executor: string;
   executorWallet: string;
   baseEntriesCount: number;
   targetEntriesCount: number;
@@ -53,12 +51,11 @@ interface PolicyState {
 }
 
 interface PlanInputs {
-  scheduler: string;
-  registry: string;
+  executor: string;
   baseEntries: Array<{ tokenAddress: string; amount: string }>;
   targetEntries: Array<{ tokenAddress: string; allocation: number }>;
   driftThresholdBps?: number;
-  feedRegistry?: string;
+  priceOracle?: string;
   effectiveMaxSlippage: number;
   effectiveMaxPriceImpact: number;
   notes: string[];
@@ -86,7 +83,7 @@ interface RebalanceDeps {
     provider: JsonRpcProvider,
     targetEntries: Array<{ tokenAddress: string; allocation: number }>,
     driftThresholdBps: number,
-    feedRegistry: string
+    priceOracle: string
   ) => Promise<DriftResult>;
 }
 
@@ -166,13 +163,10 @@ async function defaultLoadPlanInputs(
   provider: JsonRpcProvider,
   manualTargetEntries?: TargetEntryInput[]
 ): Promise<PlanInputs> {
-  const executor = new Contract(config.executorModuleAddress, executorModuleAbi, provider);
-  const [scheduler, registry] = await Promise.all([
-    executor.scheduler() as Promise<string>,
-    executor.registry() as Promise<string>
-  ]);
+  const executorModule = new Contract(config.executorModuleAddress, executorModuleAbi, provider);
+  const executor = await executorModule.executor() as string;
 
-  const policiesRaw = await executor.getPoliciesWithTypes();
+  const policiesRaw = await executorModule.getPoliciesWithTypes();
   const policies = (policiesRaw as any[]).map(normalizePolicyState);
   const policyAddresses = readPolicyAddresses(policies);
 
@@ -200,14 +194,14 @@ async function defaultLoadPlanInputs(
 
   let targetEntries: Array<{ tokenAddress: string; allocation: number }> = [];
   let driftThresholdBps: number | undefined;
-  let feedRegistry: string | undefined;
+  let priceOracle: string | undefined;
 
   if (policyAddresses.staticAllocationAddress) {
     const staticAllocation = new Contract(policyAddresses.staticAllocationAddress, staticAllocationPolicyAbi, provider);
-    const [rawTargets, rawDriftThresholdBps, staticFeedRegistry] = await Promise.all([
+    const [rawTargets, rawDriftThresholdBps, staticPriceOracle] = await Promise.all([
       staticAllocation.getAllTargets() as Promise<any[]>,
       staticAllocation.driftThresholdBps() as Promise<bigint>,
-      staticAllocation.feedRegistry() as Promise<string>
+      staticAllocation.priceOracle() as Promise<string>
     ]);
 
     targetEntries = rawTargets.map((target) => {
@@ -223,7 +217,7 @@ async function defaultLoadPlanInputs(
     });
 
     driftThresholdBps = Number(rawDriftThresholdBps);
-    feedRegistry = staticFeedRegistry;
+    priceOracle = staticPriceOracle;
   } else if (manualTargetEntries && manualTargetEntries.length > 0) {
     targetEntries = manualTargetEntries;
     notes.push('StaticAllocation policy not deployed; using manually provided target entries.');
@@ -237,21 +231,24 @@ async function defaultLoadPlanInputs(
   let effectiveMaxPriceImpact = config.maxPriceImpact;
   if (policyAddresses.slippageAddress) {
     const slippagePolicy = new Contract(policyAddresses.slippageAddress, slippagePolicyAbi, provider);
-    const bps = Number(await slippagePolicy.maxSlippageBps() as bigint);
-    const adjusted = Math.max(0, bps / 10_000 - 0.001);
+    const [bps, slippagePriceOracle] = await Promise.all([
+      slippagePolicy.maxSlippageBps() as Promise<bigint>,
+      slippagePolicy.priceOracle() as Promise<string>
+    ]);
+    const adjusted = Math.max(0, Number(bps) / 10_000 - 0.001);
     effectiveMaxSlippage = adjusted;
     effectiveMaxPriceImpact = adjusted;
+    priceOracle = priceOracle ?? slippagePriceOracle;
   } else {
     notes.push('Slippage policy not deployed; using configured/default maxSlippage/maxPriceImpact.');
   }
 
   return {
-    scheduler,
-    registry,
+    executor,
     baseEntries,
     targetEntries,
     driftThresholdBps,
-    feedRegistry,
+    priceOracle,
     effectiveMaxSlippage,
     effectiveMaxPriceImpact,
     notes
@@ -273,53 +270,35 @@ async function defaultCheckDrift(
   provider: JsonRpcProvider,
   targetEntries: Array<{ tokenAddress: string; allocation: number }>,
   driftThresholdBps: number,
-  feedRegistry: string
+  priceOracle: string
 ): Promise<DriftResult> {
-  if (!targetEntries.length || !feedRegistry || !isAddress(feedRegistry)) {
+  if (!targetEntries.length || !priceOracle || !isAddress(priceOracle)) {
     return {
       computable: false,
       maxDriftBps: 0,
       thresholdBps: driftThresholdBps,
       shouldRebalance: true,
-      reason: 'Drift precheck skipped: missing target entries or feed registry.'
+      reason: 'Drift precheck skipped: missing target entries or priceOracle.'
     };
   }
 
-  const registry = new Contract(feedRegistry, tokenFeedRegistryAbi, provider);
+  const oracle = new Contract(priceOracle, priceOracleAbi, provider);
 
   const values = await Promise.all(
     targetEntries.map(async (target) => {
       const token = new Contract(target.tokenAddress, erc20Abi, provider);
-      const [balance, tokenDecimalsRaw, feedAddress] = await Promise.all([
+      const [balance, tokenDecimalsRaw, tokenPrice18] = await Promise.all([
         token.balanceOf(config.safeAddress) as Promise<bigint>,
         token.decimals() as Promise<bigint>,
-        registry.getFeed(target.tokenAddress) as Promise<string>
+        oracle.getPrice18(target.tokenAddress) as Promise<bigint>
       ]);
       const tokenDecimals = Number(tokenDecimalsRaw);
 
-      if (!feedAddress || feedAddress.toLowerCase() === ZERO_ADDRESS) {
+      if (tokenPrice18 <= 0n) {
         return { target, usd18: null as bigint | null };
       }
 
-      const feed = new Contract(feedAddress, aggregatorV3Abi, provider);
-      const [feedDecimalsRaw, latestRoundData] = await Promise.all([
-        feed.decimals() as Promise<bigint>,
-        feed.latestRoundData() as Promise<[bigint, bigint, bigint, bigint, bigint]>
-      ]);
-      const feedDecimals = Number(feedDecimalsRaw);
-
-      const price = latestRoundData[1];
-      if (price <= 0n) {
-        return { target, usd18: null as bigint | null };
-      }
-
-      let usd18 = (balance * price) / tenPow(tokenDecimals);
-      if (feedDecimals < 18) {
-        usd18 *= tenPow(18 - feedDecimals);
-      } else if (feedDecimals > 18) {
-        usd18 /= tenPow(feedDecimals - 18);
-      }
-
+      const usd18 = (balance * tokenPrice18) / tenPow(tokenDecimals);
       return { target, usd18 };
     })
   );
@@ -330,7 +309,7 @@ async function defaultCheckDrift(
       maxDriftBps: 0,
       thresholdBps: driftThresholdBps,
       shouldRebalance: true,
-      reason: 'Drift precheck skipped: one or more target tokens have missing/invalid feeds.'
+      reason: 'Drift precheck skipped: one or more target tokens have missing/invalid prices.'
     };
   }
 
@@ -385,30 +364,26 @@ export async function rebalance_now(params?: {
   const executorSigner = createExecutorSignerFn(config, provider);
   const executorWallet = await executorSigner.getAddress();
   const {
-    scheduler,
-    registry,
+    executor,
     baseEntries,
     targetEntries,
     driftThresholdBps,
-    feedRegistry,
+    priceOracle,
     effectiveMaxSlippage,
     effectiveMaxPriceImpact,
     notes
   } = await loadPlanInputsFn(config, provider, params?.targetEntries);
 
-  if (scheduler.toLowerCase() !== registry.toLowerCase()) {
-    throw new Error(`SCHEDULER_REGISTRY_MISMATCH: scheduler=${scheduler} registry=${registry}`);
-  }
   if (executorWallet.toLowerCase() === ZERO_ADDRESS) {
     throw new Error('EXECUTOR_WALLET_ZERO_ADDRESS: executor wallet cannot be zero address.');
   }
-  if (executorWallet.toLowerCase() !== registry.toLowerCase()) {
-    throw new Error(`EXECUTOR_WALLET_NOT_REGISTRY: wallet=${executorWallet} registry=${registry}`);
+  if (executorWallet.toLowerCase() !== executor.toLowerCase()) {
+    throw new Error(`EXECUTOR_WALLET_NOT_EXECUTOR: wallet=${executorWallet} executor=${executor}`);
   }
 
   let maxDriftBps: number | undefined;
-  if (typeof driftThresholdBps === 'number' && targetEntries.length > 0 && feedRegistry) {
-    const drift = await checkDriftFn(config, provider, targetEntries, driftThresholdBps, feedRegistry);
+  if (typeof driftThresholdBps === 'number' && targetEntries.length > 0 && priceOracle) {
+    const drift = await checkDriftFn(config, provider, targetEntries, driftThresholdBps, priceOracle);
     if (drift.computable) {
       maxDriftBps = drift.maxDriftBps;
     }
@@ -416,8 +391,7 @@ export async function rebalance_now(params?: {
       return {
         executed: false,
         skipped: true,
-        scheduler,
-        registry,
+        executor,
         executorWallet,
         baseEntriesCount: baseEntries.length,
         targetEntriesCount: targetEntries.length,
@@ -461,8 +435,7 @@ export async function rebalance_now(params?: {
     executed: true,
     skipped: false,
     txHash: tx.hash,
-    scheduler,
-    registry,
+    executor,
     executorWallet,
     baseEntriesCount: baseEntries.length,
     targetEntriesCount: targetEntries.length,

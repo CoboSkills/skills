@@ -1,13 +1,18 @@
 {
   "owner": "jackleeio",
   "slug": "bnbot",
-  "displayName": "Bnbot Skill",
+  "displayName": "BNBot",
   "latest": {
-    "version": "1.4.0",
-    "publishedAt": 1773634316790,
-    "commit": "https://github.com/openclaw/skills/commit/8e5a765d8a7f7a242b346effac4a1db8920a96ca"
+    "version": "1.5.0",
+    "publishedAt": 1773764323327,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.0",
+      "publishedAt": 1773634316790,
+      "commit": "https://github.com/openclaw/skills/commit/8e5a765d8a7f7a242b346effac4a1db8920a96ca"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1773594515701,

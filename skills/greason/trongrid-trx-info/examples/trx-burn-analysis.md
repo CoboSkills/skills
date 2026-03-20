@@ -10,7 +10,7 @@ What's the TRX burn rate? Is TRX deflationary?
 
 1. **Total Burned** → `getBurnTrx()` → Total TRX burned to date
 2. **Chain Params** → `getChainParameters()` → SR reward per block, fee structure
-3. **Recent Blocks** → `getBlockByLatestNum(20)` → Recent blocks for fee sampling
+3. **Recent Blocks** → loop `getBlock(id_or_num)` × 20 (decrement from latest) → Recent blocks for fee sampling
 4. **Block Transactions** → `getTransactionInfoByBlockNum(N)` × 20 → Fees burned per block
 5. **Energy Prices** → `getEnergyPrices()` → Energy price history for burn trend
 6. **Web Search** → "TRX burn rate deflationary 2026" → Historical context
@@ -67,6 +67,6 @@ during periods of high usage.
 |------|-----------|---------|
 | `getBurnTrx` | 1 | Total burned TRX |
 | `getChainParameters` | 1 | Fee structure |
-| `getBlockByLatestNum` | 1 | Recent blocks |
+| `getBlock` | 20 | Recent blocks (loop, decrement `id_or_num`) |
 | `getTransactionInfoByBlockNum` | 20 | Fees per block |
 | `getEnergyPrices` | 1 | Energy price trend |

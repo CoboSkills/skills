@@ -11,7 +11,7 @@ metadata:
 Comprehensive TRX token analysis — real-time price, supply dynamics, burn rate, market cap, staking yield, and long-term value drivers.
 
 # MCP Server
-Prerequisite: [TronGrid MCP Guide](https://developers.tron.network/reference/mcp-api)
+- **Prerequisite**: [TronGrid MCP Guide](https://developers.tron.network/reference/mcp-api)
 
 ## Instructions
 
@@ -23,7 +23,7 @@ Run in parallel:
 2. `getChainParameters` — Network parameters affecting TRX economics (fees, resource pricing)
 3. `getEnergyPrices` — Historical energy pricing (impacts TRX demand)
 4. `getBandwidthPrices` — Historical bandwidth pricing
-5. `getNowBlock` — Latest block for current network activity context
+5. `getBlock` (no params) — Latest block for current network activity context
 
 ### Step 2: Calculate Supply Metrics
 
@@ -40,7 +40,7 @@ Web search for off-chain data (CoinGecko, CoinMarketCap, TronScan):
 
 ### Step 4: Assess Staking Economics
 
-1. `listWitnesses` — Current SR list, vote counts, block production
+1. `getPaginatedNowWitnessList` — Current SR list, vote counts, block production
 2. `getBrokerage` — Top SRs' reward distribution ratios
 3. Calculate approximate staking yield from block rewards and brokerage
 

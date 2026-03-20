@@ -14,7 +14,7 @@ How is TRX doing? What's the current price and supply?
 4. **Web Search** → "TRX price market cap CoinGecko 2026" → Current market data
 5. **Energy Prices** → `getEnergyPrices()` → Latest energy price
 6. **Bandwidth Prices** → `getBandwidthPrices()` → Latest bandwidth price
-7. **SR List** → `listWitnesses()` → Top SRs for staking yield calculation
+7. **SR List** → `getPaginatedNowWitnessList()` → Top SRs for staking yield calculation
 8. **SR Brokerage** → `getBrokerage(topSR)` × 3 → Reward distribution ratios
 
 ## Expected Output (Sample)
@@ -60,5 +60,5 @@ How is TRX doing? What's the current price and supply?
 | `getChainParameters` | 1 | Network params |
 | `getEnergyPrices` | 1 | Energy pricing |
 | `getBandwidthPrices` | 1 | Bandwidth pricing |
-| `listWitnesses` | 1 | SR list |
+| `getPaginatedNowWitnessList` | 1 | SR list |
 | `getBrokerage` | 3 | SR reward ratios |

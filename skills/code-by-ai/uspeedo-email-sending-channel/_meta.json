@@ -3,9 +3,15 @@
   "slug": "uspeedo-email-sending-channel",
   "displayName": "Uspeedo Email Sending Channel",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773499864844,
-    "commit": "https://github.com/openclaw/skills/commit/e9edcdff6704d113fd1854d6c65fcfbace1a7086"
+    "version": "1.0.4",
+    "publishedAt": 1773903869531,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773499864844,
+      "commit": "https://github.com/openclaw/skills/commit/e9edcdff6704d113fd1854d6c65fcfbace1a7086"
+    }
+  ]
 }

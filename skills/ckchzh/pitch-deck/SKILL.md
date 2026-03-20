@@ -1,7 +1,11 @@
 ---
+version: "2.0.0"
 name: Pitch Deck Creator
 description: "Pitch Deck Generator. Use when you need pitch deck capabilities. Triggers on: pitch deck."
   融资演示文稿。幻灯片结构、故事线设计、投资人Q&A、Demo Day准备、反馈改进。Pitch deck creator with slide structure, storytelling, investor Q&A, demo day prep. 融资、路演、BP演示。
+author: BytesAgain
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 ---
 # Pitch Deck Creator
 

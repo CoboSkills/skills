@@ -3,11 +3,16 @@
   "slug": "font",
   "displayName": "Font",
   "latest": {
-    "version": "3.2.0",
-    "publishedAt": 1773716937727,
-    "commit": "https://github.com/openclaw/skills/commit/1c6097af46ce2a648da394a36518e8ea954023cf"
+    "version": "3.4.1",
+    "publishedAt": 1773774798835,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.2.0",
+      "publishedAt": 1773716937727,
+      "commit": "https://github.com/openclaw/skills/commit/1c6097af46ce2a648da394a36518e8ea954023cf"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773580093295,

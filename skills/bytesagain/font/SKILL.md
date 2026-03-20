@@ -1,7 +1,7 @@
 ---
 name: font
-description: "List, search, and preview system fonts. Get metadata, suggest pairings, and install font files."
-version: "3.2.0"
+description: "Work with system fonts. Use when listing, searching, previewing, getting metadata, finding pairings, or installing font files."
+version: "3.4.0"
 author: BytesAgain
 homepage: https://bytesagain.com
 source: https://github.com/bytesagain/ai-skills

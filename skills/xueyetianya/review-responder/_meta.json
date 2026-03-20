@@ -3,11 +3,16 @@
   "slug": "review-responder",
   "displayName": "Review Responder",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773666932222,
-    "commit": "https://github.com/openclaw/skills/commit/a67eeb54b9ce22242e50db871bc49830418fcd7f"
+    "version": "2.0.0",
+    "publishedAt": 1773774032821,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773666932222,
+      "commit": "https://github.com/openclaw/skills/commit/a67eeb54b9ce22242e50db871bc49830418fcd7f"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1773448575691,

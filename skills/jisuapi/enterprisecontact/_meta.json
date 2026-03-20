@@ -1,13 +1,18 @@
 {
   "owner": "jisuapi",
   "slug": "enterprisecontact",
-  "displayName": "企业联系方式查询 - Enterprise Contact Information Query",
+  "displayName": "Enterprise Contact Information Query - 企业联系方式查询",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773632131189,
-    "commit": "https://github.com/openclaw/skills/commit/f11e19316cbfdae42128f5cb1e88b28fedae29ab"
+    "version": "1.0.2",
+    "publishedAt": 1773721873357,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773632131189,
+      "commit": "https://github.com/openclaw/skills/commit/f11e19316cbfdae42128f5cb1e88b28fedae29ab"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773378573738,

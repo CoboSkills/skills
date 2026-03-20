@@ -1,11 +1,17 @@
 {
   "owner": "jisuapi",
   "slug": "jisu-bazi",
-  "displayName": "八字排盘 - Bazi Chart",
+  "displayName": "Bazi Chart - 八字排盘",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772679551628,
-    "commit": "https://github.com/openclaw/skills/commit/623f64132e77bf8125d3c855bdf2001367424173"
+    "version": "1.0.1",
+    "publishedAt": 1773719950770,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772679551628,
+      "commit": "https://github.com/openclaw/skills/commit/623f64132e77bf8125d3c855bdf2001367424173"
+    }
+  ]
 }

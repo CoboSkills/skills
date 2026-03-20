@@ -3,11 +3,16 @@
   "slug": "macro-helper",
   "displayName": "Macro Helper",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773666419844,
-    "commit": "https://github.com/openclaw/skills/commit/a0e80e81323c5bc94bc173b7d7da8ca2c2aaadb3"
+    "version": "2.0.0",
+    "publishedAt": 1773773564715,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773666419844,
+      "commit": "https://github.com/openclaw/skills/commit/a0e80e81323c5bc94bc173b7d7da8ca2c2aaadb3"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1773662708239,

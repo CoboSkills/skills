@@ -32,7 +32,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_ROOT = SCRIPT_DIR.parent
 RECENT_REPORT_LIST_CACHE_FILE = SKILL_ROOT / "report_list_cache.json"
 MAINLAND_USER_NOTICE = "当前仅支持中国大陆手机号用户使用本服务。"
-APP_DOWNLOAD_URL = "https://apps.apple.com/cn/app/%E5%A5%BD%E7%9D%A1%E7%9C%A0365/id1584620848"
+APP_DOWNLOAD_URL = "https://apps.apple.com/cn/app/%E5%BF%83%E8%84%8F-%E5%BF%83%E7%8E%87-%E5%BF%83%E8%B7%B3-%E5%BF%83%E8%84%8F%E5%81%A5%E5%BA%B7%E6%A3%80%E6%B5%8B/id1584620848"
 
 
 class ApiManager:
@@ -480,7 +480,7 @@ class ApiManager:
                     "status": "1",
                     "next_action": "wait_user_confirm_then_poll_authorization",
                     "push_result": push_result,
-                    "user_message": f"已向您手机上的心脏+APP发送授权通知。请先在APP内确认授权，完成后回复“已授权”。若未收到消息，请先确认已安装并登录心脏+APP：{APP_DOWNLOAD_URL}。{MAINLAND_USER_NOTICE}",
+                    "user_message": f"已向您手机上的心脏+APP发送授权通知。请先在APP内确认授权，完成后回复“已授权”。若未收到消息，请先确认已安装并登录心脏+APP：{APP_DOWNLOAD_URL}",
                 }
 
             raise SkillError(

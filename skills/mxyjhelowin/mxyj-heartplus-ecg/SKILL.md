@@ -1,7 +1,7 @@
 ---
 name: mxyj-heartplus-ecg
 description: "这是一个用于心脏+ App 的心电健康管理技能，主要功能包括：1.发送心电检测通知并联动 Apple Watch 获取心电时序数据；2.基于心电时序数据通过心电分析算法输出报告与解读；3.查询已生成的心电分析报告（历史、最新、指定报告）。本技能需与心脏+ App 配合使用，使用前请先在 iPhone 上安装并登录“心脏+”应用，且将心脏+ App 升级至 1.6.0 或以上版本；当前仅支持中国大陆手机号用户使用本服务。"
-metadata: { "openclaw": { "emoji": "🫀📱","requires": { "bins": [ "uv" ] },"install": [ { "id": "brew-uv","kind": "brew","formula": "uv","bins": [ "uv" ],"label": "Install uv (fast python manager)" } ] } }
+metadata: { "openclaw": { "emoji": "🫀📱","requires": { "bins": [ "uv" ] },"install": [ { "id": "brew-uv","kind": "brew","formula": "uv","bins": [ "uv" ],"label": "Install uv (brew)","os": [ "darwin" ] }, { "id": "download-uv-linux","kind": "download","url": "https://astral.sh/uv/install.sh","bins": [ "uv" ],"label": "Install uv (linux)","os": [ "linux" ] }, { "id": "download-uv-win32","kind": "download","url": "https://astral.sh/uv/install.ps1","bins": [ "uv" ],"label": "Install uv (windows)","os": [ "win32" ] } ] } }
 ---
 
 # 心脏+ 龙虾版
@@ -53,7 +53,7 @@ metadata: { "openclaw": { "emoji": "🫀📱","requires": { "bins": [ "uv" ] },"
 
 ## 技能成功运行依赖的事项
 
-1. 需要在 iPhone 应用市场下载最新版心脏+ App 并完成登录，且将 App 升级至 1.6.0 或以上版本，下载链接：https://apps.apple.com/cn/app/%E5%A5%BD%E7%9D%A1%E7%9C%A0365/id1584620848。
+1. 需要在 iPhone 应用市场下载最新版心脏+ App 并完成登录，且将 App 升级至 1.6.0 或以上版本，下载链接：https://apps.apple.com/cn/app/%E5%BF%83%E8%84%8F-%E5%BF%83%E7%8E%87-%E5%BF%83%E8%B7%B3-%E5%BF%83%E8%84%8F%E5%81%A5%E5%BA%B7%E6%A3%80%E6%B5%8B/id1584620848
 2. 需要具备 Apple Watch 设备用于心电测量。
 
 ## 触发边界
@@ -204,7 +204,7 @@ uv run scripts/get_bin_hashes.py
 
 状态缺失时的标准欢迎语（源自 `references/交互话术库.md`）：
 
-> 感谢您使用心脏+ App。请先确认您已在 iPhone 安装并登录心脏+ App 且版本不低于 1.6.0，下载链接：https://apps.apple.com/cn/app/%E5%A5%BD%E7%9D%A1%E7%9C%A0365/id1584620848
+> 感谢您使用心脏+ App。请先确认您已在 iPhone 安装并登录心脏+ App 且版本不低于 1.6.0，下载链接：https://apps.apple.com/cn/app/%E5%BF%83%E8%84%8F-%E5%BF%83%E7%8E%87-%E5%BF%83%E8%B7%B3-%E5%BF%83%E8%84%8F%E5%81%A5%E5%BA%B7%E6%A3%80%E6%B5%8B/id1584620848
 > 本服务当前仅支持中国大陆手机号用户使用。
 > 若您已完成上述准备，请回复“确认 / y / yes / 是”。
 
@@ -242,7 +242,7 @@ uv run scripts/get_bin_hashes.py
 用户提示最小化模板：
 
 - 手机号缺失：`请提供 11 位手机号（例如 13800138000）。`
-- App 未安装或未登录：`请先在 iPhone 安装并登录心脏+ App，并升级至 1.6.0 或以上版本，下载链接：https://apps.apple.com/cn/app/%E5%A5%BD%E7%9D%A1%E7%9C%A0365/id1584620848，完成后回复“已安装并登录”。`
+- App 未安装或未登录：`请先在 iPhone 安装并登录心脏+ App，并升级至 1.6.0 或以上版本，下载链接：https://apps.apple.com/cn/app/%E5%BF%83%E8%84%8F-%E5%BF%83%E7%8E%87-%E5%BF%83%E8%B7%B3-%E5%BF%83%E8%84%8F%E5%81%A5%E5%BA%B7%E6%A3%80%E6%B5%8B/id1584620848 ，完成后回复“已安装并登录”。`
 - 授权未完成：`请在心脏+ App 完成授权，完成后回复“已授权”；如未收到通知，请回复“重新发送授权通知”。`
 - 短信验证码模式：`我已发送短信验证码，请把验证码发给我，我会立即完成校验。`
 - 授权已完成：`授权已确认，我继续为您处理下一步。`

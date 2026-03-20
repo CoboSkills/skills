@@ -23,7 +23,7 @@ from errors import JsonArgumentParser, SkillError
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_ROOT = SCRIPT_DIR.parent
 BIN_DIR = SKILL_ROOT / "bin"
-APP_DOWNLOAD_URL = "https://apps.apple.com/cn/app/%E5%A5%BD%E7%9D%A1%E7%9C%A0365/id1584620848"
+APP_DOWNLOAD_URL = "https://apps.apple.com/cn/app/%E5%BF%83%E8%84%8F-%E5%BF%83%E7%8E%87-%E5%BF%83%E8%B7%B3-%E5%BF%83%E8%84%8F%E5%81%A5%E5%BA%B7%E6%A3%80%E6%B5%8B/id1584620848"
 
 
 @dataclass

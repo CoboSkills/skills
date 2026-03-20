@@ -3,11 +3,16 @@
   "slug": "mxyj-heartplus-ecg",
   "displayName": "Mxyj Heartplus Ecg",
   "latest": {
-    "version": "0.0.4",
-    "publishedAt": 1773908768217,
-    "commit": "https://github.com/openclaw/skills/commit/b8076d69a32315480de941fd2a786146b96ce335"
+    "version": "0.0.7",
+    "publishedAt": 1774003899380,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.0.4",
+      "publishedAt": 1773908768217,
+      "commit": "https://github.com/openclaw/skills/commit/b8076d69a32315480de941fd2a786146b96ce335"
+    },
     {
       "version": "0.0.2",
       "publishedAt": 1773665428306,

@@ -3,11 +3,16 @@
   "slug": "return-policy",
   "displayName": "Return Policy",
   "latest": {
-    "version": "2.3.5",
-    "publishedAt": 1773666924432,
-    "commit": "https://github.com/openclaw/skills/commit/fe5c2b78216702dd6f794702496c6c7ced3d7f3e"
+    "version": "2.3.6",
+    "publishedAt": 1773774028131,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.5",
+      "publishedAt": 1773666924432,
+      "commit": "https://github.com/openclaw/skills/commit/fe5c2b78216702dd6f794702496c6c7ced3d7f3e"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1773448564472,

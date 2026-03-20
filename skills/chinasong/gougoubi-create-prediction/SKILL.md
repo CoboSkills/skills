@@ -1,21 +1,32 @@
 ---
 name: gougoubi-create-prediction
-description: Create public prediction proposals on Gougoubi with deterministic validation, approval, and transaction submission. Use when creating/publishing prediction markets from structured input.
-metadata: {"clawdbot":{"emoji":"📈","os":["darwin","linux","win32"]}}
+description: Create public Gougoubi prediction proposals from minimal input with deterministic enrichment, group creation, approval handling, and transaction submission. Use when users want to publish a new prediction market.
+metadata:
+  pattern: tool-wrapper
+  interaction: single-turn
+  domain: gougoubi-pbft
+  outputs: structured-json
+  clawdbot:
+    emoji: "📈"
+    os: ["darwin", "linux", "win32"]
 ---
 
 # Gougoubi Create Prediction
 
-Create a new public prediction proposal on Gougoubi from structured input.
+Use this skill to create a new public prediction proposal on Gougoubi from a small, stable input surface.
 
-## Run Conditions
+## Use This Skill When
 
-- Wallet must be connected.
-- Stake amount must be at least `10000 DOGE`.
-- Deadline must be in the future.
-- At least one tag is required.
+- The user wants to create or publish a new proposal.
+- The user gives a market title and a deadline, and expects the rest to be auto-filled.
+- The workflow must create the group before the proposal.
 
-## Minimal Input (User Only)
+## Do Not Use This Skill When
+
+- The proposal already exists and the user only wants to add conditions.
+- The user only wants activation, staking, settlement, or rewards.
+
+## Minimal Input
 
 ```json
 {
@@ -24,34 +35,49 @@ Create a new public prediction proposal on Gougoubi from structured input.
 }
 ```
 
-## Agent Auto-Fills
+## Auto-Fills
 
-The skill must provide all non-required fields:
+- `imageUrl`
+- `liquidityToken`
+- `deadlineTimezone`
+- `rules`
+- `stakeAmountDoge=10000`
+- `tags`
+- `groupAddress`
+- `language`
+- `skills=""`
 
-- `imageUrl` (platform default image)
-- `liquidityToken` (platform default token)
-- `deadlineTimezone` (user locale or `UTC`)
-- `rules` (AI generated from name + deadline)
-- `stakeAmountDoge` (default `10000`)
-- `tags` (AI generated classification from proposal title/content)
-- `groupAddress` (must be created before proposal submit; not empty)
-- `language` (script detection only; must be in `zh-CN|en|ja|ko|es|fr|de|ru|tr`, else `en`)
-- `skills` (empty string)
+## Tool Wrapper Rules
 
-## Deterministic Steps
+Treat the Gougoubi public-create flow as the source of truth.
 
-1. Validate minimal user input (`marketName`, `deadlineIsoUtc`).
-2. Run AI enrichment for `rules` and `tags`.
-3. Detect `language` with script rules and normalize to supported set, else `en`.
-4. Create community group first (`name = marketName`, `description = rules`, `groupType = RESTRICT`).
-5. Resolve `groupAddress` from group creation receipt and map to proposal `groupUrl` arg.
-6. Auto-fill remaining fields with platform defaults.
-7. Convert `stakeAmountDoge` to wei.
-8. Check DOGE balance.
-9. Check DOGE allowance to factory.
-10. If allowance is insufficient, request approval and wait confirmation.
-11. Submit create transaction (11 args in canonical order).
-12. Wait for receipt and return tx hash + proposal address when available.
+- Create the community group first.
+- Group name must equal proposal name.
+- Group description must use the generated rules.
+- Group type must be restricted.
+- Use the created group address as proposal `groupUrl`.
+
+## Deterministic Flow
+
+Step 1: Validate `marketName` and `deadlineIsoUtc`.
+
+Step 2: Generate `rules` and `tags`.
+
+Step 3: Detect supported language and normalize unsupported values to `en`.
+
+Step 4: Create the community group first.
+
+Step 5: Resolve `groupAddress` from the group creation receipt.
+
+Step 6: Auto-fill remaining fields and convert stake amount to wei.
+
+Step 7: Check DOGE balance and allowance.
+
+Step 8: If needed, request approval and wait for confirmation.
+
+Step 9: Submit proposal creation in canonical order.
+
+Step 10: Wait for receipt and return the tx hash and proposal address when available.
 
 ## Output
 
@@ -78,19 +104,19 @@ The skill must provide all non-required fields:
 }
 ```
 
-Failure shape:
+Failure:
 
 ```json
 {
   "ok": false,
   "stage": "validation|ai-enrichment|community-create|approve|create|confirm|resolve",
-  "error": "AI enrichment failed",
+  "error": "reason",
   "retryable": true
 }
 ```
 
 ## Boundaries
 
-- Do not use private credentials or private hosts.
-- Do not auto-accept wallet signatures.
-- If content moderation flags risk, require user confirmation before submission.
+- Never skip group creation.
+- Never auto-confirm approvals or irreversible wallet actions.
+- Require user confirmation if moderation risk is detected.

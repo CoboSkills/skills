@@ -3,11 +3,16 @@
   "slug": "gougoubi-create-prediction",
   "displayName": "Gougoubi Create Prediction",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773644780815,
-    "commit": "https://github.com/openclaw/skills/commit/e0409cf8db2decc896a575526eb5ae770d22d5ac"
+    "version": "1.0.2",
+    "publishedAt": 1773835177201,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773644780815,
+      "commit": "https://github.com/openclaw/skills/commit/e0409cf8db2decc896a575526eb5ae770d22d5ac"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773482614942,

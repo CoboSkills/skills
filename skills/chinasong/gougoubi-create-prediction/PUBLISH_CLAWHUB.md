@@ -1,29 +1,16 @@
-# ClawHub Publish Fields
+# Publish To ClawHub
 
-Use these values in the ClawHub publish form:
+Upload the entire `skills/gougoubi-create-prediction` folder.
 
-- Slug: `gougoubi-create-prediction`
-- Display Name: `Gougoubi Create Prediction`
-- Version: `1.0.0`
-- Tags: `latest,gougoubi,prediction-market,evm,automation,workflow`
-- License: `MIT-0` (check the confirmation box)
-
-## Folder to upload
-
-Choose this folder in the "Drop a folder" area:
-
-- `skills/gougoubi-create-prediction`
-
-Required file present:
+Required:
 
 - `SKILL.md`
 
-Additional text files included:
+Included metadata:
 
+- `clawhub.json`
 - `README.md`
 - `INSTALL.md`
 - `PUBLISH_CLAWHUB.md`
 
-Optional metadata file included:
-
-- `clawhub.json`
+Use `clawhub.json` as the source of truth for name, description, tags, version, and entry file.

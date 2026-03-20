@@ -1,8 +1,8 @@
 {
   "name": "gougoubi-create-prediction",
   "displayName": "Gougoubi Create Prediction",
-  "tagline": "Create prediction with 2 required inputs",
-  "description": "Creates public prediction proposals on Gougoubi from only marketName and deadlineIsoUtc, generates rules/tags, creates community group first (name=proposal, description=rules), then submits proposal with resolved groupUrl.",
+  "tagline": "Create a Gougoubi public prediction from minimal input",
+  "description": "Use when users want to publish a new Gougoubi prediction market from marketName plus deadline, with deterministic enrichment, group-first creation, and approval handling.",
   "category": "crypto",
   "tags": [
     "latest",
@@ -10,7 +10,9 @@
     "prediction-market",
     "evm",
     "automation",
-    "workflow"
+    "workflow",
+    "tool-wrapper",
+    "pbft"
   ],
   "version": "1.0.0",
   "license": "MIT-0",

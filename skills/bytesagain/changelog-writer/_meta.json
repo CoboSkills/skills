@@ -3,11 +3,16 @@
   "slug": "changelog-writer",
   "displayName": "Changelog Writer",
   "latest": {
-    "version": "2.4.5",
-    "publishedAt": 1773665035268,
-    "commit": "https://github.com/openclaw/skills/commit/0487f5231b28409f6fb38ecc2a654fff99e0d7c8"
+    "version": "2.0.0",
+    "publishedAt": 1773773045394,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.4.5",
+      "publishedAt": 1773665035268,
+      "commit": "https://github.com/openclaw/skills/commit/0487f5231b28409f6fb38ecc2a654fff99e0d7c8"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773163042050,

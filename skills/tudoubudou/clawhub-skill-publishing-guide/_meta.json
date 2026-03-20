@@ -1,13 +1,18 @@
 {
   "owner": "tudoubudou",
   "slug": "clawhub-skill-publishing-guide",
-  "displayName": "ClawHub Skill Publishing Guide",
+  "displayName": "ClawHub Skill 发布避坑指南",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773201869586,
-    "commit": "https://github.com/openclaw/skills/commit/a63d159925f4e53e14064b7cef7a5e4180e8fc40"
+    "version": "1.2.1",
+    "publishedAt": 1773656787226,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773201869586,
+      "commit": "https://github.com/openclaw/skills/commit/a63d159925f4e53e14064b7cef7a5e4180e8fc40"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772563910184,

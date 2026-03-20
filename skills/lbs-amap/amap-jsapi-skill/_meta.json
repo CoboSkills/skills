@@ -3,9 +3,15 @@
   "slug": "amap-jsapi-skill",
   "displayName": "amap-jsapi-skill",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1772765055428,
-    "commit": "https://github.com/openclaw/skills/commit/f5f7994732cda444855422c8bf73c5c74114bec8"
+    "version": "1.0.6",
+    "publishedAt": 1773904031650,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1772765055428,
+      "commit": "https://github.com/openclaw/skills/commit/f5f7994732cda444855422c8bf73c5c74114bec8"
+    }
+  ]
 }

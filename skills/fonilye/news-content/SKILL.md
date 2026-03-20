@@ -1,30 +1,30 @@
 ---
 name: news-content-extractor
-description: 输入新闻 URL，通过远程 API 高效提取网页的正文、标题、作者和时间。
+description: Input a news URL to efficiently extract the body, title, author, and date using a remote API.
 metadata: {"openclaw": {"requires": {"bins": ["node"], "env": ["EASYALPHA_API_KEY", "NEWS_EXTRACTOR_SERVER_URL"]}}}
 ---
 
-# 新闻内容提取器 (Pro 版)
+# News Content Extractor (Pro Version)
 
-这是一个采用前后端分离架构的新闻内容提取 Skill。
+This is a news content extraction Skill using a client-server architecture.
 
-## 特点
-- **零本地依赖**: 客户端使用 Node.js，无需安装复杂的 Python 库。
-- **身份验证**: 使用 `EASYALPHA_API_KEY` 保护 API 调用。
-- **高性能解析**: 由远端基于 `trafilatura` 的后端服务驱动。
+## Features
+- **Zero Local Dependencies**: Uses Node.js for the client, so no complex Python libraries need to be installed locally.
+- **Authentication**: Core API calls are protected by `EASYALPHA_API_KEY`.
+- **High-Performance Parsing**: Powered by a remote backend service based on `trafilatura`.
 
-## 配置要求
+## Configuration Requirements
 
-使用此 Skill 必须设置以下环境变量：
+The following environment variables must be set to use this Skill:
 
-1. `EASYALPHA_API_KEY`: 您的身份验证 Token。
-2. `NEWS_EXTRACTOR_SERVER_URL`: (可选) 后端服务端地址，默认为本地测试地址。
+1. `EASYALPHA_API_KEY`: Your authentication token. Obtainable from: https://easyalpha.duckdns.org
+2. `NEWS_EXTRACTOR_SERVER_URL`: (Optional) The backend server address. Defaults to the production API: https://easyalpha.duckdns.org/api/v1/extract
 
-## 使用方法
+## Usage
 
-**用户**: "抓取这个网页的内容：https://www.bbc.com/news/uk-12345678"
+**User**: "Scrape the content of this page: https://www.bbc.com/news/uk-12345678"
 
-**Agent 行为**:
-- 运行 `node scripts/extract_news.js https://www.bbc.com/news/uk-12345678`
-- 脚本自动携带 Token 向服务器发起请求。
-- 解析并展示结果。
+**Agent Behavior**:
+- Runs `node scripts/extract_news.js https://www.bbc.com/news/uk-12345678`
+- The script automatically includes the Token and sends the request to the server.
+- Parses and displays the results.

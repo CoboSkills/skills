@@ -1,43 +1,43 @@
-# 新闻内容提取 Skill (News Content Extractor)
+# News Content Extractor Skill
 
-这是一个专为 [OpenClaw](https://openclaw.ai) 打造的高性能新闻内容提取工具。它能精准识别网页中的新闻标题、作者、发布日期以及正文内容，并过滤掉广告和无关侧边栏。
+This is a high-performance news content extraction tool specifically built for [OpenClaw](https://openclaw.ai). It accurately identifies news titles, authors, publication dates, and body content while filtering out advertisements and irrelevant sidebars.
 
-## 🌟 特点
+## 🌟 Features
 
-- **极速安装**: 客户端基于 Node.js，无需安装任何 Python 依赖库，即插即用。
-- **高精准度**: 核心解析逻辑由云端专为新闻优化的 `trafilatura` 引擎驱动。
-- **隐私保护**: 仅需提供 API Key 即可进行远程解析。
+- **Fast Installation**: The client is based on Node.js, requiring no Python dependencies—plug and play.
+- **High Accuracy**: The core parsing logic is driven by the cloud-based `trafilatura` engine, optimized specifically for news.
+- **Privacy Protection**: Remote parsing is performed using only an API Key.
 
-## 🚀 安装步骤
+## 🚀 Installation Steps
 
-1. **从 ClawHub 安装**:
-   在您的 OpenClaw 项目目录下运行：
+1. **Install from ClawHub**:
+   Run the following command in your OpenClaw project directory:
    ```bash
    npx clawhub@latest install news-content-extractor
    ```
 
-2. **配置环境变量**:
-   使用此 Skill 需要设置 API Key。请在您的 `.env` 文件或系统环境变量中添加以下项：
+2. **Configure Environment Variables**:
+   To use this Skill, you need to set up an API Key. Add the following items to your `.env` file or system environment variables:
    ```bash
-   # 您的身份验证 Token
-   EASYALPHA_API_KEY=您的_API_KEY
+   # Your authentication token, obtainable from: https://easyalpha.duckdns.org
+   EASYALPHA_API_KEY=YOUR_API_KEY
    
-   # 后端地址 (可选，通常使用默认地址)
-   NEWS_EXTRACTOR_SERVER_URL=https://your-api-endpoint.com/extract
+   # Backend URL (Optional, uses the default address otherwise)
+   NEWS_EXTRACTOR_SERVER_URL=https://easyalpha.duckdns.org/api/v1/extract
    ```
 
-## 📝 使用方法
+## 📝 Usage
 
-安装并配置完成后，您可以直接在聊天中发送新闻 URL：
+Once installed and configured, you can send news URLs directly in the chat:
 
-**用户**: "把这个新闻的内容抓取给我：https://finance.sina.com.cn/xxxx"
+**User**: "Extract the content of this news: https://www.bbc.com/news/world-67890"
 
-**Agent**: (自动调用本 Skill 并返回如下结果)
-> **标题**: xxxx  
-> **日期**: 2024-xx-xx  
-> **正文**: ......
+**Agent**: (Automatically calls this Skill and returns results like below)
+> **Title**: xxxx  
+> **Date**: 2024-xx-xx  
+> **Body**: ......
 
 ---
 
-## 🛠️ 技术支持
-如果您在安装或使用过程中遇到问题，请联系 [ClawHub.ai](https://clawhub.ai) 或查看项目主页故障排除。
+## 🛠️ Technical Support
+If you encounter any issues during installation or usage, please contact [ClawHub.ai](https://clawhub.ai) or check the project homepage for troubleshooting.

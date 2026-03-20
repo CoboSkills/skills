@@ -1,7 +1,7 @@
 ---
 name: meditation
-description: "Run timed meditation sessions with breathing guides and body scans. Log sessions and view stats."
-version: "3.2.0"
+description: "Guide meditation practice. Use when starting timed sessions, breathing exercises, body scans, logging practice, or viewing stats."
+version: "3.4.0"
 author: BytesAgain
 homepage: https://bytesagain.com
 source: https://github.com/bytesagain/ai-skills

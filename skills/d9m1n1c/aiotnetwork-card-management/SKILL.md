@@ -2,11 +2,29 @@
 name: Card Management
 description: Create and manage virtual cards via MasterPay Global. Supports single-use cards for one-time purchases and multi-use cards for repeated use.
 version: 1.0.0
+metadata:
+  openclaw:
+    requires:
+      env:
+        - AIOT_API_BASE_URL
+    primaryEnv: AIOT_API_BASE_URL
 ---
 
 # Card Management
 
 Use this skill when the user needs to create virtual cards, view card details, or manage card lifecycle (lock, unlock, cancel).
+
+## Configuration
+
+The default API base URL is `https://payment-api-dev.aiotnetwork.io`. All endpoints are relative to this URL.
+
+To override (e.g. for local development):
+
+```bash
+export AIOT_API_BASE_URL="http://localhost:8080"
+```
+
+If `AIOT_API_BASE_URL` is not set, use `https://payment-api-dev.aiotnetwork.io` as the base for all requests.
 
 ## Available Tools
 
@@ -33,8 +51,9 @@ Create a single-use or multi-use virtual card via MasterPay
 
 1. Check KYC status: GET /api/v1/masterpay/kyc/status — must be 'approved' (use get_kyc_status from kyc-identity skill)
 2. List wallets: GET /api/v1/masterpay/wallets — verify at least one wallet exists (no wallets means KYC is not yet approved)
-3. Create card: POST /api/v1/masterpay/cards/single-use or /multi-use — returns masked PAN and card ATM PIN
-4. Get full details: POST /api/v1/masterpay/cards/:id/details (requires transaction PIN) — returns full card number and CVV
+3. Submit wallet KYC: POST /api/v1/masterpay/wallets/kyc — required before card creation. Needs profile phone number and id_number set via PUT /profile/document (id_number is sent as orgCode to MasterPay)
+4. Create card: POST /api/v1/masterpay/cards/single-use or /multi-use — returns masked PAN and card ATM PIN
+5. Get full details: POST /api/v1/masterpay/cards/:id/details (requires transaction PIN) — returns full card number and CVV
 
 
 ### Apply for a Card
@@ -48,7 +67,7 @@ Apply for a new physical or virtual card via the card application flow
 
 ## Rules
 
-- KYC must be approved before creating any MasterPay card — card creation fails with NO_WALLETS if KYC is not complete
+- KYC must be approved AND wallet KYC must be submitted (POST /masterpay/wallets/kyc) before creating any MasterPay card — card creation fails with NO_WALLETS if KYC is not complete, and MasterPay rejects cards if wallet KYC is missing
 - MasterPay card responses include a masked PAN and the card ATM PIN — use /cards/:id/details with transaction PIN for the full card number and CVV
 - The card ATM PIN (visible in get_card, list_cards, and card creation responses) is for ATM/POS use — it is different from the transaction PIN used for sensitive operations
 - Lock/unlock/cancel operations require transaction PIN verification
@@ -67,7 +86,7 @@ Follow these instructions when executing this skill:
 - If the user requests an operation outside this skill's scope, decline and suggest the appropriate skill.
 - If a step fails, check the error and follow the recovery guidance below before retrying.
 
-- KYC must be approved before creating any MasterPay card. Use `get_kyc_status` from the kyc-identity skill to verify, then `list_card_wallets` to confirm a wallet exists. If no wallets exist, KYC is not yet approved.
+- The full prerequisite chain is: KYC approved → wallet exists → wallet KYC submitted → card creation. Use `get_kyc_status` from the kyc-identity skill to verify KYC approval, then `list_card_wallets` to confirm a wallet exists. If no wallets exist, KYC is not yet approved. Then submit wallet KYC (POST /masterpay/wallets/kyc) before creating any card — MasterPay rejects card creation without wallet KYC.
 - MasterPay card responses (creation, `get_card`, `list_cards`) include the card ATM PIN in the response — no transaction PIN is needed to see it.
 - To get the full unmasked card number and CVV, call `get_card_details` with the user's transaction PIN. This is the only way to retrieve the full PAN and CVV.
 - The card ATM PIN (for ATM/POS use) is different from the transaction PIN (the user's security PIN for sensitive operations like viewing full card details, locking, unlocking, or cancelling).

@@ -1,23 +1,20 @@
----
 name: deepevidence-api
 description: >
-  Evidence-based clinical assistant powered by DeepEvidence's OpenAI-compatible API (traceable citations).
-  Use for complex clinical questions, drug safety evidence (dose/contraindications/interactions),
-  guideline interpretation, and trial evidence synthesis. Outputs should be clinically verified before use.
-  Triggers: DeepEvidence, evidence-based medicine, guideline interpretation, drug safety evidence, clinical trial evidence.
-metadata:
-  author: deepevidence
-  version: "1.2.0"
-  runtime: "python3"
-  requirements:
-    - openai >= 1.0.0
-  env_vars:
-    - DEEPEVIDENCE_API_KEY # Enterprise users apply here: <https://app.medsci.cn/platform>
-  privacy:
-    - No automatic telemetry or PII extraction
-    - Identifiers are opaque labels (non-sensitive)
-    - Source metadata is traceable and verifiable
+  循证医学临床助手，采用 DeepEvidence 兼容 OpenAI 的 API（可追溯引用）。
+  用于解答复杂的临床问题、药物安全性证据、指南解读等。
+version: "1.5.0"
+author: "DeepEvidence Team"
+homepage: "https://deepevid.medsci.cn/"
+license: "MIT"
+runtime: "python3"
+env_vars:
+  - name: DEEPEVIDENCE_API_KEY
+    required: true
+    description: "必需的 API 密钥，用于医学循证数据检索"
+dependencies:
+  - "openai >= 1.0.0"
 ---
+
 
 # DeepEvidence API Skill (Evidence-Based Medicine)
 
@@ -116,7 +113,7 @@ from openai import OpenAI
 
 client = OpenAI(
     api_key=os.environ["DEEPEVIDENCE_API_KEY"],
-    base_url="https://deepevid.medsci.cn/",
+    base_url="https://deepevid.medsci.cn/", # Fixed endpoint
 )
 
 resp = client.chat.completions.create(
@@ -162,7 +159,7 @@ For integration and operations, RECOMMENDED minimum handling:
 
 ## Advanced features (multi-tenant & conversations)
 
-- **API spec**: see `references/api_reference.md` (user mapping via `user` and `X-User-ID`, using opaque/masked labels)
+- **API spec**: see `references/api_reference.md` (user mapping via fully anonymized request tags)
 
 ## Versioning & updates
 

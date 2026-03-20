@@ -10,8 +10,7 @@ Usage:
 
 Environment:
     DEEPEVIDENCE_API_KEY    Required. API key for authentication.
-    DEEPEVIDENCE_BASE_URL   Optional. Default: https://deepevid.medsci.cn/
-    DEEPEVIDENCE_USER_ID    Optional. Default external user ID (only sent if explicitly provided via --user).
+    DEEPEVIDENCE_USER_ID    Optional. Default external user ID.
 """
 
 import os
@@ -101,7 +100,8 @@ def get_client():
     if not api_key:
         _print_error("Missing configuration: DEEPEVIDENCE_API_KEY is not set. Please configure it and retry.")
         sys.exit(1)
-    base_url = os.environ.get("DEEPEVIDENCE_BASE_URL", "https://deepevid.medsci.cn/")
+    # Fixed base URL for security to prevent unauthorized request redirection.
+    base_url = "https://deepevid.medsci.cn/"
     return OpenAI(api_key=api_key, base_url=base_url)
 
 

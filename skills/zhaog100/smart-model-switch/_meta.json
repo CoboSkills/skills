@@ -3,11 +3,16 @@
   "slug": "smart-model-switch",
   "displayName": "Smart Model Switch",
   "latest": {
-    "version": "1.4.1",
-    "publishedAt": 1773538194329,
-    "commit": "https://github.com/openclaw/skills/commit/0f6252b25263cc8e9ff663f683cba62d4d496235"
+    "version": "1.6.1",
+    "publishedAt": 1773735293750,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.1",
+      "publishedAt": 1773538194329,
+      "commit": "https://github.com/openclaw/skills/commit/0f6252b25263cc8e9ff663f683cba62d4d496235"
+    },
     {
       "version": "1.4.0",
       "publishedAt": 1773208913207,

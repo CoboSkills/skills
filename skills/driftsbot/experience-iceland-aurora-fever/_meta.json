@@ -1,11 +1,17 @@
 {
   "owner": "driftsbot",
   "slug": "experience-iceland-aurora-fever",
-  "displayName": "Aurora Fever — AI Experience",
+  "displayName": "Experience Iceland Aurora Fever",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773109887618,
-    "commit": "https://github.com/openclaw/skills/commit/27df9b4965a77b60d8620f5b49eb0aabb43d3601"
+    "version": "1.0.1",
+    "publishedAt": 1773698593801,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773109887618,
+      "commit": "https://github.com/openclaw/skills/commit/27df9b4965a77b60d8620f5b49eb0aabb43d3601"
+    }
+  ]
 }

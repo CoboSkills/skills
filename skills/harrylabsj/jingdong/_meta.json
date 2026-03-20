@@ -1,11 +1,17 @@
 {
   "owner": "harrylabsj",
   "slug": "jingdong",
-  "displayName": "Jingdong",
+  "displayName": "京东购物助手",
   "latest": {
-    "version": "1.2.0",
-    "publishedAt": 1773579031758,
-    "commit": "https://github.com/openclaw/skills/commit/ab5eceda8e38eaa00bc47b60f1740f2ab7a763d1"
+    "version": "2.0.0",
+    "publishedAt": 1773873896038,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.2.0",
+      "publishedAt": 1773579031758,
+      "commit": "https://github.com/openclaw/skills/commit/ab5eceda8e38eaa00bc47b60f1740f2ab7a763d1"
+    }
+  ]
 }

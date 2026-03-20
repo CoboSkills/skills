@@ -518,8 +518,24 @@ def main():
     print(json.dumps(result, ensure_ascii=False))
 
 if __name__ == "__main__":
+    # 解析命令行参数
+    parser = argparse.ArgumentParser(description='企业微信自动添加好友工具')
+    parser.add_argument('--setup', action='store_true', help='执行坐标设置')
+    args = parser.parse_args()
+    
     try:
-        main()
+        if args.setup:
+            print("执行坐标设置...")
+            # 启动企业微信
+            if not check_wxwork():
+                start_wxwork()
+                time.sleep(5)
+            # 激活窗口并最大化
+            activate_wxwork_window(maximize=True)
+            # 执行坐标设置
+            manual_coordinate_setup()
+        else:
+            main()
     except KeyboardInterrupt:
         print("\n\nOperation cancelled by user")
     except Exception as e:

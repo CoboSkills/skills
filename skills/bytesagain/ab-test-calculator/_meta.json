@@ -3,11 +3,16 @@
   "slug": "ab-test-calculator",
   "displayName": "Ab Test Calculator",
   "latest": {
-    "version": "2.3.3",
-    "publishedAt": 1773664404899,
-    "commit": "https://github.com/openclaw/skills/commit/88eeede5ca42ddd5e0246216cd18fb16862f3c26"
+    "version": "2.0.0",
+    "publishedAt": 1773773143846,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.3",
+      "publishedAt": 1773664404899,
+      "commit": "https://github.com/openclaw/skills/commit/88eeede5ca42ddd5e0246216cd18fb16862f3c26"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773420888771,

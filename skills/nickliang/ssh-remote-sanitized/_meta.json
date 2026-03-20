@@ -1,0 +1,11 @@
+{
+  "owner": "nickliang",
+  "slug": "ssh-remote-sanitized",
+  "displayName": "Ssh Remote Sanitized",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773503491991,
+    "commit": null
+  },
+  "history": []
+}

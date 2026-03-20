@@ -16,6 +16,7 @@
 | 3 | `products/competitor-lookup` | Competitor discovery |
 | 4 | `products/search` | Product selection with filters |
 | 5 | `realtime/product` | Live single-ASIN detail |
+| 6 | `reviews/analyze` | AI review analysis (sentiment + insights) |
 
 Base URL: `https://api.apiclaw.io/openapi/v2`
 Auth: `Bearer $APICLAW_API_KEY`
@@ -110,7 +111,7 @@ Response fields: `categoryId`, `categoryName`, `categoryPath`, `hasChildren`, `i
 | seller | String | Seller filter |
 | asin | String | ASIN filter |
 | categoryPath | List\<String\> | Category filter |
-| sortBy | String | `monthlySales` / `monthlyRevenue` / `bsr` / `price` / `rating` / `reviewCount` / `listingDate` |
+| sortBy | String | `atLeastMonthlySales` / `atLeastMonthlyRevenue` / `bsr` / `price` / `rating` / `reviewCount` / `listingDate` |
 | sortOrder | String | `asc` / `desc` |
 | pageSize | Integer | default 20 |
 
@@ -196,6 +197,54 @@ Same as competitor-lookup plus:
 
 ---
 
+## 6. reviews/analyze
+
+AI-powered review analysis. Returns sentiment, rating distribution, and structured consumer insights.
+Requires at least 50 reviews for meaningful analysis.
+
+### Request parameters
+
+| Parameter | Type | Required | Note |
+|-----------|------|----------|------|
+| mode | String | **Yes** | `asin` or `category` |
+| asins | List\<String\> | When mode=asin | Max 100 ASINs |
+| categoryPath | String | When mode=category | Category path |
+| labelType | String | No | Filter to specific dimension. Omit for all |
+| period | String | No | Analysis time range (e.g. `90d`) |
+
+### labelType values
+
+`scenarios`, `issues`, `positives`, `improvements`, `buyingFactors`, `painPoints`, `keywords`, `userProfiles`, `usageTimes`, `usageLocations`, `behaviors`
+
+### Response fields
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| queryMode | String | `asin` or `category` |
+| asins | List | ASINs analyzed |
+| category | String | Category analyzed |
+| totalReviews | Integer | Total reviews analyzed |
+| avgRating | Float | Average rating |
+| verifiedRatio | Float | Verified purchase ratio (decimal) |
+| dateRangeStart | Date | Analysis start date |
+| dateRangeEnd | Date | Analysis end date |
+| ratingDistribution | Object | `{"1": count, "2": count, ..., "5": count}` |
+| sentimentDistribution | Object | `{"positive": ratio, "neutral": ratio, "negative": ratio}` |
+| consumerInsights | List\<InsightItem\> | Structured insights by dimension |
+| topKeywords | List\<InsightItem\> | Top keywords with counts |
+
+### InsightItem fields
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| element | String | Insight text |
+| labelType | String | Dimension (e.g. `painPoints`) |
+| count | Integer | Occurrence count |
+| reviewPercentage | Float | % of reviews mentioning this |
+| avgRating | Float | Avg rating for reviews with this element |
+
+---
+
 ## Shared Product Object (competitor-lookup & products/search)
 
 ### Core fields
@@ -215,7 +264,7 @@ Same as competitor-lookup plus:
 
 | Field | Type | Meaning |
 |-------|------|---------|
-| salesMonthly | Integer | Monthly unit sales |
+| atLeastMonthlySales | Integer | Estimated monthly sales (lower bound, actual may be higher) |
 | salesRevenue | Float | Monthly revenue |
 | salesGrowthRate | Float | Sales growth rate |
 | childSalesMonthly | Integer | Child ASIN monthly sales |
@@ -272,7 +321,7 @@ Same as competitor-lookup plus:
 
 ### BSR to sales estimation
 
-When `salesMonthly` is null, estimate: **Monthly sales ≈ 300,000 / BSR^0.65**
+When `atLeastMonthlySales` is null, estimate: **Monthly sales ≈ 300,000 / BSR^0.65**
 
 ---
 

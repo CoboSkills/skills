@@ -1,9 +1,16 @@
 ---
 name: apiclaw-analysis
-version: 1.0.0
+version: 1.1.4
 description: >
-  Amazon seller data analysis tool. Features: market research, product selection, competitor analysis, ASIN evaluation, pricing reference, category research.
-  Uses scripts/apiclaw.py to call APIClaw API, requires APICLAW_API_KEY.
+  Finds winning Amazon products with 14 battle-tested selection strategies
+  & 6-dimension risk assessment. Backed by 200M+ product database.
+  Use when user asks about: product selection, finding products to sell, ASIN lookup,
+  BSR analysis, competitor lookup, market opportunity, risk assessment, category research,
+  pricing strategy, review analysis, listing optimization, or any Amazon seller data needs.
+  Powered by APIClaw API (requires APICLAW_API_KEY).
+author: SerendipityOneInc
+homepage: https://github.com/SerendipityOneInc/Amazon-analysis-skill
+metadata: {"openclaw": {"requires": {"env": ["APICLAW_API_KEY"]}, "primaryEnv": "APICLAW_API_KEY"}}
 ---
 
 # APIClaw — Amazon Seller Data Analysis
@@ -17,102 +24,110 @@ description: >
 
 - Required: `APICLAW_API_KEY`
 - Scope: used only for `https://api.apiclaw.io`
-- Storage: `config.json` in the skill directory (same folder as SKILL.md)
+- Resolution order:
+  1. **Environment variable** `APICLAW_API_KEY` (preferred, most secure)
+  2. **Config file** `config.json` in the skill root directory (fallback)
 
-### API Key Configuration Mechanism
-
-**Config file location:** `config.json` in the skill root directory, next to `SKILL.md`.
-
-```
-apiclaw-analysis-skill/
-├── config.json          ← API Key stored here
-├── SKILL.md
-├── scripts/
-│   └── apiclaw.py
-└── references/
-```
-**Config file format:**
 ```json
-{
-  "api_key": "hms_live_xxxxxx"
-}
+{ "api_key": "hms_live_xxxxxx" }
 ```
 
-### Initial Setup (AI Operation Guide)
+When user provides a Key, write it to `config.json`. New keys may need 3-5 seconds to activate — if first call returns 403, wait 3 seconds and retry (max 2 retries).
 
-When user first uses or provides new Key, AI should execute:
+## File Map
 
-```python
-import os, json
-# config.json is stored in the skill root directory (parent of scripts/)
-skill_dir = os.path.dirname(os.path.abspath(__file__))  # when running from scripts/
-skill_dir = os.path.dirname(skill_dir)  # go up to skill root
-config_path = os.path.join(skill_dir, "config.json")
-with open(config_path, "w") as f:
-    json.dump({"api_key": "hms_live_user_provided_key"}, f, indent=2)
-print(f"API Key saved to {config_path}")
-```
-
-
-### Get API Key
-
-**New users please first obtain API Key:**
-
-1. Visit [APIClaw Console](https://apiclaw.io/api-keys) to register account
-2. Create API Key, copy it (format: `hms_live_xxxxxx`)
-3. Tell the AI your Key in conversation, AI will automatically save it to config file
-
-**New Key first use note:** Newly configured API Key may need 3-5 seconds to fully activate in backend. If first call returns 403 error, AI should wait 3 seconds then retry, max 2 retries.
-
-## File map
-
-| File | When to use |
+| File | When to Load |
 |------|-------------|
 | `SKILL.md` (this file) | Start here — covers 80% of tasks |
-| `scripts/apiclaw.py` | **Execute** for all API calls (do not read into context) |
-| `references/reference.md` | Load when you need exact field names or filter details |
-| `references/scenarios.md` | Load for pricing, daily operations, or expansion scenarios (5.x/6.x/7.x) |
+| `scripts/apiclaw.py` | **Execute** for all API calls (do NOT read into context) |
+| `references/reference.md` | Need exact field names or filter parameter details |
+| `references/scenarios-composite.md` | Comprehensive recommendations (2.10) or Chinese seller cases (3.4) |
+| `references/scenarios-eval.md` | Product evaluation, risk assessment, review analysis (4.x) |
+| `references/scenarios-pricing.md` | Pricing strategy, profit estimation, listing reference (5.x) |
+| `references/scenarios-ops.md` | Market monitoring, competitor tracking, anomaly alerts (6.x) |
+| `references/scenarios-expand.md` | Product expansion, trends, discontinuation decisions (7.x) |
+| `references/scenarios-listing.md` | Listing writing, optimization, content creation (8.x) |
 
-### Reference File Usage Guide (Important)
+**Don't guess field names** — if uncertain, load `reference.md` first.
 
-**Must load reference files in these scenarios**:
+---
 
-| Scenario | Load File | Reason |
-|----------|-----------|---------|
-| Need to confirm field names | `reference.md` | Avoid field name errors (e.g. ratingCount vs reviewCount)|
-| Need filter parameter details | `reference.md` | Get complete Min/Max parameter list |
-| Pricing strategy analysis | `scenarios.md` | Contains pricing SOP and reference framework |
-| Daily operations analysis | `scenarios.md` | Contains monitoring and alert logic |
-| Product expansion analysis | `scenarios.md` | Contains related recommendation logic |
+## Execution Mode
 
-**Don't guess field names**: If uncertain about an interface's return fields, load `reference.md` first to check.
+| Task Type | Mode | Behavior |
+|-----------|------|----------|
+| Single ASIN lookup, simple data query | **Quick** | Execute command, return key data. Skip evaluation criteria and output standard block. |
+| Market analysis, product selection, competitor comparison, risk assessment | **Full** | Complete flow: command → analysis → evaluation criteria → output standard block. |
+
+**Quick mode trigger:** User asks for a single specific data point ("B09XXX monthly sales?", "how many brands in cat litter?") — no decision analysis needed.
+
+---
+
+## ⚠️ Pre-Execution Checklist (MANDATORY for Full Mode)
+
+Before running any Full-mode product selection or market analysis, **complete this checklist**:
+
+- [ ] **Step 1 — Mode Selection:** Check the Product Selection Mode Mapping table below. If ANY of the 14 preset modes matches the user's intent, **USE IT** (`--mode xxx`). Do NOT manually piece together filters when a preset mode exists. Common mappings:
+  - Small/lightweight/cheap products → `--mode low-price`
+  - New seller / beginner → `--mode beginner`
+  - Niche / long-tail → `--mode long-tail`
+  - Trending / rising → `--mode emerging`
+- [ ] **Step 2 — Realtime Supplement:** Plan to call `product --asin` for the top 3-5 ASINs from results (see Realtime Data Supplementation below).
+- [ ] **Step 3 — Review Analysis:** Plan to call `analyze --asins` for top ASINs to get consumer insights (especially painPoints, improvements, buyingFactors).
+- [ ] **Step 4 — Output Blocks:** Prepare to include both `📋 Data Source & Conditions` and `📊 API Usage` at the end.
+
+> **Why this exists:** In testing, AI agents repeatedly skipped preset modes, realtime supplements, and review analysis — even though the instructions below clearly describe them. This checklist forces a pause-and-verify before execution.
 
 ---
 
 ## Execution Standards
 
-**Prioritize script execution for API calls.** The script includes built-in:
-- Parameter format conversion (e.g. topN automatically converted to string)
+**Prioritize script execution for API calls.** The script includes:
+- Parameter format conversion (e.g. topN auto-converted to string)
 - Retry logic (429/timeout auto-retry)
 - Standardized error messages
-- `_query` metadata injection (for query condition traceability)
+- `_query` metadata injection (for query traceability)
 
-**macOS note**: macOS doesn't have `python` command by default, use `python3`. Replace `python` in example commands with `python3`.
-
-**Fallback plan:** If script execution fails and can't be quickly fixed, can use curl to call API directly as temporary solution, but note "this time using curl direct call" in output.
+**Fallback:** If script fails and can't be quickly fixed, use curl directly. Note "using curl direct call" in output.
 
 ---
 
-## Script usage
+## Realtime Data Supplementation
+
+When `products` or `competitors` returns ASINs in Full-mode analysis, **automatically call `product --asin` for the top 3-5 most relevant ASINs** to get current real-time data.
+
+| Scenario | Supplement? | How many ASINs |
+|----------|-------------|----------------|
+| Single ASIN lookup (Quick mode) | Already using realtime | — |
+| Market overview (no specific ASINs) | ❌ No | — |
+| Product selection / competitor analysis | ✅ Yes | Top 3 by sales |
+| Risk assessment | ✅ Yes | Target ASIN + top 2 competitors |
+| Multi-product comparison | ✅ Yes | All compared ASINs (max 5) |
+| Listing analysis | Already using realtime | — |
+
+**Handling data conflicts** — `products`/`competitors` has ~T+1 delay; `realtime/product` is live:
+
+| Field | Use from | Reason |
+|-------|----------|--------|
+| Price | **realtime** (`buyboxWinner.price`) | Changes frequently |
+| BSR | **realtime** (`bestsellersRank`) | Updates hourly |
+| Rating / ratingCount | **realtime** | More current |
+| Monthly Sales | **products/competitors** | Realtime doesn't have this |
+| Profit Margin / FBA Fee | **products/competitors** | Realtime doesn't have this |
+
+When realtime data differs significantly, note it: e.g. "⚡ Price updated: database $29.99 → realtime $24.99 (likely promotion)"
+
+---
+
+## Script Usage
 
 All commands output JSON. Progress messages go to stderr.
 
 ### categories — Category tree lookup
 
 ```bash
-python scripts/apiclaw.py categories --keyword "pet supplies"
-python scripts/apiclaw.py categories --parent "Pet Supplies"
-python scripts/apiclaw.py categories                          # root categories
+python3 scripts/apiclaw.py categories --keyword "pet supplies"
+python3 scripts/apiclaw.py categories --parent "Pet Supplies"
 ```
 
 Common fields: `categoryName` (not `name`), `categoryPath`, `productCount`, `hasChildren`
@@ -120,8 +135,7 @@ Common fields: `categoryName` (not `name`), `categoryPath`, `productCount`, `has
 ### market — Market-level aggregate data
 
 ```bash
-python scripts/apiclaw.py market --category "Pet Supplies,Dogs" --topn 10
-python scripts/apiclaw.py market --keyword "treadmill"
+python3 scripts/apiclaw.py market --category "Pet Supplies,Dogs" --topn 10
 ```
 
 Key output fields: `sampleAvgMonthlySales`, `sampleAvgPrice`, `topSalesRate` (concentration), `topBrandSalesRate`, `sampleNewSkuRate`, `sampleFbaRate`, `sampleBrandCount`
@@ -129,146 +143,183 @@ Key output fields: `sampleAvgMonthlySales`, `sampleAvgPrice`, `topSalesRate` (co
 ### products — Product selection with filters
 
 ```bash
-# Use a preset mode (14 built-in modes)
-python scripts/apiclaw.py products --keyword "yoga mat" --mode beginner
-python scripts/apiclaw.py products --keyword "pet toys" --mode high-demand-low-barrier
+# Preset mode (14 built-in)
+python3 scripts/apiclaw.py products --keyword "yoga mat" --mode beginner
 
-# Or use explicit filters
-python scripts/apiclaw.py products --keyword "yoga mat" --sales-min 300 --reviews-max 50
-python scripts/apiclaw.py products --keyword "yoga mat" --growth-min 0.1 --listing-age 180
+# Explicit filters
+python3 scripts/apiclaw.py products --keyword "yoga mat" --sales-min 300 --reviews-max 50
 
-# Combine mode + overrides (overrides win)
-python scripts/apiclaw.py products --keyword "yoga mat" --mode beginner --price-max 30
+# Mode + overrides (overrides win)
+python3 scripts/apiclaw.py products --keyword "yoga mat" --mode beginner --price-max 30
 ```
 
 Available modes: `fast-movers`, `emerging`, `single-variant`, `high-demand-low-barrier`, `long-tail`, `underserved`, `new-release`, `fbm-friendly`, `low-price`, `broad-catalog`, `selective-catalog`, `speculative`, `beginner`, `top-bsr`
 
+**Keyword matching:** Default is `fuzzy` (matches brand names too — e.g. "smart ring" matches "Smart Color Art" pens). Use `--keyword-match-type exact` or `phrase` for precise results. Always combine with `--category` when possible to reduce noise.
+
+**Category path with commas:** Some category names contain commas (e.g. "Pacifiers, Teethers & Teething Relief"). Use ` > ` separator instead of `,` to avoid parsing errors:
+```bash
+# ❌ Wrong — comma in name breaks parsing
+--category "Baby Products,Baby Care,Pacifiers, Teethers & Teething Relief"
+# ✅ Correct — use ' > ' separator
+--category "Baby Products > Baby Care > Pacifiers, Teethers & Teething Relief"
+```
+
 ### competitors — Competitor lookup
 
 ```bash
-python scripts/apiclaw.py competitors --keyword "wireless earbuds"
-python scripts/apiclaw.py competitors --brand "Anker"
-python scripts/apiclaw.py competitors --asin B09V3KXJPB
+python3 scripts/apiclaw.py competitors --keyword "wireless earbuds"
+python3 scripts/apiclaw.py competitors --asin B09V3KXJPB
 ```
 
-**products/competitors shared fields (easily confused)**:
+**Easily confused fields (products/competitors shared)**:
 
-| ❌ Common Error | ✅ Correct Field | Description |
-|------------|------------|------|
+| ❌ Wrong | ✅ Correct | Note |
+|----------|-----------|------|
 | `reviewCount` | `ratingCount` | Review count |
-| `bsr` | `bsrRank` | BSR ranking |
-| `monthlySales` | `salesMonthly` | Monthly sales |
+| `bsr` | `bsrRank` | BSR ranking (integer, only in products/competitors) |
+| `monthlySales` / `salesMonthly` | `atLeastMonthlySales` | Monthly sales (lower bound estimate, NOT in realtime/product) |
+| `bestsellersRank` | `bsrRank` | `bestsellersRank` is realtime/product only (array format); use `bsrRank` for products/competitors |
+| `price` (in realtime) | `buyboxWinner.price` | realtime/product nests price inside buyboxWinner object |
+| `profitMargin` (in realtime) | ❌ N/A | realtime/product does NOT return profitMargin; use products/competitors |
 
-Common fields: `salesMonthly`, `bsrRank`, `ratingCount`, `rating`, `salesGrowthRate`, `listingDate`, `price`, `brand`, `categories`
-
-> Complete field list see `reference.md` → Shared Product Object
+> Complete field list: `reference.md` → Shared Product Object
 
 ### product — Single ASIN real-time detail
 
 ```bash
-python scripts/apiclaw.py product --asin B09V3KXJPB
-python scripts/apiclaw.py product --asin B09V3KXJPB --marketplace JP
+python3 scripts/apiclaw.py product --asin B09V3KXJPB
 ```
 
-Returns: title, brand, rating, ratingBreakdown, features (bullets), topReviews, specifications, variants, bestsellersRank, buyboxWinner
+Returns: title, brand, rating, ratingBreakdown, features, topReviews, specifications, variants, bestsellersRank, buyboxWinner
+
+### analyze — Review analysis (sentiment + consumer insights)
+
+```bash
+# Single ASIN
+python3 scripts/apiclaw.py analyze --asin B09V3KXJPB
+
+# Multiple ASINs (competitive review comparison)
+python3 scripts/apiclaw.py analyze --asins B09V3KXJPB,B08YYYYY,B07ZZZZZ
+
+# Category-level insights
+python3 scripts/apiclaw.py analyze --category "Pet Supplies,Dogs,Toys" --period 90d
+
+# Specific insight dimension
+python3 scripts/apiclaw.py analyze --asin B09V3KXJPB --label-type painPoints,buyingFactors
+```
+
+Returns: `totalReviews`, `avgRating`, `sentimentDistribution`, `ratingDistribution`, `consumerInsights` (by labelType), `topKeywords`, `verifiedRatio`
+
+Available labelType: `scenarios`, `issues`, `positives`, `improvements`, `buyingFactors`, `painPoints`, `keywords`, `userProfiles`, `usageTimes`, `usageLocations`, `behaviors`
 
 ### report — Full market analysis (composite)
 
 ```bash
-python scripts/apiclaw.py report --keyword "pet supplies"
+python3 scripts/apiclaw.py report --keyword "pet supplies"
 ```
 
-Runs automatically: categories → market → products (top 50) → realtime detail (top 1). Returns combined JSON.
+Runs: categories → market → products (top 50) → realtime detail (top 1).
 
 ### opportunity — Product opportunity discovery (composite)
 
 ```bash
-python scripts/apiclaw.py opportunity --keyword "pet supplies"
-python scripts/apiclaw.py opportunity --keyword "pet supplies" --mode fast-movers
+python3 scripts/apiclaw.py opportunity --keyword "pet supplies" --mode fast-movers
 ```
 
-Runs: categories → market → products (filtered) → realtime detail (top 3). Returns combined JSON.
+Runs: categories → market → products (filtered) → realtime detail (top 3).
 
 ---
 
-## Return Data Structure
+## ⚠️ Interface Data Differences
 
-**Important**: The `.data` field returned by all interfaces is an **array**, not an object. When parsing, use `.data[0]` to get the first record.
+The 4 types of interfaces return **different fields**. Do NOT assume they share the same structure.
 
-```bash
-# Correct ✅
-jq '.data[0].topSalesRate'
+| Data | `market` | `products`/`competitors` | `realtime/product` | `reviews/analyze` |
+|------|----------|--------------------------|--------------------|--------------------|
+| Monthly Sales | `sampleAvgMonthlySales` | ✅ `atLeastMonthlySales` | ❌ | ❌ |
+| Revenue | `sampleAvgMonthlyRevenue` | `salesRevenue` | ❌ | ❌ |
+| Price | `sampleAvgPrice` | `price` | `buyboxWinner.price` | ❌ |
+| BSR | `sampleAvgBsr` | `bsrRank` (integer) | `bestsellersRank` (array) | ❌ |
+| Rating | `sampleAvgRating` | `rating` | `rating` | `avgRating` |
+| Review Count | `sampleAvgReviewCount` | `ratingCount` | `ratingCount` | `totalReviews` |
+| Review Details | ❌ | ❌ | ✅ `topReviews` + `ratingBreakdown` | ❌ (no raw reviews) |
+| Sentiment Analysis | ❌ | ❌ | ❌ | ✅ `sentimentDistribution` |
+| Consumer Insights | ❌ | ❌ | ❌ | ✅ `consumerInsights` (11 dimensions) |
+| Pain Points/Issues | ❌ | ❌ | ❌ (manual from topReviews) | ✅ AI-analyzed |
+| Top Keywords | ❌ | ❌ | ❌ | ✅ `topKeywords` |
+| Seller | ❌ | `buyboxSeller` (string) | `buyboxWinner` (object) | ❌ |
+| Profit Margin | ❌ | `profitMargin` | ❌ | ❌ |
+| FBA Fee | ❌ | `fbaFee` | ❌ | ❌ |
+| Seller Count | ❌ | `sellerCount` | ❌ | ❌ |
+| Features/Bullets | ❌ | ❌ | ✅ `features` | ❌ |
+| Variants | ❌ | `variantCount` (integer) | `variants` (full list) | ❌ |
 
-# Error ❌ - will report "Cannot index array with string"
-jq '.data.topSalesRate'
-```
+**Usage rule:**
+- Use `products` / `competitors` for **sales, pricing, and competition data**
+- Use `realtime/product` for **review details, listing content, and seller info**
+- Use `market` for **category-level aggregate metrics**
+- Use `reviews/analyze` for **AI-powered review insights** (sentiment, pain points, buying factors — covers all reviews, not just topReviews)
+- For reports: combine `products`/`competitors` (quantitative) + `realtime/product` (qualitative) + `reviews/analyze` (consumer insights) as evidence
 
-**Batch processing example**:
-```bash
-# Iterate through all records
-jq '.data[] | {name: .categoryName, sales: .sampleAvgMonthlySales}'
+## Data Structure Reminder
 
-# Take first 5
-jq '.data[:5] | .[] | .title'
-```
+All interfaces return `.data` as an **array**. Use `.data[0]` to get the first record, NOT `.data.fieldName`.
 
 ---
 
-## Intent routing
+## Intent Routing
 
-| User says | Run this | Extra file? |
-|-----------|----------|-------------|
-| "which category has opportunity" | `market` (+ `categories` to confirm path) | No |
-| "help me check B09XXX" / "analyze ASIN" | `product --asin XXX` | No |
-| "Chinese sellers cases" | `competitors --keyword XXX --page-size 50` | `scenarios.md` → 3.4 |
-| **Product Evaluation** | | |
-| "pain points" / "negative reviews" | `product --asin XXX` | `scenarios.md` → 4.2 |
-| "compare products" | `competitors` or multiple `product` | `scenarios.md` → 4.3 |
-| "risk assessment" / "can I do this" / "risk" | `product` + `market` + `competitors` | `scenarios.md` → 4.4 |
-| "monthly sales" / "sales estimate" | `competitors --asin XXX` | `scenarios.md` → 4.5 |
-| "help me with product selection" / "find products" | `products --mode XXX` (see mode table below) | No |
-| "comprehensive recommendations" / "help me choose" / "what should I sell" | `products` (multi-mode) + `market` | `scenarios.md` → 2.10 |
-
-**Product selection mode mapping (14 types)**:
-
-| User Intent | Mode | Filter Conditions |
-|----------|------|----------|
-| "underserved market" / "has pain points" / "can improve" | `--mode underserved` | Monthly sales≥300, rating≤3.7, within 6 months |
-| "high demand low barrier" / "easy to do" / "easy entry" | `--mode high-demand-low-barrier` | Monthly sales≥300, reviews≤50, within 6 months |
-| "beginner friendly" / "suitable for new sellers" / "entry level" | `--mode beginner` | Monthly sales≥300, $15-60, FBA |
-| "fast turnover" / "good sellers" / "hot selling" | `--mode fast-movers` | Monthly sales≥300, growth≥10% |
-| "emerging products" / "rising period" | `--mode emerging` | Monthly sales≤600, growth≥10%, within 6 months |
-| "small but beautiful rising single products" / "single variant" | `--mode single-variant` | Growth≥20%, variants=1, within 6 months |
-| "long tail products" / "niche" / "segmented" | `--mode long-tail` | BSR 10K-50K, ≤$30, exclusive sellers |
-| "new products" / "just launched" / "new release" | `--mode new-release` | Monthly sales≤500, New Release tag |
-| "low price products" / "cheap" | `--mode low-price` | ≤$10 |
-| "top sellers" / "best sellers" / "top seller" | `--mode top-bsr` | BSR≤1000 |
-| "self-fulfillment friendly" / "FBM" | `--mode fbm-friendly` | Monthly sales≥300, FBM |
-| "broad catalog mode" / "cast wide net" | `--mode broad-catalog` | BSR growth≥99%, reviews≤10, within 90 days |
-| "selective catalog" | `--mode selective-catalog` | BSR growth≥99%, within 90 days |
-| "speculative" / "piggyback selling opportunities" | `--mode speculative` | Monthly sales≥600, sellers≥3 |
-| "complete report" / "full report" | `report --keyword XXX` | No |
-| "product opportunity" / "opportunity" | `opportunity --keyword XXX` | No |
-| **Pricing & Listing** | | |
-| "how much to price" / "pricing strategy" | `market` + `products` | `scenarios.md` → 5.1 |
-| "profit estimation" / "profit margin" | `competitors` | `scenarios.md` → 5.2 |
-| "how to write listing" / "listing reference" | `product --asin XXX` | `scenarios.md` → 5.3 |
-| **Daily Operations** | | |
-| "recent changes" / "market changes" | `market` + `products` | `scenarios.md` → 6.1 |
-| "what are competitors doing recently" / "competitor updates" | `competitors --brand XXX` | `scenarios.md` → 6.2 |
-| "anomaly alerts" / "alerts" | `market` + `products` | `scenarios.md` → 6.4 |
-| **Expansion** | | |
-| "what else can I sell" / "related products" | `categories` + `market` | `scenarios.md` → 7.1 |
-| "trends" | `products --growth-min 0.2` | `scenarios.md` → 7.3 |
-| "should I delist" / "discontinue" | `competitors --asin XXX` + `market` | `scenarios.md` → 7.4 |
-| **Reference** | | |
+| User Says | Run This | Scenario File? |
+|-----------|----------|----------------|
+| "which category has opportunity" | `market` + `categories` | No |
+| "check B09XXX" / "analyze ASIN" | `product --asin XXX` | No |
+| "Chinese seller cases" | `competitors --keyword XXX --page-size 50` | `scenarios-composite.md` → 3.4 |
+| "pain points" / "negative reviews" / "consumer insights" | `analyze --asin XXX` + `product --asin XXX` | `scenarios-eval.md` → 4.2 |
+| "category pain points" / "category user portrait" | `analyze --category XXX` | `scenarios-eval.md` → 4.6 |
+| "compare products" | `competitors` or multiple `product` | `scenarios-eval.md` → 4.3 |
+| "risk assessment" / "can I do this" | `product` + `market` + `competitors` | `scenarios-eval.md` → 4.4 |
+| "monthly sales" / "estimate sales" | `competitors --asin XXX` | `scenarios-eval.md` → 4.5 |
+| "help me select products" / "find products" | `products --mode XXX` (see mode table) | No |
+| "comprehensive recommendations" / "what should I sell" | `products` (multi-mode) + `market` | `scenarios-composite.md` → 2.10 |
+| "pricing strategy" / "how much to price" | `market` + `products` | `scenarios-pricing.md` → 5.1 |
+| "profit estimation" | `competitors` | `scenarios-pricing.md` → 5.2 |
+| "listing reference" | `product --asin XXX` | `scenarios-pricing.md` → 5.3 |
+| "market changes" / "recent changes" | `market` + `products` | `scenarios-ops.md` → 6.1 |
+| "competitor updates" | `competitors --brand XXX` | `scenarios-ops.md` → 6.2 |
+| "anomaly alerts" | `market` + `products` | `scenarios-ops.md` → 6.4 |
+| "what else can I sell" / "related products" | `categories` + `market` | `scenarios-expand.md` → 7.1 |
+| "trends" | `products --growth-min 0.2` | `scenarios-expand.md` → 7.3 |
+| "should I delist" | `competitors --asin XXX` + `market` | `scenarios-expand.md` → 7.4 |
+| "write listing" / "generate bullet points" / "write title" | `product --asin XXX` (competitors) | `scenarios-listing.md` → 8.2 |
+| "analyze competitor listing" / "their selling points" | `product --asin XXX` (multiple) | `scenarios-listing.md` → 8.1 |
+| "optimize my listing" / "listing diagnosis" | `product --asin XXX` + `competitors` | `scenarios-listing.md` → 8.3 |
 | Need exact filters or field names | — | Load `reference.md` |
 
+**Product Selection Mode Mapping (14 types)**:
+
+| User Intent | Mode | Key Filters |
+|-------------|------|-------------|
+| "beginner friendly" / "new seller" | `--mode beginner` | Sales≥300, growth≥3%, $15-60, FBA, ≤1yr, auto-excludes 150+ red ocean keywords |
+| "fast turnover" / "hot selling" | `--mode fast-movers` | Sales≥300, growth≥10% |
+| "emerging" / "rising" | `--mode emerging` | Sales≤600, growth≥10%, ≤180d |
+| "single variant" / "small but beautiful" | `--mode single-variant` | Growth≥20%, variants=1, ≤180d |
+| "high demand low barrier" / "easy entry" | `--mode high-demand-low-barrier` | Sales≥300, reviews≤50, ≤180d |
+| "long tail" / "niche" | `--mode long-tail` | Sales≤300, BSR 10K-50K, ≤$30, sellers≤1 |
+| "underserved" / "has pain points" | `--mode underserved` | Sales≥300, rating≤3.7, ≤180d |
+| "new products" / "new release" | `--mode new-release` | Sales≤500, NR tag, FBA+FBM |
+| "FBM" / "self-fulfillment" / "low stock" | `--mode fbm-friendly` | Sales≥300, FBM, ≤180d |
+| "low price" / "cheap" | `--mode low-price` | ≤$10 |
+| "broad catalog" / "cast wide net" | `--mode broad-catalog` | BSR growth≥99%, reviews≤10, ≤90d |
+| "selective catalog" | `--mode selective-catalog` | BSR growth≥99%, ≤90d |
+| "speculative" / "piggyback" | `--mode speculative` | Sales≥600, sellers≥3, ≤180d |
+| "top sellers" / "best sellers" | `--mode top-bsr` | Sub-category BSR≤1000 |
+
 ---
 
-## Quick evaluation criteria
+## Quick Evaluation Criteria
 
-### Market viability (from `market` output)
+### Market Viability (from `market` output)
 
 | Metric | Good | Medium | Warning |
 |--------|------|--------|---------|
@@ -278,94 +329,111 @@ jq '.data[:5] | .[] | .title'
 | FBA rate (sampleFbaRate) | > 50% | 30–50% | < 30% |
 | Brand count (sampleBrandCount) | > 50 | 20–50 | < 20 |
 
-### Product potential (from `product` output)
+### Product Potential (from `product` output)
 
 | Metric | High | Medium | Low |
 |--------|------|--------|-----|
 | BSR | Top 1000 | 1000–5000 | > 5000 |
 | Reviews | < 200 | 200–1000 | > 1000 |
 | Rating | > 4.3 | 4.0–4.3 | < 4.0 |
-| Negative reviews (1-2 star %) | < 10% | 10–20% | > 20% |
+| Negative reviews (1-2★ %) | < 10% | 10–20% | > 20% |
 
-### Sales estimation fallback
+### Sales Estimation Fallback
 
-When `salesMonthly` is null: **Monthly sales ≈ 300,000 / BSR^0.65**
+When `atLeastMonthlySales` is null: **Monthly sales ≈ 300,000 / BSR^0.65**
 
 ---
 
-## Output Standards (Mandatory)
+## ⚠️ Output Standards (Full Mode — MANDATORY, DO NOT SKIP)
 
-**Must include data source block after every analysis completion**, otherwise output is considered incomplete:
+> **Two blocks are REQUIRED at the end of every Full-mode analysis: ① Data Source & Conditions, ② API Usage. Missing either one = violating the skill contract.**
+
+### ① Data Source & Conditions (Full Mode Only)
 
 ```markdown
 ---
-**Data Source & Conditions**
+📋 **Data Source & Conditions**
 | Item | Value |
 |----|-----|
 | Data Source | APIClaw API |
-| Interface | [List interfaces used this time, e.g. categories, markets/search, products/search] |
-| Category | [Queried category path] |
-| Time Range | [dateRange, e.g. 30d] |
-| Sampling Method | [sampleType, e.g. by_sale_100] |
-| Top N | [topN value, e.g. 10] |
-| Sort | [sortBy + sortOrder, e.g. monthlySales desc] |
-| Filter Conditions | [Specific parameter values, e.g. monthlySalesMin: 300, reviewCountMax: 50] |
+| Interface | [interfaces used] |
+| Category | [category path] |
+| Time Range | [dateRange] |
+| Sampling | [sampleType] |
+| Top N | [topN value] |
+| Sort | [sortBy + sortOrder] |
+| Filters | [specific parameter values] |
 
 **Data Notes**
-- Monthly sales are **estimated values** based on BSR + sampling model, not official Amazon data
-- Database interface data has ~T+1 delay, realtime/product is current real-time data
-- Concentration metrics calculated based on Top N sample, different topN values will yield different results
+- Monthly sales are **lower bound estimates** (Amazon displays "10,000+ bought"), actual may be higher
+- Database data has ~T+1 delay; realtime/product is current real-time data
+- Concentration metrics based on Top N sample; different topN → different results
 ```
 
 **Rules**:
-1. Must include this block after every analysis
-2. Filter conditions should be specific to parameter values (e.g. `monthlySalesMin: 300, reviewCountMax: 50`)
+1. Every Full-mode analysis MUST end with this block
+2. Filter conditions MUST list specific parameter values
 3. If multiple interfaces used, list each one
-4. If data has limitations (e.g. missing historical trends), proactively explain
+4. If data has limitations, proactively explain
+5. ⚠️ **Self-check:** scan your response — if you don't see `📋 **Data Source & Conditions**`, ADD IT before replying
+
+### ⚠️ API Usage Summary (All Modes — MANDATORY, DO NOT SKIP)
+
+> **This block is NON-NEGOTIABLE.** Every single response — Quick or Full mode — MUST end with this table. No exceptions. If you forget, you are violating the skill contract.
+
+```markdown
+📊 **API Usage**
+| Interface | Calls |
+|-----------|-------|
+| categories | 1 |
+| markets/search | 1 |
+| products/search | 2 |
+| realtime/product | 3 |
+| reviews/analyze | 1 |
+| **Total** | **8** |
+| **Credits consumed** | **8** |
+| **Credits remaining** | **492** |
+```
+
+**Tracking rules:**
+1. Count each `apiclaw.py` execution as 1 call to the corresponding interface
+2. Sum `_credits.consumed` from every API response for total consumed
+3. Use `_credits.remaining` from the **last** API response as remaining balance
+4. If `_credits` fields are null, show "N/A"
+5. ⚠️ **Self-check before sending:** scan your response — if you don't see `📊 **API Usage**` at the bottom, ADD IT before replying
 
 ---
 
 ## Limitations
 
-### What this skill cannot do
+### What This Skill Cannot Do
 
 - Keyword research / reverse ASIN / ABA data
 - Traffic source analysis
 - Historical sales trends (14-month curves)
 - Historical price / BSR charts
-- AI review sentiment analysis (use topReviews + ratingBreakdown manually)
+- Raw individual review text export (use `realtime/product` topReviews for specific review quotes)
 
-### API Data Coverage Boundaries
+### API Coverage Boundaries
 
 | Scenario | Coverage | Suggestion |
 |----------|----------|------------|
-| Market data: Popular keywords | ✅ Usually has data | Use `--keyword` query directly |
-| Market data: Niche/long-tail keywords | ⚠️ May have no data | Use category path `--category` query instead |
-| Product data: Active ASIN | ✅ Has data | - |
-| Product data: Delisted/variant ASIN | ❌ No data | Try parent ASIN or realtime interface |
-| Real-time data: US site | ✅ Full support | - |
-| Real-time data: Non-US sites | ⚠️ Some fields missing | Core fields available, sales estimation may be empty |
+| Market data: Popular keywords | ✅ Has data | Use `--keyword` directly |
+| Market data: Niche/long-tail keywords | ⚠️ May be empty | Use `--category` instead |
+| Product data: Active ASIN | ✅ Has data | — |
+| Product data: Delisted/variant ASIN | ❌ No data | Try parent ASIN or realtime |
+| Real-time data: US site | ✅ Full support | — |
+| Real-time data: Non-US sites | ⚠️ Partial | Core fields OK, sales may be null |
 
 ---
 
-## Error Handling & Self-Check
+## Error Handling
 
-HTTP errors (401/402/403/404/429) are handled by the script automatically, returning structured JSON with `error.message` and `error.action` that AI can read and act on.
+HTTP errors (401/402/403/404/429) are handled by the script with structured JSON output.
+Self-check: `python3 scripts/apiclaw.py check`
 
-When encountering issues, run self-check:
-
-```bash
-python scripts/apiclaw.py check
-```
-
-Tests 4 of 5 endpoints (skips `realtime/product` which requires a valid ASIN), reports availability.
-
-**Other common issues**:
-
-| Error | Cause | Solution |
-|-----|------|------|
-| `command not found: python` | macOS has no python command | Use `python3` |
-| `Cannot index array with string` | `.data` is array | Use `.data[0].fieldName` |
-| Returns empty `data: []` | Keyword no match | Use `categories` to confirm category exists first |
-| `salesMonthly: null` | Some products lack sales data | BSR estimate: Monthly sales ≈ 300,000 / BSR^0.65 |
-| `realtime/product` slow | Real-time scraping | Normal 5-30s, be patient |
+| Error | Fix |
+|-------|-----|
+| `Cannot index array with string` | Use `.data[0].fieldName` (`.data` is array) |
+| Empty `data: []` | Use `categories` to confirm category exists |
+| `atLeastMonthlySales: null` | BSR estimate: 300,000 / BSR^0.65 |

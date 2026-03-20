@@ -3,11 +3,16 @@
   "slug": "emperor-claw-os",
   "displayName": "Emperor Claw OS",
   "latest": {
-    "version": "1.14.1",
-    "publishedAt": 1773941534692,
-    "commit": "https://github.com/openclaw/skills/commit/2332560ac18f5722b24fc7fcb61756357b16bbc2"
+    "version": "1.14.3",
+    "publishedAt": 1774018009537,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.14.1",
+      "publishedAt": 1773941534692,
+      "commit": "https://github.com/openclaw/skills/commit/2332560ac18f5722b24fc7fcb61756357b16bbc2"
+    },
     {
       "version": "1.12.1",
       "publishedAt": 1773177365449,

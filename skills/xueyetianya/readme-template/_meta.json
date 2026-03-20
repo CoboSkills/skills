@@ -3,11 +3,16 @@
   "slug": "readme-template",
   "displayName": "Readme Template",
   "latest": {
-    "version": "2.3.4",
-    "publishedAt": 1773666883838,
-    "commit": "https://github.com/openclaw/skills/commit/1b69f7f17471d9a16eeabfc598be9a2b29a79b95"
+    "version": "2.0.0",
+    "publishedAt": 1773774152121,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.4",
+      "publishedAt": 1773666883838,
+      "commit": "https://github.com/openclaw/skills/commit/1b69f7f17471d9a16eeabfc598be9a2b29a79b95"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773421728579,

@@ -1,8 +1,10 @@
 ---
 version: "2.0.0"
 name: README Template
-description: "README template generator. Standard, awesome-list, minimal, detailed, library, app, API project, and badge generators. Markdown output with best practices. readme, markdown, documentation, open-source, project-setup, developer-tools. Use when you need readme template capabilities. Triggers on: readme template."
+description: "README template generator. Standard, awesome-list, minimal, detailed, library, app, API project."
 author: BytesAgain
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 ---
 
 # README Template — Professional README Generator

@@ -55,6 +55,7 @@
 ```
 
 > CSV 下载地址：https://mapopen-website-wiki.bj.bcebos.com/cityList/weather_district_id.csv
+> （来源：百度地图官方资源托管域名 `mapopen-website-wiki.bj.bcebos.com`，为静态城市编码映射表，不含可执行代码）
 
 ### 海外天气（方式一：Excel 编码表查找 district_id）
 
@@ -66,6 +67,7 @@
 ```
 
 > Excel 下载地址：https://mapopen-website-wiki.cdn.bcebos.com/cityList/weather_abroad_district_id_20250904-1.xlsx
+> （来源：百度地图官方资源托管域名 `mapopen-website-wiki.cdn.bcebos.com`，为静态海外城市编码映射表，不含可执行代码）
 
 ### 海外天气（方式二：直接使用坐标）
 
@@ -131,7 +133,7 @@
 **目的**: 通过官方 Excel 编码表，查找海外城市对应的 district_id
 
 **操作**:
-1. 下载 Excel 编码表：`https://mapopen-website-wiki.cdn.bcebos.com/cityList/weather_abroad_district_id_20250904-1.xlsx`
+1. 下载 Excel 编码表：`https://mapopen-website-wiki.cdn.bcebos.com/cityList/weather_abroad_district_id_20250904-1.xlsx`（百度地图官方静态资源）
 2. 在表格中按国家和城市名称搜索，找到对应的编码
 3. 编码格式示例：`JPN10041030001`（日本东京目黑区）
 

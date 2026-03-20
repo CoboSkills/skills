@@ -3,11 +3,16 @@
   "slug": "brand-namer",
   "displayName": "Brand Namer",
   "latest": {
-    "version": "2.3.6",
-    "publishedAt": 1773664912086,
-    "commit": "https://github.com/openclaw/skills/commit/8927cbbfcf0f4b380a8907ba18ca0af09f990aff"
+    "version": "3.0.3",
+    "publishedAt": 1773882094206,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.6",
+      "publishedAt": 1773664912086,
+      "commit": "https://github.com/openclaw/skills/commit/8927cbbfcf0f4b380a8907ba18ca0af09f990aff"
+    },
     {
       "version": "2.2.0",
       "publishedAt": 1773420968647,

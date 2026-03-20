@@ -3,9 +3,15 @@
   "slug": "youtube-i18n-region",
   "displayName": "YouTube I18n Region",
   "latest": {
-    "version": "0.10.6-3",
-    "publishedAt": 1773331566627,
-    "commit": "https://github.com/openclaw/skills/commit/3e029c1183d0a0e5d2e6bc0bf3d70d31115e0ed1"
+    "version": "0.10.7-dev",
+    "publishedAt": 1773496958559,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.10.6-3",
+      "publishedAt": 1773331566627,
+      "commit": "https://github.com/openclaw/skills/commit/3e029c1183d0a0e5d2e6bc0bf3d70d31115e0ed1"
+    }
+  ]
 }

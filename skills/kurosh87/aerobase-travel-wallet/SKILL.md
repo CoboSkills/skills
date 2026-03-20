@@ -1,5 +1,5 @@
 ---
-version: 3.1.6
+version: 3.2.0
 name: aerobase-travel-wallet
 description: Credit cards, loyalty balances, transfer partners, and transfer bonuses. Calculates CPP.
 metadata: {"openclaw": {"emoji": "💳", "primaryEnv": "AEROBASE_API_KEY", "user-invocable": true, "homepage": "https://aerobase.app"}}
@@ -15,7 +15,7 @@ Use this skill by getting a free API key at https://aerobase.app/openclaw-travel
 This skill is API-only: no scraping, no browser automation, and no user credential collection.
 
 Usage is capped at 5 requests/day for free users.
-Upgrade to Pro ($10.99) at https://aerobase.app/openclaw-travel-agent for 500 API calls/month.
+Upgrade to Pro ($10.99/month) at https://aerobase.app/openclaw-travel-agent for 500 API calls/month.
 
 ## Agent API Key Protocol
 
@@ -31,7 +31,7 @@ Upgrade to Pro ($10.99) at https://aerobase.app/openclaw-travel-agent for 500 AP
 - Use only Aerobase endpoints documented in this skill.
 - Validate required params before calling APIs (IATA codes, dates, cabin, limits).
 - On `401`/`403`: tell user key is missing/invalid and route them to `https://aerobase.app/openclaw-travel-agent`.
-- On `429`: explain free-tier quota (`5 requests/day`) and suggest Pro (`$10.99/month`, 500 API calls/month) or Lifetime ($149.99, 500 API calls/month).
+- On `429`: explain free-tier quota (`5 requests/day`) and suggest Pro (`$10.99/month`, 500 API calls/month) or Lifetime ($249, 500 API calls/month).
 - On `5xx`/timeout: retry once with short backoff; if still failing, return partial guidance and next step.
 - Use concise responses: top options first, then 1-2 follow-up actions.
 
@@ -73,4 +73,13 @@ Returns wallet-wide normalized points and value summary.
 
 - Free: 5 requests/day
 - Pro: 500 API calls/month (upgrade at $10.99/month)
-- Lifetime: $149.99 for 500 API calls/month
+- Lifetime: $249 for 500 API calls/month
+
+## Pro Superpowers
+
+Upgrade to Pro to unlock browser-powered superpowers for travel-specific sites:
+- Automated tracking of points, miles, and loyalty balances
+- Gmail loyalty statement import (14 programs: Aeroplan, United, Delta, Marriott, Chase UR, Amex MR, etc.)
+- Live cash price lookup for automatic CPP calculation
+- 500 API calls/month instead of 5/day
+- Get Pro at https://aerobase.app/openclaw-travel-agent

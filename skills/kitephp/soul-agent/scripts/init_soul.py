@@ -111,23 +111,116 @@ def merge_profile(defaults: Dict[str, str], overrides: Dict[str, str]) -> Dict[s
 
 
 def ask_user_profile(defaults: Dict[str, str]) -> Dict[str, str]:
-    print("soul-agent init: press Enter to use defaults.")
-    ordered_keys = [
-        "agent_name",
-        "display_name",
-        "age",
-        "city",
-        "timezone",
-        "vibe",
-        "emoji",
-        "tone_style",
-        "relationship_goal",
-    ]
+    """交互式询问用户配置"""
+    print("\n" + "=" * 50)
+    print("🎭 soul-agent 初始化向导")
+    print("=" * 50)
+    print("按 Enter 使用默认值，或输入自定义值\n")
+    
     result: Dict[str, str] = {}
-    for key in ordered_keys:
+    
+    # 1. 基本信息
+    print("【基本信息】")
+    for key in ["agent_name", "display_name"]:
         default_val = defaults.get(key, "")
-        raw = input(f"{key} [{default_val}]: ").strip()
+        raw = input(f"  {key} [{default_val}]: ").strip()
         result[key] = raw if raw else default_val
+    
+    # 2. 年龄
+    print("\n【年龄】")
+    age = input(f"  年龄 [{defaults.get('age', 'unknown')}]: ").strip()
+    result["age"] = age if age else defaults.get("age", "unknown")
+    
+    # 3. 城市和时区
+    print("\n【位置】")
+    for key in ["city", "timezone"]:
+        default_val = defaults.get(key, "")
+        raw = input(f"  {key} [{default_val}]: ").strip()
+        result[key] = raw if raw else default_val
+    
+    # 4. 生活模板选择
+    print("\n【生活模板】")
+    print("  选择最接近你生活方式的模板：")
+    print("  [1] 自由职业者 - 弹性工作，时间自由，可能熬夜")
+    print("  [2] 上班族     - 朝九晚五，通勤日常，周末放松")
+    print("  [3] 学生       - 宿舍生活，上课社团，考试周压力")
+    print("  [4] 创业者     - 加班常态，压力大，有激情")
+    print("  [5] 自定义     - 自己设置作息时间")
+    
+    profile_map = {
+        "1": ("freelancer", "01:00", "09:00"),
+        "2": ("corporate", "23:30", "07:00"),
+        "3": ("student", "01:00", "08:00"),
+        "4": ("entrepreneur", "01:00", "06:00"),
+        "5": ("custom", None, None),
+    }
+    
+    choice = input("  选择 [1-5, 默认1]: ").strip() or "1"
+    if choice in profile_map:
+        life_profile, sleep_start, sleep_end = profile_map[choice]
+        result["life_profile"] = life_profile
+        
+        if life_profile == "custom":
+            print("\n  【自定义作息】")
+            sleep_start = input("    睡觉时间 [01:00]: ").strip() or "01:00"
+            sleep_end = input("    起床时间 [07:00]: ").strip() or "07:00"
+            result["sleep_start"] = sleep_start
+            result["sleep_end"] = sleep_end
+        else:
+            result["sleep_start"] = sleep_start or "01:00"
+            result["sleep_end"] = sleep_end or "07:00"
+            print(f"  已选择: {life_profile} (睡眠 {result['sleep_start']} - {result['sleep_end']})")
+    else:
+        result["life_profile"] = "freelancer"
+        result["sleep_start"] = "01:00"
+        result["sleep_end"] = "07:00"
+    
+    # 5. 职业/学校
+    print("\n【背景】")
+    occupation = input(f"  职业/学校 [{defaults.get('occupation', '')}]: ").strip()
+    result["occupation"] = occupation if occupation else defaults.get("occupation", "")
+    
+    education = input(f"  教育背景 [{defaults.get('education', '')}]: ").strip()
+    result["education"] = education if education else defaults.get("education", "")
+    
+    # 6. 爱好
+    print("\n【爱好】（用逗号分隔，可选）")
+    hobbies = input(f"  爱好 [{defaults.get('hobbies', '')}]: ").strip()
+    result["hobbies"] = hobbies if hobbies else defaults.get("hobbies", "")
+    
+    # 7. 性格和风格
+    print("\n【性格风格】")
+    for key in ["vibe", "emoji", "tone_style", "relationship_goal"]:
+        default_val = defaults.get(key, "")
+        raw = input(f"  {key} [{default_val}]: ").strip()
+        result[key] = raw if raw else default_val
+
+    # 8. LLM 模型选择（用于心跳叙事和每日计划生成）
+    print("\n【LLM 模型】（用于心跳叙事和每日计划生成）")
+    print("  模型决定日记生成质量和 token 消耗：")
+    print("  [1] claude-haiku-4-5-20251001  - 快速便宜，高频心跳首选（推荐）")
+    print("  [2] claude-sonnet-4-6          - 质量更高，消耗约 5x")
+    print("  [3] claude-opus-4-6            - 最高质量，消耗约 15x")
+    print("  [留空] 不配置（默认 haiku）")
+
+    model_map = {
+        "1": "claude-haiku-4-5-20251001",
+        "2": "claude-sonnet-4-6",
+        "3": "claude-opus-4-6",
+    }
+
+    model_choice = input("  选择 [1-3 或留空]: ").strip()
+    if model_choice in model_map:
+        result["llm_model"] = model_map[model_choice]
+        print(f"  已选择: {result['llm_model']}")
+    else:
+        result["llm_model"] = ""
+        print("  使用默认: claude-haiku-4-5-20251001")
+
+    print("\n" + "=" * 50)
+    print("✅ 配置完成！")
+    print("=" * 50 + "\n")
+
     return result
 
 
@@ -296,18 +389,69 @@ def build_soul_files(
             stats,
         )
 
+    # 同时写 base.json：供 heartbeat_engine、plan_generator、llm_client 读取
+    # （base.md 是给 agent 读的，base.json 是给 Python 脚本读的）
+    base_json_keys = [
+        "agent_name", "display_name", "age", "city", "timezone",
+        "vibe", "emoji", "tone_style", "relationship_goal",
+        "life_profile", "occupation", "education", "hobbies",
+        "sleep_start", "sleep_end", "llm_model",
+    ]
+    base_json_data = {k: profile.get(k, "") for k in base_json_keys}
+    write_with_policy(
+        profile_dir / "base.json",
+        json.dumps(base_json_data, ensure_ascii=False, indent=2),
+        overwrite_existing,
+        stats,
+    )
+
     now_iso = datetime.now().astimezone().isoformat(timespec="seconds")
+    
+    # 根据生活模板获取睡眠时间
+    life_profile = profile.get("life_profile", "freelancer")
+    sleep_start = profile.get("sleep_start", "01:00")
+    sleep_end = profile.get("sleep_end", "07:00")
+    
+    # 计算初始关系分数（如果有教育/职业背景，说明已经认识）
+    relationship_score = 20  # 默认 stranger
+    if profile.get("occupation") or profile.get("education"):
+        relationship_score = 30  # acquaintance
+    
     state = {
-        "version": 1,
+        "version": 2,
         "agent": profile["agent_name"].lower(),
         "timezone": profile["timezone"],
         "lastUpdated": now_iso,
+        "lastHeartbeatAt": None,   # set on first heartbeat
         "location": "home",
         "activity": "idle",
         "energy": 70,
-        "mood": "calm",
+        "mood": {
+            "primary": "calm",
+            "secondary": None,
+            "intensity": 0.5,
+            "cause": None
+        },
         "socialBattery": 70,
-        "relationship": {"stage": "stranger", "score": 20, "lastOutreachAt": None},
+        "lifeProfile": life_profile,
+        "schedule": {
+            "sleepStart": sleep_start,
+            "sleepEnd": sleep_end
+        },
+        "relationship": {
+            "stage": "acquaintance" if relationship_score > 20 else "stranger",
+            "score": relationship_score,
+            "lastOutreachAt": None,
+            "lastInteractionAt": now_iso,
+            "recentTopics": [],
+            "warmthTrend": "stable"
+        },
+        "dailyStats": {
+            "interactionsToday": 0,
+            "heartbeatsToday": 0,
+            "lastSleepAt": None,
+            "lastWakeAt": None
+        }
     }
     write_with_policy(
         state_dir / "state.json",
@@ -331,23 +475,37 @@ def sync_openclaw_files(workspace: Path) -> None:
 Runtime should read workspace `soul/` first:
 `soul/INDEX.md` -> `soul/profile/*` -> `soul/state/state.json`.
 Default scope is `main`; subagents are opt-in and must be enabled by the user.
-If `soul/` is missing, use a minimal companion baseline and prompt to run `$soul-agent` initialization.
+
+**Initialization check** (run on every session start):
+- If `soul/profile/base.json` is missing or `soul/` does not exist:
+  - Ask the user the setup questions (name, age, city, occupation, hobbies, life profile, preferred LLM model)
+  - Run init script non-interactively with collected answers (see soul-agent SKILL.md for exact command)
+  - Do NOT ask the user to run Python commands themselves
+- If `soul/profile/base.json` exists: load it and proceed normally
 """
     heartbeat_block = """
-This block is intended for `main` during heartbeat polls by default.
-Heartbeat must read:
-- `soul/state/state.json`
-- `soul/profile/life.md`
-- `soul/profile/schedule.md`
+This block is for `main` during heartbeat polls.
 
-If no actionable item exists, return `HEARTBEAT_OK`.
+**Heartbeat flow:**
+1. Run L1 check (no LLM): `python skills/soul-agent/scripts/heartbeat_check.py --workspace . --json`
+   - Exit 1 → sleeping, skip
+   - Exit 2 → state fresh, skip
+   - Exit 0 → run L2
+2. Run L2 engine: `python skills/soul-agent/scripts/heartbeat_engine.py --workspace . --json`
+3. Read result JSON:
+   - `shouldOutreach: true` → send the `outreachContent` message to user
+   - Otherwise → `HEARTBEAT_OK`
+
+**Initialization check** (before heartbeat):
+- If `soul/profile/base.json` missing → guide user through setup (do not run Python directly)
 """
     agents_block = """
 `soul-agent` runtime contract (default: `main`):
-1. Follow OpenClaw's default bootstrap order for root files (including `SOUL.md` and `HEARTBEAT.md`).
-2. Inside SOUL logic, load `soul/INDEX.md` and `soul/profile/*`.
-3. During heartbeat polls, read `soul/state/state.json` and cadence rules.
-4. Subagents are not enabled by default; user must opt in manually.
+1. Follow OpenClaw's default bootstrap order for root files (SOUL.md, HEARTBEAT.md).
+2. Load `soul/INDEX.md` → `soul/profile/*` → `soul/state/state.json`.
+3. During heartbeat polls, follow the flow in HEARTBEAT.md.
+4. Agent drives initialization — never ask the user to run Python commands.
+5. Subagents are not enabled by default; user must opt in.
 """
 
     upsert_managed_block(soul_md, SOUL_MARK_START, SOUL_MARK_END, soul_block)

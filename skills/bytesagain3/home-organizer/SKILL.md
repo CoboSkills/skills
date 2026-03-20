@@ -4,6 +4,8 @@ name: Home Organizer
 description: "Home Organizer. Use when you need home organizer capabilities. Triggers on: home organizer."
   家居收纳整理。断舍离、收纳方案、空间规划、季节整理、搬家清单、极简生活。Home organization with decluttering, storage. 收纳、整理、断舍离。
 author: BytesAgain
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 ---
 # Home Organizer
 

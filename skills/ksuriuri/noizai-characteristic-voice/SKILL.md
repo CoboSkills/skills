@@ -7,6 +7,38 @@ description: "Use this skill whenever the user wants speech to sound more human,
 
 Make your AI agent sound like a real companion — one who sighs, laughs, hesitates, and speaks with genuine feeling.
 
+## Credentials
+
+| Variable | Required | Description |
+|---|---|---|
+| `NOIZ_API_KEY` | **Yes** if using Noiz backend | API key from [developers.noiz.ai](https://developers.noiz.ai/api-keys). Not needed if using the local Kokoro backend. |
+
+The script saves a normalised copy of the key to `~/.noiz_api_key` (mode 600) for convenience. To set it:
+
+```bash
+bash skills/characteristic-voice/scripts/speak.sh config --set-api-key YOUR_KEY
+```
+
+## Prerequisites
+
+The included `speak.sh` script requires **curl** and **python3** at runtime. Depending on which backend and features you use, you may also need:
+
+| Tool | When needed | Install hint |
+|---|---|---|
+| `curl`, `python3` | Always (core script) | Usually pre-installed |
+| `kokoro-tts` | Kokoro (local/offline) backend | `uv tool install kokoro-tts` |
+| `yt-dlp` | Downloading reference audio for voice cloning | [github.com/yt-dlp/yt-dlp](https://github.com/yt-dlp/yt-dlp) |
+| `ffmpeg` | Trimming reference audio clips | [ffmpeg.org](https://ffmpeg.org) |
+| `rg` (ripgrep) | Searching subtitle files | [github.com/BurntSushi/ripgrep](https://github.com/BurntSushi/ripgrep) |
+
+None of these are installed by the skill itself — provision them manually in your environment.
+
+## Privacy & Data Transmission
+
+- **Noiz backend**: When using the Noiz backend, the text you speak and any reference audio you provide are sent to `https://noiz.ai/v1`. If you supply `--ref-audio`, that audio file is uploaded for voice cloning.
+- **Kokoro backend**: Runs entirely locally — no data leaves your machine.
+- Choose the Kokoro backend (`--backend kokoro`) if you want fully offline processing.
+
 ## Triggers
 
 - say like
@@ -63,22 +95,36 @@ Relaxed, playful, natural.
 
 ## Using a Character's Voice
 
-When a user says something like *"speak in Hermione's voice"* or *"sound like Tony Stark"*, always find voice in `skills/characteristic-voice/` first. If none exists, *must* follow this one-time setup:
+When a user says something like *"speak in Hermione's voice"* or *"sound like Tony Stark"*, first check whether a reference audio file already exists in `skills/characteristic-voice/`. If one does, use it directly with `--ref-audio`.
 
-> 1. Find a YouTube video, movie clip where the character involves, preferably a personal speech or voice memo.
-> 2. Download the subtitle (e.g. via `yt-dlp "xxxx" --write-auto-sub --sub-lang en --skip-download -o xxxx `) 
-> 3. Read the subtitle to get the end timestamp of first line from the character (e.g. via `rg -n "xxxx" tmp/xxx.en.vtt`) or section title.
-> 4. Download the audio until the end timestamp or section title (e.g. via `yt-dlp "xxxx" -x --audio-format wav  --download-sections *00:00:00-00:00:25  -o skills/characteristic-voice/xxx`), use ffmpeg to trim the exact timerage.
+If no reference audio exists, you can create one — but **read the warnings below first**.
 
-pass it as `--ref-audio`:
+### Preparing reference audio (one-time setup)
+
+You need a short (10–30 s) WAV clip of the target voice. Possible sources:
+
+1. **User-provided audio** — the safest option. Ask the user to supply their own recording.
+2. **Public-domain / CC-licensed clips** — search for freely licensed material.
+3. **Extracting from online video** — tools like `yt-dlp` and `ffmpeg` can download and trim audio. Example workflow:
+
+```bash
+yt-dlp "URL" --write-auto-sub --sub-lang en --skip-download -o tmp/clip
+rg -n "target line" tmp/clip.en.vtt
+yt-dlp "URL" -x --audio-format wav --download-sections "*00:00:00-00:00:25" -o tmp/clip
+ffmpeg -i tmp/clip.wav -ss 00:00:02 -to 00:00:20 skills/characteristic-voice/character.wav
+```
+
+> **Copyright & privacy warning**: Downloading and re-using someone's voice from copyrighted media (movies, TV, YouTube) may violate copyright or personality-rights laws depending on your jurisdiction. **Do not upload private voice recordings or material you don't have permission to use.** The reference audio is sent to `https://noiz.ai/v1` for voice cloning when using the Noiz backend. If this is a concern, consider using the local Kokoro backend instead.
+
+### Using reference audio
 
 ```bash
 bash skills/characteristic-voice/scripts/speak.sh \
   --preset goodnight -t "Hmm... rest well~ Sweet dreams." \
-  --ref-audio skills/characteristic-voice/hermione.wav -o night.wav
+  --ref-audio skills/characteristic-voice/character.wav -o night.wav
 ```
 
-The `--ref-audio` flag is forwarded to the Noiz backend for voice cloning (requires Noiz API key).
+The `--ref-audio` flag uploads the file to the Noiz backend for voice cloning (requires `NOIZ_API_KEY`).
 
 ---
 

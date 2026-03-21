@@ -1,0 +1,11 @@
+{
+  "owner": "montycn",
+  "slug": "matrix-server-management",
+  "displayName": "Matrix Server Management",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773997930420,
+    "commit": null
+  },
+  "history": []
+}

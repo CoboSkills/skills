@@ -1,13 +1,18 @@
 {
   "owner": "gnixner",
   "slug": "weread-import",
-  "displayName": "Weread Import Release",
+  "displayName": "Weread Import",
   "latest": {
-    "version": "0.2.2",
-    "publishedAt": 1773855164423,
-    "commit": "https://github.com/openclaw/skills/commit/d316975da713c3b7da62d1ac4aa22e40eeb85ca9"
+    "version": "0.2.3",
+    "publishedAt": 1773859185710,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.2",
+      "publishedAt": 1773855164423,
+      "commit": "https://github.com/openclaw/skills/commit/d316975da713c3b7da62d1ac4aa22e40eeb85ca9"
+    },
     {
       "version": "0.2.1",
       "publishedAt": 1773769325887,

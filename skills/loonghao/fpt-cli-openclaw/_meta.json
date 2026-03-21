@@ -3,9 +3,15 @@
   "slug": "fpt-cli-openclaw",
   "displayName": "Fpt Cli Openclaw",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773588372567,
-    "commit": "https://github.com/openclaw/skills/commit/6cf189808863908c85c2bf8a551ec685caa4499e"
+    "version": "1.0.3",
+    "publishedAt": 1773769565789,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773588372567,
+      "commit": "https://github.com/openclaw/skills/commit/6cf189808863908c85c2bf8a551ec685caa4499e"
+    }
+  ]
 }

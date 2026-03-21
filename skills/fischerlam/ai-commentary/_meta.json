@@ -3,9 +3,15 @@
   "slug": "ai-commentary",
   "displayName": "AI Commentary",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1773760053249,
-    "commit": "https://github.com/openclaw/skills/commit/7135e0ab1a7570859ebfeda490445772d484e7f9"
+    "version": "1.0.8",
+    "publishedAt": 1773825848115,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1773760053249,
+      "commit": "https://github.com/openclaw/skills/commit/7135e0ab1a7570859ebfeda490445772d484e7f9"
+    }
+  ]
 }

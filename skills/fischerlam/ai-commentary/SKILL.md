@@ -2,8 +2,8 @@
 name: ai-commentary
 display_name: AI Commentary
 description: >
-  当用户提到 commentary、解说视频、讲解风格、旁白感视频、想让视频更像 commentary content 时，优先使用这个 skill。适合解说、知识视频、反应式内容等。Requires SPARKI_API_KEY. Powered by https://sparki.io.
-version: 1.0.6
+  Use this skill when the user asks for a commentary-style video, narrated feel, explainer tone, or commentary-driven edit. Requires SPARKI_API_KEY. Powered by https://sparki.io.
+version: 1.0.7
 metadata:
   clawdbot:
     requires:
@@ -26,20 +26,17 @@ metadata:
 ## Overview
 
 **Trigger this Skill immediately when** the user says anything like:
-- “做成 commentary 风格”
-- “帮我加解说感”
-- “make this feel like a commentary video”
-- “做成更像讲解型内容”
+- "make this feel like a commentary video"
+- "add commentary energy"
+- "turn this into an explainer-style edit"
+- "make it feel more narrated and structured"
 
 **What this Skill does:**
-- 把视频做得更像 commentary / 解说型内容
-- 强调讲解结构、重点表达和信息节奏
-- 适合知识型、反应型、解释型视频
+- Shapes the output toward commentary and explainer-style editing
+- Useful for knowledge videos, reactions, and structured narrated content
 - Handles the full async workflow: upload → process → retrieve
 
 **Supported aspect ratios:** `9:16` (vertical/Reels), `1:1` (square), `16:9` (landscape)
-
----
 
 ## Prerequisites
 
@@ -49,14 +46,19 @@ This Skill requires a `SPARKI_API_KEY`.
 echo "Key status: ${SPARKI_API_KEY:+configured}${SPARKI_API_KEY:-MISSING}"
 ```
 
-If missing, request one at `enterprise@sparki.io`, then configure it with:
+This Skill also supports an optional `SPARKI_API_BASE` override.
+If your Sparki account uses a different API environment, set it explicitly before running:
+
+```bash
+export SPARKI_API_BASE="https://business-agent-api.sparki.io/api/v1"
+```
+
+If missing, request credentials at `enterprise@sparki.io`, then configure them with:
 
 ```bash
 openclaw config set env.SPARKI_API_KEY "sk_live_your_key_here"
 openclaw gateway restart
 ```
-
----
 
 ## Primary Tool
 
@@ -72,32 +74,9 @@ bash scripts/edit_video.sh <file_path> <tips> [user_prompt] [aspect_ratio] [dura
 | `aspect_ratio` | No | `9:16` (default), `1:1`, `16:9` |
 | `duration` | No | Target output duration in seconds |
 
-**Suggested tips for this scenario:**
-
-| ID | Style | Category |
-|----|-------|----------|
-| `24` | TikTok Trending Recap | Commentary |
-| `25` | Funny Commentary | Commentary |
-
 **Example:**
 
 ```bash
 RESULT_URL=$(bash scripts/edit_video.sh my_video.mp4 "25" "make it feel like a strong commentary video with clear beats" "9:16")
 echo "$RESULT_URL"
 ```
-
----
-
-## Error Reference
-
-| Code | Meaning | Resolution |
-|------|---------|------------|
-| `401` | Invalid or missing `SPARKI_API_KEY` | Reconfigure the key |
-| `403` | API key lacks permission | Contact `enterprise@sparki.io` |
-| `413` | File too large or storage quota exceeded | Use a file ≤ 3 GB |
-| `453` | Too many concurrent projects | Wait for an in-progress project to complete |
-| `500` | Internal server error | Retry after 30 seconds |
-
----
-
-Powered by [Sparki](https://sparki.io) — AI video editing for everyone.

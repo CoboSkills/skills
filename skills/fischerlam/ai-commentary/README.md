@@ -1,11 +1,10 @@
 # ai-commentary
 
 [![ClawHub Skill](https://img.shields.io/badge/ClawHub-Skill-blueviolet)](https://clawhub.io)
-[![Version](https://img.shields.io/badge/version-1.0.6-blue)](SKILL.md)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.0.7-blue)](SKILL.md)
 
 > **AI Commentary.**
-> 给视频增加解说感、讲解感和更强的 commentary 风格。
+> Scenario-specific AI video editing powered by Sparki.
 >
 > Powered by [Sparki](https://sparki.io).
 
@@ -18,21 +17,22 @@ This skill is a scenario-focused wrapper around Sparki's AI video editing workfl
 - Polls until processing completes
 - Returns a result download URL
 
+## Best For
+- "make this feel like a commentary video"
+- "add commentary energy"
+- "turn this into an explainer-style edit"
+- "make it feel more narrated and structured"
+
 ## Quick Start
 
 ```bash
 export SPARKI_API_KEY="sk_live_your_key_here"
+export SPARKI_API_BASE="https://business-agent-api.sparki.io/api/v1"
 RESULT_URL=$(bash scripts/edit_video.sh my_video.mp4 "25" "make it feel like a strong commentary video with clear beats" "9:16")
 echo "$RESULT_URL"
 ```
 
-## Best For
-- “做成 commentary 风格”
-- “帮我加解说感”
-- “make this feel like a commentary video”
-- “做成更像讲解型内容”
-
 ## Notes
 - Requires `SPARKI_API_KEY`
-- Uses the same reliable scripts as the cleaned `ai-video-editor` fork
+- Optionally set `SPARKI_API_BASE` to the API endpoint provided for your Sparki account
 - Supports `9:16`, `1:1`, `16:9`

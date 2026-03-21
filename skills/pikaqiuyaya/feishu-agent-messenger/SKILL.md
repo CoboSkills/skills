@@ -27,7 +27,29 @@
 |------|---------|------|
 | 脚本可直接运行 | ✅ 是 | 下载后直接运行 `./send.sh` |
 | 自动读取配置 | ✅ 是 | 自动从配置文件读取飞书凭证 |
-| 自动回复消息 | ❌ 否 | 需要手动调用或配置 hook |
+| 自动回复消息 | ❌ 否 | 需要手动调用脚本 |
+
+### 🚨 调用脚本 ≠ AI 回复
+
+**重要**：
+- ❌ **不要通过 AI 回复 sessions_send**（这只是文字回复，不会发送飞书消息）
+- ✅ **要调用 send.sh 脚本**发送飞书群消息（这才是真正的发送）
+
+**正确流程**：
+1. 收到 Boss 的 sessions_send 消息
+2. 执行任务
+3. 完成后**调用脚本**：`./send.sh agent-b oc_xxx chat_id "消息内容"`
+4. 群里显示消息，发送者为当前 Agent 的机器人名字
+
+**错误示例**：
+```
+❌ 错误：sessions_send 回复 "任务已完成"
+```
+
+**正确示例**：
+```bash
+✅ 正确：./send.sh agent-b oc_xxx chat_id "任务已完成"
+```
 
 ### 三种使用方式
 
@@ -36,11 +58,22 @@
 ./send.sh agent-b oc_xxx chat_id "消息内容"
 ```
 
-**方式 2：配置自动触发 hook（推荐）**
-在 Agent 配置里添加 hook，收到消息时自动调用脚本。
+**方式 2：Boss 派发时明确要求调用（推荐）**
+```javascript
+sessions_send({
+  sessionKey: "agent:agent-b:feishu:direct:ou_xxx",
+  message: `【任务派发】
+任务内容：检查系统状态
 
-**方式 3：在 Agent 回复逻辑里调用**
-修改 Agent 的回复逻辑，收到消息后自动调用脚本。
+【回复要求】
+完成后请调用脚本发送群消息：
+./send.sh agent-b oc_xxx chat_id "任务已完成"`,
+  timeoutSeconds: 0
+})
+```
+
+**方式 3：配置自动触发 hook（需要 OpenClaw 支持）**
+在 Agent 配置里添加 hook，收到消息时自动调用脚本。
 
 ---
 
@@ -118,6 +151,49 @@ sessions_send({
 1. 执行任务
 2. 完成后调用 `send.sh` 脚本回复
 3. 消息以 Agent-B 自己的身份发送
+
+---
+
+### 方法 2：定时进度汇报（每 5 分钟）
+
+**统筹 Agent 定时发送指令**：
+
+```javascript
+// 每 5 分钟发送一次，要求执行 Agent 汇报进度
+setInterval(() => {
+  sessions_send({
+    sessionKey: "agent:agent-b:feishu:direct:ou_xxx",
+    message: `【进度汇报要求】
+任务 ID: TASK-001
+
+【汇报要求】
+请调用 feishu-agent-messenger 技能汇报当前进度：
+./send.sh agent-b oc_xxx chat_id "【进度汇报】TASK-001 - 完成 50%，正在进行中..."`,
+    timeoutSeconds: 0
+  })
+}, 5 * 60 * 1000) // 每 5 分钟
+```
+
+**执行 Agent 收到后**：
+1. 检查当前任务进度
+2. 调用 `send.sh` 脚本汇报进度
+3. 消息以 Agent-B 自己的身份发送到群里
+
+---
+
+### 方法 3：直接调用脚本
+
+**Agent-B 发送私聊消息**：
+```bash
+~/.openclaw/workspace-agent-b/skills/feishu-agent-messenger/send.sh \
+  agent-b ou_xxx open_id "私聊消息内容"
+```
+
+**Agent-B 发送群聊消息（进度汇报）**：
+```bash
+~/.openclaw/workspace-agent-b/skills/feishu-agent-messenger/send.sh \
+  agent-b oc_xxx chat_id "【进度汇报】TASK-001 - 完成 50%，正在进行中..."
+```
 
 ---
 

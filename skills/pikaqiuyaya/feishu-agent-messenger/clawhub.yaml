@@ -44,6 +44,15 @@ requirements:
 usage: |
   ## 基本用法
   
+  ## ⚠️ 重要说明
+  
+  **调用脚本 ≠ AI 回复**
+  
+  - ❌ 不要通过 AI 回复 sessions_send（这只是文字回复）
+  - ✅ 要调用 send.sh 脚本发送飞书群消息（这才是真正的发送）
+  
+  ## 基本用法
+  
   ### Boss 派发任务时明确要求调用（推荐）
   ```javascript
   sessions_send({
@@ -53,8 +62,10 @@ usage: |
 任务内容：检查系统状态
 
 【回复要求】
-完成后请调用 feishu-agent-messenger 技能回复：
-./send.sh agent-b ou_xxx open_id "任务已完成"`,
+完成后请调用脚本发送群消息：
+./send.sh agent-b oc_xxx chat_id "任务已完成"
+
+⚠️ 注意：不要 AI 回复，要调用脚本！`,
     timeoutSeconds: 0
   })
   ```
@@ -137,6 +148,22 @@ notes: |
      - 可以直接使用
 
 changelog:
+  - version: 1.0.5
+    date: 2026-03-20
+    changes:
+      - "添加重要说明：调用脚本 ≠ AI 回复"
+      - "明确说明：不要通过 AI 回复 sessions_send"
+      - "添加正确示例和错误示例对比"
+      - "更新 Boss 派发任务示例，强调调用脚本"
+  
+  - version: 1.0.4
+    date: 2026-03-20
+    changes:
+      - "添加定时进度汇报功能（每 5 分钟）"
+      - "Boss 定时发送指令要求 Agent 汇报进度"
+      - "添加进度汇报格式示例"
+      - "完善多 Agent 协作流程说明"
+  
   - version: 1.0.3
     date: 2026-03-20
     changes:

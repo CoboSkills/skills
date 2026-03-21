@@ -1,6 +1,19 @@
 ---
 name: veevid
 description: "AI video generator — text to video, image to video, and reference-to-video via Veevid API. Supports Kling 3.0, Sora 2, Veo 3.1, LTX 2.3, Seedance, Wan 2.6, and more. Use when: user asks to generate a video from text, turn an image into a video, create AI-generated video content, or compare AI video models."
+keywords:
+  - ai video generator
+  - text to video
+  - image to video
+  - video generation
+  - text-to-video
+  - image-to-video
+  - ai video
+  - generate video
+  - kling
+  - sora
+  - veo
+  - veevid
 metadata:
   clawdis:
     config:
@@ -40,13 +53,28 @@ These phrases trigger this skill:
 - "What AI video models are available?"
 - "Check my credit balance"
 
+## Image Retrieval from Chat (Discord / Group Chats)
+
+When the user requests **image-to-video** but no image URL is provided in the message:
+
+1. Use `message read` (channel=discord, limit=10) to scan recent messages in the current channel.
+2. Filter attachments by the **sender's user id** to avoid picking up someone else's image.
+3. Collect **all recent image attachments** (content_type starts with `image/`) from the sender, ordered newest first.
+4. **Preview by quoting**: Use `message send` with `replyTo` set to the **message id** of the image message. This quotes the original message with its image preview inline, so the user can visually confirm. Add text like "Is this the right image?" Don't just show the filename — filenames like `IMG_20260203_xyz.jpg` are meaningless.
+5. **Single image needed** (standard I2V): quote the most recent image message and ask the user to confirm.
+6. **Multiple images needed** (Kling 3.0 start+end frames, Veo 3.1 reference-to-video with 1-3 refs): quote each image message with a number label and ask the user which ones to use and in what order.
+6. If not enough images are found, ask the user to send the missing ones or provide URLs.
+
+This ensures image-to-video works seamlessly even when Discord doesn't forward attachments directly to the agent. Applies to **all models**, not just a specific one.
+
 ## Important: Always Confirm Before Generating
 
 **Before calling the generate API, ALWAYS:**
 
 1. Call `POST /api/quote` with the billing-relevant params for your planned generation (see Step 1 below) — it returns the precise credit cost and current balance.
 2. Tell the user which model you'll use and the exact cost from the quote response.
-3. Wait for the user to confirm before proceeding.
+3. For image-to-video: also confirm the image is correct (show filename/URL).
+4. Wait for the user to confirm before proceeding.
 
 If the generate API returns `402`, report the exact `required` and `balance` values from the response body to the user.
 

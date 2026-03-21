@@ -1,16 +1,11 @@
 # Veevid — AI Video Generator (OpenClaw Skill)
 
-All-in-one AI video generator: **text to video**, **image to video**, and **reference-to-video** via [Veevid AI](https://veevid.ai). One API, 10+ state-of-the-art video generation models.
+All-in-one AI video generator: **text to video**, **image to video**, and **reference-to-video** via [Veevid AI](https://veevid.ai). One API, 10 state-of-the-art video generation models.
 
 ## Install
 
 ```bash
-openclaw skill install veevid
-```
-
-Or manually:
-```bash
-git clone https://github.com/HappyLifeTech/veevid-skill.git ~/.openclaw/skills/veevid
+npx clawhub@latest install veevid
 ```
 
 ## Quick Start
@@ -23,28 +18,28 @@ git clone https://github.com/HappyLifeTech/veevid-skill.git ~/.openclaw/skills/v
 
 - **Text to Video** — Describe a scene, get a video
 - **Image to Video** — Animate a photo or product image
-- **Model Selection** — Choose from 9+ AI video models
-- **Credit Management** — Check balance, estimate costs
+- **Model Selection** — Choose from 10 AI video models (all with audio)
+- **Credit Management** — Check balance, get exact quotes before generating
 
 ## Supported Models
 
 | Model | Best For | Credits |
 |-------|----------|---------|
-| Veo 3.1 | Budget-friendly, fixed 8s | 20 / 140 |
-| Grok Imagine | Fastest | 10-40 |
-| Kling 3.0 | Multi-shot, audio | 48-495 |
-| LTX 2.3 | Open-source, 4K | 48-960 |
-| Sora 2 Stable | Best realism (4-20s) | 80-2000 |
-| Sora 2 | Longer clips, storyboard (10-25s) | 20-315 |
+| Veo 3.1 | Budget-friendly, native audio, fixed 8s | 20 / 140 credits |
+| Grok Imagine | Fastest, native audio | 10–60 credits |
+| Kling 3.0 | Multi-shot, audio, 3-15s | 48–495 credits |
+| LTX 2.3 | Open-source, up to 4K (2160p), audio | 48–960 credits |
+| Sora 2 Stable | Best realism, native audio, 4-20s | 80–2000 credits |
+| Sora 2 | Longer clips, storyboard, native audio, 10-25s | 20–315 credits |
 
-[Full model reference →](references/api-reference.md)
+See SKILL.md for the full model table and API reference.
 
 ## Links
 
 - [Veevid AI](https://veevid.ai)
 - [API Key Management](https://veevid.ai/settings/api-keys)
+- [ClawHub](https://clawhub.ai/skills/veevid)
 - [Pricing](https://veevid.ai/pricing)
-- [Blog](https://veevid.ai/blog)
 
 ## License
 

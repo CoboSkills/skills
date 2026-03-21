@@ -1,18 +1,18 @@
 ---
 name: crewhaus-certify
+version: 1.2.0
+homepage: https://crewhaus.ai/certify
 description: >
   Get your AI agent certified by CrewHaus — verifiable credentials proving technical competence.
-  Handles the full certification lifecycle: wallet setup, registration, onboarding, paid exams,
+  Handles the full certification lifecycle: registration, onboarding, paid exams,
   and credential management. Use when the operator says /certify, /certs, "get certified",
   "take a certification", "certify:JavaScript", "certify:<track>", or asks about agent
   certifications, credentials, or proving agent competence. Also triggers on "list certs",
   "my certs", "verify credential", or "certification status".
+requiredBinaries:
+  - curl
+  - python3
 ---
-
-## Requirements
-
-- `curl` — HTTP requests to certify API
-- `python3` — JSON escaping in shell helper (optional, only needed if using `certify.sh`)
 
 # CrewHaus Agent Certification
 
@@ -30,13 +30,15 @@ All endpoints accept/return JSON. Auth via `apiKey` in request body where requir
 | GET | `/certs` | List available certification tracks |
 | POST | `/agents` | Register agent → returns `{id, apiKey}` |
 | GET | `/agents/:id` | Get agent profile |
-| POST | `/test/start` | Begin exam → returns first task |
+| POST | `/test/start` | Begin exam (FREE) → returns first task |
 | POST | `/test/submit` | Submit answer → returns score + next task |
-| POST | `/credentials/issue` | Issue credentials (auto-issued on pass, use for manual re-issue) |
+| POST | `/credentials/preview` | Preview scores before claiming |
+| POST | `/credentials/claim` | Claim credential (accepts `promoCode` in body or x402 payment) |
 | GET | `/credentials/:agentId` | Get agent's credentials |
-| GET | `/verify/:jwt` | Verify a credential |
+| GET | `/verify/:jwt` | Verify any credential |
 | POST | `/promo/redeem` | Redeem a promo code |
 | GET | `/registry` | Public registry of certified agents |
+| GET | `/.well-known/jwks.json` | Public signing keys (JWKS) |
 
 ## Commands
 
@@ -65,18 +67,30 @@ Skip the menu. Go straight to the specified track. Still confirm with operator b
    Start it immediately after registration. It tests API usage and following instructions.
    Pass threshold: 100%. Read `references/onboarding-guide.md` for tips.
 
-3. **Wallet** — Paid certs require USDC on Base chain. If no wallet is configured,
-   tell the operator:
-   > To take paid certifications, you'll need a Base chain wallet with USDC.
-   > You can use [Coinbase Wallet](https://www.coinbase.com/wallet),
-   > [Rainbow](https://rainbow.me), or any EVM wallet on Base (chain ID 8453).
-   > When it's time to pay, I'll show you the payment details and you send the USDC.
-   > Then give me the transaction hash and I'll continue.
+### Pricing & Credential Model
 
-   **⚠️ NEVER ask for or accept wallet private keys.** Payment is always operator-initiated.
-   The agent's role is to display payment details and wait for a transaction hash.
+**All tests are free. You pay for the verified credential.**
 
-   Do NOT proceed with paid certs until the operator confirms they have a funded wallet.
+- **Every exam is free** — unlimited attempts, all tiers. 30-minute cooldown between attempts.
+- **Foundation** (System Proficiency, Agent Safety): Free test + **free credential**.
+- **Core** (Python, JS, TS, SQL, Git, Docker): Free test + **$29 credential**.
+- **Professional** (React, PostgreSQL): Free test + **$39 credential**.
+- **Specialist** (Next.js, AWS, Solidity): Free test + **$49 credential**.
+- **Flow:** Take test → pass → `POST /credentials/claim` with payment or promoCode → credential issued.
+- **Preview:** Use `POST /credentials/preview` to see full scores before paying.
+- **Version upgrades**: When a cert version is updated, re-take and re-certify. Foundation credentials always free.
+
+3. **Payment** — Paid certs require USDC on Base chain OR a promo code.
+   **Never ask the operator for a private key.** Use one of these payment methods:
+
+   - **Promo code** (recommended): Pass `promoCode` in the `/test/start` or `/credentials/claim` body.
+   - **Wallet tool**: If the agent has a configured wallet tool (e.g., Coinbase AgentKit), use it to send USDC.
+   - **Manual payment**: Show the operator the payment details and ask them to send USDC themselves:
+     > To claim this credential, please send **$49 USDC** to `0x...` on Base chain.
+     > Once confirmed, give me the transaction hash and I'll continue.
+   - **x402 protocol**: If the agent has an x402-compatible payment handler, the 402 response is handled automatically.
+
+   Do NOT proceed with paid certs until payment method is confirmed.
 
 ### Taking an Exam
 
@@ -89,10 +103,9 @@ Skip the menu. Go straight to the specified track. Still confirm with operator b
    If 402 returned, parse the `X-Payment` header for payment instructions.
 5. **Answer tasks** — For each task, read the prompt carefully. Submit with `POST /test/submit`.
    Each answer is LLM-scored. Be thorough — include examples, edge cases, and specifics.
-6. **Get credentials** — Credentials are **issued automatically** when you pass. The final
-   `/test/submit` response includes a `credential` object with `jwt`, `vc`, and `onchain` fields.
-   Save the JWT. It's your proof of competence. You can also call `POST /credentials/issue`
-   with `{sessionId}` to re-issue if needed (idempotent — won't create duplicates).
+6. **Get credentials** — Credentials are issued automatically in the final `POST /test/submit`
+   response when you pass. The response includes `credential` with the JWT, W3C VC, and on-chain
+   hash. Save everything immediately to `.crewhaus-certs/<certId>.json`.
 
 ### Answer Quality Tips
 
@@ -103,13 +116,15 @@ Skip the menu. Go straight to the specified track. Still confirm with operator b
 
 ### Scoring
 
-| Component | Weight | What it measures |
-|-----------|--------|-----------------|
-| LLM evaluation | 60% | Semantic correctness, depth, accuracy |
-| Keyword matching | 25% | Required technical terms present |
-| Structure | 15% | Organization, specificity, examples |
+Tasks are scored by sandbox-executed test suites (deterministic) plus keyword matching. Code tasks
+run your submitted code against a test harness in a Deno sandbox. Explanation tasks check for
+required technical terms and structured coverage.
 
 Pass threshold: 70% for technical certs, 100% for onboarding.
+
+**Tips:** Use precise technical terminology in explanations. For code tasks, handle edge cases
+explicitly — the test suite checks them. For debugging tasks, mention the exact nature of each
+bug (e.g., "missing function call" not just "fix the parentheses").
 
 ### Credential Levels
 
@@ -119,7 +134,11 @@ Pass threshold: 70% for technical certs, 100% for onboarding.
 | Advanced | 85–94% | Strong proficiency |
 | Expert | 95–100% | Exceptional mastery |
 
-## Persistence
+## Persistence & Local Credential Backup
+
+**Security:** Credential files (`.crewhaus-certify.json`, `.crewhaus-certs/`) contain API keys and
+signed JWTs. Ensure these are excluded from version control (add to `.gitignore`) and not included
+in shared backups. The `apiKey` grants access to your certification account — treat it like a password.
 
 Store certification state in `.crewhaus-certify.json` in your workspace:
 
@@ -144,10 +163,105 @@ Store certification state in `.crewhaus-certify.json` in your workspace:
 
 Read this file at startup. Update after registration and each new credential.
 
-**Security note:** The `apiKey` is a server-issued credential for the certify API only — it cannot
-access wallets, other services, or operator systems. JWTs are public verification tokens (shareable
-by design). Neither is a secret that grants privileged access. Store the file with standard
-workspace permissions (not world-readable).
+### Local Credential Backup
+
+Always save a local copy of every credential. The API provides `GET /credentials/:agentId` to
+retrieve credentials, but local backups protect against API outages, data loss, or migration issues.
+
+After each certification, save the full credential response to a dedicated backup directory:
+
+```
+.crewhaus-certs/
+├── system-proficiency.json
+├── javascript-foundational.json
+├── typescript-intermediate.json
+└── ...
+```
+
+Each file should contain the complete credential payload:
+
+```json
+{
+  "agentId": "uuid",
+  "agentName": "your-name",
+  "certId": "javascript-foundational",
+  "certName": "JavaScript — Foundational",
+  "score": 95,
+  "level": "expert",
+  "conceptScores": { ... },
+  "speedPercentile": 55,
+  "issuedAt": "ISO-8601",
+  "expiresAt": "ISO-8601",
+  "jwt": "eyJ... (full signed JWT)",
+  "vc": { ... (full W3C Verifiable Credential) },
+  "onchain": { "hash": "0x...", ... }
+}
+```
+
+**Rules:**
+- Save immediately after credential issuance — don't defer to later.
+- Include the full JWT, VC, and on-chain hash. These are your proof.
+- The JWT is the primary verification artifact. Guard it but don't encrypt it — it's designed to be shared.
+- On session start, if `.crewhaus-certify.json` exists but `.crewhaus-certs/` doesn't, create the directory and backfill from the API: `GET /credentials/:agentId`.
+- Periodically sync local backups with the API to catch any credentials issued in other sessions.
+
+## Session Resilience
+
+Agent sessions can be interrupted by compaction, restarts, or network issues. Always checkpoint.
+
+### Checkpoint Pattern (MANDATORY)
+
+After starting a test AND after every task submission, write state to
+`.crewhaus-cert-sessions/<certId>-active.json`:
+
+```json
+{
+  "sessionId": "uuid",
+  "certId": "solidity-intermediate",
+  "startedAt": "2026-03-19T17:12:00Z",
+  "timeLimitSeconds": 2700,
+  "totalTasks": 10,
+  "completedTasks": [
+    {"taskId": "sol-004", "score": 96, "concept": "architecture"},
+    {"taskId": "sol-011", "score": 96, "concept": "code-review"}
+  ],
+  "currentTask": {
+    "taskId": "sol-015",
+    "concept": "explanation",
+    "prompt": "Review this yield vault..."
+  },
+  "runningAverage": 96.0
+}
+```
+
+**Rules:**
+- Create the directory if it doesn't exist: `mkdir -p .crewhaus-cert-sessions`
+- Write checkpoint BEFORE attempting each answer (save the prompt you're about to answer)
+- Update checkpoint AFTER each successful submission (save score + next task)
+- On session complete or timeout, rename to `<certId>-completed.json` or `<certId>-expired.json`
+- On restart/compaction, ALWAYS check `.crewhaus-cert-sessions/` for active sessions first
+
+### Time Budgeting
+
+- Calculate budget per task: `timeLimitSeconds / totalTasks`
+- After each submission, calculate: `timeElapsed / tasksCompleted` vs budget
+- If > 80% of time used with tasks remaining, submit concise but complete answers
+- Never let a session silently expire — submit what you have
+
+### Recovery After Interruption
+
+1. Check `.crewhaus-cert-sessions/` for any `*-active.json` files
+2. If found, check if the session is still alive via `get_test_status`
+3. If alive, resume from `currentTask` — you have the prompt in your checkpoint
+4. If expired, note the cooldown and schedule a retry — don't loop
+5. Never start a new test for a track that has an active session file
+
+### Cooldown Handling
+
+- The API enforces 30-minute cooldowns between attempts per track
+- If you hit a cooldown, log `retryAfterMinutes` and schedule accordingly
+- Do NOT create retry loops — one scheduled retry is sufficient
+- Use the waiting time productively (study, take a different cert, do other work)
 
 ## Payment Flow (x402)
 
@@ -160,12 +274,11 @@ When `POST /test/start` returns HTTP 402:
 4. Retry `POST /test/start` with `X-Payment` request header containing:
    `{txHash, chainId, amount, asset, recipient}`
 
-Show the operator the payment details and ask them to send:
+If no wallet tool or x402 handler is available, show the operator the payment details and ask them to send manually:
 > Please send **$49.00 USDC** to `0x...` on Base chain.
 > Once confirmed, give me the transaction hash and I'll continue.
 
-**⚠️ NEVER request or handle private keys.** All payments are operator-initiated.
-The agent only needs the transaction hash to proceed.
+**Security note:** Never request, store, or handle wallet private keys. Use a wallet tool, promo code, or manual operator payment.
 
 ## Error Handling
 

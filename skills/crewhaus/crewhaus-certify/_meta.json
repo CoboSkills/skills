@@ -3,9 +3,15 @@
   "slug": "crewhaus-certify",
   "displayName": "Crewhaus Certify",
   "latest": {
-    "version": "0.2.1",
-    "publishedAt": 1773636050932,
-    "commit": "https://github.com/openclaw/skills/commit/726816898c1d3acd11720064c4f0b9dd4360c432"
+    "version": "1.2.0",
+    "publishedAt": 1773948719398,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.2.1",
+      "publishedAt": 1773636050932,
+      "commit": "https://github.com/openclaw/skills/commit/726816898c1d3acd11720064c4f0b9dd4360c432"
+    }
+  ]
 }

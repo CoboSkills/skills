@@ -1,0 +1,11 @@
+{
+  "owner": "bensema",
+  "slug": "ohmyths",
+  "displayName": "stock股票数据同花顺接口",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1773989541617,
+    "commit": null
+  },
+  "history": []
+}

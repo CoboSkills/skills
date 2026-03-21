@@ -127,13 +127,13 @@ Produce the smallest useful set:
 
 ## Default Chinese Templates
 
-Use the templates in [voice-broadcast-templates.md](/mnt/cache/zhaohui_share/js_data/AI-dongman/skills/character-voice-broadcast/references/voice-broadcast-templates.md) when the user does not specify a format.
+Use the templates in [voice-broadcast-templates.md](references/voice-broadcast-templates.md) when the user does not specify a format.
 
 ## Resources
 
-- [voice-broadcast-templates.md](/mnt/cache/zhaohui_share/js_data/AI-dongman/skills/character-voice-broadcast/references/voice-broadcast-templates.md): Chinese output templates
-- [senseaudio-api.md](/mnt/cache/zhaohui_share/js_data/AI-dongman/skills/character-voice-broadcast/references/senseaudio-api.md): SenseAudio API usage notes
-- [senseaudio_tts.py](/mnt/cache/zhaohui_share/js_data/AI-dongman/skills/character-voice-broadcast/scripts/senseaudio_tts.py): local wrapper for generating audio with SenseAudio
+- [voice-broadcast-templates.md](references/voice-broadcast-templates.md): Chinese output templates
+- [senseaudio-api.md](references/senseaudio-api.md): SenseAudio API usage notes
+- [senseaudio_tts.py](scripts/senseaudio_tts.py): local wrapper for generating audio with SenseAudio
 
 ## Trigger Examples
 

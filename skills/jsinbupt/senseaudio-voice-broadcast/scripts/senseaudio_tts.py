@@ -76,17 +76,19 @@ def extract_audio_bytes(body: bytes, content_type: str) -> bytes:
 
     payload = json.loads(body.decode("utf-8"))
 
-    candidates = [
-        payload.get("audio"),
-        payload.get("audio_base64"),
-        payload.get("data", {}).get("audio"),
-        payload.get("data", {}).get("audio_base64"),
-        payload.get("result", {}).get("audio"),
-        payload.get("result", {}).get("audio_base64"),
+    encoded_candidates = [
+        ("hex", payload.get("audio")),
+        ("base64", payload.get("audio_base64")),
+        ("hex", payload.get("data", {}).get("audio")),
+        ("base64", payload.get("data", {}).get("audio_base64")),
+        ("hex", payload.get("result", {}).get("audio")),
+        ("base64", payload.get("result", {}).get("audio_base64")),
     ]
-    for item in candidates:
+    for encoding, item in encoded_candidates:
         if isinstance(item, str) and item:
-            return base64.b64decode(item)
+            if encoding == "hex":
+                return bytes.fromhex(item)
+            return base64.b64decode(item, validate=True)
 
     url_candidates = [
         payload.get("audio_url"),

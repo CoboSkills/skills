@@ -1,0 +1,11 @@
+{
+  "owner": "ihaveadagger",
+  "slug": "agent-news-aggregator",
+  "displayName": "News Aggregator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773976955879,
+    "commit": null
+  },
+  "history": []
+}

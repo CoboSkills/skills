@@ -1,11 +1,17 @@
 {
   "owner": "sealawyer2026",
   "slug": "zhang-anti-dumping",
-  "displayName": "---",
+  "displayName": "Zhang Anti Dumping",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773646276562,
-    "commit": "https://github.com/openclaw/skills/commit/fc9521d117dc14103f8086b936700aa4b132e301"
+    "version": "1.0.1",
+    "publishedAt": 1773937772587,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773646276562,
+      "commit": "https://github.com/openclaw/skills/commit/fc9521d117dc14103f8086b936700aa4b132e301"
+    }
+  ]
 }

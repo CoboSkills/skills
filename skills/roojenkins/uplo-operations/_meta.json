@@ -1,0 +1,11 @@
+{
+  "owner": "roojenkins",
+  "slug": "uplo-operations",
+  "displayName": "Uplo Operations",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774014597293,
+    "commit": null
+  },
+  "history": []
+}

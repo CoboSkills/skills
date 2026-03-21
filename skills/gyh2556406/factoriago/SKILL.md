@@ -2,8 +2,9 @@
 name: factoriago
 description: |
   FactoriaGo platform assistant — AI-driven academic paper revision and resubmission.
-  Activate when user mentions: FactoriaGo, 论文修改, 修稿, 审稿意见, 学术投稿, revise paper,
-  reviewer comments, resubmit, LaTeX editing, paper revision, 论文投稿, 审稿回复.
+  Activate when user mentions: FactoriaGo, revise paper, reviewer comments, resubmit,
+  LaTeX editing, paper revision, manuscript revision, journal resubmission, reviewer response,
+  academic paper editing, revision letter, respond to reviewers, paper submission.
   Supports: (1) onboarding new users to factoriago.com, (2) calling FactoriaGo API to manage
   projects/tasks/files, (3) generating reviewer response letters, (4) analyzing reviewer
   feedback and creating revision strategies.

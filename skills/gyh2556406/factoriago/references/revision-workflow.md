@@ -42,12 +42,12 @@ FactoriaGo is built around the academic paper revision cycle:
 
 | User Says | Agent Action |
 |-----------|-------------|
-| "帮我分析审稿意见" | POST /paper/:id/analyze with pasted review text |
-| "列出我的修改任务" | GET /tasks/by-paper/:paperId |
-| "帮我回复这条审稿意见" | Use reviewer-response.md template + AI |
-| "打开我的项目" | GET /paper/list → let user pick |
-| "编译论文" | POST /paper/:paperId/files/compile |
-| "帮我修改第3节" | GET file content → edit → PUT back |
+| "Analyze my reviewer comments" | POST /paper/:id/analyze with pasted review text |
+| "List my revision tasks" | GET /tasks/by-paper/:paperId |
+| "Help me respond to this reviewer comment" | Use reviewer-response.md template + AI |
+| "Open my project" | GET /paper/list → let user pick |
+| "Compile the paper" | POST /paper/:paperId/files/compile |
+| "Help me revise Section 3" | GET file content → edit → PUT back |
 
 ## Key Constraints
 - All API calls require authentication (session cookie)

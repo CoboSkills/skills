@@ -8,7 +8,7 @@ description: >
   Trades when the estimate diverges significantly from the market price.
 metadata:
   author: Mibayy
-  version: 1.0.0
+  version: 1.1.4
   displayName: Multi-Source LLM Estimator
   type: "automaton"
   difficulty: advanced
@@ -83,7 +83,8 @@ This skill is designed as a template you can customize:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `TRADING_VENUE` | `polymarket` | Trading venue (`polymarket`, `kalshi`, etc.) |
+| `TRADING_VENUE` | `sim` | Trading venue (`sim` for paper, `polymarket` for real) |
+| `TRADE_SIZE` | `10.0` | Trade size in USD per trade |
 | `LLM_API_URL` | OpenRouter endpoint | OpenAI-compatible chat completions URL |
 | `LLM_MODEL` | `xiaomi/mimo-v2-flash:free` | Model identifier |
 | `ESTIMATOR_THRESHOLD` | `0.15` | Min divergence to trigger a trade (0.0-1.0) |
@@ -115,3 +116,17 @@ Limit markets scanned:
 ```bash
 python multi_source_estimator.py --live --max-markets 20
 ```
+
+## Scheduling
+
+Runs every 5 minutes via cron (`*/5 * * * *`). Managed automaton (auto-executes on schedule).
+Capped at 50 LLM calls per run (`LLM_MAX_CALLS`) to control costs.
+
+## Security
+
+- All trades go through `SimmerClient.trade()` only. No direct CLOB or wallet access.
+- Dry-run by default. The `--live` flag must be explicitly passed to execute trades.
+- No wallet private keys are required or read by this script.
+- LLM receives only the market question text and publicly available context (news headlines, economic indicators, odds). No credentials or private data are sent to the LLM.
+- `LLM_API_URL` defaults to OpenRouter. You control which LLM endpoint is used.
+- All optional API keys (FRED, Odds, Congress, Finnhub) are for free public data APIs. If unset, those data sources are simply skipped.

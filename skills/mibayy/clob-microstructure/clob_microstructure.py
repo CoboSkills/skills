@@ -435,10 +435,16 @@ def run(live: bool = False, quiet: bool = False):
         else:
             side = "yes"
 
-        # Dynamic sizing: smaller on lower-conviction scores
-        size = FADE_SIZE_USD
-        if sig["score"] < 80:
-            size = FADE_SIZE_USD * 0.6  # reduce for weaker signals
+        # Dynamic sizing: gradient on conviction score
+        score = sig["score"]
+        if score >= 95:
+            size = min(20.0, MAX_POSITION_USD)   # top conviction
+        elif score >= 90:
+            size = 15.0
+        elif score >= 80:
+            size = FADE_SIZE_USD                 # default $10
+        else:
+            size = FADE_SIZE_USD * 0.6           # weak signal $6
 
         reasoning = (
             f"MEAN_REVERT fade: inefficiency_score={sig['score']:.0f}/100. "

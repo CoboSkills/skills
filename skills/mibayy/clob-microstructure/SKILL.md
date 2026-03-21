@@ -7,7 +7,7 @@ description: >
   MEAN_REVERT) and trades the fade on fake breakouts for structural alpha.
 metadata:
   author: "Mibayy"
-version: "2.0.5"
+version: "2.0.6"
   displayName: "CLOB Microstructure Scanner"
   difficulty: "advanced"
   type: "automaton"

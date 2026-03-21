@@ -75,7 +75,7 @@ Use for articles classified as **geopolitics**.
 
 ---
 
-## The_Fed_Agent Output Format (Macroeconomics)
+## The-Fed-Agent Output Format (Macroeconomics)
 
 Use for articles classified as **macroeconomics**. If skill unavailable, adapt this format with direct analysis.
 

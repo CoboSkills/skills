@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Chrome Use",
+  "version": "0.1.3",
+  "description": "Browser automation for OpenClaw Skill",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "nativeMessaging",
+    "debugger"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "48": "icon-48.png",
+    "96": "icon-96.png",
+    "128": "icon-128.png"
+  },
+  "action": {
+    "default_title": "Chrome Use",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon-offline-16.png",
+      "48": "icon-offline-48.png"
+    }
+  }
+}

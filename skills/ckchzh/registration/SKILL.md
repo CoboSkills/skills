@@ -1,8 +1,10 @@
 ---
 name: "Registration"
-description: "Manage Registration data right from your terminal. Built for people who want organize your household without complex setup."
+description: "Manage registration records and attendee data. Use when logging sign-ups, checking capacity, converting export formats, generating confirmation reports."
 version: "2.0.0"
 author: "BytesAgain"
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
 tags: ["organize", "maintenance", "domestic", "smart-home", "registration"]
 ---
 

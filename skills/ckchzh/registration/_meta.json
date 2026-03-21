@@ -3,9 +3,15 @@
   "slug": "registration",
   "displayName": "Registration",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773673864493,
-    "commit": "https://github.com/openclaw/skills/commit/6b7d9e5a1e5fa6092c0f14af083a50f0baf5b823"
+    "version": "2.0.1",
+    "publishedAt": 1773798433621,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773673864493,
+      "commit": "https://github.com/openclaw/skills/commit/6b7d9e5a1e5fa6092c0f14af083a50f0baf5b823"
+    }
+  ]
 }

@@ -1,0 +1,11 @@
+{
+  "owner": "zijinoier",
+  "slug": "skill-git",
+  "displayName": "skill git - version control for your skills",
+  "latest": {
+    "version": "0.1.2",
+    "publishedAt": 1773984832984,
+    "commit": null
+  },
+  "history": []
+}

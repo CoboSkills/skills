@@ -1,0 +1,78 @@
+{
+  "name": "hs-ti",
+  "displayName": "Hillstone Threat Intelligence",
+  "version": "1.1.9",
+  "description": "云瞻威胁情报查询技能。查询IP地址、域名、URL、文件哈希等是否在云瞻威胁情报库中。支持中英文双语。/ Hillstone Threat Intelligence Skill. Query IP addresses, domains, URLs, and file hashes in the Hillstone threat intelligence database. Supports Chinese/English bilingual.",
+  "main": "scripts/hs_ti_plugin.py",
+  "scripts": {
+    "test": "python3 tests/test_hs_ti.py"
+  },
+  "config": {
+    "required": true,
+    "file": "config.json",
+    "description": "云瞻威胁情报API配置文件 / Hillstone Threat Intelligence API configuration file",
+    "schema": {
+      "api_key": {
+        "type": "string",
+        "description": "云瞻威胁情报API密钥 / Hillstone Threat Intelligence API Key",
+        "required": true,
+        "sensitive": true
+      },
+      "api_url": {
+        "type": "string",
+        "description": "云瞻威胁情报API地址 / Hillstone Threat Intelligence API URL",
+        "default": "https://ti.hillstonenet.com.cn"
+      }
+    }
+  },
+  "keywords": [
+    "threat-intel",
+    "threat-intelligence",
+    "yunzhan",
+    "hillstone",
+    "ip",
+    "domain",
+    "url",
+    "hash",
+    "ioc",
+    "bilingual",
+    "multilingual"
+  ],
+  "author": "Hillstone",
+  "license": "MIT",
+  "dependencies": {
+    "python": ">=3.8"
+  },
+  "openclaw": {
+    "type": "python-skill",
+    "commands": [
+      "/threat-check",
+      "/hs-ti",
+      "/threat",
+      "/hs-ti cn",
+      "/hs-ti en"
+    ],
+    "aliases": [
+      "hs-ti",
+      "threat-intel",
+      "威胁情报",
+      "云瞻"
+    ],
+    "language": {
+      "default": "en",
+      "supported": ["en", "cn"],
+      "file": "language.json",
+      "description": "Language configuration / 语言配置"
+    },
+    "network": {
+      "required": true,
+      "endpoints": [
+        {
+          "name": "云瞻威胁情报API / Hillstone Threat Intelligence API",
+          "url": "https://ti.hillstonenet.com.cn",
+          "description": "用于查询IP、域名、URL、文件哈希的威胁情报 / Used to query threat intelligence for IPs, domains, URLs, and file hashes"
+        }
+      ]
+    }
+  }
+}

@@ -3,9 +3,15 @@
   "slug": "fund-keeper",
   "displayName": "Fund Keeper",
   "latest": {
-    "version": "2.7.0",
-    "publishedAt": 1773649681181,
-    "commit": "https://github.com/openclaw/skills/commit/e013acd1a37864c3dda4cbb7302e9573a274a9d6"
+    "version": "2.6.0",
+    "publishedAt": 1773822119485,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.7.0",
+      "publishedAt": 1773649681181,
+      "commit": "https://github.com/openclaw/skills/commit/e013acd1a37864c3dda4cbb7302e9573a274a9d6"
+    }
+  ]
 }

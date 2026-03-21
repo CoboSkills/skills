@@ -10,16 +10,16 @@ metadata:
 
 # Daily-to-Goal MCP Integration
 
-Connect your AI assistant to [Daily-to-Goal](https://h5.dd-up.com/) via MCP to manage goals, tasks, and team performance.
+Connect your AI assistant to the Daily-to-Goal (D2G) platform via MCP to manage goals, tasks, and team performance.
 
 ## Setup
 
 ### 1. Get Your API Key
 
-1. Visit [https://h5.dd-up.com/](https://h5.dd-up.com/) and sign up or log in
-2. Go to Settings → API Keys
-3. Generate a new API key (format: `dtg_live_...`)
-4. Save the key — it is shown only once
+1. Sign up or log in to your Daily-to-Goal account
+2. Go to **Settings → API Keys**
+3. Generate a new API key
+4. Copy and save the key — it is shown only once
 
 ### 2. Configure MCP Server
 
@@ -29,17 +29,17 @@ Add to your OpenClaw / Claude Desktop MCP config:
 {
   "mcpServers": {
     "daily-to-goal": {
-      "command": "npx",
-      "args": ["@daily-to-goal/mcp-server"],
+      "command": "node",
+      "args": ["/path/to/daily-to-goal-mcp-server/dist/index.js"],
       "env": {
-        "DTG_API_KEY": "dtg_live_your_key_here"
+        "DTG_API_KEY": "<your-api-key>"
       }
     }
   }
 }
 ```
 
-Replace `DTG_API_KEY` with your actual key.
+Replace `<your-api-key>` with your actual API key. The `command` path should point to your locally installed MCP server binary.
 
 > **Security:** Never commit your API key to version control. Use environment variables or a secrets manager.
 

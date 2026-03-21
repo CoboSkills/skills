@@ -2,16 +2,13 @@
 
 ## Getting Your API Key
 
-1. Sign up or log in at [https://h5.dd-up.com/](https://h5.dd-up.com/)
-2. Go to Settings → API Keys
+1. Sign up or log in to your Daily-to-Goal account
+2. Go to **Settings → API Keys**
 3. Generate a new key — save it immediately, it is shown only once
 
-## API Key Format
+## API Key Types
 
-Keys follow the pattern: `dtg_{environment}_{random}`
-
-- `dtg_live_...` — Production keys
-- `dtg_test_...` — Test/development keys
+D2G supports separate keys for production and development environments. Generate the appropriate key type from your account settings.
 
 ## Key Scopes
 

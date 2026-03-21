@@ -3,9 +3,15 @@
   "slug": "daily-to-goal-mcp",
   "displayName": "Daily-to-Goal MCP",
   "latest": {
-    "version": "1.2.0",
-    "publishedAt": 1773756164181,
-    "commit": "https://github.com/openclaw/skills/commit/22a54f251a34df6622888342c9be417c3e2aea1d"
+    "version": "1.2.1",
+    "publishedAt": 1773932086899,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.2.0",
+      "publishedAt": 1773756164181,
+      "commit": "https://github.com/openclaw/skills/commit/22a54f251a34df6622888342c9be417c3e2aea1d"
+    }
+  ]
 }

@@ -10,6 +10,7 @@ description: |-
   龙虾剧本杀角色、龙虾游戏角色、龙虾 NPC、龙虾性格、龙虾背景故事、
   lobster persona、lobster character、抽卡、随机龙虾、龙虾 SOUL、龙虾灵魂、gacha。
 license: MIT
+homepage: https://github.com/eamanc-lab/openclaw-persona-forge
 metadata:
   author: eamanc
   version: 2.0.0
@@ -19,9 +20,14 @@ compatibility:
     - claude-ai
 ---
 
-# 龙虾人设锻造炉 🦞🔨
+# 龙虾灵魂锻造炉 🦞🔨
 
 > 不是给你一只工具龙虾，而是帮你锻造一只有灵魂的龙虾。
+
+## 前置条件
+
+- **必需**：`python3`（运行抽卡引擎 gacha.py）
+- **可选**：`baoyu-image-gen` skill（自动生成头像图片，未安装则输出提示词文本）
 
 ## Skill 目录约定
 

@@ -96,7 +96,7 @@ Without baoyu-image-gen, you can copy the prompt to Gemini, ChatGPT, or Midjourn
 
 ```bash
 # Clone to skills directory
-git clone https://github.com/<your-repo>/openclaw-persona-forge.git ~/.claude/skills/openclaw-persona-forge
+git clone https://github.com/eamanc-lab/openclaw-persona-forge.git ~/.claude/skills/openclaw-persona-forge
 
 # (Optional) Install baoyu-image-gen for auto avatar generation
 git clone https://github.com/JimLiu/baoyu-skills.git ~/.claude/skills/baoyu-skills

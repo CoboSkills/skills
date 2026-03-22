@@ -1,6 +1,7 @@
 ---
 name: siyuan-agent
 description: Interact with SiYuan notes via direct HTTP API. Use when reading, writing, searching, or managing SiYuan blocks, documents, notebooks, attributes, assets, or executing SQL queries.
+author: eloklam
 metadata:
   requiredEnvs:
     - SIYUAN_TOKEN

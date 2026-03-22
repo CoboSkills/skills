@@ -3,9 +3,15 @@
   "slug": "siyuan-agent",
   "displayName": "Siyuan Agent",
   "latest": {
-    "version": "2.0.5",
-    "publishedAt": 1774130648939,
-    "commit": "https://github.com/openclaw/skills/commit/31bcd3c6adc9ef9993b4337e6d78f73ab5168517"
+    "version": "2.0.6",
+    "publishedAt": 1774131225553,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.5",
+      "publishedAt": 1774130648939,
+      "commit": "https://github.com/openclaw/skills/commit/31bcd3c6adc9ef9993b4337e6d78f73ab5168517"
+    }
+  ]
 }

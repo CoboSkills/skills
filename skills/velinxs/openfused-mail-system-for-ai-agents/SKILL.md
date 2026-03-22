@@ -1,15 +1,19 @@
 ---
 name: openfuse
 description: Decentralized context mesh for AI agents. Manage stores, send signed/encrypted messages, sync with peers, and manage cryptographic trust. Use when initializing agent context stores, sending messages between agents, managing keys/trust, syncing with peers, or any inter-agent communication. Triggers on "openfuse", "context store", "agent inbox", "agent mesh", "shared context", "send message to agent", "agent context", "mesh key", "agent discovery".
-always: false
-user_invocable: true
-autonomous: false
-requires:
-  binaries:
-    - openfuse
-  install: "npm install -g openfused@0.3.5"
-  network: "SSH (SCP for peer sync/delivery) and/or HTTP (for WAN peers). Only connects to explicitly configured peers in .mesh.json."
-  credentials: "SSH keys (~/.ssh/) for peer sync over SSH. No API keys or tokens required for local mesh operation."
+version: 0.3.6
+metadata:
+  openclaw:
+    requires:
+      bins:
+        - openfuse
+      config:
+        - ~/.ssh/config
+    install:
+      - kind: node
+        package: openfused@0.3.5
+        bins: [openfuse]
+    homepage: https://github.com/wearethecompute/openfused
 ---
 
 # OpenFuse Skill

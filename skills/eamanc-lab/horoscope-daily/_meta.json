@@ -1,0 +1,11 @@
+{
+  "owner": "eamanc-lab",
+  "slug": "horoscope-daily",
+  "displayName": "Horoscope Daily",
+  "latest": {
+    "version": "2.2.0",
+    "publishedAt": 1774186800905,
+    "commit": null
+  },
+  "history": []
+}

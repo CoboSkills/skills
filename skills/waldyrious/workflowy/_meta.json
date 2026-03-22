@@ -1,11 +1,17 @@
 {
   "owner": "waldyrious",
   "slug": "workflowy",
-  "displayName": "Workflowy API",
+  "displayName": "Workflowy",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1770159631643,
-    "commit": "https://github.com/clawdbot/skills/commit/595ac4d638762f920f03947c36fe0718d07e64c4"
+    "version": "1.0.1",
+    "publishedAt": 1774184270728,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1770159631643,
+      "commit": "https://github.com/clawdbot/skills/commit/595ac4d638762f920f03947c36fe0718d07e64c4"
+    }
+  ]
 }

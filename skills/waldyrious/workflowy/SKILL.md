@@ -1,6 +1,6 @@
 ---
 name: workflowy
-description: Workflowy outliner CLI for reading, searching, and editing nodes. Use when the user wants to interact with their Workflowy outline — searching, adding items, viewing trees, marking complete, bulk operations, or usage reports.
+description: Workflowy outliner CLI for reading, searching, and editing nodes. Use when the user wants to interact with their Workflowy outline — searching, adding items, viewing trees, marking complete, bulk operations, or usage reports. Also use whenever the user shares a workflowy.com URL (e.g. https://workflowy.com/#/...).
 homepage: https://github.com/mholzen/workflowy
 metadata:
   {

@@ -3,11 +3,16 @@
   "slug": "stealthy-auto-browse",
   "displayName": "stealthy-auto-browse",
   "latest": {
-    "version": "1.3.0",
-    "publishedAt": 1770710585746,
-    "commit": "https://github.com/openclaw/skills/commit/f46cd3b9cceff4c30faf4248f157c0715d7c7ce6"
+    "version": "1.6.0",
+    "publishedAt": 1774187749922,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.3.0",
+      "publishedAt": 1770710585746,
+      "commit": "https://github.com/openclaw/skills/commit/f46cd3b9cceff4c30faf4248f157c0715d7c7ce6"
+    },
     {
       "version": "1.2.1",
       "publishedAt": 1770673712930,

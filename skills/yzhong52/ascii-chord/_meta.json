@@ -3,11 +3,16 @@
   "slug": "ascii-chord",
   "displayName": "ASCII Chord",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1773435013438,
-    "commit": "https://github.com/openclaw/skills/commit/97ae2ca235b41a759c974417751b0b4de5600396"
+    "version": "2.0.3",
+    "publishedAt": 1774202456315,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1773435013438,
+      "commit": "https://github.com/openclaw/skills/commit/97ae2ca235b41a759c974417751b0b4de5600396"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1773347572512,

@@ -1,13 +1,18 @@
 {
   "owner": "jisuapi",
   "slug": "barcode",
-  "displayName": "商品条码查询 - Product Barcode Inquiry",
+  "displayName": "Barcode Inquiry - 商品条码查询",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773400850426,
-    "commit": "https://github.com/openclaw/skills/commit/16e4129271607db750543f84fc6a2fd66209c2fd"
+    "version": "1.0.7",
+    "publishedAt": 1773728897225,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773400850426,
+      "commit": "https://github.com/openclaw/skills/commit/16e4129271607db750543f84fc6a2fd66209c2fd"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1772533655588,

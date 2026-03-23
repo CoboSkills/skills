@@ -1,13 +1,18 @@
 {
   "owner": "phutt-bwai",
   "slug": "zonein",
-  "displayName": "Zonein: Trading OS for smarter Hyperliquid & Polymarket Agent - Smart Money Signals, Backtesting, Autonomous Execution & Self Learning.",
+  "displayName": "Hyperliquid & Polymarket Trading Agent OS — Smart Money Signals, Backtesting, Autonomous Execution & Self-Learning | ZoneIn",
   "latest": {
-    "version": "2.3.5",
-    "publishedAt": 1773877101664,
-    "commit": "https://github.com/openclaw/skills/commit/8e8d338a62c5875444affa76f341e7c96c395d87"
+    "version": "2.3.6",
+    "publishedAt": 1774010939490,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.5",
+      "publishedAt": 1773877101664,
+      "commit": "https://github.com/openclaw/skills/commit/8e8d338a62c5875444affa76f341e7c96c395d87"
+    },
     {
       "version": "2.1.9",
       "publishedAt": 1773499454548,

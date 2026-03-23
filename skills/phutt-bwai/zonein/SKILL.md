@@ -1,14 +1,8 @@
 ---
 name: zonein
-version: 2.3.0
+version: 2.3.6
 description: |
-  Trading OS for smarter agents on Hyperliquid & Polymarket. Create, backtest, and deploy autonomous
-  trading agents with one skill install. Real-time smart money signals from 500+ profiled wallets,
-  multi-timeframe TA, derivatives flow, composite AI signals, and a self-learning engine.
-  Supports: Hyperliquid perps, spot, HIP-3 (stocks, commodities, indices), and Polymarket.
-  Use when: user asks about smart money, whale activity, trading signals, crypto market analysis,
-  creating/managing trading agents, perpetual futures, prediction markets, or HIP-3 stock trading.
-  30+ commands. One API key. From zero to live trading agent in one conversation.
+  Create, backtest, and deploy autonomous trading agents in plain English. Real-time smart money signals from 500+ profiled wallets, multi-timeframe TA, derivatives flow, HITL trade plans via Telegram, and a self-learning engine that makes your agent smarter after every trade. One install — 30+ commands. Perps, spot, HIP-3 (US stocks, commodities), and prediction markets.
 homepage: https://zonein.xyz
 compatibility: Requires python3. OpenClaw workspace with ZONEIN_API_KEY configured.
 metadata: {"openclaw":{"emoji":"🧠","requires":{"bins":["python3"],"env":["ZONEIN_API_KEY"]},"primaryEnv":"ZONEIN_API_KEY","files":["scripts/*","references/*"],"installer":{"instructions":"1. Go to https://app.zonein.xyz\n2. Log in with your refcode\n3. Click 'Get API Key' button\n4. Copy the key and paste it below"}}}

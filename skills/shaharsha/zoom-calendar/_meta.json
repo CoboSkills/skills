@@ -1,11 +1,17 @@
 {
   "owner": "shaharsha",
   "slug": "zoom-calendar",
-  "displayName": "Zoom + Google Calendar",
+  "displayName": "Zoom Calendar",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1771947001308,
-    "commit": "https://github.com/openclaw/skills/commit/f7d645cb2160bd16ff552f58d81d994b613d8a24"
+    "version": "1.1.0",
+    "publishedAt": 1774205949712,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1771947001308,
+      "commit": "https://github.com/openclaw/skills/commit/f7d645cb2160bd16ff552f58d81d994b613d8a24"
+    }
+  ]
 }

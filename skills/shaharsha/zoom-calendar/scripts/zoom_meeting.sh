@@ -55,15 +55,29 @@ fi
 echo "Zoom meeting created: $JOIN_URL (ID: $MEETING_ID, Pass: $PASSWORD)"
 
 # --- Step 2: Get Google Calendar access token ---
-export GOG_KEYRING_PASSWORD="${GOG_KEYRING_PASSWORD:-openclaw-leo-2026}"
-export GOG_ACCOUNT="${GOG_ACCOUNT:-me@shahar.sh}"
+if [ -z "${GOG_KEYRING_PASSWORD:-}" ]; then
+  echo "ERROR: GOG_KEYRING_PASSWORD env var is required" >&2
+  exit 1
+fi
+if [ -z "${GOG_ACCOUNT:-}" ]; then
+  echo "ERROR: GOG_ACCOUNT env var is required" >&2
+  exit 1
+fi
+export GOG_KEYRING_PASSWORD
+export GOG_ACCOUNT
 
 GOG_TOKEN_FILE=$(mktemp)
 gog auth tokens export "$GOG_ACCOUNT" --out "$GOG_TOKEN_FILE" --overwrite 2>/dev/null
 
 REFRESH_TOKEN=$(jq -r '.refresh_token' "$GOG_TOKEN_FILE")
-GCAL_CLIENT_ID=$(jq -r '.client_id' /root/.config/gogcli/credentials.json)
-GCAL_CLIENT_SECRET=$(jq -r '.client_secret' /root/.config/gogcli/credentials.json)
+GOG_CREDS_FILE="${GOG_CREDENTIALS:-$HOME/.config/gogcli/credentials.json}"
+if [ ! -f "$GOG_CREDS_FILE" ]; then
+  echo "ERROR: Google credentials not found at $GOG_CREDS_FILE" >&2
+  echo "Set GOG_CREDENTIALS env var or install gog CLI first" >&2
+  exit 1
+fi
+GCAL_CLIENT_ID=$(jq -r '.client_id' "$GOG_CREDS_FILE")
+GCAL_CLIENT_SECRET=$(jq -r '.client_secret' "$GOG_CREDS_FILE")
 rm -f "$GOG_TOKEN_FILE"
 
 ACCESS_TOKEN=$(curl -s -X POST "https://oauth2.googleapis.com/token" \
@@ -97,7 +111,7 @@ PATCH_RESULT=$(curl -s -X PATCH \
         \"meetingCode\": \"${MEETING_ID}\",
         \"passcode\": \"${PASSWORD}\"
       }],
-      \"notes\": \"Meeting host: me@shahar.sh<br /><br />Join Zoom Meeting:<br />${JOIN_URL}\"
+      \"notes\": \"Meeting host: ${GOG_ACCOUNT}<br /><br />Join Zoom Meeting:<br />${JOIN_URL}\"
     }
   }")
 

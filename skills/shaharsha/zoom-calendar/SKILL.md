@@ -5,7 +5,7 @@ description: >
   (icon, video entry, notes). Use when creating calendar events with Zoom, adding Zoom to
   existing events, or any Zoom + Google Calendar integration. Requires Zoom Server-to-Server
   OAuth credentials and Google Calendar (gog) auth.
-metadata: {"clawdbot":{"emoji":"📹","version":"1.0.0","author":"Leo 🦁","tags":["zoom","calendar","google-calendar","meetings","video-conference","scheduling"],"requires":{"env":["GOG_KEYRING_PASSWORD","GOG_ACCOUNT"],"credentials":[".credentials/zoom.json"]}}}
+metadata: {"clawdbot":{"emoji":"📹","version":"1.1.0","author":"Leo 🦁","tags":["zoom","calendar","google-calendar","meetings","video-conference","scheduling"],"requires":{"env":["GOG_KEYRING_PASSWORD","GOG_ACCOUNT"],"credentials":[".credentials/zoom.json","$HOME/.config/gogcli/credentials.json"],"tools":["gog","jq","curl","base64"]}}}
 allowed-tools: [exec]
 ---
 
@@ -63,4 +63,13 @@ Scopes: `meeting:write:admin`, `meeting:read:admin`.
 ### Google Calendar
 
 Uses `gog` CLI auth. The script handles token export + refresh automatically.
-Requires: `GOG_KEYRING_PASSWORD` and `GOG_ACCOUNT` env vars.
+
+**Required env vars:**
+- `GOG_KEYRING_PASSWORD` — keyring password for gog CLI
+- `GOG_ACCOUNT` — Google account email (e.g. `user@gmail.com`)
+
+**Required files:**
+- `$HOME/.config/gogcli/credentials.json` — Google OAuth client credentials (created by `gog auth`)
+- Override path with `GOG_CREDENTIALS` env var
+
+**Required CLI tools:** `gog`, `jq`, `curl`, `base64`

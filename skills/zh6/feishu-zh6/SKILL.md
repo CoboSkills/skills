@@ -7,24 +7,24 @@
 ## 配置
 
 - **渠道**: `feishu`
-- **用户 ID**: `ou_a05417a566dc000ad40fed2beb9fe057`
+- **用户 ID**: 在 `~/.openclaw/workspace/TOOLS.md` 中配置
 
 ## 使用方法
 
 ### 发送文本消息
 ```
-请用飞书发送消息到 ou_a05417a566dc000ad40fed2beb9fe057：你好！
+请用飞书发送消息到 [用户 ID]：你好！
 ```
 
 ### 发送图片
 ```
-请用飞书发送图片到 ou_a05417a566dc000ad40fed2beb9fe057，
+请用飞书发送图片到 [用户 ID]，
 路径：~/.openclaw/workspace/image.jpg，文字：图片说明
 ```
 
 ### 发送文件
 ```
-请用飞书发送文件到 ou_a05417a566dc000ad40fed2beb9fe057，
+请用飞书发送文件到 [用户 ID]，
 路径：~/.openclaw/workspace/file.md，文字：文件说明
 ```
 

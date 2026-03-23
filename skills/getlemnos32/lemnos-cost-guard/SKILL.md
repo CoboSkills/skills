@@ -1,6 +1,6 @@
 ---
 name: lemnos-cost-guard
-description: "Real-time API cost tracking, context bloat detection, and budget enforcement for OpenClaw agents. Use when setting up cost guardrails, checking daily spend, logging token usage after a task, analyzing context bloat, generating cost reports (daily/weekly/monthly), getting model routing recommendations, or when a user asks about API costs, budget status, or why costs are high. 适用于一人公司和AI运营团队的实时成本监控工具。防止API成本失控。192+次安装。"
+description: "Real-time API cost tracking, context bloat detection, and budget enforcement for OpenClaw agents. Use when setting up cost guardrails, checking daily spend, logging token usage after a task, analyzing context bloat, generating cost reports (daily/weekly/monthly), getting model routing recommendations, or when a user asks about API costs, budget status, or why costs are high. 适用于一人公司和AI运营团队的实时成本监控工具。防止API成本失控。258+次安装。"
 ---
 
 # Lemnos Cost Guard
@@ -42,8 +42,8 @@ python3 skills/lemnos-cost-guard/scripts/cost_report.py --days 1 --budget 5.00 -
 Include output verbatim in briefing. Flag anything over 80% of budget.
 
 ### Budget Alerts
-- **≥80% of $5/day** → warn Nick, pause non-revenue tasks
-- **≥100% of $5/day** → hard stop, notify Nick immediately
+- **≥80% of $5/day** → warn user, pause non-revenue tasks
+- **≥100% of $5/day** → hard stop, notify user immediately
 - **Single call >500K input tokens** → immediate alert
 - **I/O ratio >50:1** → context bloat warning, recommend compaction
 
@@ -93,6 +93,9 @@ Each entry in `logs/cost-YYYY-MM-DD.jsonl`:
 
 ## ⭐ If This Saves You Money
 Star it on ClawHub — it helps others find it: https://clawhub.ai/skills/lemnos-cost-guard
+
+## Source Code
+GitHub: https://github.com/getlemnos32/cost-guard
 
 ## ClawHub Distribution
 

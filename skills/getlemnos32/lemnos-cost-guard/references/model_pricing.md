@@ -24,7 +24,7 @@
 - Analysis with context
 - LinkedIn/prospect research
 
-**Never use Opus** unless Nick explicitly requests it.
+**Never use Opus** unless the user explicitly requests it.
 
 ## Cost Math (Sonnet at 50:1 ratio)
 

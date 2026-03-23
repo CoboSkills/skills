@@ -92,10 +92,11 @@ ACTION_MAP = {
     "check-telegram-permission": "erpclaw-setup",
     "onboarding-step": "erpclaw-setup",
 
-    # === Meta (3 actions) ===
+    # === Meta (4 actions) ===
     "check-installation": "erpclaw-meta",
     "install-guide": "erpclaw-meta",
     "seed-demo-data": "erpclaw-meta",
+    "setup-web-dashboard": "erpclaw-meta",
 
     # === General Ledger (28 actions) ===
     "setup-chart-of-accounts": "erpclaw-gl",
@@ -247,6 +248,18 @@ ACTION_MAP = {
     "list-intercompany-invoices": "erpclaw-selling",
     "cancel-intercompany-invoice": "erpclaw-selling",
     "selling-status": "erpclaw-selling",
+    "close-sales-order": "erpclaw-selling",
+    "amend-sales-order": "erpclaw-selling",
+    "get-amendment-history": "erpclaw-selling",
+    "add-blanket-order": "erpclaw-selling",
+    "submit-blanket-order": "erpclaw-selling",
+    "get-blanket-order": "erpclaw-selling",
+    "list-blanket-orders": "erpclaw-selling",
+    "create-so-from-blanket": "erpclaw-selling",
+    "create-drop-ship-order": "erpclaw-selling",
+    "add-packing-slip": "erpclaw-selling",
+    "get-packing-slip": "erpclaw-selling",
+    "list-packing-slips": "erpclaw-selling",
 
     # === Buying / Procure-to-Pay (36 actions) ===
     "add-supplier": "erpclaw-buying",
@@ -284,6 +297,19 @@ ACTION_MAP = {
     "add-landed-cost-voucher": "erpclaw-buying",
     "import-suppliers": "erpclaw-buying",
     "buying-status": "erpclaw-buying",
+    "close-purchase-order": "erpclaw-buying",
+    "update-receipt-tolerance": "erpclaw-buying",
+    "update-three-way-match-policy": "erpclaw-buying",
+    "add-blanket-po": "erpclaw-buying",
+    "submit-blanket-po": "erpclaw-buying",
+    "get-blanket-po": "erpclaw-buying",
+    "list-blanket-pos": "erpclaw-buying",
+    "create-po-from-blanket": "erpclaw-buying",
+    "create-po-from-so": "erpclaw-buying",
+    "add-recurring-bill-template": "erpclaw-buying",
+    "list-recurring-bill-templates": "erpclaw-buying",
+    "generate-recurring-bills": "erpclaw-buying",
+    "set-item-purchase-uom": "erpclaw-buying",
 
     # === Inventory (38 actions) ===
     "add-item": "erpclaw-inventory",
@@ -323,6 +349,13 @@ ACTION_MAP = {
     "check-reorder": "erpclaw-inventory",
     "import-items": "erpclaw-inventory",
     "inventory-status": "erpclaw-inventory",
+    "get-projected-qty": "erpclaw-inventory",
+    "add-item-attribute": "erpclaw-inventory",
+    "create-item-variant": "erpclaw-inventory",
+    "generate-item-variants": "erpclaw-inventory",
+    "list-item-variants": "erpclaw-inventory",
+    "add-item-supplier": "erpclaw-inventory",
+    "list-item-suppliers": "erpclaw-inventory",
 
     # === Billing & Metering (22 actions) ===
     "add-meter": "erpclaw-billing",
@@ -348,7 +381,7 @@ ACTION_MAP = {
     "get-prepaid-balance": "erpclaw-billing",
     "billing-status": "erpclaw-billing",
 
-    # === Advanced Accounting — Revenue Recognition / ASC 606 (14 actions) ===
+    # === Advanced Accounting — Revenue Recognition / ASC 606 (17 actions) ===
     "add-revenue-contract": "erpclaw-accounting-adv",
     "update-revenue-contract": "erpclaw-accounting-adv",
     "get-revenue-contract": "erpclaw-accounting-adv",
@@ -356,11 +389,14 @@ ACTION_MAP = {
     "add-performance-obligation": "erpclaw-accounting-adv",
     "list-performance-obligations": "erpclaw-accounting-adv",
     "satisfy-performance-obligation": "erpclaw-accounting-adv",
+    "update-performance-obligation": "erpclaw-accounting-adv",
     "add-variable-consideration": "erpclaw-accounting-adv",
     "list-variable-considerations": "erpclaw-accounting-adv",
     "modify-contract": "erpclaw-accounting-adv",
     "calculate-revenue-schedule": "erpclaw-accounting-adv",
     "generate-revenue-entries": "erpclaw-accounting-adv",
+    "update-schedule-amounts": "erpclaw-accounting-adv",
+    "recognize-schedule-entry": "erpclaw-accounting-adv",
     "revenue-waterfall-report": "erpclaw-accounting-adv",
     "revenue-recognition-summary": "erpclaw-accounting-adv",
 
@@ -432,6 +468,17 @@ ACTION_MAP = {
     "list-expense-claims": "erpclaw-hr",
     "record-lifecycle-event": "erpclaw-hr",
     "hr-status": "erpclaw-hr",
+    "add-shift-type": "erpclaw-hr",
+    "list-shift-types": "erpclaw-hr",
+    "update-shift-type": "erpclaw-hr",
+    "assign-shift": "erpclaw-hr",
+    "list-shift-assignments": "erpclaw-hr",
+    "add-regularization-rule": "erpclaw-hr",
+    "apply-attendance-regularization": "erpclaw-hr",
+    "add-employee-document": "erpclaw-hr",
+    "list-employee-documents": "erpclaw-hr",
+    "get-employee-document": "erpclaw-hr",
+    "check-expiring-documents": "erpclaw-hr",
 
     # === Payroll — US Payroll Processing (22 actions) ===
     "add-salary-component": "erpclaw-payroll",
@@ -456,6 +503,14 @@ ACTION_MAP = {
     "list-garnishments": "erpclaw-payroll",
     "get-garnishment": "erpclaw-payroll",
     "payroll-status": "erpclaw-payroll",
+    "add-state-tax-slab": "erpclaw-payroll",
+    "update-employee-state-config": "erpclaw-payroll",
+    "add-overtime-policy": "erpclaw-payroll",
+    "calculate-overtime": "erpclaw-payroll",
+    "calculate-retro-pay": "erpclaw-payroll",
+    "add-employee-bank-account": "erpclaw-payroll",
+    "list-employee-bank-accounts": "erpclaw-payroll",
+    "generate-nacha-file": "erpclaw-payroll",
 
     # === ERPClaw OS — Phase 1+2: Validation, Generation, Deploy, Audit (16 actions) ===
     "validate-module": "erpclaw-os",
@@ -489,8 +544,10 @@ ACTION_MAP = {
     "dgm-list-variants": "erpclaw-os",
     "dgm-select-best": "erpclaw-os",
 
-    # === ERPClaw OS — Phase 3e: Gap Detection + Module Suggestions (2 actions) ===
+    # === ERPClaw OS — Phase 3e: Gap Detection + Module Suggestions (4 actions) ===
     "detect-gaps": "erpclaw-os",
+    "detect-schema-divergence": "erpclaw-os",
+    "detect-stubs": "erpclaw-os",
     "suggest-modules": "erpclaw-os",
 
     # === ERPClaw OS — Phase 3d: Heartbeat Analysis Engine (3 actions) ===
@@ -639,6 +696,8 @@ def _suggest_module_for_action(action):
         "canada-": "erpclaw-region-ca",
         "uk-": "erpclaw-region-uk",
         "eu-": "erpclaw-region-eu",
+        "stripe-": "erpclaw-integrations-stripe",
+        "shopify-": "erpclaw-integrations-shopify",
     }
     for prefix, module in PREFIX_MAP.items():
         if action.startswith(prefix):

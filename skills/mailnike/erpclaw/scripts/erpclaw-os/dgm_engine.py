@@ -10,7 +10,8 @@ CRITICAL SAFETY RULES:
 - NEVER touches constitution/validation/sandbox/invariant-checker files
 - NEVER modifies itself (dgm_engine.py)
 - NEVER touches Tier 3 classified actions
-- NEVER auto-deploys — always queues for human review via improvement_log
+- NEVER auto-deploys — all DGM output is Tier 2.5 (advisory suggestion only)
+- All proposals logged to improvement_log for human review
 """
 import difflib
 import json
@@ -41,7 +42,7 @@ from variant_manager import (
     cleanup_old_variants,
     get_variant_diff,
 )
-from tier_classifier import classify_action, TIER_3
+from tier_classifier import classify_action, TIER_2_5, TIER_3
 
 
 # ---------------------------------------------------------------------------
@@ -60,6 +61,11 @@ SAFETY_EXCLUDED_FILES = frozenset({
     "dgm_engine.py",
     "adversarial_audit.py",
     "compliance_weather.py",
+    "schema_migrator.py",       # Can DROP tables — must not be auto-mutated
+    "tier_classifier.py",       # Changing tier = bypassing safety gates
+    "improvement_log.py",       # Manipulating approval status = audit bypass
+    "deploy_pipeline.py",       # Auto-deploy logic — mutation could skip gates
+    "in_module_generator.py",   # Generator must not self-modify
 })
 
 # Actions that map to excluded files — resolved by checking the source file
@@ -68,6 +74,11 @@ SAFETY_EXCLUDED_MODULES = frozenset({
     "stock_posting",
     "tax_calculation",
     "cross_skill",
+    "schema_migrator",
+    "tier_classifier",
+    "improvement_log",
+    "deploy_pipeline",
+    "in_module_generator",
 })
 
 VALID_MUTATION_TYPES = (

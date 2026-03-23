@@ -3,11 +3,16 @@
   "slug": "erpclaw",
   "displayName": "ERPClaw",
   "latest": {
-    "version": "3.2.0",
-    "publishedAt": 1773940221524,
-    "commit": "https://github.com/openclaw/skills/commit/9fa726f6a098bb4b351db8c24cdad16a8cde3426"
+    "version": "3.4.2",
+    "publishedAt": 1774243126438,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.2.0",
+      "publishedAt": 1773940221524,
+      "commit": "https://github.com/openclaw/skills/commit/9fa726f6a098bb4b351db8c24cdad16a8cde3426"
+    },
     {
       "version": "3.1.7",
       "publishedAt": 1773622497463,

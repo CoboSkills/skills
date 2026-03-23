@@ -17,7 +17,7 @@ RECIPE_BYCLASS_URL = "https://api.jisuapi.com/recipe/byclass"
 RECIPE_DETAIL_URL = "https://api.jisuapi.com/recipe/detail"
 
 
-def _call_recipe_api(url: str, appkey: str, params: dict | None = None):
+def _call_recipe_api(url: str, appkey: str, params: dict = None):
     query = {"appkey": appkey}
     if params:
         for k, v in params.items():

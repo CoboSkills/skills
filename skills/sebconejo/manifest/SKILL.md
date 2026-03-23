@@ -1,93 +1,64 @@
 ---
 name: manifest
-description: Install and configure the Manifest observability plugin for OpenClaw agents. Use when the user wants to set up Manifest telemetry, connect an agent to Manifest, configure an API key or endpoint, troubleshoot plugin connection issues, or check if the Manifest plugin is running.
-metadata: {"openclaw":{"requires":{"bins":["openclaw"]}}}
+description: Smart LLM Router for OpenClaw. Save up to 70% by routing every request to the right model. No coding required.
+metadata: {"openclaw":{"requires":{"bins":["openclaw"]},"primaryEnv":"MANIFEST_API_KEY","homepage":"https://github.com/mnfst/manifest"}}
 ---
 
-# Manifest Setup
+# Manifest — LLM Router & Observability for OpenClaw
 
-Follow these steps **in order**. Do not skip ahead.
+Manifest is an OpenClaw plugin that:
 
-## Step 1 — Stop the gateway
+- **Routes every request** to the most cost-effective model via a 23-dimension scoring algorithm (<2ms latency)
+- **Tracks costs and tokens** in a real-time dashboard
+- **Sets limits** with email alerts and hard spending caps
 
-Stop the gateway first to avoid hot-reload issues during configuration.
+Source: [github.com/mnfst/manifest](https://github.com/mnfst/manifest) — MIT licensed. Homepage: [manifest.build](https://manifest.build)
 
-Show the user the command below and ask for confirmation before running it.
-
-```bash
-openclaw gateway stop
-```
-
-## Step 2 — Install the plugin
-
-Show the user the command below and ask for confirmation before running it.
+## Setup (Local — recommended for evaluation)
 
 ```bash
-openclaw plugins install manifest
-```
-
-If it fails, check that OpenClaw is installed and the CLI is available in the PATH.
-
-## Step 3 — Get an API key
-
-Ask the user:
-
-> To connect your agent, you need a Manifest API key. Here's how to get one:
->
-> 1. Go to **https://app.manifest.build** and create an account (or sign in)
-> 2. Once logged in, click **"Connect Agent"** to create a new agent
-> 3. Copy the API key that starts with `mnfst_`
-> 4. Paste it here
-
-Wait for a key starting with `mnfst_`. If the key doesn't match, tell the user the format looks incorrect and ask them to try again.
-
-> **Note:** Your API key will be stored in `~/.openclaw/openclaw.json` under `plugins.entries.manifest.config.apiKey`. It persists on disk until you remove it.
-
-## Step 4 — Configure the plugin
-
-Show the user the command below and ask for confirmation before running it.
-
-```bash
-openclaw config set plugins.entries.manifest.config.apiKey "USER_API_KEY"
-```
-
-Replace `USER_API_KEY` with the actual key the user provided.
-
-Ask the user if they have a custom endpoint. If not, the default (`https://app.manifest.build/api/v1/otlp`) is used automatically. If they do:
-
-Show the user the command below and ask for confirmation before running it.
-
-```bash
-openclaw config set plugins.entries.manifest.config.endpoint "USER_ENDPOINT"
-```
-
-## Step 5 — Start the gateway
-
-Show the user the command below and ask for confirmation before running it.
-
-```bash
+openclaw plugins install manifest@5.28.5
+openclaw config set plugins.entries.manifest.config.mode local
 openclaw gateway restart
 ```
 
-## Step 6 — Verify
+Dashboard opens at **http://127.0.0.1:2099**. Data stored locally in `~/.openclaw/manifest/manifest.db`.
 
-Wait 3 seconds for the gateway to fully start, then check the logs:
+## Setup (Cloud)
 
 ```bash
-grep "manifest" ~/.openclaw/logs/gateway.log | tail -5
+openclaw plugins install manifest@5.28.5
+openclaw config set plugins.entries.manifest.config.apiKey "mnfst_YOUR_KEY"
+openclaw gateway restart
 ```
 
-Look for:
+Get the API key at [app.manifest.build](https://app.manifest.build) → create an account → create an agent → copy the key.
 
+## Agent Tools
+
+Three tools are available to the agent in-conversation:
+
+| Tool              | Trigger phrases                                 | What it returns                                                             |
+| ----------------- | ----------------------------------------------- | --------------------------------------------------------------------------- |
+| `manifest_usage`  | "how many tokens", "token usage", "consumption" | Total, input, output, cache-read tokens + action count for today/week/month |
+| `manifest_costs`  | "how much spent", "costs", "money burned"       | Cost breakdown by model in USD for today/week/month                         |
+| `manifest_health` | "is monitoring working", "connectivity test"    | Endpoint reachable, auth valid, agent name, status                          |
+
+Each accepts a `period` parameter: `"today"`, `"week"`, or `"month"`.
+
+## Supported Providers
+
+Anthropic, OpenAI, Google Gemini, DeepSeek, xAI, Mistral AI, Qwen, MiniMax, Kimi, Amazon Nova, Z.ai, OpenRouter, Ollama. 300+ models total.
+
+## Uninstall
+
+```bash
+openclaw plugins uninstall manifest
+openclaw gateway restart
 ```
-[manifest] Observability pipeline active
-```
 
-If it appears, tell the user setup is complete. If not, check the error messages and troubleshoot.
+This removes the plugin, provider config, and auth profiles.
 
-## Troubleshooting
+## Documentation
 
-- **"Missing apiKey"**: Re-run step 4.
-- **"Invalid apiKey format"**: The key must start with `mnfst_`.
-- **Connection refused**: The endpoint is unreachable. Check the URL or ask if they self-host.
-- **Duplicate OTel registration**: Disable the conflicting built-in plugin: `openclaw plugins disable diagnostics-otel`
+For detailed security & privacy documentation, routing configuration, configuration changes, and troubleshooting, see the [full documentation](https://github.com/mnfst/manifest).

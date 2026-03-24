@@ -3,11 +3,16 @@
   "slug": "mental-models-cn",
   "displayName": "Mental Models Cn",
   "latest": {
-    "version": "2.6.0",
-    "publishedAt": 1773558143154,
-    "commit": "https://github.com/openclaw/skills/commit/ca9c27a45ff9b703569194a1bd67a88d8778e065"
+    "version": "2.8.0",
+    "publishedAt": 1774068101998,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.6.0",
+      "publishedAt": 1773558143154,
+      "commit": "https://github.com/openclaw/skills/commit/ca9c27a45ff9b703569194a1bd67a88d8778e065"
+    },
     {
       "version": "1.2.0",
       "publishedAt": 1773489049765,

@@ -1,22 +1,52 @@
 ---
 name: mental-models-cn
 description: 108 个思维模型，16 个系列，含周期分析实战指南
-version: 2.6.0
+version: 2.8.0
 author: gmilton09
 homepage: https://github.com/openclaw/openclaw
+public: true
 triggers:
   - "思维模型"
   - "分析框架"
   - "决策模型"
+  - "如何分析"
+  - "用什么模型"
+  - "系统思考"
   - "周期分析"
+  - "芒格"
   - "麦肯锡"
   - "/mental-model"
-metadata: {"clawdbot":{"emoji":"🧠","tags":["analysis","decision-making","mental-models","framework","strategy","mckinsey","munger","consulting","business","psychology","innovation","leadership","cycle-analysis"],"category":"business-analysis","difficulty":"intermediate"}}
+metadata: {
+  "clawdbot": {
+    "emoji": "🧠",
+    "tags": [
+      "analysis",
+      "decision-making",
+      "mental-models",
+      "framework",
+      "strategy",
+      "mckinsey",
+      "munger",
+      "consulting",
+      "business",
+      "cognitive-science",
+      "psychology",
+      "innovation",
+      "leadership",
+      "cycle-analysis"
+    ],
+    "category": "business-analysis",
+    "subcategory": "strategic-thinking",
+    "difficulty": "intermediate",
+    "audience": ["professionals", "students", "entrepreneurs", "managers", "investors"],
+    "public": true
+  }
+}
 ---
 
 # 🧠 思维模型库 (Mental Models)
 
-**版本**: 2.6.0 | **108 个模型** | **16 个系列**
+**版本**: 2.8.0 | **108 个模型** | **16 个系列** | **公开技能** ✅
 
 ---
 
@@ -57,6 +87,19 @@ metadata: {"clawdbot":{"emoji":"🧠","tags":["analysis","decision-making","ment
 ---
 
 ## 📝 更新日志
+
+### v2.8.0 (2026-03-21) - 公开技能发布
+- ✅ 设置技能为公开可见（public: true）
+- ✅ 修复其他机器人搜索不到的问题
+- ✅ 完善 metadata（subcategory、audience）
+- ✅ 增加触发词（如何分析、用什么模型、系统思考）
+- ✅ 安装命令：`clawhub install mental-models-cn`
+
+### v2.7.0 (2026-03-21) - ClawHub 发布修复
+- ✅ 修复 ClawHub 搜索索引问题
+- ✅ 优化元数据，解除 VirusTotal 误报
+- ✅ 支持直接安装（无需 --force）
+- ✅ 安装命令：`clawhub install mental-models-cn`
 
 ### v2.6.0 (2026-03-15) - 周期分析增强
 - ✅ 新增周期分析实战指南

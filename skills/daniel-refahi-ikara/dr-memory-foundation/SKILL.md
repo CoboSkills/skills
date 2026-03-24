@@ -3,9 +3,20 @@ name: dr-memory-foundation
 description: "Opinionated, file-based memory layout for OpenClaw-style agents: dashboards (now/open-loops/automation), topic files, glossary, and an always-on policy+topic catalog. Use when setting up or reorganizing agent memory, creating a memory folder structure, adding always_on.md, building a topic catalog, or preparing memory files so retrieval+compression pipelines work well." 
 ---
 
-# Memory Structure Template (dashboards + topics)
+# DR Memory Foundation
 
 Use this skill to set up a memory layout that is easy to retrieve from, audit, and compress.
+
+## Apply to this workspace
+When the user asks to **apply** this skill (for example: `Apply dr-memory-foundation to this workspace`), do this:
+1) Inspect the existing workspace memory files.
+2) Create any missing template files from `references/templates/`.
+3) Preserve existing notes; merge or relocate content rather than deleting it.
+4) Normalize `MEMORY.md` into preferences + indexes only.
+5) Ensure `memory/always_on.md` contains a tiny policy header + topic catalog.
+6) Confirm what changed.
+
+This apply flow should be idempotent: if the structure already exists, do not duplicate sections or overwrite user content blindly.
 
 ## Template layout
 - `MEMORY.md` (small): preferences + indexes only.

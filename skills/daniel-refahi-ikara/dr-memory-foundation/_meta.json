@@ -3,9 +3,15 @@
   "slug": "dr-memory-foundation",
   "displayName": "DR. Memory Foundation",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773361192071,
-    "commit": "https://github.com/openclaw/skills/commit/0bb73636bf212d02ba11d98070db3c66eabdf9d2"
+    "version": "1.0.4",
+    "publishedAt": 1774051040778,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773361192071,
+      "commit": "https://github.com/openclaw/skills/commit/0bb73636bf212d02ba11d98070db3c66eabdf9d2"
+    }
+  ]
 }

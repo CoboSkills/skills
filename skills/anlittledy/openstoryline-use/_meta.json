@@ -3,11 +3,16 @@
   "slug": "openstoryline-use",
   "displayName": "OpenStoryline Use",
   "latest": {
-    "version": "0.0.4",
-    "publishedAt": 1773979497792,
-    "commit": "https://github.com/openclaw/skills/commit/8fce743bc8e99f363755b58d3c14343859a78062"
+    "version": "0.0.5",
+    "publishedAt": 1774073452947,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.0.4",
+      "publishedAt": 1773979497792,
+      "commit": "https://github.com/openclaw/skills/commit/8fce743bc8e99f363755b58d3c14343859a78062"
+    },
     {
       "version": "0.0.3",
       "publishedAt": 1773655123897,

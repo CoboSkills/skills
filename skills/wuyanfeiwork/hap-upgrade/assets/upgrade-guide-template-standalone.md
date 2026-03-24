@@ -8,71 +8,53 @@
 
 ---
 
-## 升级前须知
+### 提前准备
 
-> ⚠️ 请在升级前仔细阅读本节内容。
+> **建议在正式开始升级操作前，提前准备本次升级实际会用到的全部资源。**
+> 资源不限于 HAP 微服务镜像；若附加操作涉及存储组件、文档预览、预置数据、离线脚本或其他组件资源，也必须在此节一并整理。
 
-### 重大变更提示
+### 若服务器可访问互联网
 
-{列出升级路径中涉及的重大变更。若无则删除本小节。示例：}
-- **镜像命名变更**：从 `v7.1.0` 起，镜像名由 `mingdaoyun-community` 变更为 `mingdaoyun-hap`，升级步骤中已包含替换命令，请勿跳过。
+保留本小节时，删除下方“若服务器离线”小节。
 
----
-
-## 提前准备
-
-> 💡 **建议在正式开始升级操作前，提前完成镜像的拉取或导入，避免升级过程中长时间等待。**
-
-{--- 联网模式，保留以下内容；离线模式，删除此段，使用下方离线段 ---}
-
-### 联网拉取镜像
-
-{--- 下载升级所需所有镜像 ---}
-
-在服务器上执行以下命令提前拉取目标版本镜像：
+在服务器上提前获取本次升级实际需要的镜像或资源。例如：
 
 ```bash
-# 微服务镜像 AMD64
+# HAP 微服务镜像
 docker pull registry.cn-hangzhou.aliyuncs.com/mdpublic/mingdaoyun-hap:{目标版本号}
 
-# 微服务镜像 ARM64（如为 ARM64 架构，使用此命令替代上方）
-# docker pull registry.cn-hangzhou.aliyuncs.com/mdpublic/mingdaoyun-hap-arm64:{目标版本号}
-
-# 存储组件镜像 AMD64
+# 如本次升级步骤实际需要存储组件镜像，则继续拉取对应镜像
 # docker pull registry.cn-hangzhou.aliyuncs.com/mdpublic/mingdaoyun-sc:{目标存储组件版本号}
-# 如升级文档中需要其他镜像，则依次整理出 docker pull 命令
 ```
 
-{--- 离线模式，保留以下内容；联网模式，删除此段 ---}
+> 若线上文档显示还需要文档预览、预置数据脚本、额外服务镜像或其他资源，必须在本节继续补全，不得只保留微服务镜像。
 
-### 离线镜像准备
+### 若服务器离线
 
-{--- 导入升级所需所有离线镜像 ---}
+保留本小节时，删除上方“若服务器可访问互联网”小节。
 
-请在**可访问互联网的机器上**提前下载以下离线镜像包，并上传到服务器：
+请在**可访问互联网的机器上**提前下载本次升级实际需要的全部离线文件，并上传到服务器：
 
 | 文件 | 下载链接 |
 |------|----------|
-| HAP 微服务（AMD64） | `https://pdpublic.mingdao.com/private-deployment/offline/mingdaoyun-hap-linux-amd64-{目标HAP微服务版本号}.tar.gz` |
-| HAP 微服务（ARM64） | `https://pdpublic.mingdao.com/private-deployment/offline/mingdaoyun-hap-linux-arm64-{目标HAP微服务版本号}.tar.gz` |
-| HAP 存储组件（AMD64） | `https://pdpublic.mingdao.com/private-deployment/offline/mingdaoyun-sc-linux-amd64-{目标存储组件版本号}.tar.gz` |
-| HAP 存储组件（ARM64） | `https://pdpublic.mingdao.com/private-deployment/offline/mingdaoyun-sc-linux-amd64-{目标存储组件版本号}.tar.gz` |
-| MongoDB 预置数据包 | `https://pdpublic.mingdao.com/private-deployment/data/preset_mongodb_{该操作涉及的最新版本号}.tar.gz` |
-| MongoDB 预置脚本 | `https://pdpublic.mingdao.com/private-deployment/data/preset_mongodb_docker.sh` |
+| HAP 微服务离线包（按架构保留） | `{按实际架构填写 HAP 微服务离线包链接}` |
+| 其他必需镜像或离线资源 | `{根据本次升级实际步骤补全，未用到则删除该行}` |
+| MongoDB 预置数据包 | `{若本次升级涉及该操作，则填写对应版本下载链接；否则删除该行}` |
+| MongoDB 预置脚本 | `{若本次升级涉及该操作，则填写对应脚本下载链接；否则删除该行}` |
 
-> 💡 如需其他组件（文档预览等）的离线包，访问 https://docs-pd.mingdao.com/deployment/offline 获取，修改 URL 中的版本号即可下载历史版本。
+> 不要预设资源类型已经列全。若线上文档或跳转链接中出现其他必需文件，必须继续补充到此表。
 
-上传到服务器后，执行以下命令导入镜像：
+上传到服务器后，按实际需要导入或校验资源。例如：
 
 ```bash
-# 导入镜像（替换为实际文件名）
-docker load -i mingdaoyun-hap-linux-amd64-{目标HAP微服务版本号}.tar.gz
+# 导入 HAP 微服务离线镜像（替换为实际文件名）
+docker load -i {目标HAP微服务离线包文件名}.tar.gz
 
 # 验证镜像已导入
-docker images | grep mingdaoyun-hap
+docker images
 ```
 
-> 如有其他离线镜像，一并列出导入与验证命令
+> 如本次升级还涉及其他离线镜像或资源，请继续补充对应的导入、解压、校验步骤。
 
 ---
 
@@ -94,20 +76,17 @@ docker ps --format "table {{.Image}}\t{{.Names}}"
 
 ### 3. 检查资源
 
-- 确保磁盘空间充足（建议预留 20GB 以上）
-- 确保服务器网络状态正常
+- 确保磁盘空间充足（建议预留 40GB 以上）
 
 ---
 
 ## 升级步骤
 
-### 第一阶段：微服务升级前操作
+### 第一阶段：HAP 微服务升级前操作
 
-{若升级路径中无任何 Pre 操作，删除本阶段整节。以下各条目按实际情况保留或删除。}
+{若升级路径中无任何升级前操作，删除本阶段整节。以下各条目按实际情况保留或删除。}
 
-#### 1. 替换镜像名称 ⚠️
-
-> ⚠️ **特别注意**：此操作必须在升级微服务前完成。
+#### 1. 替换镜像名称
 
 > 💡 以下命令按默认路径编写。若曾自定义安装路径，请先替换路径再执行。
 > - `docker-compose.yaml` 默认路径：`/data/mingdao/script/`
@@ -129,7 +108,7 @@ fi
 
 #### 2. 创建 MongoDB 数据库（仅开启 MongoDB 认证时执行）
 
-> 💡 仅在已开启 MongoDB 连接认证的情况下执行此步骤。
+> 单机模式下 MongoDB 默认未开启认证，仅在自定义过开启 MongoDB 连接认证的情况下执行此步骤
 
 1. 进入存储组件容器：
 
@@ -153,30 +132,26 @@ db.createUser({ user: "修改成与其他库一致的用户名", pwd: "修改成
 
 > 💡 **需要创建的库**：{根据跨越版本的附加操作整理，列出所有库名，例如：`mdwfai`（v7.0.0 要求）、`mdpayment`（vX.X.X 要求）}
 >
-> 若所有库使用同一用户认证，则需修改该用户权限以授权新数据库，而非创建新用户。
 
 #### 3. 存储组件升级
 
 {若跨越多个含存储组件升级的版本，直接升级到所有版本中要求的最高版本号。}
 
-> ⚠️ **特别注意**：将存储组件升级到 `{目标存储组件版本号}`。
-
 1. 修改 `/data/mingdao/script/docker-compose.yaml` 中存储组件的镜像版本号为 `{目标存储组件版本号}`
 
-> 💡 如果存储组件与微服务同时升级，可在修改完两处版本号后，最后只执行一次 `restartall`，无需分开重启。
+>  如果存储组件与 HAP 微服务同时升级，可在修改完两处版本号后，最后只执行一次 `restartall`，无需分开重启。
 
 #### 4. MongoDB 预置数据更新
 
-> 💡 此操作可在**原版本服务运行状态下**执行，无需停机。
-> ⚠️ **注意**：如果升级路径中多个版本包含此操作，只需执行其中**版本号最大的那一个**即可。
+> 此操作在**原版本服务运行状态下**执行，无需停机。
 
-{--- 联网模式 ---}
+若服务器可访问互联网，保留以下代码块并删除后面的离线代码块：
 
 ```bash
 bash -c "$(curl -fsSL https://pdpublic.mingdao.com/private-deployment/data/preset_mongodb_docker.sh)" -s {该操作涉及的最新版本号}
 ```
 
-{--- 离线模式 ---}
+若服务器离线，保留以下代码块并删除前面的联网代码块：
 
 ```bash
 # 将提前下载好的 preset_mongodb_docker.sh 和 preset_mongodb_{该操作涉及的最新版本号}.tar.gz 上传至服务器同一目录下后执行
@@ -213,11 +188,9 @@ bash ./service.sh restartall
 
 ---
 
-### 第三阶段：微服务升级后操作
+### 第三阶段：HAP 微服务升级后操作
 
-{若升级路径中无任何 Post 操作，删除本阶段整节。}
-
-> ⚠️ **特别注意**：以下操作须在微服务镜像升级并重启完成后执行。
+{若升级路径中无任何升级后操作，删除本阶段整节。}
 
 #### 1. 进入微服务容器执行脚本
 
@@ -229,7 +202,7 @@ docker exec -it $(docker ps | grep -E 'mingdaoyun-community|mingdaoyun-hap' | aw
 
 2. 在容器内按版本**从低到高**顺序执行以下命令：
 
-> 💡 如已自定义 MySQL 用户名、密码，注意修改命令中对应参数值（默认：用户名 `root`，密码 `123456`）。
+> 💡 如曾自定义过 MySQL 用户名、密码，注意修改命令中对应参数值（默认：用户名 `root`，密码 `123456`）。
 
 ```bash
 # ---- 来自 v{版本号}（{功能说明，例如：用户多任职功能相关表字段增加}）----
@@ -253,17 +226,23 @@ docker ps
 
 确认所有容器均处于 `Up` 状态，无异常重启。
 
-### 2. 登录系统确认版本
+### 2. 检查HAP微服务容器日志
+
+```
+docker logs $(docker ps | grep -E 'mingdaoyun-community|mingdaoyun-hap' | awk '{print $1}')
+```
+
+正常所输出日志应都是 `INFO `级别
+
+### 3. 登录系统确认版本
 
 登录 HAP 管理后台，确认系统版本号已更新为目标版本 `{目标版本号}`。
 
-### 3. 功能验证
+### 4. 功能验证
 
 - [ ] 打开工作表，创建/编辑记录
 - [ ] 触发工作流，检查执行情况
 - [ ] 检查统计图、报表等功能
-
-
 
 ## 异常情况排查
 

@@ -1,0 +1,11 @@
+{
+  "owner": "teneoprotocoldev",
+  "slug": "coinmarketcap-agent-teneo-skill",
+  "displayName": "CoinMarketCap Agent - powered by Teneo Protocol",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1774328356015,
+    "commit": null
+  },
+  "history": []
+}

@@ -60,7 +60,7 @@ https://api2.bigoven.com
 | GET | /recipe/photos/pending | Gets the pending by user. |
 | GET | /recipe/{recipeId}/photos | Get all the photos for a recipe |
 | GET | /recipe/{recipeId}/scans | Gets a list of RecipeScan images for the recipe. There will be at most 3 per recipe. |
-| POST | /recipe/{recipeId}/image | POST: /recipe/{recipeId}/image?lat=42&amp;lng=21&amp;caption=this%20is%20my%20caption |
+| POST | /recipe/{recipeId}/image | POST: /recipe/{recipeId}/image?lat=42&lng=21&caption=this%20is%20my%20caption |
 | GET | /recipe/{recipeId}/note/{noteId} | Get a given note. Make sure you're passing authentication information in the header for the user who owns the note. |
 | PUT | /recipe/{recipeId}/note/{noteId} | HTTP PUT (update) a Recipe note (RecipeNote). |
 | DELETE | /recipe/{recipeId}/note/{noteId} | Delete a review |
@@ -191,6 +191,16 @@ Match user requests to endpoints in references/api-spec.lap. Key patterns:
 - Check response schemas in references/api-spec.lap for field details
 - List endpoints may support pagination; check for limit, offset, or cursor params
 - Create/update endpoints typically return the created/updated object
+
+## CLI
+
+```bash
+# Update this spec to the latest version
+npx @lap-platform/lapsh get 1000000-recipe-and-grocery-list-api-v2 -o references/api-spec.lap
+
+# Search for related APIs
+npx @lap-platform/lapsh search 1000000-recipe-and-grocery-list-api-v2
+```
 
 ## References
 - Full spec: See references/api-spec.lap for complete endpoint details, parameter tables, and response schemas

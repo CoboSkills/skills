@@ -19,9 +19,15 @@ fi
 export TZ=Asia/Shanghai
 CURRENT_DATE=$(date +"%Y-%m-%d")
 CURRENT_TIME=$(date +"%H:%M:%S")
-MEMORY_DIR="${MEMORY_DIR:-/root/.openclaw/workspace/memory}"
+LOG_FILE="${LOG_FILE:-${LOGS_DIR}/daily_health_report_pro.log}"
+if [ -n "${OPENCLAW_BIN:-}" ] && [ -x "${OPENCLAW_BIN}" ]; then
+    export PATH="$(dirname "${OPENCLAW_BIN}"):${PATH}"
+fi
+if [ -z "${MEMORY_DIR:-}" ]; then
+    echo "Error: MEMORY_DIR is not set." >> "$LOG_FILE"
+    exit 1
+fi
 TODAY_FILE="${MEMORY_DIR}/${CURRENT_DATE}.md"
-LOG_FILE="${LOG_FILE:-${LOGS_DIR}/health_report_pro.log}"
 
 echo "========================================" >> "$LOG_FILE"
 echo "Run time: ${CURRENT_DATE} ${CURRENT_TIME}" >> "$LOG_FILE"
@@ -31,7 +37,7 @@ if [ ! -f "$TODAY_FILE" ]; then
     exit 1
 fi
 
-result=$(python3 "${SCRIPT_DIR}/health_report_pro.py" "$TODAY_FILE" "$CURRENT_DATE" 2>&1)
+result=$(python3 "${SCRIPT_DIR}/daily_report_pro.py" "$TODAY_FILE" "$CURRENT_DATE" 2>&1)
 echo "$result" >> "$LOG_FILE"
 
 delivery_message=$(echo "$result" | sed -n '/=== DELIVERY_MESSAGE_START ===/,/=== DELIVERY_MESSAGE_END ===/p' | sed '1d;$d')

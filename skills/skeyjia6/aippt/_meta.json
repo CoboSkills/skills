@@ -3,11 +3,16 @@
   "slug": "aippt",
   "displayName": "aippt",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1773497124830,
-    "commit": "https://github.com/openclaw/skills/commit/1141f26242fd3f14913b2c74b0b9f0fa5d327089"
+    "version": "1.0.7",
+    "publishedAt": 1774080293509,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1773497124830,
+      "commit": "https://github.com/openclaw/skills/commit/1141f26242fd3f14913b2c74b0b9f0fa5d327089"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1773419619651,

@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "AI Task Hub Skill API",
-    "version": "3.2.28",
-    "description": "Public skill contract for execute/poll/presentation/account balance/account ledger via gateway-managed public bridge."
+    "version": "3.2.32",
+    "description": "Public skill contract for execute/poll/presentation/account connect/account balance/account ledger via gateway-managed public bridge."
   },
   "servers": [
     {
@@ -47,6 +47,18 @@
       },
       "required_scope": "presentation"
     },
+    "portal.account.connect": {
+      "summary": "Explicitly start or check hosted account connection via public bridge",
+      "method": "POST",
+      "path": "/agent/public-bridge/invoke",
+      "input_schema": {
+        "$ref": "#/components/schemas/PortalAccountConnectInput"
+      },
+      "output_schema": {
+        "$ref": "#/components/schemas/PortalAccountConnectOutput"
+      },
+      "required_scope": "public_bridge_only"
+    },
     "portal.account.balance": {
       "summary": "Read account points balance via host proxy",
       "method": "GET",
@@ -89,6 +101,16 @@
         "AUTHORIZATION_REQUIRED is expected when trial is exhausted, trial is disabled, or authorization upgrade is otherwise required."
       ]
     },
+    "primary_entrypoint_first_time_success": {
+      "response_fields": [
+        "entry_host",
+        "entry_user_key"
+      ],
+      "notes": [
+        "On successful first-time trial responses, persist entry_user_key immediately.",
+        "Reuse that same entry_user_key across follow-up calls to keep stable account continuity."
+      ]
+    },
     "agent_uid_format": "^agent_[a-z0-9][a-z0-9_-]{5,63}$",
     "conversation_id_format": "^[A-Za-z0-9._:-]{8,128}$"
   },
@@ -101,6 +123,41 @@
       "failure_language": "If user intervention is required, describe only the minimal next step in user-oriented language without revealing internal layering."
     },
     "host_bridge_note": "Host bridge entrypoint is host-owned integration code and is not bundled in this published package.",
+    "bridge_auth_guidance": {
+      "continuity_owner": "host_or_private_wrapper",
+      "published_skill_persistence": "disabled",
+      "success_contract": {
+        "location": "data.agent_guidance.bridge_auth",
+        "bridge_context_fields": [
+          "entry_host",
+          "entry_user_key"
+        ],
+        "reuse_targets": [
+          "/agent/public-bridge/invoke",
+          "/agent/public-bridge/upload-file"
+        ],
+        "reuse_actions": [
+          "portal.account.connect",
+          "portal.account.balance",
+          "portal.account.ledger",
+          "portal.skill.execute",
+          "portal.skill.poll",
+          "portal.skill.presentation"
+        ]
+      },
+      "error_contract": {
+        "location": "error.details.bridge_auth",
+        "bridge_context_fields": [
+          "entry_host",
+          "entry_user_key"
+        ],
+        "recovery_fields": [
+          "likely_cause",
+          "recovery_action",
+          "reauthorization_required"
+        ]
+      }
+    },
     "action_payload_templates": {
       "portal.skill.execute": {
         "capability": "human_detect",
@@ -116,6 +173,10 @@
         "run_id": "run_123",
         "channel": "web",
         "include_files": true
+      },
+      "portal.account.connect": {
+        "connect_mode": "browser",
+        "auth_session_id": "optional_existing_auth_session"
       },
       "portal.account.balance": {},
       "portal.account.ledger": {
@@ -157,6 +218,18 @@
         "host_action": "restart the same bridge flow once so gateway can repair binding"
       }
     ],
+    "explicit_connect_action": {
+      "action": "portal.account.connect",
+      "request_body": {
+        "connect_mode": "browser"
+      },
+      "when_to_use": "Use this explicit action when the user wants to bind/login/check account connection before balance, ledger, or execute actions.",
+      "success_states": [
+        "authorization_required",
+        "pending",
+        "connected"
+      ]
+    },
     "bridge_api": {
       "endpoint": "/agent/public-bridge/invoke",
       "method": "POST",
@@ -172,12 +245,15 @@
         "Preferred production entrypoint for third-party agent-friendly integration.",
         "For end-user conversations, prefer direct execution and result delivery instead of explaining attachment upload or URL normalization internals.",
         "When the host exposes attachment bytes, the published skill forwards only that explicit attachment material through the public bridge before execute and injects the returned URL into the target media field.",
+        "published skill persistence = disabled; continuity owner = host_or_private_wrapper.",
         "agent_uid should be the host-defined stable runtime agent identifier; bridge canonicalizes it server-side.",
         "conversation_id should be a host-generated opaque session or install identifier, not a public chat id, raw thread id, or PII.",
         "When TRIAL_ENABLED and trial points are available, first-time onboarding can proceed without browser authorization.",
         "Public bridge should resolve a stable external user binding when available; for new installations with TRIAL_ENABLED and available trial points, onboarding proceeds without browser authorization, and AUTHORIZATION_REQUIRED is returned only for conditional upgrade paths (for example trial exhausted or trial disabled rollback).",
         "authorization_url may include gateway_api_base_url and hosts should preserve it when completing browser authorization so the binding write lands on the same API environment.",
         "Cross-conversation account continuity requires reusing the same entry_user_key across follow-up calls.",
+        "Successful public bridge responses include entry_host and entry_user_key; persist and reuse them even when no authorization error is returned.",
+        "Use portal.account.connect as the explicit user-invoked bind/check action instead of relying only on AUTHORIZATION_REQUIRED from other actions.",
         "If AUTHORIZATION_REQUIRED includes likely_cause=ENTRY_USER_KEY_NOT_REUSED and reauthorization_required=false, hosts should restore the previously persisted entry_user_key instead of launching a new browser login.",
         "Gateway canonicalizes agent_uid, repairs binding when missing, and issues action-scoped task token internally.",
         "Write-capable execute actions should send options.confirm_write=true after user confirmation; otherwise gateway may return ACTION_CONFIRMATION_REQUIRED.",
@@ -258,16 +334,17 @@
                   "entry_user_key": {
                     "type": "string"
                   },
-                  "action": {
-                    "type": "string",
-                    "enum": [
-                      "portal.skill.execute",
-                      "portal.skill.poll",
-                      "portal.skill.presentation",
-                      "portal.account.balance",
-                      "portal.account.ledger"
-                    ]
-                  },
+                    "action": {
+                      "type": "string",
+                      "enum": [
+                        "portal.skill.execute",
+                        "portal.skill.poll",
+                        "portal.skill.presentation",
+                        "portal.account.connect",
+                        "portal.account.balance",
+                        "portal.account.ledger"
+                      ]
+                    },
                   "agent_uid": {
                     "type": "string"
                   },
@@ -296,10 +373,10 @@
         },
         "responses": {
           "200": {
-            "description": "Bridge-invoked read/poll/presentation result"
+            "description": "Bridge-invoked read/poll/presentation result; success data includes entry_host and entry_user_key"
           },
           "202": {
-            "description": "Bridge-invoked execute accepted"
+            "description": "Bridge-invoked execute accepted; success data includes entry_host and entry_user_key"
           },
           "400": {
             "description": "Invalid bridge request"
@@ -309,6 +386,114 @@
           },
           "429": {
             "description": "Bootstrap rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/agent/hosted-connector/install": {
+      "post": {
+        "summary": "Create a hosted connector installation",
+        "responses": {
+          "200": {
+            "description": "Hosted connector installation created; returns connection_id and connection_token"
+          },
+          "400": {
+            "description": "Invalid hosted connector install request"
+          }
+        }
+      }
+    },
+    "/agent/hosted-connector/connect": {
+      "post": {
+        "summary": "Start or resume hosted connector browser authorization",
+        "parameters": [
+          {
+            "name": "x-connector-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hosted connector authorization state; may return authorization_url, auth_session_id, and entry_user_key"
+          },
+          "401": {
+            "description": "Missing or invalid connection token"
+          }
+        }
+      }
+    },
+    "/agent/hosted-connector/invoke": {
+      "post": {
+        "summary": "Invoke a hosted connector action with installation-scoped continuity",
+        "parameters": [
+          {
+            "name": "x-connector-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hosted connector read/poll/presentation result; success data includes connection_id and connector_status"
+          },
+          "202": {
+            "description": "Hosted connector execute accepted; success data includes connection_id and connector_status"
+          },
+          "401": {
+            "description": "Missing or invalid connection token"
+          }
+        }
+      }
+    },
+    "/agent/hosted-connector/status": {
+      "post": {
+        "summary": "Read hosted connector status for one installation",
+        "parameters": [
+          {
+            "name": "x-connector-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hosted connector status for the installation"
+          },
+          "401": {
+            "description": "Missing or invalid connection token"
+          }
+        }
+      }
+    },
+    "/agent/hosted-connector/logout": {
+      "post": {
+        "summary": "Clear hosted connector continuity for one installation",
+        "parameters": [
+          {
+            "name": "x-connector-token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Hosted connector continuity cleared for the installation"
+          },
+          "401": {
+            "description": "Missing or invalid connection token"
           }
         }
       }
@@ -499,6 +684,46 @@
         "type": "object",
         "additionalProperties": true,
         "description": "No input required; payload is optional."
+      },
+      "PortalAccountConnectInput": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "connect_mode": {
+            "type": "string"
+          },
+          "auth_session_id": {
+            "type": "string"
+          }
+        }
+      },
+      "PortalAccountConnectOutput": {
+        "type": "object",
+        "properties": {
+          "connection_state": {
+            "type": "string",
+            "enum": [
+              "authorization_required",
+              "pending",
+              "connected"
+            ]
+          },
+          "authorization_url": {
+            "type": "string"
+          },
+          "auth_session_id": {
+            "type": "string"
+          },
+          "host_action": {
+            "type": "string"
+          },
+          "entry_host": {
+            "type": "string"
+          },
+          "entry_user_key": {
+            "type": "string"
+          }
+        }
       },
       "PortalAccountBalanceOutput": {
         "type": "object",

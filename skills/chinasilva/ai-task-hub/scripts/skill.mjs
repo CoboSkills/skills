@@ -16,7 +16,8 @@ const ACTIONS = {
   'portal.skill.poll': { method: 'GET' },
   'portal.skill.presentation': { method: 'GET' },
   'portal.account.balance': { method: 'GET' },
-  'portal.account.ledger': { method: 'GET' }
+  'portal.account.ledger': { method: 'GET' },
+  'portal.account.connect': { method: 'POST' }
 };
 
 const IMAGE_CAPABILITIES = new Set([
@@ -227,7 +228,7 @@ export async function runSkillAction(params = {}, options = {}) {
     );
   }
 
-  const usePublicBridge = auth?.mode === 'public_bridge' || !readText(auth?.agentTaskToken);
+  const usePublicBridge = action === 'portal.account.connect' || auth?.mode === 'public_bridge' || !readText(auth?.agentTaskToken);
   const httpRequest = usePublicBridge ? buildPublicBridgeRequest(action, request.actionPayload, actionPayloadInput, auth) : request;
 
   const capability = action === 'portal.skill.execute' ? readText(request.body?.capability) : null;
@@ -344,7 +345,9 @@ export async function runSkillAction(params = {}, options = {}) {
     },
     ok: response.ok,
     parsed,
-    body
+    body,
+    auth,
+    usePublicBridge
   });
 
   return {
@@ -420,6 +423,18 @@ async function buildActionRequest(action, payload, normalizeExecutePayloadImpl, 
         path: buildPathWithQuery('/agent/skill/account/ledger', dateRange),
         actionPayload: dateRange
       };
+    case 'portal.account.connect': {
+      const connectMode = readText(payload.connect_mode) ?? 'browser';
+      const authSessionId = resolveOptionalIdentifier(payload, ['auth_session_id', 'authSessionId']);
+      return {
+        method: 'POST',
+        path: '/agent/public-bridge/invoke',
+        actionPayload: {
+          connect_mode: connectMode,
+          ...(authSessionId ? { auth_session_id: authSessionId } : {})
+        }
+      };
+    }
     default:
       throw createActionError(400, 'VALIDATION_BAD_REQUEST', `unsupported action: ${action}`);
   }
@@ -622,34 +637,52 @@ function parseJson(body) {
   }
 }
 
-function buildGuidedResponseBody({ action, request, ok, parsed, body }) {
-  if (!ok || !parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+function buildGuidedResponseBody({ action, request, ok, parsed, body, auth, usePublicBridge }) {
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return body;
   }
 
   const data = toObject(parsed.data);
-  if (Object.keys(data).length === 0) {
-    return body;
-  }
+  const error = toObject(parsed.error);
+  const errorDetails = toObject(error.details);
+  const nextParsed = { ...parsed };
+  const bridgeAuth = usePublicBridge ? buildBridgeAuthGuidance(action, data, errorDetails, auth) : null;
+  let mutated = false;
 
-  const guidance = buildAgentGuidance(action, request, data);
-  if (!guidance) {
-    return body;
-  }
-
-  const currentGuidance = toObject(data.agent_guidance);
-  const enriched = {
-    ...parsed,
-    data: {
-      ...data,
-      agent_guidance: {
-        ...currentGuidance,
-        ...guidance
-      }
+  if (ok && Object.keys(data).length > 0) {
+    const guidance = buildAgentGuidance(action, request, data);
+    if (guidance || bridgeAuth) {
+      const currentGuidance = toObject(data.agent_guidance);
+      nextParsed.data = {
+        ...data,
+        agent_guidance: {
+          ...currentGuidance,
+          ...(bridgeAuth ? { bridge_auth: bridgeAuth } : {}),
+          ...(guidance ?? {})
+        }
+      };
+      mutated = true;
     }
-  };
+  }
 
-  return JSON.stringify(enriched);
+  if (!ok && Object.keys(error).length > 0 && bridgeAuth) {
+    nextParsed.error = {
+      ...error,
+      details: {
+        ...errorDetails,
+        bridge_auth: {
+          ...bridgeAuth,
+          host_action:
+            errorDetails.likely_cause === 'ENTRY_USER_KEY_NOT_REUSED'
+              ? 'restore the previously persisted entry_user_key outside the published skill and retry the same bridge call before reauthorizing'
+              : 'persist this bridge_context outside the published skill, complete authorization if needed, then retry the same bridge call with the same entry_user_key'
+        }
+      }
+    };
+    mutated = true;
+  }
+
+  return mutated ? JSON.stringify(nextParsed) : body;
 }
 
 function buildAgentGuidance(action, request, data) {
@@ -721,6 +754,44 @@ function buildPresentationGuidance(data) {
       assets,
       source: 'presentation'
     })
+  };
+}
+
+function buildBridgeAuthGuidance(action, data, errorDetails, auth) {
+  const entryHost =
+    resolveOptionalIdentifier(data, ['entry_host', 'entryHost']) ??
+    resolveOptionalIdentifier(errorDetails, ['entry_host', 'entryHost']) ??
+    readText(auth?.entryHost);
+  const entryUserKey =
+    resolveOptionalIdentifier(data, ['entry_user_key', 'entryUserKey']) ??
+    resolveOptionalIdentifier(errorDetails, ['entry_user_key', 'entryUserKey']) ??
+    readText(auth?.entryUserKey);
+
+  if (!entryHost || !entryUserKey) {
+    return null;
+  }
+
+  return {
+    continuity_owner: 'host_or_private_wrapper',
+    published_skill_persistence: 'disabled',
+    bridge_context: {
+      entry_host: entryHost,
+      entry_user_key: entryUserKey
+    },
+    reuse_required: true,
+    reuse_targets: ['/agent/public-bridge/invoke', '/agent/public-bridge/upload-file'],
+    reuse_actions: [
+      'portal.account.connect',
+      'portal.account.balance',
+      'portal.account.ledger',
+      'portal.skill.execute',
+      'portal.skill.poll',
+      'portal.skill.presentation'
+    ],
+    host_action:
+      action === 'portal.account.connect'
+        ? 'persist this bridge_context outside the published skill and reuse the same entry_user_key on follow-up connect, invoke, and upload calls'
+        : 'persist this bridge_context outside the published skill and reuse the same entry_user_key on every follow-up public bridge call'
   };
 }
 

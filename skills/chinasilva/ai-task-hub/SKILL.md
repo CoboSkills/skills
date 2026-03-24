@@ -1,7 +1,7 @@
 ---
 name: ai-task-hub
 description: AI task hub for image analysis, background removal, speech-to-text, text-to-speech, markdown conversion, points balance/ledger lookup, and async execute/poll/presentation orchestration. Use when users need hosted AI outcomes while host runtime manages identity, credits, payment, and risk control.
-version: 3.2.28
+version: 3.2.32
 metadata:
   openclaw:
     skillKey: ai-task-hub
@@ -21,11 +21,21 @@ Formerly `skill-hub-gateway`.
 
 Public package boundary:
 
-- Only orchestrates `portal.skill.execute`, `portal.skill.poll`, `portal.skill.presentation`, `portal.account.balance`, and `portal.account.ledger`.
+- Only orchestrates `portal.skill.execute`, `portal.skill.poll`, `portal.skill.presentation`, `portal.account.connect`, `portal.account.balance`, and `portal.account.ledger`.
 - Does not exchange `api_key` or `userToken` inside this package.
 - Does not handle recharge or payment flows inside this package.
 - Prefers attachment URLs, and when host runtime explicitly exposes attachment bytes for the current request, forwards only that explicit attachment material through the public bridge before execution.
-- Third-party agent entry uses `POST /agent/public-bridge/invoke`.
+- When the published skill is invoked directly by a third-party agent runtime, it uses `POST /agent/public-bridge/invoke`.
+- published skill persistence = disabled.
+- continuity owner = `host_or_private_wrapper`.
+
+## Connector-First Host Selection
+
+- For remote URL / OAuth / connection-record style hosts, prefer the hosted connector runtime: `POST /agent/hosted-connector/install`, `POST /agent/hosted-connector/connect`, `POST /agent/hosted-connector/invoke`, `POST /agent/hosted-connector/status`, `POST /agent/hosted-connector/logout`.
+- For local command-only hosts, prefer the shared connector/runtime bootstrap outside this published package.
+- Use `POST /agent/public-bridge/invoke` when the published skill itself is the active entry surface and host/runtime cannot own a separate connector installation.
+- Trusted host runtime that can safely hold bridge assertion secret may still use `POST /agent/skill/bridge/invoke`.
+- published skill persistence remains disabled even when hosted connector/runtime is present; long-lived continuity belongs in host or connector state, not in this package.
 
 ## User-Facing Response Policy
 
@@ -96,6 +106,7 @@ Action to endpoint mapping:
 - `portal.skill.execute` -> `POST /agent/skill/execute`
 - `portal.skill.poll` -> `GET /agent/skill/runs/:run_id`
 - `portal.skill.presentation` -> `GET /agent/skill/runs/:run_id/presentation`
+- `portal.account.connect` -> `POST /agent/public-bridge/invoke` (explicit connect/status check only)
 - `portal.account.balance` -> `GET /agent/skill/account/balance`
 - `portal.account.ledger` -> `GET /agent/skill/account/ledger`
 
@@ -108,10 +119,12 @@ Action to endpoint mapping:
 
 ## Auth Contract
 
-Third-party agent entry mode (recommended):
+Third-party agent entry mode (recommended for direct published-skill invocation):
 
-- Use `POST /agent/public-bridge/invoke` as the first entrypoint for OpenClaw / Codex / Claude style runtimes.
+- If the host can install a remote connector URL or own a connection record, prefer the hosted connector runtime instead of calling the published skill directly.
+- Use `POST /agent/public-bridge/invoke` as the first entrypoint for OpenClaw / Codex / Claude style runtimes when this published skill is the active entry surface.
 - Do not require end users to provide any credential.
+- Use `portal.account.connect` when host/runtime wants an explicit browser-connect preflight instead of waiting for a protected action to fail.
 - With `TRIAL_ENABLED` and available trial points, first-time calls may proceed without browser authorization.
 - On first use without an existing binding, gateway can proceed without browser authorization when TRIAL_ENABLED and trial points are available; `AUTHORIZATION_REQUIRED` is returned only for conditional upgrade paths (for example trial exhausted or trial-disabled rollback).
 - The returned `authorization_url` may include `gateway_api_base_url`; preserve it when completing browser authorization so `/agent-auth/complete` is posted back to the same API environment that created the auth session.
@@ -130,6 +143,7 @@ Host-side token bridge (outside published package):
 - Preferred deployed bridge endpoint for third-party agent entry: `POST /agent/public-bridge/invoke`.
 - Trusted host runtime that can safely hold bridge assertion secret may continue to use `POST /agent/skill/bridge/invoke`.
 - These bridge endpoints are served by gateway runtime, not bundled into this published package, and do not require caller-managed credentials.
+- published skill persistence = disabled; continuity must stay in `host_or_private_wrapper`, not inside this published package.
 - Bridge request body should include `action`, `agent_uid`, `conversation_id`, and optional `payload`.
 - `conversation_id` should be a host-generated opaque session/install identifier, not a public chat ID, raw thread ID, or PII.
 - Public bridge should resolve a stable external user binding when available; if the binding is missing and trial conditions are satisfied, first-time onboarding can continue without browser authorization, while conditional upgrade paths return a host-owned authorization URL plus `entry_user_key`.
@@ -145,10 +159,12 @@ Host integration modes:
 - `trusted host bridge` (secondary): a trusted backend you control may call `POST /agent/skill/bridge/invoke` with its own bridge assertion secret.
 - Published skill package itself does not open browser, persist credentials, or perform OAuth/token exchange flows.
 - The authorization URL above is owned by deployed gateway/admin-web pages, not by this skill package runtime.
+- Successful public bridge responses add `data.agent_guidance.bridge_auth` with `continuity_owner=host_or_private_wrapper`, `published_skill_persistence=disabled`, and the returned `bridge_context`.
+- Public bridge failures that include entry context add `error.details.bridge_auth` so host/runtime can recover continuity outside the published skill package.
 
 ## Agent Invocation Quickstart
 
-Preferred invocation mode for third-party agent entry (recommended):
+Preferred invocation mode for third-party agent entry (recommended when invoking this published skill directly):
 
 - Deployed bridge API:
 ```json
@@ -194,6 +210,10 @@ Action payload templates (same for public bridge and trusted host bridge mode):
 ```json
 { "run_id": "run_123", "channel": "web", "include_files": true }
 ```
+- `portal.account.connect`
+```json
+{ "connect_mode": "browser", "auth_session_id": "optional_existing_auth_session" }
+```
 - `portal.account.balance`
 ```json
 {}
@@ -205,8 +225,10 @@ Action payload templates (same for public bridge and trusted host bridge mode):
 
 Agent-side decision flow:
 
-- Always prefer `POST /agent/public-bridge/invoke` for third-party agent entry so first-time authorization can return `authorization_url` plus `entry_user_key`.
+- If host/runtime can own a separate connector installation, prefer hosted connector install/connect/invoke/status/logout over direct published-skill invocation.
+- Otherwise prefer `POST /agent/public-bridge/invoke` for third-party agent entry so first-time authorization can return `authorization_url` plus `entry_user_key`.
 - New task: call `portal.skill.execute`, then poll with `portal.skill.poll` until `data.terminal=true`, then fetch `portal.skill.presentation`.
+- Explicit account linking: call `portal.account.connect`, surface the returned `authorization_url` when present, and keep reusing the same `entry_user_key`.
 - Account query: call `portal.account.balance` or `portal.account.ledger` directly.
 - Keep `conversation_id` as session context only; do not use it as the account key.
 - For cross-conversation continuity in third-party entry mode, persist and reuse the same `entry_user_key`; do not pass `owner_uid_hint` to the public bridge endpoint.
@@ -238,6 +260,7 @@ Output parsing contract:
 - `payload.request_id` is optional and passed through.
 - `portal.skill.poll` and `portal.skill.presentation`: payload requires `run_id`.
 - `portal.skill.presentation` supports `include_files` (defaults to `true`).
+- `portal.account.connect`: payload may include `connect_mode` and optional `auth_session_id` when host/runtime is checking an existing browser bind.
 - `portal.account.balance`: payload is optional and ignored.
 - `portal.account.ledger`: payload may include `date_from` + `date_to` (`YYYY-MM-DD`, must be provided together).
 

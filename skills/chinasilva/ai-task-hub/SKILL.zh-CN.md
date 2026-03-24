@@ -1,7 +1,7 @@
 ---
 name: ai-task-hub
 description: AI Task Hub 用于图像检测与分析、去背景与抠图、语音转文字、文本转语音、文档转 Markdown、积分余额/流水查询和异步任务编排。适用于用户需要通过 execute/poll/presentation 与账户积分查询完成结果交付，且由宿主统一管理身份、积分、支付和风控的场景。
-version: 3.2.28
+version: 3.2.32
 metadata:
   openclaw:
     skillKey: ai-task-hub
@@ -21,11 +21,21 @@ metadata:
 
 公开包能力边界：
 
-- 只保留 `portal.skill.execute`、`portal.skill.poll`、`portal.skill.presentation`、`portal.account.balance`、`portal.account.ledger`。
+- 只保留 `portal.skill.execute`、`portal.skill.poll`、`portal.skill.presentation`、`portal.account.connect`、`portal.account.balance`、`portal.account.ledger`。
 - 不在公开包内交换 `api_key` 或 `userToken`。
 - 不在公开包内处理支付、充值与积分 UI 闭环。
 - 优先使用附件 URL；当宿主运行时为当前请求显式暴露附件 bytes 时，只会把这份显式附件材料通过 public bridge 转发后再执行。
-- 第三方 agent 入口统一走 `POST /agent/public-bridge/invoke`。
+- 当公开 skill 本身被第三方 agent 运行时直接调用时，统一走 `POST /agent/public-bridge/invoke`。
+- published skill persistence = disabled。
+- continuity owner = `host_or_private_wrapper`。
+
+## Connector 优先的宿主选择
+
+- 对 remote URL / OAuth / connection record 型宿主，优先使用 hosted connector runtime：`POST /agent/hosted-connector/install`、`POST /agent/hosted-connector/connect`、`POST /agent/hosted-connector/invoke`、`POST /agent/hosted-connector/status`、`POST /agent/hosted-connector/logout`。
+- 对只支持本地命令的宿主，优先使用公开 skill 包之外的共享 connector/runtime bootstrap。
+- 只有当公开 skill 自己就是当前入口面、且宿主不能承载独立 connector 安装时，才优先使用 `POST /agent/public-bridge/invoke`。
+- 若宿主是你自己控制且可安全持有 bridge assertion secret 的可信运行时，仍可使用 `POST /agent/skill/bridge/invoke`。
+- 即使存在 hosted connector/runtime，published skill persistence 依然保持 disabled；长期 continuity 仍属于宿主或 connector 状态，而不是这个公开包。
 
 ## 用户侧输出原则
 
@@ -94,6 +104,7 @@ Action 与接口映射：
 - `portal.skill.execute` -> `POST /agent/skill/execute`
 - `portal.skill.poll` -> `GET /agent/skill/runs/:run_id`
 - `portal.skill.presentation` -> `GET /agent/skill/runs/:run_id/presentation`
+- `portal.account.connect` -> `POST /agent/public-bridge/invoke`（仅用于显式 connect / 状态确认）
 - `portal.account.balance` -> `GET /agent/skill/account/balance`
 - `portal.account.ledger` -> `GET /agent/skill/account/ledger`
 
@@ -106,10 +117,12 @@ Action 与接口映射：
 
 ## 鉴权契约
 
-第三方 agent 入口模式（推荐）：
+第三方 agent 入口模式（推荐用于直接调用公开 skill）：
 
-- OpenClaw / Codex / Claude 这类运行时应优先调用 `POST /agent/public-bridge/invoke`。
+- 如果宿主能安装 remote connector URL 或维护 connection record，应优先走 hosted connector runtime，而不是直接调用公开 skill。
+- OpenClaw / Codex / Claude 这类运行时在“公开 skill 直调”模式下应优先调用 `POST /agent/public-bridge/invoke`。
 - 不应要求最终用户手工提供任何凭证。
+- 若宿主/运行时想先显式发起浏览器连接，而不是等待受保护 action 失败，可调用 `portal.account.connect`。
 - 当 `TRIAL_ENABLED` 且试用积分可用时，首次调用可无感完成，不需要先走浏览器授权。
 - 首次调用且尚无绑定时，若 `TRIAL_ENABLED` 且试用积分可用，可无感继续；仅在条件性升级授权场景（如 trial 耗尽或 trial 关闭回滚）才返回 `AUTHORIZATION_REQUIRED`（含 `authorization_url` 与 `entry_user_key`）。
 - 返回的 `authorization_url` 里可能带有 `gateway_api_base_url`；宿主在浏览器授权完成时应保留这个参数，确保 `/agent-auth/complete` 回到创建该授权会话的同一 API 环境。
@@ -128,6 +141,7 @@ Action 与接口映射：
 - 面向第三方 agent 入口的推荐桥接入口：`POST /agent/public-bridge/invoke`。
 - 若宿主是你自己控制、且能安全持有 bridge secret 的服务端，仍可继续使用 `POST /agent/skill/bridge/invoke`。
 - 这些桥接入口都由网关运行时提供，不打包在本公开 skill 包里，也不要求调用方自己管理任何凭证。
+- published skill persistence = disabled；连续性状态必须由 `host_or_private_wrapper` 持有，不能回写到公开包里。
 - bridge 请求体应包含 `action`、`agent_uid`、`conversation_id` 以及可选 `payload`。
 - `conversation_id` 应是宿主生成的 opaque 会话/安装标识，不应直接使用公开 chat id、原始 thread id 或任何 PII。
 - 公开 bridge 在可用时会直接复用稳定外部用户绑定；若绑定缺失且满足 trial 条件，首次调用可继续无感执行；仅在条件性升级授权场景返回宿主自有授权 URL（host-owned 授权 URL）和 `entry_user_key`。
@@ -143,10 +157,12 @@ Action 与接口映射：
 - `可信宿主 bridge`（次级）：若你控制上游后端且可安全持有 bridge assertion secret，可调用 `POST /agent/skill/bridge/invoke`。
 - 公开 skill 包本身不会拉起浏览器、持久化凭证或执行 OAuth/token 交换。
 - 上述授权 URL 由已部署的 gateway/admin-web 页面承载，不属于本 skill 包运行时。
+- public bridge 成功响应会在 `data.agent_guidance.bridge_auth` 中补充 `continuity_owner=host_or_private_wrapper`、`published_skill_persistence=disabled` 和返回的 `bridge_context`。
+- 若 public bridge 失败响应里带有 entry context，则会在 `error.details.bridge_auth` 中镜像恢复指引，供宿主/运行时在公开 skill 包外恢复 continuity。
 
 ## Agent 调用速查
 
-第三方 agent 入口推荐单入口（推荐）：
+第三方 agent 入口推荐单入口（当直接调用本公开 skill 时推荐）：
 
 - 已部署 bridge API 请求体：
 ```json
@@ -192,6 +208,10 @@ Action payload 模板（public bridge 与可信宿主 bridge 一致）：
 ```json
 { "run_id": "run_123", "channel": "web", "include_files": true }
 ```
+- `portal.account.connect`
+```json
+{ "connect_mode": "browser", "auth_session_id": "optional_existing_auth_session" }
+```
 - `portal.account.balance`
 ```json
 {}
@@ -203,8 +223,10 @@ Action payload 模板（public bridge 与可信宿主 bridge 一致）：
 
 agent 侧决策流程：
 
-- 对第三方 agent 入口，优先走 `POST /agent/public-bridge/invoke`，让首次授权直接返回 `authorization_url` 与 `entry_user_key`。
+- 若宿主/运行时可以承载独立 connector 安装，应优先走 hosted connector 的 install/connect/invoke/status/logout，而不是公开 skill 直调。
+- 否则，对第三方 agent 入口优先走 `POST /agent/public-bridge/invoke`，让首次授权直接返回 `authorization_url` 与 `entry_user_key`。
 - 新任务：先调 `portal.skill.execute`，再轮询 `portal.skill.poll` 到 `data.terminal=true`，最后调 `portal.skill.presentation`。
+- 显式账户连接：调用 `portal.account.connect`，有 `authorization_url` 就展示给用户，并持续复用同一个 `entry_user_key`。
 - 账户查询：直接调 `portal.account.balance` 或 `portal.account.ledger`。
 - `conversation_id` 只做上下文，不是账户主身份。
 - 若需要跨多个会话保持同一账户，在第三方入口模式下应复用同一个 `entry_user_key`；不要向公开 bridge 传 `owner_uid_hint`。
@@ -236,6 +258,7 @@ agent 侧决策流程：
 - 可选 `payload.request_id` 会透传给后端。
 - `portal.skill.poll`、`portal.skill.presentation`：`payload` 必须含 `run_id`。
 - `portal.skill.presentation` 支持 `include_files`（默认 `true`）。
+- `portal.account.connect`：`payload` 可带 `connect_mode` 与可选 `auth_session_id`，用于显式检查或续接已有浏览器绑定。
 - `portal.account.balance`：`payload` 可省略，传入内容会被忽略。
 - `portal.account.ledger`：`payload` 可带 `date_from` + `date_to`（`YYYY-MM-DD`，需成对出现）。
 

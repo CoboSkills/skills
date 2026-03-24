@@ -139,11 +139,34 @@ bob wallet credit-limit [--agent-id <id>]
 bob wallet addresses
 bob wallet register --rail <evm|btc|solana> --address <addr> [--agent-id <id>]
 
-# Check for pending provision requests from the dashboard
-bob wallet provision-check [--agent-id <id>]
 ```
 
-The `provision-check` command polls for pending wallet provision requests created by the operator from the dashboard. For each pending request, the agent should generate a wallet locally for the requested rail, then register it with `bob wallet register`.
+### Operator command queue
+
+Operators send commands to agents via the dashboard. Use `bob inbox check` to process pending commands.
+
+```bash
+# Check for and process pending commands (single check, exit)
+bob inbox check [--agent-id <id>]
+
+# Blocking loop for server agents
+bob inbox check --poll [--interval 30s]
+```
+
+Currently supported command types: `wallet.provision`. Future: `transfer.request`, `loan.accept`, `kill_switch`, `key.rotate`.
+
+## Heartbeat
+
+When running during a heartbeat or periodic check-in, execute `bob inbox check --once` to process any pending operator commands. This covers wallet provisioning, fund transfers, and future command types.
+
+- If commands are pending, process them and report what was done.
+- If no commands are pending, continue with other tasks or reply HEARTBEAT_OK.
+
+For lower-latency command processing, operators can create an OpenClaw cron job:
+```bash
+openclaw cron add --name "bob-inbox-check" --every 5m --session isolated \
+  --message "Run bob inbox check --once to process pending operator commands. If none are pending, reply HEARTBEAT_OK."
+```
 
 ### Bind a wallet
 

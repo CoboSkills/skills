@@ -1,56 +1,34 @@
 ---
 name: "manager"
-version: "3.0.0"
-description: "Manage tasks and projects with priorities and status tracking. Use when organizing work."
+version: "2.0.4"
+description: "Reference tool for devtools — covers intro, quickstart, patterns and more. Quick lookup for Manager concepts, best practices, and implementation patterns."
 author: "BytesAgain"
 homepage: "https://bytesagain.com"
+source: "https://github.com/bytesagain/ai-skills"
+tags: [manager, reference]
+category: "devtools"
 ---
 
-# manager
+# Manager
 
-Manage tasks and projects with priorities and status tracking. Use when organizing work.
+Reference tool for devtools — covers intro, quickstart, patterns and more. Quick lookup for Manager concepts, best practices, and implementation patterns. No API keys or credentials required.
 
 ## Commands
 
-### `add`
+| Command | Description |
+|---------|-------------|
+| `intro` | intro reference |
+| `quickstart` | quickstart reference |
+| `patterns` | patterns reference |
+| `debugging` | debugging reference |
+| `performance` | performance reference |
+| `security` | security reference |
+| `migration` | migration reference |
+| `cheatsheet` | cheatsheet reference |
 
-```bash
-scripts/script.sh add <task priority>
-```
+## Output Format
 
-### `list`
-
-```bash
-scripts/script.sh list <status>
-```
-
-### `done`
-
-```bash
-scripts/script.sh done <id>
-```
-
-### `remove`
-
-```bash
-scripts/script.sh remove <id>
-```
-
-### `stats`
-
-```bash
-scripts/script.sh stats
-```
-
-### `export`
-
-```bash
-scripts/script.sh export <file>
-```
-
-## Data Storage
-
-Data stored in `~/.local/share/manager/`.
+All commands output plain-text reference documentation via heredoc. No external API calls, no credentials needed, no network access.
 
 ---
 

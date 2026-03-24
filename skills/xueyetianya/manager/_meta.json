@@ -3,11 +3,16 @@
   "slug": "manager",
   "displayName": "Manager",
   "latest": {
-    "version": "3.0.0",
-    "publishedAt": 1773922241033,
-    "commit": "https://github.com/openclaw/skills/commit/80c5a690b90559811dda4e9a8277c0f1e263fcb1"
+    "version": "2.0.4",
+    "publishedAt": 1774313103661,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.0",
+      "publishedAt": 1773922241033,
+      "commit": "https://github.com/openclaw/skills/commit/80c5a690b90559811dda4e9a8277c0f1e263fcb1"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773673829067,

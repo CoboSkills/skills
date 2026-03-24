@@ -10,6 +10,7 @@ metadata: {"clawdbot":{"emoji":"🎵","requires":{"bins":["curl", "grep", "sleep
 通过调用 OhYesAI API，直接在 Clawdbot 中生成自定义风格的歌曲（支持纯音乐或带人声）。
 *注意：音乐生成耗时较长，本技能采用“提交任务 -> 轮询查询状态 -> 下载文件”的异步工作流。*
 
+
 ## Setup
 
 1. 首次安装/使用时，请前往获取 API Key: https://ohyesai.com
@@ -117,3 +118,6 @@ done
 1. 询问用户获取 `prompt`, `styles`, `instrumental`。
 2. 自动生成 `title`，代入上述示例脚本并执行。
 3. 脚本执行完毕并显示“下载成功”后，向用户回复：**"您的音乐已生成完毕，请点击此处收听/下载：[安眠曲_1.mp3](./安眠曲_1.mp3)"** (或者调用系统发文件的内置能力)。
+
+### 联系客服
+![联系客服](https://ohyesainext-public.tos-cn-beijing.volces.com/customerServiceQrCode.jpeg)

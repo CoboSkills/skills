@@ -1,4 +1,5 @@
-import { expect, test } from "bun:test";
+import assert from "node:assert/strict";
+import test from "node:test";
 
 import { formatArticleMarkdown } from "./markdown.js";
 
@@ -40,10 +41,10 @@ test("formatArticleMarkdown renders MARKDOWN entities from atomic blocks", () =>
 
   const { markdown } = formatArticleMarkdown(article);
 
-  expect(markdown).toContain("Before the snippet.");
-  expect(markdown).toContain("```python\nprint('hello from x article')\n```");
-  expect(markdown).toContain("After the snippet.");
-  expect(markdown).toBe(`# Atomic Markdown Example
+  assert.ok(markdown.includes("Before the snippet."));
+  assert.ok(markdown.includes("```python\nprint('hello from x article')\n```"));
+  assert.ok(markdown.includes("After the snippet."));
+  assert.strictEqual(markdown, `# Atomic Markdown Example
 
 Before the snippet.
 
@@ -108,11 +109,11 @@ test("formatArticleMarkdown renders article video media as poster plus video lin
 
   const { markdown } = formatArticleMarkdown(article);
 
-  expect(markdown).toContain("Intro text.");
-  expect(markdown).toContain(`![Demo reel](${posterUrl})`);
-  expect(markdown).toContain(`[video](${videoUrl})`);
-  expect(markdown).not.toContain(`![Demo reel](${videoUrl})`);
-  expect(markdown).not.toContain("## Media");
+  assert.ok(markdown.includes("Intro text."));
+  assert.ok(markdown.includes(`![Demo reel](${posterUrl})`));
+  assert.ok(markdown.includes(`[video](${videoUrl})`));
+  assert.ok(!markdown.includes(`![Demo reel](${videoUrl})`));
+  assert.ok(!markdown.includes("## Media"));
 });
 
 test("formatArticleMarkdown renders unused article videos in trailing media section", () => {
@@ -143,10 +144,10 @@ test("formatArticleMarkdown renders unused article videos in trailing media sect
 
   const { markdown, coverUrl } = formatArticleMarkdown(article);
 
-  expect(coverUrl).toBeNull();
-  expect(markdown).toContain("## Media");
-  expect(markdown).toContain(`![video](${posterUrl})`);
-  expect(markdown).toContain(`[video](${videoUrl})`);
+  assert.strictEqual(coverUrl, null);
+  assert.ok(markdown.includes("## Media"));
+  assert.ok(markdown.includes(`![video](${posterUrl})`));
+  assert.ok(markdown.includes(`[video](${videoUrl})`));
 });
 
 test("formatArticleMarkdown keeps coverUrl as preview image for video cover media", () => {
@@ -174,5 +175,5 @@ test("formatArticleMarkdown keeps coverUrl as preview image for video cover medi
 
   const { coverUrl } = formatArticleMarkdown(article);
 
-  expect(coverUrl).toBe(posterUrl);
+  assert.strictEqual(coverUrl, posterUrl);
 });

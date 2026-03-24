@@ -1,9 +1,9 @@
 name: qweather-china
-version: 1.2.0
+version: 1.3.1
 description: 基于中国气象局数据的完整天气服务，通过和风天气API提供实时天气、天气预报、生活指数、空气质量等全方位天气信息。
 author: uni-huang
 license: MIT
-homepage: https://dev.qweather.com/
+homepage: https://github.com/uni-huang/qweather-china
 
 requires:
   bins:
@@ -14,19 +14,26 @@ requires:
     - cryptography>=3.0
     - requests>=2.25
 
+permissions:
+  network:
+    - qweatherapi.com
+  filesystem:
+    - read: ~/.openclaw/ed25519-private.pem
+    - write: ~/.cache/qweather
+
 install:
   windows:
     - python -m pip install pyjwt cryptography requests
     - echo "请前往 https://dev.qweather.com/ 注册并获取API认证信息"
-    - echo "然后编辑 config.json 文件，配置您的API信息"
+    - echo "复制 config.json.template 为 config.json 并填写您的API信息"
   linux:
     - python3 -m pip install pyjwt cryptography requests
     - echo "请前往 https://dev.qweather.com/ 注册并获取API认证信息"
-    - echo "然后编辑 config.json 文件，配置您的API信息"
+    - echo "复制 config.json.template 为 config.json 并填写您的API信息"
   macos:
     - python3 -m pip install pyjwt cryptography requests
     - echo "请前往 https://dev.qweather.com/ 注册并获取API认证信息"
-    - echo "然后编辑 config.json 文件，配置您的API信息"
+    - echo "复制 config.json.template 为 config.json 并填写您的API信息"
 
 config:
   files:
@@ -36,6 +43,12 @@ config:
     - QWEATHER_PROJECT_ID
     - QWEATHER_CREDENTIALS_ID
     - QWEATHER_PRIVATE_KEY_PATH
+  setup: |
+    1. 前往 https://dev.qweather.com/ 注册开发者账号
+    2. 创建项目，获取 API 认证信息（kid, sub, api_host）
+    3. 下载私钥文件（ed25519-private.pem）
+    4. 复制 config.json.template 为 config.json
+    5. 填写您的 API 认证信息到 config.json
 
 triggers:
   - 天气
@@ -45,6 +58,7 @@ triggers:
   - 下雨
   - 风
   - 湿度
+  - 空气质量
 
 examples:
   - "北京天气怎么样？"
@@ -52,3 +66,27 @@ examples:
   - "广州需要带伞吗？"
   - "深圳穿什么？"
   - "杭州空气质量"
+
+network_access:
+  - domain: "*.re.qweatherapi.com"
+    purpose: "获取天气数据"
+    data_types: ["城市名称", "天气查询参数"]
+
+changelog: |
+  v1.3.0 (2026-03-21)
+  - 添加 .gitignore 和 LICENSE 文件
+  - 完善权限声明和网络访问说明
+  - 添加配置模板文件
+  - 优化跨平台缓存路径处理
+  
+  v1.2.0 (2026-03-16)
+  - 移除所有硬编码敏感信息
+  - 改为配置文件方式管理API凭证
+  - 统一编码为 UTF-8
+  
+  v1.1.0 (2026-03-15)
+  - 添加跨平台编码支持
+  - 优化Windows控制台显示
+  
+  v1.0.0 (2026-03-13)
+  - 初始版本发布

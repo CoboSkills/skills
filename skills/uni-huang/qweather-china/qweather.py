@@ -193,12 +193,20 @@ class LifeIndex:
 
 class QWeatherClient:
     """和风天气API客户端"""
-    
+
     def __init__(self):
         self.config = CONFIG
+        # 处理跨平台路径（展开 ~ 为用户主目录）
+        self.config["cache_dir"] = os.path.expanduser(self.config["cache_dir"])
+        self.config["private_key_path"] = os.path.expanduser(self.config["private_key_path"])
+
+        # 确保缓存目录存在
+        if not os.path.exists(self.config["cache_dir"]):
+            os.makedirs(self.config["cache_dir"], exist_ok=True)
+
         self.session = requests.Session()
         self.session.headers.update({
-            "User-Agent": "QWeather-OpenClaw/1.2.0"
+            "User-Agent": "QWeather-OpenClaw/1.3.0"
         })
         
     def _get_jwt_token(self) -> str:

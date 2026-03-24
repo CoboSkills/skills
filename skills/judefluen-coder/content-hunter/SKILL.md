@@ -1,6 +1,10 @@
 ---
 name: content-hunter
 description: 内容捕手 (Content Hunter) - 短视频平台热门内容抓取机器人。支持小红书、抖音、B站，可分批抓取热门内容并自动生成汇报。/Content Hunter - Hot content crawler for Xiaohongshu, Douyin, Bilibili. Supports batch scraping and scheduled reporting.
+version: 1.1.0
+changelog: |
+  - 1.1.0: 支持定时多次抓取模式，每次创建独立任务文件夹，支持10次批量抓取
+  - 1.0.0: 初始版本，支持单次抓取和晚8点汇报
 ---
 
 # 内容捕手 / Content Hunter
@@ -108,7 +112,8 @@ content-hunter/
 2. **必须提取所有字段！每条必须包含：标题、作者、热度、内容总结** / **Must extract ALL fields: title, author, views/likes, content summary**
 3. **保存到当前任务文件夹** / Save to current task folder：`~/.openclaw/workspace/content-hunter/task-YYYY-MM-DD-HHMM/`
 4. 等待3-5分钟 / Wait 3-5 minutes
-5. **汇报任务执行完毕后，停止抓取，等待下次定时任务** / **After report is sent, stop scraping and wait for next scheduled task**
+5. **⚠️ 抓取过程中不发送任何进度消息到群聊，只保存数据** / **⚠️ Do NOT send any progress messages to group chats during scraping, only save data**
+6. **汇报任务执行完毕后，停止抓取，等待下次定时任务** / **After report is sent, stop scraping and wait for next scheduled task**
 
 ### 4.4 汇报数据范围 / Report Data Scope
 **重要：汇报时需要汇总当日所有抓取任务的数据，而非仅最近一次！** / **Important: Report must summarize ALL data from all tasks on that day, not just the latest one!**
@@ -120,9 +125,7 @@ content-hunter/
 4. 汇总数据量 = 所有任务的累加总和 / Total = sum of all tasks
 
 ### 4.5 B站字幕提取 / Bilibili Subtitle Extraction
-```bash
-python3 ~/.openclaw/workspace/skills/bilibili-youtube-watcher/scripts/get_transcript.py "视频URL" --lang zh-CN
-```
+使用 bilibili-youtube-watcher 技能的 get_transcript.py 脚本提取字幕
 
 ---
 
@@ -132,7 +135,8 @@ python3 ~/.openclaw/workspace/skills/bilibili-youtube-watcher/scripts/get_transc
 1. **读取数据**：从最新的task文件夹读取各平台md文件 / Read from latest task folder
 2. 生成汇报 / Generate report
 3. 发送汇报到群里 / Send report to group
-4. **汇报后停止，等待下次任务** / After report, stop and wait for next task
+4. **汇报后自动清理**：执行 `openclaw cron list` 找到所有内容捕手相关 cron（名称含"内容捕手"或"hunter"），逐一删除
+5. **汇报后停止，等待下次任务** / After cleanup, stop and wait for next task
 
 ### 汇报内容 / Report Contents
 1. 发原始数据文件链接 / Send raw data links
@@ -169,13 +173,11 @@ python3 ~/.openclaw/workspace/skills/bilibili-youtube-watcher/scripts/get_transc
 - "启用内容捕手" / "Enable content hunter"
 
 #### 方式二：定时任务 / Method 2: Cron Job (Recommended)
-```bash
-# 每30分钟抓取（9:00-20:00），追加到现有文件 / Every 30 min, append to existing files
-openclaw cron add --name "内容捕手-抓取" --cron "*/30 9-20 * * *" --session isolated --message "请执行内容捕手抓取：每次每平台抓40条，追加保存到 ~/.openclaw/workspace/content-hunter/data/ 对应md文件中（是追加不是覆盖！）"
+定时任务需要手动创建，参考以下配置：
+- 抓取任务：每30分钟执行一次（9:00-20:00），静默执行不发群消息
+- 汇报任务：晚上20:00执行，发送到小红书群
 
-# 晚上8点汇报 / Daily report at 8 PM
-openclaw cron add --name "内容捕手-汇报" --cron "0 20 * * *" --session isolated --message "请执行内容捕手汇报：读取当天所有任务文件夹的数据，汇总后生成汇报发送到群里"
-```
+**⚠️ 绝对原则：内容捕手的所有任务和汇报，只允许发送到小红书呱呱群（oc_d21f6b6f9bd843444622c8e221134f47），禁止发送到任何其他群！**
 
 ### 7.2 可配置参数 / Configurable Parameters
 
@@ -248,7 +250,7 @@ openclaw cron add --name "内容捕手-汇报" --cron "0 20 * * *" --session iso
 xxx
 ```
 
-### 7.3 对话示例 / Chat Examples
+### 7.5 对话示例 / Chat Examples
 
 ```
 用户A：帮我刷短视频平台
@@ -277,10 +279,7 @@ xxx
 → AI: Reading existing data, generating report
 ```
 
-### 7.4 定时任务检查 / Cron Job Check
-每天早上检查cron任务状态，发现丢失立即重新设置。/Check cron jobs daily, restore if missing.
-
-### 7.5 注意事项 / Notes
+### 7.4 注意事项 / Notes
 - 定时任务可能因Gateway重启而丢失，需定期检查 / Cron may be lost on Gateway restart
 - 抓取过程中请勿关闭浏览器 / Don't close browser during scraping
 - 建议保持浏览器标签页稳定 / Keep browser tabs stable

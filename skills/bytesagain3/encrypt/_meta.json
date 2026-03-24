@@ -3,11 +3,16 @@
   "slug": "encrypt",
   "displayName": "Encrypt",
   "latest": {
-    "version": "2.0.1",
-    "publishedAt": 1773830552408,
-    "commit": "https://github.com/openclaw/skills/commit/3ff27799bcdf00694ef3f6aba3eb034f51e5adfc"
+    "version": "2.0.4",
+    "publishedAt": 1774312628513,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.1",
+      "publishedAt": 1773830552408,
+      "commit": "https://github.com/openclaw/skills/commit/3ff27799bcdf00694ef3f6aba3eb034f51e5adfc"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1773663682924,

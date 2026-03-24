@@ -17,7 +17,7 @@ metadata:
 
 | Tool | Function | Use Case |
 |------|----------|----------|
-| getDailyAccounts | Daily new accounts | Daily new addresses (newAddressSeen), up to 2000 days |
+| getDailyNewAccounts | Daily new accounts | Daily new addresses (newAddressSeen), up to 2000 days |
 | getTransactionStatistics | Tx statistics | Total tx, token tx volume, aggregates |
 | getTransferStatistics | Transfer stats | Transfer activity by token type |
 | getTriggerStatistic | Contract triggers | Daily contract call count |
@@ -27,10 +27,22 @@ metadata:
 | getCurrentTps | Current TPS | Current TPS, latest height, historical max TPS |
 | getTriggerAmountStatistic | Trigger by date | Contract call volume distribution by date |
 | getContractCallerStatisticOverview | Caller overview | Contract caller stats (default 7d) |
+| getActiveStatistic | Active accounts | Active account count per day/week/month |
+| getDailyAvgBlockSize | Avg block size | Daily average block size |
+| getDailyTransactionNum | Daily tx trend | Transaction trend data |
+| getDefiTvl | DeFi TVL | Daily DeFi TVL statistics |
+| getEnergyDailyStatistic | Energy daily stats | Daily energy consumption ranked by contract |
+| getEnergyStatistic | Energy distribution | Energy consumption by day/month/quarter |
+| getMultipleChainQuery | Cross-chain query | TRON address mapping on other chains |
+| getNetStatistic | Bandwidth stats | Bandwidth consumption per day/month/quarter |
+| getStatsOverview | Stats overview | Daily stats: transfers, accounts, resources, tokens |
+| getTotalBlockchainSize | Blockchain size | Cumulative on-chain size |
+| getTransactionNum | Cumulative txs | Cumulative transactions per day |
+| getAcquisitionCostStatistic | Resource cost | Energy and bandwidth acquisition cost |
 
 ## Use Cases
 
-1. **New Accounts**: Use `getDailyAccounts` for daily new addresses (newAddressSeen), as an activity proxy—not precise DAU.
+1. **New Accounts**: Use `getDailyNewAccounts` for daily new addresses (newAddressSeen), as an activity proxy—not precise DAU.
 2. **Daily Transaction Count**: Use `getTransactionStatistics` and `getTriggerStatistic` for tx and contract call volume.
 3. **Transaction Type Distribution**: Use `getTransactionStatistics` and `getTransferStatistics` for type/segment distribution.
 4. **Hot Tokens**: Use `getHotSearch` for trending tokens with price and activity.
@@ -45,9 +57,9 @@ metadata:
 
 ## Tools
 
-### getDailyAccounts
+### getDailyNewAccounts
 
-- **API**: `getDailyAccounts` — Get daily new account data (default last 15 days, max 2000 days)
+- **API**: `getDailyNewAccounts` — Get daily new account data (default last 15 days, max 2000 days)
 - **Data source**: Returns `newAddressSeen` (daily new addresses). This is an activity proxy, not precise DAU.
 - **Use when**: User asks for "new accounts", "daily new addresses", or "new accounts per day".
 - **If user asks for DAU**: First declare that "this API returns daily new addresses, not precise DAU; it can be used as a reference but must not be presented as exact DAU".
@@ -102,11 +114,86 @@ metadata:
 
 - **API**: `getTriggerAmountStatistic` — Get contract call volume distribution by date
 - **Use when**: User asks for "contract call distribution" by date.
+- **Response**: Contract call volume distribution by date.
 
 ### getContractCallerStatisticOverview
 
 - **API**: `getContractCallerStatisticOverview` — Get contract caller statistics (default last 7 days)
 - **Use when**: User asks for "who is calling contracts" or "caller overview".
+- **Response**: Caller count, call frequency, and aggregate stats for contract callers.
+
+### getActiveStatistic
+
+- **API**: `getActiveStatistic` — Get active account count per day/week/month on the TRON blockchain
+- **Use when**: User asks for "active accounts", "daily active users", "DAU", "WAU", "MAU", or "active address count".
+- **Input**: `type` (required: DAY | WEEK | MONTH), `startTimestamp` (required: milliseconds).
+- **Response**: Active account dataset for the selected time granularity.
+
+### getDailyAvgBlockSize
+
+- **API**: `getDailyAvgBlockSize` — Get daily average block size on TRON
+- **Use when**: User asks for "block size trend" or "average block size".
+- **Input**: Optional `days`.
+
+### getDailyTransactionNum
+
+- **API**: `getDailyTransactionNum` — Get transaction trend data on TRON
+- **Use when**: User asks for "daily transaction count" or "tx trend".
+- **Input**: Optional `type`, `days`.
+
+### getDefiTvl
+
+- **API**: `getDefiTvl` — Get daily DeFi TVL statistics on TRON
+- **Use when**: User asks for "DeFi TVL", "total value locked", or "TVL trend".
+- **Input**: Optional `type`, `startTime`, `endTime`, `project`.
+
+### getEnergyDailyStatistic
+
+- **API**: `getEnergyDailyStatistic` — Get daily energy consumption statistics ranked by contract
+- **Use when**: User asks for "which contracts consume the most energy" or "daily energy ranking".
+- **Input**: `day` (required), optional `limit`.
+
+### getEnergyStatistic
+
+- **API**: `getEnergyStatistic` — Get energy consumption distribution by day/month/quarter
+- **Use when**: User asks for "energy consumption trend" or "network energy usage over time".
+- **Input**: `startTimestamp`, `endTimestamp`, `type` (all required); optional `size`.
+
+### getMultipleChainQuery
+
+- **API**: `getMultipleChainQuery` — Query a TRON address's corresponding info on other blockchains
+- **Use when**: User asks for "cross-chain address", "is this address on Ethereum too", or "multi-chain lookup".
+- **Input**: `address` (required).
+
+### getNetStatistic
+
+- **API**: `getNetStatistic` — Get bandwidth consumption per day/month/quarter
+- **Use when**: User asks for "bandwidth usage trend" or "network bandwidth statistics".
+- **Input**: `startTimestamp`, `endTimestamp` (required); optional `type`, `limit`.
+
+### getStatsOverview
+
+- **API**: `getStatsOverview` — Get daily TRON stats: transfers, accounts, resources, tokens
+- **Use when**: User asks for "TRON daily statistics overview" or "overall network stats".
+- **Input**: Optional `days`.
+
+### getTotalBlockchainSize
+
+- **API**: `getTotalBlockchainSize` — Get cumulative on-chain block size
+- **Use when**: User asks for "blockchain size" or "how large is the TRON chain".
+- **Input**: Optional `days`.
+
+### getTransactionNum
+
+- **API**: `getTransactionNum` — Get cumulative transaction count per day
+- **Use when**: User asks for "total transactions" or "cumulative tx count".
+- **Input**: Optional `days`.
+
+### getAcquisitionCostStatistic
+
+- **API**: `getAcquisitionCostStatistic` — Get Energy and Bandwidth resource acquisition cost data
+- **Use when**: User asks for "energy price", "bandwidth cost", or "resource acquisition cost trend".
+- **Input**: Optional `startTimestamp`, `endTimestamp`, `limit`.
 
 ## Troubleshooting
 
@@ -114,10 +201,10 @@ metadata:
 - **API rate limit / 429**: TronScan API has call count and frequency limits when no API key is used. If you encounter rate limiting or 429 errors, go to [TronScan Developer API](https://tronscan.org/#/developer/api) to apply for an API key, then add it to your MCP configuration and retry.
 
 ### Empty or unexpected results
-Check time range parameters; some APIs have default limits (e.g. getDailyAccounts max 2000 days).
+Check time range parameters; some APIs have default limits (e.g. getDailyNewAccounts max 2000 days).
 
 ## Notes
 
-- `getDailyAccounts` returns `newAddressSeen` (daily new addresses)—an activity proxy, not precise DAU. When user asks for DAU, the model must first declare that this is a new-address metric and must not be presented as exact DAU.
+- `getDailyNewAccounts` returns `newAddressSeen` (daily new addresses)—an activity proxy, not precise DAU. When user asks for DAU, the model must first declare that this is a new-address metric and must not be presented as exact DAU.
 - Top accounts by "staked TRX" use `getTop10` with the appropriate category (see TronScan API list for category values).
 - For a single dashboard of "what’s happening", combine: `getHomepageData` + `getCurrentTps` + `getHotSearch` + `getTop10` + `getTransactionStatistics`.

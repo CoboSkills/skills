@@ -1,6 +1,6 @@
 ---
 name: pharmacoeconomic-evaluation
-description: This skill provides comprehensive guidance and tools for conducting pharmacoeconomic evaluations including cost-effectiveness analysis (CEA), cost-utility analysis (CUA), cost-benefit analysis (CBA), budget impact analysis (BIA), sensitivity analysis, and decision-analytic model construction (Markov, decision tree, DES, PSM). Follows Chinese Pharmacoeconomic Evaluation Guidelines (2023). Use this skill for HTA projects, drug pricing, reimbursement decisions, and health economic research.
+description: This skill provides comprehensive guidance and tools for conducting pharmacoeconomic evaluations including cost-effectiveness analysis (CEA), cost-utility analysis (CUA), cost-benefit analysis (CBA), budget impact analysis (BIA), sensitivity analysis, and decision-analytic model construction (Markov, decision tree, DES, PSM). Follows ISPOR Good Practices for Outcomes Research Reports. Use this skill for HTA projects, drug pricing, reimbursement decisions, and health economic research.
 ---
 
 # Pharmacoeconomic Evaluation Skill
@@ -31,7 +31,7 @@ Choose the appropriate evaluation type based on research objectives and data cha
 2. Select evaluation type
    - Choose CEA, CUA, CBA, or CMA based on outcome measure
    - Consider discounting for long-term studies (both costs and outcomes)
-   - China recommended discount rate: 3%-5%
+   - Recommended discount rate: 3.5%
 
 3. Determine time horizon
    - Chronic diseases: lifetime or sufficiently long
@@ -149,7 +149,7 @@ result = calculate_icere(
     effect_intervention,  # Intervention group effect (e.g., QALYs)
     cost_control,  # Control group cost
     effect_control,  # Control group effect
-    threshold=120000  # Threshold (China reference: 1-3x GDP per QALY)
+    threshold=30000  # Threshold (30KUSD for US & UK, and close to 2x GDP per QALY of China)
 )
 ```
 
@@ -273,7 +273,7 @@ results_df = simulator.probabilistic_sensitivity_analysis(
 
 ### Step 7: Interpret and Report Results
 
-#### Willingness-to-Pay Threshold (China Reference)
+#### Willingness-to-Pay Threshold (Reference)
 - 1x GDP/QALY: ~¥120,000
 - 2x GDP/QALY: ~¥240,000
 - 3x GDP/QALY: ~¥360,000
@@ -293,7 +293,7 @@ Follow CHEERS 2022 and Chinese Pharmacoeconomic Evaluation Guidelines:
 5. Discuss limitations and generalizability
 6. Clearly state funding sources and potential conflicts of interest
 
-See `references/china_guidelines.md` for detailed guidelines.
+See `references/guidelines.md` for detailed guidelines.
 
 ## Scripts Guide
 
@@ -334,8 +334,8 @@ Main classes and methods:
 
 ## References Guide
 
-### china_guidelines.md
-Summary of key content from Chinese Pharmacoeconomic Evaluation Guidelines (2023), including:
+### guidelines.md
+Summary of key content from ISPOR Good Practices, including:
 - Evaluation framework and perspective
 - Cost identification and measurement
 - Effect/utility measurement
@@ -432,7 +432,7 @@ See `scripts/example.py` for complete parameter organization format.
 
 3. **Parameter Source Documentation**: All parameter values must cite sources for traceability and verification
 
-4. **Discounting**: Both costs and outcomes need discounting; China recommended rate is 3%-5%
+4. **Discounting**: Both costs and outcomes need discounting; recommended rate is 3.5%
 
 5. **Sensitivity Analysis**: Conduct sufficient sensitivity analysis to evaluate uncertainty
 
@@ -440,7 +440,7 @@ See `scripts/example.py` for complete parameter organization format.
 
 7. **Reporting Standards**: Follow CHEERS 2022 reporting standards
 
-8. **Threshold**: Clearly state the threshold used and its basis (China reference: 1-3x GDP/QALY)
+8. **Threshold**: Clearly state the threshold used and its basis (Reference: 1-3x GDP/QALY)
 
 9. **Time Horizon**: Select sufficiently long time horizon to capture all relevant costs and outcomes
 

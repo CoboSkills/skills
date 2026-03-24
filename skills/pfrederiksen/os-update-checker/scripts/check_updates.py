@@ -3,7 +3,7 @@
 os-update-checker: Check for available OS package updates and fetch changelogs.
 
 Supports apt (Debian/Ubuntu), dnf (Fedora/RHEL), yum (CentOS/RHEL 7),
-pacman (Arch), zypper (openSUSE), apk (Alpine), and brew (macOS).
+pacman (Arch), zypper (openSUSE), apk (Alpine), brew (macOS), and npm (global).
 
 Read-only — no packages are installed or modified. subprocess is used with
 shell=False exclusively; package names are validated against per-backend
@@ -15,6 +15,8 @@ import json
 import re
 import shutil
 import subprocess
+import urllib.request
+import urllib.error
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
@@ -544,33 +546,140 @@ class BrewBackend(Backend):
         return "\n".join(lines)
 
 
+# ---- npm (global packages) ------------------------------------------------
+
+
+class NpmBackend(Backend):
+    """Backend for npm global packages (`npm outdated -g`)."""
+
+    NAME_PATTERN = re.compile(r"[a-zA-Z0-9]([a-zA-Z0-9._\-]*[a-zA-Z0-9])?|@[a-zA-Z0-9\-]+/[a-zA-Z0-9._\-]+")
+
+    def list_upgradable(self) -> list[PackageUpdate]:
+        """Parse `npm outdated -g --json` into PackageUpdate objects."""
+        raw = _run(["npm", "outdated", "-g", "--json"], timeout=60)
+        if not raw:
+            return []
+
+        try:
+            data: dict = json.loads(raw)
+        except ValueError:
+            return []
+
+        packages: list[PackageUpdate] = []
+        for name, info in data.items():
+            if not isinstance(info, dict):
+                continue
+            try:
+                current = info.get("current", "")
+                wanted = info.get("wanted", "")
+                latest = info.get("latest", "")
+                # Use latest if it's ahead of wanted, otherwise wanted
+                new_version = latest if latest and latest != current else wanted
+                if not new_version or new_version == current:
+                    continue
+                packages.append(PackageUpdate(
+                    name=name,
+                    current_version=current,
+                    new_version=new_version,
+                    source="npm",
+                    is_security=False,
+                ))
+            except (KeyError, TypeError):
+                continue
+
+        return packages
+
+    def fetch_changelog(self, package_name: str) -> str:
+        """Fetch package metadata from the npm registry as a changelog substitute."""
+        safe = self.sanitize(package_name)
+        if safe is None:
+            return "Skipped: package name failed validation."
+
+        # URL-encode scoped packages (@scope/name → %40scope%2Fname)
+        encoded = safe.replace("@", "%40").replace("/", "%2F")
+        url = f"https://registry.npmjs.org/{encoded}/latest"
+
+        try:
+            req = urllib.request.Request(url, headers={"Accept": "application/json"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                meta: dict = json.loads(resp.read().decode())
+        except (urllib.error.URLError, OSError, ValueError):
+            return "No changelog available (registry unreachable)."
+
+        lines: list[str] = []
+        version = meta.get("version", "")
+        description = meta.get("description", "")
+        homepage = meta.get("homepage", "")
+
+        if version:
+            lines.append(f"Latest version: {version}")
+        if description:
+            lines.append(f"Description: {description}")
+        if homepage:
+            lines.append(f"Homepage: {homepage}")
+
+        # Pull changelog/release notes URL if present in the dist-tags or repository
+        repo = meta.get("repository", {})
+        if isinstance(repo, dict):
+            repo_url = repo.get("url", "")
+            if repo_url:
+                lines.append(f"Repository: {repo_url}")
+
+        return "\n".join(lines) if lines else "No metadata available."
+
+    def classify_risk(self, pkg: PackageUpdate) -> str:
+        """npm global packages are all low risk by default (no OS-level security advisories)."""
+        name_lower = pkg.name.lower()
+        if any(sub in name_lower for sub in _MODERATE_RISK_SUBSTRINGS):
+            return "🟡 moderate"
+        return "🟢 low"
+
+
 # ---------------------------------------------------------------------------
 # Detection
 # ---------------------------------------------------------------------------
 
 
+def detect_backends() -> list[Backend]:
+    """
+    Auto-detect all available package managers and return matching backends.
+
+    npm is always checked independently alongside the OS package manager, since
+    a system may have both apt and npm installed simultaneously.
+    Returns an empty list if no supported package manager is found.
+    """
+    backends: list[Backend] = []
+
+    # OS package managers (mutually exclusive — pick first match)
+    if _which("apt"):
+        backends.append(AptBackend())
+    elif _which("dnf"):
+        backends.append(DnfBackend())
+    elif _which("yum"):
+        backends.append(YumBackend())
+    elif _which("pacman"):
+        backends.append(PacmanBackend())
+    elif _which("zypper"):
+        backends.append(ZypperBackend())
+    elif _which("apk"):
+        backends.append(ApkBackend())
+    elif _which("brew"):
+        backends.append(BrewBackend())
+
+    # npm global packages — always check independently if available
+    if _which("npm"):
+        backends.append(NpmBackend())
+
+    return backends
+
+
 def detect_backend() -> Backend | None:
     """
-    Auto-detect the available package manager and return the matching backend.
-
-    Checks for package manager binaries in priority order. Returns None if no
-    supported package manager is found.
+    Legacy single-backend detection. Returns the first OS backend found, or
+    NpmBackend if only npm is available. Use detect_backends() for full coverage.
     """
-    if _which("apt"):
-        return AptBackend()
-    if _which("dnf"):
-        return DnfBackend()
-    if _which("yum"):
-        return YumBackend()
-    if _which("pacman"):
-        return PacmanBackend()
-    if _which("zypper"):
-        return ZypperBackend()
-    if _which("apk"):
-        return ApkBackend()
-    if _which("brew"):
-        return BrewBackend()
-    return None
+    backends = detect_backends()
+    return backends[0] if backends else None
 
 
 # ---------------------------------------------------------------------------
@@ -633,8 +742,8 @@ def main() -> None:
     """Parse arguments, detect package manager, fetch updates, print report."""
     parser = argparse.ArgumentParser(
         description=(
-            "Check for OS package updates with per-package changelog summaries. "
-            "Supports apt, dnf, yum, pacman, zypper, apk, and brew."
+            "Check for OS/npm package updates with per-package changelog summaries. "
+            "Supports apt, dnf, yum, pacman, zypper, apk, brew, and npm (global)."
         ),
     )
     parser.add_argument(
@@ -650,21 +759,60 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    backend = detect_backend()
-    if backend is None:
-        print("❌ No supported package manager found (apt/dnf/yum/pacman/zypper/apk/brew).")
+    backends = detect_backends()
+    if not backends:
+        print("❌ No supported package manager found (apt/dnf/yum/pacman/zypper/apk/brew/npm).")
         return
 
-    packages = backend.list_upgradable()
-
-    if not args.no_changelog:
-        for pkg in packages:
-            pkg.changelog_summary = backend.fetch_changelog(pkg.name)
+    all_packages: list[tuple[PackageUpdate, Backend]] = []
+    for backend in backends:
+        pkgs = backend.list_upgradable()
+        for pkg in pkgs:
+            if not args.no_changelog:
+                pkg.changelog_summary = backend.fetch_changelog(pkg.name)
+            all_packages.append((pkg, backend))
 
     if args.format == "json":
-        print(format_json(packages, backend))
+        # Merge all backends into a single JSON structure
+        merged_packages = [p for p, _ in all_packages]
+        # Use first backend for classify_risk fallback; each pkg carries its own source
+        primary_backend = backends[0]
+        # Build JSON manually to preserve per-backend risk classification
+        data: dict = {
+            "total": len(merged_packages),
+            "security_count": sum(1 for p in merged_packages if p.is_security),
+            "packages": [
+                {
+                    "name": p.name,
+                    "current_version": p.current_version,
+                    "new_version": p.new_version,
+                    "source": p.source,
+                    "is_security": p.is_security,
+                    "risk": b.classify_risk(p),
+                    "changelog_summary": p.changelog_summary,
+                }
+                for p, b in all_packages
+            ],
+        }
+        print(json.dumps(data, indent=2))
     else:
-        print(format_text(packages, backend))
+        if not all_packages:
+            print("✅ System is up to date — no packages to upgrade.")
+            return
+        security_count = sum(1 for p, _ in all_packages if p.is_security)
+        header = f"📦 {len(all_packages)} package(s) upgradable"
+        if security_count:
+            header += f" — ⚠️ {security_count} security update(s)"
+        lines: list[str] = [header, ""]
+        for pkg, backend in all_packages:
+            risk = backend.classify_risk(pkg)
+            lines.append(f"**{pkg.name}** {pkg.current_version} → {pkg.new_version}")
+            lines.append(f"  Source: {pkg.source}  |  Risk: {risk}")
+            if pkg.changelog_summary:
+                for cl_line in pkg.changelog_summary.splitlines()[:12]:
+                    lines.append(f"    {cl_line}")
+            lines.append("")
+        print("\n".join(lines))
 
 
 if __name__ == "__main__":

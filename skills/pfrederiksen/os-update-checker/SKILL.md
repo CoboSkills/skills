@@ -1,6 +1,7 @@
 ---
 name: os-update-checker
-description: "Check for available OS package updates with per-package changelog summaries and risk classification. Supports apt (Debian/Ubuntu), dnf (Fedora/RHEL), yum (CentOS 7), pacman (Arch), zypper (openSUSE), apk (Alpine), and brew (macOS). Use when: checking system update status, before approving upgrades, or in heartbeats/cron for periodic OS health monitoring. Read-only — does not install or modify anything."
+version: 1.2.0
+description: "Check for available OS package updates with per-package changelog summaries and risk classification. Supports apt (Debian/Ubuntu), dnf (Fedora/RHEL), yum (CentOS 7), pacman (Arch), zypper (openSUSE), apk (Alpine), brew (macOS), and npm (global packages). Use when: checking system update status, before approving upgrades, or in heartbeats/cron for periodic OS health monitoring. Read-only — does not install or modify anything."
 ---
 
 # OS Update Checker
@@ -9,7 +10,7 @@ Read-only, cross-platform package update checker. Auto-detects the available pac
 
 ## Supported Package Managers
 
-| OS | Package Manager |
+| OS / Runtime | Package Manager |
 |---|---|
 | Debian / Ubuntu / Mint | `apt` |
 | Fedora / RHEL 8+ / Rocky / Alma | `dnf` |
@@ -18,6 +19,7 @@ Read-only, cross-platform package update checker. Auto-detects the available pac
 | openSUSE Leap / Tumbleweed / SLES | `zypper` |
 | Alpine Linux | `apk` |
 | macOS / Linux (Homebrew) | `brew` |
+| Node.js (global npm packages) | `npm` |
 
 ## Usage
 
@@ -55,8 +57,8 @@ python3 scripts/check_updates.py --no-changelog
 
 ## System Access
 
-- **Commands (read-only):** `apt list`, `apt changelog`, `dnf check-update`, `rpm -q --changelog`, `yum check-update`, `pacman -Qu`, `pacman -Si`, `zypper list-updates`, `zypper info`, `apk list`, `apk info`, `brew outdated`, `brew info`
-- **Network:** Outbound HTTPS to distribution changelog servers (apt only; others use local package metadata)
+- **Commands (read-only):** `apt list`, `apt changelog`, `dnf check-update`, `rpm -q --changelog`, `yum check-update`, `pacman -Qu`, `pacman -Si`, `zypper list-updates`, `zypper info`, `apk list`, `apk info`, `brew outdated`, `brew info`, `npm outdated -g --json`
+- **Network:** Outbound HTTPS to distribution changelog servers (apt); outbound HTTPS to `registry.npmjs.org` (npm); others use local package metadata
 - **No file writes**
 
 ## Requirements

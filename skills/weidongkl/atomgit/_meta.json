@@ -1,11 +1,17 @@
 {
   "owner": "weidongkl",
   "slug": "atomgit",
-  "displayName": "Atomgit",
+  "displayName": "atomgit",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774081672206,
-    "commit": "https://github.com/openclaw/skills/commit/85df23291c197183a7042084349fb6181c6cd607"
+    "version": "3.0.0",
+    "publishedAt": 1774173713848,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774081672206,
+      "commit": "https://github.com/openclaw/skills/commit/85df23291c197183a7042084349fb6181c6cd607"
+    }
+  ]
 }

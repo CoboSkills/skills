@@ -3,9 +3,15 @@
   "slug": "seedance-shot-design",
   "displayName": "Seedance 2.0 Shot Design",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774078910630,
-    "commit": "https://github.com/openclaw/skills/commit/90e2b6d45fde20f6de77ebe31d6c7beb3d28f0ae"
+    "version": "1.4.1",
+    "publishedAt": 1774324962955,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774078910630,
+      "commit": "https://github.com/openclaw/skills/commit/90e2b6d45fde20f6de77ebe31d6c7beb3d28f0ae"
+    }
+  ]
 }

@@ -3,9 +3,15 @@
   "slug": "social-automator",
   "displayName": "Social Automator",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773983913302,
-    "commit": "https://github.com/openclaw/skills/commit/bfd23f92016009767d7e9a962c5810c61db40265"
+    "version": "2.0.1",
+    "publishedAt": 1774316833852,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773983913302,
+      "commit": "https://github.com/openclaw/skills/commit/bfd23f92016009767d7e9a962c5810c61db40265"
+    }
+  ]
 }

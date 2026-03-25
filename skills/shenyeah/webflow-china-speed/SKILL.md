@@ -1,115 +1,27 @@
 ---
 name: webflow-china-speed
 description: >
-  让 Webflow 网站在中国大陆正常访问并高速加载的专项技能。2025年11月起 Webflow 自定义域名被 GFW 封控，本技能通过 Cloudflare Worker + R2 反向代理彻底解决：Google 资源屏蔽、jQuery CDN 阻塞、Webflow Badge 移除、CMS 图片加速、视频分段加载、CSS 内联资源改写共 12 项优化。支持三条路线决策（CF Worker 免备案 / VPS 反代 / EdgeOne 国内节点），含 DNS 地理分流、多客户共享、多语言网站架构指南。Make Webflow websites accessible and fast in mainland China via Cloudflare Worker reverse proxy with 12 optimizations including Google resource removal, jQuery CDN replacement, Webflow Badge removal, CMS image acceleration, and video range support.
+  Webflow + Cloudflare Worker 中国大陆访问加速专项技能。当用户想要优化 Webflow 网站在中国大陆的访问速度时，必须使用此技能。
+  触发场景：用户提到 Webflow 网站速度慢、中国大陆无法访问、CF Worker 反向代理优化、Google 资源被屏蔽、Webflow CDN 加速、
+  字体加载慢、视频加载慢、jsdmirror 替换、R2 缓存、ICP 备案合规、EdgeOne 国内节点、双域名双 CDN 架构、DNS 地理分流、
+  多项目扩展、Geo-DNS、华为云 DNS、腾讯 EdgeOne、大陆备案最小成本方案等话题。
+  即使用户只是问"我的 Webflow 网站在中国大陆很慢怎么办"也要触发。
 ---
 
 # Webflow 网站中国大陆访问加速
 
-## ⚠️ 2025 年重要变化：Webflow 自定义域名被 GFW 封控
-
-**2025 年 11 月起**，Webflow 自定义域名在中国大陆严重受限或完全无法访问。原因链：
-
-1. Webflow 于 2025 年 4 月将所有自定义域名从旧基础设施（`proxy-ssl.webflow.com`，AWS 美西）迁移到 Cloudflare（`cdn.webflow.com`，IP `198.202.211.1`）
-2. GFW 对该 Cloudflare 出口 IP 段实施了 SNI 层面的封控
-3. **结果：所有未经反代处理的 Webflow 自定义域名在大陆不可访问或极度不稳定**
-4. `*.webflow.io` 的 staging 域名走的是另一组 Cloudflare IP（`172.64.x.x`），目前仍可访问但不稳定
-
-**这意味着**：反向代理/Worker 已不再是"优化"——而是让 Webflow 网站在中国大陆能打开的**唯一途径**。
+解决 Webflow 网站在中国大陆打不开/极慢的问题。方案基于 Cloudflare Worker 反向代理，涉及多项操作：移除被墙的 Google 资源、jQuery 替换为国内镜像、静态资源缓存到 R2、CSS/视频/字体路径改写等。如需更彻底的加速（延迟降至 50-100ms），则需要 ICP 备案并接入腾讯 EdgeOne 国内节点。
 
 ---
 
 ## 前置条件确认
 
 在开始前，先了解用户现有架构：
-- **域名与 Webflow URL**：用户自定义域名是什么？原始 Webflow URL（`*.webflow.io`）是什么？
+- **域名与 Webflow URL**：用户自定义域名是什么？原始 Webflow URL（*.webflow.io）是什么？
 - **是否已有 CF Worker**：如果已有，让用户提供现有 Worker 代码；如果没有，需要从头建
 - **是否已有 R2 Bucket**：R2 是持久化静态资源缓存的关键
 - **CF Account ID**：部署 Worker 需要
-- **是否有 ICP 备案域名**：决定能否使用国内 CDN 节点
-- **网站特殊内容**：有没有视频背景、自定义字体、第三方 JS 库、CMS 动态内容？
-
----
-
-## 三条可选路线及决策树
-
-### 路线对比
-
-| | CF Worker + R2 | VPS 反向代理 | 国内 CDN（EdgeOne 等）|
-|--|---------------|------------|-------------------|
-| **核心能力** | HTML 改写（HTMLRewriter）+ R2 持久缓存 | HTML 改写（sub_filter / 正则）+ 本地缓存 | 静态缓存 + 分布式节点 |
-| **能否删 Google 资源** | ✅ HTMLRewriter | ✅ Nginx sub_filter / Caddy replace | ⚠️ 仅 EdgeOne 边缘函数可以 |
-| **能否移除 Webflow Badge** | ✅ JS 注入 MutationObserver | ✅ sub_filter 注入 | ⚠️ 仅边缘函数可以 |
-| **国内延迟** | 50-150ms（香港/新加坡节点）| 20-50ms（单台国内服务器）| 5-20ms（全国分布式节点）|
-| **需要 ICP 备案** | ❌ | ✅（服务器在大陆）| ✅（加速域名必须备案）|
-| **抗高并发** | ✅ 无限扩展 | ❌ 单台瓶颈 | ✅ |
-| **成本** | 免费（CF 免费套餐足够）| ¥68-99/年（轻量服务器）| ¥ 按量（EdgeOne 标准版）|
-| **适合** | 所有客户（无论有没有备案）| 有备案、低流量客户 | 有备案、需要极致速度或高并发 |
-
-### 决策树
-
-```
-客户有 ICP 备案域名？
-├── 否 → 只能用 CF Worker + R2（路线 A，当前方案，无需备案）
-│        国内延迟 50-150ms，已是无备案最优
-│
-└── 是 → 需要 SEM 投放（百度、360）或高并发？
-     ├── 否 → VPS 反代 + CF Worker 境外分流（路线 B，成本最低）
-     │        Caddy/1Panel 可视化操作，¥68/年
-     │
-     └── 是 → EdgeOne 标准版 + 边缘函数 + CF Worker 境外分流（路线 C，最快）
-              全国 5-20ms，抗高并发，按量付费
-```
-
-### 关于"纯 CDN 能不能解决所有问题"
-
-**不能。** 国内 CDN（腾讯云 CDN、阿里云 CDN）只做缓存+分发，不能：
-- 删除 HTML 里的 Google Fonts / preconnect 标签 → 浏览器仍请求 Google 服务器，卡 3-5s
-- 替换 jQuery CDN 源 → CloudFront 无大陆节点，阻塞渲染
-- 改写 CSS 里的 Fastly 绝对 URL → 字体/图片绕过缓存
-- 移除 Webflow Badge → Badge 是 JS 动态注入的，必须用脚本干预
-- 注入 ICP 备案号 → HTML 内容改写
-
-**唯一例外：EdgeOne 边缘函数**——本质上是腾讯的 Serverless Worker，可以做完整 HTML 改写，等同于 CF Worker 的国产替代。但需要标准版套餐（付费）+ ICP 备案。
-
-### 反向代理工具推荐（2026 年）
-
-| 工具 | 推荐度 | 特点 |
-|------|-------|------|
-| **Caddy** | ⭐⭐⭐⭐⭐ | 自动 HTTPS、3 行配置、单文件部署、原生 HTTP/3、活跃维护 |
-| **1Panel + OpenResty** | ⭐⭐⭐⭐ | 可视化面板、Docker 化、图形界面操作反代+SSL、适合不想写配置的人 |
-| **Nginx** | ⭐⭐⭐ | 成熟稳定、sub_filter 可改写 HTML、但配置繁琐 |
-| **Lucky（大吉）** | ⭐⭐ | 路由器/NAS 场景，不适合生产环境 |
-
-### 国内外分流架构
-
-```
-client.cn DNS → DNSPod（免费版即可按线路分区域解析）
-├── 境内线路 → 国内 VPS / EdgeOne + 边缘函数
-└── 境外线路 → CF Worker（*.workers.dev 或 CNAME 接入）
-```
-
-**关键澄清**：
-- **备案审的是服务器 IP，不是 DNS 在哪里**——DNS 可以放 DNSPod 也可以放 CF
-- **境外线路走 CF Worker**——德国、美国用户享受原汁原味的 CF 优化版
-- **域名不强制必须在国内注册商**——但后缀必须在工信部批准列表里（.com/.cn/.net 等，.design 不行）
-
-### 多客户共享架构
-
-| 客户类型 | 方案 | 成本分摊 |
-|---------|------|---------|
-| **有备案域名** | 客户 `.cn` 域名 CNAME 到你的国内 VPS/EdgeOne，你配置反代 | 客户各自独立域名，隔离性好 |
-| **无备案域名** | CF Worker 方案（当前 12 项优化），香港/新加坡节点 | 免费，通过你的 CF 账号统一管理 |
-| **多个无备案客户共享 Worker** | 一个 CF Worker 按 `Host` 头分流到不同 Webflow 站点 | 一个 Worker 处理多客户 |
-
-⚠️ **不要用你自己的备案域名给客户的网站做反代**——备案主体必须与实际运营者一致，代替他人备案是违规行为。
-
-### 多语言网站注意事项
-
-Webflow 多语言用子目录结构（`/zh/`、`/en/`），不支持按域名分语言。分流后需注意：
-- Worker / 反代必须拦截 301/302 重定向，修正 `Location` 头中的 `webflow.io` 为客户域名
-- Webflow 根据 `Accept-Language` 自动跳转，国内用户通常命中 `/zh/`
-- CMS Collection 页面可能不带语言前缀，需确认 Webflow 项目的 Localization 设置
+- **网站特殊内容**：有没有视频背景、自定义字体、第三方 JS 库？
 
 ---
 
@@ -119,7 +31,6 @@ Webflow 多语言用子目录结构（`/zh/`、`/en/`），不支持按域名分
 
 | 资源类型 | 问题根源 | 影响 |
 |---------|---------|------|
-| **Webflow 自定义域名本身** | GFW 封控 cdn.webflow.com 出口 | 网站完全打不开（2025.11 起） |
 | Google Fonts (`fonts.googleapis.com`) | GFW 封锁 | 字体加载失败，页面渲染阻塞 |
 | Google 相关 preconnect/dns-prefetch | DNS 解析超时 | 每次页面请求额外增加 2-5s |
 | Google Analytics / gtag | GFW 封锁 | 统计失效（不阻塞渲染，但浪费连接） |
@@ -142,7 +53,7 @@ Cloudflare Worker (全球节点，含香港/日本/新加坡)
     ↓ 静态资源未命中 → 回源 Webflow CDN → 异步写入 R2
     ↓ HTML/动态请求 → 回源 Webflow → HTMLRewriter 改写后返回
     ↓
-{project}.webflow.io（原始 Webflow 站点）
+shenye.webflow.io（原始 Webflow 站点）
 ```
 
 **关键路径**：
@@ -152,7 +63,7 @@ Cloudflare Worker (全球节点，含香港/日本/新加坡)
 
 ---
 
-## 12 项核心优化（已验证）
+## 10 项核心优化（已验证）
 
 ### [优化 1] HTML 响应加缓存头 + CF 边缘 cacheTtl
 
@@ -182,16 +93,18 @@ Cloudflare Worker (全球节点，含香港/日本/新加坡)
 **方案**：用 HTMLRewriter 将该 `<script src>` 替换为 jsdmirror URL。
 **验证**：三个源（CloudFront、cdnjs、jsdmirror）提供的字节完全一致，SHA256 相同，所以标签上原有的 `integrity` SRI 属性仍然能通过校验，无需修改。
 ```javascript
+// HTMLRewriter 里的替换规则
 .on('script[src*="d3e54v103j8qbb.cloudfront.net"][src*="jquery"]', {
   element(el) {
     el.setAttribute("src", "https://cdn.jsdmirror.com/npm/jquery@3.5.1/dist/jquery.min.js");
+    // crossorigin 属性保留，SRI 跨域校验必须
   }
 })
 ```
 
 ### [优化 6] 重写 data-video-urls 属性（背景视频）
 
-**问题**：Webflow 背景视频用 `data-video-urls="url1.mp4,url2.webm"` 属性存储视频地址，这个属性是自定义 attribute，不是标准 `src`，普通的资产 URL 重写会遗漏它。
+**问题**：Webflow 背景视频用 `data-video-urls="url1.mp4,url2.webm"` 属性存储视频地址，这个属性是自定义 attribute，不是标准 `src`，普通的资产 URL 重写（`link/script/img/source`）会遗漏它。
 **方案**：单独加一个 HTMLRewriter 规则匹配 `[data-video-urls]`，把属性值按逗号分割后逐个重写到 `/_cdn/` 路径。
 
 ### [优化 7] /_cdn/ 支持 HTTP Range 请求
@@ -203,111 +116,78 @@ Cloudflare Worker (全球节点，含香港/日本/新加坡)
 
 ### [优化 8] /_cdn/ CSS 文件缓存前先改写内部 URL
 
-**问题**：`/_cdn/` 处理器默认把资源原样透传并缓存。CSS 文件内部的 `@font-face src: url(https://cdn.prod.website-files.com/...)` 和背景图片等绝对 URL 不会被改写，浏览器加载 CSS 后直接向 Fastly 拉取字体/图片，完全绕过 R2 缓存。
+**问题**：`/_cdn/` 处理器默认把资源原样透传并缓存。CSS 文件内部的 `@font-face src: url(https://cdn.prod.website-files.com/...)` 和背景图片等绝对 URL 不会被改写，浏览器加载 CSS 后直接向 Fastly 拉取字体/图片，完全绕过 R2 缓存。这个问题不容易被发现——DevTools 里字体确实是 `.woff2`，但实际走的是 Fastly 而非 R2。
 **诊断方法**：`curl` 拉取 `/_cdn/...min.css`，用 `grep -oP 'https?://[^")\\s,]+'` 查找其中所有绝对 URL，看是否仍指向 `cdn.prod.website-files.com`。
-**方案**：在 `/_cdn/` 处理器的 R2 未命中回源路径里，对 CSS 文件先做 URL 改写，再写入 R2 缓存。
+**方案**：在 `/_cdn/` 处理器的 R2 未命中回源路径里，对 CSS 文件（`content-type: text/css` 或路径以 `.css` 结尾）先做 URL 改写，再写入 R2 缓存。
 
 ### [优化 9] 移除 stylesheet `<link>` 的 SRI integrity 属性
 
-**问题**：Webflow 生成的 HTML 里，CSS `<link>` 标签带有 `integrity="sha384-..."` 属性（Subresource Integrity）。Worker 改写了 CSS 文件内部 URL（优化 8），导致文件内容变化，SHA-384 哈希不再匹配。浏览器会静默拒绝加载该 CSS，**页面彻底失去样式**。
+**问题**：Webflow 生成的 HTML 里，CSS `<link>` 标签带有 `integrity="sha384-..."` 属性（Subresource Integrity）。Worker 改写了 CSS 文件内部 URL（优化 8），导致文件内容变化，SHA-384 哈希不再匹配。浏览器会静默拒绝加载该 CSS，**页面彻底失去样式**，且控制台报错容易被忽略。
 **方案**：HTMLRewriter 里加一条规则，移除所有 `<link rel="stylesheet">` 上的 `integrity` 属性。
+**注意**：jQuery 的 `<script integrity>` 不需要处理，因为我们只是换了 URL 而没有修改文件内容，字节完全一致，SRI 仍然通过。
 ```javascript
 .on('link[rel="stylesheet"][integrity]', {
   element(el) { el.removeAttribute("integrity"); }
 })
 ```
+**R2 旧缓存处理**：部署新 Worker 后，R2 里已缓存的 CSS 文件（未经改写的版本）仍然会被命中返回，导致问题持续。需要在 CF Dashboard → R2 → Bucket 里手动删除对应的 CSS 对象，强制下次请求走回源流程重新处理。
 
-### [优化 10] 补全视频 poster 及 `<source src>` 的改写
+### [优化 11] meta og:image / twitter:image 改写到 /_cdn/
 
-**问题**：Webflow 背景视频在 HTML 里同时存在多条并行路径，[优化 6] 只处理了 `data-video-urls`，`<source src>`、`data-poster-url`、`video[style]` 均未覆盖。
-**方案**：
-- 新增 `source[src]` handler 覆盖视频源回退
-- 新增 `[data-poster-url]` handler 改写 poster URL
-- 新增 `video[style]` handler，用正则替换 `background-image:url(...)` 里的绝对地址
+**问题**：OG 图片 URL 存在于 `<meta property="og:image" content="...">` 的 `content` 属性里，HTMLRewriter 标准资产选择器 `link[href], script[src], img[src], source[srcset]` **不覆盖 `<meta>` 标签**。
 
-### [优化 11] redirect: "manual" 拦截 Webflow 301/302 重定向
+两条路径的后果不同：
+- `handleCN`：依赖全文正则兜底改写，属脆弱副作用路径
+- `handlePassthrough`（海外爬虫路径）：**完全未处理**——微信/微博/Twitter/Slack 爬虫抓取 OG 图时仍拿到原始 `cdn.prod.website-files.com` 地址，图片不走 R2 缓存
 
-**问题**：Webflow 在语言路由（`/` → `/zh/`）和 URL 规范化时返回 301/302 重定向，`Location` 头含 `*.webflow.io` 域名。如果 Worker 使用 `redirect: "follow"`（默认），fetch 会静默跟随重定向，最终返回的页面 URL 可能暴露 `webflow.io`（在大陆被 GFW 封控），导致后续资源加载失败。
-**方案**：`fetch()` 使用 `redirect: "manual"`，Worker 拦截 301/302 响应，将 `Location` 头中的 `webflow.io` 域名替换为用户自定义域名后返回。
+**注意**：不影响浏览器页面加载速度（非阻塞资源），但影响社交分享缩略图抓取速度和成功率。
+
+**方案**：`handleCN` 和 `handlePassthrough` 两条路径的 HTMLRewriter 均需新增规则：
+
 ```javascript
-const originResp = await fetch(proxyURL.toString(), {
-  redirect: "manual", // 关键：不自动跟随重定向
-  cf: { cacheEverything: true, cacheTtl: 300 }
-});
-if (originResp.status === 301 || originResp.status === 302) {
-  const location = originResp.headers.get("Location");
-  const fixedLocation = location
-    .replace(/https?:\/\/your-site\.webflow\.io/g, "https://your-domain.com");
-  const redirectHeaders = new Headers(originResp.headers);
-  redirectHeaders.set("Location", fixedLocation);
-  return new Response(null, { status: originResp.status, headers: redirectHeaders });
-}
-```
-
-### [优化 12] Webflow Badge CSS + MutationObserver 双重移除
-
-**问题**：Webflow Badge（`.w-webflow-badge`）是 Webflow JS 在页面加载完成后**动态注入**到 DOM 的。HTMLRewriter 处理 HTML 时，Badge 的 DOM 节点还不存在，`.on(".w-webflow-badge", el.remove())` 永远匹配不到。
-**方案**：双管齐下：
-1. **CSS 注入 `<head>`**：`display:none!important`，防止 Badge 闪现
-2. **MutationObserver 注入 `<body>`**：监听 DOM 变化，Badge 一旦被 Webflow JS 插入就立即 `.remove()` 彻底删除节点
-```javascript
-.on("head", {
+.on('meta[property="og:image"], meta[property="og:image:secure_url"], meta[name="twitter:image"], meta[itemprop="image"]', {
   element(el) {
-    el.append(`<style>.w-webflow-badge,[class*="webflow-badge"]{display:none!important}</style>`, { html: true });
-  }
-})
-.on("body", {
-  element(el) {
-    el.append(`<script>(function(){function r(){var e=document.querySelector('.w-webflow-badge,[class*="webflow-badge"]');if(e)e.remove()}r();new MutationObserver(r).observe(document.documentElement,{childList:true,subtree:true})})()</script>`, { html: true });
+    const v = el.getAttribute("content");
+    if (v) el.setAttribute("content", rewriteAsset(v));
   }
 })
 ```
+
+修复后社交爬虫打到 `/_cdn/...` 路径，Worker 代理图片并写入 R2，二次抓取直接命中缓存。
+
+**诊断命令**：`curl -s https://your-domain.com/ | grep -i "og:image"`，确认 `content` 属性已改写为 `/_cdn/cdn.prod.website-files.com/...`。
 
 ---
 
-## Webflow CMS 内容加速
+### [优化 10] 补全视频 poster 及 `<source src>` 的改写
 
-### CMS 资源与普通资源的关键区别
+**问题**：Webflow 背景视频在 HTML 里同时存在三条并行路径，[优化 6] 只处理了其中一条：
 
-Webflow CMS 上传的图片和文件与站点静态资源使用**同一个 CDN 域名**（`cdn.prod.website-files.com`），但路径前缀不同：
+| 属性 | 谁读取 | 优化 6 前 |
+|------|-------|---------|
+| `data-video-urls` | Webflow JS 运行时 | ✅ 已改写 |
+| `<source src>` | 浏览器原生回退 | ❌ 漏网 |
+| `data-poster-url` | Webflow JS 设置海报帧 | ❌ 漏网 |
+| `<video style="background-image:url(...)">` | 浏览器直接渲染海报 | ❌ 漏网 |
 
-| 类型 | CDN 路径格式 |
-|------|------------|
-| 站点静态资源 | `cdn.prod.website-files.com/{site-id}/...` |
-| CMS 集合项目图片 | `cdn.prod.website-files.com/{cms-collection-id}/...` |
+前三条会导致视频/海报仍从 Fastly 加载；`video[style]` 是最隐蔽的——poster 作为内联 CSS 背景图注入，不走任何 src 属性，普通属性扫描完全看不到。
 
-**结论：Worker 现有的 `ASSET_HOSTS` 正则匹配的是域名而非路径，CMS 图片与普通资源走完全相同的 `/_cdn/` 路由，自动得到 R2 缓存加速，无需任何额外改动。**
+**诊断方法**：`curl` 拉 HTML，搜索 `data-poster-url` 和 `video[style]`，看是否仍有 `https://cdn.prod.website-files.com` 地址。
 
-经过实测：一个典型 CMS 站 113 个 CDN 引用中，44 个来自 site-id 路径（静态资源），73 个来自 collection-id 路径（CMS 项目图片），全部命中域名匹配规则。
-
-### 已覆盖的 CMS 场景 ✅
-
-- **CMS Collection List / Item**：Webflow 服务端渲染，HTMLRewriter 全部改写
-- **CMS 富文本字段**：内嵌图片同域名，自动覆盖
-- **Finsweet fs-cmsload（动态加载更多）**：Worker 拦截分页请求响应，图片 URL 同样被改写
-
-### 未覆盖的 CMS 场景 ⚠️
-
-| 场景 | 原因 |
-|------|------|
-| 客户端直接调用 Webflow CMS API | 请求绕过 Worker，JSON 响应里的 CDN URL 不被改写 |
-| 第三方工具（Wized、Memberstack 等）| 同上，Ajax 响应不经过 Worker |
-
-### 诊断 CMS 加速是否生效
-
-```bash
-curl -s https://your-site.com/blog | grep -oP 'src="[^"]*"' | grep -E "/_cdn/|cdn\.prod"
-# 全是 /_cdn/ → 已覆盖 ✅
-# 仍有 cdn.prod.website-files.com → 未被处理 ❌
-```
+**方案**：
+- 将 `source[srcset]` 改为 `source[src], source[srcset]`，同时覆盖视频源和图片多分辨率
+- 新增 `[data-poster-url]` handler 改写 poster URL
+- 新增 `video[style]` handler，用正则替换 `background-image:url(...)` 里的绝对地址
 
 ---
 
 ## 字体优化建议
 
-1. **格式**：TTF 未压缩，WOFF2 约小 40-60%。在 Webflow Project Settings → Fonts 里上传 WOFF2 版本替换 TTF。
-2. **排查无用字体**：未被 CSS 引用的字体是纯负担（169KB/字体），直接删除。
-3. **Adobe Fonts**：没有激活的 Kit 不会产生任何网络请求，不需要处理。
+字体是另一个重要的加速点，与 Worker 改动独立：
+
+1. **格式**：TTF 未压缩，WOFF2 约小 40-60%。在 Webflow Project Settings → Fonts 里，删除 TTF 字体文件，重新上传同一字体的 WOFF2 版本。（转换工具：`woff2_compress` 命令行，或在线工具）
+2. **排查无用字体**：在 Webflow 里上传了字体不一定实际用到了。先用 `curl` 拉取网站 HTML，搜索每个字体名，确认实际有被 CSS `font-family` 或 Webflow 样式引用后再保留。未使用的字体是纯负担（169KB/字体的典型值），直接删除。
+3. **Adobe Fonts**：Webflow 有 Adobe Fonts 集成入口，但只要没有实际激活的 Kit，不会产生任何网络请求，不需要处理。
 
 ---
 
@@ -315,15 +195,26 @@ curl -s https://your-site.com/blog | grep -oP 'src="[^"]*"' | grep -E "/_cdn/|cd
 
 ### 使用 jsdmirror 的正确姿势
 
+jsdmirror (`cdn.jsdmirror.com`) 是 jsDelivr 的镜像，由腾讯 EdgeOne 提供大陆 CDN 节点。URL 格式：
 ```
 https://cdn.jsdmirror.com/npm/{package}@{version}/dist/{file}.min.js
 ```
 
-**必须**指定版本号和具体文件路径，否则 URL 无效。
+**必须**指定版本号和具体文件路径，否则 URL 无效。例：
+- ✅ `https://cdn.jsdmirror.com/npm/lenis@1.0.27/dist/lenis.min.js`
+- ❌ `https://cdn.jsdmirror.com/npm/lenis`（缺版本和路径，404）
 
 ### Lenis 平滑滚动（特别注意）
 
-Webflow 社区流行的 Lenis 集成方案通常是一个**定制 bundle**，不在 npm 上，因此 jsdmirror 没有它。如果用户在 Webflow 里自托管了这个 bundle，它属于 `cdn.prod.website-files.com`，Worker 会自动将其重写到 `/_cdn/` 路径并缓存到 R2，无需手动迁移。
+Webflow 社区流行的 Lenis 集成方案通常是一个**定制 bundle**，包含：
+- Lenis 核心库（特定版本）
+- Webflow 专属初始化层：读取 `[data-id-scroll]` 元素上的 `data-*` 属性作为配置
+- 全局 `window.SScroll` 实例化
+- `useAnchor`、`useOverscroll`、`useControls` 等扩展功能
+
+这个定制 bundle **不在 npm 上**，因此 jsdmirror 没有它。如果用户在 Webflow 里自托管了这个 bundle（`.txt` 文件），正确做法是继续使用原有的 Webflow CDN URL——该 URL 属于 `cdn.prod.website-files.com`，Worker 会自动将其重写到 `/_cdn/` 路径并缓存到 R2，无需手动迁移。
+
+**诊断方法**：检查 `.txt` 文件内容，看是否含有 `window.SScroll`、`I("[data-id-scroll]"` 等 Webflow 专属代码，如果有，就不能用 npm 版替换。
 
 ---
 
@@ -331,23 +222,12 @@ Webflow 社区流行的 Lenis 集成方案通常是一个**定制 bundle**，不
 
 完整的可直接部署的 Worker 代码见 `references/worker-template.js`。
 
-### 命名规范
-
-| 项目 | 格式 | 示例 |
-|------|------|------|
-| Worker 名称（wrangler.toml `name`）| `wf-cn-{project}` | `wf-cn-acme-brand` |
-| JS 文件名 | `wf-cn-{project}-worker.js` | `wf-cn-acme-brand-worker.js` |
-| R2 Bucket | `wf-cn-{project}-assets` | `wf-cn-acme-brand-assets` |
-
-其中 `{project}` 取自客户域名主体（如 `acme-brand.com` → `acme-brand`）。
-
-### 使用前需要替换的变量
-
+使用前需要替换的变量：
 - `WEBFLOW_HOST` → 用户的 Webflow 内部 URL（如 `mysite.webflow.io`）
 - `R2_PUBLIC_BASE` → R2 Bucket 的公开访问 URL（如 `https://pub-xxxx.r2.dev`）
 - `MY_BUCKET` → Worker 绑定的 R2 Bucket 名称（在 wrangler.toml 里配置）
 
-其余代码可直接使用，12 项优化已内置。
+其余代码可直接使用，10 项优化已内置。
 
 ---
 
@@ -367,9 +247,168 @@ Webflow 社区流行的 Lenis 集成方案通常是一个**定制 bundle**，不
 | CSS SRI 校验导致无样式 | 改写 CSS 内容后文件哈希变化，HTML 里的 `integrity` 属性会导致浏览器静默拒绝 CSS，页面失去所有样式；需用 HTMLRewriter 移除 stylesheet link 的 integrity 属性 |
 | R2 旧缓存需手动清除 | Worker 逻辑更新后，R2 里已缓存的旧版本不会自动失效；若修改了 CSS/JS 的处理逻辑，需在 CF Dashboard 手动删除对应 R2 对象 |
 | video[style] 里的 poster | Webflow 把 poster 写成 `style="background-image:url(...)"` 内联样式，不走任何 src 属性，必须单独用 `video[style]` handler + 正则处理 |
+| `<source src>` 被标记 data-wf-ignore | Webflow 在 `<source>` 上加 `data-wf-ignore="true"` 表示 JS 会接管，但浏览器在 JS 加载前仍会读取这些标签作为回退，必须改写 |
+| meta og:image 在 content 属性里 | `<meta property="og:image" content="...">` 不是 `src`/`href`，HTMLRewriter 标准资产选择器不覆盖它。`handleCN` 依赖全文正则兜底可以 work，但 `handlePassthrough` 完全未处理，社交平台爬虫拿到原始 `cdn.prod` 地址。两条路径均需显式新增 `meta[property="og:image"]` 等 HTMLRewriter 规则 |
 | ICP 备案 | 如需使用腾讯 EdgeOne 国内节点（更低延迟），需要 ICP 备案；CF Worker 本身无需备案 |
-| CMS 图片与 site-id 不同 | CMS 集合项图片的 CDN 路径前缀是 collection-id（非 site-id），但域名相同，Worker 的域名匹配规则自动覆盖，无需额外处理 |
-| 客户端 CMS API 调用 | 第三方工具（Wized、自定义 JS 调 api.webflow.com）绕过 Worker 直接请求，其响应中的 CDN URL 不被改写；这是当前方案的已知边界 |
-| Webflow 自定义域名 GFW 封控 | 2025.11 起 Webflow 迁移到 Cloudflare 后，`cdn.webflow.com`（198.202.211.1）出口被 GFW SNI 封控，自定义域名在大陆完全不可访问；必须通过反代/Worker 绕过 |
-| `*.webflow.io` 仍可访问但不稳定 | staging 域名走 Cloudflare 的 `172.64.x.x` IP 段，目前未被封，但不能依赖它作为生产方案 |
-| 纯 CDN 无法解决核心问题 | 国内 CDN 只做缓存分发，不能删除 Google 资源标签、替换 jQuery CDN、改写 CSS URL、移除 Badge；必须有 HTML 改写层 |
+
+---
+
+## 进阶：双 CDN + 大陆节点架构
+
+> 适用场景：现有 CF Worker 方案跑通后，进一步降低大陆延迟，解锁境内 CDN 节点。
+
+### 核心原则
+
+CF Worker 本质是"境外加速"——跨境路径无法绕过。要做到质变，需要接入**中国境内 CDN 节点**，前提是 ICP 备案。
+
+**两套系统各自独立**，共同回源同一个 Webflow 源站：
+
+```
+DNS 分流（按地区）
+  大陆 IP → 大陆域名（备案域名） → 腾讯 EdgeOne 国内节点
+  境外 IP → 主域名              → CF Worker（现有方案不动）
+
+两套 CDN 各自缓存，均回源 Webflow 同一源站
+```
+
+EdgeOne 侧需要自建的能力：
+- 边缘函数（对应 CF Worker，做 HTMLRewriter 资源替换）
+- COS 对象存储（对应 CF R2，作静态资源缓存）
+- **不要** 让 EdgeOne 从 CF R2 拉取资源——两套商业网络走公网，比直接回源 Webflow 更慢
+
+---
+
+### DNS 分流方案选择
+
+#### 方案 A：主域名在 Cloudflare（推荐，无需迁移 NS）
+
+**实现方式**：CF Worker Route 或 Transform Rules 检测来源地区
+
+```javascript
+// Worker 最前面加地区检测
+if (request.cf?.country === 'CN') {
+  return Response.redirect('https://examplezh.cn' + url.pathname + url.search, 301);
+}
+// 非 CN 继续走原有加速逻辑
+```
+
+或 CF Transform Rules（仪表盘配置，无需改代码）：
+```
+条件：ip.geoip.country == "CN"
+动作：redirect → https://examplezh.cn${uri.path}
+```
+
+**优缺点**：
+- ✅ 无需迁移 DNS，所有配置在 CF 控制台完成
+- ✅ 免费版 Worker 内 `cf.country` 完全可用
+- ⚠️ 大陆用户 URL 会跳转到大陆域名（地址栏变化，对大多数场景可接受）
+- ❌ CF 免费版不支持 DNS 层 Geo 解析（企业版功能）
+
+#### 方案 B：主域名迁移到支持 Geo-IP 的第三方 DNS
+
+支持的服务商：华为云 DNS、DNSPod、阿里云 DNS
+
+```
+# 华为云 / DNSPod 解析规则示例
+example.com
+  线路：中国大陆 → CNAME → examplezh.cn（→ EdgeOne）
+  线路：境外默认 → CNAME → CF 分配的 CNAME 值
+
+examplezh.cn → CNAME → EdgeOne 分配的 CNAME 值
+```
+
+**优缺点**：
+- ✅ DNS 层透明分流，大陆用户 URL 始终是 example.com，无跳转
+- ✅ CF Worker 完整保留，境外流量继续走
+- ⚠️ 需要将 NS 从 CF 迁出，迁移期间有短暂 DNS 波动风险
+- ⚠️ 迁出 CF 后失去部分 CF 安全防护功能（可降级为 CF CNAME 接入保留部分功能）
+
+| 对比项 | CF DNS + Worker 跳转 | 第三方 Geo-DNS |
+|--------|---------------------|--------------|
+| DNS 迁移 | 无需 | 需要将 NS 从 CF 迁出 |
+| 大陆用户 URL | 跳转到大陆域名 | 透明，始终显示主域名 |
+| 实现难度 | 低 | 中 |
+| CF Worker 保留 | ✅ | ✅ |
+| 适合场景 | 已在 CF，优先最小变动 | SEO/品牌一致性优先 |
+
+---
+
+### ICP 备案：最小成本路径
+
+**触发条件**：域名解析指向中国境内服务器并开通 Web 服务时才需备案。
+
+**最低成本方案**（¥99–120/年，仅用于解锁备案资质）：
+
+1. 腾讯云购买最小规格国内轻量 ECS（1核1G，¥99–120/年）
+2. ECS 跑 Nginx，返回一个带 ICP 备案号的简单页面（备案通过前，先用这台 ECS 作接入点）
+3. 通过腾讯云 ICP 备案系统提交备案（腾讯云是接入商）
+4. 备案过审后，在腾讯云 EdgeOne 添加该域名（同属腾讯云体系，无需重新换接入商）
+5. DNS 切换：将大陆域名 CNAME 指向 EdgeOne 分配的地址
+6. ECS 保留作合规兜底节点（实际流量全走 EdgeOne）
+
+**ICP 备案持续合规要求**：
+- 网站底部展示备案号（EdgeOne 边缘函数注入，见下方代码）
+- 域名持续解析到境内 IP（不能切回境外 IP，否则接入商撤销备案）
+- 网站实际内容与备案信息一致（主体、域名、内容性质）
+- 公安联网备案（备案通过后 30 日内，[beian.gov.cn](https://beian.gov.cn)）
+
+**EdgeOne 边缘函数注入 ICP 备案号**：
+
+```javascript
+new HTMLRewriter()
+  .on('body', {
+    element(el) {
+      el.append(
+        `<div style="text-align:center;font-size:12px;color:#999;padding:10px 0">
+          <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener">
+            粤ICP备XXXXXXXX号
+          </a>
+        </div>`,
+        { html: true }
+      );
+    }
+  })
+```
+
+**关于在同一台 ECS 上同时运行其他服务**：
+
+一台 ECS 可以同时作为 ICP 备案接入节点 + 运行个人自用服务（如 n8n、Docker 容器等），完全合法，不影响备案。合规边界在于：
+- **不影响**：ICP 备案的合规要求只看这台 ECS 是否持续作为该域名的接入节点（即备案 IP 对应），ECS 上跑其他服务不影响
+- **注意**：若其他服务也对外提供 Web 访问，那些服务对应的域名也需要完成备案，否则技术上违规
+- **安全隔离**：建议 Docker 容器仅绑定 localhost，通过 SSH 隧道或内网访问，不对外暴露端口
+
+---
+
+### 多项目 / 多客户扩展方案
+
+#### 方案 A：自有多个项目（推荐）
+
+备案主域名 `example.cn` 后，旗下子域名无需重新备案（同一主体）：
+
+```
+example.cn          → 备案主体
+project-a.example.cn → 直接复用，EdgeOne 独立边缘函数 → 回源 Webflow 项目 A
+project-b.example.cn → 直接复用，EdgeOne 独立边缘函数 → 回源 Webflow 项目 B
+```
+
+一台 ¥99/年 ECS 覆盖所有项目。
+
+#### 方案 B：服务客户（各自独立备案）
+
+| 情形 | 风险 | 建议 |
+|------|------|------|
+| 用自己的子域名给客户 | ⚠️ 高：你是法律内容责任方 | 不建议 |
+| 客户用自己的域名备案，你的 ECS IP 作接入商节点 | ✅ 合规 | 客户以自己主体申请备案 |
+| 帮客户代办备案 | 需客户提供营业执照，你仅作技术方 | 明确合同责任 |
+
+**重要**：服务方不可用自己的备案主体替客户申请，这意味着你要对客户网站的全部内容承担法律责任。
+
+---
+
+### 实施优先级
+
+| 阶段 | 操作 | 成本 | 效果 |
+|------|------|------|------|
+| 立即（无需 ICP） | 开启 CF Argo Smart Routing | $5/月 | 边际改善，跨境路径优化 |
+| 中期（需 ICP） | 购买 ECS + 申请 ICP + 接入 EdgeOne 国内节点 | ¥99/年 ECS + EdgeOne 按流量 | 质变，延迟降至 50-100ms |
+| 完整方案 | 双域名 + 双 CDN + 多语言路由 + ICP 合规维持 | 同上 + 维护精力 | 最优架构 |

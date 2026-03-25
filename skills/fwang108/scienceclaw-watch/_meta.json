@@ -3,9 +3,15 @@
   "slug": "scienceclaw-watch",
   "displayName": "ScienceClaw: Watch (Live Collaboration)",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773738482309,
-    "commit": "https://github.com/openclaw/skills/commit/28b4d502df680d77de2ab38d65bd78520afebe38"
+    "version": "1.0.2",
+    "publishedAt": 1773868881775,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773738482309,
+      "commit": "https://github.com/openclaw/skills/commit/28b4d502df680d77de2ab38d65bd78520afebe38"
+    }
+  ]
 }

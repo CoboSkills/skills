@@ -7,6 +7,29 @@ description: Calculate how discounts affect revenue, margin, conversion assumpti
 
 See the real commercial effect of a discount before launching it.
 
+## 先交互，再计算
+
+开始时先问：
+1. 这次 discount 是什么形式？
+   - 直接打折
+   - coupon
+   - 满减
+   - second-unit discount
+2. 你们平时 discount impact 怎么算？
+3. 这次要不要把 conversion uplift 假设一起算进去？
+4. 是否要一起考虑退款率、AOV 变化、CAC 容忍度？
+5. 你想沿用现有逻辑，还是让我给推荐分析框架？
+
+如果用户没有成型口径，先给推荐框架，再确认后计算。
+
+## Python script guidance
+
+当用户给出结构化数字后：
+- 生成 Python 脚本做 discount scenario 分析
+- 输出 baseline vs discount scenario
+- 返回 break-even / margin / CAC 变化
+- 最后附上可复用脚本
+
 ## Solves
 
 Many ecommerce teams make pricing or offer decisions with incomplete economics:
@@ -35,11 +58,12 @@ Goal:
 
 ## Workflow
 
-1. Clarify the baseline commercial setup.
+1. Clarify the baseline commercial setup and discount logic.
 2. Model the scenario inputs that change order economics.
 3. Surface upside, downside, and sensitivity.
 4. Identify the biggest weak points or break-even pressure.
 5. Recommend whether to test, revise, or avoid the scenario.
+6. Return reusable Python script.
 
 ## Output
 
@@ -48,6 +72,7 @@ Goal:
 3. Margin / break-even implications
 4. Key risks and weak points
 5. Recommendation
+6. Python script
 
 ## Quality bar
 

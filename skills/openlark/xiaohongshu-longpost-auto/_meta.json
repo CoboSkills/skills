@@ -1,11 +1,17 @@
 {
   "owner": "openlark",
   "slug": "xiaohongshu-longpost-auto",
-  "displayName": "小红书自动长文发布",
+  "displayName": "Xiaohongshu Longpost Auto",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774061682604,
-    "commit": "https://github.com/openclaw/skills/commit/5a629c6d98e48db714af4a72a3c8607892e76ade"
+    "version": "1.0.2",
+    "publishedAt": 1774231079150,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774061682604,
+      "commit": "https://github.com/openclaw/skills/commit/5a629c6d98e48db714af4a72a3c8607892e76ade"
+    }
+  ]
 }

@@ -17,7 +17,7 @@ tags:
 license: MIT
 ---
 
-# Tax Package Preparation — Pipeline #7
+# Tax Package Preparation
 
 Prepare a complete year-end tax package for client filing. Pulls full-year financial data from QBO, reads the client SOP for entity configuration, and generates all tax-ready schedules with IRS form mapping.
 
@@ -60,7 +60,7 @@ python3 scripts/pipelines/tax-package-prep.py --slug my-client --year 2025 --san
 
 ```bash
 pip install openpyxl
-# QBO auth token must already be set in integrations/qbo-client/
+# QBO auth token must already be configured
 ```
 
 ## Output: 9-Tab Excel Workbook

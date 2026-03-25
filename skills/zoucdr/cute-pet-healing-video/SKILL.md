@@ -11,9 +11,9 @@ user-invocable: true
 
 # Healing cute pet viral shorts
 
-A fluffy creature napping in afternoon sun, stretching, tilting its head—pace drops. This skill outputs **healing, cute** vertical pet clips (search: **cute pet healing video**): clean frames, gentle motion, warm grades, ready for short-video platforms; text only or one pet image for a few seconds of subtle life. Prefer a public **HTTPS** image URL; if the bundled runtime also supports local files, verify and explicitly consent before letting it read a local image and upload it to WeryAI.
+A fluffy creature napping in afternoon sun, stretching, tilting its head—pace drops. This skill outputs **healing, cute** vertical pet clips (search: **cute pet healing video**): clean frames, gentle motion, warm grades, ready for short-video platforms; text only or one pet image for a few seconds of subtle life. A public **HTTPS** image URL is strongly recommended for consistency and security. Local files should only be used after verifying `video_gen.js` behavior and explicitly consenting to the file upload process to WeryAI.
 
-**Dependencies**: `scripts/video_gen.js` in this directory + `WERYAI_API_KEY` + Node.js 18+. No other Cursor skills. **Default parameters** and model tiers are in the tables below; live API limits follow **weryai** models. Before installing or running, review the bundled `video_gen.js` and confirm you are comfortable with its file-handling behavior, especially if it supports reading local images and uploading them to WeryAI to obtain public URLs for image-to-video requests.
+**Dependencies:** `WERYAI_API_KEY` + Node.js 18+. When you run the CLI, **`{baseDir}/scripts/video_gen.js`** must exist; **[`WERYAI_VIDEO_API.md`](resources/WERYAI_VIDEO_API.md)** must exist under **`{baseDir}/resources/`** (supply both via publish or pre-use assembly). Full commands and JSON fields: see **`resources/WERYAI_VIDEO_API.md`**. No other Cursor skills. **Default parameters** and model tiers are in the tables below; live API limits follow **weryai** models. Before installing or running, review the bundled `video_gen.js` to confirm it meets your requirements. Pay particular attention to how it handles local files if you choose to allow their usage, ensuring this behavior aligns with the skill's intended workflow for image-to-video requests.
 
 
 ## Prerequisites
@@ -55,7 +55,7 @@ A fluffy creature napping in afternoon sun, stretching, tilting its head—pace 
 2. Collect the user's **brief**, optional image URL(s), tier (**best** / **good** / **fast**) or an explicit `model` key.
 3. **Expand prompt (mandatory):** Unless the user supplied a finished long prompt and explicitly asked not to rewrite it, expand the brief into a full English production `prompt` using `## Prompt expansion (mandatory)` below. **Do not** call the API with only the user's minimal words.
 4. Check the **expanded** `prompt` against the selected model's `prompt_length_limit` in the frozen tables in this document (when present); shorten if needed.
-5. Verify `duration`, `aspect_ratio`, `resolution`, `generate_audio`, `negative_prompt`, and other fields against the frozen tables and API notes in this SKILL.md.
+5. Verify `duration`, `aspect_ratio`, `resolution`, `generate_audio`, `negative_prompt`, and other fields against the frozen tables in this document and **[`WERYAI_VIDEO_API.md`](resources/WERYAI_VIDEO_API.md)**.
 6. Show the pre-submit parameter table including the **full expanded `prompt`**; wait for **confirm** or edits.
 7. After confirmation, run `node {baseDir}/scripts/video_gen.js wait --json '...'` with the **expanded** prompt.
 8. Parse stdout JSON and return video URLs; on failure, surface `errorCode` / `errorMessage` and suggest parameter fixes.
@@ -68,6 +68,8 @@ node {baseDir}/scripts/video_gen.js wait --json '…' --dry-run
 node {baseDir}/scripts/video_gen.js status --task-id <id>
 ```
 
+**Full reference:** **[`WERYAI_VIDEO_API.md`](resources/WERYAI_VIDEO_API.md)**.
+
 ## Definition of done
 
 Done when the user receives at least one playable video URL from the API response, or a clear failure explanation with next steps. All parameters used **must** fall within the selected model's allowed sets in this document. The submitted `prompt` **must** be the **expanded** production prompt unless the user explicitly supplied a finished long prompt and asked not to rewrite it.
@@ -75,7 +77,8 @@ Done when the user receives at least one playable video URL from the API respons
 ## Boundaries (out of scope)
 
 - Does not review platform compliance, copyright, or portrait rights; does not guarantee commercial usability of outputs.
-- Does not provide non-WeryAI offline rendering, traditional edit timelines, or API field combinations not documented here.
+- Does not provide non-WeryAI offline rendering, traditional edit timelines, or API field combinations not documented in this SKILL or **[`WERYAI_VIDEO_API.md`](resources/WERYAI_VIDEO_API.md)**.
+- Do not link to `weryai-model-capabilities.md` or shared `../references/` paths; use **`resources/WERYAI_VIDEO_API.md`** for CLI/API details.
 - Does not hard-code absolute paths in the skill doc; `{baseDir}` means the skill package root (same level as `SKILL.md`).
 
 ### Example prompts

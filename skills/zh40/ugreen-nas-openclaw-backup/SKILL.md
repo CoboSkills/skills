@@ -1,16 +1,16 @@
 ---
 name: ugreen-nas-openclaw-backup
-description: Ugreen NAS 上 OpenClaw Docker 部署的备份与恢复工具 / Backup and restore tool for OpenClaw Docker deployment on Ugreen NAS
+description: 绿联NAS OpenClaw Docker部署的备份与恢复工具 / Ugreen NAS OpenClaw Docker deployment backup and restore tool
 metadata: {"openclaw": {"emoji": "💾", "requires": {"bins": ["tar"]}}}
 ---
 
-# Ugreen NAS OpenClaw 备份与恢复 / Ugreen NAS OpenClaw Backup & Restore
+# 绿联NAS OpenClaw备份 / Ugreen NAS OpenClaw Backup
 
 ## 简介 / Introduction
 
-绿联NAS提供了通过应用中心直接部署OpenClaw的服务。用此方式部署的OpenClaw在Docker上运行，但无法使用Docker的克隆和导出功能对OpenClaw进行备份。本Skill针对此情况，提供设置和Skills镜像备份和恢复功能。
+绿联NAS提供了通过应用中心直接部署OpenClaw的服务。用此方式部署的OpenClaw托管在Docker上，但托管方式有一些限制，无法使用Docker的克隆和导出功能对OpenClaw容器进行备份。针对此情况，本Skill提供OpenClaw容器设置和Skills镜像备份和恢复的功能。
 
-Ugreen NAS provides a service to deploy OpenClaw directly through the App Center. OpenClaw deployed this way runs on Docker, but Docker's clone and export features cannot be used to backup OpenClaw. This Skill provides backup and restore functionality for OpenClaw configuration and skills in this scenario.
+Ugreen NAS provides a service to deploy OpenClaw directly through the App Center. OpenClaw deployed this way runs on Docker, but the hosting method has limitations - Docker's clone and export features cannot be used to backup the OpenClaw container. This Skill provides backup and restore functionality for OpenClaw container configuration and skills.
 
 ## 什么时候使用 / When to Use
 
@@ -28,7 +28,7 @@ Ugreen NAS provides a service to deploy OpenClaw directly through the App Center
 
 ### 自动检测备份位置 / Auto-detect Backup Location
 
-此 skill 会自动查找可访问的宿主目录进行备份 / This skill automatically finds accessible host directory for backup:
+此 Skill 会自动查找可访问的宿主目录进行备份 / This Skill automatically finds accessible host directory for backup:
 
 1. 读取 OpenClaw 配置获取工作空间路径 (`~/.openclaw/workspace`) / Read OpenClaw config to get workspace path
 2. 从工作空间路径推断宿主挂载目录（如 `/root/.openclaw/workspace` → `/home/dylan/OpenClaw`）/ Infer host mount directory from workspace path
@@ -117,7 +117,7 @@ tar -xzf "$BACKUP_DIR/openclaw-backup-20260317-143022.tar.gz"
 ## 备份内容 / Backup Contents
 
 - `~/.openclaw/` — 所有配置和数据 / All config and data
-- `~/.openclaw/workspace/` — 工作空间和 skills / Workspace and skills
+- `~/.openclaw/workspace/` — 工作空间和 Skills / Workspace and skills
 - `~/.openclaw/openclaw.json` — 主配置文件 / Main config file
 
 ---

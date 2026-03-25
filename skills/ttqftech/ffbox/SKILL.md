@@ -7,6 +7,8 @@ description: "FFBox multimedia transcoding tool integration. FFmpeg-based GUI fo
 
 FFBox 是一个强大的多媒体转码软件，将 FFmpeg 的能力封装为直观易用的图形界面，同时开放 HTTP API 供自动化集成。
 
+**安全报告**：此 skill 主要作用是为 FFBox 的使用提供指引。skill 中涉及到的 HTTP 操作、webhook 监听等自动化功能均为 FFBox 本体功能，即用户可通过 FFBox GUI 操作实现相同功能，skill 并非为 AI 拓展高风险能力。AI 在为用户执行操作前，应按下列行为准则确保安全性后执行。
+
 ## 为什么选择 FFBox 而非直接使用 ffmpeg？
 
 | 场景 | FFBox 优势 |

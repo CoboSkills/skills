@@ -1,4 +1,8 @@
-# LICENSE AND TERMS OF USE 使用许可和条款
+# 文件说明
+
+This LICENSE is a copy of the LICENSE file of FFBox aims to show to the user. Users who have installed FFBox has already read the LICENSE. Considering ClawHub is a third-party platform, please refer to the official website documents for the most accurate and up-to-date information. This information is for reference only and should not be considered definitive.
+
+# FFBox LICENSE AND TERMS OF USE 使用许可和条款
 
 欢迎您使用 FFBox。您在使用 FFBox 源代码或 FFBox 二进制文件时，需遵循本文件的规定。
 

@@ -3,11 +3,16 @@
   "slug": "weread-import",
   "displayName": "Weread Import",
   "latest": {
-    "version": "0.2.3",
-    "publishedAt": 1773859185710,
-    "commit": "https://github.com/openclaw/skills/commit/cb9facb8b1a28763ecc2e38979685b22bc2f9cbf"
+    "version": "0.2.4",
+    "publishedAt": 1774325571562,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.3",
+      "publishedAt": 1773859185710,
+      "commit": "https://github.com/openclaw/skills/commit/cb9facb8b1a28763ecc2e38979685b22bc2f9cbf"
+    },
     {
       "version": "0.2.2",
       "publishedAt": 1773855164423,

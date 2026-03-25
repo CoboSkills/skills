@@ -3,9 +3,15 @@
   "slug": "poem",
   "displayName": "Poem",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1773794426631,
-    "commit": "https://github.com/openclaw/skills/commit/d2c744923b8db0f83ab2134b6d518fff427c10f3"
+    "version": "2.0.2",
+    "publishedAt": 1774231191467,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1773794426631,
+      "commit": "https://github.com/openclaw/skills/commit/d2c744923b8db0f83ab2134b6d518fff427c10f3"
+    }
+  ]
 }

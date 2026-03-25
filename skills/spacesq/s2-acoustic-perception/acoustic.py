@@ -7,6 +7,7 @@ import urllib.request
 import argparse
 import io
 import wave
+import ipaddress
 from datetime import datetime
 
 # 检查系统依赖 / Check system dependencies
@@ -18,12 +19,24 @@ except ImportError:
     sys.exit(1)
 
 # =====================================================================
-# 🎧 S2-SP-OS: Acoustic Radar Client (V1.0.4)
-# Ephemeral Privacy & Semantic Analysis / 阅后即焚与语义分析
+# 🎧 S2-SP-OS: Acoustic Radar Client (V1.0.5)
+# Strict LAN Enforcement + Ephemeral Privacy / 局域网物理隔离 + 阅后即焚
 # =====================================================================
 
 class S2AcousticClient:
     def __init__(self, zone: str, grid: str, edge_ip: str):
+        # [SECURITY ENFORCEMENT]: Strict LAN-Only check / 严格的局域网边界检查
+        try:
+            ip_obj = ipaddress.ip_address(edge_ip)
+            if not (ip_obj.is_private or ip_obj.is_loopback):
+                print(json.dumps({
+                    "error": f"SECURITY VIOLATION: Edge IP ({edge_ip}) is a public or untrusted address. Audio transmission blocked to prevent data exfiltration. / 严重安全违规：Edge IP 为公网或不可信地址，为防止数据泄露，已熔断请求。"
+                }, ensure_ascii=False))
+                sys.exit(1)
+        except ValueError:
+            print(json.dumps({"error": f"Invalid IP format: {edge_ip}"}, ensure_ascii=False))
+            sys.exit(1)
+
         self.zone = zone
         self.grid = grid
         self.edge_url = f"http://{edge_ip}:8000/api/v1/analyze"
@@ -35,9 +48,8 @@ class S2AcousticClient:
         Record audio to volatile memory.
         在易失性内存中录制音频。
         """
-        # 使用 sounddevice 录制单声道浮点音频 [cite: 513-516]
         audio_data = sd.rec(int(self.duration * self.sample_rate), samplerate=self.sample_rate, channels=1, dtype='float32')
-        sd.wait() # 阻塞直至录音完成 [cite: 517]
+        sd.wait() # 阻塞直至录音完成
         return audio_data.flatten()
 
     def _encode_to_wav_base64(self, audio_data: np.ndarray) -> str:
@@ -56,8 +68,8 @@ class S2AcousticClient:
 
     def _query_edge_brain(self, b64_audio: str) -> dict:
         """
-        Delegate to trusted local Edge Brain API.
-        将数据发送给可信的局域网边缘大脑进行零样本推理。
+        Delegate to trusted local LAN Edge Brain API.
+        将数据发送给受限内网中的边缘大脑。
         """
         payload = {
             "audio_base64": b64_audio,
@@ -85,16 +97,15 @@ class S2AcousticClient:
         # 1. Capture ephemeral audio & calculate Decibel / 采集易失性音频 & 基础分贝计算
         audio_data = self._record_ephemeral_slice()
         
-        # 计算 RMS 均方根并转换为分贝 [cite: 79-80, 115-118]
         rms = np.sqrt(np.mean(audio_data**2))
-        decibel = 20 * np.log10(max(rms, 1e-10)) + 60 # 简易相对分贝映射
+        decibel = 20 * np.log10(max(rms, 1e-10)) + 60 
         
         if rms < 0.005:
             event = "absolute_silence"
             confidence = 1.0
             vendor_nl = "Environment is completely silent. No AI inference needed. / 环境绝对安静，跳过AI推理。"
         else:
-            # 2. Acoustic activity detected, query local Edge Brain / 存在声学活动，请求本地边缘大脑
+            # 2. Acoustic activity detected, query local LAN Edge Brain / 存在声学活动，请求内网边缘大脑
             b64_audio = self._encode_to_wav_base64(audio_data)
             edge_result = self._query_edge_brain(b64_audio)
             
@@ -112,7 +123,7 @@ class S2AcousticClient:
                 
                 # 3. Semantic Privacy Isolation / 语义级隐私隔离
                 if "Human conversation" in event:
-                    vendor_nl = "Privacy Mode: Human speech detected. Semantic tag logged, audio completely dropped. / 隐私模式：检测到人类对话，已记录语义标签，音频痕迹已彻底销毁。"
+                    vendor_nl = "Privacy Mode: Human speech detected. Semantic tag logged, audio completely dropped. / 隐私模式：检测到人类对话，音频痕迹已彻底销毁。"
                 else:
                     vendor_nl = "S2 Edge Brain classification successful. Target identified as non-speech. / 边缘大脑推理成功，目标为非私密声音。"
 
@@ -130,10 +141,6 @@ class S2AcousticClient:
         return memzero
 
     def generate_offline_linkage(self, memzero: dict) -> list:
-        """
-        Generate physical logic linkages without relying on LLM.
-        生成无需消耗大模型算力的离线物理联动建议。
-        """
         suggestions = []
         event = memzero["core_tensors"]["audio_event"]
         
@@ -162,7 +169,7 @@ class S2AcousticClient:
 def main():
     parser = argparse.ArgumentParser(description="S2 Acoustic Radar Client / S2 语义声学雷达")
     parser.add_argument("--mode", choices=["read"], required=True)
-    parser.add_argument("--edge-ip", required=True, help="IP of S2 Edge Brain / 边缘大脑的局域网 IP")
+    parser.add_argument("--edge-ip", required=True, help="LAN IP of S2 Edge Brain / 边缘大脑的内网 IP")
     parser.add_argument("--zone", help="Spatial Zone / 空间区域")
     parser.add_argument("--grid", help="2x2 Grid Coordinates / 2x2 网格坐标")
     parser.add_argument("--consent-granted", type=str, default="false")
@@ -184,7 +191,7 @@ def main():
 
         print(json.dumps({
             "status": "AUTHORIZED_ACOUSTIC_DATA",
-            "privacy_compliance": "EPHEMERAL_AUDIO_PROCESSING_ACTIVE / 阅后即焚隐私机制运行中",
+            "privacy_compliance": "STRICT_LAN_ISOLATION_AND_EPHEMERAL_AUDIO / 严格局域网隔离与阅后即焚",
             "s2_chronos_memzero": memzero_data,
             "offline_linkage_suggestions": offline_suggestions
         }, ensure_ascii=False, indent=2))

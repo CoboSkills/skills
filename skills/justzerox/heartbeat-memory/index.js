@@ -350,6 +350,9 @@ const DEFAULT_CONFIG = {
     processSessionsAfter: null, // ISO 日期，如 "2026-01-01T00:00:00Z"，null=处理所有
     // Issue #9 修复：限制单次处理 sessions 数量，防止 OOM
     maxSessionsPerRun: 50, // 单次最多处理 50 个 sessions
+    // Issue #10 修复：支持扫描文件系统获取 deleted sessions
+    scanFileSystem: true,  // 是否扫描文件系统（默认开启）
+    scanFileSystemDays: 30,  // 只扫描最近 N 天的文件（0=不限制，扫描所有）
     refineSchedule: {
       type: 'weekly',
       dayOfWeek: 'sunday',
@@ -656,18 +659,73 @@ function parseLLMResult(result) {
 }
 
 /**
+ * 扫描文件系统中的 sessions（包括 deleted/inactive 的）
+ * 
+ * @param {string} sessionsDir - sessions 目录路径
+ * @param {number} maxDays - 只扫描最近 N 天的文件（0=不限制，默认 30 天）
+ * @returns {Array} session 列表
+ */
+function scanSessionFiles(sessionsDir, maxDays = 30) {
+  try {
+    if (!fs.existsSync(sessionsDir)) {
+      console.log('⚠️  sessions 目录不存在:', sessionsDir);
+      return [];
+    }
+    
+    const files = fs.readdirSync(sessionsDir);
+    const sessions = [];
+    
+    // maxDays = 0 表示不限制，扫描所有文件
+    const cutoffTime = maxDays > 0 ? Date.now() - (maxDays * 24 * 60 * 60 * 1000) : 0;
+    
+    for (const file of files) {
+      if (!file.endsWith('.jsonl')) continue;
+      
+      const sessionId = file.replace('.jsonl', '');
+      const fullPath = path.join(sessionsDir, file);
+      
+      try {
+        const stats = fs.statSync(fullPath);
+        
+        // 只处理最近 N 天的文件（maxDays=0 时不限制）
+        if (maxDays > 0 && stats.mtimeMs < cutoffTime) {
+          continue;
+        }
+        
+        sessions.push({
+          sessionId,
+          transcriptPath: fullPath,
+          updatedAt: stats.mtimeMs,
+          kind: 'deleted'  // 文件系统中找到但不在 sessions_list 中的，标记为 deleted
+        });
+      } catch (e) {
+        // 跳过无法读取的文件
+      }
+    }
+    
+    const daysText = maxDays > 0 ? `最近${maxDays}天` : '全部';
+    console.log(`📁 文件系统扫描发现 ${sessions.length} 个 sessions（${daysText}）`);
+    return sessions;
+  } catch (e) {
+    console.error('文件系统扫描失败:', e.message);
+    return [];
+  }
+}
+
+/**
  * 主处理函数 - 核心流程
  * 
  * 流程：
  * 1. 获取 sessions 列表（sessions_list 工具）
- * 2. 动态检测正确的工作区
- * 3. 确保目录结构存在
- * 4. 过滤新 sessions
- * 5. 获取消息内容（sessions_history 工具）
- * 6. 启动 subagent 进行 LLM 提炼
- * 7. 写入 Daily 笔记
- * 8. 检查是否需要提炼 MEMORY.md
- * 9. 发送通知
+ * 2. 扫描文件系统获取 deleted sessions（可选）
+ * 3. 动态检测正确的工作区
+ * 4. 确保目录结构存在
+ * 5. 过滤新 sessions
+ * 6. 获取消息内容（sessions_history 工具）
+ * 7. 启动 subagent 进行 LLM 提炼
+ * 8. 写入 Daily 笔记
+ * 9. 检查是否需要提炼 MEMORY.md
+ * 10. 发送通知
  */
 async function processSessions(sessions_list_fn, sessions_history_fn, sessions_spawn_fn, message_fn, feishu_get_user_fn, config_override, specifiedWorkspace) {
   console.log('\n🚀 heartbeat-memory 开始执行...');
@@ -678,7 +736,7 @@ async function processSessions(sessions_list_fn, sessions_history_fn, sessions_s
     if (sessions_list_fn) {
       const result = await sessions_list_fn({ limit: 50 });
       sessions = result.sessions || [];
-      console.log(`📊 发现 ${sessions.length} 个 sessions`);
+      console.log(`📊 sessions_list 返回 ${sessions.length} 个活跃 sessions`);
     } else {
       console.log('⚠️  sessions_list 不可用');
       return { success: false, reason: 'no_sessions_list' };
@@ -689,8 +747,9 @@ async function processSessions(sessions_list_fn, sessions_history_fn, sessions_s
   }
 
   // ========== 步骤 2：动态检测正确的工作区 ==========
+  let wsInfo;
   try {
-    const wsInfo = determineCurrentWorkspace(sessions, specifiedWorkspace);
+    wsInfo = determineCurrentWorkspace(sessions, specifiedWorkspace);
     console.log(`🔍 检测到 agent: ${wsInfo.agentId}`);
     console.log(`🔍 工作区: ${wsInfo.workspace}${wsInfo.isDefault ? ' (默认)' : ''}`);
     
@@ -708,7 +767,43 @@ async function processSessions(sessions_list_fn, sessions_history_fn, sessions_s
     return { success: false, reason: 'workspace_detection_failed', error: e.message };
   }
 
-  // ========== 步骤 3：检查工作区权限 ==========
+  // ========== 步骤 3：扫描文件系统获取 deleted sessions（可选配置） ==========
+  // 从第一个 session 的 transcriptPath 推断 sessions 目录
+  let fsSessions = [];
+  if (sessions.length > 0 && sessions[0].transcriptPath) {
+    const sessionsDir = path.dirname(sessions[0].transcriptPath);
+    console.log(`📁 推断 sessions 目录：${sessionsDir}`);
+    
+    // 读取配置，默认扫描最近 30 天
+    const scanDays = config.memorySave?.scanFileSystemDays || 30;
+    const enableScan = config.memorySave?.scanFileSystem !== false;  // 默认开启
+    
+    if (enableScan) {
+      fsSessions = scanSessionFiles(sessionsDir, scanDays);
+      
+      // 合并：过滤掉已处理的
+      const activeIds = new Set(sessions.map(s => s.sessionId || s.key));
+      const processedIdsSet = new Set(state.processedSessions || []);
+      
+      // 只添加新的、未处理的 deleted sessions
+      const newDeleted = fsSessions.filter(s => 
+        !activeIds.has(s.sessionId) && !processedIdsSet.has(s.sessionId)
+      );
+      
+      console.log(`📊 活跃 sessions: ${activeIds.size}, deleted: ${newDeleted.length}`);
+      
+      // 合并到 sessions 列表
+      sessions = [...sessions, ...newDeleted.map(s => ({
+        ...s,
+        key: s.sessionId,
+        sessionKey: s.sessionId
+      }))];
+      
+      console.log(`📊 总计 ${sessions.length} 个 sessions（活跃 + deleted）`);
+    }
+  }
+
+  // ========== 步骤 4：检查工作区权限 ==========
   // Issue #7 修复：启动前检查读写权限
   try {
     const testFile = path.join(workspace, '.heartbeat-memory-permission-test');
@@ -969,6 +1064,8 @@ ${needsRefine ? '✅ MEMORY.md 已提炼' : ''}
 /**
  * 自包含执行入口 - 直接使用全局工具函数
  * 适用于 subagent 环境或工具全局可用的场景
+ * 
+ * 智能自愈：如果检测到当前环境不正确，自动通过 sessions_spawn 重启
  */
 async function run(configOverride, specifiedWorkspace) {
   console.log('🚀 heartbeat-memory (自包含模式) 启动...\n');
@@ -982,14 +1079,47 @@ async function run(configOverride, specifiedWorkspace) {
     feishu_get_user: typeof feishu_get_user !== 'undefined' ? feishu_get_user : null
   };
   
-  // 验证必要工具
-  if (!tools.sessions_list) {
-    throw new Error('sessions_list 工具不可用');
-  }
-  if (!tools.sessions_history) {
-    throw new Error('sessions_history 工具不可用');
+  // ========== 智能自愈：检测环境，不对就自动重启 ==========
+  if (!tools.sessions_list || !tools.sessions_history) {
+    console.log('⚠️  检测到当前环境缺少必要工具');
+    console.log('🔄 尝试通过 sessions_spawn 自动重启...\n');
+    
+    // 如果有 sessions_spawn，用它重启
+    if (tools.sessions_spawn) {
+      try {
+        const result = await tools.sessions_spawn({
+          task: `
+            const heartbeat = require('~/.openclaw/skills/heartbeat-memory/index.js');
+            const result = await heartbeat.run(${JSON.stringify(configOverride || {})});
+            console.log('✅ 自愈模式执行完成');
+            console.log(JSON.stringify(result));
+          `,
+          runtime: 'subagent',
+          mode: 'run',
+          timeoutSeconds: 900
+        });
+        
+        console.log('✅ 自愈成功！已在正确的环境中执行');
+        return {
+          success: true,
+          selfHealed: true,
+          message: '检测到环境不正确，已自动通过 sessions_spawn 重启执行',
+          result
+        };
+      } catch (e) {
+        console.error('❌ 自愈失败:', e.message);
+        throw e;
+      }
+    }
+    
+    // 如果连 sessions_spawn 都没有，报错
+    throw new Error(
+      '当前环境缺少必要工具（sessions_list, sessions_history），且无法自动重启。\n' +
+      '请通过 sessions_spawn 调用此 Skill。'
+    );
   }
   
+  // ========== 正常执行 ==========
   console.log('✅ 工具检查通过:');
   Object.entries(tools).forEach(([name, available]) => {
     console.log(`   ${available ? '✅' : '⚠️'}  ${name}`);

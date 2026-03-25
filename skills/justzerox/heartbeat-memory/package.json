@@ -1,6 +1,6 @@
 {
   "name": "heartbeat-memory",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "Heartbeat 自动记忆保存 - 使用 OpenClaw 主 LLM 配置",
   "main": "index.js",
   "scripts": {

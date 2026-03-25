@@ -98,6 +98,13 @@ Failure:
 - `scripts/pbft-join-and-activate-all-conditions.mjs`
 - `scripts/pbft-add-risk-lp-to-proposal.mjs`
 
+## Script Entry Points
+
+- Preferred combined entry: `scripts/pbft-activate-and-add-risklp.mjs`
+- `node scripts/pbft-activate-and-add-risklp.mjs --help`
+- `node scripts/pbft-activate-and-add-risklp.mjs <proposalAddress> <riskLpAmount> --dry-run`
+- Use `--dry-run` before execution when installing or validating this skill in a new environment.
+
 ## Boundaries
 
 - Never add LP to an inactive condition.

@@ -92,7 +92,6 @@ crypto-swap monitor --id I1Y0...
 # Launch web UI (default port 8080, auto-assign if occupied)
 crypto-swap ui
 ```
-Then open http://localhost:8080 (or the displayed port) in your browser for the DeFi-style trading interface.
 
 ## Files
 

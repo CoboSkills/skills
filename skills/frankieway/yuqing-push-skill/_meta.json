@@ -1,11 +1,17 @@
 {
   "owner": "frankieway",
   "slug": "yuqing-push-skill",
-  "displayName": "舆情异常推送 Skill",
+  "displayName": "小爱舆情结果飞书推送",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1773758349576,
-    "commit": "https://github.com/openclaw/skills/commit/ea2b5362bff8d92b4dd3ce1ee1cb91da1725e7a1"
+    "version": "1.1.0",
+    "publishedAt": 1774334243168,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1773758349576,
+      "commit": "https://github.com/openclaw/skills/commit/ea2b5362bff8d92b4dd3ce1ee1cb91da1725e7a1"
+    }
+  ]
 }

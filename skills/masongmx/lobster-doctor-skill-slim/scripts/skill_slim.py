@@ -68,6 +68,46 @@ def clean_description(raw_desc):
     # 去掉多余空格
     desc = re.sub(r'\s+', ' ', desc)
 
+    # 🆕 去除重复片段（检测连续重复的句子/短语）
+    # 方法：用滑动窗口检测重复的连续序列
+    words = desc.split()
+    if len(words) >= 6:  # 降低阈值，支持短句
+        # 尝试不同长度的窗口
+        for window_size in range(min(20, len(words)//2), 4, -1):  # 改为 4，确保包含 5
+            i = 0
+            while i < len(words) - window_size * 2:
+                # 归一化窗口内容（忽略标点）
+                window = ' '.join(words[i:i+window_size]).lower()
+                window_norm = re.sub(r'[^\w\s]', '', window)
+                # 检查后面是否有相同的窗口
+                for j in range(i + window_size, len(words) - window_size + 1):
+                    candidate = ' '.join(words[j:j+window_size]).lower()
+                    candidate_norm = re.sub(r'[^\w\s]', '', candidate)
+                    if window_norm == candidate_norm:
+                        # 发现重复，删除后面的重复部分
+                        words = words[:j] + words[j+window_size:]
+                        break
+                i += 1
+            if len(words) < len(desc.split()):
+                break
+        desc = ' '.join(words)
+
+    # 🆕 清理相邻的重复单词（忽略标点）
+    words = desc.split()
+    cleaned_words = []
+    prev_word = None
+    for w in words:
+        w_norm = re.sub(r'[^\w]', '', w.lower())
+        prev_norm = re.sub(r'[^\w]', '', (prev_word or '').lower())
+        if w_norm != prev_norm:
+            cleaned_words.append(w)
+        prev_word = w
+    desc = ' '.join(cleaned_words)
+
+    # 🆕 如果去重后的描述已经足够短，直接返回
+    if len(desc) <= 150:
+        return desc
+
     result_parts = []
 
     # 1. 提取核心功能句（第一句话，包含关键动词/名词）
@@ -138,7 +178,13 @@ def clean_description(raw_desc):
         if core_sentence and len(core_sentence) > 15:
             slim = core_sentence + ('. ' + not_for if not_for else '')
         if len(slim) > 150:
-            slim = slim[:147] + "..."
+            # 在句号处截断，避免句子不完整
+            truncated = slim[:147]
+            last_period = max(truncated.rfind('.'), truncated.rfind('。'), truncated.rfind('：'))
+            if last_period > 50:  # 确保至少保留有意义的内容
+                slim = slim[:last_period + 1]
+            else:
+                slim = truncated + "..."
 
     return slim
 
@@ -328,13 +374,112 @@ def cmd_apply(skills):
     print("   systemctl --user restart openclaw-gateway.service")
 
 
+def cmd_duplicates(skills):
+    """扫描功能相似的重复技能"""
+    import difflib
+
+    print("🦞 龙虾医生 — 重复技能检测\n")
+
+    names = list(skills.keys())
+    descs = {}
+    for name, info in skills.items():
+        raw = info['raw_desc'].strip().strip('"\'')
+        raw = re.sub(r'^\s*>\s*', '', raw, flags=re.MULTILINE).strip()
+        raw = re.sub(r'\s+', ' ', raw)
+        # 提取核心关键词用于比较
+        slim = clean_description(info['raw_desc'])
+        descs[name] = {
+            'desc': raw,
+            'slim': slim,
+            'keywords': set(re.findall(r'[\w]+', slim.lower()))
+        }
+
+    # 已知的重复技能对（手动维护的规则库）
+    KNOWN_DUPLICATES = [
+        ("github", "github-ops", "GitHub 操作"),
+        ("market-research", "nero-market-research", "市场调研"),
+        ("news-briefing", "news-summary", "新闻摘要"),
+        ("news-briefing", "news-aggregator", "新闻聚合"),
+        ("news-summary", "news-aggregator", "新闻聚合"),
+        ("stock-analysis", "stock-monitor", "股票分析"),
+        ("nano-banana-pro", "ai-nano-banana-ima", "Nano Banana 生图"),
+        ("find-skills", "ocms-ai-prompt-generator", "技能/提示词发现"),
+        ("deep-research-pro", "competitor-research", "深度研究"),
+        ("blog-writer", "ai-prompt-engineering-safety-review", "写作/提示词优化"),
+    ]
+
+    print("📋 已知重复技能对:\n")
+    known_found = []
+    for a, b, reason in KNOWN_DUPLICATES:
+        if a in skills and b in skills:
+            known_found.append((a, b, reason))
+            a_len = len(descs[a]['desc'])
+            b_len = len(descs[b]['desc'])
+            waste = a_len + b_len
+            print(f"  ⚠️  {a} ↔ {b}")
+            print(f"      共同功能: {reason}")
+            print(f"      description 总长: {waste} chars (建议禁用一个省 {min(a_len, b_len)} chars)")
+            print()
+
+    if not known_found:
+        print("  ✅ 未发现已知重复技能对\n")
+
+    # 基于关键词的语义相似度检测
+    print("🔍 语义相似度检测 (关键词重叠):\n")
+    potential_dupes = []
+    for i in range(len(names)):
+        for j in range(i + 1, len(names)):
+            a, b = names[i], names[j]
+            # 跳过已检测的已知对
+            if any((a == x and b == y) or (a == y and b == x) for x, y, _ in known_found):
+                continue
+            ka = descs[a]['keywords']
+            kb = descs[b]['keywords']
+            if not ka or not kb:
+                continue
+            # Jaccard 相似度
+            intersection = ka & kb
+            union = ka | kb
+            if len(union) == 0:
+                continue
+            similarity = len(intersection) / len(union)
+            if similarity >= 0.5 and len(intersection) >= 3:
+                potential_dupes.append((a, b, similarity, intersection))
+
+    potential_dupes.sort(key=lambda x: -x[2])
+    if potential_dupes:
+        for a, b, sim, common in potential_dupes[:15]:
+            print(f"  💡 {a} ↔ {b}")
+            print(f"      相似度: {sim:.0%}  共同关键词: {', '.join(sorted(common)[:8])}")
+            print()
+    else:
+        print("  ✅ 未发现其他相似技能\n")
+
+    # 汇总建议
+    total_waste = sum(
+        len(descs[a]['desc']) + len(descs[b]['desc']) for a, b, _ in known_found
+    )
+    print("=" * 50)
+    print(f"📊 检测结果汇总:")
+    print(f"   已知重复对: {len(known_found)} 组")
+    print(f"   疑似重复对: {len(potential_dupes)} 组")
+    if total_waste > 0:
+        print(f"   重复技能浪费 description: {total_waste} chars ({fmt_tokens(total_waste)} tokens)")
+        print()
+        print("💡 建议: 每组重复技能禁用其中一个（保留更新或更活跃的那个）")
+        print("   禁用方法: openclaw config set skills.entries.<技能名>.enabled false")
+    else:
+        print("   ✅ 无重复技能浪费")
+
+
 def main():
     if len(sys.argv) < 2:
         print("🦞 龙虾医生 — 技能瘦身 (Skill Slim)\n")
         print("命令:")
-        print("  report    查看技能 token 消耗报告（不修改）")
-        print("  dry-run   预览精简效果（不修改）")
-        print("  apply     应用精简（修改 SKILL.md，自动备份）")
+        print("  report       查看技能 token 消耗报告（不修改）")
+        print("  dry-run      预览精简效果（不修改）")
+        print("  apply        应用精简（修改 SKILL.md，自动备份）")
+        print("  duplicates   检测功能相似的重复技能")
         return
 
     skills = scan_all_skills()
@@ -349,6 +494,8 @@ def main():
         cmd_dry_run(skills)
     elif cmd == "apply":
         cmd_apply(skills)
+    elif cmd == "duplicates":
+        cmd_duplicates(skills)
     else:
         print(f"❌ 未知命令: {cmd}")
 

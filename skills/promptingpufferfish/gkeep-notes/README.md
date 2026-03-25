@@ -1,5 +1,5 @@
 # Info
-gkeep-notes is an extension of openclaw/skills/vacinc/gkeep to make it work with authentication based on OAuth 2.0 Token. SKILL.md rewritten and "Add item" functionality added. New repository as openclaw/skills rejects pull requests. Release on clawhub.ai is outstanding. 
+gkeep-notes is an extension of openclaw/skills/vacinc/gkeep to make it work with authentication based on OAuth 2.0 Token. SKILL.md rewritten and "Add item" functionality added. New repository as openclaw/skills rejects pull requests. Released on clawhub.ai. 
 
 # 1. Install gkeep-notes skill
 
@@ -17,7 +17,7 @@ pip install -r requirements.txt
 
 # 2. Setup OAuth 2.0 Token Flow
 
-When publishing the skill ClawHub claims that the user is asks to "handle sensitive session data in a nonstandard way" but OAuth 2.0 Token is the only authentication method which worked for me with a non-enterprise Google account.
+When I published the skill on ClawHub.ai the check returned a warning because the user is asks to "handle sensitive session data in a nonstandard way" but OAuth 2.0 Token is the only authentication method which worked for me with a non-enterprise Google account.
 
 ## 2a. Manually create a token from the shell:
 ```bash

@@ -2,7 +2,7 @@
 name: gkeep-notes
 description: Google Keep notes via gkeepapi. List, search, create, manage notes. Add items to notes. Supports authorization via OAuth 2.0 Token.
 slash: gkeep-notes
-version: 1.0.13
+version: 1.0.14
 author: PromptingPufferfish
 homepage: https://github.com/PromptingPufferfish/gkeep-notes
 metadata:
@@ -32,8 +32,7 @@ Use this skill when users ask to:
 
 ## SETUP (First Run Only)
 1. Creates venv + installs requirements automatically
-
-Manual call of generate_token.py, then copy & paste token to file `$HOME/.config/gkeep/token.json`. 
+2. Manual call of generate_token.py from the shell, then copy & paste token to file `$HOME/.config/gkeep/token.json`. 
 
 ```
 gkeep.py list [--limit 10]                    # List notes
@@ -66,15 +65,14 @@ python gkeep.py [command] [args]
 
 ## TROUBLESHOOTING
 ```
-❌ "No token" → gkeep login your.email@gmail.com
+❌ "No token" → manually generate token with generate_token.py and copy token into token.json
 ❌ "Module not found" → setup properly
-❌ "Permission denied" → chmod +x gkeep.py
 ❌ "API changed" → Check GitHub issues
 ```
 
 ## NOTES
 - Unofficial API (may break if Google changes)
-- Venv auto-created during setup
-- Active project (updated Jan 2026)
+- venv auto-created during setup
 - Note IDs from `gkeep list` output
+- Active project (updated March 2026)
 ```

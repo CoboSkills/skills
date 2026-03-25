@@ -95,90 +95,135 @@ Content-Type: application/json
 
 ---
 
-## 脚本用法
+## 调用方式选择
 
-所有脚本位于 `skills/media-crawler-local/scripts/`，工作目录为 openclaw workspace 根。
+根据当前环境按优先级选择：
 
-### 1. 快速搜集（REST，`crawl.sh`）
+| 优先级 | 条件 | 方式 |
+|---|---|---|
+| 1 | 任何系统（无需额外依赖） | **内联命令**（见下方） |
+| 2 | 有 Node.js | `node skills/scripts/*.mjs` |
+| 3 | 有 bash（macOS/Linux/Git Bash） | `bash skills/scripts/*.sh` |
 
+---
+
+## 内联命令（首选，无需任何依赖）
+
+AI 直接通过 Shell 工具执行，根据系统自动选择：
+
+### Windows（PowerShell 内置）
+
+先设置当前会话为 UTF-8（避免中文输出乱码）：
+```powershell
+[Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$OutputEncoding = [Console]::OutputEncoding
+```
+
+**REST 搜集：**
+```powershell
+$encoded = [Uri]::EscapeDataString("https://www.bilibili.com/video/BV1xx411c7mD")
+Invoke-RestMethod -Uri "http://127.0.0.1:39002/start-crawl/bilibili/$encoded" -Method POST -ContentType "application/json" -Body '{"source":"ai"}' | ConvertTo-Json -Depth 10
+```
+
+**MCP 工具调用：**
+```powershell
+$body = '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_archives","arguments":{"platform":"bilibili","limit":20}}}'
+Invoke-RestMethod -Uri "http://127.0.0.1:39002/mcp" -Method POST -ContentType "application/json" -Headers @{Accept="application/json, text/event-stream"} -Body $body | ConvertTo-Json -Depth 10
+```
+
+### macOS / Linux（curl 系统自带）
+
+**REST 搜集：**
 ```bash
-bash skills/media-crawler-local/scripts/crawl.sh <platform> <url> [base_url]
+curl -fsS -X POST "http://127.0.0.1:39002/start-crawl/bilibili/$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' 'https://www.bilibili.com/video/BV1xx411c7mD')" \
+  -H 'Content-Type: application/json' -d '{"source":"ai"}'
+```
+
+**MCP 工具调用：**
+```bash
+curl -fsS -X POST "http://127.0.0.1:39002/mcp" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_archives","arguments":{"platform":"bilibili","limit":20}}}'
+```
+
+> URL 编码：Windows 用 `[Uri]::EscapeDataString()`，macOS/Linux 用 `python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "<url>"` 或 `node -e`（如有）。
+
+---
+
+## 脚本用法（备选）
+
+所有脚本位于 `skills/scripts/`，提供 `.mjs`（Node.js）和 `.sh`（bash）两套。
+
+### Node.js（`node skills/scripts/*.mjs`）
+
+### 1. 快速搜集（REST，`crawl.mjs`）
+
+```
+node skills/scripts/crawl.mjs <platform> <url> [base_url]
 ```
 
 示例：
-```bash
-bash skills/media-crawler-local/scripts/crawl.sh bilibili "https://www.bilibili.com/video/BV1xx411c7mD"
+```
+node skills/scripts/crawl.mjs bilibili "https://www.bilibili.com/video/BV1xx411c7mD"
 ```
 
-### 2. 通过 MCP 搜集（`crawl_mcp.sh`，仅支持带 url 的工具）
+### 2. 通过 MCP 搜集（`crawl_mcp.mjs`，仅支持带 url 的工具）
 
-```bash
-bash skills/media-crawler-local/scripts/crawl_mcp.sh <tool_name> <target_url> [base_url]
+```
+node skills/scripts/crawl_mcp.mjs <tool_name> <target_url> [base_url]
 ```
 
 示例：
-```bash
-bash skills/media-crawler-local/scripts/crawl_mcp.sh crawl_bilibili "https://www.bilibili.com/video/BV1xx411c7mD"
+```
+node skills/scripts/crawl_mcp.mjs crawl_bilibili "https://www.bilibili.com/video/BV1xx411c7mD"
 ```
 
 支持工具：`crawl_bilibili` / `crawl_douyin` / `crawl_youtube` / `crawl_zhihu`
 
-> 其余工具（bilibili_search / bilibili_uploader / bilibili_popular / bilibili_weekly / bilibili_history / list_archives / get_task_data）请用 `mcp_tool.sh`。
+> 其余工具（bilibili_search / bilibili_uploader / bilibili_popular / bilibili_weekly / bilibili_history / list_archives / get_task_data）请用 `mcp_tool.mjs`。
 
-### 3. 归档查询（`list_archives_mcp.sh`）
+### 3. 归档查询（`list_archives_mcp.mjs`）
 
-```bash
-bash skills/media-crawler-local/scripts/list_archives_mcp.sh [platform] [keyword] [limit] [base_url]
+```
+node skills/scripts/list_archives_mcp.mjs [platform] [keyword] [limit] [base_url]
 ```
 
 示例：
-```bash
-bash skills/media-crawler-local/scripts/list_archives_mcp.sh bilibili "蛋神" 20
+```
+node skills/scripts/list_archives_mcp.mjs bilibili "蛋神" 20
 ```
 
-### 4. 通用工具调用（`mcp_tool.sh`）
+### 4. 通用工具调用（`mcp_tool.mjs`）
 
-```bash
-bash skills/media-crawler-local/scripts/mcp_tool.sh <tool_name> [args_json] [base_url]
+```
+node skills/scripts/mcp_tool.mjs <tool_name> [args_json] [base_url]
 ```
 
 示例：
-```bash
-# B 站搜索
-bash skills/media-crawler-local/scripts/mcp_tool.sh crawl_bilibili_search '{"keyword":"蛋神"}'
-
-# UP 主视频列表
-bash skills/media-crawler-local/scripts/mcp_tool.sh crawl_bilibili_uploader '{"mid":"123456"}'
-
-# 热门视频
-bash skills/media-crawler-local/scripts/mcp_tool.sh crawl_bilibili_popular '{}'
-
-# 每周必看（最新一期）
-bash skills/media-crawler-local/scripts/mcp_tool.sh crawl_bilibili_weekly '{}'
-
-# 每周必看（指定期数）
-bash skills/media-crawler-local/scripts/mcp_tool.sh crawl_bilibili_weekly '{"number":364}'
-
-# 历史记录（默认参数）
-bash skills/media-crawler-local/scripts/mcp_tool.sh crawl_bilibili_history '{}'
-
-# 历史记录（指定首屏 cursor）
-bash skills/media-crawler-local/scripts/mcp_tool.sh crawl_bilibili_history '{"max":0,"view_at":0,"business":"","ps":20,"type":"all"}'
-
-# 历史记录（指定采集页数）
-bash skills/media-crawler-local/scripts/mcp_tool.sh crawl_bilibili_history '{"page_count":2}'
-
-# 读取任务评论数据
-bash skills/media-crawler-local/scripts/mcp_tool.sh get_task_data '{"task_id":"BV1xx411c7mD-123456","type":"comments"}'
+```
+node skills/scripts/mcp_tool.mjs crawl_bilibili_search '{"keyword":"蛋神"}'
+node skills/scripts/mcp_tool.mjs crawl_bilibili_uploader '{"mid":"123456"}'
+node skills/scripts/mcp_tool.mjs crawl_bilibili_popular '{}'
+node skills/scripts/mcp_tool.mjs crawl_bilibili_weekly '{}'
+node skills/scripts/mcp_tool.mjs crawl_bilibili_weekly '{"number":364}'
+node skills/scripts/mcp_tool.mjs crawl_bilibili_history '{}'
+node skills/scripts/mcp_tool.mjs crawl_bilibili_history '{"max":0,"view_at":0,"business":"","ps":20,"type":"all"}'
+node skills/scripts/mcp_tool.mjs crawl_bilibili_history '{"page_count":2}'
+node skills/scripts/mcp_tool.mjs get_task_data '{"task_id":"BV1xx411c7mD-123456","type":"comments"}'
 ```
 
 ---
 
 ## 执行流程
 
-1. **健康检查**：`GET /`（连不上则提醒用户先启动应用）。
-2. **发起搜集**：优先用 REST 端点（`crawl.sh`），需要额外工具参数时用 MCP（`mcp_tool.sh`）。
-3. **结果处理**：
+1. **判断环境**：读取系统信息中的 OS（`win32` → PowerShell 内联，其余 → curl 内联）。
+2. **健康检查**：`GET /`（连不上则提醒用户先启动 Electron 应用）。
+3. **发起搜集**：
+   - 简单 URL 搜集 → REST 端点（`/start-crawl/...`）
+   - 需要额外参数（搜索词、UP 主 ID 等）→ MCP 端点（`/mcp`）
+4. **结果处理**：
    - 给用户简要摘要（任务 ID、状态、关键字段）
    - 内容很多时仅展示前几条，说明可通过 `get_task_data` 继续读取或过滤
 

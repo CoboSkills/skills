@@ -1,6 +1,35 @@
 {
   "name": "cn-stock-volume",
-  "version": "1.2.2",
-  "description": "\u83b7\u53d6\u4e2d\u56fd A \u80a1\u56db\u5e02\uff08\u6caa\u5e02/\u6df1\u5e02/\u521b\u4e1a\u677f/\u5317\u4ea4\u6240\uff09\u6210\u4ea4\u91d1\u989d\u3001\u589e\u7f29\u91cf\u53ca\u6bd4\u4f8b\u62a5\u544a",
-  "license": "MIT"
+  "version": "3.1.0",
+  "description": "获取 A 股市场核心数据：三大指数点位及涨跌幅、涨跌家数比。成交量数据支持手动补充。",
+  "author": "shinelp100",
+  "license": "MIT",
+  "keywords": [
+    "A 股",
+    "股票",
+    "指数",
+    "上证指数",
+    "深证成指",
+    "创业板指",
+    "涨跌家数",
+    "同花顺问财"
+  ],
+  "categories": [
+    "金融",
+    "数据查询"
+  ],
+  "scripts": {
+    "report": "python3 scripts/generate_report.py",
+    "fetch": "python3 scripts/fetch_data.py",
+    "manual": "python3 scripts/补数据.py"
+  },
+  "main": "scripts/generate_report.py",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/shinelp100/cn-stock-volume.git"
+  },
+  "homepage": "https://github.com/shinelp100/cn-stock-volume#readme",
+  "bugs": {
+    "url": "https://github.com/shinelp100/cn-stock-volume/issues"
+  }
 }

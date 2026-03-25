@@ -3,11 +3,16 @@
   "slug": "cn-stock-volume",
   "displayName": "Cn Stock Volume",
   "latest": {
-    "version": "1.2.2",
-    "publishedAt": 1774092291924,
-    "commit": "https://github.com/openclaw/skills/commit/2d00a8f2bdf49294381155bb85a82971fe5f504b"
+    "version": "3.1.0",
+    "publishedAt": 1774154772436,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.2",
+      "publishedAt": 1774092291924,
+      "commit": "https://github.com/openclaw/skills/commit/2d00a8f2bdf49294381155bb85a82971fe5f504b"
+    },
     {
       "version": "1.2.1",
       "publishedAt": 1774092246330,

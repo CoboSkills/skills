@@ -3,11 +3,16 @@
   "slug": "wolai-api-skill",
   "displayName": "Wolai API Skill",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773811788062,
-    "commit": "https://github.com/openclaw/skills/commit/09c2438c443315c06e0a5573548f6f6c99e6d0ec"
+    "version": "1.1.1",
+    "publishedAt": 1774144597147,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773811788062,
+      "commit": "https://github.com/openclaw/skills/commit/09c2438c443315c06e0a5573548f6f6c99e6d0ec"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773724960750,

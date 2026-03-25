@@ -1,9 +1,16 @@
 ---
 name: nemo-subtitle
+version: "1.8.4"
+displayName: "NemoSubtitle - AI Subtitle: Add, Burn, Translate Subtitles"
 author: nemovideonemo
 description: >
-  Use NemoSubtitle — the AI subtitle generator — immediately whenever the user mentions: add subtitles, generate captions, auto caption, transcribe video, video to text, subtitle translation, burn subtitles, hardcode captions, export SRT, SRT file, VTT file, bilingual subtitles, Chinese subtitles, subtitle generator, caption generator, video transcript, speech to text video, closed captions, open captions, subtitle burner, add captions to video.
-  NemoSubtitle automates the full caption workflow: auto-transcribe speech in any language (Whisper ASR), translate subtitles into 20+ languages, burn styled hardcoded captions into video, export SRT / VTT / plain text, generate bilingual overlays — no manual timecoding. Powered by NemoVideo AI.
+  Add subtitles, burn subtitles, and translate subtitles for any video through chat — the
+  complete subtitle editing workflow. Transcribes speech with word-level timing, lets you
+  review and adjust the text, then hardcode subtitles directly onto the footage or export
+  as SRT and VTT files. Translates into 50+ languages for multilingual captions with
+  per-language font and positioning. No timeline, no GUI — drop a video file and describe
+  what you need. Handles accessibility captions, bilingual overlays, and batch processing
+  across multiple clips. Supports mp4, mov, avi, webm, mkv.
 metadata:
   openclaw:
     emoji: 💬
@@ -30,13 +37,13 @@ NemoSubtitle handles the complete subtitle and caption workflow end-to-end: auto
 - Clean up auto-generated captions (re-timing, punctuation fix, speaker diarization)
 - Generate accessibility captions for social media (YouTube, TikTok, Instagram, Facebook)
 
-**Not for:** generating new video from text, screen recording, or full video production pipelines (see nemo-video skill for general editing).
+**Not for:** generating new video from text, screen recording, or full video production workflows (see nemo-video skill for general editing).
 
 ---
 
 ## Setup
 
-**Base URL:** `https://mega-api-dev.nemovideo.ai`
+**Base URL:** `https://mega-api-prod.nemovideo.ai`
 
 All requests require:
 ```

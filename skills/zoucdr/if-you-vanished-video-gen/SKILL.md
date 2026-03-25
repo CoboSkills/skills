@@ -1,6 +1,6 @@
 ---
 name: if-you-vanished-video-gen
-version: 1.0.0
+version: 1.0.1
 description: "Create vertical absence shorts: quiet home, stalled phone, feed moves on, bittersweet closer, timed English captions (WeryAI). Use for melancholic mood or safe disappearance hypotheticals—never self-harm. Use when the user wants lonely-apartment or ‘if I vanished’ vibes. SEO: if you vanished video; loneliness hook video."
 
 tags: [emotion, loneliness, absence, mood, hooks, subtitles, short-video, video-gen]

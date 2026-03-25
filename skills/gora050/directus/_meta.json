@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "directus",
+  "displayName": "Directus",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774213441195,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain",
+  "slug": "selinux",
+  "displayName": "Selinux",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774336604239,
+    "commit": null
+  },
+  "history": []
+}

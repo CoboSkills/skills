@@ -1,0 +1,11 @@
+{
+  "owner": "urbantech",
+  "slug": "database-schema-sync",
+  "displayName": "Database Schema Sync",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774326939405,
+    "commit": null
+  },
+  "history": []
+}

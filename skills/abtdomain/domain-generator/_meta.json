@@ -1,0 +1,11 @@
+{
+  "owner": "abtdomain",
+  "slug": "domain-generator",
+  "displayName": "domain name generator",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1774478925587,
+    "commit": null
+  },
+  "history": []
+}

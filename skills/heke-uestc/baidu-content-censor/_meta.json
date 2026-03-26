@@ -1,0 +1,11 @@
+{
+  "owner": "heke-uestc",
+  "slug": "baidu-content-censor",
+  "displayName": "Baidu Content Censor",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774251544458,
+    "commit": null
+  },
+  "history": []
+}

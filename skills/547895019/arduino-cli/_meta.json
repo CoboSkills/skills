@@ -1,0 +1,11 @@
+{
+  "owner": "547895019",
+  "slug": "arduino-cli",
+  "displayName": "Arduino CLI",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774425168584,
+    "commit": null
+  },
+  "history": []
+}

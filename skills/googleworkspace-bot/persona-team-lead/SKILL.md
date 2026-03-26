@@ -1,8 +1,8 @@
 ---
 name: persona-team-lead
-version: 1.0.0
 description: "Lead a team — run standups, coordinate tasks, and communicate."
 metadata:
+  version: 0.22.2
   openclaw:
     category: "persona"
     requires:

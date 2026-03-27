@@ -1,12 +1,18 @@
 ---
 name: sleep
-version: 1.4.0
-description: 睡觉技能。通过 /sleep 或自然语言（如"去睡觉了"、"困了"、"睡了"）触发，将当前 session 中未完成的事项记录到文件，然后通过 Gateway API reset session。醒来时 hook 自动读取并注入未完成事项到新 session 上下文。
+version: 1.7.1
+description: 睡觉技能。执行睡觉流程：将当前 session 中未完成的事项记录到 preview 文件，通过 Gateway API reset session。醒来时 hook 自动读取并注入未完成事项到新 session 上下文。触发方式：Agent 自行判断适合入睡时调用，强制入睡用 /sleep。
 
 ## ClawHub
 
 > Install: `clawhub install openclaw-sleep`
 > Published: https://clawhub.com/openclaw-sleep
+
+## 安装说明
+
+详细安装步骤见 `references/implementation.md`。
+
+⚠️ **Hook 部分只需主 agent 安装一次**（所有 agent 共享），其他 agent 只需安装 skill 本身。
 ---
 
 # Sleep — 睡前记录 + 醒来续接
@@ -17,16 +23,16 @@ description: 睡觉技能。通过 /sleep 或自然语言（如"去睡觉了"、
 
 ## 触发条件
 
-⚠️ **本 skill 的完整流程依赖 session reset（`/new` 或 `/reset`），不仅仅是触发消息。**
+⚠️ **本 skill 的完整流程依赖 session reset（`/new` 或 `/reset`），不仅仅是激活 skill。**
 
-触发方式（任选其一）：
-- `/sleep` 命令
-- 自然语言：如"去睡觉了"、"困了"、"睡了"、"晚安"等意图明显的表达
+触发方式：
+- **Agent 判断**：Agent 认为当前 session 适合结束/暂停时，主动调用
+- **强制触发**：`/sleep` 命令，用户或 Agent 强制执行睡觉流程
 
 **Skill 本身只负责写 preview 文件 + 调用 Gateway API reset session**
 - **Reset 触发 `agent:bootstrap` 事件 → hook 在 bootstrap 时注入 preview**
 
-如果只发触发消息而不调用 Gateway API，session 不会 reset，hook 不会触发。
+如果只激活 skill 而不调用 Gateway API，session 不会 reset，hook 不会触发。
 
 ## 记录要求
 
@@ -64,26 +70,51 @@ pending / all_done
 
 ## 执行流程
 
-### Step 1：评估并记录
+### Step 1：获取当前 Session Key
+
+**这是最关键的步骤——必须睡你自己的 session，不是别人的。**
+
+执行以下命令获取当前 session 的 key：
+
+```bash
+openclaw session current
+```
+
+输出格式如：`agent:main:feishu:group:oc_87d0d49f1f81f9e1b8dd1d5ad5f9ec72`
+
+**记录下来，后续两步都要用到这个 key。**
+
+### Step 2：评估并记录
 
 根据"记录要求"逐项填写上述格式，写入：
+
 ```
-workspace/previews/{sessionKey}.md
+$HOME/.openclaw/workspace/previews/{你的sessionKey}.md
 ```
 
-Session key 格式如：`agent:main:feishu:group:oc_xxx`
+⚠️ **路径说明**：
+- 把 preview 写到**你自己**工作空间下的 `previews/` 目录
+- main agent 路径是 `$HOME/.openclaw/workspace/previews/`
+- 文件名用**你刚获取的 session key**，不是别人的
 
-### Step 2：判断状态
+### Step 3：判断状态
 
 - 有未完成事项 → 状态写 `pending`
 - 全部完成 → 状态写 `all_done`
 
-### Step 3：通过 Gateway API reset session
+### Step 4：通过 Gateway API reset 你自己的 session
 
 写入文件后，必须调用 Gateway API 才能真正 reset session：
 
 ```bash
 #!/bin/bash
+# 以下全部使用你自己的 session key
+
+AGENT_SESSION_KEY="agent:main:feishu:group:oc_87d0d49f1f81f9e1b8dd1d5ad5f9ec72"  # 替换为 Step 1 获取的值
+PREVIEW_DIR="$HOME/.openclaw/workspace/previews"  # 替换为你的工作空间路径
+
+mkdir -p "$PREVIEW_DIR"
+
 TOKEN="$(cat ~/.openclaw/openclaw.json | python3 -c "import json,sys; c=json.load(sys.stdin); print(c['gateway']['auth']['token'])")"
 openclaw gateway call sessions.reset \
   --token "$TOKEN" \
@@ -91,7 +122,10 @@ openclaw gateway call sessions.reset \
   --params "{\"key\":\"$AGENT_SESSION_KEY\"}"
 ```
 
-⚠️ **关键**：只写 preview 不调用 reset = hook 不会触发，preview 不会被注入。
+⚠️ **关键提醒**：
+- `$AGENT_SESSION_KEY` 必须填**你自己的 session key**，不是 main 或其他 agent 的
+- **只写 preview 不调用 reset** = hook 不会触发，preview 不会被注入
+- Reset 的是**你自己的 session**，Gateway 会触发 `agent:bootstrap`，hook 会在你重新被唤醒时注入 preview
 
 ## 设计原则
 

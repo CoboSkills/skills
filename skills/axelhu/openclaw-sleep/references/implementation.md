@@ -1,5 +1,14 @@
 # Sleep Skill — 安装说明
 
+> ⚠️ 本文件所有 `workspace/` 路径均指你的工作空间目录（例如 `$HOME/.openclaw/workspace/`），不是字面量 "workspace" 文件夹。
+
+## 安装说明
+
+**本 skill 包含两部分：skill 文件 + hook 文件。**
+
+- **Skill 文件**：每个 agent 自行安装到自己的工作空间
+- **Hook 文件**：**只需主 agent 安装一次**，所有 agent 共享。Hook 放在 `~/.openclaw/workspace/hooks/` 下，由 Gateway 读取，session reset 时自动对所有 agent 生效
+
 ## 依赖文件
 
 所有文件已就绪，直接可用：
@@ -10,15 +19,13 @@ workspace/
 │   ├── SKILL.md
 │   └── references/
 │       ├── implementation.md     # 本文件
-│       └── hook-template/       # ✅ hook 模板（可直接拷贝）
+│       └── hook-template/       # ✅ hook 模板（可直接使用）
 │           ├── HOOK.md
 │           └── handler.ts
 └── previews/                   # ✅ preview 文件目录（运行时创建）
 ```
 
-## 快速安装（复制给其他 agent）
-
-其他 agent 只需要两步：
+## 安装步骤
 
 ### 第一步：复制 hook 文件
 

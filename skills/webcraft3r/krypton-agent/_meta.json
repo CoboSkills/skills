@@ -1,0 +1,11 @@
+{
+  "owner": "webcraft3r",
+  "slug": "krypton-agent",
+  "displayName": "Krypton Agent",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774633755820,
+    "commit": null
+  },
+  "history": []
+}

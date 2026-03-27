@@ -1,0 +1,11 @@
+{
+  "owner": "autosolutionsai-didac",
+  "slug": "agent-memory-setup-v2",
+  "displayName": "Agent Memory Setup v2 (Gemini Embeddings 2)",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774610166377,
+    "commit": null
+  },
+  "history": []
+}

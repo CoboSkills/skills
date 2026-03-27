@@ -1,257 +1,131 @@
 ---
 name: ai-subtitle-generator
-version: "1.0.4"
-displayName: "AI Subtitle Generator - Auto Captions, Burn Subtitles and Hardcode Text to Video"
+version: "1.0.0"
+displayName: "AI Subtitle Generator — Auto Generate Subtitles, Translate and Burn Captions into Video"
 description: >
-  AI subtitle generator and caption tool — automatically add subtitles, captions, and text
-  overlays to any video directly in chat. Generates captions with word-level timing, burns
-  subtitles directly onto footage, and exports SRT files. Video transcription from speech
-  to text with multilingual support. Works as a subtitle burner, video overlay tool, caption
-  generator, and auto caption tool for TikTok, YouTube, and Reels. Supports accessibility
-  captions and closed captions. Supports mp4, mov, avi, webm, mkv.
-metadata: {"openclaw": {"emoji": "💬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+  Automatically generate subtitles for any video using AI speech recognition, translate them into 90+ languages, and burn them directly into the video or export as SRT and VTT files. NemoVideo transcribes spoken audio with 98% accuracy, syncs word-level timing, supports multiple speaker identification, offers animated caption styles from TikTok bold to Netflix minimal, and handles batch subtitle generation for entire video libraries — making every video accessible, searchable, and watchable on mute.
+metadata: {"openclaw": {"emoji": "📝", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 ---
 
+# AI Subtitle Generator — Auto Generate and Burn Subtitles into Video
 
-# NemoVideo — AI Video Creation Skill
+Subtitles used to be a post-production afterthought — something added for accessibility compliance or foreign-language distribution. In 2026, subtitles are the primary text interface of video content. On TikTok, Instagram, YouTube Shorts, and LinkedIn, the majority of viewers watch with sound off. Search engines index subtitle text for video SEO. YouTube's algorithm uses auto-generated captions to understand video content for recommendations. Accessibility laws (ADA, EAA, WCAG 2.2) increasingly require captions on all published video. Subtitles are no longer optional for any of these reasons — and yet generating accurate, well-timed subtitles manually takes 5-10x the video duration (a 10-minute video requires 50-100 minutes of manual captioning). NemoVideo's AI subtitle generator reduces this to seconds: upload a video, receive word-level transcription with speaker identification, choose a caption style, and export — burned into the video for social media, or as SRT/VTT sidecar files for YouTube, LMS platforms, and web players. The subtitle pipeline handles the three things that make manual captioning painful: transcription accuracy (getting every word right), timing precision (syncing each word to the exact millisecond it's spoken), and styling consistency (maintaining readable formatting across the entire video regardless of background changes).
 
-Create videos by chatting. Describe what you want → AI generates → edit → export → receive the file.
+## Use Cases
 
-## 1. Role & Environment
+1. **Social Media Captions — TikTok/Reels Style (15-90 sec)** — A creator posts daily short-form content. NemoVideo generates: word-by-word animated captions (each word highlights as spoken in yellow against white base text), bold sans-serif font at 48px, positioned in the bottom safe zone above platform UI, with automatic line breaks at natural phrase boundaries (not mid-sentence). The creator never manually captions again — every video ships with the professional animated subtitle style audiences expect.
+2. **YouTube Full-Length Subtitles + Chapters (10-60 min)** — A YouTuber uploads a 25-minute video. NemoVideo generates: complete SRT file with 98%+ accuracy for YouTube's closed-caption system, auto-detected chapter markers with titles ("00:00 Intro, 02:15 Setup, 05:40 Main Topic...") for YouTube's chapter feature, and a highlighted-keyword clip of the most quotable 30 seconds (with burned captions, 9:16) for Shorts cross-promotion. Three deliverables from one upload.
+3. **Multilingual Subtitle Translation (any length)** — A company's product demo video in English needs subtitles in Spanish, French, German, Portuguese, Japanese, and Korean. NemoVideo transcribes the English audio, then translates to all 6 target languages with timestamp preservation — each translated subtitle appears and disappears at the exact same moment as the English original, accounting for text-length differences across languages (German runs 30% longer than English; Japanese runs 20% shorter). Exports: 7 SRT files plus 7 burned-in versions.
+4. **Podcast Video — Multi-Speaker Identification** — A three-person podcast publishes video episodes. NemoVideo identifies each speaker by voice fingerprint, assigns colors (Host: white, Guest 1: cyan, Guest 2: amber), and positions speaker labels ("Dr. Sarah Chen:") before each caption segment. The viewer always knows who is speaking — critical for podcast content where faces may not be on screen during every segment.
+5. **Accessibility Compliance — Enterprise Video Library** — A university has 500 lecture recordings that need WCAG 2.1 AA-compliant captions for an accessibility audit. NemoVideo batch-processes the entire library: accurate transcription with proper punctuation and capitalization, speaker identification for lectures with Q&A, VTT export with positioning metadata for web players, and a compliance report documenting accuracy rates and any segments flagged for human review (proper nouns, technical terminology, accented speech).
 
-You are an OpenClaw agent acting as the **interface layer** between the user and NemoVideo's backend AI Agent. The backend handles video generation/editing but thinks users have a GUI. Your job:
+## How It Works
 
-1. **Relay** user requests to the backend via SSE
-2. **Intercept** backend responses — replace GUI references with API actions
-3. **Supplement** — handle export/render, credits, file delivery directly
-4. **Translate** — present results in user's language with clear status
+### Step 1 — Upload Video
+Provide any video with spoken audio. All major formats accepted. No duration limit — from 15-second Reels to 3-hour lectures.
 
-**The backend does NOT know about OpenClaw.** It says "click Export" or "check dashboard" — YOU execute those via API.
+### Step 2 — Configure Subtitles
+Choose: language (or auto-detect), caption style, font, colors, position, translation targets, and output format (burned-in, SRT, VTT, or all).
 
-### Environment Variables
-
-| Variable | Required | Default |
-|----------|----------|---------|
-| `NEMO_TOKEN` | No | Auto-generated (100 free credits, expires in 7 days, revocable via Settings → API Tokens) |
-| `NEMO_API_URL` | No | `https://mega-api-prod.nemovideo.ai` |
-| `NEMO_WEB_URL` | No | `https://nemovideo.com` |
-| `NEMO_CLIENT_ID` | No | Auto-generated UUID, persisted to `~/.config/nemovideo/client_id` (UUID only, no secrets) |
-| `SKILL_SOURCE` | No | Auto-detected from install path, fallback `unknown` |
-
-If `NEMO_TOKEN` is not set, get one (requires `X-Client-Id` header):
+### Step 3 — Generate
 ```bash
-# Generate or read persisted Client-Id
-CLIENT_ID="${NEMO_CLIENT_ID:-$(cat ~/.config/nemovideo/client_id 2>/dev/null)}"
-if [ -z "$CLIENT_ID" ]; then
-  CLIENT_ID=$(uuidgen 2>/dev/null || echo "client-$(date +%s)-$RANDOM")
-  mkdir -p ~/.config/nemovideo && echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
-fi
-curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
-# → {"code":0,"data":{"token":"nmv_usr_xxx","credits":100,...}}
-```
-Save `token` as `NEMO_TOKEN`, `CLIENT_ID` as `NEMO_CLIENT_ID`. Anonymous: 1 token per client per 7 days; token expires in 7 days and can be revoked at any time via **Settings → API Tokens** on nemovideo.com. If your token expires, request a new one with the same `X-Client-Id`.
-
-**Local persistence:** This skill writes `~/.config/nemovideo/client_id` to persist the Client-Id across sessions. This avoids generating a new ID on every request, which would hit the per-IP rate limit quickly (default 10 tokens per 7 days per IP). The file contains only a UUID — no credentials are stored locally.
-
-## 2. Request Router
-
-**Check this table before forwarding anything to backend:**
-
-| User says... | Action | Skip SSE? |
-|-------------|--------|-----------|
-| "export" / "导出" / "download" / "send me the video" | → §3.5 Export | ✅ |
-| "credits" / "积分" / "balance" / "余额" | → §3.3 Credits | ✅ |
-| "status" / "状态" / "show tracks" | → §3.4 State | ✅ |
-| "upload" / "上传" / user sends file | → §3.2 Upload | ✅ |
-| Everything else (generate, edit, add BGM…) | → §3.1 SSE | ❌ |
-
-## 3. Core Flows
-
-`$API` = `${NEMO_API_URL:-https://mega-api-prod.nemovideo.ai}`, `$TOKEN` = `${NEMO_TOKEN}`, `$WEB` = `${NEMO_WEB_URL:-https://nemovideo.com}`.
-
-Skill attribution variables — do NOT hardcode:
-- `$SKILL_NAME` = this file's YAML frontmatter `name`
-- `$SKILL_VERSION` = this file's YAML frontmatter `version`
-- `$SKILL_SOURCE` = detect at runtime using the first match:
-  1. Env `SKILL_SOURCE` if set
-  2. If this file's path contains a known platform directory (e.g. `~/.clawhub/` → `clawhub`, `~/.cursor/skills/` → `cursor`)
-  3. Fallback: `unknown`
-
-**CRITICAL**: ALL API requests (including render/export/upload/state/credits) MUST include these headers. Missing them will cause export to fail with 402.
-```
-X-Skill-Source: $SKILL_NAME
-X-Skill-Version: $SKILL_VERSION
-X-Skill-Platform: $SKILL_SOURCE
+curl -X POST https://mega-api-prod.nemovideo.ai/api/v1/generate \
+  -H "Authorization: Bearer $NEMO_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "skill": "ai-subtitle-generator",
+    "prompt": "Generate subtitles for a 20-minute YouTube tutorial in English. Transcribe with word-level timing. Generate SRT for YouTube upload. Also create burned-in version with clean white sans-serif captions (42px) with dark semi-transparent background bar for readability. Detect chapter markers at topic transitions and output as YouTube chapter timestamps. Translate subtitles to Spanish and French — export as separate SRT files preserving original timing.",
+    "source_language": "en",
+    "translate_to": ["es", "fr"],
+    "caption_style": "clean-bar",
+    "font": "sans-serif",
+    "font_size": 42,
+    "color": "#FFFFFF",
+    "background": "semi-transparent-dark",
+    "burn_in": true,
+    "srt_export": true,
+    "chapter_detection": true,
+    "format": "16:9"
+  }'
 ```
 
-### 3.0 Create Session (once per project)
-```bash
-curl -s -X POST "$API/api/tasks/me/with-session/nemo_agent" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
-  -d '{"task_name":"project","language":"<lang>"}'
-# → {"code":0,"data":{"task_id":"...","session_id":"..."}}
-```
-Path uses **me**; only `NEMO_TOKEN` is needed. Save `session_id`, `task_id` for later.
+### Step 4 — Review, Correct Proper Nouns, Export
+Preview the transcription. NemoVideo flags low-confidence words (typically proper nouns and technical terms) for quick human review. Correct any errors, then export all deliverables.
 
-**Open in browser**: After creating a session, give the user a link to view/edit the task in NemoVideo:
-`$WEB/workspace/claim?token=$TOKEN&task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`  
-(i.e. `${NEMO_WEB_URL:-https://nemovideo.com}/workspace/claim?token=<NEMO_TOKEN>&task=<task_id>&session=<session_id>&skill_name=<SKILL_NAME>&skill_version=<SKILL_VERSION>&skill_source=<SKILL_SOURCE>`). Replace `<task_id>`, `<session_id>` with the response values; `<SKILL_NAME>`, `<SKILL_VERSION>`, `<SKILL_SOURCE>` with the frontmatter values.
+## Parameters
 
-### 3.1 Send Message via SSE
-```bash
-curl -s -X POST "$API/run_sse" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" --max-time 900 \
-  -d '{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}'
-```
-Only **NEMO_TOKEN** and **session_id** are required. All fields **snake_case**. Before generation/editing, tell user: "This may take a few minutes."
+| Parameter | Type | Required | Description |
+|-----------|------|:--------:|-------------|
+| `prompt` | string | ✅ | Describe the video and subtitle requirements |
+| `source_language` | string | | Audio language or "auto-detect" (default) |
+| `translate_to` | array | | Target languages: ["es", "fr", "de", "ja", "ko", "pt", "zh"] |
+| `caption_style` | string | | "word-highlight", "clean-bar", "netflix-minimal", "tiktok-bold", "karaoke" |
+| `font` | string | | "sans-serif", "bold-sans", "serif", "monospace", "handwritten" |
+| `font_size` | integer | | Size in pixels (default: 42) |
+| `color` | string | | Text color hex (default: "#FFFFFF") |
+| `highlight_color` | string | | Word-highlight color (default: "#FBBF24") |
+| `background` | string | | "none", "semi-transparent-dark", "solid-black", "blur" |
+| `burn_in` | boolean | | Render subtitles into the video (default: true) |
+| `srt_export` | boolean | | Export SRT sidecar file (default: true) |
+| `vtt_export` | boolean | | Export VTT with positioning (default: false) |
+| `speaker_labels` | boolean | | Identify and label speakers (default: auto-detect) |
+| `chapter_detection` | boolean | | Detect topic changes as chapter markers (default: false) |
+| `format` | string | | "16:9", "9:16", "1:1" |
 
-#### SSE Handling
+## Output Example
 
-| Event | Action |
-|-------|--------|
-| Text response | Apply GUI translation (§4), present to user |
-| Tool call/result | Wait silently, don't forward |
-| `heartbeat` / empty `data:` | Keep waiting. Every 2 min: "⏳ Still working..." |
-| Stream closes | Process final response |
-
-Typical durations: text 5-15s, video generation 100-300s, editing 10-30s.
-
-**Timeout**: 10 min heartbeats-only → assume timeout. **Never re-send** during generation (duplicates + double-charge).
-
-Ignore trailing "I encountered a temporary issue" if prior responses were normal.
-
-#### Silent Response Fallback (CRITICAL)
-
-~30% of edits return no text — only tool calls. When stream closes with no text:
-1. Query state §3.4, compare with previous
-2. Report change: "✅ Title added: 'Paradise Found' (white, top-center, 3s fade-in)"
-
-**Never leave user with silence after an edit.**
-
-**Two-stage generation**: Backend auto-adds BGM/title/effects after raw video.
-1. Raw video ready → tell user immediately
-2. Post-production done → show all tracks, let user choose to keep/strip
-
-### 3.2 Upload
-
-**File upload**: `curl -s -X POST "$API/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -F "files=@/path/to/file"`
-
-**URL upload**: `curl -s -X POST "$API/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -d '{"urls":["<url>"],"source_type":"url"}'`
-
-Use **me** in the path; backend resolves user from token.
-
-Supported: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
-
-Tell users: "Send the file in chat or give me a URL." Never mention GUI upload buttons.
-
-### 3.3 Credits (you handle, NOT backend)
-```bash
-curl -s "$API/api/credits/balance/simple" -H "Authorization: Bearer $TOKEN" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
-# → {"code":0,"data":{"available":XXX,"frozen":XX,"total":XXX}}
-```
-`frozen` = reserved for in-progress ops. **Never say "I can't check"** — you can and must.
-
-### 3.4 Query State
-```bash
-curl -s "$API/api/state/nemo_agent/me/<sid>/latest" -H "Authorization: Bearer $TOKEN" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
-```
-Use **me** for user in path; backend resolves from token.
-Key fields: `data.state.draft`, `data.state.video_infos`, `data.state.canvas_config`, `data.state.generated_media`.
-
-**Draft field mapping**: `t`=tracks, `tt`=track type (0=video, 1=audio, 7=text), `sg`=segments, `d`=duration(ms), `m`=metadata.
-
-**Draft ready for export** when `draft.t` exists with at least one track with non-empty `sg`.
-
-**Track summary format**:
-```
-Timeline (3 tracks): 1. Video: city timelapse (0-10s) 2. BGM: Lo-fi (0-10s, 35%) 3. Title: "Urban Dreams" (0-3s)
+```json
+{
+  "job_id": "asg-20260328-001",
+  "status": "completed",
+  "duration_seconds": 1205,
+  "format": "mp4",
+  "resolution": "1920x1080",
+  "transcription": {
+    "language": "en",
+    "confidence": 0.982,
+    "word_count": 3240,
+    "segments": 285,
+    "speakers_detected": 1,
+    "low_confidence_words": 12
+  },
+  "outputs": {
+    "burned_in_video": "tutorial-subtitled-en.mp4",
+    "srt_english": "tutorial-en.srt",
+    "srt_spanish": "tutorial-es.srt",
+    "srt_french": "tutorial-fr.srt",
+    "chapters": [
+      {"title": "Introduction", "timestamp": "00:00"},
+      {"title": "Setting Up the Environment", "timestamp": "02:18"},
+      {"title": "Writing Your First Function", "timestamp": "06:45"},
+      {"title": "Error Handling", "timestamp": "11:30"},
+      {"title": "Testing and Debugging", "timestamp": "15:52"},
+      {"title": "Summary and Next Steps", "timestamp": "18:40"}
+    ]
+  }
+}
 ```
 
-### 3.5 Export & Deliver (you handle — NEVER send "export" to backend)
+## Tips
 
-**Export does NOT cost credits.** Only generation/editing consumes credits.
+1. **Word-level timing is what separates professional subtitles from amateur** — Per-sentence subtitles that appear all at once force the viewer to read ahead of the speaker. Word-level timing syncs reading speed to speaking speed — the viewer never waits and never rushes.
+2. **Semi-transparent background bar ensures readability on any footage** — White text on bright footage is invisible. A dark bar behind the text guarantees contrast without blocking the video like a solid black bar would.
+3. **Always export SRT alongside burned-in** — Burned-in looks better on social media. SRT lets YouTube and LinkedIn index the text for search and recommendations. Both formats serve different purposes; generate both.
+4. **Translate after proofreading the source** — Fix transcription errors in the English source before translating. One error in English becomes one error in every target language.
+5. **Chapter detection saves 15 minutes per YouTube upload** — Manually writing chapter timestamps is tedious and error-prone. NemoVideo detects topic shifts from the transcript and generates YouTube-formatted chapter timestamps automatically.
 
-**a)** Pre-check: query §3.4, validate `draft.t` has tracks with non-empty `sg`. No draft → tell user to generate first.
+## Output Formats
 
-**b)** Submit: `curl -s -X POST "$API/api/render/proxy/lambda" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -d '{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}'`
+| Format | Description | Use Case |
+|--------|------------|----------|
+| MP4 (burned-in) | Subtitles rendered into video | Social media direct upload |
+| SRT | SubRip subtitle file | YouTube / LinkedIn / LMS |
+| VTT | WebVTT with positioning | Web players / accessibility |
+| JSON transcript | Full word-level transcript | Search indexing / blog post |
+| TXT | Plain text transcript | Show notes / documentation |
 
-Note: `sessionId` is **camelCase** (exception). On failure → new `id`, retry once.
+## Related Skills
 
-**c)** Poll (every 30s, max 10 polls): `curl -s "$API/api/render/proxy/lambda/<id>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"`
-
-Status at top-level `status`: pending → processing → completed / failed. Download URL at `output.url`.
-
-**d)** Download from `output.url` → send to user. Fallback: `$API/api/render/proxy/<id>/download`.
-
-**e)** When delivering the video, **always also give the task detail link** so the user can open the project in the browser: `$WEB/workspace/claim?token=$TOKEN&task=<task_id>&session=<session_id>&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE` (use the current session's `task_id` and `session_id`).
-
-Progress messages: start "⏳ Rendering ~30s" → "⏳ 50%" → "✅ Video ready!" + file + **task detail link**.
-
-### 3.6 SSE Disconnect Recovery
-
-1. **Don't re-send** (avoids duplicate charges)
-2. Wait 30s → query §3.4
-3. State changed → report to user
-4. No change → wait 60s, query again
-5. After 5 unchanged queries (5 min) → report failure, offer retry
-
-## 4. GUI Translation
-
-Backend assumes GUI. **Never forward GUI instructions.** Translate:
-
-| Backend says | You do |
-|-------------|--------|
-| "click [button]" / "点击" | Execute via API |
-| "open [panel]" / "打开" | Show state via §3.4 |
-| "drag/drop" / "拖拽" | Send edit via SSE |
-| "preview in timeline" | Show track summary |
-| "Export button" / "导出" | Execute §3.5 |
-| "check account/billing" | Check §3.3 |
-
-**Keep** content descriptions. **Strip** GUI actions.
-
-## 5. Interaction Patterns
-
-**After edits**: summarize specifics (what/name/timing/before→after). Suggest 2-3 next steps.
-
-**During long ops**: acknowledge + queue: "After generation: 1. subtitles 2. BGM 3. title"
-
-**Non-video requests**: redirect to other tools.
-
-**Credits/Export**: handle directly via §3.3/§3.5, never forward to backend.
-
-**After export**: when sending the video to the user, always include the **task detail link** (`$WEB/workspace/claim?token=$TOKEN&task=<task_id>&session=<session_id>&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`) so they can open the project in the browser.
-
-## 6. Limitations
-
-Pass all generation params to backend as-is (don't intercept). Be honest about limits:
-- Change aspect ratio → must regenerate
-- YouTube/Spotify URLs → "Built-in library has similar styles"
-- Edit photos → "I can make a slideshow"
-- Local files → user must send in chat or provide URL
-
-## 7. Error Handling
-
-| Code | Meaning | Action |
-|------|---------|--------|
-| 0 | Success | Continue |
-| 1001 | Bad/expired token | Re-auth via anonymous-token (tokens expire after 7 days) |
-| 1002 | Session not found | New session §3.0 |
-| 2001 | No credits | Anonymous: show registration URL with `?bind=<id>` (get `<id>` from create-session or state response when needed). Registered: "Top up at nemovideo.ai" |
-| 4001 | Unsupported file | Show supported formats |
-| 4002 | File too large | Suggest compress/trim |
-| 400 | Missing X-Client-Id | Generate Client-Id and retry (see §1) |
-| 402 | Free plan export blocked | Subscription tier issue, NOT credits. "Register at nemovideo.ai to unlock export." |
-| 429 | Rate limit (1 token/client/7 days) | Retry in 30s once |
-
-**Common**: no video → generate first; render fail → retry new `id`; SSE timeout → §3.6; silent edit → §3.1 fallback.
-
-## 8. Version & Scopes
-
-**Version**: see frontmatter `version`. Check updates weekly: `clawhub search nemo-video --json`. Notify once if newer exists.
-
-**Token scopes** (manual tokens via Settings → API Tokens): `read` | `write` | `upload` | `render` | `*` (all). Anonymous tokens have `read`, `write`, `upload` scopes and expire in 7 days. All tokens can be revoked at any time via **Settings → API Tokens** on nemovideo.com.
+- [gaming-video-editor](/skills/gaming-video-editor) — Gaming content with captions
+- [online-video-editor](/skills/online-video-editor) — Full online video editing
+- [video-editor-ai](/skills/video-editor-ai) — AI-powered video editing

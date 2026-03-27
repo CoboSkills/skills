@@ -1,0 +1,11 @@
+{
+  "owner": "antfraud",
+  "slug": "chanlun-analyzer",
+  "displayName": "缠论分析引擎 v3.0",
+  "latest": {
+    "version": "3.0.0",
+    "publishedAt": 1774537571162,
+    "commit": null
+  },
+  "history": []
+}

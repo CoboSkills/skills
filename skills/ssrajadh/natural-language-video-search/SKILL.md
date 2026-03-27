@@ -12,6 +12,8 @@ metadata:
         - GEMINI_API_KEY
       bins:
         - python3
+        - uv
+        - ffmpeg
     primaryEnv: GEMINI_API_KEY
     homepage: https://github.com/ssrajadh/sentrysearch
     emoji: "🎥"
@@ -31,14 +33,9 @@ Two embedding backends are available:
 
 ## Setup
 
-1. Install [uv](https://docs.astral.sh/uv/) (if you don't have it):
+Requires [uv](https://docs.astral.sh/uv/getting-started/installation/) and Python 3.11+.
 
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh    # macOS/Linux
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"  # Windows
-```
-
-2. Clone and install:
+1. Clone and install:
 
 ```bash
 git clone https://github.com/ssrajadh/sentrysearch.git

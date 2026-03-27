@@ -2,7 +2,7 @@
 name: html-to-html
 description: "HTML to HTML - fetch a remote HTML page (URL) and convert it to clean structured HTML using MinerU crawl. Use when you want a cleaned-up HTML version of a web page."
 homepage: https://mineru.net
-metadata: {"openclaw": {"emoji": "📄", "requires": {"bins": ["mineru-open-api"]}, "install": [{"id": "npm", "kind": "node", "package": "mineru-open-api", "bins": ["mineru-open-api"], "label": "Install via npm"}, {"id": "go", "kind": "go", "package": "github.com/opendatalab/MinerU-Ecosystem/cli/mineru-open-api", "bins": ["mineru-open-api"], "label": "Install via go install", "os": ["darwin", "linux"]}]}}
+metadata: {"openclaw": {"emoji": "📄", "requires": {"bins": ["mineru-open-api"], "env": ["MINERU_TOKEN"]}, "primaryEnv": "MINERU_TOKEN", "install": [{"id": "npm", "kind": "node", "package": "mineru-open-api", "bins": ["mineru-open-api"], "label": "Install via npm"}, {"id": "go", "kind": "go", "package": "github.com/opendatalab/MinerU-Ecosystem/cli/mineru-open-api", "bins": ["mineru-open-api"], "label": "Install via go install", "os": ["darwin", "linux"]}]}}
 ---
 
 # HTML to HTML

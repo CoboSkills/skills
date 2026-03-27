@@ -1,0 +1,11 @@
+{
+  "owner": "squaeragent",
+  "slug": "zero-trading",
+  "displayName": "ZERO Trading Agent",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1774620906236,
+    "commit": null
+  },
+  "history": []
+}

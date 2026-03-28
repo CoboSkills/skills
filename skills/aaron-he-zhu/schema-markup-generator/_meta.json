@@ -3,11 +3,16 @@
   "slug": "schema-markup-generator",
   "displayName": "Schema Markup Generator",
   "latest": {
-    "version": "3.0.0",
-    "publishedAt": 1772640260425,
-    "commit": "https://github.com/openclaw/skills/commit/a84b3159cf9f8197d87b65225de7a31f2f64b60a"
+    "version": "4.0.0",
+    "publishedAt": 1774347702482,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.0",
+      "publishedAt": 1772640260425,
+      "commit": "https://github.com/openclaw/skills/commit/a84b3159cf9f8197d87b65225de7a31f2f64b60a"
+    },
     {
       "version": "2.0.0",
       "publishedAt": 1771042648548,

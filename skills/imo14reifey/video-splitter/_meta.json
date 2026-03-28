@@ -3,11 +3,16 @@
   "slug": "video-splitter",
   "displayName": "Video Splitter",
   "latest": {
-    "version": "1.3.0",
-    "publishedAt": 1774652231634,
-    "commit": "https://github.com/openclaw/skills/commit/a6bfe142afdaf3b42bbb55a8191d29d516e618f9"
+    "version": "20.0.0",
+    "publishedAt": 1774685667760,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.3.0",
+      "publishedAt": 1774652231634,
+      "commit": "https://github.com/openclaw/skills/commit/a6bfe142afdaf3b42bbb55a8191d29d516e618f9"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774325472246,

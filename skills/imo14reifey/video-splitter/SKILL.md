@@ -1,31 +1,31 @@
 ---
 name: video-splitter
 version: "1.0.0"
-displayName: "Video Splitter — Split, Segment and Divide Videos into Clips Automatically with AI"
+displayName: "Video Splitter — Split Long Videos into Clips Scenes and Segments Automatically"
 description: >
-  Split any video into multiple clips automatically using AI scene detection, silence detection, or custom timestamps. NemoVideo divides long recordings into shareable segments, detects scene changes and topic transitions, splits by equal duration or file size for upload limits, extracts the best moments for short-form repurposing, and batch-exports every clip with consistent naming — turning a 60-minute recording into 15 ready-to-post clips without touching a timeline.
+  Split long videos into clips, scenes, and segments automatically with AI — detect scene changes, topic shifts, silence gaps, and speaker turns to divide any video into individual files. NemoVideo analyzes video structure and splits intelligently: podcast episodes into topic clips, lectures into lesson modules, meetings into agenda items, streams into highlight segments, and interviews into individual Q&A pairs. Upload one long video and download multiple ready-to-use segments. Split video online, divide video into parts, cut video into clips, scene detection, video chapter splitter, segment video automatically.
 metadata: {"openclaw": {"emoji": "✂️", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 ---
 
-# Video Splitter — Split and Segment Videos into Clips Automatically
+# Video Splitter — One Long Video Becomes Twenty Pieces of Content
 
-Long-form content is where the value lives. Short-form content is where the audience lives. The bridge between them is splitting — taking a 60-minute podcast, a 45-minute webinar, a 30-minute lecture, or a 20-minute YouTube video and extracting the 8-15 moments that work as standalone short-form clips on TikTok, Reels, Shorts, and LinkedIn. A human editor doing this manually watches the entire source video at 2x speed (30 minutes for a 60-minute source), identifies clip-worthy moments, sets in/out points, and exports each clip — a process that takes 2-4 hours per source video and produces 8-12 clips if the editor is fast. NemoVideo automates the entire pipeline: it analyzes the source video using scene detection (visual changes), silence detection (pauses between topics), transcript analysis (topic boundaries from what's being said), and energy detection (audience laughter, applause, speaker emphasis) — then generates clips at every identified split point, ranked by predicted engagement. The creator reviews the clips, selects the strongest ones, and posts. The 4-hour editing session becomes a 15-minute review session.
+Every long video is a container holding multiple shorter videos. A 60-minute podcast contains 8-12 standalone topic discussions — each one a potential clip for social media, a blog post, or a newsletter segment. A 90-minute lecture contains 6-10 teaching modules — each one a lesson in an online course. A 3-hour live stream contains dozens of highlight moments — each one a TikTok, a Shorts, or a Twitch clip. The content already exists inside the long video. The work is extraction. Manual extraction means: watching the entire video start to finish, writing down every timestamp where a new segment begins, opening editing software, setting in-points and out-points for each segment, exporting each one individually, and naming and organizing the files. For a 60-minute video split into 10 segments, this process takes 2-3 hours. For a library of 50 videos, it takes a week. NemoVideo automates the entire extraction pipeline. The AI watches the video once, identifies every natural split point — topic changes in conversation, scene transitions in footage, silence gaps between sections, speaker turns in interviews — and exports each segment as a separate file with automatic titles, consistent formatting, and clean transitions at every cut point.
 
 ## Use Cases
 
-1. **Podcast → Short-Form Clips (60 min → 10-15 clips)** — A weekly podcast episode. NemoVideo analyzes the transcript, identifies topic changes, and extracts: every story/anecdote (beginning to punchline), every strong opinion (high-energy speech segments), and every quotable moment (sentences under 15 seconds with high confidence scores). Each clip is auto-trimmed to start 0.5 seconds before the first word and end 1 second after the last, with fade-to-black outro. Exported 9:16 with captions for TikTok/Reels.
-2. **Webinar → Chapter Segments (45 min → 5-8 chapters)** — A recorded webinar for a SaaS company. NemoVideo splits at topic transitions: intro, problem statement, demo section 1, demo section 2, Q&A, and closing CTA. Each chapter exported as a standalone video with title card, for the company's learning library and YouTube chapters.
-3. **Lecture Recording → Study Segments (90 min → 12-15 segments)** — A university professor's recorded lecture. NemoVideo detects slide changes (visual scene detection) and splits at each new slide topic. Each segment becomes a study module: titled by the slide heading, trimmed of transition dead-time, and chaptered for the LMS platform.
-4. **Gaming Stream → Highlight Clips (3 hours → 20 clips)** — A Twitch stream. NemoVideo identifies: kill moments (crowd/audio energy spikes), funny reactions (laughter detection), clutch plays (rapid input followed by energy spike), and raid/donation moments (on-screen alert detection). Each clip: 15-60 seconds, auto-titled by game moment, exported for YouTube Shorts and TikTok.
-5. **Equal-Duration Split for Upload Limits** — A 2-hour training video needs to be uploaded to a platform with a 15-minute file limit. NemoVideo splits into 8 equal segments of 15 minutes each, with 2-second overlap at each boundary (so viewers don't miss content at split points), sequentially numbered, and each segment opens with a "Part X of 8" title card.
+1. **Podcast Repurposing — Topics to Clips (any length)** — A weekly podcast runs 45-75 minutes per episode. The host wants each topic discussed as a standalone clip for YouTube, LinkedIn, and TikTok. NemoVideo: transcribes the full episode, identifies 8-10 topic transitions from conversational cues ("Speaking of...", "Let's talk about...", natural subject shifts), splits at each transition with 0.5-second audio crossfade, titles each segment from the topic discussed ("Why Remote Work Is Failing — with Sarah Chen"), exports full-length segments (3-8 min each) for YouTube AND extracts the single best 45-second moment from each segment as a vertical TikTok clip. One episode becomes 8 YouTube videos and 8 TikTok clips.
+2. **Online Course — Lectures to Modules (30-120 min)** — A professor recorded a 90-minute lecture for an online learning platform that requires videos under 15 minutes. NemoVideo: detects the lecture's natural structure (introduction → concept 1 → example → concept 2 → example → summary), identifies slide transitions and verbal cues ("Next, we will examine..."), splits into 7 modules aligned with the pedagogical structure, adds title cards to each module ("Module 4: Market Equilibrium — 11:42"), numbers them sequentially, and exports with consistent formatting. A single recording becomes a structured course.
+3. **Meeting Recording — Agenda Items (30-90 min)** — A 60-minute team meeting was recorded and stakeholders only care about specific agenda items. NemoVideo: identifies speaker transitions and topic shifts, maps the recording to the meeting agenda (provided as text or detected from conversation), splits into individual agenda segments ("Q3 Budget Review — 12:34", "Product Launch Timeline — 08:22", "Open Discussion — 15:48"), and exports each as a separate file. Stakeholders watch only their relevant segment instead of scrubbing through the full recording.
+4. **YouTube Chapters — Auto-Generated Timestamps (any length)** — A 25-minute YouTube video needs chapter timestamps for the description. NemoVideo: analyzes the video for topic structure, generates chapter markers at each transition, provides the timestamp list formatted for YouTube description copy-paste, AND optionally splits the video at chapter boundaries for individual segment downloads. Even without splitting, the chapter detection alone saves 30 minutes of manual timestamp creation.
+5. **Content Library — Batch Processing (multiple videos)** — A media company has 200 hours of interview footage archived without segmentation. NemoVideo: batch-processes the entire library, splits each interview into individual Q&A segments, titles each with the question asked, tags with speaker names, and organizes into a searchable catalog. Two hundred hours of unsearchable footage becomes a categorized content database of 2,000+ individual clips.
 
 ## How It Works
 
-### Step 1 — Upload Source Video
-Provide the long-form video. NemoVideo accepts any length — from 5 minutes to 8+ hours. All major formats supported.
+### Step 1 — Upload Video
+Any long video: podcast, lecture, meeting, stream, interview, event recording. Any length — NemoVideo handles multi-hour files.
 
 ### Step 2 — Choose Split Method
-Select: scene detection (visual), silence detection (audio gaps), transcript analysis (topic boundaries), energy detection (engagement peaks), equal duration, or custom timestamps.
+Topic-based (AI detects subject changes), scene-based (visual transitions), silence-based (pauses between sections), speaker-based (who is talking), duration-based (equal chunks), or custom timestamps.
 
 ### Step 3 — Generate
 ```bash
@@ -34,102 +34,82 @@ curl -X POST https://mega-api-prod.nemovideo.ai/api/v1/generate \
   -H "Content-Type: application/json" \
   -d '{
     "skill": "video-splitter",
-    "prompt": "Split a 55-minute podcast episode into short-form clips for TikTok and Reels. Use transcript analysis to find: (1) complete stories/anecdotes from beginning to punchline, (2) strong opinions with emotional emphasis, (3) quotable one-liner moments under 15 seconds. Target clip length: 30-90 seconds each. Trim each clip to start 0.5 sec before first word and end 1 sec after last word. Add 1-second fade-to-black at end of each clip. Export each clip as separate 9:16 MP4 with auto-captions (bold white, black outline). Rank clips by predicted engagement score.",
-    "split_method": "transcript-analysis",
-    "clip_length": "30-90 sec",
-    "captions": true,
-    "fade_out": true,
-    "rank_by": "engagement-prediction",
-    "format": "9:16"
+    "prompt": "Split a 55-minute podcast into individual topic segments. Detect topic transitions from conversation flow. Title each segment with the topic discussed. Add 0.5s audio crossfade at each split. Also extract the best 45-second moment from each segment as a 9:16 TikTok clip with word-by-word captions (white text, #FF6B6B highlight, dark pill bg). Export all segments as MP4.",
+    "split_method": "topic",
+    "crossfade": 0.5,
+    "auto_title": true,
+    "short_clips": {
+      "per_segment": 1,
+      "duration": "45 sec",
+      "format": "9:16",
+      "captions": {"style": "word-highlight", "text": "#FFFFFF", "highlight": "#FF6B6B", "bg": "pill-dark"}
+    },
+    "output_format": "mp4",
+    "naming": "sequential-with-title"
   }'
 ```
 
-### Step 4 — Review Ranked Clips and Publish
-NemoVideo presents all clips ranked by predicted engagement. Preview the top 5, select the best 3-5 for immediate posting, and schedule the rest across the week.
+### Step 4 — Review and Distribute
+Preview each segment: verify split points land on natural pauses, titles match content, no audio cut mid-sentence. Download all segments and clips. Distribute across platforms.
 
 ## Parameters
 
 | Parameter | Type | Required | Description |
 |-----------|------|:--------:|-------------|
-| `prompt` | string | ✅ | Describe the source video and splitting requirements |
-| `split_method` | string | | "scene-detection", "silence-detection", "transcript-analysis", "energy-detection", "equal-duration", "custom-timestamps" |
-| `clip_length` | string | | Target range: "15-60 sec", "30-90 sec", "5-15 min" |
-| `timestamps` | array | | Custom split points: ["0:00", "5:32", "12:15", "18:40"] |
-| `equal_segments` | integer | | Number of equal-duration segments |
-| `captions` | boolean | | Auto-caption each clip (default: false) |
-| `fade_out` | boolean | | Add fade-to-black at clip end (default: true) |
-| `title_cards` | boolean | | Add title card with clip topic at start (default: false) |
-| `rank_by` | string | | "engagement-prediction", "energy-level", "chronological" |
-| `format` | string | | "16:9", "9:16", "1:1" |
+| `prompt` | string | ✅ | Video description and split requirements |
+| `split_method` | string | | "topic", "scene", "silence", "speaker", "duration", "timestamps" |
+| `split_duration` | string | | For duration method: "5 min", "10 min", "15 min" |
+| `timestamps` | array | | Manual split points: ["5:30", "12:15", "28:00"] |
+| `crossfade` | float | | Seconds of crossfade at cuts (default: 0) |
+| `auto_title` | boolean | | AI-generated titles per segment |
+| `short_clips` | object | | {per_segment, duration, format, captions} |
+| `output_format` | string | | "mp4", "mov", "mkv" |
+| `naming` | string | | "sequential", "sequential-with-title", "title-only" |
+| `chapters_only` | boolean | | Output timestamps without splitting |
+| `batch` | array | | Multiple videos for batch splitting |
 
 ## Output Example
 
 ```json
 {
-  "job_id": "vspl-20260328-001",
+  "job_id": "vs-20260328-002",
   "status": "completed",
-  "source_duration_minutes": 55,
-  "clips_generated": 14,
-  "clips": [
-    {
-      "clip": 1,
-      "title": "Why I Quit My $300K Job",
-      "start": "04:22",
-      "end": "05:48",
-      "duration_seconds": 86,
-      "engagement_score": 0.94,
-      "type": "story-anecdote",
-      "file": "clip-01-quit-job.mp4"
-    },
-    {
-      "clip": 2,
-      "title": "The Worst Career Advice I Ever Got",
-      "start": "12:05",
-      "end": "13:12",
-      "duration_seconds": 67,
-      "engagement_score": 0.91,
-      "type": "strong-opinion",
-      "file": "clip-02-worst-advice.mp4"
-    },
-    {
-      "clip": 3,
-      "title": "Nobody Tells You This About Startups",
-      "start": "28:40",
-      "end": "29:22",
-      "duration_seconds": 42,
-      "engagement_score": 0.88,
-      "type": "quotable-moment",
-      "file": "clip-03-startup-truth.mp4"
-    }
+  "source_duration": "55:08",
+  "split_method": "topic",
+  "segments": [
+    {"file": "01-intro-and-background.mp4", "duration": "3:44", "start": "0:00"},
+    {"file": "02-why-ai-wont-replace-developers.mp4", "duration": "8:12", "start": "3:44"},
+    {"file": "03-the-real-threat-to-junior-devs.mp4", "duration": "7:55", "start": "11:56"},
+    {"file": "04-how-to-stay-relevant.mp4", "duration": "9:18", "start": "19:51"},
+    {"file": "05-building-a-personal-brand.mp4", "duration": "6:42", "start": "29:09"},
+    {"file": "06-freelance-vs-employment-2026.mp4", "duration": "8:30", "start": "35:51"},
+    {"file": "07-rapid-fire-predictions.mp4", "duration": "5:22", "start": "44:21"},
+    {"file": "08-closing-and-resources.mp4", "duration": "5:25", "start": "49:43"}
   ],
-  "split_stats": {
-    "method": "transcript-analysis",
-    "topics_detected": 8,
-    "energy_peaks": 22,
-    "clips_ranked": 14
-  }
+  "tiktok_clips": 8,
+  "total_segments": 8
 }
 ```
 
 ## Tips
 
-1. **Transcript analysis produces the best podcast clips** — Scene detection is useless on a static two-camera podcast. Transcript analysis finds topic boundaries and complete stories that make sense as standalone clips.
-2. **Energy detection finds viral moments** — Laughter, raised voices, dramatic pauses, and rapid speech indicate emotionally charged content. These moments have the highest share probability on short-form platforms.
-3. **30-90 seconds is the clip sweet spot** — Under 15 seconds lacks context. Over 90 seconds loses short-form audiences. NemoVideo targets this range by default for social repurposing.
-4. **Overlap at split boundaries prevents information loss** — For sequential viewing (lecture parts), 2-second overlaps ensure the viewer doesn't miss a sentence at the cut point.
-5. **Batch-export with consistent naming saves hours** — `clip-01-topic.mp4`, `clip-02-topic.mp4` with auto-generated titles from transcript topics. Import directly to scheduling tools.
+1. **Topic-based splitting produces the highest-value segments** — Each segment stands alone as a complete discussion. Viewers can find and watch exactly the topic they care about. Individual topic clips consistently outperform timestamped full-length videos for engagement.
+2. **Always use crossfade at split points** — Even when the AI picks a perfect split point on a silence gap, a 0.3-0.5 second crossfade ensures the audio transition is inaudible. Hard cuts at split points can create audible pops or jarring transitions.
+3. **Extract short clips from each segment for 2x content output** — Splitting a podcast into 8 topic segments is valuable. Extracting a 45-second TikTok clip from each segment doubles the output to 16 pieces of content from one recording.
+4. **Auto-titling makes segments immediately usable** — Manually titling 8-10 segments requires re-listening to each one. AI titles based on transcript analysis produce accurate, descriptive titles in zero time — ready for YouTube or file organization.
+5. **Batch processing unlocks catalog-scale repurposing** — 100 podcast episodes × 8 segments = 800 topic clips + 800 TikTok shorts = 1,600 pieces of content from existing recordings. The content already exists; splitting unlocks it.
 
 ## Output Formats
 
-| Format | Resolution | Use Case |
-|--------|-----------|----------|
-| MP4 9:16 | 1080x1920 | TikTok / Reels / Shorts clips |
-| MP4 16:9 | 1920x1080 | YouTube chapters / website |
-| MP4 1:1 | 1080x1080 | LinkedIn / Twitter / Facebook |
-| CSV manifest | — | Clip list with timestamps, titles, scores |
+| Format | Content | Use Case |
+|--------|---------|----------|
+| MP4 16:9 | Individual segments | YouTube / website |
+| MP4 9:16 | Short clips per segment | TikTok / Reels / Shorts |
+| JSON | Segment metadata + timestamps | CMS integration / YouTube chapters |
+| SRT | Per-segment subtitles | Accessibility |
 
 ## Related Skills
 
-- [auto-caption-video](/skills/auto-caption-video) — Add captions to clips
-- [video-cropper](/skills/video-cropper) — Reframe clips per platform
-- [speed-ramp-video](/skills/speed-ramp-video) — Add speed effects to clips
+- [video-reverser](/skills/video-reverser) — Reverse video effects
+- [instagram-reels-editor](/skills/instagram-reels-editor) — Reels editing
+- [reels-creator](/skills/reels-creator) — Reels creation

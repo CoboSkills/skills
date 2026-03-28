@@ -1,13 +1,18 @@
 {
   "owner": "nitishgargiitd",
   "slug": "resume-cog",
-  "displayName": "resume-cog",
+  "displayName": "Resume Cog",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774033686066,
-    "commit": "https://github.com/openclaw/skills/commit/f21cb33f1099b154c1c6f718b1481f211be9ba21"
+    "version": "1.0.2",
+    "publishedAt": 1774585080578,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774033686066,
+      "commit": "https://github.com/openclaw/skills/commit/f21cb33f1099b154c1c6f718b1481f211be9ba21"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1771369491169,

@@ -13,7 +13,8 @@ function readJsonIfExists(filePath, fallback) {
     const raw = fs.readFileSync(filePath, 'utf8');
     if (!raw.trim()) return fallback;
     return JSON.parse(raw);
-  } catch {
+  } catch (e) {
+    console.warn('[AssetStore] Failed to read ' + filePath + ':', e && e.message || e);
     return fallback;
   }
 }
@@ -52,8 +53,8 @@ function getDefaultGenes() {
         ],
         constraints: { max_files: 12, forbidden_paths: ['.git', 'node_modules'] },
         validation: [
-          buildValidationCmd(['src/evolve', 'src/gep/solidify']),
-          buildValidationCmd(['src/gep/selector', 'src/gep/memoryGraph']),
+          buildValidationCmd(['src/evolve', 'src/gep/solidify', 'src/gep/policyCheck', 'src/gep/selector', 'src/gep/memoryGraph', 'src/gep/assetStore']),
+          'node scripts/validate-suite.js',
         ],
       },
       {
@@ -69,7 +70,26 @@ function getDefaultGenes() {
           'Solidify: record EvolutionEvent, update Gene definitions, create Capsule on success',
         ],
         constraints: { max_files: 20, forbidden_paths: ['.git', 'node_modules'] },
-        validation: [buildValidationCmd(['src/evolve', 'src/gep/prompt'])],
+        validation: [
+          buildValidationCmd(['src/evolve', 'src/gep/prompt', 'src/gep/contentHash', 'src/gep/skillDistiller']),
+          'node scripts/validate-suite.js',
+        ],
+      },
+      {
+        type: 'Gene', id: 'gene_tool_integrity', category: 'repair',
+        signals_match: ['tool_bypass'],
+        preconditions: ['agent used shell/exec to perform an action that a registered tool can handle'],
+        strategy: [
+          'Always prefer registered tools over ad-hoc scripts or shell workarounds',
+          'If a registered tool fails, report the actual error honestly and attempt to fix the root cause',
+          'Never fabricate explanations -- describe actual actions transparently',
+          'Do not create temporary scripts in extension or project directories',
+        ],
+        constraints: { max_files: 4, forbidden_paths: ['.git', 'node_modules'] },
+        validation: [
+          'node scripts/validate-suite.js',
+        ],
+        anti_patterns: ['tool_bypass'],
       },
     ],
   };
@@ -283,16 +303,16 @@ function upsertCapsule(capsuleObj) {
   writeJsonAtomic(capsulesPath(), { version: current.version || 1, capsules });
 }
 
-var FAILED_CAPSULES_MAX = 200;
-var FAILED_CAPSULES_TRIM_TO = 100;
+const FAILED_CAPSULES_MAX = 200;
+const FAILED_CAPSULES_TRIM_TO = 100;
 
 function getDefaultFailedCapsules() { return { version: 1, failed_capsules: [] }; }
 
 function appendFailedCapsule(capsuleObj) {
   if (!capsuleObj || typeof capsuleObj !== 'object') return;
   ensureSchemaFields(capsuleObj);
-  var current = readJsonIfExists(failedCapsulesPath(), getDefaultFailedCapsules());
-  var list = Array.isArray(current.failed_capsules) ? current.failed_capsules : [];
+  const current = readJsonIfExists(failedCapsulesPath(), getDefaultFailedCapsules());
+  let list = Array.isArray(current.failed_capsules) ? current.failed_capsules : [];
   list.push(capsuleObj);
   if (list.length > FAILED_CAPSULES_MAX) {
     list = list.slice(list.length - FAILED_CAPSULES_TRIM_TO);
@@ -301,10 +321,10 @@ function appendFailedCapsule(capsuleObj) {
 }
 
 function readRecentFailedCapsules(limit) {
-  var n = Number.isFinite(Number(limit)) && Number(limit) > 0 ? Number(limit) : 50;
+  const n = Number.isFinite(Number(limit)) && Number(limit) > 0 ? Number(limit) : 50;
   try {
-    var current = readJsonIfExists(failedCapsulesPath(), getDefaultFailedCapsules());
-    var list = Array.isArray(current.failed_capsules) ? current.failed_capsules : [];
+    const current = readJsonIfExists(failedCapsulesPath(), getDefaultFailedCapsules());
+    const list = Array.isArray(current.failed_capsules) ? current.failed_capsules : [];
     return list.slice(Math.max(0, list.length - n));
   } catch (e) {
     console.warn('[AssetStore] Failed to read failed_capsules.json:', e && e.message || e);

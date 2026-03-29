@@ -1,24 +1,39 @@
----
+***
+
 name: my-stock
 description: MyStock - 我的股票智能助手。Use when user asks about stock quotes, market analysis, limit-up tracking, shareholder dynamics, investment research, or portfolio management. Handles real-time prices, technical analysis, and financial data queries.
 metadata:
-  version: 1.0.0
-  author: wangz
-  license: MIT
-  category: finance
----
+version: 1.1.1
+author: wangz
+license: MIT
+category: finance
+-----------------
 
 # MyStock - 我的股票智能助手
 
-MyStock is an intelligent stock analysis assistant that provides real-time quotes, limit-up tracking, shareholder dynamics monitoring, and investment research support.
+🎨 MyStock is a **full-featured stock analysis assistant** with a **beautiful Web UI**, providing real-time quotes, limit-up tracking, shareholder dynamics monitoring, and more!
 
-## Capabilities
+!\[MyStock Demo]\(assets/mystock-demo.png null)
+
+## ✨ Capabilities
 
 1. **Real-time Quotes** - Query stock prices and percentage changes
 2. **Limit-up Analysis** - Track daily limit-up boards and first-board opportunities
 3. **Shareholder Dynamics** - Monitor shareholder increases, buybacks, and executive transactions
 4. **Portfolio Management** - Manage watchlists and investment notes
 5. **AI Assistant** - Get AI-powered investment insights
+6. **🎨 Beautiful Web UI** - Modern Vue 3 + Element Plus interface
+
+## 🎨 Web UI Features
+
+The skill includes a complete **web interface** that users can interact with:
+
+- **Watchlist Management** - Add/remove stocks with one click
+- **Real-time Data Display** - Live price updates with color-coded changes
+- **Limit-up Analysis** - Visual tracking of daily limit-up stocks
+- **Shareholder Activity** - Detailed tabs for different activity types
+- **AI Chat Assistant** - Built-in AI assistant for stock questions
+- **Responsive Design** - Works on desktop and mobile
 
 ## When to Use
 
@@ -30,18 +45,20 @@ Invoke this skill when the user:
 - Needs shareholder/investor activity information
 - Wants to track investment portfolio
 - Asks for stock analysis or research
+- Wants to see a **visual interface** for stock analysis
 - Mentions terms like: 打板, 涨停, 股东增持, 回购, 高管增持
 
 ## Architecture
 
 ```
 ./
+├── start.sh           # ⭐ One-click startup (UI + Backend)
 ├── backend/           # FastAPI backend server
 │   ├── main.py       # Main API server
 │   ├── ai_service.py # AI service integration
 │   └── requirements.txt
-├── frontend/          # Web interface
-│   └── index.html    # Vue 3 single-page app
+├── frontend/         # Web interface
+│   └── index.html    # Vue 3 single-page app ⭐
 ├── scripts/          # Helper scripts
 │   ├── install.sh    # One-click installation script
 │   ├── check_api.py  # API health check
@@ -58,34 +75,78 @@ Invoke this skill when the user:
 bash scripts/install.sh
 ```
 
-### 2. Start Backend Server
+This will automatically:
+
+- ✅ Install Node.js dependencies (jsdom for pywencai)
+- ✅ Install Python dependencies
+- ✅ Configure environment variables
+- ✅ Prepare data directories
+
+### 2. ⚡ Start Everything (Recommended)
+
+```bash
+./start.sh
+```
+
+This one script starts:
+
+- ✅ Backend API server (port 8000)
+- ✅ Frontend web interface (port 5000)
+- ✅ Automatically opens browser with UI
+
+**Or start separately:**
+
+### 3. Start Backend Server
 
 ```bash
 cd backend
 pip install -r requirements.txt
-python main.py
+./start.sh
 ```
 
-The API server runs on `http://localhost:8000`
+The backend server runs on `http://localhost:8000`
 
-### 3. Start Frontend (Optional)
+**Important**: The `start.sh` script automatically sets `NODE_PATH` for pywencai jsdom dependency.
+
+### 4. Start Frontend UI
 
 ```bash
 cd frontend
 python -m http.server 5000
 ```
 
-Access the web interface at `http://localhost:5000`
+Access the web interface at `http://localhost:5001`
 
-### 3. API Endpoints
+**The UI will open automatically when using** **`./start.sh`**
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/stocks` | GET | Get stock quotes |
-| `/api/limit-up-analysis` | GET | Get limit-up board analysis |
-| `/api/shareholder-activity` | GET | Get shareholder dynamics |
-| `/api/portfolio` | GET/POST | Manage portfolio |
-| `/api/chat` | POST | AI chat assistant |
+### ⚠️ Important Dependencies
+
+#### Node.js (Required for pywencai)
+
+pywencai uses jsdom for web scraping, which requires Node.js:
+
+```bash
+# Install Node.js (if not installed)
+# Download from: https://nodejs.org/
+
+# Install jsdom globally
+npm install -g jsdom
+
+# Verify installation
+node -e "require('jsdom')"
+```
+
+The startup script automatically sets `NODE_PATH` to find jsdom.
+
+### 4. API Endpoints
+
+| Endpoint                    | Method   | Description                 |
+| --------------------------- | -------- | --------------------------- |
+| `/api/stocks`               | GET      | Get stock quotes            |
+| `/api/limit-up-analysis`    | GET      | Get limit-up board analysis |
+| `/api/shareholder-activity` | GET      | Get shareholder dynamics    |
+| `/api/portfolio`            | GET/POST | Manage portfolio            |
+| `/api/chat`                 | POST     | AI chat assistant           |
 
 ## Usage Examples
 
@@ -150,12 +211,10 @@ The assistant should:
    ```bash
    lsof -i:8000
    ```
-
 2. Verify Python dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-
 3. Check environment variables:
    ```bash
    cp .env.example .env
@@ -168,7 +227,6 @@ The assistant should:
    ```bash
    curl http://localhost:8000/
    ```
-
 2. Check network connectivity
 3. Review server logs for errors
 
@@ -217,6 +275,7 @@ This skill can be used alongside Claude Code for:
 - Market trend analysis
 
 When Claude Code detects stock-related queries, it can:
+
 1. Invoke this skill automatically
 2. Use backend APIs for data
 3. Provide AI-powered insights

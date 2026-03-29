@@ -25,19 +25,59 @@ app.add_middleware(
 
 # 数据文件路径（使用绝对路径）
 import os
+import sqlite3
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_FILE = os.path.join(BASE_DIR, "portfolio_data.json")
 STOCK_CODES_FILE = os.path.join(BASE_DIR, "stock_codes.json")
+MEMOS_FILE = os.path.join(BASE_DIR, "memos.json")
+DB_FILE = os.path.join(BASE_DIR, "finance_data.db")
 
 def load_stock_codes():
     """加载股票代码信息"""
     try:
-        if os.path.exists(STOCK_CODES_FILE):
-            with open(STOCK_CODES_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+        
+        cursor.execute('SELECT code, name, aliases FROM stock_codes')
+        stock_codes = {}
+        
+        for row in cursor.fetchall():
+            code, name, aliases_json = row
+            aliases = json.loads(aliases_json) if aliases_json else []
+            stock_codes[code] = {
+                'name': name,
+                'aliases': aliases
+            }
+        
+        conn.close()
+        return stock_codes
     except Exception as e:
         print(f"加载 stock_codes 失败: {e}")
+        # 尝试从 JSON 文件加载作为备份
+        try:
+            if os.path.exists(STOCK_CODES_FILE):
+                with open(STOCK_CODES_FILE, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            print(f"从 JSON 文件加载 stock_codes 失败: {e}")
     return {}
+
+def get_roe_data(code):
+    """从数据库获取股票的ROE数据"""
+    try:
+        conn = sqlite3.connect(DB_FILE)
+        cursor = conn.cursor()
+
+        # 直接使用 code 查询
+        cursor.execute('SELECT date, roe FROM roe_data WHERE code = ? ORDER BY date DESC', (code,))
+        roe_records = cursor.fetchall()
+
+        conn.close()
+
+        return [{'date': date, 'roe': roe} for date, roe in roe_records]
+    except Exception as e:
+        print(f"获取ROE数据失败: {e}")
+        return []
 
 # Pydantic 模型
 class Stock(BaseModel):
@@ -124,37 +164,54 @@ async def get_all_data():
     return load_data()
 
 # 获取股票列表（快速返回，不调用外部API）
+def load_memos():
+    """加载备忘录数据"""
+    try:
+        if os.path.exists(MEMOS_FILE):
+            with open(MEMOS_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+    except Exception as e:
+        print(f"加载备忘录失败: {e}")
+    return {}
+
 @app.get("/api/stock-list")
 async def get_stock_list():
     data = load_data()
-    portfolio = data.get('portfolio', [])  # 存储的是 code
-    watchlist = data.get('watchlist', [])  # 存储的是 code
-    stock_codes = load_stock_codes()  # 从独立文件加载
+    portfolio = data.get('portfolio', [])
+    watchlist = data.get('watchlist', [])
+    stock_codes = load_stock_codes()
+    memos = load_memos()
 
     portfolio_list = []
     for code in portfolio:
         stock_info = stock_codes.get(code, {})
         name = stock_info.get('name', code)
+        memo_info = memos.get(code, {})
         portfolio_list.append({
-            'ticker': name,  # 显示名称
+            'ticker': name,
             'code': code,
             'name': name,
             'price': None,
             'change': None,
-            'change_percent': None
+            'change_percent': None,
+            'memo': memo_info.get('memo', ''),
+            'updated_at': memo_info.get('updated_at', '')
         })
 
     watchlist_list = []
     for code in watchlist:
         stock_info = stock_codes.get(code, {})
         name = stock_info.get('name', code)
+        memo_info = memos.get(code, {})
         watchlist_list.append({
-            'ticker': name,  # 显示名称
+            'ticker': name,
             'code': code,
             'name': name,
             'price': None,
             'change': None,
-            'change_percent': None
+            'change_percent': None,
+            'memo': memo_info.get('memo', ''),
+            'updated_at': memo_info.get('updated_at', '')
         })
 
     return {
@@ -199,6 +256,23 @@ async def get_portfolio():
         "count": len(result),
         "timestamp": datetime.now().isoformat()
     }
+
+# 获取股票的ROE数据
+@app.get("/api/roe-data/{code}")
+async def get_stock_roe(code: str):
+    """获取股票的ROE数据"""
+    try:
+        roe_data = get_roe_data(code)
+        stock_codes = load_stock_codes()
+        name = stock_codes.get(code, {}).get('name', code)
+        
+        return {
+            "code": code,
+            "name": name,
+            "roe_data": roe_data
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"获取ROE数据失败: {str(e)}")
 
 # 获取观察列表（带实时数据）- 并行获取
 @app.get("/api/watchlist")
@@ -534,32 +608,52 @@ async def delete_history(index: int):
 @app.post("/api/stock-memo")
 async def save_memo(memo_data: dict):
     """保存股票备忘"""
-    data = load_data()
     name = memo_data.get('name')
     code = memo_data.get('code')
     memo = memo_data.get('memo', '')
 
-    memos = data.get('memos', {})
+    # 加载现有备忘数据
+    try:
+        if os.path.exists(MEMOS_FILE):
+            with open(MEMOS_FILE, 'r', encoding='utf-8') as f:
+                memos = json.load(f)
+        else:
+            memos = {}
+    except Exception as e:
+        print(f"加载 memos 失败: {e}")
+        memos = {}
 
-    if memo:
-        memos[name] = {
-            'code': code,
+    if memo and code:
+        memos[code] = {
+            'name': name,
             'memo': memo,
             'updated_at': datetime.now().isoformat()
         }
-    elif name in memos:
-        del memos[name]
+    elif code in memos:
+        del memos[code]
 
-    data['memos'] = memos
-    save_data(data)
+    # 保存数据到memos.json
+    try:
+        with open(MEMOS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(memos, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"保存 memos 失败: {e}")
+
     return {"success": True, "memos": memos}
 
 # 获取所有备忘
 @app.get("/api/stock-memo")
 async def get_memos():
     """获取所有股票备忘"""
-    data = load_data()
-    memos = data.get('memos', {})
+    try:
+        if os.path.exists(MEMOS_FILE):
+            with open(MEMOS_FILE, 'r', encoding='utf-8') as f:
+                memos = json.load(f)
+        else:
+            memos = {}
+    except Exception as e:
+        print(f"加载 memos 失败: {e}")
+        memos = {}
     return {"memos": memos}
 
 # 获取所有股票代码
@@ -702,6 +796,23 @@ async def get_shareholder_activity():
         def clean_record(record):
             return {k: clean_data(v) for k, v in record.items()}
 
+        def standardize_column_name(col_name):
+            """标准化列名，去掉动态日期范围后缀"""
+            import re
+            match = re.match(r'^(.+)\[\d{8}(?:-\d{8})?\]$', col_name)
+            if match:
+                return match.group(1)
+            return col_name
+
+        def standardize_record(record):
+            """标准化记录，将所有列名去掉日期范围后缀"""
+            new_record = {}
+            for k, v in record.items():
+                new_key = standardize_column_name(k)
+                if new_key not in new_record:
+                    new_record[new_key] = clean_data(v)
+            return new_record
+
         def sort_by_field(items, field, reverse=True):
             return sorted(items, key=lambda x: float(x.get(field) or 0), reverse=reverse)
 
@@ -713,16 +824,8 @@ async def get_shareholder_activity():
         try:
             df = pywencai.get(query='股东增持', loop=True, max_retries=2)
             if df is not None and not df.empty:
-
-                cols = ['股票代码', '股票简称', '最新价', '最新涨跌幅']
-                if '大股东变动占流通股比合计[20260302-20260327]' in df.columns:
-                    cols.append('大股东变动占流通股比合计[20260302-20260327]')
-                if '大股东变动股数合计[20260302-20260327]' in df.columns:
-                    cols.append('大股东变动股数合计[20260302-20260327]')
-                if '大股东变动市值合计[20260302-20260327]' in df.columns:
-                    cols.append('大股东变动市值合计[20260302-20260327]')
-                items = [clean_record(r) for r in df[cols].to_dict('records')]
-                items = sort_by_field(items, '大股东变动市值合计[20260302-20260327]', True)
+                items = [standardize_record(r) for r in df.to_dict('records')]
+                items = sort_by_field(items, '大股东变动市值合计', True)
                 result['shareholding_increase'] = {
                     'total': len(df),
                     'items': items
@@ -736,20 +839,8 @@ async def get_shareholder_activity():
         try:
             df = pywencai.get(query='股票回购', loop=True, max_retries=2)
             if df is not None and not df.empty:
-
-                cols = ['股票代码', '股票简称', '最新价', '最新涨跌幅']
-                if '回购董事会预案公告日[20250327-20260328]' in df.columns:
-                    cols.append('回购董事会预案公告日[20250327-20260328]')
-                if '回购方案进度[20250327-20260328]' in df.columns:
-                    cols.append('回购方案进度[20250327-20260328]')
-                if '拟回购资金总额[20250327-20260328]' in df.columns:
-                    cols.append('拟回购资金总额[20250327-20260328]')
-                if '拟回购股份数量上限[20250327-20260328]' in df.columns:
-                    cols.append('拟回购股份数量上限[20250327-20260328]')
-                if '最新每股回购价格上限[20250327-20260328]' in df.columns:
-                    cols.append('最新每股回购价格上限[20250327-20260328]')
-                items = [clean_record(r) for r in df[cols].to_dict('records')]
-                items = sort_by_field(items, '拟回购资金总额[20250327-20260328]', True)
+                items = [standardize_record(r) for r in df.to_dict('records')]
+                items = sort_by_field(items, '拟回购资金总额', True)
                 result['buyback'] = {
                     'total': len(df),
                     'items': items
@@ -763,16 +854,8 @@ async def get_shareholder_activity():
         try:
             df = pywencai.get(query='高管增持', loop=True, max_retries=2)
             if df is not None and not df.empty:
-
-                cols = ['股票代码', '股票简称', '最新价', '最新涨跌幅']
-                if '高管变动占流通股比合计[20260302-20260327]' in df.columns:
-                    cols.append('高管变动占流通股比合计[20260302-20260327]')
-                if '高管变动股数合计[20260302-20260327]' in df.columns:
-                    cols.append('高管变动股数合计[20260302-20260327]')
-                if '高管变动市值合计[20260302-20260327]' in df.columns:
-                    cols.append('高管变动市值合计[20260302-20260327]')
-                items = [clean_record(r) for r in df[cols].to_dict('records')]
-                items = sort_by_field(items, '高管变动市值合计[20260302-20260327]', True)
+                items = [standardize_record(r) for r in df.to_dict('records')]
+                items = sort_by_field(items, '高管变动市值合计', True)
                 result['executive_increase'] = {
                     'total': len(df),
                     'items': items
@@ -781,6 +864,63 @@ async def get_shareholder_activity():
                 result['executive_increase'] = {'total': 0, 'items': []}
         except Exception as e:
             result['executive_increase'] = {'total': 0, 'items': [], 'error': str(e)}
+
+        return result
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {'error': str(e)}
+
+@app.get("/api/double-five-stocks")
+async def get_double_five_stocks():
+    """
+    获取"双五"股票（PE<6 且 股息率>4%）
+    双五指：PE接近5，股息率接近5%
+    """
+    try:
+        import pywencai
+        import numpy as np
+        import re
+
+        def clean_data(value):
+            if isinstance(value, (float, np.floating)):
+                if np.isnan(value) or np.isinf(value):
+                    return None
+            return value
+
+        def standardize_column_name(col_name):
+            """标准化列名，去掉动态日期范围后缀"""
+            import re
+            match = re.match(r'^(.+)\[\d{8}(?:-\d{8})?\]$', col_name)
+            if match:
+                return match.group(1)
+            return col_name
+
+        def standardize_record(record):
+            """标准化记录，将所有列名去掉日期范围后缀"""
+            new_record = {}
+            for k, v in record.items():
+                new_key = standardize_column_name(k)
+                if new_key not in new_record:
+                    new_record[new_key] = clean_data(v)
+            return new_record
+
+        # 查询双五股票
+        df = pywencai.get(query='PE>0,PE<6,股息率>4', loop=True, max_retries=2)
+
+        result = {
+            'timestamp': datetime.now().isoformat(),
+            'condition': 'PE<6 且 股息率>4%',
+            'description': 'PE接近5，股息率接近5%',
+            'total': 0,
+            'items': []
+        }
+
+        if df is not None and not df.empty:
+            items = [standardize_record(r) for r in df.to_dict('records')]
+            result['total'] = len(items)
+            result['items'] = items
 
         return result
 

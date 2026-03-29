@@ -96,6 +96,52 @@ Connects to a remote MCP server over HTTP POST.
 }
 ```
 
+## Docker Transport
+
+Runs an MCP server inside a Docker container, communicating via stdin/stdout.
+
+**When to use:** Servers that need isolated environments, specific OS dependencies, or complex runtime setups.
+
+### Basic Docker server
+
+```json
+{
+  "server-name": {
+    "type": "stdio",
+    "command": "docker",
+    "args": ["run", "-i", "--rm", "image-name:tag"]
+  }
+}
+```
+
+The `-i` flag keeps stdin open for JSON-RPC communication. `--rm` cleans up the container when the server exits.
+
+### Docker with volume mounts
+
+```json
+{
+  "server-name": {
+    "type": "stdio",
+    "command": "docker",
+    "args": ["run", "-i", "--rm", "-v", "/host/path:/container/path", "image-name:tag"]
+  }
+}
+```
+
+### Docker with port mapping
+
+```json
+{
+  "server-name": {
+    "type": "stdio",
+    "command": "docker",
+    "args": ["run", "-i", "--rm", "-p", "8080:8080", "image-name:tag"]
+  }
+}
+```
+
+Requires `docker` to be installed and running. First run pulls the image if not cached locally.
+
 ## Environment Variable References
 
 Config files use `${VAR_NAME}` syntax for secrets. These are resolved at server startup from the shell environment.

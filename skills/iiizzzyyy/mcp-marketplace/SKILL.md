@@ -36,6 +36,11 @@ Classify the user's request into one of these intents, then follow the correspon
 3. Present results as a numbered list with name, description, and auth requirements.
 4. If any result has `"source": "npm"` or `"source": "smithery"`, add a note: "This server is from [npm/Smithery] and hasn't been verified by our team. It should work but proceed with caution."
 5. Offer to install any result.
+6. If user asks "what else should I install?" or "recommend more servers":
+   ```
+   python3 {baseDir}/scripts/smart_recommend.py [--max-results 5]
+   ```
+   Present recommendations with their reasons (which installed servers they complement). Offer to install any.
 
 ### INSTALL — "Install the X MCP server"
 
@@ -55,6 +60,13 @@ If user wants the bundle, guide them to install via ClawHub (`clawhub install <b
 
 **Step 3 — Confirm server:**
 If multiple results, present a numbered list and ask user to pick. If one result, confirm: "I'll set up **[displayName]** — sound good?"
+
+**Step 3.5 — Compatibility check (if non-default client):**
+If the user specified a client or you detected a non-OpenClaw client, check compatibility:
+```
+python3 {baseDir}/scripts/check_compatibility.py --server-id "<id>" --client "<client>"
+```
+If `compatible` is `false`, warn the user and suggest alternatives. If there are `warnings`, mention them but proceed.
 
 **Step 4 — Build config:**
 ```
@@ -101,6 +113,56 @@ If `status` is `"healthy"`, include the tool count in the summary. If `"unhealth
 **Step 9 — Summary:**
 Tell the user what was installed, what tools are now available (from health check if run), and remind them to restart their client to pick up the new server.
 
+### BULK INSTALL — "Install the dev toolkit" / "Set up servers for data work"
+
+1. If user mentions a specific bundle, resolve it. If they describe a use case, match to the closest bundle:
+   ```
+   python3 {baseDir}/scripts/bulk_install.py --bundle "<bundle-name>"
+   ```
+   Available bundles: `standard-dev`, `data-engineering`, `web-frontend`, `devops`, `productivity`, `ai-ml`.
+
+2. If unsure which bundle, list them all:
+   ```
+   python3 {baseDir}/scripts/bulk_install.py --bundle __list__
+   ```
+   Present the options and let the user choose.
+
+3. Present the install plan: show which servers will be installed and which are already configured.
+
+4. For each server in `toInstall`, follow the INSTALL workflow (Steps 3-9). Process them one at a time, confirming auth requirements for each.
+
+5. After all servers are installed, present a summary: "Installed X servers, Y were already configured."
+
+### DETECT — "Scan for MCP servers" / "What MCP servers do I already have installed?"
+
+1. Run detection:
+   ```
+   python3 {baseDir}/scripts/detect_servers.py --verbose
+   ```
+2. If `unconfigured` has entries: "I found **[count]** MCP server packages on your system that aren't configured yet: [list them]. Want me to set up any of them?"
+3. If `alreadyConfigured` has entries: mention them as already active.
+4. If nothing detected: "No known MCP server packages found. Want me to search for servers to install?"
+5. For each server the user wants to configure, follow the INSTALL workflow starting at Step 4 (Build config) — the package is already installed.
+
+### RECOMMEND — "Set up MCP for this project" / "What servers should I use?"
+
+1. Scan the project:
+   ```
+   python3 {baseDir}/scripts/recommend_servers.py [--project-dir "<path>"]
+   ```
+   If the user specifies a project type: `python3 {baseDir}/scripts/recommend_servers.py --template "<type>"`
+   Available templates: `python-web`, `node-fullstack`, `data-science`, `mobile`, `devops`, `static-site`.
+
+2. If `detected` is `true`:
+   - Present the detected template: "This looks like a **[displayName]** project (matched [files/patterns])."
+   - List **recommended** servers first, then **optional** servers.
+   - Mark any that are already configured.
+   - Offer to install the recommended set (routes to BULK INSTALL logic).
+
+3. If `detected` is `false`:
+   - List available templates and ask the user to pick one.
+   - Or suggest running DISCOVER for a broader search.
+
 ### CONFIGURE — "Set the API key for X" / "Connect X to my database"
 
 1. Identify the server from the user's request.
@@ -136,10 +198,20 @@ Tell the user what was installed, what tools are now available (from health chec
 
 ### UPDATE — "Update my MCP servers"
 
-1. List installed servers via `manage_servers.py --action list`.
-2. For npx/uvx servers, no explicit update is needed — they resolve latest versions on each run.
-3. For npm global servers, suggest: `npm update -g <package>`.
-4. For pip servers, suggest: `pip install --upgrade <package>`.
+1. Run version check:
+   ```
+   python3 {baseDir}/scripts/version_check.py
+   ```
+   For a specific server: `python3 {baseDir}/scripts/version_check.py --server-id "<id>"`
+
+2. Present results:
+   - Servers with `updateAvailable: true`: show current vs latest version and the `updateCommand`.
+   - Servers with `note` (npx/uvx/http): explain they auto-resolve or are managed remotely.
+   - Docker servers: suggest `docker pull` to refresh the image.
+
+3. If the user wants to update, run the `updateCommand` for each server via the Bash tool.
+
+4. After updating, optionally run a health check to verify the updated server works.
 
 ### HEALTH CHECK — "Is my X server working?" / "Test the GitHub MCP"
 
@@ -169,6 +241,28 @@ Tell the user what was installed, what tools are now available (from health chec
 5. Re-run health check to confirm resolution.
 6. If resolved, update status: `python3 {baseDir}/scripts/manage_servers.py --action update-status --server-id "<id>" --status active`
 
+### CONTRIBUTE — "Add my server to the marketplace" / "Contribute a server config"
+
+1. Gather server details from the user:
+   - **ID**: lowercase, hyphenated (e.g., `my-server`)
+   - **Display Name**: human-readable name
+   - **Description**: what the server does
+   - **Package**: npm/pip package name or Docker image
+   - **Transport**: `stdio` or `http`
+   - **Install Method**: `npx`, `npm`, `uvx`, `pip`, `http`, or `docker`
+   - **Categories**: from the Categories list below
+   - **Required Env Vars**: any tokens/keys needed
+   - **Tags**: search keywords
+
+2. Generate and validate the entry:
+   ```
+   python3 {baseDir}/scripts/contribute_server.py --id "<id>" --display-name "<name>" --description "<desc>" --package "<pkg>" --transport "<transport>" --install-method "<method>" --categories "<cat1,cat2>" --tags "<tag1,tag2>" --required-env "<VAR1,VAR2>"
+   ```
+
+3. If `valid` is `true`: present the `serverEntry` JSON and the `prBody` template. Guide the user to submit a PR to the marketplace repository.
+
+4. If `valid` is `false`: show the `validationErrors` and help the user fix them, then re-run.
+
 ## Auth Guidance Pattern
 
 When a server requires environment variables:
@@ -179,6 +273,26 @@ When a server requires environment variables:
 4. **Remind about persistence**: "Add this to `~/.zshrc` (or `~/.bashrc`) so it persists across sessions."
 5. **NEVER ask the user to paste their actual token** in the chat. Guide them to set it in their shell.
 6. **NEVER store raw token values** in config — only `${VAR_NAME}` references.
+7. **Offer secrets manager (if available)**: Before telling the user to add `export` to `.zshrc`, check for a secrets manager:
+   ```
+   python3 {baseDir}/scripts/secrets_helper.py --action detect
+   ```
+   If managers are found, offer the option: "I detected **[manager name]** on your system. Want to store this token there instead of in your shell profile? It's more secure."
+   If yes, generate the store command:
+   ```
+   python3 {baseDir}/scripts/secrets_helper.py --action store-command --manager "<manager>" --service "<server-name>" --env-var "<VAR_NAME>"
+   ```
+   Present the `storeCommand` for the user to run, then show the `shellIntegration` line to add to `~/.zshrc`.
+
+### OAuth Servers
+
+When `authGuidance.authType` is `"oauth"`:
+
+1. **Present the setup steps** from `authGuidance.oauthSetupSteps` as a numbered list.
+2. **Mention the provider**: "This server uses **[provider]** OAuth for authentication."
+3. **Link to reference doc**: "For detailed OAuth setup instructions, see the [OAuth patterns guide]({baseDir}/references/oauth-patterns.md)."
+4. **Guide through env vars**: After OAuth setup, the user still needs to set the required env vars (e.g., `GOOGLE_APPLICATION_CREDENTIALS`).
+5. **Do NOT ask the user to paste credentials** in the chat — guide them to set env vars in their shell.
 
 ## Error Recovery
 

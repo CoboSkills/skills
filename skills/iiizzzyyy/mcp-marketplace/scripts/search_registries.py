@@ -217,11 +217,47 @@ def format_result(server: dict) -> dict:
     }
 
 
+def enrich_with_live_stats(results: list[dict]) -> list[dict]:
+    """Add live download/popularity stats from npm registry."""
+    from urllib.request import urlopen
+    from urllib.error import URLError
+
+    for result in results:
+        package = result.get("package", "")
+        install_method = result.get("installMethod", "")
+
+        if install_method in ("npx", "npm") and package:
+            try:
+                # Get weekly downloads
+                url = f"https://api.npmjs.org/downloads/point/last-week/{package}"
+                with urlopen(url, timeout=5) as response:
+                    data = json.loads(response.read().decode())
+                    downloads = data.get("downloads", 0)
+
+                # Get publish date
+                pkg_url = f"https://registry.npmjs.org/{package}/latest"
+                with urlopen(pkg_url, timeout=5) as response:
+                    pkg_data = json.loads(response.read().decode())
+                    version = pkg_data.get("version", "unknown")
+
+                result["liveStats"] = {
+                    "weeklyDownloads": downloads,
+                    "latestVersion": version,
+                }
+            except (URLError, json.JSONDecodeError, OSError, KeyError):
+                result["liveStats"] = None
+        else:
+            result["liveStats"] = None
+
+    return results
+
+
 def main():
     parser = argparse.ArgumentParser(description="Search MCP server registries")
     parser.add_argument("--query", required=True, help="Search query")
     parser.add_argument("--category", default=None, help="Filter by category")
     parser.add_argument("--limit", type=int, default=10, help="Max results")
+    parser.add_argument("--enrich", action="store_true", help="Enrich results with live popularity data (slower)")
     args = parser.parse_args()
 
     base_dir = Path(__file__).resolve().parent.parent
@@ -269,6 +305,12 @@ def main():
         "sources": sources_used,
         "results": all_results[: args.limit],
     }
+    if args.enrich:
+        all_results = output.get("results", [])
+        output["results"] = enrich_with_live_stats(all_results)
+        output["enriched"] = True
+    else:
+        output["enriched"] = False
     json.dump(output, sys.stdout, indent=2)
     print()
 

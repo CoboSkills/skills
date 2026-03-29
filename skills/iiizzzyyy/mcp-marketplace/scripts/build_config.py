@@ -95,6 +95,15 @@ def build_stdio_config(
         module_name = package.replace("-", "_")
         command = "python3"
         args = ["-m", module_name] + base_args
+    elif method == "docker":
+        command = "docker"
+        volume_args = []
+        for vol in server.get("dockerVolumes", []):
+            volume_args.extend(["-v", vol])
+        port_args = []
+        for port in server.get("dockerPorts", []):
+            port_args.extend(["-p", port])
+        args = ["run", "-i", "--rm"] + volume_args + port_args + [server["dockerImage"]] + base_args
     else:
         command = package
         args = base_args
@@ -130,6 +139,7 @@ def build_auth_guidance(server: dict) -> dict:
     required = server.get("requiredEnv", [])
     links = server.get("requiredEnvLinks", {})
     descriptions = server.get("requiredEnvDescriptions", {})
+    auth_type = server.get("authType", "token")
 
     instructions = []
     for var in required:
@@ -142,7 +152,16 @@ def build_auth_guidance(server: dict) -> dict:
             instruction["generateUrl"] = links[var]
         instructions.append(instruction)
 
-    return {"requiredEnv": required, "instructions": instructions}
+    result = {"requiredEnv": required, "authType": auth_type, "instructions": instructions}
+
+    if auth_type == "oauth":
+        oauth_config = server.get("oauthConfig", {})
+        result["oauthProvider"] = oauth_config.get("provider", "unknown")
+        result["oauthScopes"] = oauth_config.get("scopes", [])
+        result["oauthSetupSteps"] = oauth_config.get("setupSteps", [])
+        result["referenceDoc"] = "references/oauth-patterns.md"
+
+    return result
 
 
 def main():
@@ -186,6 +205,27 @@ def main():
         config_entry = build_http_config(server, custom_env)
 
     client = args.client or detect_client()
+
+    # Check compatibility
+    compat_path = Path(__file__).resolve().parent / "check_compatibility.py"
+    if compat_path.exists():
+        import subprocess
+        compat_result = subprocess.run(
+            ["python3", str(compat_path), "--server-id", args.server_id, "--client", client],
+            capture_output=True, text=True
+        )
+        if compat_result.returncode != 0:
+            try:
+                compat_data = json.loads(compat_result.stdout)
+                json.dump({
+                    "error": "Compatibility issue detected",
+                    "compatibility": compat_data,
+                }, sys.stdout, indent=2)
+                print()
+                sys.exit(1)
+            except json.JSONDecodeError:
+                pass  # If compat check fails to parse, continue anyway
+
     client_info = CLIENT_CONFIG_PATHS[client]
     config_path = get_config_path(client)
 

@@ -71,6 +71,13 @@ def check_prerequisites(install_method: str) -> dict:
         }
     elif install_method == "http":
         return {"met": True, "missing": [], "suggestion": ""}
+    elif install_method == "docker":
+        met = check_command_exists("docker")
+        return {
+            "met": met,
+            "missing": [] if met else ["docker"],
+            "suggestion": "" if met else "Install Docker from https://docs.docker.com/get-docker/",
+        }
     else:
         return {
             "met": False,
@@ -115,6 +122,13 @@ def build_install_command(server: dict) -> dict:
             "command": None,
             "description": f"No installation needed for HTTP server '{server['displayName']}'",
             "note": "Just configure the URL in .mcp.json",
+        }
+    elif method == "docker":
+        return {
+            "command": f"docker pull {server['dockerImage']}",
+            "description": f"Pull Docker image {server['dockerImage']}",
+            "note": "After pulling, the server runs via docker run in the MCP config",
+            "runCommand": f"docker run -i --rm {server['dockerImage']}",
         }
     else:
         return {

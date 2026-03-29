@@ -348,6 +348,19 @@
         "GOOGLE_CLIENT_SECRET": "OAuth 2.0 client secret from Google Cloud Console"
       },
       "optionalEnv": [],
+      "authType": "oauth",
+      "oauthConfig": {
+        "provider": "google",
+        "scopes": ["https://www.googleapis.com/auth/drive.readonly"],
+        "setupSteps": [
+          "Go to Google Cloud Console (https://console.cloud.google.com/)",
+          "Create or select a project",
+          "Enable the Google Drive API",
+          "Create a service account or OAuth 2.0 credentials",
+          "Download the credentials JSON file",
+          "Set GOOGLE_APPLICATION_CREDENTIALS to the file path"
+        ]
+      },
       "verified": true,
       "popularity": 3800,
       "tags": ["google", "drive", "docs", "sheets", "slides", "productivity", "cloud-storage"]
@@ -513,6 +526,19 @@
         "GOOGLE_APPLICATION_CREDENTIALS": "Path to Google OAuth credentials JSON file with Gmail API enabled"
       },
       "optionalEnv": [],
+      "authType": "oauth",
+      "oauthConfig": {
+        "provider": "google",
+        "scopes": ["https://www.googleapis.com/auth/gmail.readonly"],
+        "setupSteps": [
+          "Go to Google Cloud Console (https://console.cloud.google.com/)",
+          "Create or select a project",
+          "Enable the Gmail API",
+          "Create a service account or OAuth 2.0 credentials",
+          "Download the credentials JSON file",
+          "Set GOOGLE_APPLICATION_CREDENTIALS to the file path"
+        ]
+      },
       "verified": true,
       "popularity": 2000,
       "tags": ["gmail", "email", "google", "communication", "productivity"]
@@ -534,6 +560,19 @@
         "GOOGLE_APPLICATION_CREDENTIALS": "Path to Google service account JSON key with Calendar API enabled"
       },
       "optionalEnv": ["GOOGLE_CALENDAR_ID"],
+      "authType": "oauth",
+      "oauthConfig": {
+        "provider": "google",
+        "scopes": ["https://www.googleapis.com/auth/calendar.readonly"],
+        "setupSteps": [
+          "Go to Google Cloud Console (https://console.cloud.google.com/)",
+          "Create or select a project",
+          "Enable the Google Calendar API",
+          "Create a service account or OAuth 2.0 credentials",
+          "Download the credentials JSON file",
+          "Set GOOGLE_APPLICATION_CREDENTIALS to the file path"
+        ]
+      },
       "verified": true,
       "popularity": 1800,
       "tags": ["google", "calendar", "events", "scheduling", "productivity"]
@@ -1039,6 +1078,46 @@
       "verified": true,
       "popularity": 1500,
       "tags": ["plaid", "finance", "banking", "transactions", "accounts", "fintech"]
+    },
+    {
+      "id": "mcp-docker",
+      "displayName": "Docker",
+      "description": "Manage Docker containers, images, volumes, and networks",
+      "categories": ["cloud-infra"],
+      "transport": "stdio",
+      "installMethod": "docker",
+      "package": "mcp/docker",
+      "dockerImage": "mcp/docker:latest",
+      "dockerPorts": [],
+      "dockerVolumes": ["/var/run/docker.sock:/var/run/docker.sock"],
+      "args": [],
+      "requiredEnv": [],
+      "requiredEnvLinks": {},
+      "requiredEnvDescriptions": {},
+      "optionalEnv": [],
+      "verified": false,
+      "popularity": 3000,
+      "tags": ["docker", "containers", "images", "devops"]
+    },
+    {
+      "id": "chromadb",
+      "displayName": "ChromaDB",
+      "description": "Vector database for AI embeddings with collection management and similarity search",
+      "categories": ["storage", "ai-ml"],
+      "transport": "stdio",
+      "installMethod": "docker",
+      "package": "chromadb/chroma",
+      "dockerImage": "chromadb/chroma:latest",
+      "dockerPorts": ["8000:8000"],
+      "dockerVolumes": [],
+      "args": [],
+      "requiredEnv": [],
+      "requiredEnvLinks": {},
+      "requiredEnvDescriptions": {},
+      "optionalEnv": [],
+      "verified": false,
+      "popularity": 4000,
+      "tags": ["chromadb", "vector-database", "embeddings", "ai", "similarity-search"]
     }
   ]
 }

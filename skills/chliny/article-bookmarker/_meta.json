@@ -3,11 +3,16 @@
   "slug": "article-bookmarker",
   "displayName": "article-bookmarker",
   "latest": {
-    "version": "0.2.1",
-    "publishedAt": 1774796869613,
-    "commit": "https://github.com/openclaw/skills/commit/fe0ef94ef11f2e6b9e581ac367c1bf722e3de596"
+    "version": "0.2.2",
+    "publishedAt": 1774797168435,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.1",
+      "publishedAt": 1774796869613,
+      "commit": "https://github.com/openclaw/skills/commit/fe0ef94ef11f2e6b9e581ac367c1bf722e3de596"
+    },
     {
       "version": "0.1.2",
       "publishedAt": 1774165019191,

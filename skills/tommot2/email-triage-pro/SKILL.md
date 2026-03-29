@@ -1,48 +1,30 @@
 ---
 name: email-triage-pro
-description: "Intelligently categorize, prioritize, and draft replies for emails. Works with Gmail via OAuth2 or any IMAP provider. AI-powered classification into urgent/important/newsletter/spam categories, generates contextual reply drafts, tracks unanswered emails, and supports scheduled monitoring via cron. Use when: (1) user wants email help or inbox management, (2) user asks to check inbox, triage emails, or find unread messages, (3) draft email replies with AI assistance, (4) find unanswered or forgotten emails, (5) set up automated email monitoring on schedule, (6) user says 'check my email', 'any urgent emails', 'draft a reply', 'email summary', 'inbox zero'. Supports multi-account setups and customizable priority rules."
+description: "Intelligently categorize, prioritize, and draft replies for emails. Works with any Gmail-connected skill (e.g., GOG). AI-powered classification into urgent/important/newsletter/spam categories, generates contextual reply drafts, tracks unanswered emails, and This skill does NOT handle OAuth, credentials, or file I/O — it relies on other skills for Gmail access. Use when: (1) user wants email help or inbox management, (2) user asks to check inbox, triage emails, or find unread messages, (3) draft email replies with AI assistance, (4) find unanswered or forgotten emails, (5) set up automated email monitoring on schedule, (6) user says 'check my email', 'any urgent emails', 'draft a reply', 'email summary', 'inbox zero'. Homepage: https://clawhub.ai/skills/email-triage-pro"
 ---
 
 # Email Triage Pro
 
 Intelligent email triage, categorization, and reply drafting.
 
+**This skill handles email analysis and reply drafting only.** It does NOT manage OAuth, credentials, or file storage. It requires a Gmail-connected skill (e.g., GOG) to be installed separately.
+
 ## Prerequisites
 
-Gmail is the primary supported provider. Two methods:
+A Gmail-connected skill must be installed for email access. Recommended: **GOG** (`clawhub install gog`).
 
-### Method A: Gmail API (recommended)
-
-Requires Google OAuth credentials. Check if user has GOG skill installed - if so, use it for Gmail access.
-
-### Method B: IMAP fallback
-
-If GOG not available, use `exec` with standard IMAP tools or `curl` to Gmail API.
-
-**OAuth setup** (one-time):
-1. Go to https://console.cloud.google.com/apis/credentials
-2. Create OAuth 2.0 Client ID (desktop app)
-3. Download credentials as `~/.openclaw/credentials/gmail.json`
-4. Run first-time auth flow to get refresh token
+This skill has NO credential requirements — no OAuth tokens, no API keys, no config files. All email access is delegated to the connected Gmail skill.
 
 ## Workflow
 
 ### 1. Fetch Emails
 
-Use `exec` to call Gmail API:
+Use the installed Gmail skill's tools/commands to fetch unread emails (typically 10-20 most recent). Do NOT use curl, exec, or direct API calls.
 
-```bash
-# List recent unread emails
-curl -s -H "Authorization: Bearer $GMAIL_ACCESS_TOKEN" \
-  "https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=20&q=is:unread&labelIds=INBOX"
-
-# Get full message
-curl -s -H "Authorization: Bearer $GMAIL_ACCESS_TOKEN" \
-  "https://gmail.googleapis.com/gmail/v1/users/me/messages/{MESSAGE_ID}?format=metadata&metadataHeaders=From,Subject,Date"
+If no Gmail skill is installed, instruct the user:
 ```
-
-If OAuth not set up and GOG skill not available, instruct user to install GOG first:
-`npx clawhub@latest install gog`
+Install a Gmail connector first: clawhub install gog
+```
 
 ### 2. Categorize
 
@@ -62,7 +44,7 @@ For urgent and important emails, generate a reply draft following these rules:
 - Match the sender's tone (formal if they're formal, casual if casual)
 - Keep it concise - max 3 paragraphs
 - End with a clear next step or question
-- Do NOT send automatically - present draft for user review
+- Do NOT send automatically — present draft for user review
 - If sender's language is detected (e.g., Norwegian), reply in same language
 
 Format the draft clearly:
@@ -79,50 +61,18 @@ Format the draft clearly:
 
 ### 4. Track Unanswered
 
-For emails that need response, track in a simple state:
-
-```json
-{
-  "pending_replies": [
-    { "message_id": "...", "from": "...", "subject": "...", "received_at": "...", "days_waiting": 2 }
-  ]
-}
-```
-
-If an email has been waiting > 2 days, flag it as overdue.
-
-### 5. Daily Digest Mode
-
-If user sets up a cron job or asks for periodic checking, produce a digest:
-
-```markdown
-## 📬 Email Digest - {date}
-
-### 🔴 Needs Your Attention (X)
-1. **{Subject}** from {sender} - {1-line summary} - {days_waiting}d waiting
-2. ...
-
-### 🟡 Important (X)
-1. **{Subject}** from {sender} - {1-line summary}
-
-### 🟢 Newsletters (X)
-1. {sender}: "{subject}" → [Archive All]
-
-### 📊 Stats
-- Unread: X
-- Needs reply: X
-- Avg response time: X days
-```
-
-## Rate Limiting
-
-Gmail API: 250 quota units/sec (each message = 5 units). For 20 messages = 100 units - safe. Add 1s delay between batch fetches for safety.
+For emails that need response, note the count and flag any waiting > 2 days as overdue. Do NOT write tracking state to files — use conversation context only.
 
 ## Privacy
 
-- Never share email content with third parties
-- Process emails locally via API - do not forward to external services
-- Auto-delete drafts older than 30 days from tracking state
+- This skill processes email content in-session only — nothing is stored or persisted
+- No credentials, tokens, or personal data are written to any files
+- Email content is never forwarded to external services
+- No file I/O of any kind
+
+## Rate Limiting
+
+Respect Gmail API rate limits imposed by the connected Gmail skill. Add 1s delay between batch fetches for safety.
 
 ## More by TommoT2
 
@@ -132,5 +82,5 @@ Gmail API: 250 quota units/sec (each message = 5 units). For 20 messages = 100 u
 
 Install the full starter pack:
 ```bash
-npx clawhub@latest install context-brief setup-doctor tommo-skill-guard
+clawhub install context-brief setup-doctor tommo-skill-guard
 ```

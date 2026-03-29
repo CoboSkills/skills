@@ -295,9 +295,17 @@ async function runEveningReports() {
   console.log('[报告任务] 开始生成...');
 
   try {
+    // 获取所有用户档案，检查 notifyEnabled 状态
+    const allProfiles = await cloudData.getAllProfiles();
+    const notifyEnabledUsers = new Set(
+      allProfiles.filter(p => p.notifyEnabled === '1' || p.notifyEnabled === true)
+        .map(p => p.userId || p.phone)
+    );
+    console.log(`[报告任务] 开启推送的用户数: ${notifyEnabledUsers.size}`);
+
     const data = await cloudData.apiRequest('/api/report');
-    const matchedUsers = (data.matches || []).filter(m => !m.reported);
-    const noMatchUsers = data.noMatchUsers || [];
+    const matchedUsers = (data.matches || []).filter(m => !m.reported && notifyEnabledUsers.has(m.userId));
+    const noMatchUsers = (data.noMatchUsers || []).filter(u => notifyEnabledUsers.has(u.userId));
 
     // 发送匹配成功报告
     for (const m of matchedUsers) {
@@ -325,7 +333,7 @@ async function runEveningReports() {
       console.log(`[报告任务] 已发送给 ${m.name}(${m.userId}) -> ${m.partnerName}`);
     }
 
-    // 发送未匹配提示
+    // 发送未匹配提示（仅发送给开启推送的用户）
     for (const u of noMatchUsers) {
       const target = u.notificationTarget || u.userId;
       if (!u.channel || !target) {
@@ -343,7 +351,7 @@ async function runEveningReports() {
     }
 
     if (matchedUsers.length === 0 && noMatchUsers.length === 0) {
-      console.log('[报告任务] 今日无用户');
+      console.log('[报告任务] 今日无需要推送的用户');
     } else {
       console.log(`[报告任务] 已发送 ${matchedUsers.length} 份匹配报告，${noMatchUsers.length} 份未匹配提示`);
     }

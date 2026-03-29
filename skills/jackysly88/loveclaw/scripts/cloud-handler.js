@@ -41,7 +41,8 @@ const UserState = {
   BIRTH_HOUR: 6,
   CITY: 7,
   PHOTO: 8,
-  CONFIRM: 9,
+  NOTIFY_PREF: 9,
+  CONFIRM: 10,
 };
 
 // ==================== CRON AUTO-SETUP ====================
@@ -69,11 +70,8 @@ function setupCronJobs(channel = 'feishu', target = '') {
     if (target) {
       if (channel === 'feishu') {
         toParam = `--to "chat:${target}"`;
-      } else if (channel === 'telegram') {
-        toParam = `--to "telegram:${target}"`;
-      } else if (channel === 'whatsapp') {
-        toParam = `--to "whatsapp:${target}"`;
       } else {
+        // Telegram/WhatsApp 等只需要 target ID，不需要平台前缀
         toParam = `--to "${target}"`;
       }
     }
@@ -199,6 +197,17 @@ async function handleMessage(userId, message, channel = 'webchat', mediaPath = '
       resetUserSession(userId);
       resetUserSession(phoneOrId);
       return { text: '已取消报名，你的所有信息已删除。如需重新报名，请发送「启动爱情龙虾技能」。' };
+    }
+    
+    // 开启/关闭每日推送
+    if (message === '开启推送' || message === '关闭推送') {
+      const phoneOrId = session.data.phone || userId;
+      const profile = await cloudData.getProfile(phoneOrId);
+      if (!profile) return { text: '你还没有报名，请先发送「启动爱情龙虾技能」' };
+      
+      const enable = message === '开启推送';
+      await cloudData.updateProfile(phoneOrId, { notifyEnabled: enable ? '1' : '0' });
+      return { text: enable ? '✅ 已开启每日推送，每晚 20:00 将推送匹配结果' : '❌ 已关闭每日推送，可随时输入「今日匹配」查询' };
     }
     
     // ==================== STATE: NONE (start) ====================
@@ -352,36 +361,14 @@ async function handleMessage(userId, message, channel = 'webchat', mediaPath = '
 
           let photoInput;
           if (localPath) {
-            // 直接传递文件路径，让 uploadPhoto 处理
-            photoInput = localPath;
-            console.log('[PHOTO] using local file:', localPath);
+            // 读取本地文件转 base64
+            const imgBuffer = fs.readFileSync(localPath);
+            photoInput = imgBuffer.toString('base64');
+            console.log('[PHOTO] read local file:', localPath, 'size:', imgBuffer.length);
           } else if (message.startsWith('http://') || message.startsWith('https://')) {
-            // 下载 URL 图片到临时文件
-            try {
-              const response = await fetch(message);
-              const buffer = await response.arrayBuffer();
-              const bufferNode = Buffer.from(buffer);
-              const tmpPath = `/tmp/loveclaw_photo_${Date.now()}.jpg`;
-              fs.writeFileSync(tmpPath, bufferNode);
-              photoInput = tmpPath;
-              console.log('[PHOTO] downloaded URL to:', tmpPath, 'size:', bufferNode.length);
-            } catch (e) {
-              console.error('[PHOTO] 下载图片失败:', e.message);
-              photoInput = null;
-            }
+            photoInput = message; // URL，交给云函数 fetch
           } else if (message.startsWith('data:')) {
-            // base64 图片，保存到临时文件
-            try {
-              const base64Data = message.split(',')[1];
-              const buffer = Buffer.from(base64Data, 'base64');
-              const tmpPath = `/tmp/loveclaw_photo_${Date.now()}.jpg`;
-              fs.writeFileSync(tmpPath, buffer);
-              photoInput = tmpPath;
-              console.log('[PHOTO] saved base64 to:', tmpPath);
-            } catch (e) {
-              console.error('[PHOTO] 保存base64图片失败:', e.message);
-              photoInput = null;
-            }
+            photoInput = message; // base64，直接传递
           } else {
             // 其他情况（如 image_key），跳过上传
             console.log('[PHOTO] unrecognized format, skipping:', message.substring(0, 60));
@@ -389,7 +376,7 @@ async function handleMessage(userId, message, channel = 'webchat', mediaPath = '
           }
 
           if (photoInput) {
-            const ossUrl = await cloudData.uploadPhoto(photoInput, session.data.phone || userId);
+            const ossUrl = await cloudData.uploadPhoto(session.data.phone || userId, photoInput);
             session.data.photoOssUrl = ossUrl;
             console.log('[PHOTO] 上传成功:', ossUrl);
           }
@@ -397,6 +384,19 @@ async function handleMessage(userId, message, channel = 'webchat', mediaPath = '
           console.error('[uploadPhoto error]', e.message);
         }
       }
+      session.state = UserState.NOTIFY_PREF;
+      saveSessionsToFile([{ userId, session }]);
+      return {
+        text: `📬 每日推送设置\n\n是否开启每日匹配结果推送？\n\n回复「是」开启每晚 20:00 自动推送\n回复「否」不推送，可随时输入「今日匹配」查询`
+      };
+    }
+
+    // ==================== NOTIFY_PREF ====================
+    if (session.state === UserState.NOTIFY_PREF) {
+      // 用户选择是否开启每日推送
+      const enableNotify = message === '是' || message === '好的' || message === '要';
+      session.data.notifyEnabled = enableNotify;
+      
       session.state = UserState.CONFIRM;
       saveSessionsToFile([{ userId, session }]);
       return formatSummary(session.data);
@@ -429,17 +429,17 @@ async function handleMessage(userId, message, channel = 'webchat', mediaPath = '
         }
         if (saveErr) return { text: `保存遇到网络问题，请再回复一次「确认」重试` };
         
-        // 注册成功后自动注册定时任务（使用正确的飞书 openId）
-        setupCronJobs('feishu', userId);
-        
         // Clear session
         const phone = session.data.phone;
         saveSessionsToFile([{ userId, session: { state: UserState.NONE, data: { phone } } }]);
         delete idMap[phone];
         userSessions.delete(userId);
         userSessions.delete(phone);
+        const notifyText = session.data.notifyEnabled
+          ? '✅ 已开启每晚 20:00 推送，匹配结果将自动通知你'
+          : '❌ 未开启推送，可随时输入「今日匹配」查询';
         return {
-          text: `报名成功！🎉\n\n已将你的信息纳入匹配队列，每日19:50自动匹配。\n匹配结果将于当晚8点通知你，请保持手机畅通。\n\n💡 温馨提示：\n- 通过对应 channel 报名，将于每晚20点推送匹配结果到该 channel\n- 通过 OpenClaw 网页对话框报名，可能无法自动推送，可输入「今日匹配」查询匹配情况\n- 输入「匹配记录」可查看历史匹配\n\n回复「我的档案」可查看个人信息`
+          text: `报名成功！🎉\n\n已将你的信息纳入匹配队列，每日19:50自动匹配。\n${notifyText}\n\n💡 温馨提示：\n- 输入「今日匹配」可查询当前匹配情况\n- 输入「匹配记录」可查看历史匹配\n- 输入「我的档案」可查看个人信息\n- 输入「开启推送」可重新开启每日推送`
         };
       } catch (e) {
         return { text: `保存遇到网络问题，请再回复一次「确认」重试` };

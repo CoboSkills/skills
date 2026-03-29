@@ -3,11 +3,16 @@
   "slug": "wip-repos",
   "displayName": "Wip Repos",
   "latest": {
-    "version": "1.9.58",
-    "publishedAt": 1774795617586,
-    "commit": "https://github.com/openclaw/skills/commit/f5267a3910e90b69fdfb04faa84a0c6dcadb9a46"
+    "version": "1.9.65",
+    "publishedAt": 1774828680783,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.9.58",
+      "publishedAt": 1774795617586,
+      "commit": "https://github.com/openclaw/skills/commit/f5267a3910e90b69fdfb04faa84a0c6dcadb9a46"
+    },
     {
       "version": "1.9.55",
       "publishedAt": 1774724593699,

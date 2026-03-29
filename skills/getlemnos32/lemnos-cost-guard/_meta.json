@@ -3,11 +3,16 @@
   "slug": "lemnos-cost-guard",
   "displayName": "Lemnos Cost Guard",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774226351790,
-    "commit": "https://github.com/openclaw/skills/commit/5f051331db4bf473cfb625580c6f04fd69bad20a"
+    "version": "1.2.2",
+    "publishedAt": 1774660102352,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774226351790,
+      "commit": "https://github.com/openclaw/skills/commit/5f051331db4bf473cfb625580c6f04fd69bad20a"
+    },
     {
       "version": "1.2.0",
       "publishedAt": 1773957768887,

@@ -9,9 +9,9 @@ lunar_query.py — 农历/公历转换查询工具
   python3 lunar_query.py --moon-phase 2026-04-04  # 月相估算
 """
 import sys
+from datetime import datetime
 from lunarcalendar import Converter, Solar, Lunar
-
-SYNODIC = 29.53058867
+from astronomy import julian_day, moon_phase, MOON_SYNODIC, NEW_MOON_JD
 
 def solar_to_lunar_str(year, month, day):
     try:
@@ -35,29 +35,32 @@ def lunar_to_solar_str(year, month, day):
             return f"错误: {e}"
 
 def moon_phase_desc(year, month, day):
-    """估算月相（以2026年2月17日新月为基准近似）"""
-    from datetime import date
-    # 已知：2026年2月17日是新月(正月初一)
-    ref = date(2026, 2, 17)
-    target_date = date(year, month, day)
+    """估算月相（基于天文月龄与照明率近似）。"""
     try:
-        days = (target_date - ref).days
-        cycle_pos = days % SYNODIC
-        pct = cycle_pos / SYNODIC * 100
-        
-        if pct < 1.8: phase = "🌑 新月"
-        elif pct < 8.9: phase = "🌓 眉月"
-        elif pct < 17.8: phase = "🌓 上弦月"
-        elif pct < 26.7: phase = "🌕 盈凸月"
-        elif pct < 35.6: phase = "🌕 满月(望)"
-        elif pct < 44.4: phase = "🌖 亏凸月"
-        elif pct < 53.3: phase = "🌗 下弦月"
-        elif pct < 62.2: phase = "🌘 残月"
-        elif pct < 71.1: phase = "🌑 晦月/新月前夕"
-        else: phase = "🌑 新月"
-        
-        illumination = abs(50 - pct) / 50 * 100 if pct <= 50 else (pct - 50) / 50 * 100
-        return f"月相: {phase} (约{illumination:.0f}%亮度) 距新月{cycle_pos:.1f}天"
+        jd = julian_day(datetime(year, month, day, 12, 0, 0))
+        lunar_age = (jd - NEW_MOON_JD) % MOON_SYNODIC
+        illumination, _ = moon_phase(jd)
+
+        if lunar_age < 1.5:
+            phase = "🌑 新月"
+        elif lunar_age < 6.4:
+            phase = "🌒 眉月"
+        elif lunar_age < 8.9:
+            phase = "🌓 上弦月"
+        elif lunar_age < 13.8:
+            phase = "🌔 盈凸月"
+        elif lunar_age < 15.8:
+            phase = "🌕 满月(望)"
+        elif lunar_age < 20.7:
+            phase = "🌖 亏凸月"
+        elif lunar_age < 23.1:
+            phase = "🌗 下弦月"
+        elif lunar_age < 28.0:
+            phase = "🌘 残月"
+        else:
+            phase = "🌘 晦月/新月前夕"
+
+        return f"月相: {phase} (约{illumination * 100:.0f}%亮度) 月龄约{lunar_age:.1f}天"
     except Exception as e:
         return f"月相估算错误: {e}"
 

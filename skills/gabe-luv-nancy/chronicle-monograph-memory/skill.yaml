@@ -1,10 +1,12 @@
 ---
 name: hippocampus
-version: 3.0.0
+version: 1.0.3
 description: >
-  Photon: AI-enhanced memory system that FIXES human memory flaws.
+  Hippocampus: AI-enhanced memory system that FIXES human memory flaws.
   NO DECAY - AI never forgets.
-  Features: tool success tracking, project checkpoints, failure pattern warning, knowledge graph.
+  Features: Micro-Macro workflow memory, proactive keyword triggers,
+  tool success tracking, project checkpoints, failure pattern warning,
+  knowledge graph.
   Philosophy: "AI is meant to FIX human memory flaws, why learn human decay?"
 
 author: GabetopZ
@@ -12,13 +14,15 @@ homepage: https://github.com/Gabe-luv-Nancy/hippocampus
 license: MIT
 tags:
   - memory
-  - photon
   - checkpoint
   - success-tracking
   - failure-warning
   - knowledge-graph
+  - micro-macro
+  - proactive-recall
 
 events:
+  - session_start
   - session_end
 
 triggers:
@@ -26,6 +30,8 @@ triggers:
   - recall
   - checkpoint
   - warn
+  - learn
+  - workflow
 
 type: skill
 
@@ -43,29 +49,68 @@ dependencies:
 
 commands:
   - name: init
-    pattern: "/photon init"
+    pattern: "/hippo init"
     description: Initialize DB and directories (RUN FIRST!)
-  - name: setup
-    pattern: "/photon setup"
-    description: Setup cron jobs (user confirms once)
-  - name: setup-all
-    pattern: "/photon setup-all"
-    description: Setup all cron jobs at once
   - name: status
-    pattern: "/photon status"
+    pattern: "/hippo status"
     description: View memory status
   - name: save
-    pattern: "/photon save"
+    pattern: "/hippo save"
     description: Save current context
   - name: recall
-    pattern: "/photon recall"
-    description: Precise recall
+    pattern: "/hippo recall"
+    description: Precise recall by keyword
   - name: checkpoint
-    pattern: "/photon checkpoint"
+    pattern: "/hippo checkpoint"
     description: Save project state
   - name: warn
-    pattern: "/photon warn"
+    pattern: "/hippo warn"
     description: Check failure patterns
   - name: graph
-    pattern: "/photon graph"
+    pattern: "/hippo graph"
     description: View knowledge graph
+  - name: learn-workflow
+    pattern: "/hippo learn-workflow"
+    description: Register a micro-macro workflow (learn: micro -> macro)
+  - name: workflows
+    pattern: "/hippo workflows"
+    description: List all registered workflows
+  - name: forget-workflow
+    pattern: "/hippo forget-workflow"
+    description: Remove a registered workflow
+  - name: triggers
+    pattern: "/hippo triggers"
+    description: List keyword triggers
+  - name: add-trigger
+    pattern: "/hippo add-trigger"
+    description: Add a keyword trigger for proactive recall
+  - name: remove-trigger
+    pattern: "/hippo remove-trigger"
+    description: Remove a keyword trigger
+  - name: readingbetweenthelines
+    pattern: "/hippo readingbetweenthelines"
+    description: 察言观色 status and config
+  - name: readingbetweenthelines-stat
+    pattern: "/hippo readingbetweenthelines-stat"
+    description: Show current word counts
+  - name: readingbetweenthelines-clear
+    pattern: "/hippo readingbetweenthelines-clear"
+    description: Reset word counts
+  - name: add-instant
+    pattern: "/hippo add-instant"
+    description: Add an instant trigger
+  - name: remove-instant
+    pattern: "/hippo remove-instant"
+    description: Remove an instant trigger
+  - name: add-threshold
+    pattern: "/hippo add-threshold"
+    description: Add a threshold trigger
+  - name: remove-threshold
+    pattern: "/hippo remove-threshold"
+    description: Remove a threshold trigger
+  - name: config
+    pattern: "/hippo config"
+    description: Show or reload configuration
+  - name: analyze
+    pattern: "/hippo analyze"
+    description: Analyze memory and generate report

@@ -3,11 +3,16 @@
   "slug": "chronicle-monograph-memory",
   "displayName": "hippocampus",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773763384609,
-    "commit": "https://github.com/openclaw/skills/commit/fd74e30f11af417f0feb24fc425c28e5b9aa1faf"
+    "version": "1.0.3",
+    "publishedAt": 1774453746641,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773763384609,
+      "commit": "https://github.com/openclaw/skills/commit/fd74e30f11af417f0feb24fc425c28e5b9aa1faf"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773563538037,

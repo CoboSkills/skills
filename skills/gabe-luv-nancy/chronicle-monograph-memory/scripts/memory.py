@@ -39,15 +39,23 @@ DEFAULT_VALUES = {
     "CHRONICLE_DIR": "chronicle",
     "MONOGRAPH_DIR": "monograph",
     "INDEX_DIR": "index",
-    "BEFORE_ANSWER": "",  # Special: memory loaded before each response
-    "AFTER_ANSWER": "",   # Special: memory processed after each response
+    "WORKFLOW_DIR": "workflows",
     "FILE_ORG_ENABLED": True,
     "FILE_ORG_AUTO_MOVE": False,
     "FILE_SCAN_PATHS": ["./workspace"],
     "FILE_EXCLUDE_PATHS": [".openclaw", "node_modules", ".git"],
     "KEYWORD_COUNT": 20,
     "ASSOCIATION_DEPTH": 3,
-    "AUTO_SAVE": True
+    "AUTO_SAVE": True,
+    "MICRO_MACRO_ENABLED": True,
+    "PROACTIVE_TRIGGERS_ENABLED": True,
+    "PROACTIVE_KEYWORDS": {},  # dict: keyword_lower -> monograph_topic
+    "READINGBETWEENTHELINES_ENABLED": True,
+    "INSTANT_TRIGGERS": "error->error-patterns,database->database-architecture,api->api-design,deploy->deployment-checklist,test->test-strategy",
+    "THRESHOLD_TRIGGERS": "project->5,api->4,config->4,feature->4,data->3",
+    "HEARTBEAT_INTERVAL": 1,
+    "SLIDING_WINDOW": 10,
+    "TRIGGER_COOLDOWN": 5,
 }
 
 def parse_bool(value: str) -> bool:
@@ -83,13 +91,30 @@ def load_user_config() -> Dict:
             
             if key in config:
                 # Type inference
-                if key in ['ROUND_THRESHOLD', 'TIME_HOURS', 'TOKEN_THRESHOLD', 
+                if key in ['ROUND_THRESHOLD', 'TIME_HOURS', 'TOKEN_THRESHOLD',
                            'KEYWORD_COUNT', 'ASSOCIATION_DEPTH']:
                     config[key] = int(value)
-                elif key in ['FILE_ORG_ENABLED', 'FILE_ORG_AUTO_MOVE', 'AUTO_SAVE']:
+                elif key in ['FILE_ORG_ENABLED', 'FILE_ORG_AUTO_MOVE', 'AUTO_SAVE',
+                              'MICRO_MACRO_ENABLED', 'PROACTIVE_TRIGGERS_ENABLED']:
                     config[key] = parse_bool(value)
                 elif key in ['FILE_SCAN_PATHS', 'FILE_EXCLUDE_PATHS']:
                     config[key] = parse_list(value)
+                elif key in ['INSTANT_TRIGGERS', 'THRESHOLD_TRIGGERS']:
+                    # Store as string; parsed at runtime by check functions
+                    config[key] = value.strip()
+                elif key in ['HEARTBEAT_INTERVAL', 'SLIDING_WINDOW', 'TRIGGER_COOLDOWN']:
+                    config[key] = int(value)
+                elif key == 'PROACTIVE_KEYWORDS':
+                    # Parse KEYWORD->TOPIC,KEYWORD->TOPIC format
+                    triggers = {}
+                    for pair in parse_list(value):
+                        if '->' in pair:
+                            kw, topic = pair.split('->', 1)
+                            if kw.strip() and topic.strip():
+                                triggers[kw.strip().lower()] = topic.strip()
+                    config[key] = triggers
+                elif key == 'READINGBETWEENTHELINES_ENABLED':
+                    config[key] = parse_bool(value)
                 else:
                     config[key] = value
     
@@ -192,6 +217,411 @@ def get_index_path() -> Path:
     name = config.get("INDEX_DIR", "index")
     return get_base_path() / name
 
+def get_workflow_path() -> Path:
+    """Get workflows directory"""
+    config = get_config()
+    name = config.get("WORKFLOW_DIR", "workflows")
+    return get_base_path() / name
+
+# ============================================================================
+# 察言观色 — ReadingBetweenTheLines
+# ============================================================================
+
+# Stop words: excluded from all token counting
+STOP_WORDS = {
+    'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those',
+    'i', 'you', 'he', 'she', 'it', 'we', 'they', 'my', 'your', 'his', 'her',
+    'its', 'our', 'their', 'what', 'which', 'who', 'whom', 'and', 'or', 'but',
+    'not', 'no', 'so', 'if', 'then', 'else', 'when', 'where', 'how', 'why',
+    'all', 'any', 'some', 'each', 'every', 'both', 'few', 'more', 'most',
+    'other', 'only', 'own', 'same', 'than', 'too', 'very', 'just', 'also',
+    'now', 'here', 'there', 'then', 'about', 'after', 'before', 'above',
+    'below', 'between', 'into', 'through', 'during', 'under', 'again', 'further',
+    'once', 'am', 'being', 'being', 'since', 'until', 'while', 'because',
+    'although', 'though', 'however', 'therefore', 'thus', 'hence', 'otherwise',
+    'anyway', 'besides', 'instead', 'rather', 'yet', 'still', 'already',
+    'even', 'ever', 'never', 'always', 'often', 'sometimes', 'usually',
+    'maybe', 'perhaps', 'probably', 'certainly', 'definitely', 'maybe',
+}
+
+
+def _reading_state_path() -> Path:
+    """Path to the persistent state file for 察言观色"""
+    return get_base_path() / "readingbetweenthelines_state.json"
+
+
+def _load_reading_state() -> Dict:
+    """Load persistent word-count and cooldown state"""
+    fpath = _reading_state_path()
+    if fpath.exists():
+        try:
+            with open(fpath, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"word_counts": {}, "cooldowns": {}, "last_messages": []}
+
+
+def _save_reading_state(state: Dict):
+    """Persist state to disk"""
+    fpath = _reading_state_path()
+    fpath.parent.mkdir(parents=True, exist_ok=True)
+    with open(fpath, 'w', encoding='utf-8') as f:
+        json.dump(state, f, ensure_ascii=False)
+
+
+def tokenize_and_count(messages: List[str]) -> Dict[str, int]:
+    """
+    Tokenize messages, remove stop words, return word frequency dict.
+    """
+    counter: Dict[str, int] = {}
+    for msg in messages:
+        words = re.findall(r'\b\w+\b', str(msg).lower())
+        for w in words:
+            if w not in STOP_WORDS and len(w) > 2:
+                counter[w] = counter.get(w, 0) + 1
+    return counter
+
+
+def check_instant_triggers(word_counts: Dict[str, int], config: Dict) -> List[str]:
+    """
+    Return list of monograph topics to load for any instant-trigger keywords.
+    Instant triggers fire immediately on first occurrence.
+    """
+    instant_raw = config.get('INSTANT_TRIGGERS', {})
+    if isinstance(instant_raw, str):
+        # Parse "word->topic,word->topic" format
+        parsed = {}
+        for pair in instant_raw.split(','):
+            if '->' in pair:
+                kw, topic = pair.split('->', 1)
+                parsed[kw.strip().lower()] = topic.strip()
+        instant_raw = parsed
+    triggered = []
+    for word in word_counts:
+        if word in instant_raw:
+            triggered.append(instant_raw[word])
+    return triggered
+
+
+def check_threshold_triggers(word_counts: Dict[str, int], config: Dict) -> List[str]:
+    """
+    Return list of monograph topics to load for words meeting threshold.
+    Threshold triggers fire only after N occurrences within the sliding window.
+    """
+    thresholds_raw = config.get('THRESHOLD_TRIGGERS', {})
+    if isinstance(thresholds_raw, str):
+        # Parse "word->count,word->count" format
+        parsed = {}
+        for pair in thresholds_raw.split(','):
+            if '->' in pair:
+                kw, count = pair.split('->', 1)
+                try:
+                    parsed[kw.strip().lower()] = int(count.strip())
+                except ValueError:
+                    pass
+        thresholds_raw = parsed
+    triggered = []
+    for word, threshold in thresholds_raw.items():
+        if word_counts.get(word, 0) >= threshold:
+            triggered.append(word)  # topic key == word for threshold triggers
+    return triggered
+
+
+def readingbetweenthelines(messages: List[str], sliding_window: int = 10) -> str:
+    """
+    Main entry point for 察言观色.
+    Analyzes recent messages, checks triggers, returns triggered memories.
+
+    Args:
+        messages: List of recent user message strings
+        sliding_window: Minutes of history to analyze (for context, not applied here)
+
+    Returns:
+        Triggered memory content, or empty string if nothing triggered.
+    """
+    config = get_config()
+    if not config.get('READINGBETWEENTHELINES_ENABLED', True):
+        return ""
+
+    word_counts = tokenize_and_count(messages)
+    instant_topics = check_instant_triggers(word_counts, config)
+    threshold_topics = check_threshold_triggers(word_counts, config)
+
+    # Deduplicate, instant first
+    seen: set = set()
+    triggered_topics: list = []
+    for t in instant_topics + threshold_topics:
+        if t not in seen:
+            seen.add(t)
+            triggered_topics.append(t)
+
+    if not triggered_topics:
+        return ""
+
+    # Cooldown check
+    state = _load_reading_state()
+    now = time.time()
+    cooldown_seconds = config.get('TRIGGER_COOLDOWN', 5) * 60
+    newly_triggered: list = []
+
+    for topic in triggered_topics:
+        last_triggered = state.get('cooldowns', {}).get(topic, 0)
+        if now - last_triggered >= cooldown_seconds:
+            newly_triggered.append(topic)
+            state['cooldowns'][topic] = now
+
+    if newly_triggered:
+        _save_reading_state(state)
+        memories = []
+        for topic in newly_triggered:
+            content = _load_monograph_content(topic)
+            if content:
+                memories.append(content)
+        if memories:
+            topics_str = ', '.join(newly_triggered)
+            return f"[察言观色 triggered: {topics_str}]\n\n" + "\n\n".join(memories)
+
+    return ""
+
+
+def readingbetweenthelines_stat() -> str:
+    """Return current word counts and active triggers summary"""
+    state = _load_reading_state()
+    config = get_config()
+    word_counts = state.get('word_counts', {})
+    cooldowns = state.get('cooldowns', {})
+
+    # Top 20 words
+    top = sorted(word_counts.items(), key=lambda x: x[1], reverse=True)[:20]
+
+    # Check what is currently triggering
+    instant_topics = check_instant_triggers(word_counts, config)
+    threshold_topics = check_threshold_triggers(word_counts, config)
+
+    cooldown_seconds = config.get('TRIGGER_COOLDOWN', 5) * 60
+    now = time.time()
+    in_cooldown = [t for t in (instant_topics + threshold_topics)
+                   if now - cooldowns.get(t, 0) < cooldown_seconds]
+
+    report = f"## 察言观色 — Status\n\n"
+    report += f"**Words tracked**: {len(word_counts)}\n"
+    report += f"**Instant triggers**: {len(instant_topics)} active\n"
+    report += f"**Threshold triggers**: {len(threshold_topics)} active\n"
+    report += f"**In cooldown**: {len(in_cooldown)} ({', '.join(in_cooldown) if in_cooldown else 'none'})\n\n"
+
+    report += "**Top words**:\n"
+    for word, count in top:
+        tag = ""
+        if word in instant_topics:
+            tag = " [instant]"
+        elif word in threshold_topics:
+            tag = " [threshold]"
+        report += f"- {word}: {count}{tag}\n"
+
+    return report
+
+
+def readingbetweenthelines_clear() -> str:
+    """Clear the word count state (reset sliding window)"""
+    state = _load_reading_state()
+    state['word_counts'] = {}
+    state['last_messages'] = []
+    # Keep cooldowns
+    _save_reading_state(state)
+    return "察言观色 state cleared. Word counts reset."
+
+
+# ============================================================================
+# Initialization Guard
+# ============================================================================
+
+_initialized = False
+
+def _lazy_init():
+    """Run ensure_dirs() only once, on first use. Safe to call multiple times."""
+    global _initialized
+    if not _initialized:
+        ensure_dirs()
+        _initialized = True
+
+# ============================================================================
+# Micro-Macro Workflow Memory
+# ============================================================================
+
+def get_workflows_path() -> Path:
+    """Get workflow files directory"""
+    return get_workflow_path()
+
+def load_workflow(micro: str) -> Optional[Dict]:
+    """Load a workflow by micro keyword (exact match, case-insensitive)"""
+    workflows_dir = get_workflows_path()
+    micro_lower = micro.lower().strip()
+    for fpath in workflows_dir.glob("*.yaml"):
+        try:
+            with open(fpath, 'r', encoding='utf-8') as f:
+                wf = yaml.safe_load(f)
+            if wf and wf.get('micro', '').lower().strip() == micro_lower:
+                return wf
+        except Exception:
+            continue
+    return None
+
+def match_workflow(user_input: str) -> Optional[Dict]:
+    """
+    Match user input against all registered micro keywords.
+    Returns the first matching workflow, or None.
+    """
+    workflows_dir = get_workflows_path()
+    input_lower = user_input.lower()
+    for fpath in sorted(workflows_dir.glob("*.yaml")):
+        try:
+            with open(fpath, 'r', encoding='utf-8') as f:
+                wf = yaml.safe_load(f)
+            if not wf:
+                continue
+            micro = wf.get('micro', '').lower().strip()
+            if micro and micro in input_lower:
+                return wf
+        except Exception:
+            continue
+    return None
+
+def save_workflow(micro: str, macro: str, keywords: List[str] = None,
+                  description: str = "") -> str:
+    """Save a micro-macro workflow to a YAML file"""
+    workflows_dir = get_workflows_path()
+    safe_name = re.sub(r'[^\w\-]', '_', micro.lower().strip())[:50]
+    fpath = workflows_dir / f"{safe_name}.yaml"
+    wf = {
+        'micro': micro.strip(),
+        'macro': macro.strip(),
+        'description': description.strip(),
+        'keywords': [k.strip() for k in (keywords or [])],
+        'created_at': datetime.now().isoformat(),
+        'updated_at': datetime.now().isoformat(),
+    }
+    with open(fpath, 'w', encoding='utf-8') as f:
+        yaml.dump(wf, f, allow_unicode=True, sort_keys=False)
+    return str(fpath)
+
+def delete_workflow(micro: str) -> bool:
+    """Delete a workflow by micro keyword"""
+    wf = load_workflow(micro)
+    if not wf:
+        return False
+    workflows_dir = get_workflows_path()
+    micro_lower = micro.lower().strip()
+    for fpath in workflows_dir.glob("*.yaml"):
+        try:
+            with open(fpath, 'r', encoding='utf-8') as f:
+                w = yaml.safe_load(f)
+            if w and w.get('micro', '').lower().strip() == micro_lower:
+                fpath.unlink()
+                return True
+        except Exception:
+            continue
+    return False
+
+def list_workflows() -> List[Dict]:
+    """List all registered workflows"""
+    workflows_dir = get_workflows_path()
+    result = []
+    for fpath in sorted(workflows_dir.glob("*.yaml")):
+        try:
+            with open(fpath, 'r', encoding='utf-8') as f:
+                wf = yaml.safe_load(f)
+            if wf:
+                result.append({
+                    'micro': wf.get('micro', ''),
+                    'macro': wf.get('macro', '')[:100] + ('...' if len(wf.get('macro', '')) > 100 else ''),
+                    'description': wf.get('description', ''),
+                    'created_at': wf.get('created_at', ''),
+                })
+        except Exception:
+            continue
+    return result
+
+# ============================================================================
+# Proactive Keyword Triggers
+# ============================================================================
+
+def get_proactive_memory(user_message: str) -> str:
+    """
+    Check if user message contains any trigger keyword.
+    If so, load and return the associated memory content.
+    """
+    config = get_config()
+    if not config.get('PROACTIVE_TRIGGERS_ENABLED', True):
+        return ""
+    triggers = config.get('PROACTIVE_KEYWORDS', {})
+    if not triggers:
+        return ""
+    msg_lower = user_message.lower()
+    for keyword, topic in triggers.items():
+        if keyword in msg_lower:
+            memory_content = _load_monograph_content(topic)
+            if memory_content:
+                return memory_content
+    return ""
+
+def _load_monograph_content(topic: str) -> str:
+    """Load monograph content by topic name (without .md)"""
+    config = get_config()
+    monograph_dir = get_monograph_path()
+    safe_topic = re.sub(r'[^\w\-]', '-', topic)
+    fpath = monograph_dir / f"{safe_topic}.md"
+    if fpath.exists():
+        return fpath.read_text(encoding='utf-8')
+    return ""
+
+def list_triggers() -> List[Dict]:
+    """List all configured proactive keyword triggers"""
+    config = get_config()
+    triggers = config.get('PROACTIVE_KEYWORDS', {})
+    result = []
+    for kw, topic in triggers.items():
+        content_preview = ""
+        content = _load_monograph_content(topic)
+        if content:
+            # Get first non-empty line as preview
+            for line in content.split('\n'):
+                if line.strip() and not line.strip().startswith('#'):
+                    content_preview = line.strip()[:80]
+                    break
+        result.append({
+            'keyword': kw,
+            'topic': topic,
+            'preview': content_preview,
+        })
+    return result
+
+def add_trigger(keyword: str, topic: str) -> str:
+    """Add a proactive keyword trigger"""
+    config = get_config()
+    triggers = config.get('PROACTIVE_KEYWORDS', {})
+    kw = keyword.lower().strip()
+    triggers[kw] = topic.strip()
+    config['PROACTIVE_KEYWORDS'] = triggers
+    save_user_config(config)
+    reload_config()
+    return f"Added trigger: '{keyword}' -> '{topic}'"
+
+def remove_trigger(keyword: str) -> str:
+    """Remove a proactive keyword trigger"""
+    config = get_config()
+    triggers = config.get('PROACTIVE_KEYWORDS', {})
+    kw = keyword.lower().strip()
+    if kw in triggers:
+        del triggers[kw]
+        config['PROACTIVE_KEYWORDS'] = triggers
+        save_user_config(config)
+        reload_config()
+        return f"Removed trigger: '{keyword}'"
+    return f"Trigger not found: '{keyword}'"
+
 # ============================================================================
 # Special Needs - Before/After Answer Memory
 # ============================================================================
@@ -240,7 +670,7 @@ def check_special_needs() -> Dict[str, str]:
 
 def ensure_dirs():
     """Ensure all directories exist"""
-    for d in [get_chronicle_path(), get_monograph_path(), get_index_path()]:
+    for d in [get_chronicle_path(), get_monograph_path(), get_index_path(), get_workflows_path()]:
         d.mkdir(parents=True, exist_ok=True)
     init_db()
 
@@ -425,7 +855,7 @@ class AssociationGenerator:
 
 def save_chronicle(content: str, session_id: str = None) -> str:
     """Save temporal memory to Chronicle"""
-    ensure_dirs()
+    _lazy_init()
     config = get_config()
     extractor = KeywordExtractor()
     keywords = extractor.extract(content)
@@ -502,7 +932,7 @@ def query_chronicle(keyword: str = None, start_date: str = None, end_date: str =
 
 def save_monograph(topic: str, content: str, tokens: int, metadata: Dict = None) -> str:
     """Save important event to Monograph"""
-    ensure_dirs()
+    _lazy_init()
     extractor = KeywordExtractor()
     keywords = extractor.extract(content)
     
@@ -582,9 +1012,9 @@ def save_monograph(topic: str, content: str, tokens: int, metadata: Dict = None)
     return str(filepath)
 
 def _update_keyword_index(topic: str, keywords: Dict, source_path: Path):
-    """Update keyword index files"""
+    """Update keyword index files — index_dir already created by _lazy_init()"""
     index_dir = get_index_path()
-    index_dir.mkdir(parents=True, exist_ok=True)
+    # No mkdir needed: _lazy_init() already ran via save_monograph() or save_chronicle()
     
     for kw in list(keywords.keys())[:10]:
         kw_file = index_dir / f"{kw}.md"
@@ -665,7 +1095,7 @@ class FileOrganizer:
 
 def analyze_memory() -> str:
     """Analyze all memory and generate report"""
-    ensure_dirs()
+    _lazy_init()
     conn = sqlite3.connect(str(get_db_path()))
     cursor = conn.cursor()
     
@@ -754,10 +1184,29 @@ class Hippocampus:
     def process(self, command: str, args: str = "", context: Dict = None) -> str:
         """Process command"""
         context = context or {}
-        
+
         # Reload config for each command (to pick up user changes)
         reload_config()
-        
+
+        # === Proactive trigger: load relevant memory if keyword found ===
+        proactive = context.get("proactive_message", "")
+        if proactive:
+            proactive_content = get_proactive_memory(proactive)
+            if proactive_content:
+                # Prepend proactive memory to context for this turn
+                ctx = dict(context)
+                ctx["content"] = (proactive_content + "\n\n" + ctx.get("content", "")).strip()
+                context = ctx
+
+        # === Micro-Macro: match workflow if user input contains micro keyword ===
+        config = get_config()
+        if config.get('MICRO_MACRO_ENABLED', True) and proactive:
+            matched = match_workflow(proactive)
+            if matched:
+                self.current_workflow = matched
+                return f"[Workflow triggered] {matched.get('micro')} -> {matched.get('macro', '')[:200]}"
+
+        # === Command routing ===
         if command == "new":
             return self._cmd_new(args)
         elif command == "add":
@@ -766,6 +1215,12 @@ class Hippocampus:
             return self._cmd_save(context.get("content", ""))
         elif command == "recall":
             return self._cmd_recall(args)
+        elif command == "checkpoint":
+            return self._cmd_checkpoint(context)
+        elif command == "warn":
+            return self._cmd_warn(context)
+        elif command == "graph":
+            return self._cmd_graph()
         elif command == "important":
             return self._cmd_important()
         elif command == "search":
@@ -788,8 +1243,40 @@ class Hippocampus:
             return self._cmd_init()
         elif command == "autocheck":
             return self._cmd_autocheck(context)
-        
-        # Natural language aliases - map to commands
+
+        # Micro-Macro commands
+        elif command == "learn-workflow":
+            return self._cmd_learn_workflow(args)
+        elif command == "workflows":
+            return self._cmd_workflows()
+        elif command == "forget-workflow":
+            return self._cmd_forget_workflow(args)
+
+        # Proactive trigger commands
+        elif command == "triggers":
+            return self._cmd_triggers()
+        elif command == "add-trigger":
+            return self._cmd_add_trigger(args)
+        elif command == "remove-trigger":
+            return self._cmd_remove_trigger(args)
+
+        # 察言观色 — ReadingBetweenTheLines
+        elif command == "readingbetweenthelines":
+            return self._cmd_readingbetweenthelines()
+        elif command == "readingbetweenthelines-stat":
+            return self._cmd_readingbetweenthelines_stat()
+        elif command == "readingbetweenthelines-clear":
+            return self._cmd_readingbetweenthelines_clear()
+        elif command == "add-instant":
+            return self._cmd_add_instant(args)
+        elif command == "remove-instant":
+            return self._cmd_remove_instant(args)
+        elif command == "add-threshold":
+            return self._cmd_add_threshold(args)
+        elif command == "remove-threshold":
+            return self._cmd_remove_threshold(args)
+
+        # Natural language aliases
         elif command in ["setup", "setup-all", "setup memory", "configure memory", "enable auto-save"]:
             return self._cmd_setup_all()
         elif command in ["setup-hooks", "configure hooks", "enable hooks"]:
@@ -800,8 +1287,8 @@ class Hippocampus:
             return self._cmd_save(context.get("content", ""))
         elif command in ["recall memory", "remember"]:
             return self._cmd_recall(args)
-        
-        # User confirmation handlers - execute after "yes" confirmation
+
+        # User confirmation handlers
         elif command in ["yes", "confirm", "do it", "execute"]:
             return self._cmd_do_setup(args)
         elif command in ["yes-hooks", "confirm-hooks"]:
@@ -1049,6 +1536,278 @@ class Hippocampus:
         else:
             return f"No trigger met yet (rounds: {round_count}, tokens: {token_count}, hours: {(time.time()-self.last_save_time)/3600:.1f})"
     
+    def _cmd_checkpoint(self, context: Dict = None) -> str:
+        """Save current project state as a monograph"""
+        content = context.get("content", "") if context else ""
+        if not content:
+            return "No context to save as checkpoint."
+        topic = context.get("topic", "checkpoint") if context else "checkpoint"
+        save_monograph(topic, content, len(content))
+        return f"Checkpoint saved: **{topic}**"
+
+    def _cmd_warn(self, context: Dict = None) -> str:
+        """Check for failure patterns in recent context"""
+        content = context.get("content", "") if context else ""
+        if not content:
+            return "No context to analyze for failure patterns."
+        extractor = KeywordExtractor()
+        errors = extractor.extract(content).get("errors", [])
+        if not errors:
+            return "No failure patterns detected in recent context."
+        report = "## Failure Patterns Detected\n\n"
+        for i, err in enumerate(errors, 1):
+            report += f"{i}. {err}\n"
+        return report
+
+    def _cmd_graph(self) -> str:
+        """Show knowledge graph overview"""
+        conn = sqlite3.connect(str(get_db_path()))
+        cursor = conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM associations")
+        edge_count = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM monograph_index")
+        node_count = cursor.fetchone()[0]
+        cursor.execute("SELECT from_word, to_word, weight FROM associations ORDER BY weight DESC LIMIT 10")
+        top_edges = cursor.fetchall()
+        conn.close()
+        report = f"## Knowledge Graph\n\n- Nodes (monographs): {node_count}\n- Edges (associations): {edge_count}\n\n**Top connections:**\n"
+        for from_w, to_w, weight in top_edges:
+            report += f"- {from_w} --({weight:.2f})--> {to_w}\n"
+        return report
+
+    # ── Micro-Macro commands ────────────────────────────────────────────────
+
+    def _cmd_learn_workflow(self, args: str) -> str:
+        """
+        Register a micro-macro workflow.
+        Usage: /hippo learn-workflow <micro> -> <macro description>
+        Example: /hippo learn-workflow deploy -> Run git push, then execute tests, then notify team via Slack
+        """
+        if '->' not in args and '→' not in args:
+            return ("Format: /hippo learn-workflow <micro> -> <macro>\n"
+                    "Example: /hippo learn-workflow deploy -> Run git push, then run tests, then notify team")
+        separator = '->' if '->' in args else '→'
+        micro, macro = args.split(separator, 1)
+        micro = micro.strip()
+        macro = macro.strip()
+        if not micro or not macro:
+            return "Both micro and macro must be non-empty."
+        # Check if workflow already exists
+        existing = load_workflow(micro)
+        if existing:
+            save_workflow(micro, macro)
+            return f"Updated workflow: '{micro}' -> '{macro[:80]}...'"
+        save_workflow(micro, macro)
+        return f"Registered workflow: '{micro}' -> '{macro[:80]}...'"
+
+    def _cmd_workflows(self) -> str:
+        """List all registered micro-macro workflows"""
+        workflows = list_workflows()
+        if not workflows:
+            return "No workflows registered. Use /hippo learn-workflow <micro> -> <macro>"
+        report = f"## Registered Workflows ({len(workflows)})\n\n"
+        for wf in workflows:
+            report += f"**{wf['micro']}**\n  → {wf['macro']}\n"
+            if wf.get('description'):
+                report += f"  Note: {wf['description']}\n"
+            report += "\n"
+        return report
+
+    def _cmd_forget_workflow(self, args: str) -> str:
+        """Remove a registered workflow by micro keyword"""
+        if not args.strip():
+            return "Usage: /hippo forget-workflow <micro>"
+        success = delete_workflow(args)
+        if success:
+            return f"Deleted workflow: '{args.strip()}'"
+        return f"Workflow not found: '{args.strip()}'"
+
+    # ── Proactive trigger commands ─────────────────────────────────────────
+
+    def _cmd_triggers(self) -> str:
+        """List all configured proactive keyword triggers"""
+        triggers = list_triggers()
+        config = get_config()
+        enabled = config.get('PROACTIVE_TRIGGERS_ENABLED', True)
+        report = f"## Proactive Triggers (enabled: {enabled})\n\n"
+        if not triggers:
+            report += "No triggers configured. Use /hippo add-trigger <keyword> -> <monograph-topic>\n"
+        for t in triggers:
+            report += f"- **{t['keyword']}** -> {t['topic']}\n"
+            if t.get('preview'):
+                report += f"  Preview: {t['preview'][:80]}\n"
+        report += "\nConfigure in USER_CONFIG.md: PROACTIVE_KEYWORDS = ..."
+        return report
+
+    def _cmd_add_trigger(self, args: str) -> str:
+        """
+        Add a proactive keyword trigger.
+        Usage: /hippo add-trigger <keyword> -> <monograph-topic>
+        Example: /hippo add-trigger database -> database-architecture
+        """
+        if '->' not in args and '→' not in args:
+            return ("Format: /hippo add-trigger <keyword> -> <monograph-topic>\n"
+                    "Example: /hippo add-trigger database -> database-architecture\n"
+                    "Note: monograph-topic is a file in the monograph directory (without .md)")
+        separator = '->' if '->' in args else '→'
+        keyword, topic = args.split(separator, 1)
+        return add_trigger(keyword.strip(), topic.strip())
+
+    def _cmd_remove_trigger(self, args: str) -> str:
+        """Remove a proactive keyword trigger"""
+        if not args.strip():
+            return "Usage: /hippo remove-trigger <keyword>"
+        return remove_trigger(args.strip())
+
+    # ── 察言观色 — ReadingBetweenTheLines commands ─────────────────────────
+
+    def _cmd_readingbetweenthelines(self) -> str:
+        """Show 察言观色 status and configuration"""
+        config = get_config()
+        enabled = config.get('READINGBETWEENTHELINES_ENABLED', True)
+        instant = config.get('INSTANT_TRIGGERS', '')
+        threshold = config.get('THRESHOLD_TRIGGERS', '')
+        interval = config.get('HEARTBEAT_INTERVAL', 1)
+        window = config.get('SLIDING_WINDOW', 10)
+        cooldown = config.get('TRIGGER_COOLDOWN', 5)
+        report = f"""## 察言观色 — ReadingBetweenTheLines
+
+**Status**: {'Enabled' if enabled else 'Disabled'}
+**Heartbeat**: every {interval} minute(s)
+**Sliding window**: {window} minutes
+**Cooldown**: {cooldown} minutes
+
+**Instant triggers** (fire immediately):
+  {instant or '(none)'}
+
+**Threshold triggers** (fire after N occurrences):
+  {threshold or '(none)'}
+
+**Commands**:
+  /hippo readingbetweenthelines-stat  — Show current word counts
+  /hippo readingbetweenthelines-clear — Reset word counts
+  /hippo add-instant <kw> -> <topic>     — Add instant trigger
+  /hippo remove-instant <kw>             — Remove instant trigger
+  /hippo add-threshold <kw> -> <count>   — Add threshold trigger
+  /hippo remove-threshold <kw>            — Remove threshold trigger
+"""
+        return report
+
+    def _cmd_readingbetweenthelines_stat(self) -> str:
+        """Show current word counts in sliding window"""
+        return readingbetweenthelines_stat()
+
+    def _cmd_readingbetweenthelines_clear(self) -> str:
+        """Clear word count state"""
+        return readingbetweenthelines_clear()
+
+    def _cmd_add_instant(self, args: str) -> str:
+        """Add an instant trigger: /hippo add-instant <keyword> -> <monograph-topic>"""
+        if '->' not in args and '→' not in args:
+            return ("Format: /hippo add-instant <keyword> -> <monograph-topic>\n"
+                    "Example: /hippo add-instant error -> error-patterns")
+        sep = '->' if '->' in args else '→'
+        keyword, topic = args.split(sep, 1)
+        kw = keyword.strip().lower()
+        topic = topic.strip()
+        if not kw or not topic:
+            return "Both keyword and topic must be non-empty."
+        config = get_config()
+        raw = config.get('INSTANT_TRIGGERS', '')
+        # Parse existing
+        mapping = {}
+        if isinstance(raw, str) and raw:
+            for pair in raw.split(','):
+                if '->' in pair:
+                    k, v = pair.split('->', 1)
+                    mapping[k.strip().lower()] = v.strip()
+        mapping[kw] = topic
+        # Rebuild string
+        new_raw = ','.join(f'{k}->{v}' for k, v in mapping.items())
+        config['INSTANT_TRIGGERS'] = new_raw
+        save_user_config(config)
+        reload_config()
+        return f"Added instant trigger: '{kw}' -> '{topic}'"
+
+    def _cmd_remove_instant(self, args: str) -> str:
+        """Remove an instant trigger"""
+        if not args.strip():
+            return "Usage: /hippo remove-instant <keyword>"
+        kw = args.strip().lower()
+        config = get_config()
+        raw = config.get('INSTANT_TRIGGERS', '')
+        mapping = {}
+        if isinstance(raw, str) and raw:
+            for pair in raw.split(','):
+                if '->' in pair:
+                    k, v = pair.split('->', 1)
+                    mapping[k.strip().lower()] = v.strip()
+        if kw in mapping:
+            del mapping[kw]
+            new_raw = ','.join(f'{k}->{v}' for k, v in mapping.items())
+            config['INSTANT_TRIGGERS'] = new_raw
+            save_user_config(config)
+            reload_config()
+            return f"Removed instant trigger: '{kw}'"
+        return f"Instant trigger not found: '{kw}'"
+
+    def _cmd_add_threshold(self, args: str) -> str:
+        """Add a threshold trigger: /hippo add-threshold <keyword> -> <count>"""
+        if '->' not in args and '→' not in args:
+            return ("Format: /hippo add-threshold <keyword> -> <count>\n"
+                    "Example: /hippo add-threshold project -> 5")
+        sep = '->' if '->' in args else '→'
+        keyword, count_str = args.split(sep, 1)
+        kw = keyword.strip().lower()
+        try:
+            count = int(count_str.strip())
+        except ValueError:
+            return f"Count must be a number, got: '{count_str.strip()}'"
+        if count < 1:
+            return "Count must be at least 1."
+        config = get_config()
+        raw = config.get('THRESHOLD_TRIGGERS', '')
+        mapping = {}
+        if isinstance(raw, str) and raw:
+            for pair in raw.split(','):
+                if '->' in pair:
+                    k, v = pair.split('->', 1)
+                    try:
+                        mapping[k.strip().lower()] = int(v.strip())
+                    except ValueError:
+                        pass
+        mapping[kw] = count
+        new_raw = ','.join(f'{k}->{v}' for k, v in mapping.items())
+        config['THRESHOLD_TRIGGERS'] = new_raw
+        save_user_config(config)
+        reload_config()
+        return f"Added threshold trigger: '{kw}' fires after {count} occurrences"
+
+    def _cmd_remove_threshold(self, args: str) -> str:
+        """Remove a threshold trigger"""
+        if not args.strip():
+            return "Usage: /hippo remove-threshold <keyword>"
+        kw = args.strip().lower()
+        config = get_config()
+        raw = config.get('THRESHOLD_TRIGGERS', '')
+        mapping = {}
+        if isinstance(raw, str) and raw:
+            for pair in raw.split(','):
+                if '->' in pair:
+                    k, v = pair.split('->', 1)
+                    try:
+                        mapping[k.strip().lower()] = int(v.strip())
+                    except ValueError:
+                        pass
+        if kw in mapping:
+            del mapping[kw]
+            new_raw = ','.join(f'{k}->{v}' for k, v in mapping.items())
+            config['THRESHOLD_TRIGGERS'] = new_raw
+            save_user_config(config)
+            reload_config()
+            return f"Removed threshold trigger: '{kw}'"
+        return f"Threshold trigger not found: '{kw}'"
+
     def _cmd_setup_hooks(self) -> str:
         """Generate cron/hook setup commands"""
         skill_path = str(SKILL_DIR)
@@ -1314,38 +2073,36 @@ Synced {len(recent)} topics to MEMORY.md:
     
     def _help(self) -> str:
         config = get_config()
-        before = config.get("BEFORE_ANSWER", "")
-        after = config.get("AFTER_ANSWER", "")
-        
         return f"""## Hippocampus Commands
 
 | Command | Description |
 |---------|-------------|
-| `/hip init` | Initialize DB and directories |
-| `/hip new <topic>` | Create new monograph |
-| `/hip add <content>` | Add to current topic |
-| `/hip save` | Save to chronicle/monograph |
-| `/hip recall <keyword>` | Recall from memory |
-| `/hip important` | List monograph topics |
-| `/hip search <keyword>` | Cross-topic search |
-| `/hip query [keyword]` | Query chronicle |
-| `/hip analyze` | Analyze all memory |
-| `/hip status` | View status |
-| `/hip config` | Show USER_CONFIG.md |
-| `/hip config reload` | Reload config |
-| `/hip files` | Analyze files |
-| `/hip collect` | Collect related files |
+| `/hippo init` | Initialize DB and directories |
+| `/hippo new <topic>` | Create new monograph |
+| `/hippo save` | Save current context |
+| `/hippo recall <keyword>` | Precise recall |
+| `/hippo checkpoint` | Save project state |
+| `/hippo warn` | Check failure patterns |
+| `/hippo graph` | View knowledge graph |
+| `/hippo learn-workflow <micro> -> <macro>` | Register a workflow |
+| `/hippo workflows` | List all workflows |
+| `/hippo forget-workflow <micro>` | Remove a workflow |
+| `/hippo triggers` | List proactive triggers |
+| `/hippo add-trigger <kw> -> <topic>` | Add a trigger |
+| `/hippo remove-trigger <keyword>` | Remove a trigger |
+| `/hippo status` | View memory status |
+| `/hippo config` | Show configuration |
+| `/hippo analyze` | Analyze all memory |
 
 **Auto-triggers** (from USER_CONFIG.md):
 - {config.get('TIME_HOURS', 6)} hours
 - {config.get('ROUND_THRESHOLD', 25)} rounds
 - {config.get('TOKEN_THRESHOLD', 10000)} tokens
 
-**Special Needs**:
-- BEFORE_ANSWER: {before or '(not set)'}
-- AFTER_ANSWER: {after or '(not set)'}
+**Micro-Macro**: {config.get('MICRO_MACRO_ENABLED', True)}
+**Proactive Triggers**: {config.get('PROACTIVE_TRIGGERS_ENABLED', True)}
 
-Edit USER_CONFIG.md to set these values.
+Configure in USER_CONFIG.md.
 """
 
 # ============================================================================
@@ -1356,6 +2113,25 @@ def handle(command: str, args: str = "", context: Dict = None) -> str:
     """Entry function for OpenClaw"""
     hippocampus = Hippocampus()
     return hippocampus.process(command, args, context)
+
+
+def proactive_check(message: str) -> str:
+    """
+    Check if user message matches any proactive trigger.
+    Call this BEFORE each response to auto-load relevant memory.
+    Returns the loaded memory content, or empty string if no match.
+    """
+    return get_proactive_memory(message)
+
+
+def match_workflow_check(message: str) -> Optional[Dict]:
+    """
+    Check if user message matches any registered micro-macro workflow.
+    Call this to retrieve workflow before executing.
+    Returns the workflow dict, or None if no match.
+    """
+    return match_workflow(message)
+
 
 if __name__ == "__main__":
     import sys

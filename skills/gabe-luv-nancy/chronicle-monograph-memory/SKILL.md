@@ -1,229 +1,158 @@
----
-name: hippocampus
-version: 3.0.0
-description: >
-  Photon: AI-enhanced memory system that FIXES human memory flaws.
-  NO DECAY - AI never forgets.
-  Features: tool success tracking, project checkpoints, failure pattern warning, knowledge graph.
-  Philosophy: "AI is meant to FIX human memory flaws, why learn human decay?"
-
-author: GabetopZ
-homepage: https://github.com/Gabe-luv-Nancy/hippocampus
-license: MIT
-tags:
-  - memory
-  - photon
-  - checkpoint
-  - success-tracking
-  - failure-warning
-  - knowledge-graph
-
-# Note: session hooks require manual configuration
-# See README.md for cron-based alternatives
-
-triggers:
-  - remember
-  - recall
-  - checkpoint
-  - warn
-
-type: skill
-
-runtime:
-  mode: instruction-first
-  code_on_demand: true
-  instruction: |
-    ## HIPPOCAMPUS PHOTON - ENHANCED MEMORY
-    
-    Philosophy: AI should ENHANCE human memory, not imitate its flaws.
-    Traditional memory systems use decay (0.99^days) - THIS IS WRONG.
-    AI NEVER FORGETS. That's the point.
-    
-    ### Core Features (No Decay)
-    
-    1. **Tool/Command Success Tracking**
-       - Remember which commands work/fail
-       - Track model performance on tasks
-    
-    2. **Project Checkpoints**
-       - Not "recent discussion" but "exactly where we left off"
-       - Precise project state storage
-    
-    3. **Failure Pattern Warning**
-       - Remember what causes failures
-       - Warn proactively before repeating
-    
-    4. **Session Continuity**
-       - Know what was being done, not just discussed
-    
-    5. **Knowledge Graph**
-       - Networked: Skill → Project → Goal
-    
-    ### Trigger Keywords
-    When user says:
-    - remember, recall, checkpoint
-    - where did we leave off
-    - what was i working on
-    - warn me about
-    
-    ### Available Commands
-    - /photon status - View status
-    - /photon save - Save context
-    - /photon recall <query> - Precise recall
-    - /photon checkpoint - Save project state
-    - /photon warn - Check failure patterns
-    
-    Execute: python3 scripts/memory.py <command>
-
-permissions:
-  - read
-  - write
-  - exec
-
-dependencies:
-  - python3 >= 3.8
-
-commands:
-  - name: status
-    pattern: "/photon status"
-    description: View memory status
-  - name: save
-    pattern: "/photon save"
-    description: Save current context
-  - name: recall
-    pattern: "/photon recall"
-    description: Precise recall
-  - name: checkpoint
-    pattern: "/photon checkpoint"
-    description: Save project state
-  - name: warn
-    pattern: "/photon warn"
-    description: Check failure patterns
-  - name: graph
-    pattern: "/photon graph"
-    description: View knowledge graph
----
-
-# Hippocampus Photon
+# Hippocampus
 
 > "AI is meant to FIX human memory flaws, why learn human decay?"
-
-## Hooks & Automation
-
-**Note:** OpenClaw hook system uses "hook packs" - may require manual setup.
-
-For auto-save, use cron jobs (recommended) instead of session hooks.
 
 ## Philosophy
 
 **Traditional memory = Human memory imitation = DECAY = WRONG**
 
-AI should FIX human memory flaws:
-- ❌ Forgetting → ✅ Perfect recall
-- ❌ Fuzzy matching → ✅ Precise timestamps  
-- ❌ Passive triggers → ✅ Proactive warnings
-- ❌ Importance decay → ✅ Never lose anything
+Hippocampus FIXES human memory flaws:
+- Forgetting → Perfect recall
+- Fuzzy matching → Precise timestamps
+- Passive triggers → Proactive warnings
+- Importance decay → Never lose anything
 
 ## Features
 
 | Feature | Description |
 |---------|-------------|
 | **No Decay** | AI never forgets |
+| **Micro-Macro Workflows** | Short command → full workflow |
+| **Proactive Triggers** | Automatically loads relevant memory when keywords appear |
 | **Checkpoints** | Know exactly where project left off |
-| **Success Tracking** | Remember what works/fails |
+| **Success Tracking** | Remember what works / fails |
 | **Failure Warning** | Proactive pattern detection |
 | **Knowledge Graph** | Networked memory |
 
 ## Setup (REQUIRED!)
 
-After installing, you MUST run initialization:
+After installing, run initialization:
 
 ```bash
 cd /path/to/hippocampus
 python3 scripts/memory.py init
 ```
 
-This creates:
-- assets/hippocampus/chronicle/db.sqlite
-- assets/hippocampus/monograph/
-- assets/hippocampus/index/
+Then verify:
 
-Then verify with:
 ```bash
 python3 scripts/memory.py status
 ```
 
-### Cron Jobs (Required!)
-
-Automatic memory saving requires cron jobs. **User must confirm once:**
-
-```bash
-# Auto-save every 6 hours
-openclaw cron add --name "hippocampus-autosave" \
-  --schedule "0 */6 * * *" \
-  --session-target isolated \
-  --payload "Run: python3 /path/to/scripts/memory.py autocheck"
-
-# Daily at 7 AM
-openclaw cron add --name "hippocampus-daily" \
-  --schedule "0 7 * * *" \
-  --session-target isolated \
-  --payload "Run: python3 /path/to/scripts/memory.py new daily-YYYY-MM-DD"
-
-# Daily analysis at 11 PM - analyze chronicle, promote to monograph
-openclaw cron add --name "hippocampus-analyze" \
-  --schedule "0 23 * * *" \
-  --session-target isolated \
-  --payload "Run: python3 /path/to/scripts/memory.py analyze"
-```
-
-### Cron Jobs (Auto-created!)
-
-When user runs "setup hippocampus" or "/photon setup", AI automatically creates:
-
-1. **hippocampus-autosave** - Every 6 hours
-2. **hippocampus-daily** - Daily at 7 AM  
-3. **hippocampus-analyze** - Daily at 11 PM
-
-These cron jobs provide automatic memory saving (replaces session hooks).
-
-### Two Memory Types
-
-**Chronicle** - Temporal memory for everyday interactions
-- Automatically saves session content
-- Indexed by time
-
-**Monograph** - Important topics with rich metadata
-- Stores significant memories, decisions, preferences
-- Created via user request or auto-analysis
-
-### Monograph Creation
-
-**1. User Explicit:**
-```bash
-python3 scripts/memory.py new "Important Topic"
-python3 scripts/memory.py add "Key content..."
-```
-
-**2. Auto-Analysis:**
-```bash
-python3 scripts/memory.py analyze  # Examines chronicle, promotes to monograph
-```
-
-### Keyword Index
-
-- Auto-generated in `index/` directory
-- Each keyword creates a .md reference file
-- Enables fast cross-topic search
-
 ## Commands
 
-- `/photon status` - View status
-- `/photon save` - Save context  
-- `/photon recall <query>` - Recall
-- `/photon checkpoint` - Save state
-- `/photon warn` - Check patterns
+| Command | Description |
+|---------|-------------|
+| `/hippo init` | Initialize DB and directories |
+| `/hippo status` | View memory status |
+| `/hippo save` | Save current context |
+| `/hippo recall <keyword>` | Precise recall |
+| `/hippo checkpoint` | Save project state |
+| `/hippo warn` | Check failure patterns |
+| `/hippo graph` | View knowledge graph |
+| `/hippo learn-workflow` | Register a micro→macro workflow |
+| `/hippo workflows` | List all registered workflows |
+| `/hippo forget-workflow` | Remove a workflow |
+| `/hippo triggers` | List keyword triggers |
+| `/hippo add-trigger` | Add a proactive trigger |
+| `/hippo remove-trigger` | Remove a trigger |
+| `/hippo readingbetweenthelines` | 察言观色 status and config |
+| `/hippo readingbetweenthelines-stat` | Show current word counts |
+| `/hippo readingbetweenthelines-clear` | Reset word counts |
+| `/hippo add-instant` | Add instant trigger |
+| `/hippo remove-instant` | Remove instant trigger |
+| `/hippo add-threshold` | Add threshold trigger |
+| `/hippo remove-threshold` | Remove threshold trigger |
+| `/hippo config` | Show / reload config |
+| `/hippo analyze` | Analyze all memory |
+
+## Micro-Macro Workflows
+
+Teach hippocampus your shortcuts:
+
+```
+/hippo learn-workflow deploy -> When I say "deploy", run: git push, then run tests, then notify team via slack
+/hippo learn-workflow send report -> When I say "send report", compile weekly data, format as markdown, send via email
+```
+
+When you later say "deploy" or "send report", hippocampus will retrieve the full workflow automatically.
+
+List all registered workflows:
+```
+/hippo workflows
+```
+
+## Proactive Keyword Triggers
+
+Configure hippocampus to automatically load relevant memories when you mention certain topics:
+
+```
+/hippo add-trigger database -> database-architecture
+/hippo add-trigger api -> api-design
+```
+
+Now when your message contains "database" or "api", hippocampus loads the associated memory before answering — no need to manually recall.
+
+List active triggers:
+```
+/hippo triggers
+```
+
+Configure triggers manually in USER_CONFIG.md:
+```
+PROACTIVE_KEYWORDS = database->database-architecture,api->api-design
+```
+
+## 察言观色 — ReadingBetweenTheLines
+
+Proactive memory loading based on sustained conversation patterns.
+When you discuss a topic repeatedly, hippocampus automatically loads relevant memories.
+
+**Two trigger types**:
+
+Instant: fires immediately when a high-signal keyword appears (error, deploy, database...)
+Threshold: fires only after a word appears N times within a sliding window (project→5, api→4, config→4...)
+
+**Commands**:
+```
+/hippo readingbetweenthelines         Show status and config
+/hippo readingbetweenthelines-stat    Show current word counts in window
+/hippo readingbetweenthelines-clear   Reset word counts
+/hippo add-instant error -> error-patterns     Add instant trigger
+/hippo add-threshold project -> 5              Add threshold trigger
+```
+
+**How it works**:
+Heartbeat runs every N minutes (default 1). Analyzes recent user messages, removes stop words, counts meaningful words. If a trigger keyword meets its condition, the associated memory is loaded before answering.
+
+**Configuration** (USER_CONFIG.md):
+```
+READINGBETWEENTHELINES_ENABLED = true
+INSTANT_TRIGGERS = error->error-patterns,database->database-architecture
+THRESHOLD_TRIGGERS = project->5,api->4,config->4
+TRIGGER_COOLDOWN = 5   # minutes before reloading same memory
+```
+
+## Two Memory Types
+
+**Chronicle** — Temporal memory for everyday interactions
+- Auto-saves session content, indexed by time
+
+**Monograph** — Important topics with rich metadata
+- Stores significant decisions, workflows, patterns
+- Created via `/hippo checkpoint` or `/hippo recall` saves
+
+## Proactive Recall (How It Works)
+
+When `PROACTIVE_TRIGGERS_ENABLED = true` in USER_CONFIG.md:
+
+1. Before each response, hippocampus scans your message
+2. If a trigger keyword is found, it loads the associated memory file
+3. The loaded memory is prepended to context for this response
+4. You get relevant context without asking for it
+
+This is configured via `PROACTIVE_KEYWORDS` in USER_CONFIG.md.
 
 ## Version
 
-3.0.0 (Photon)
+1.0.3

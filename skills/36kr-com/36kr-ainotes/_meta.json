@@ -1,13 +1,18 @@
 {
   "owner": "36kr-com",
   "slug": "36kr-ainotes",
-  "displayName": "[36kr]获取36氪AI测评的每日最新测评笔记内容",
+  "displayName": "36氪AI测评 - 36kr AI Notes",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1773922481015,
-    "commit": "https://github.com/openclaw/skills/commit/17f7faaf86e3f863dcbdd6ff6deb17ba32dcec3d"
+    "version": "1.0.5",
+    "publishedAt": 1774841868745,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1773922481015,
+      "commit": "https://github.com/openclaw/skills/commit/17f7faaf86e3f863dcbdd6ff6deb17ba32dcec3d"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773832783606,

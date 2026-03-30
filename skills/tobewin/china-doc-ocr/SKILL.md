@@ -1,7 +1,7 @@
 ---
 name: china-doc-ocr
-description: 智能文档OCR识别与结构化提取。Use when the user has a complex document, PDF, scanned image, photo, invoice, receipt, ID card, table, or chart that needs to be recognized and converted to text or Markdown. Handles complex layouts, multi-column text, tables, and mixed image-text that OpenClaw cannot process natively. Uses SiliconFlow DeepSeek-OCR and PaddleOCR-VL models — domestic access, no VPN, same API key as china-image-gen and china-tts.
-version: 1.0.0
+description: 智能文档OCR识别与结构化提取。Use when the user has a complex document, PDF, scanned image, photo, invoice, receipt, ID card, table, or chart that needs to be recognized and converted to text or Markdown. Uses PaddleOCR-VL-1.5 and DeepSeek-OCR (free, fast). Falls back to Qwen2.5-VL if OCR fails. 国内直连，无需翻墙。
+version: 1.1.0
 license: MIT-0
 metadata: {"openclaw": {"emoji": "📄", "requires": {"bins": ["curl", "python3"], "env": ["SILICONFLOW_API_KEY"]}, "primaryEnv": "SILICONFLOW_API_KEY"}}
 ---
@@ -24,6 +24,21 @@ metadata: {"openclaw": {"emoji": "📄", "requires": {"bins": ["curl", "python3"
 - "帮我把这张截图的文字识别出来"
 - "这份报告转成 Markdown 格式"
 - "识别这张身份证/营业执照的信息"
+
+---
+
+## 模型选择策略（优先OCR）
+
+```
+OCR优先级：
+1. PaddleOCR-VL-1.5 (免费、快速、专业OCR)
+2. DeepSeek-OCR (免费、效果好)
+3. Qwen2.5-VL-72B (视觉语言模型，OCR效果一般但可补充)
+
+默认使用 PaddleOCR-VL-1.5
+如果识别效果不好，降级到 DeepSeek-OCR
+如果仍然不好，降级到 Qwen2.5-VL-72B
+```
 
 ---
 
@@ -106,12 +121,15 @@ case "$EXT" in
   *)        MIME="image/jpeg" ;;
 esac
 
-# 调用 DeepSeek-OCR
+# 调用 OCR 模型（优先 PaddleOCR-VL-1.5）
+# 模型选择：PaddleOCR-VL-1.5 > DeepSeek-OCR > Qwen2.5-VL
+MODEL="PaddlePaddle/PaddleOCR-VL-1.5"  # 默认使用PaddleOCR
+
 curl -s -X POST "https://api.siliconflow.cn/v1/chat/completions" \
   -H "Authorization: Bearer $SILICONFLOW_API_KEY" \
   -H "Content-Type: application/json" \
   -d "{
-    \"model\": \"Pro/deepseek-ai/DeepSeek-V3\",
+    \"model\": \"$MODEL\",
     \"messages\": [
       {
         \"role\": \"user\",

@@ -64,6 +64,39 @@
       "debug": {
         "type": "boolean",
         "default": false
+      },
+      "captureInterval": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 100,
+        "default": 10,
+        "help": "Capture every N turns (0 = disabled)"
+      },
+      "captureSignificantOnly": {
+        "type": "boolean",
+        "default": true,
+        "help": "Only capture significant content (decisions, facts, preferences)"
+      },
+      "pruneAfterCapture": {
+        "type": "boolean",
+        "default": true,
+        "help": "Signal context pruning after capturing to memory"
+      },
+      "maxMemories": {
+        "type": "number",
+        "minimum": 10,
+        "maximum": 10000,
+        "default": 500,
+        "help": "Maximum memories to keep (older ones pruned first)",
+        "advanced": true
+      },
+      "pruneOlderThanDays": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 365,
+        "default": 30,
+        "help": "Auto-delete memories older than N days",
+        "advanced": true
       }
     }
   }

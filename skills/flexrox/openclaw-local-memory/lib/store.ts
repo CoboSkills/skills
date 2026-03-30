@@ -33,6 +33,8 @@ export interface SearchResult {
 export interface StoreConfig {
   containerTag: string;
   debug: boolean;
+  maxMemories?: number;       // Maximum memories to keep (default: 500)
+  pruneOlderThanDays?: number; // Auto-prune memories older than N days (default: 30)
 }
 
 // ─── TF-IDF Core ─────────────────────────────────────────────────────────────
@@ -121,9 +123,13 @@ export class LocalMemoryStore {
   private dirty = false;
   public readonly containerTag: string;
   private storePath: string;
+  private maxMemories: number;
+  private pruneOlderThanDays: number;
 
   constructor(cfg: StoreConfig) {
     this.containerTag = cfg.containerTag;
+    this.maxMemories = cfg.maxMemories ?? 500;
+    this.pruneOlderThanDays = cfg.pruneOlderThanDays ?? 30;
     this.storePath = resolve(homedir(), ".openclaw", "memory", `${this.containerTag}.json`);
     this.load();
   }
@@ -151,10 +157,43 @@ export class LocalMemoryStore {
     try {
       const dir = resolve(homedir(), ".openclaw", "memory");
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+      
+      // Prune before saving
+      this.prune();
+      
       writeFileSync(this.storePath, JSON.stringify(this.memories, null, 2), "utf-8");
       this.dirty = false;
     } catch (err) {
       console.error("[local-memory] save failed:", err);
+    }
+  }
+
+  /**
+   * Prune memories that are too old or exceed maxMemories
+   */
+  private prune() {
+    const now = Date.now();
+    const maxAge = this.pruneOlderThanDays * 24 * 60 * 60 * 1000;
+    
+    // Filter out old memories
+    const beforePrune = this.memories.length;
+    this.memories = this.memories.filter((m) => {
+      const age = now - new Date(m.metadata.createdAt).getTime();
+      return age < maxAge;
+    });
+    
+    // If still over limit, remove oldest
+    if (this.memories.length > this.maxMemories) {
+      this.memories.sort(
+        (a, b) => new Date(a.metadata.createdAt).getTime() - new Date(b.metadata.createdAt).getTime()
+      );
+      this.memories = this.memories.slice(-this.maxMemories);
+    }
+    
+    const pruned = beforePrune - this.memories.length;
+    if (pruned > 0) {
+      console.log(`[local-memory] pruned ${pruned} memories (${this.memories.length} remaining)`);
+      this.rebuildIDF();
     }
   }
 

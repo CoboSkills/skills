@@ -6,9 +6,47 @@ interface LocalMemoryConfig {
   maxRecallResults?: number;
   similarityThreshold?: number;
   debug?: boolean;
+  // NEW: Smart capture settings
+  captureInterval?: number;        // Capture every N turns (default: 10)
+  summariseThreshold?: number;     // Token threshold to trigger summary+prune (default: 150000)
+  captureSignificantOnly?: boolean; // Only capture significant content (default: true)
+  pruneAfterCapture?: boolean;      // Clear captured context from session (default: true)
 }
 
 type LogFn = (level: "info" | "warn" | "debug", msg: string, data?: Record<string, unknown>) => void;
+
+// ─── Significance Detection Patterns ────────────────────────────────────────
+
+const SIGNIFICANT_PATTERNS = [
+  // Decisions
+  /\b(entschieden|beschlossen|geplant|werde|werden|machen|setup|konfiguriert|installiert|aktiviert)\b/i,
+  // Facts about user/company
+  /\b(ich bin|mein|unser|unser Unternehmen|Flowagenten|Dustin|Böhmer)\b/i,
+  // Credentials/keys (but mask them)
+  /\b(api[_-]?key|password|secret|token|credential)\b/i,
+  // Preferences
+  /\b(bevorzug|präferiert|immer|nie|niemals|nur|nie wieder)\b/i,
+  // Project/tasks
+  /\b(projekt|setup|build|deploy|integration|team|agent)\b/i,
+  // Questions about intent
+  /\b(warum|wofür|was ist das|ziel| цель)\b/i,
+];
+
+function isSignificantContent(content: string): boolean {
+  let matchCount = 0;
+  for (const pattern of SIGNIFICANT_PATTERNS) {
+    if (pattern.test(content)) matchCount++;
+  }
+  return matchCount >= 2 || content.length > 500;
+}
+
+function detectCategory(content: string): "preference" | "fact" | "decision" | "entity" | "other" {
+  if (/\b(immer|nur|nie|bevorzug|präferiert)\b/i.test(content)) return "preference";
+  if (/\b(entschieden|beschlossen|geplant|werde|werden)\b/i.test(content)) return "decision";
+  if (/\b(ich bin|mein|unser|Name|Email|Konto)\b/i.test(content)) return "entity";
+  if (/\b(Fact|Info|Wissenswert|Daten|Statistik)\b/i.test(content)) return "fact";
+  return "other";
+}
 
 // ─── Capture Handler ─────────────────────────────────────────────────────────
 
@@ -17,14 +55,23 @@ export function buildCaptureHandler(
   cfg: LocalMemoryConfig,
   log: LogFn,
 ) {
-  // Track pending user messages per session (keyed by sessionKey)
-  // We store user content here, then pair with assistant response at agent_end
-  const pendingUserMessages = new Map<string, { content: string; turnIndex: number }>();
+  // Track pending user messages per session
+  const pendingUserMessages = new Map<string, { content: string; turnIndex: number; timestamp: number }>();
+  
+  // Track turn counts for periodic capture
+  const turnCountBySession = new Map<string, number>();
+  
+  // Track accumulated content for summarisation
+  const accumulatedContent = new Map<string, string[]>();
+
+  const captureInterval = cfg.captureInterval ?? 10;
+  const summariseThreshold = cfg.summariseThreshold ?? 150000;
+  const captureSignificantOnly = cfg.captureSignificantOnly ?? true;
+  const pruneAfterCapture = cfg.pruneAfterCapture ?? true;
 
   return {
     /**
-     * Call this from before_agent_start to register a user message
-     * before the assistant responds.
+     * Register a user message before assistant responds
      */
     async registerUserMessage(
       userContent: string,
@@ -34,60 +81,184 @@ export function buildCaptureHandler(
       if (userContent.length < 20) return;
       if (userContent.startsWith("[") && userContent.includes("agent_end")) return;
       if (userContent.split(" ").length < 4) return;
-      pendingUserMessages.set(sessionKey, { content: userContent, turnIndex });
+      
+      const now = Date.now();
+      pendingUserMessages.set(sessionKey, { content: userContent, turnIndex, timestamp: now });
+      
+      // Accumulate content for later summarisation
+      if (!accumulatedContent.has(sessionKey)) {
+        accumulatedContent.set(sessionKey, []);
+      }
+      accumulatedContent.get(sessionKey)!.push(userContent);
+      
+      // Update turn count
+      const currentTurns = turnCountBySession.get(sessionKey) ?? 0;
+      turnCountBySession.set(sessionKey, currentTurns + 1);
     },
 
     /**
-     * Main handler called at agent_end — pairs stored user message
-     * with the assistant's response and stores as one exchange entry.
+     * Main handler called at agent_end
      */
     async handle(
       event: Record<string, unknown>,
       ctx: Record<string, unknown>,
       sessionKey?: string,
     ) {
-      try {
-        if (!sessionKey) return;
+      if (!sessionKey) return;
 
-        // Extract assistant response from event.messages (last assistant message)
+      try {
+        // Extract assistant response
         const assistantContent = extractAssistantResponse(event);
         if (!assistantContent || assistantContent.length < 5) {
           log("debug", "no assistant response to capture");
           return;
         }
 
-        // Retrieve and clear pending user message for this session
+        // Get pending user message
         const pending = pendingUserMessages.get(sessionKey);
         pendingUserMessages.delete(sessionKey);
 
-        // Build the full exchange text
         const userContent = pending?.content ?? "";
         const turnIndex = pending?.turnIndex ?? 0;
+        const turnCount = turnCountBySession.get(sessionKey) ?? 0;
 
-        // Format: full conversation turn as one memory entry
+        // Build exchange text
         const exchangeText = buildExchangeText(userContent, assistantContent);
 
-        const id = await store.add(exchangeText, {
-          sessionKey,
-          conversationId: sessionKey,
-          turnIndex,
-          messageType: "exchange",
-          source: "assistant",
-          category: detectCategory(exchangeText),
-          createdAt: new Date().toISOString(),
-        });
+        // Decide what to do based on settings
+        const shouldCapture = captureSignificantOnly 
+          ? isSignificantContent(exchangeText) 
+          : true;
 
-        log("debug", "exchange captured", {
-          id,
-          turnIndex,
-          userLength: userContent.length,
-          assistantLength: assistantContent.length,
-        });
+        const shouldPeriodicCapture = turnCount > 0 && turnCount % captureInterval === 0;
+        
+        // Get token count estimate from context
+        const tokenEstimate = estimateTokens(event);
+        const shouldSummarise = tokenEstimate > summariseThreshold;
+
+        if (shouldCapture || shouldPeriodicCapture || shouldSummarise) {
+          // Add to memory
+          const id = await store.add(exchangeText, {
+            sessionKey,
+            conversationId: sessionKey,
+            turnIndex,
+            messageType: "exchange",
+            source: "assistant",
+            category: detectCategory(exchangeText),
+            createdAt: new Date().toISOString(),
+          });
+
+          log("info", "exchange captured", {
+            id: id.slice(0, 8),
+            turnIndex,
+            significant: shouldCapture,
+            periodic: shouldPeriodicCapture,
+            summarised: shouldSummarise,
+            tokenEstimate,
+          });
+
+          // If prune is enabled and we captured significant content, mark for context prune
+          if (pruneAfterCapture && (shouldCapture || shouldPeriodicCapture)) {
+            markContextForPruning(ctx, sessionKey, turnIndex);
+          }
+        }
+
+        // Periodic summary: consolidate accumulated content
+        if (shouldSummarise) {
+          await consolidateMemory(store, sessionKey, accumulatedContent, log);
+          accumulatedContent.set(sessionKey, []); // Clear accumulation
+          
+          // Mark session for context pruning after summary
+          markContextForPruning(ctx, sessionKey, turnIndex);
+        }
       } catch (err) {
         log("warn", "capture failed", { error: String(err) });
       }
     },
   };
+}
+
+// ─── Memory Consolidation ───────────────────────────────────────────────────
+
+async function consolidateMemory(
+  store: LocalMemoryStore,
+  sessionKey: string,
+  accumulated: Map<string, string[]>,
+  log: LogFn,
+) {
+  const content = accumulated.get(sessionKey);
+  if (!content || content.length < 3) return;
+
+  // Create summary of recent conversation
+  const summaryText = `Session summary (${content.length} exchanges):\n` +
+    content.slice(-5).join("\n---\n");
+
+  const id = await store.add(summaryText, {
+    sessionKey,
+    conversationId: sessionKey,
+    turnIndex: 0,
+    messageType: "summary",
+    source: "system",
+    category: "fact",
+    createdAt: new Date().toISOString(),
+  });
+
+  log("info", "memory consolidated", { id: id.slice(0, 8), exchanges: content.length });
+}
+
+// ─── Context Pruning ────────────────────────────────────────────────────────
+
+function markContextForPruning(
+  ctx: Record<string, unknown>,
+  sessionKey: string,
+  turnIndex: number,
+) {
+  // Store pruning markers in context for the agent to use
+  if (!ctx.__memoryMeta) ctx.__memoryMeta = {};
+  (ctx.__memoryMeta as Record<string, unknown>)[sessionKey] = {
+    lastPrunedAt: new Date().toISOString(),
+    lastPrunedTurn: turnIndex,
+    shouldPrune: true,
+  };
+}
+
+/**
+ * Call this to get the pruning signal for a session
+ */
+export function shouldPruneContext(
+  ctx: Record<string, unknown>,
+  sessionKey: string,
+): boolean {
+  const meta = ctx.__memoryMeta as Record<string, Record<string, unknown>> | undefined;
+  if (!meta || !meta[sessionKey]) return false;
+  return meta[sessionKey].shouldPrune === true;
+}
+
+// ─── Token Estimation ────────────────────────────────────────────────────────
+
+function estimateTokens(event: Record<string, unknown>): number {
+  // Rough estimate: 1 token ≈ 4 chars for German/English mixed
+  let total = 0;
+  
+  if (typeof event.prompt === "string") {
+    total += event.prompt.length;
+  }
+  
+  if (Array.isArray(event.messages)) {
+    for (const msg of event.messages as Record<string, unknown>[]) {
+      const content = msg.content;
+      if (typeof content === "string") {
+        total += content.length;
+      } else if (Array.isArray(content)) {
+        for (const c of content) {
+          if (typeof c === "string") total += c.length;
+          else if (typeof c === "object" && c !== null) total += (c as Record<string, unknown>).text?.length ?? 0;
+        }
+      }
+    }
+  }
+  
+  return Math.floor(total / 4);
 }
 
 // ─── Recall Handler ──────────────────────────────────────────────────────────
@@ -99,7 +270,6 @@ export function buildRecallHandler(
 ) {
   return async (event: Record<string, unknown>, ctx: Record<string, unknown>) => {
     try {
-      // Extract the user prompt from the event
       const prompt = extractPrompt(event);
       if (!prompt || prompt.length < 5) return;
 
@@ -112,12 +282,10 @@ export function buildRecallHandler(
 
       const memorySection = buildMemorySection(results);
 
-      // Inject into event.prependContext if available, or store for prompt section builder
       if (Array.isArray(event.prependContext)) {
         event.prependContext.push(memorySection);
       }
 
-      // Store results in context for the memory prompt section
       if (ctx && typeof ctx === "object") {
         (ctx as Record<string, unknown>).__localMemoryResults = results;
       }
@@ -129,7 +297,7 @@ export function buildRecallHandler(
   };
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function extractMessages(event: Record<string, unknown>): (string | Record<string, unknown>)[] {
   if (Array.isArray(event.messages)) {
@@ -145,14 +313,13 @@ function extractPrompt(event: Record<string, unknown>): string {
   if (typeof event.prompt === "string") return event.prompt;
   if (typeof event.messages === "string") return event.messages;
 
-  // Try to extract from messages array
   if (Array.isArray(event.messages)) {
     for (const msg of event.messages as Record<string, unknown>[]) {
-      if (msg.role === "user" || msg.role === "user") {
+      if (msg.role === "user") {
         const content = msg.content;
         if (typeof content === "string") return content;
         if (Array.isArray(content)) {
-          return content.map((c) => typeof c === "string" ? c : (c as Record<string, unknown>).text ?? "").join(" ");
+          return content.map((c) => (typeof c === "string" ? c : (c as Record<string, unknown>).text ?? "")).join(" ");
         }
       }
     }
@@ -160,62 +327,40 @@ function extractPrompt(event: Record<string, unknown>): string {
   return "";
 }
 
-function buildMemorySection(results: import("./store.js").SearchResult[]): string {
-  if (results.length === 0) return "";
-
-  const lines = ["\n--- Relevant Memories ---"];
-  for (const r of results) {
-    const cat = r.metadata.category ?? "other";
-    const sim = Math.round(r.similarity * 100);
-    lines.push(`[${cat}·${sim}%] ${r.content}`);
-  }
-  lines.push("--- End Memories ---\n");
-  return lines.join("\n");
-}
-
-function detectCategory(text: string): "preference" | "fact" | "decision" | "entity" | "other" {
-  const lower = text.toLowerCase();
-  if (/prefer|like|love|hate|want|i (always|never)\b/i.test(lower)) return "preference";
-  if (/decided|will use|going with|chose/i.test(lower)) return "decision";
-  if (/\+\d{10,}|@[\w.-]+\.\w+/i.test(lower)) return "entity";
-  if (/is |are |has |have /i.test(lower)) return "fact";
-  return "other";
-}
-
-/**
- * Extract the last assistant response from an agent_end event.
- */
 function extractAssistantResponse(event: Record<string, unknown>): string {
-  if (Array.isArray(event.messages)) {
-    const msgs = event.messages as Record<string, unknown>[];
-    // Walk backwards to find the last assistant message
-    for (let i = msgs.length - 1; i >= 0; i--) {
-      const msg = msgs[i];
-      if (msg.role === "assistant") {
-        const content = msg.content;
-        if (typeof content === "string") return content;
-        if (Array.isArray(content)) {
-          return content
-            .map((c) => (typeof c === "string" ? c : (c as Record<string, unknown>).text ?? ""))
-            .join(" ");
-        }
+  const messages = extractMessages(event);
+  
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const msg = messages[i];
+    if (typeof msg === "object" && msg !== null && (msg as Record<string, unknown>).role === "assistant") {
+      const content = (msg as Record<string, unknown>).content;
+      if (typeof content === "string") return content;
+      if (Array.isArray(content)) {
+        return content.map((c) => (typeof c === "string" ? c : (c as Record<string, unknown>).text ?? "")).join(" ");
       }
     }
   }
-  // Fallback: try event.response
-  if (typeof event.response === "string") return event.response;
   return "";
 }
 
-/**
- * Build a formatted exchange string from user and assistant content.
- */
-function buildExchangeText(userContent: string, assistantContent: string): string {
-  const userTrimmed = userContent.trim();
-  const assistantTrimmed = assistantContent.trim();
+function buildExchangeText(user: string, assistant: string): string {
+  // Limit individual messages to prevent overly long entries
+  const maxLen = 2000;
+  const truncatedUser = user.length > maxLen ? user.slice(0, maxLen) + "..." : user;
+  const truncatedAsst = assistant.length > maxLen ? assistant.slice(0, maxLen) + "..." : assistant;
+  
+  return `[User]: ${truncatedUser}\n\n[Assistant]: ${truncatedAsst}`;
+}
 
-  if (!userTrimmed) {
-    return `Assistant: ${assistantTrimmed}`;
-  }
-  return `User: ${userTrimmed}\n\nAssistant: ${assistantTrimmed}`;
+function buildMemorySection(results: { content: string; similarity: number; metadata: Record<string, unknown> }[]): string {
+  if (results.length === 0) return "";
+  
+  const lines = results.map((r) => {
+    const cat = r.metadata?.category ?? "other";
+    const sim = Math.round(r.similarity * 100);
+    const source = r.metadata?.source ?? "unknown";
+    return `[${cat}·${sim}%·${source}] ${r.content}`;
+  });
+
+  return `\n\n📚 Memory:\n${lines.join("\n\n")}`;
 }

@@ -3,11 +3,16 @@
   "slug": "shipping-cost-calculator-ecommerce",
   "displayName": "Shipping Cost Calculator Ecommerce",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773840139722,
-    "commit": "https://github.com/openclaw/skills/commit/02ddd5c69548583dbbff214d298d8f205bb3578c"
+    "version": "1.0.2",
+    "publishedAt": 1774513983245,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773840139722,
+      "commit": "https://github.com/openclaw/skills/commit/02ddd5c69548583dbbff214d298d8f205bb3578c"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773643840804,

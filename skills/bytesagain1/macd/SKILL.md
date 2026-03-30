@@ -1,103 +1,71 @@
 ---
-name: "macd"
-version: "1.0.0"
-description: "Macd reference tool. Use when working with macd in finance contexts."
+name: "MACD — Moving Average Convergence Divergence"
+description: "Calculate MACD from price data. Use when computing MACD/signal/histogram from a price series, spotting crossovers, reading momentum, or planning MACD-based entries."
+version: "2.0.4"
 author: "BytesAgain"
-homepage: "https://bytesagain.com"
-source: "https://github.com/bytesagain/ai-skills"
-tags: [macd, finance, finance, reference, cli]
-category: "finance"
+homepage: https://bytesagain.com
+source: https://github.com/bytesagain/ai-skills
+tags: ["macd", "trading", "crypto", "stocks", "technical-analysis", "finance", "momentum"]
 ---
 
-# Macd
+# MACD — Moving Average Convergence Divergence
 
-Macd reference tool. Use when working with macd in finance contexts.
+Calculate MACD from price data. Compute EMA, MACD line, signal line, and histogram from a CSV or inline price series.
 
-## When to Use
-
-- Working with macd and need quick reference
-- Looking up finance standards or best practices for macd
-- Troubleshooting macd issues
-- Need a checklist or guide for macd tasks
+## Requirements
+- bash 4+
+- python3 (standard library only)
 
 ## Commands
 
-### `intro`
-
+### calculate
+Calculate MACD from a comma-separated price series.
 ```bash
-scripts/script.sh intro
+bash scripts/script.sh calculate "170.5,171.2,172.8,171.0,173.5,174.2,175.0,174.8,176.1,175.5,177.2,178.0,176.5,177.8,179.0,178.5,180.2,179.8,181.0,180.5,182.3,181.8,183.0,182.5,184.0,183.5"
 ```
 
-Overview and fundamentals
-
-### `formulas`
-
+### calculate-file
+Calculate MACD from a CSV file (one price per line or column).
 ```bash
-scripts/script.sh formulas
+bash scripts/script.sh calculate-file prices.csv
 ```
 
-Key formulas and calculations
-
-### `regulations`
-
+### interpret
+Interpret MACD, signal, and histogram values with trading signals.
 ```bash
-scripts/script.sh regulations
+bash scripts/script.sh interpret 1.25 0.80
 ```
 
-Regulatory framework and compliance
-
-### `risks`
-
+### crossover
+Explain crossover patterns and trading rules.
 ```bash
-scripts/script.sh risks
+bash scripts/script.sh crossover
 ```
 
-Risk factors and mitigation
-
-### `instruments`
-
+### histogram
+MACD histogram analysis and momentum reading guide.
 ```bash
-scripts/script.sh instruments
+bash scripts/script.sh histogram
 ```
 
-Instruments and tools overview
-
-### `strategies`
-
+### strategies
+MACD trading strategies with entry/exit rules.
 ```bash
-scripts/script.sh strategies
+bash scripts/script.sh strategies
 ```
 
-Common strategies and approaches
-
-### `glossary`
-
+### help
+Show all commands.
 ```bash
-scripts/script.sh glossary
+bash scripts/script.sh help
 ```
 
-Key terms and definitions
+## Output
+- Computed MACD line, signal line, and histogram from real price data
+- EMA values at each step
+- Crossover and divergence signals
+- Trading strategy frameworks
 
-### `checklist`
-
-```bash
-scripts/script.sh checklist
-```
-
-Due diligence checklist
-
-### `help`
-
-```bash
-scripts/script.sh help
-```
-
-### `version`
-
-```bash
-scripts/script.sh version
-```
-
----
-
-*Powered by BytesAgain | bytesagain.com | hello@bytesagain.com*
+## Feedback
+https://bytesagain.com/feedback/
+Powered by BytesAgain | bytesagain.com

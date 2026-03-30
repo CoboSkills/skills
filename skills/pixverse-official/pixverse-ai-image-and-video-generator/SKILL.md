@@ -1,6 +1,9 @@
 ---
 name: pixverse-ai-image-and-video-generator
 description: PixVerse CLI — generate AI videos and images from the command line. Supports PixVerse, Veo, Sora, Kling, Hailuo, Wan, and more video models; Nano Banana (Gemini), Seedream, Qwen image models; and PixVerse's rich effect template library. Start here.
+version: 1.0.1
+homepage: https://pixverse.ai
+source: https://github.com/PixVerseAI/skills
 ---
 
 # PixVerse CLI — Master Skill
@@ -66,6 +69,8 @@ VIDEO_ID=$(echo "$RESULT" | jq -r '.video_id')
 pixverse task wait $VIDEO_ID --json
 pixverse asset download $VIDEO_ID --json
 ```
+
+> **Windows users**: For a full PowerShell pipeline example (T2I → I2V → sound → upscale → download), see `skills/examples/windows/powershell-text-to-video.ps1`.
 
 ---
 

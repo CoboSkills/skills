@@ -1,11 +1,17 @@
 {
   "owner": "harrylabsj",
   "slug": "jdl-express",
-  "displayName": "jdl-express",
+  "displayName": "Jdl Express",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774063788853,
-    "commit": "https://github.com/openclaw/skills/commit/1315fdacae1afec05a4b693760a9917971f5b6ed"
+    "version": "1.0.0",
+    "publishedAt": 1774496001292,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774063788853,
+      "commit": "https://github.com/openclaw/skills/commit/1315fdacae1afec05a4b693760a9917971f5b6ed"
+    }
+  ]
 }

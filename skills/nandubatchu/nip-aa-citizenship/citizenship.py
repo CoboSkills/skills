@@ -202,17 +202,30 @@ class CitizenshipClient:
                 target_kind=clause_data.get("target_kind"),
             ))
 
-        # Support live API format with separate passing/failing lists
+        # Support live API format with separate passing/failing lists.
+        # Machine-format returns passing as a list of clause-ID strings;
+        # human-format returns a list of dicts.
         for clause_data in data.get("passing", []):
-            report.clauses.append(ClauseResult(
-                clause_id=clause_data.get("id", clause_data.get("clause_id", "")),
-                title=clause_data.get("title", ""),
-                requirement_level=clause_data.get("requirement_level", "MUST"),
-                status="PASS",
-                details=clause_data.get("details", ""),
-                remediation="",
-                priority=clause_data.get("priority", 3),
-            ))
+            if isinstance(clause_data, str):
+                report.clauses.append(ClauseResult(
+                    clause_id=clause_data,
+                    title="",
+                    requirement_level="MUST",
+                    status="PASS",
+                    details="",
+                    remediation="",
+                    priority=3,
+                ))
+            else:
+                report.clauses.append(ClauseResult(
+                    clause_id=clause_data.get("id", clause_data.get("clause_id", "")),
+                    title=clause_data.get("title", ""),
+                    requirement_level=clause_data.get("requirement_level", "MUST"),
+                    status="PASS",
+                    details=clause_data.get("details", ""),
+                    remediation="",
+                    priority=clause_data.get("priority", 3),
+                ))
             report.passed += 1
 
         for clause_data in data.get("failing", []):

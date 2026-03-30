@@ -5,7 +5,7 @@ description: >
   under the NIP-AA (Nostr Autonomous Agent) protocol. Covers birth ceremony,
   identity management, guardian bonding, self-reflection, governance participation,
   Nostr DM communication, heartbeats, tax compliance, and trust root understanding.
-version: 0.3.0
+version: 0.3.1
 homepage: https://github.com/breadwinner/nip-aa-citizenship
 user-invocable: true
 metadata:

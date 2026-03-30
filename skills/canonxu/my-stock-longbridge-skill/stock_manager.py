@@ -5,7 +5,7 @@ from longbridge.openapi import Config, TradeContext, OrderType, OrderSide, TimeI
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 # 配置路径
-HISTORY_FILE = "/home/admin/.openclaw/skills/my_longbridge_mgnt_skill/order_history.json"
+HISTORY_FILE = "/home/admin/.openclaw/skills/my_stock_longbridge_skill/order_history.json"
 
 # API 凭证 (应使用安全 vault)
 APP_KEY = "1ab56e0d711bf492491a795fd088170f"
@@ -16,7 +16,7 @@ def get_trade_context():
     config = Config.from_apikey(app_key=APP_KEY, app_secret=APP_SECRET, access_token=ACCESS_TOKEN)
     return TradeContext(config)
 
-def is_duplicate_order(symbol, side, quantity):
+def is_duplicate_order(symbol, side, quantity, price=None):
     if not os.path.exists(HISTORY_FILE):
         return False
     with open(HISTORY_FILE, "r") as f:
@@ -26,48 +26,70 @@ def is_duplicate_order(symbol, side, quantity):
     # 检查 60 秒内是否有相同订单
     for entry in history:
         if (entry["symbol"] == symbol and entry["side"] == str(side) and 
-            entry["quantity"] == quantity and (now - entry["time"] < 60)):
+            entry["quantity"] == quantity and entry.get("price") == price and (now - entry["time"] < 60)):
             return True
     return False
 
-def save_order(symbol, side, quantity):
+def save_order(symbol, side, quantity, price=None):
     history = []
     if os.path.exists(HISTORY_FILE):
         with open(HISTORY_FILE, "r") as f:
             history = json.load(f)
     
-    history.append({"symbol": symbol, "side": str(side), "quantity": quantity, "time": time.time()})
+    history.append({"symbol": symbol, "side": str(side), "quantity": quantity, "price": price, "time": time.time()})
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f)
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
-def execute_order_with_retry(trade, symbol, side, quantity):
-    return trade.submit_order(symbol=symbol, order_type=OrderType.MO, side=side, submitted_quantity=quantity, time_in_force=TimeInForceType.Day)
+def execute_order_with_retry(trade, symbol, side, quantity, order_type=OrderType.MO, price=None):
+    kwargs = {
+        "symbol": symbol,
+        "order_type": order_type,
+        "side": side,
+        "submitted_quantity": quantity,
+        "time_in_force": TimeInForceType.Day
+    }
+    if order_type == OrderType.LO and price is not None:
+        kwargs["submitted_price"] = price
+        
+    return trade.submit_order(**kwargs)
 
-def has_pending_order(trade, symbol, side, quantity):
+def has_pending_order(trade, symbol, side, quantity, price=None):
     orders = trade.today_orders()
-    # 查找最近的相同订单
     for order in orders:
-        if order.symbol == symbol and str(order.side) == str(side) and order.submitted_quantity == quantity:
+        if order.symbol == symbol and str(order.side) == str(side) and order.quantity == quantity:
             if order.status in ["Submitted", "Pending"]:
                 return True
     return False
 
-def manage_order(action, symbol=None, quantity=None, order_id=None, side=None, force=False):
+def manage_order(action, symbol=None, quantity=None, order_id=None, side=None, force=False, order_type=OrderType.MO, price=None):
     if action == "sell" or action == "buy":
-        if not force and is_duplicate_order(symbol, str(side), quantity):
+        if not force and is_duplicate_order(symbol, str(side), quantity, price):
             print("DUPLICATE_CONFIRMATION_REQUIRED")
             return
         
         trade = get_trade_context()
-        # 增加服务器端重复检查
-        if has_pending_order(trade, symbol, side, quantity):
+        if has_pending_order(trade, symbol, side, quantity, price):
             print("SERVER_SIDE_DUPLICATE_DETECTED: 存在同向待成交订单")
             return
 
-        resp = trade.submit_order(symbol=symbol, order_type=OrderType.MO, side=side, submitted_quantity=quantity, time_in_force=TimeInForceType.Day)
+        kwargs = {
+            "symbol": symbol,
+            "order_type": order_type,
+            "side": side,
+            "submitted_quantity": quantity,
+            "time_in_force": TimeInForceType.Day
+        }
+        if order_type == OrderType.LO and price is not None:
+            kwargs["submitted_price"] = price
+
+        resp = trade.submit_order(**kwargs)
         oid = resp.order_id
-        save_order(symbol, str(side), quantity)
+        save_order(symbol, str(side), quantity, price)
         time.sleep(2)
         detail = trade.order_detail(order_id=oid)
-        print(f"订单提交成功, ID: {oid}, 状态: {detail.status}")
+        
+        order_type_str = "限价单" if order_type == OrderType.LO else "市价单"
+        price_str = f" @ {price}" if price else ""
+        print(f"[{symbol}] {order_type_str}提交成功, ID: {oid}, 状态: {detail.status}, 委托量: {quantity}{price_str}")
+

@@ -34,12 +34,16 @@ Enables autonomous self-improvement for OpenClaw agents: automatically reviews d
 ### 2. Weekly Promotion (triggered by cron on Sunday 20:00)
 1. Aggregate all daily introspections from the week (read from `workspace/.daily-introspection/`)
 2. Identify repeated patterns and validated improvements
-3. Promote mature rules to:
-   - AGENTS.md for core system rules
-   - MEMORY.md for long-term lessons
-   - TOOLS.md for tool-specific notes
-4. Generate a weekly evolution report and send to user for review
-5. Archive the report to `workspace/.daily-introspection/` (private data directory)
+3. **First, perform all rule promotions immediately**:
+   - Promote mature rules to target files: AGENTS.md / MEMORY.md / TOOLS.md
+   - Verify each promotion by reading the file after writing to confirm successful写入
+   - Only after all promotions are verified complete, proceed to next step
+4. Generate a weekly evolution report (reflecting that promotions are already done)
+5. Send report to user for review
+6. Archive the report to `workspace/.daily-introspection/` (private data directory)
+
+**Mandatory Order**: `Do promotions → Verify promotions → Generate report → Send report`
+**Never**: `Generate report → Do promotions` (this causes missed writes when interrupted)
 
 ## Scripts
 
@@ -86,7 +90,7 @@ Execute scripts/weekly-promote.py to collect all daily introspections from this 
 - Only promote rules that have been verified and no recurrence for 1+ week
 - Keep new recorded errors/learnings in .learnings/ for further verification
 - Do not promote immature rules prematurely
-Write the weekly evolution report to the output directory defined by the script."
+**IMPORTANT ORDER**: First promote all mature rules to AGENTS.md/MEMORY.md/TOOLS.md **before** writing the weekly evolution report. After each promotion, read the target file to verify the rule is actually written. Only after all promotions are done and verified, write the weekly evolution report to the output directory defined by the script."
 ```
 
 ### Configuration Notes

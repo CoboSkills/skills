@@ -3,12 +3,21 @@ name: panews-web-viewer
 description: Read public PANews website pages as Markdown. Use for homepage, article-page, and column-page reads.
 metadata:
   author: Seven Du
-  version: "2026.03.16"
+  version: "2026.03.25"
 ---
 
-Fetches `www.panewslab.com` pages as Markdown via `Accept: text/markdown`. Responses include a YAML frontmatter block with page metadata (`title`, `description`, `image`).
+This skill is for reading rendered PANews web pages as Markdown, including the homepage, article pages, and column pages. Use it when the user wants page content in a Markdown-friendly format with page metadata, rather than structured API fields or filtered search results.
 
-Current first-class support in this skill is single-page fetching through the bundled script below. It is intended for homepage, article-page, and column-page reads, not broad site crawling.
+It is best suited for single-page retrieval from PANews URLs. The skill should preserve the rendered page structure and metadata, and it should not be used for broad crawling, creator workflows, or API-style data discovery.
+
+Read `www.panewslab.com` pages as Markdown via `Accept: text/markdown`. Responses include a YAML frontmatter block with page metadata (`title`, `description`, `image`).
+
+Runtime behavior: this skill performs direct HTTP GET requests to `https://www.panewslab.com` with `Accept: text/markdown` and returns the rendered Markdown response. It does not require local scripts, creator credentials, or broad site crawling.
+
+## Common User Phrases
+
+- "Read this article as Markdown."
+- "Open this column page and give me the rendered content."
 
 ## When to Use
 
@@ -42,24 +51,32 @@ PANews Web Progress:
 - [ ] Step 4: Preserve frontmatter metadata in the response
 ```
 
-## Scripts
+## Standard Request Template
 
-```bash
-node {Skills Directory}/panews-web-viewer/scripts/fetch-page.mjs <path-or-url> [--lang zh]
-```
-
-## Usage
-
-```bash
-node {Skills Directory}/panews-web-viewer/scripts/fetch-page.mjs /articles/ARTICLE_ID --lang en
-node {Skills Directory}/panews-web-viewer/scripts/fetch-page.mjs https://www.panewslab.com/zh-hant/columns/COLUMN_ID
+```text
+1. Start from https://www.panewslab.com
+2. Build a page URL using one of the supported locale prefixes:
+   /zh, /zh-hant, /en, /ja, /ko
+3. If the caller provides a PANews path without a locale prefix, prepend the prefix from `--lang`, or default to `/zh`
+4. Send an HTTP GET request with:
+   Accept: text/markdown
+5. Return the Markdown body as-is, including YAML frontmatter metadata
+6. If the response is 404, report the page as unavailable
 ```
 
 ## Rules
 
-- Prefer the bundled `fetch-page.mjs` script; if you fall back to `curl`, use `-sSL`
+- Use a direct HTTP request with `Accept: text/markdown`
 - Always include the locale prefix in the URL
 - Route to `panews` if the user asks for structured search or filterable API data
+
+## Examples
+
+```text
+https://www.panewslab.com/en
+https://www.panewslab.com/en/ARTICLE_ID
+https://www.panewslab.com/zh-hant/columns/COLUMN_ID
+```
 
 ## Failure Handling
 

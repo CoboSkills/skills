@@ -1,14 +1,15 @@
 ---
 name: ocas-elephas
-description: Long-term knowledge graph (Chronicle) maintenance. Ingests structured signals from system journals, resolves entity identity, promotes confirmed facts, and generates inferences. Use when querying world knowledge, ingesting new signals from skill journals, running consolidation passes, resolving entity duplicates, or promoting candidates to confirmed facts.
+source: https://github.com/indigokarasu/elephas
+install: openclaw skill install https://github.com/indigokarasu/elephas
+description: Use when querying Chronicle (the system's long-term knowledge graph), ingesting signals from skill journals, running consolidation passes, resolving entity duplicates, or promoting candidates to confirmed facts. Trigger phrases: 'what does Chronicle know about', 'query the knowledge graph', 'ingest journals', 'consolidate', 'resolve entity', 'Chronicle status', 'update elephas'. Do not use for social relationship queries (use Weave), web research (use Sift), or person-focused OSINT (use Scout).
 metadata: {"openclaw":{"emoji":"🐘"}}
 ---
 
 # Elephas
 
-Elephas maintains Chronicle, the system's long-term knowledge graph. It ingests structured signals from skill journals, converts them into candidates, resolves entity identity, promotes confirmed facts, and generates behavioral inferences. The Chronicle database initializes automatically on first use — no manual setup required.
+Elephas is the system's long-term memory — the sole writer to Chronicle, the authoritative knowledge graph where entities, relationships, events, and inferences live permanently once confirmed. It ingests structured signals from every skill's journals, scores candidate facts for confidence, resolves identity across possible duplicates, and promotes what survives into durable Chronicle facts with full provenance. The Chronicle database initializes automatically on first use — no manual setup required.
 
-Elephas runs in the background. It does not interact directly with the user except through query and status commands.
 
 ## When to use
 
@@ -19,12 +20,14 @@ Elephas runs in the background. It does not interact directly with the user exce
 - Promote or reject candidates
 - Check Chronicle health and pending queue
 
+
 ## When not to use
 
 - Social relationship queries — use Weave
 - Web research — use Sift
 - Person-focused OSINT — use Scout
 - Direct user communication — use Dispatch
+
 
 ## Responsibility boundary
 
@@ -35,6 +38,7 @@ Only Elephas writes to Chronicle. All other skills are read-only consumers.
 Elephas does not own the social graph (Weave), OSINT briefs (Scout), or web research (Sift).
 
 Elephas and Mentor are parallel journal consumers. Elephas reads journals to extract entity knowledge. Mentor reads journals to evaluate skill performance. Neither blocks the other.
+
 
 ## Storage layout
 
@@ -52,13 +56,12 @@ Elephas and Mentor are parallel journal consumers. Elephas reads journals to ext
     {run_id}.json     — one Action Journal per consolidation or promotion run
 ```
 
-The OCAS_ROOT environment variable overrides `~/openclaw` if set.
 
 Default config.json:
 ```json
 {
   "skill_id": "ocas-elephas",
-  "skill_version": "2.0.0",
+  "skill_version": "2.3.0",
   "config_version": "1",
   "created_at": "",
   "updated_at": "",
@@ -80,51 +83,20 @@ Default config.json:
 }
 ```
 
+
 ## Database rules
 
 LadybugDB is an embedded single-file database. One `READ_WRITE` process at a time. Other skills open `chronicle.lbug` as `READ_ONLY` only — Elephas holds the `READ_WRITE` connection during active passes.
 
 Surface lock errors immediately. Do not retry silently.
 
+
 ## Auto-initialization
 
 Every command that opens the database runs `_ensure_init()` first. No manual init needed on first use.
 
-```python
-import real_ladybug as lb
-from pathlib import Path
-import os, json
-from datetime import datetime, timezone
+Read `references/init_pattern.md` for the `_open_db` implementation pattern. Full DDL is in `references/schemas.md`.
 
-OCAS_ROOT = Path(os.environ.get("OCAS_ROOT", "~/openclaw")).expanduser()
-DB_PATH = OCAS_ROOT / "db/ocas-elephas/chronicle.lbug"
-INTAKE = OCAS_ROOT / "db/ocas-elephas/intake"
-STAGING = OCAS_ROOT / "db/ocas-elephas/staging"
-JOURNALS = OCAS_ROOT / "journals/ocas-elephas"
-CONFIG_PATH = OCAS_ROOT / "db/ocas-elephas/config.json"
-
-def _open_db(read_only=False):
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    INTAKE.mkdir(parents=True, exist_ok=True)
-    (INTAKE / "processed").mkdir(parents=True, exist_ok=True)
-    STAGING.mkdir(parents=True, exist_ok=True)
-    JOURNALS.mkdir(parents=True, exist_ok=True)
-    _ensure_config()
-    db = lb.Database(str(DB_PATH), read_only=read_only)
-    conn = lb.Connection(db)
-    if not read_only:
-        _ensure_init(conn)
-    return db, conn
-
-def _ensure_init(conn):
-    tables = {row[0] for row in conn.execute("CALL show_tables() RETURN *")}
-    if "Entity" not in tables:
-        _run_ddl(conn)
-
-def _run_ddl(conn):
-    # Full DDL in references/schemas.md
-    pass
-```
 
 ## Commands
 
@@ -165,6 +137,18 @@ Also report: last consolidation timestamps, pending identity reviews, inference 
 
 **elephas.journal** -- Write Action Journal for the current run. Read `references/journal.md`. Called at end of every consolidation, promotion, merge, or rejection run.
 
+**elephas.update** -- Pull latest skill package from GitHub source. Preserves journals and data.
+
+
+## Run completion
+
+After every Elephas command that modifies Chronicle or processes signals:
+
+1. Process all files in `~/openclaw/db/ocas-elephas/intake/`; move processed files to `intake/processed/`
+2. Persist ingestion results, promotion decisions, and merge records
+3. Log material decisions to `decisions.jsonl` (if data directory exists)
+4. Write journal via `elephas.journal`
+
 ## Memory lifecycle
 
 ```
@@ -175,11 +159,12 @@ Skill Journal / Signal Intake
       → Inference (separate, never overwrites facts)
 ```
 
+
 ## Consolidation passes
 
-Immediate (default: every 15 min) -- creates candidates, scores confidence, promotes high-confidence candidates.
-Scheduled -- promotes remaining candidates, deduplicates.
-Deep (default: every 24 hr) -- full identity reconciliation, inference generation, graph cleanup.
+Immediate (every 15 min) -- creates candidates, scores confidence, promotes high-confidence. Scheduled -- promotes remaining, deduplicates.
+Deep (every 24 hr) -- full identity reconciliation, inference generation, graph cleanup.
+
 
 ## Identity resolution rules
 
@@ -189,11 +174,13 @@ Resolution precedence: exact identifier match → name+location with corroborati
 
 Ambiguous cases preserve separation. Never silently collapse records.
 
+
 ## Write authority
 
 Only Elephas writes to Chronicle. Other skills open `chronicle.lbug` as `READ_ONLY` only.
 
 Elephas does not write to any other skill's database.
+
 
 ## OKRs
 
@@ -223,24 +210,85 @@ skill_okrs:
     evaluation_window: 30_runs
 ```
 
+
 ## Optional skill cooperation
 
 - All skills — ingest structured signals from skill journals and signal intake
 - Weave — read-only cross-DB queries for social graph enrichment
 - Mentor — Mentor reads Chronicle (read-only) for evaluation context
 
+
 ## Journal outputs
 
 Action Journal — every consolidation, promotion, merge, rejection, and ingestion run.
+
+
+## Initialization
+
+On first invocation of any Elephas command, run `elephas.init`:
+
+1. Create `~/openclaw/db/ocas-elephas/` and subdirectories (`staging/`, `intake/`, `intake/processed/`)
+2. Write default `config.json` with ConfigBase fields if absent
+3. Create `~/openclaw/journals/ocas-elephas/`
+4. Open database with `_open_db()` which auto-creates `chronicle.lbug` and runs DDL if needed
+5. Register cron jobs `elephas:ingest`, `elephas:deep`, and `elephas:update` if not already present (check `openclaw cron list` first)
+6. Log initialization as a DecisionRecord
+
+
+## Background tasks
+
+| Job name | Mechanism | Schedule | Command |
+|---|---|---|---|
+| `elephas:ingest` | cron | `*/15 * * * *` (every 15 min) | `elephas.ingest.journals` then `elephas.consolidate.immediate` |
+| `elephas:deep` | cron | `0 4 * * *` (daily 4am) | `elephas.consolidate.deep` — full identity reconciliation, inference, cleanup |
+| `elephas:update` | cron | `0 0 * * *` (midnight daily) | `elephas.update` |
+
+Cron options: `sessionTarget: isolated`, `lightContext: true`, `wakeMode: next-heartbeat`.
+
+Registration during `elephas.init`:
+```
+openclaw cron list
+# If elephas:ingest absent:
+openclaw cron add --name elephas:ingest --schedule "*/15 * * * *" --command "elephas.ingest.journals && elephas.consolidate.immediate" --sessionTarget isolated --lightContext true --wakeMode next-heartbeat --timezone America/Los_Angeles
+# If elephas:deep absent:
+openclaw cron add --name elephas:deep --schedule "0 4 * * *" --command "elephas.consolidate.deep" --sessionTarget isolated --lightContext true --wakeMode next-heartbeat --timezone America/Los_Angeles
+# If elephas:update absent:
+openclaw cron add --name elephas:update --schedule "0 0 * * *" --command "elephas.update" --sessionTarget isolated --lightContext true --timezone America/Los_Angeles
+```
+
+
+## Self-update
+
+`elephas.update` pulls the latest package from the `source:` URL in this file's frontmatter. Runs silently — no output unless the version changed or an error occurred.
+
+1. Read `source:` from frontmatter → extract `{owner}/{repo}` from URL
+2. Read local version from `skill.json`
+3. Fetch remote version: `gh api "repos/{owner}/{repo}/contents/skill.json" --jq '.content' | base64 -d | python3 -c "import sys,json;print(json.load(sys.stdin)['version'])"`
+4. If remote version equals local version → stop silently
+5. Download and install:
+   ```bash
+   TMPDIR=$(mktemp -d)
+   gh api "repos/{owner}/{repo}/tarball/main" > "$TMPDIR/archive.tar.gz"
+   mkdir "$TMPDIR/extracted"
+   tar xzf "$TMPDIR/archive.tar.gz" -C "$TMPDIR/extracted" --strip-components=1
+   cp -R "$TMPDIR/extracted/"* ./
+   rm -rf "$TMPDIR"
+   ```
+6. On failure → retry once. If second attempt fails, report the error and stop.
+7. Output exactly: `I updated Elephas from version {old} to {new}`
+
 
 ## Visibility
 
 public
 
-## Reference file map
 
-File | When to read
-`references/schemas.md` | Before any DDL, query, or data write; before elephas.init
-`references/ontology.md` | When evaluating entity types, relationship types, or identity rules
-`references/ingestion_pipeline.md` | Before elephas.ingest.journals or any consolidation pass
-`references/journal.md` | Before elephas.journal; at end of every run
+## Support file map
+
+| File | When to read |
+|---|---|
+| `references/schemas.md` | Before any DDL, query, or data write; before elephas.init |
+| `references/init_pattern.md` | When implementing _open_db or troubleshooting initialization |
+| `references/ontology.md` | When evaluating entity types, relationship types, or identity rules |
+| `references/ingestion_pipeline.md` | Before elephas.ingest.journals or any consolidation pass |
+| `references/journal.md` | Before elephas.journal; at end of every run |

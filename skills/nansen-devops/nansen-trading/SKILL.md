@@ -1,6 +1,6 @@
 ---
 name: nansen-trading
-description: Execute DEX swaps on Solana or Base. Use when buying or selling a token, getting a swap quote, or executing a trade.
+description: Execute DEX swaps on Solana or Base, including cross-chain bridges. Use when buying or selling a token, getting a swap quote, or executing a trade.
 metadata:
   openclaw:
     requires:
@@ -41,6 +41,31 @@ Symbols resolve automatically: `SOL`, `ETH`, `USDC`, `USDT`, `WETH`. Raw address
 nansen trade execute --quote <quote-id>
 ```
 
+## Cross-Chain Swap
+
+Bridge tokens between Solana and Base using `--to-chain`:
+
+```bash
+nansen trade quote \
+  --chain base \
+  --to-chain solana \
+  --from USDC \
+  --to USDC \
+  --amount 1000000
+```
+
+For Solana↔Base bridges, the destination wallet address is auto-derived from your wallet (which stores both EVM and Solana keys). Override with `--to-wallet <address>` if needed.
+
+Note: you need gas on the **source** chain to submit the initial transaction (e.g. SOL for Solana→Base, ETH for Base→Solana).
+
+## Bridge Status
+
+After executing a cross-chain swap, the CLI polls bridge status automatically. To check manually:
+
+```bash
+nansen trade bridge-status --tx-hash <hash> --from-chain base --to-chain solana
+```
+
 ## Agent pattern
 
 ```bash
@@ -58,7 +83,16 @@ nansen trade execute --quote "$quote_id"
 | ETH | Base | `0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee` |
 | USDC | Base | `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
 
-## Amounts are in base units
+## Amounts
+
+By default, `--amount` accepts **integer base units** (lamports, wei, etc). Use `--amount-unit token` to specify human-readable token amounts instead — the CLI resolves decimals locally and sends base units to the API.
+
+```bash
+# Base units (default)
+nansen trade quote --chain solana --from SOL --to USDC --amount 1000000000
+# Token units (0.5 SOL = 500000000 lamports, resolved automatically)
+nansen trade quote --chain solana --from SOL --to USDC --amount 0.5 --amount-unit token
+```
 
 | Token | Decimals | 1 token = |
 |-------|----------|-----------|
@@ -66,18 +100,25 @@ nansen trade execute --quote "$quote_id"
 | ETH | 18 | `1000000000000000000` |
 | USDC | 6 | `1000000` |
 
+If the user says "$20 worth of X", you must convert USD → token amount, then either pass base units or use `--amount-unit token`. For example, to buy $20 of SOL at $150/SOL: $20 ÷ $150 = 0.1333 SOL → `--amount 0.1333 --amount-unit token`. Use a price lookup (e.g. `nansen research token info`) to get the current price first.
+
 ## Flags
 
 | Flag | Purpose |
 |------|---------|
-| `--chain` | `solana` or `base` |
+| `--chain` | Source chain: `solana` or `base` |
+| `--to-chain` | Destination chain for cross-chain swap (omit for same-chain) |
 | `--from` | Source token (symbol or address) |
-| `--to` | Destination token (symbol or address) |
-| `--amount` | Amount in base units (integer) |
+| `--to` | Destination token (symbol or address, resolved against destination chain) |
+| `--amount` | Amount in base units (integer), or token units with `--amount-unit token` |
+| `--amount-unit` | Set to `token` to specify amount in token units (e.g. 0.5 SOL) |
 | `--wallet` | Wallet name (default: default wallet) |
+| `--to-wallet` | Destination wallet address (auto-derived for cross-chain if omitted) |
 | `--slippage` | Slippage tolerance as decimal (e.g. 0.03) |
 | `--quote` | Quote ID for execute |
 | `--no-simulate` | Skip pre-broadcast simulation |
+| `--tx-hash` | Source tx hash (for bridge-status) |
+| `--from-chain` | Source chain (for bridge-status) |
 
 ## Environment Variables
 

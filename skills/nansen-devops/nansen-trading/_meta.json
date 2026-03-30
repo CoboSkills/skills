@@ -3,9 +3,15 @@
   "slug": "nansen-trading",
   "displayName": "Nansen Trading",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773912858989,
-    "commit": "https://github.com/openclaw/skills/commit/8fbabd60819693dc478123ad7bb77e5e9ce64c4f"
+    "version": "0.1.2",
+    "publishedAt": 1774881419275,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773912858989,
+      "commit": "https://github.com/openclaw/skills/commit/8fbabd60819693dc478123ad7bb77e5e9ce64c4f"
+    }
+  ]
 }

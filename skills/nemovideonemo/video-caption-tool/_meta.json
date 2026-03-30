@@ -3,11 +3,16 @@
   "slug": "video-caption-tool",
   "displayName": "Video Caption Tool",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1774440048933,
-    "commit": "https://github.com/openclaw/skills/commit/e850e1d022a62deaf9da9f001e34986198d02b78"
+    "version": "1.0.8",
+    "publishedAt": 1774843718022,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1774440048933,
+      "commit": "https://github.com/openclaw/skills/commit/e850e1d022a62deaf9da9f001e34986198d02b78"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774139587661,

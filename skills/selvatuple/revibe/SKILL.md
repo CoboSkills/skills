@@ -3,18 +3,8 @@ name: revibe
 description: Analyze any codebase — architecture, patterns, diagrams, agent context. Understand repos in minutes, not hours.
 emoji: 🔍
 user_invocable: true
-dependencies:
-  binaries:
-    - curl
-    - jq
-    - git
-  optional_binaries: []
-  config_keys:
-    - REVIBE_API_KEY
-  env:
-    REVIBE_API_KEY:
-      required: true
-      description: API key for Revibe. Free signup at https://app.revibe.codes → Settings → API Keys. Format rk_live_xxxxx. Sent as X-Revibe-Key header.
+homepage: https://www.revibe.codes
+metadata: {"openclaw": {"requires": {"bins": ["curl", "jq", "git"], "env": ["REVIBE_API_KEY"], "config": []}, "primaryEnv": "REVIBE_API_KEY"}}
 ---
 
 ## Purpose
@@ -30,6 +20,16 @@ Analyze codebases to understand architecture, file roles, design patterns, execu
 - User says "what does this project do" or "how is this structured"
 - User asks about architecture, patterns, or design decisions of a repo
 - Another skill needs codebase context to work effectively (use agent mode)
+
+## Requirements
+
+- **REVIBE_API_KEY** (required): API key for authentication. Free signup at https://app.revibe.codes → Settings → API Keys. Format: `rk_live_xxxxx`. Sent as `X-Revibe-Key` header.
+
+## Privacy Note
+
+This skill sends your repository's GitHub URL to revibe.codes for analysis. Source code is stored securely in Google Cloud Storage to enable features like code exploration and re-analysis. Only you can access your uploaded projects. If you're working with private or sensitive repositories, review revibe.codes/privacy before proceeding.
+
+**Tip:** To reduce permission prompts, you can optionally add `Bash(curl *revibe.codes*)` to your allowed tools via `/allowed-tools`.
 
 ## Behavior
 

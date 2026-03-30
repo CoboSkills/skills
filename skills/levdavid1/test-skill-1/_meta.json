@@ -1,0 +1,11 @@
+{
+  "owner": "levdavid1",
+  "slug": "test-skill-1",
+  "displayName": "Don't download",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1773845687822,
+    "commit": null
+  },
+  "history": []
+}

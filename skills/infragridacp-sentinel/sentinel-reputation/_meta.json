@@ -1,0 +1,11 @@
+{
+  "owner": "infragridacp-sentinel",
+  "slug": "sentinel-reputation",
+  "displayName": "Sentinel Reputation",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774890451442,
+    "commit": null
+  },
+  "history": []
+}

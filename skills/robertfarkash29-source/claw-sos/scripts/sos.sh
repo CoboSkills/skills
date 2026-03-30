@@ -49,7 +49,7 @@
 export TERM="${TERM:-xterm}"
 set -uo pipefail
 
-SOS_VERSION="6.1"
+SOS_VERSION="6.1.1"
 OS_TYPE="linux"
 [[ "$(uname -s)" == "Darwin" ]] && OS_TYPE="macos"
 
@@ -860,7 +860,7 @@ while true; do
   # Whiptail/dialog needs direct terminal access — no subshell $()
   if [[ -t 0 && -t 1 ]] && has_whiptail; then
     local_tmpfile=$(mktemp)
-    local _wt=$(get_whiptail_cmd)
+    _wt=$(get_whiptail_cmd)
     $_wt --title " SOS Recovery Menu v6 " \
       --default-item "AUTOFIX" \
       --menu "  Version: $(get_version) | Service: $(detect_service)\n\n  Use arrow keys, Enter to select:" 22 60 13 \

@@ -11,10 +11,10 @@ This protocol MUST be followed before reporting any code review finding. Skippin
 
 Before flagging ANY issue, verify:
 
-- [ ] **I read the actual code** - Not just the diff context, but the full function/class
+- [ ] **I read the actual code** - Not just the diff context, but the full function/impl block
 - [ ] **I searched for usages** - Before claiming "unused", searched all references
-- [ ] **I checked surrounding code** - The issue may be handled elsewhere (guards, earlier checks)
-- [ ] **I verified syntax against current docs** - Framework syntax evolves (Tailwind v4, TS 5.x, React 19)
+- [ ] **I checked surrounding code** - The issue may be handled elsewhere (trait impls, error propagation)
+- [ ] **I verified syntax against current docs** - Rust edition, crate versions, and API changes
 - [ ] **I distinguished "wrong" from "different style"** - Both approaches may be valid
 - [ ] **I considered intentional design** - Checked comments, CLAUDE.md, architectural context
 
@@ -24,185 +24,186 @@ Before flagging ANY issue, verify:
 
 **Before flagging**, you MUST:
 1. Search for ALL references in the codebase (grep/find)
-2. Check if it's exported and used by external consumers
-3. Check if it's used via reflection, decorators, or dynamic dispatch
-4. Verify it's not a callback passed to a framework
+2. Check if it's `pub` and used by other crates in the workspace
+3. Check if it's used via derive macros, trait implementations, or conditional compilation (`#[cfg]`)
+4. Verify it's not a trait method required by the trait definition
 
 **Common false positives:**
-- State setters in React (may trigger re-renders even if value appears unused)
-- Variables used in templates/JSX
-- Exports used by consuming packages
+- Trait implementations where the method is defined by the trait
+- `#[cfg(test)]` items only used in test builds
+- Derive-generated code that uses struct fields
+- Types used via `From`/`Into` conversions
 
-### "Missing Validation/Error Handling"
+### "Missing Error Handling"
 
 **Before flagging**, you MUST:
-1. Check if validation exists at a higher level (caller, middleware, route handler)
-2. Check if the framework provides validation (Pydantic, Zod, TypeScript)
-3. Verify the "missing" check isn't present in a different form
+1. Check if the error is handled at a higher level (caller propagates with `?`)
+2. Check if the crate has a top-level error type that wraps this error
+3. Verify the `unwrap()` isn't in test code or after a safety-ensuring check
 
 **Common false positives:**
-- Framework already validates (FastAPI + Pydantic, React Hook Form)
-- Parent component validates before passing props
-- Error boundary catches at higher level
+- `unwrap()` in tests and examples (expected pattern)
+- `expect("reason")` after validation (e.g., `regex::Regex::new` on a literal)
+- Error propagation via `?` (the caller handles it)
+- `let _ = tx.send(...)` — intentional when receiver may have dropped
 
-### "Type Assertion/Unsafe Cast"
-
-**Before flagging**, you MUST:
-1. Confirm it's actually an assertion, not an annotation
-2. Check if the type is narrowed by runtime checks before the point
-3. Verify if framework guarantees the type (loader data, form data)
-
-**Valid patterns often flagged incorrectly:**
-```python
-# Type annotation, NOT cast
-data: UserData = await load_user()
-
-# Type narrowing with isinstance
-if isinstance(data, User):
-    data.name  # Mypy knows this is User
-```
-
-### "Potential Memory Leak/Race Condition"
+### "Unnecessary Clone"
 
 **Before flagging**, you MUST:
-1. Verify cleanup function is actually missing (not just in a different location)
-2. Check if AbortController signal is checked after awaits
-3. Confirm the component can actually unmount during the async operation
+1. Confirm the clone is actually avoidable (borrow checker may require it)
+2. Check if the value needs to be moved into a closure/thread/task
+3. Verify the type isn't `Copy` (clone on Copy types is a no-op)
+4. Check if the clone is in a hot path (test/setup code cloning is fine)
 
 **Common false positives:**
-- Cleanup exists in useEffect return
-- Signal is checked (code reviewer missed it)
-- Operation completes before unmount is possible
+- `Arc::clone(&arc)` — this is the recommended explicit clone for Arc
+- Clone before `tokio::spawn` — required for `'static` bound
+- Clone in test setup — clarity over performance
+
+### "Potential Race Condition"
+
+**Before flagging**, you MUST:
+1. Verify the data is actually shared across threads/tasks
+2. Check if `Mutex`, `RwLock`, or atomic operations protect the access
+3. Confirm the type doesn't already guarantee thread safety (e.g., `Arc<Mutex<T>>`)
+4. Check if the "race" is actually benign (e.g., logging, metrics)
+
+**Common false positives:**
+- `Arc<Mutex<T>>` — already thread-safe
+- Tokio channel operations — inherently synchronized
+- `std::sync::atomic` operations — designed for concurrent access
 
 ### "Performance Issue"
 
 **Before flagging**, you MUST:
-1. Confirm the code runs frequently enough to matter (render vs click handler)
+1. Confirm the code runs frequently enough to matter
 2. Verify the optimization would have measurable impact
-3. Check if the framework already optimizes this (React compiler, memoization)
+3. Check if the compiler already optimizes this (iterator fusion, inlining)
 
 **Do NOT flag:**
-- Functions created in click handlers (runs once per click)
-- Array methods on small arrays (< 100 items)
-- Object creation in event handlers
+- Allocations in startup/initialization code
+- String formatting in error paths
+- Clone in test code
+- `.collect()` on small iterators
 
 ## Severity Calibration
 
 ### Critical (Block Merge)
 
 **ONLY use for:**
-- Security vulnerabilities (injection, auth bypass, data exposure)
-- Data corruption bugs
-- Crash-causing bugs in happy path
-- Breaking changes to public APIs
+- `unsafe` code with unsound invariants
+- SQL injection via string interpolation
+- Use-after-free or memory safety violations
+- Data races (concurrent mutation without synchronization)
+- Panics in production code paths on user input
 
 ### Major (Should Fix)
 
 **Use for:**
-- Logic bugs that affect functionality
-- Missing error handling that causes poor UX
-- Performance issues with measurable impact
-- Accessibility violations
+- Missing error context across module boundaries
+- Blocking operations in async runtime
+- Mutex guards held across await points
+- Missing transaction for multi-statement database writes
 
 ### Minor (Consider Fixing)
 
 **Use for:**
-- Code clarity improvements
-- Documentation gaps
-- Inconsistent style (within reason)
-- Non-critical test coverage gaps
+- Missing doc comments on public items
+- `String` parameters where `&str` would work
+- Suboptimal iterator patterns
+- Missing `#[must_use]` on functions with important return values
 
 ### Informational (No Action Required)
 
 **Use for:**
-- Improvements that require adding new dependencies or modules
-- Suggestions for net-new code that didn't exist in the codebase before (new modules, test suites, abstractions)
-- Architectural ideas for future consideration
-- Test infrastructure suggestions (new mock libraries, behaviour extraction)
-- Optimizations without measurable impact in the current context
+- Suggestions for newtypes, builder patterns, or type state
+- Performance optimizations without measured impact
+- Suggestions to add `#[non_exhaustive]`
+- Refactoring ideas for trait design
 
-**These are NOT review blockers.** They should be noted for the author's awareness but must not appear in the actionable issue count. The Verdict should ignore informational items entirely.
+**These are NOT review blockers.**
 
 ### Do NOT Flag At All
 
-- Style preferences where both approaches are valid
+- Style preferences where both approaches are valid (e.g., `if let` vs `match` for single variant)
 - Optimizations with no measurable benefit
-- Test code not meeting production standards (intentionally simpler)
-- Library/framework internal code (shadcn components, generated code)
-- Hypothetical issues that require unlikely conditions
+- Test code not meeting production standards
+- Generated code or macro output
+- Clippy lints that the project has intentionally suppressed
 
 ## Valid Patterns (Do NOT Flag)
 
-### Python
+### Rust
 
 | Pattern | Why It's Valid |
 |---------|----------------|
-| `dict.get(key, [])` | Returns default for missing keys, not error suppression |
-| `Optional[T]` return type | Standard way to express nullable in Python typing |
-| `assert` in test code | pytest uses assertions, not try/except |
-| Type annotation on variable | Not a cast, just a hint for type checkers |
-| `typing.cast()` with prior validation | Valid after runtime check confirms type |
+| `unwrap()` in tests | Standard test behavior — panics on unexpected errors |
+| `.clone()` in test setup | Clarity over performance |
+| `use super::*` in test modules | Standard pattern for accessing parent items |
+| `Box<dyn Error>` in binaries | Not every app needs custom error types |
+| `String` fields in structs | Owned data is correct for struct fields |
+| `Arc::clone(&x)` | Explicit Arc cloning is idiomatic and recommended |
+| `#[allow(clippy::...)]` with reason | Intentional suppression is valid |
 
-### FastAPI
+### Async/Tokio
 
 | Pattern | Why It's Valid |
 |---------|----------------|
-| `Depends()` without explicit type | FastAPI infers dependency type from function signature |
-| `async def` endpoint without await | May use sync DB calls or simple returns |
-| Response model different from DB model | Separation of concerns between API and persistence |
-| `BackgroundTasks` parameter | Valid for fire-and-forget operations |
-| Direct `request.state` access | Standard pattern for middleware-injected data |
+| `std::sync::Mutex` for short critical sections | Tokio docs recommend this for non-async locks |
+| `tokio::spawn` without join | Valid for background tasks with shutdown signaling |
+| `select!` with `default` branch | Non-blocking check, intentional pattern |
+| `#[tokio::test]` without multi_thread | Default single-thread is fine for most tests |
 
 ### Testing
 
 | Pattern | Why It's Valid |
 |---------|----------------|
-| `assert` without message | pytest rewrites assertions to show detailed diffs |
-| `@pytest.fixture` without explicit scope | Default `function` scope is correct for most fixtures |
-| `monkeypatch` over `unittest.mock` | Simpler API, pytest-native |
-| Fixture returning mutable state | Each test gets fresh fixture invocation by default |
+| `expect()` in tests | Acceptable for test setup/assertions |
+| `#[should_panic]` with `expected` | Valid for testing panic behavior |
+| Large test functions | Integration tests can be long |
+| `let _ = ...` in test cleanup | Cleanup errors are often unactionable |
 
 ### General
 
 | Pattern | Why It's Valid |
 |---------|----------------|
-| `+?` lazy quantifier in regex | Prevents over-matching, correct for many patterns |
-| Direct string concatenation | Simpler than template literals for simple cases |
-| Multiple returns in function | Can improve readability |
-| Comments explaining "why" | Better than no comments |
+| `todo!()` in new code | Valid placeholder during development |
+| `#[allow(dead_code)]` during development | Common during iteration |
+| Multiple `impl` blocks for one type | Organized by trait or concern |
+| Type aliases for complex types | Reduces boilerplate, improves readability |
 
 ## Context-Sensitive Rules
 
-### Type Annotations
+### Ownership
 
-Flag missing type annotation **ONLY IF ALL** of these are true:
-- [ ] Function is public API (not prefixed with `_`)
-- [ ] Types are not obvious from context (e.g., `x = 5` is clearly `int`)
-- [ ] Not a test function or fixture
-- [ ] Codebase has existing typing conventions
-
-### Exception Handling
-
-Flag bare `except` **ONLY IF**:
-- [ ] Not in a top-level error boundary / middleware
-- [ ] The caught exception is actually swallowed (not logged/re-raised)
-- [ ] Specific exception types are known and available
-- [ ] Not in cleanup/teardown code where any error should be caught
+Flag unnecessary `.clone()` **ONLY IF**:
+- [ ] In a hot path (not test/setup code)
+- [ ] A borrow or reference would work
+- [ ] The clone is not required for `Send`/`'static` bounds
+- [ ] The type is not `Copy`
 
 ### Error Handling
 
-Flag missing try/except **ONLY IF**:
-- [ ] No middleware or error handler catches this at a higher level
-- [ ] The framework doesn't handle errors (FastAPI exception handlers)
-- [ ] The error would cause a crash, not just a failed operation
-- [ ] User needs specific feedback for this error type
+Flag missing error context **ONLY IF**:
+- [ ] Error crosses a module boundary
+- [ ] The error type doesn't already carry context (thiserror messages)
+- [ ] Not in test code
+- [ ] The bare `?` loses meaningful information about what operation failed
+
+### Unsafe Code
+
+Flag unsafe **ONLY IF**:
+- [ ] Safety comment is missing or doesn't explain the invariant
+- [ ] The unsafe block is broader than necessary
+- [ ] The invariant is not actually upheld by surrounding code
+- [ ] A safe alternative exists with equivalent performance
 
 ## Before Submitting Review
 
 Final verification:
 1. Re-read each finding and ask: "Did I verify this is actually an issue?"
 2. For each finding, can you point to the specific line that proves the issue exists?
-3. Would a domain expert agree this is a problem, or is it a style preference?
+3. Would a Rust domain expert agree this is a problem, or is it a style preference?
 4. Does fixing this provide real value, or is it busywork?
 5. Format every finding as: `[FILE:LINE] ISSUE_TITLE`
 6. For each finding, ask: "Does this fix existing code, or does it request entirely new code that didn't exist before?" If the latter, downgrade to Informational.

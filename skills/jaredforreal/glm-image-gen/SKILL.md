@@ -1,5 +1,5 @@
 ---
-name: glm-image-generation
+name: glm-image-gen
 description:
   Official skill for generating high-quality images from text prompts using ZhiPu GLM-Image API.
   Excellent at scientific illustrations, high-quality portraits, social media graphics, and commercial posters.
@@ -15,7 +15,7 @@ metadata:
         - python
     primaryEnv: ZHIPU_API_KEY
     emoji: "🎨"
-    homepage: https://github.com/zai-org/GLM-Image/tree/main/skills/glm-image-generation
+    homepage: https://github.com/zai-org/GLM-Image/tree/main/skills/glm-image-gen
 ---
 
 # GLM-Image Generation Skill / GLM-Image 图片生成技能

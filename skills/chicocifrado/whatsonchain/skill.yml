@@ -1,4 +1,3 @@
-# whatsonchain API Skill
 name: whatsonchain
 description: Access WhatsOnChain API for BSV/BTC blockchain data via REST calls. Manual key setup only, no automation.
 version: 1.0.0

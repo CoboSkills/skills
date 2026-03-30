@@ -3,11 +3,16 @@
   "slug": "whatsonchain",
   "displayName": "whatsonchain",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1774896973888,
-    "commit": "https://github.com/openclaw/skills/commit/4ebf4b3d9f2cb515a3c423ac5ee5a28ed15e024d"
+    "version": "9.0.0",
+    "publishedAt": 1774900055748,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1774896973888,
+      "commit": "https://github.com/openclaw/skills/commit/4ebf4b3d9f2cb515a3c423ac5ee5a28ed15e024d"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1774560797166,

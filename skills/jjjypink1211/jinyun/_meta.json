@@ -1,11 +1,17 @@
 {
   "owner": "jjjypink1211",
   "slug": "jinyun",
-  "displayName": "code-reviewer",
+  "displayName": "backend-api-designer",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773917426190,
-    "commit": "https://github.com/openclaw/skills/commit/89c3b4a5de77686407e7e58b6b911323cfefff97"
+    "version": "1.0.1",
+    "publishedAt": 1774520521102,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773917426190,
+      "commit": "https://github.com/openclaw/skills/commit/89c3b4a5de77686407e7e58b6b911323cfefff97"
+    }
+  ]
 }

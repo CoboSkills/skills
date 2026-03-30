@@ -1,188 +1,333 @@
 ---
-name: code-reviewer
-description: |
-  Thorough code review with focus on security, performance, and best practices for Go projects.
-  Includes Go test coverage analysis (line/function/branch coverage) and reporting.
-  Use when: reviewing Go code, performing security audits, checking for code quality, reviewing pull requests,
-  or when user mentions code review, PR review, security vulnerabilities, performance issues, test coverage.
-license: MIT
-metadata:
-  author: awesome-llm-apps
-  version: "2.0.0"
-  language: "Go"
+name: backend-api-designer
+description: 高级软件架构师级别的业务方案设计与后端技术落地。功能包括：(1) 工程分析 - 读取现有工程，分析代码结构、接口风格、数据模型；(2) 业务方案设计 - 需求分析、架构设计、技术选型、实施规划；(3) 流程图设计 - 业务流程图、状态机图、时序图、架构图；(4) 接口设计 - Go proto 风格的 gRPC/HTTP 接口；(5) 数据库设计 - MySQL 建表语句。触发词：业务方案、架构设计、接口设计、proto、建表、数据库设计、需求分析、工程分析、流程图。
 ---
 
-# Code Reviewer
+# 业务方案与技术设计
 
-You are an expert Go code reviewer who identifies security vulnerabilities, performance issues, code quality problems, and analyzes test coverage for Go projects.
+以**高级软件架构师**视角，提供从业务分析到技术落地的完整设计方案。
 
-## When to Apply
+## 使用方式
 
-Use this skill when:
-- Reviewing Go code pull requests
-- Performing security audits on Go applications
-- Checking code quality for Go projects
-- Identifying performance bottlenecks in Go code
-- Ensuring Go best practices compliance
-- Pre-deployment code review for Go services
-- Analyzing Go test coverage and reporting gaps
+| 需求类型 | 说明 |
+|---------|------|
+| **工程分析 + 方案设计** | 提供工程路径，分析现有设计后输出方案 |
+| **业务方案设计** | 描述业务场景，输出完整方案文档 |
+| **流程图设计** | 描述流程，输出 Mermaid 图表 |
+| **接口与表设计** | 描述具体模块，输出 proto + SQL |
 
-## How to Use This Skill
+---
 
-This skill contains **detailed rules** in the `rules/` directory, organized by category and priority, tailored for Go language.
+# 一、流程图设计
 
-### Quick Start
+使用 Mermaid 语法输出各类图表，支持在 Markdown 中渲染。
 
-1. **Review [AGENTS.md](AGENTS.md)** for a complete compilation of all rules with examples
-2. **Reference specific rules** from `rules/` directory for deep dives
-3. **Follow priority order**: Security → Performance → Correctness → Maintainability
+## 图表类型
 
-### Available Rules
+### 1. 业务流程图 (Flowchart)
 
-**Security (CRITICAL)**
-- [SQL Injection Prevention](rules/security-sql-injection.md)
-- [XSS Prevention](rules/security-xss-prevention.md)
+展示业务操作流程、决策分支、并行处理。
 
-**Performance (HIGH)**
-- [Avoid N+1 Query Problem](rules/performance-n-plus-one.md)
+```mermaid
+flowchart TD
+    A[用户下单] --> B{库存检查}
+    B -->|充足| C[创建订单]
+    B -->|不足| D[提示缺货]
+    C --> E[支付]
+    E -->|成功| F[扣减库存]
+    E -->|失败| G[取消订单]
+    F --> H[发货]
+    H --> I[完成]
+```
 
-**Correctness (HIGH)**
-- [Proper Error Handling](rules/correctness-error-handling.md)
+**语法要点：**
+- `TD/TB` - 从上到下，`LR` - 从左到右
+- `[]` 矩形，`{}` 菱形(判断)，`(())` 圆形
+- `-->` 连接线，`-->|文字|` 带文字连接
 
-**Maintainability (MEDIUM)**
-- [Use Meaningful Variable Names](rules/maintainability-naming.md)
-- [Add Type Hints](rules/maintainability-type-hints.md)
+### 2. 状态机图 (State Diagram)
 
-**Team-Effectiveness **
-- [团队效能指标](rules/team-effectiveness-metrics.md)
+展示实体状态流转、触发条件。
 
-## Review Process
+```mermaid
+stateDiagram-v2
+    [*] --> 待支付
+    待支付 --> 已支付: 支付成功
+    待支付 --> 已取消: 超时/用户取消
+    已支付 --> 已发货: 发货
+    已发货 --> 已完成: 确认收货
+    已发货 --> 已退款: 申请退款
+    已完成 --> [*]
+    已取消 --> [*]
+    已退款 --> [*]
+```
 
-### 1. **Security First** (CRITICAL)
-Look for Go-specific vulnerabilities that could lead to data breaches or unauthorized access:
-- SQL injection (string concatenation in database/sql queries)
-- XSS (Cross-Site Scripting) (unsafe HTML rendering with fmt.Fprintf)
-- Authentication/authorization bypasses (missing middleware in net/http handlers)
-- Hardcoded secrets (API keys/passwords in Go source code)
-- Insecure dependencies (outdated modules with known vulnerabilities)
-- Unsanitized input in HTTP request handlers
+### 3. 时序图 (Sequence Diagram)
 
-### 2. **Performance** (HIGH)
-Identify Go code that will cause slow performance at scale:
-- N+1 database queries (loop-based SQL calls in Go)
-- Missing indexes (unoptimized SQL queries in Go services)
-- Inefficient algorithms (O(n²) operations on large slices)
-- Memory leaks (unclosed resources: file handles, database connections)
-- Unnecessary API calls (redundant HTTP requests in goroutines)
-- Excessive memory allocations (avoidable fmt.Sprintf in hot paths)
+展示系统间交互、API 调用顺序。
 
-### 3. **Correctness** (HIGH)
-Find bugs and edge cases in Go code:
-- Error handling gaps (ignored errors with _)
-- Race conditions (unsafe concurrent access to shared state)
-- Off-by-one errors (slice index issues)
-- Nil pointer dereferences (missing nil checks)
-- Input validation (lack of sanitization for HTTP request data)
-- Improper use of context (missing context cancellation)
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant F as 前端
+    participant G as API网关
+    participant O as 订单服务
+    participant P as 支付服务
+    participant N as 通知服务
+    
+    U->>F: 下单
+    F->>G: POST /api/v1/orders
+    G->>O: CreateOrder
+    O->>P: 预支付
+    P-->>O: 支付链接
+    O-->>G: 订单+支付链接
+    G-->>F: 返回数据
+    F->>U: 跳转支付页
+    
+    Note over U,P: 用户完成支付
+    
+    P->>O: 支付回调
+    O->>N: 发送通知
+    N->>U: 支付成功通知
+```
 
-### 4. **Maintainability** (MEDIUM)
-Improve long-term health of Go code:
-- Clear naming (Go idiomatic variable/function names)
-- Type safety (avoidance of empty interface{})
-- DRY principle (reusable functions/packages in Go)
-- Single responsibility (small, focused functions/methods)
-- Documentation (godoc-compatible comments)
-- Consistent error wrapping (fmt.Errorf with %w)
+**语法要点：**
+- `participant A as 别名` 定义参与者
+- `->>` 实线箭头，`-->>` 虚线箭头
+- `Note over A,B: 说明` 添加注释
 
-### 5. **Testing & Coverage**
-Verify adequate test coverage for Go code:
-- Unit tests for new Go functions/methods
-- Edge case testing (error paths, boundary values)
-- Error path testing (testing expected errors)
-- Integration tests for HTTP handlers/database interactions
-- Test coverage analysis (line/function/branch coverage from coverage.out)
-- Identification of untested core business logic
+### 4. 架构图 (Flowchart/C4)
 
+展示系统架构、模块关系。
 
-### 6. **team-effectiveness-metrics**
+```mermaid
+flowchart TB
+    subgraph 客户端
+        A[Web端]
+        B[App端]
+    end
+    
+    subgraph 网关层
+        C[API网关]
+    end
+    
+    subgraph 服务层
+        D[用户服务]
+        E[订单服务]
+        F[商品服务]
+        G[支付服务]
+    end
+    
+    subgraph 数据层
+        H[(MySQL)]
+        I[(Redis)]
+        J[(MQ)]
+    end
+    
+    A --> C
+    B --> C
+    C --> D
+    C --> E
+    C --> F
+    C --> G
+    D --> H
+    E --> H
+    E --> J
+    F --> H
+    F --> I
+    G --> J
+```
 
-**统计周期：** 每周一 00:00 至 周日 23:59  
-**对比基准：** 上周同期数据  
-**数据范围：** 本周内的所有代码提交与评审活动
+### 5. ER 图 (Entity Relationship)
 
-科学量化团队效能，持续改进工程实践。以下指标帮助识别团队瓶颈、优化资源配置、提升代码质量。
+展示数据实体关系。
 
+```mermaid
+erDiagram
+    USER ||--o{ ORDER : "下单"
+    USER {
+        bigint id PK
+        string username
+        string email
+    }
+    ORDER ||--|{ ORDER_ITEM : "包含"
+    ORDER {
+        bigint id PK
+        string order_no UK
+        bigint user_id FK
+        decimal total_amount
+        int status
+    }
+    ORDER_ITEM }|--|| PRODUCT : "商品"
+    ORDER_ITEM {
+        bigint id PK
+        bigint order_id FK
+        bigint product_id FK
+        int quantity
+        decimal price
+    }
+    PRODUCT {
+        bigint id PK
+        string name
+        decimal price
+        int stock
+    }
+```
 
-## Review Output Format
+---
 
-Structure your reviews as:
+# 二、工程分析
+
+## 分析流程
+
+当用户提供工程路径时，按以下步骤分析：
+
+### 1. 目录结构分析
+
+```bash
+find . -type f -name "*.proto" | head -20
+find . -type f -name "*.sql" | head -20
+find . -type f -name "*.go" | head -30
+```
+
+分析要点：
+- 项目分层结构
+- 模块划分方式
+- 命名规范
+
+### 2. 接口风格分析
+
+读取 proto 文件，提取命名风格。
+
+### 3. 数据模型分析
+
+读取 SQL 或实体定义，提取表结构规范。
+
+### 4. 业务流程分析
+
+读取 service 层代码，提取核心逻辑。
+
+## 分析输出
 
 ```markdown
-This function retrieves user data but has critical security and reliability issues for Go implementation.
+# 工程分析报告
 
-## Critical Issues 🔴
+## 1. 项目结构
+[目录树]
 
-1. **SQL Injection Vulnerability** (Line 2)
-   - **Problem:** User input directly interpolated into SQL query with fmt.Sprintf
-   - **Impact:** Attackers can execute arbitrary SQL commands
-   - **Fix:** Use parameterized queries in Go database/sql
-   ```go
-   query := "SELECT * FROM users WHERE id = ?"
-   row := db.QueryRow(query, userID)
-   ```
+## 2. 接口风格
+[proto 规范]
 
-## High Priority 🟠
+## 3. 数据模型
+[表结构规范]
 
-1. **No Error Handling** (Line 3-4)
-   - **Problem:** Assumes database query always returns data, no nil check
-   - **Impact:**  Panic from nil pointer dereference if user doesn't exist
-   - **Fix:** Proper error handling with wrapping in Go
-   ```go
-	 var u User
-	if err := row.Scan(&u.ID, &u.Name); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("user %s not found", userID)
-		}
-		return nil, fmt.Errorf("query user: %w", err)
-	}
-   ```
+## 4. 业务流程图
+[Mermaid 流程图]
 
-2. **Missing Type Hints** (Line 1)
-   - **Problem:**  No explicit type annotations for parameters/return values
-   - **Impact:** Reduces code clarity and IDE support for Go
-   - **Fix:** Add Go type declarations
-   ```go
-      func getUser(userID string) (*User, error) {
-   ```
-3. **Low Test Coverage (Function Level)
-   - **Problem:**   Function has 0% line coverage
-   - **Impact:** Untested code may contain undiscovered bugs
-   - **Fix:** Add table-driven tests for normal/error cases
-   ```go
-	   func TestGetUser(t *testing.T) {
-			tests := []struct {
-				name    string
-				userID  string
-				wantErr bool
-			}{
-				{"valid user", "123", false},
-				{"invalid user", "999", true},
-			}
-			for _, tt := range tests {
-				t.Run(tt.name, func(t *testing.T) {
-					_, err := getUser(tt.userID)
-					if (err != nil) != tt.wantErr {
-						t.Errorf("getUser() error = %v, wantErr %v", err, tt.wantErr)
-					}
-				})
-			}
-		}
-   ```
+## 5. 设计建议
+[基于现有风格的建议]
+```
 
-## Recommendations
+---
 
-- Add context.Context to function for timeout/cancellation support
-- Use go-playground/validator for input validation in HTTP handlers
-- Consider using sqlx for safer SQL operations in Go
-- Increase test coverage for dao/ package to minimum 80%
-- Add error logging with zap/logrus for production debugging
+# 三、业务方案设计
+
+## 设计流程
+
+### 1. 需求分析
+- 业务背景与目标
+- 核心业务流程
+- 关键业务实体
+- 用户角色与权限
+
+### 2. 架构设计
+- 系统架构图
+- 模块划分
+- 技术选型
+
+### 3. 详细设计
+- 用例设计
+- 状态机设计
+- 接口契约
+- 数据模型
+
+### 4. 实施规划
+- 迭代计划
+- 风险评估
+
+## 输出格式
+
+```markdown
+# 业务方案设计文档
+
+## 1. 需求概述
+### 1.1 业务背景
+### 1.2 业务目标
+### 1.3 范围边界
+
+## 2. 业务分析
+### 2.1 用户角色
+### 2.2 核心业务流程图
+[Mermaid 流程图]
+### 2.3 业务规则
+
+## 3. 架构设计
+### 3.1 系统架构图
+[Mermaid 架构图]
+### 3.2 模块划分
+### 3.3 技术选型
+
+## 4. 详细设计
+### 4.1 核心实体
+### 4.2 状态流转图
+[Mermaid 状态机图]
+### 4.3 时序图
+[Mermaid 时序图]
+### 4.4 数据模型
+[Mermaid ER图]
+
+## 5. 实施规划
+### 5.1 迭代计划
+### 5.2 风险评估
+```
+
+---
+
+# 四、接口与数据库设计
+
+## 数据表设计原则
+
+- 表名蛇形命名
+- 主键 `id` BIGINT UNSIGNED
+- 必备字段 `created_at`、`updated_at`
+- 软删除 `deleted_at`
+- 状态字段用 TINYINT
+
+**建表模板：**
+```sql
+CREATE TABLE `table_name` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    `field_name` VARCHAR(255) NOT NULL DEFAULT '' COMMENT '字段说明',
+    `status` TINYINT NOT NULL DEFAULT 0 COMMENT '状态: 0-禁用 1-启用',
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at` DATETIME DEFAULT NULL,
+    PRIMARY KEY (`id`),
+    KEY `idx_field` (`field_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='表说明';
+```
+
+## Proto 接口设计规范
+
+- package: `api.{module}.v1`
+- service: `{Module}Service`
+- method: `Create{Entity}`、`Get{Entity}`、`List{Entities}`、`Update{Entity}`、`Delete{Entity}`
+- message: `{Entity}Request`、`{Entity}Response`
+
+---
+
+## 参考资料
+
+- [references/patterns.md](references/patterns.md) - 常见业务场景设计模式
+- [references/architecture-patterns.md](references/architecture-patterns.md) - 架构设计模式
+- [references/mermaid-guide.md](references/mermaid-guide.md) - Mermaid 图表语法速查

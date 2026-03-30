@@ -81,11 +81,6 @@ During auth, report progress in this shape:
 - **Image dimensions must be declared.** Every `<img>` must have explicit `width`/`height` attributes or CSS `aspect-ratio` to prevent layout shift (CLS).
 - **BEM-like semantic class names.** Use `.block__element--modifier` (e.g. `.signin-card__label`, `.hero-topbar__brand`). Never use `.s1`, `.btn2`, `.c-red` abbreviations.
 - **1:1 pixel-level restoration target.** Use visual diff pipeline to validate.
-- **Compliance replacement rule (mandatory).** If source design contains policy-violating text or imagery, keep layout/size unchanged but replace:
-  - text → compliant neutral copy
-  - image/video thumbnail → compliant placeholder asset
-  Document replacements in `source/compliance-replacements.md`.
-
 ## Multi-Page Strategy
 
 - If the user specifies multiple pages (e.g., "首页 + 活动页 + 个人中心"), create separate HTML files: `html/index.html`, `html/activity.html`, `html/profile.html`, etc.
@@ -398,14 +393,8 @@ python3 scripts/fetch_figma_mcp.py ${MCP_AUTH:-} \
    - Ask: "布局结构和分段顺序对吗？"
    - Do NOT proceed to detail work until user confirms the layout.
 
-4. **Compliance pass before detail rendering (mandatory):**
-   - Scan text/image assets for policy-violating content.
-   - Replace violating text with compliant neutral copy.
-   - Replace violating imagery with size-matched placeholder assets.
-   - Record every replacement in `source/compliance-replacements.md`.
-
-5. **Only then, layer in details** per confirmed section:
-   - Insert real assets (images, icons) or compliant placeholders (if replaced in step 4).
+4. **Layer in details** per confirmed section:
+   - Insert real assets (images, icons).
    - Build real DOM for text, buttons, status indicators, timelines.
    - Apply typography, colors, spacing, borders from Figma node data.
    - Take screenshot → send to user after each section completes.

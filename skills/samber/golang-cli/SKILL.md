@@ -1,12 +1,12 @@
 ---
 name: golang-cli
-description: Golang CLI application development. Use when building, modifying, or reviewing a Go CLI tool — especially for command structure, flag handling, configuration layering, version embedding, exit codes, I/O patterns, signal handling, shell completion, argument validation, and CLI unit testing. Also triggers when code uses cobra, viper, or urfave/cli.
+description: "Golang CLI application development. Use when building, modifying, or reviewing a Go CLI tool — especially for command structure, flag handling, configuration layering, version embedding, exit codes, I/O patterns, signal handling, shell completion, argument validation, and CLI unit testing. Also triggers when code uses cobra, viper, or urfave/cli."
 user-invocable: false
 license: MIT
 compatibility: Designed for Claude Code or similar AI coding agents, and for projects using Golang.
 metadata:
   author: samber
-  version: "1.1.0"
+  version: "1.1.2"
   openclaw:
     emoji: "💻"
     homepage: https://github.com/samber/cc-skills-golang
@@ -41,7 +41,7 @@ For trivial single-purpose tools with no subcommands and few flags, stdlib `flag
 | Configuration       | `github.com/spf13/viper`             |
 | Flag parsing        | `github.com/spf13/pflag` (via Cobra) |
 | Colored output      | `github.com/fatih/color`             |
-| Table output        | `github.com/olekukonez/tablewriter`  |
+| Table output        | `github.com/olekukonko/tablewriter`  |
 | Interactive prompts | `github.com/charmbracelet/bubbletea` |
 | Version injection   | `go build -ldflags`                  |
 | Distribution        | `goreleaser`                         |

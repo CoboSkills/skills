@@ -2,7 +2,7 @@
 
 [简体中文](README.zh-CN.md)
 
-Reusable agent skill for reviewing Chinese management-oriented master's theses in multiple rounds.
+Reusable agent skill for reviewing Chinese master's theses in multiple rounds.
 
 ## Overview
 
@@ -13,7 +13,7 @@ This repository packages a reusable thesis-review skill for agent frameworks suc
 - Claude Code
 - Other markdown-based prompt/skill loaders
 
-The skill focuses primarily on **Chinese management-oriented master's theses** — especially programs such as **MBA**, **MEM**, and **MPA** — and also works well for other similar professional or applied research master's theses.
+The skill focuses on **Chinese master's theses** (硕士学位论文) in general, while remaining especially well-suited for management-oriented programs such as **MBA**, **MEM**, and **MPA**, as well as other similar professional or applied research master's theses.
 
 It uses a **3-round review strategy**:
 
@@ -118,8 +118,8 @@ Upload this folder to GitHub, then use the raw markdown or repository contents w
 
 ## Output
 
-- Markdown review report
-- Recommended filename: `review_results.md`
+- Markdown review report: `review_results.md` (working directory)
+- Extracted thesis text and working notes: `review_artifacts/` directory (auto-created)
 
 ## Repository Metadata
 
@@ -133,6 +133,33 @@ Upload this folder to GitHub, then use the raw markdown or repository contents w
 - On Windows, case-only duplicate filenames such as `SKILL.md` and `skill.md` cannot reliably coexist, so this package standardizes on `SKILL.md`.
 - `skill.json` is a generic metadata file for publishing convenience. It is not assumed to be required by every agent framework.
 - Replace remaining placeholder values only if you later add a separate homepage or documentation site.
+
+## Changelog
+
+### v1.1.0
+
+**Scope broadened** — Removed the "management-oriented" restriction from the skill description. The skill now targets Chinese master's theses in general, while remaining especially well-suited for MBA / MEM / MPA programs.
+
+**Structured output directory** — Review artifacts (extracted thesis text, working notes) are now written to a `review_artifacts/` subdirectory with timestamped filenames, keeping the working directory clean.
+
+**Anti-anchoring iterative review** — In iterative mode (re-reviewing a revised thesis), each chapter now goes through a two-phase review:
+
+- **Phase A (Independent Discovery):** The agent reviews the chapter with NO historical issues visible, using a dimension coverage checklist as evidence of systematic review.
+- **Phase B (Historical Verification):** Only after Phase A is complete are prior issues injected for verification (✅ fixed / ⚠️ partially fixed / ❌ unchanged).
+
+This separation prevents the agent from treating prior issues as a checklist and skipping independent analysis.
+
+**Round 1 isolation in iterative mode** — Round 1 no longer receives any injected prior issues (including global-scope ones). It executes identically to first-version mode, ensuring a fully independent macro-level assessment.
+
+**Spot check mechanism** — When a chapter's Phase A claims "no new issues found" but that chapter has serious historical issues, Round 3 can trigger a targeted spot check (up to 3 per cycle) to validate the claim.
+
+**Working file structure** — A detailed working file template is now defined for iterative mode, providing full traceability of the review process (Phase A / Phase B records, spot checks, historical issue verification summary).
+
+**Enhanced consolidation** — Persistent issues (flagged across 3+ consecutive versions) now receive escalated treatment: minimum-cost fix suggestions, defense risk assessment, and (from version 4+) oral defense preparation advice.
+
+### v1.0.0
+
+Initial release.
 
 ## Notes
 

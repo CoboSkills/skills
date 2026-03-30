@@ -4,7 +4,7 @@ description: Multi-round review skill for Chinese management-oriented master's t
 license: MIT
 metadata:
   author: wmpluto
-  version: "1.0.0"
+  version: "1.1.0"
   repository: https://github.com/wmpluto/academic-thesis-review-skill
   github_profile: https://github.com/wmpluto
   compatibility:
@@ -16,7 +16,7 @@ metadata:
 # Skill: Academic Thesis Review (Chinese Master's Thesis)
 
 ## Description
-Multi-round academic review of Chinese management-oriented Master's theses (硕士学位论文), especially MBA, MEM, and MPA dissertations/theses. It can also be applied to other similar professional or applied research master's theses. Uses a 3-round review strategy (macro → per-chapter → inter-chapter consistency). Acts as a strict professor reviewer, producing actionable revision comments in Chinese. Supports iterative version cycles.
+Multi-round academic review of Chinese Master's theses (硕士学位论文). Uses a 3-round review strategy (macro → per-chapter → inter-chapter consistency). Acts as a strict professor reviewer, producing actionable revision comments in Chinese. Supports iterative version cycles.
 
 ## Trigger Phrases
 - "审阅论文" / "review thesis"
@@ -99,7 +99,7 @@ for p in paragraphs:
 result = '\n'.join(full_text)
 ```
 
-Output to `.txt`. Note paragraph count and character count as baseline metrics.
+Output to `review_artifacts/thesis_full_text_<YYYYMMDD_HHMMSS>.txt`. Create directory if it does not exist. Note paragraph count and character count as baseline metrics.
 
 ### Preparation
 
@@ -129,14 +129,38 @@ After extraction, check whether `review_results.md` exists in the current workin
 1. Parse the prior `review_results.md` to extract:
    - Prior version number → increment by 1 for the new review
    - All prior issues from "本版问题清单" with their severity, location, and description
-2. Classify each prior issue by its "位置" field and distribute as **additional verification input** to the appropriate round:
-   - Issues with location "全局" → **Round 1**
-   - Issues with location "第X章" → **Round 2** (injected when reviewing that chapter)
+2. Classify each prior issue by its "位置" field:
+   - Issues with location "全局" → redistribute to relevant chapters in Round 2
+   - Issues with location "第X章" → **Round 2** (injected in Phase B when reviewing that chapter)
    - Issues with location "第X章→第Y章" → **Round 3** (injected when reviewing that pair)
-3. Each round, in addition to its normal review, must **verify each injected prior issue** against the current text:
+3. Verification marking (applied in Phase B of Round 2 and in Round 3):
    - Issue is resolved → mark ✅已修改
    - Issue is partially addressed → mark ⚠️部分修改, describe what remains
    - Issue is unchanged → mark ❌未修改
+
+### Iterative Mode: Issue Injection Strategy
+
+**Key Principle: Separation of Discovery and Verification**
+
+To prevent anchoring bias (agent treating prior issues as a checklist instead of performing independent review), the injection strategy is designed as follows:
+
+**Round 1: No injection**
+- Execute exactly as first-version mode (completely independent)
+- Do NOT inject any prior issues, including "全局" issues
+- Rationale: Issues found in Round 1 are typically also discoverable in Round 2/3; verifying global issues through specific chapters is more precise
+
+**Round 2: Two-phase per-chapter review**
+- **Phase A (Independent Discovery):** Review chapter with NO historical issues visible
+- **Phase B (Historical Verification):** Inject chapter-specific issues + relevant "全局" issues for verification
+- See §2.x for detailed Phase A/B execution rules
+
+**Round 3: Cross-chapter verification**
+- Inject cross-chapter historical issues (位置="第X章→第Y章")
+- Execute spot checks on chapters that declared "无新发现" in Phase A
+
+**Anti-Shortcut Rules:**
+- ✅ **DO:** Complete Phase A output before seeing any historical issues. Use dimension coverage checklist to confirm systematic review.
+- ❌ **DON'T:** Combine Phase A and Phase B. Skip the dimension coverage checklist. Claim "no new issues" without checklist evidence.
 
 ### Extraction Limitations
 
@@ -152,7 +176,7 @@ After extraction, check whether `review_results.md` exists in the current workin
 
 ### Round 1: Macro Structure Review
 
-**Input:** Full thesis text. In iterative mode: also receives global-scope prior issues for verification.
+**Input:** Full thesis text. *(In iterative mode: NO prior issues injected — execute as first-version mode)*
 **Focus:** Bird's-eye structural and logical assessment. Do NOT give line-level edits.
 **Long-input fallback:** If the full thesis exceeds stable single-pass context, read in large sequential chunks with overlap, then do one pass over all Round 1 findings to ensure cross-chunk consistency before outputting the dependency map.
 
@@ -204,8 +228,8 @@ Format:
 
 ### Round 2: Per-Chapter Deep Review
 
-**Input per chapter:** Thesis summary block + current chapter full text + summary cards of all previously reviewed chapters. In iterative mode: also receives chapter-scope prior issues for verification.
-**Execution:** Sequential, in document order.
+**Input per chapter:** Thesis summary block + current chapter full text + summary cards of all previously reviewed chapters.
+**Execution:** Sequential, in document order. *(In iterative mode: two-phase execution per chapter — see §2.x)*
 **Focus:** Detailed intra-chapter quality. Line-level issues are caught here.
 
 **First chapter note:** When reviewing the first chapter, no prior summary cards exist. Skip the "交付" field in that chapter's summary card.
@@ -235,6 +259,60 @@ See Appendix B for chapter-type-specific focus areas.
 - **Abstracts** — Round 2: wording quality, terminology stability, grammar; whether abstract claims overstate the body
 - **References** — Round 2: flag uncited claims or mismatched citations **[S]**; whether cited source supports the claim is **[M]**
 - **Appendices** — Treat as a distinct Round 2 unit: questionnaires, interview guides, supplementary tables, coding schemes
+
+#### 2.x Iterative Mode: Two-Phase Per-Chapter Review
+
+**Applies only when `review_results.md` exists (iterative mode).**
+
+In iterative mode, each chapter review is split into two sequential phases to prevent anchoring bias:
+
+**Phase A: Independent Discovery (NO historical issues visible)**
+
+Input: Thesis summary block + current chapter full text + prior chapter summary cards
+
+Output format (to `review_working.md`):
+```markdown
+### 第X章 [章节名] - Phase A 独立发现
+
+**审阅维度覆盖：**
+- [x] 数据一致性：[具体检查内容，如"核算了表4.2共5处百分比，均正确"]
+- [x] 内部逻辑：[具体检查内容，如"检查了论证链A→B→C，逻辑成立"]
+- [x] 方法严谨性：[具体检查内容] 或 [N/A - 本章无方法论内容]
+- [x] 文献引用：[具体检查内容] 或 [N/A]
+- [x] 语言规范：[具体检查内容，如"未发现病句或标点问题"]
+- [x] 章节衔接：[具体检查内容，如"开篇承接第2章结论，结尾为第4章铺垫"]
+
+**独立发现问题：**
+| 编号 | 严重度 | 问题 | 位置 | 类型 |
+|------|--------|------|------|------|
+| D-1  | 🟡     | ...  | L123 | [D]  |
+
+*若未发现新问题：*
+> 经独立审阅上述维度，本章未发现新问题。
+```
+
+**Phase B: Historical Issue Verification (inject after Phase A completes)**
+
+Input: Phase A output + historical issues for this chapter (including relevant "全局" issues)
+
+Output format (to `review_working.md`):
+```markdown
+### 第X章 - Phase B 历史问题验证
+
+**注入问题：** [#1] [#7] [#19-A]
+
+| 编号 | 原问题概述 | 验证结果 | 说明 |
+|------|-----------|----------|------|
+| [#1] | Wilcoxon Z/p矛盾 | ❌未修改 | L1965仍为Z=-5.059, p=0.593 |
+| [#7] | 研究问题未编号化 | ❌未修改 | L162-168仍为叙述式 |
+
+**章节摘要卡（定稿）：**
+[标准摘要卡格式]
+```
+
+**Sequencing Rule:** Phase A MUST be complete and output to working file BEFORE Phase B input is provided. The agent may NOT "peek ahead" at historical issues during Phase A.
+
+**Dimension Coverage Checklist Requirement:** The checklist in Phase A must include **specific descriptions** of what was checked (not just checkmarks). This serves as verifiable evidence that independent review was performed.
 
 #### 2.3 Required Output: Per-Chapter Summary Card
 
@@ -282,6 +360,43 @@ Output at end of Round 3:
 ⏭ 已跳过：第4章 → 第5章（🟢，未进入本轮）
 ```
 
+#### Spot Check Mechanism (Iterative Mode Only)
+
+**Purpose:** Validate Round 2 Phase A "无新发现" claims through targeted re-examination. Provides a deterrent against superficial review.
+
+**Trigger Conditions:**
+A spot check is triggered when ALL of the following are true:
+1. A chapter's Phase A declared "本章未发现新问题"
+2. AND that chapter has historical 🔴 issues OR 3+ historical 🟡 issues
+
+**Procedure:**
+1. Select 1-2 subsections (500-1000 characters each) from the triggered chapter
+2. Perform focused re-review on **two dimensions only**: data consistency + terminology consistency
+3. Output result to `review_working.md`
+
+**Limits (Cost Control):**
+- Maximum **3 spot checks** per review cycle
+- Each spot check covers **500-1000 characters only**
+- Focus on **2 dimensions only** (data + terminology)
+
+**Output Format (to `review_working.md`):**
+```markdown
+### 抽查验证
+
+**章节：** 第X章 §X.X（L###-L###）
+**抽查原因：** Phase A声明无新发现，但该章有历史🔴问题[#1][#5]
+**抽查维度：** 数据一致性、术语一致性
+**抽查结果：**
+- ✅ 未发现Round 2遗漏的问题（支持Phase A声明）
+- ⚠️ 发现潜在遗漏（需补充至问题清单）：
+  - [问题描述]
+```
+
+**Integration with Final Output:**
+- Spot check results are recorded in `review_working.md` only
+- If spot check finds omissions, add them to the consolidated issue list with tag `[抽查补充]`
+- `review_results.md` format remains unchanged (user does not see spot check details)
+
 #### Reading Strategy (per pair)
 
 **Full-text reading of both chapters is MANDATORY.** Summary cards are navigation index only.
@@ -317,6 +432,68 @@ Cross-references are **not a primary hard-check item** — only flag suspicious 
 ## Phase 3: Consolidation & Output
 
 After all 3 rounds, consolidate into a single **issue-centric** document. Each issue appears once; originating round noted in brackets.
+
+### Output Files
+
+| File | Location | Content |
+|------|----------|---------|
+| `review_results.md` | Working directory | Final consolidated review (user-facing deliverable) |
+| `review_working_<YYYYMMDD_HHMMSS>.md` | `review_artifacts/` | Round 1 dependency map, Round 2 summary cards, Round 3 pair logs, all intermediate findings |
+| `thesis_full_text_<YYYYMMDD_HHMMSS>.txt` | `review_artifacts/` | Extracted plain text from docx (Phase 1 output) |
+
+**Directory structure:**
+```
+working_directory/
+├── review_results.md
+└── review_artifacts/
+    ├── thesis_full_text_20260325_143052.txt
+    └── review_working_20260325_143052.md
+```
+
+**Notes:**
+- Create `review_artifacts/` directory if it does not exist
+- Timestamp format: `YYYYMMDD_HHMMSS` (local time)
+- Working file serves as execution evidence and traceability record
+- In iterative mode, each review cycle creates a new timestamped working file
+
+### Working File Structure (Iterative Mode)
+
+In iterative mode, `review_working.md` must include the following sections to serve as execution evidence:
+
+```markdown
+# 评审工作文档（第X版）
+
+## Round 1: 宏观结构审阅
+[依赖关系图 + 宏观发现]
+
+## Round 2: 逐章深度审阅
+
+### 第1章 [章节名] - Phase A 独立发现
+**审阅维度覆盖：** [详细checklist]
+**独立发现问题：** [列表或"无"]
+
+### 第1章 - Phase B 历史问题验证
+**注入问题：** [编号列表]
+**验证结果：** [表格]
+**章节摘要卡：** [标准格式]
+
+[...其他章节...]
+
+## Round 3: 跨章一致性审阅
+[配对审查记录]
+
+## 抽查验证
+[抽查记录，如有]
+
+## 历史问题验证汇总
+[所有历史问题的验证状态汇总表]
+```
+
+**Key Points:**
+- Phase A and Phase B records must be clearly separated
+- Dimension coverage checklist must include specific descriptions (not just checkmarks)
+- Spot check records (if any) must be included
+- This structure provides traceability for the review process
 
 ### Consolidation Rules
 
@@ -455,3 +632,4 @@ Additional focus when reviewing specific chapter types in Round 2.
 | **Appendices** | Alignment with main text; *(if survey)* question design, scale coverage, response options |
 
 ---
+

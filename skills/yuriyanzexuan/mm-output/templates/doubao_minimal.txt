@@ -31,11 +31,18 @@
             padding: 22px;
         }
         h2 { font-size: 18px; margin: 0 0 12px; color: var(--accent); }
-        img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
         .caption { color: var(--muted); font-size: 12px; margin-top: 6px; }
         ol { padding-left: 18px; }
         a { color: #2563eb; text-decoration: none; }
         a:hover { text-decoration: underline; }
+        .cite-ref {
+            color: #2563eb;
+            font-size: 0.75em;
+            text-decoration: none;
+            font-weight: 600;
+            vertical-align: super;
+        }
+        .cite-ref:hover { text-decoration: underline; }
         @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -47,7 +54,7 @@
         <div class="grid">
             <div class="card">
                 <h2>主要内容</h2>
-                <p>在此处放置核心文本，如摘要、方法介绍等。</p>
+                <p>在此处放置核心文本，如摘要、方法介绍等<a class="cite-ref" href="https://example.com/source" target="_blank">[1]</a>。</p>
             </div>
             <div class="card">
                 <h2>图表与数据</h2>
@@ -59,13 +66,6 @@
             </div>
         </div>
 
-        <div class="card" style="margin-top:20px;">
-            <h2>参考与链接</h2>
-            <ol>
-                <li><a href="#" target="_blank" rel="noreferrer">[1] 论文链接</a></li>
-                <li><a href="#" target="_blank" rel="noreferrer">[2] 代码仓库</a></li>
-            </ol>
-        </div>
     </div>
 </body>
 </html>

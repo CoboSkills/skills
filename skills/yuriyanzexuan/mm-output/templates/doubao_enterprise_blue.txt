@@ -35,7 +35,6 @@
         .kpi-item { flex: 1; background: #f8fafc; border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
         .kpi-item .num { font-size: 28px; font-weight: 800; color: var(--primary); }
         .kpi-item .label { font-size: 12px; color: var(--muted); }
-        img { max-width: 100%; border-radius: 8px; border: 1px solid var(--border); }
         .caption { color: var(--muted); font-size: 12px; margin-top: 6px; }
         .btns { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn {
@@ -47,6 +46,14 @@
         ol { padding-left: 18px; }
         a { color: var(--primary); text-decoration: none; }
         a:hover { text-decoration: underline; }
+        .cite-ref {
+            color: var(--primary);
+            font-size: 0.75em;
+            text-decoration: none;
+            font-weight: 600;
+            vertical-align: super;
+        }
+        .cite-ref:hover { text-decoration: underline; }
         @media (max-width: 1000px) { .grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -64,7 +71,7 @@
         <div class="grid">
             <div class="card">
                 <h2>概述与要点</h2>
-                <div id="md-slot">此处放置摘要、背景、方法与结论等关键信息。</div>
+                <div id="md-slot">此处放置摘要、背景、方法与结论等关键信息<a class="cite-ref" href="https://example.com/source" target="_blank">[1]</a>。</div>
                 <div class="kpi" style="margin-top: 14px;">
                     <div class="kpi-item">
                         <div class="num">98.6%</div>
@@ -82,14 +89,6 @@
             </div>
         </div>
 
-        <div class="card" style="margin-top: 18px;">
-            <h2>参考与链接</h2>
-            <ol>
-                <li><a href="#" target="_blank" rel="noreferrer">[1] 论文链接</a></li>
-                <li><a href="#" target="_blank" rel="noreferrer">[2] 代码仓库</a></li>
-                <li><a href="#" target="_blank" rel="noreferrer">[3] 数据源</a></li>
-            </ol>
-        </div>
     </div>
 </body>
 </html>

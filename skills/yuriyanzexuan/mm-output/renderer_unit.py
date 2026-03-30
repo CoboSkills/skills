@@ -73,9 +73,9 @@ class PosterGenRendererUnit:
                 tables = {}
         else:
             tables = {}
-        # Load auto-downloaded web images
-        # If web_images_path is not in parser_results, auto-image feature was not enabled for this run
-        # In that case, do not load any possibly stale web_images.json file
+        # 读取自动下载的网页图片
+        # 如果 parser_results 中没有 web_images_path，说明本次运行没有启用自动图片功能
+        # 此时不应该加载任何可能存在的旧 web_images.json 文件
         if 'web_images_path' in parser_results and web_images_path.exists():
             try:
                 with open(web_images_path, 'r', encoding='utf-8') as f:
@@ -88,17 +88,17 @@ class PosterGenRendererUnit:
         mode = (mode or "llm").lower()
         if mode == "llm":
             try:
-                # Prefer template_name parameter or POSTER_TEMPLATE env var
-                # If either is set, use that specific template for rendering
+                # 优先使用 template_name 参数或环境变量 POSTER_TEMPLATE
+                # 如果两者有其一，则使用该特定模板进行渲染
                 target_template = template_name or os.getenv("POSTER_TEMPLATE")
                 
                 if target_template:
-                    # Single-template rendering mode
+                    # 单模板渲染模式
                     print(f"[{self.name}] Using specified template: {target_template}")
                     html = self._render_via_llm(output_path, raw_text, figures, tables, web_images, model_id=model_id, temperature=temperature, max_tokens=max_tokens, max_attempts=max_attempts, template_name=target_template)
                     
-                    # Use template name as part of output filename, or keep default poster_llm.html
-                    # To avoid ambiguity: if a specific path is given, extract the stem; for default logic, use poster_llm.html
+                    # 使用模板名称作为输出文件名的一部分，或者保持默认 poster_llm.html
+                    # 为了避免歧义，如果指定了具体路径，我们尝试提取文件名；如果是默认逻辑，使用 poster_llm.html
                     stem = Path(target_template).stem
                     if stem == "doubao": # default behavior compat
                         out_name = "poster_llm.html"
@@ -106,19 +106,21 @@ class PosterGenRendererUnit:
                         out_name = f"poster_llm__{stem}.html"
                         
                     html_output_path = output_path / out_name
-                    html_output_path.write_text(html, encoding='utf-8')
+                    html = self._postprocess_references(html, raw_text)
+                    html_output_path.write_text(self._postprocess_html(html), encoding='utf-8')
                     print(f"[{self.name}] Successfully rendered HTML poster via LLM to: {html_output_path}")
                     return str(html_output_path)
                 else:
-                    # No template specified: scan all .txt templates and render (multi-template mode)
+                    # 未指定模板，扫描所有 .txt 模板并渲染（多模板模式）
                     template_files = self._list_templates()
                     if not template_files:
-                        # Fallback: use default doubao.txt
+                        # 兜底：使用默认 doubao.txt
                         print(f"[{self.name}] No templates found or specified, falling back to default.")
                         template_html = self._load_doubao_template()
                         html = self._render_via_llm_with_template(template_html, output_path, raw_text, figures, tables, web_images, model_id=model_id, temperature=temperature, max_tokens=max_tokens, max_attempts=max_attempts)
                         html_output_path = output_path / "poster_llm.html"
-                        html_output_path.write_text(html, encoding='utf-8')
+                        html = self._postprocess_references(html, raw_text)
+                        html_output_path.write_text(self._postprocess_html(html), encoding='utf-8')
                         print(f"[{self.name}] Successfully rendered HTML poster via LLM to: {html_output_path}")
                         return str(html_output_path)
                     
@@ -127,9 +129,10 @@ class PosterGenRendererUnit:
                     for path in template_files:
                         template_html = Path(path).read_text(encoding='utf-8')
                         html = self._render_via_llm_with_template(template_html, output_path, raw_text, figures, tables, web_images, model_id=model_id, temperature=temperature, max_tokens=max_tokens, max_attempts=max_attempts)
+                        html = self._postprocess_references(html, raw_text)
                         out_name = f"poster_llm__{Path(path).stem}.html"
                         out_path = output_path / out_name
-                        out_path.write_text(html, encoding='utf-8')
+                        out_path.write_text(self._postprocess_html(html), encoding='utf-8')
                         print(f"[{self.name}] Rendered via LLM with template '{Path(path).name}' -> {out_path}")
                         rendered_paths.append(str(out_path))
                     return rendered_paths
@@ -148,12 +151,12 @@ class PosterGenRendererUnit:
 
     def _render_simple(self, raw_text: str, figures: Dict[str, Any], tables: Dict[str, Any], web_images: list) -> str:
         """
-        Natural single-column layout (not three-column): place one Hero image at top, insert the rest
-        below matching sections via simple semantic matching; show native figures/tables as appendix.
+        非三栏的自然排版：选取一张 Hero 图置于顶部，其余根据与章节的简单语义匹配插入到对应段落下方；
+        原生的 figures/tables 作为附录展示，避免生硬分栏。
         """
         html_template = self._get_html_template()
 
-        # 1) Split sections by headings
+        # 1) 按标题切分章节
         sections = []
         current = {"heading": None, "level": 0, "lines": []}
         for ln in raw_text.splitlines():
@@ -169,7 +172,7 @@ class PosterGenRendererUnit:
         if not sections:
             sections = [{"heading": None, "level": 0, "lines": raw_text.splitlines()}]
 
-        # 2) Pick Hero + assign the rest
+        # 2) 选 Hero + 其余分配
         def area_score(w: dict) -> float:
             return float(w.get("width") or 0) * float(w.get("height") or 0)
         def composite_score(w: dict) -> float:
@@ -191,7 +194,7 @@ class PosterGenRendererUnit:
         else:
             remaining = []
 
-        # 3) Simple semantic matching: pick best section by token overlap of heading/body with image title/keyword/domain
+        # 3) 简单语义匹配：根据标题/正文 token 与图片标题/关键词/域名交集选择最佳章节
         def tokenize(s: str) -> set:
             if not s:
                 return set()
@@ -216,7 +219,7 @@ class PosterGenRendererUnit:
                     best_idx, best_overlap = idx, overlap
             assigned[best_idx].append(w)
 
-        # 4) Generate body + per-section image gallery
+        # 4) 生成正文 + 分节图集
         article_parts = []
         for idx, sec in enumerate(sections):
             md_block = ""
@@ -249,7 +252,7 @@ class PosterGenRendererUnit:
                 imgs_html = f'<div class="gallery-grid">{imgs_html}\n</div>'
             article_parts.append(html_block + imgs_html)
 
-        # 5) Appendix: native figures/tables
+        # 5) 附录：原生 figures/tables
         appendix = ""
         if figures:
             fig_html = ""
@@ -307,7 +310,7 @@ class PosterGenRendererUnit:
                 "height": tab.get("height"),
                 "aspect": tab.get("aspect")
             })
-        # Add web images as an asset type for LLM layout (allows image_url external links)
+        # 新增：网页图片作为一种资产类型，供 LLM 自行布局使用（允许使用 image_url 外链）
         for idx, w in enumerate(web_images):
             rel_path = w.get("rel_path") or ""
             image_url = w.get("image_url") or ""
@@ -330,15 +333,23 @@ class PosterGenRendererUnit:
         attempts = 3 if max_attempts is None else int(max_attempts)
 
         system_prompt = (
-            "You are a professional academic poster frontend design assistant. Given the paper text and asset list, "
-            "generate a complete, directly openable HTML page. You must:\n"
-            "1) Follow the information architecture and visual style of the given template_html (keep Tailwind/fonts/icons consistent or compatible);\n"
-            "2) Insert figures/tables correctly by rel_path;\n"
-            "2.1) You will also receive web_image assets (auto-fetched from search engines) with image_url and rel_path. "
-            "For web_image, prefer image_url for rendering (use rel_path only when image_url is unavailable). "
-            "Select and layout wisely based on score/title/context; avoid stacking too many; pick one or a few to enhance visuals;\n"
-            "3) Organize content structure (headings, bullet cards, chart areas, etc.) for readability and aesthetics;\n"
-            "4) Output only the HTML source code, no extra explanation."
+            "你是专业的学术海报前端设计助手。根据提供的论文文本与素材列表，"
+            "生成一个完整且可直接打开的 HTML 页面。必须：\n"
+            "1) 参考给定 template_html 的信息架构和视觉风格（Tailwind/字体/图标等引入保持一致或兼容）；\n"
+            "2) 将 figures/tables 按 rel_path 正确插入页面；\n"
+            "2.1) 你还会收到 web_image 类型的资产（从搜索引擎自动获取），其字段包含 image_url 与 rel_path，"
+            "对 web_image 优先使用 image_url 外链渲染（仅当 image_url 不可用时再使用 rel_path）。"
+            "请结合 score/标题/上下文合理挑选与排版，避免堆叠过多，精选其一或数张增强视觉；\n"
+            "3) 合理组织内容结构（标题、要点卡片、图表区等），保持可读性与审美；\n"
+            "4) **引用与链接（非常重要）**：\n"
+            "   a) 正文中每个引用了具体来源的句子末尾，"
+            "用 <a class=\"cite-ref\" href=\"真实URL\" target=\"_blank\">[N]</a> 标注内联引用，"
+            "href 直接填写该来源的真实 URL，N 从 1 递增。\n"
+            "   b) **URL 严禁编造！必须原样复制自提供的原始文本中出现的 URL。** "
+            "如果原文中找不到 URL，则不要添加该引用角标。\n"
+            "   c) 同一来源多次被引用时，复用同一个编号和 URL。\n"
+            "   d) **不要生成底部的 references / 参考文献列表。** 所有引用仅以正文中的角标形式存在。\n"
+            "5) 仅输出 HTML 源码，不要附加解释。"
         )
 
         user_payload = {
@@ -347,19 +358,7 @@ class PosterGenRendererUnit:
             "assets": assets
         }
 
-        # Check if Qwen model; if so, use QST/MAAS OpenAI-compatible API
-        if "qwen" in model.lower():
-            print(f"[{self.name}] Detected Qwen model '{model}', using QST/MAAS API.")
-            return self._call_qwen(
-                model=model,
-                system_prompt=system_prompt,
-                user_payload=user_payload,
-                temperature=temp,
-                max_tokens=tokens,
-                attempts=attempts
-            )
-
-        # Check if Gemini model; if so, use native API call logic
+        # 检查是否为 Gemini 模型，若是则走原生调用逻辑
         if "gemini" in model.lower():
             print(f"[{self.name}] Detected Gemini model '{model}', switching to native API.")
             return self._call_gemini_native(
@@ -371,7 +370,7 @@ class PosterGenRendererUnit:
                 attempts=attempts
             )
 
-        # Primary: HTTP direct connection to compatible Chat Completions API
+        # 首选：通过 HTTP 直连兼容的 Chat Completions 接口（参考 curl 示例）
         base_url = os.getenv("OPENAI_BASE_URL") or os.getenv("RUNWAY_API_BASE") or "https://runway.devops.xiaohongshu.com/openai"
         api_version = os.getenv("RUNWAY_API_VERSION") or "2024-12-01-preview"
         api_key = os.getenv("OPENAI_API_KEY") or os.getenv("RUNWAY_API_KEY")
@@ -408,7 +407,7 @@ class PosterGenRendererUnit:
                 except Exception as e:  # pragma: no cover
                     http_err = e
 
-        # Fallback: if OpenAI SDK is configured, try SDK
+        # 回退方案：如果提供了 openai SDK 配置，尝试 SDK
         client = self._init_llm_client()
         if client is not None:
             last_err: Exception | None = None
@@ -436,8 +435,8 @@ class PosterGenRendererUnit:
 
     def _call_gemini_native(self, model: str, system_prompt: str, user_payload: dict, temperature: float, max_tokens: int, attempts: int) -> str:
         """
-        Call Gemini native API (https://runway.devops.rednote.life/openai/google/v1:generateContent).
-        Logic follows PosterGen2/dev/APIconn_test.py.
+        调用 Gemini 原生 API (https://runway.devops.rednote.life/openai/google/v1:generateContent)。
+        逻辑参照 PosterGen2/dev/APIconn_test.py。
         """
         endpoint = "https://runway.devops.rednote.life/openai/google/v1:generateContent"
         api_key = os.getenv("OPENAI_API_KEY") or os.getenv("RUNWAY_API_KEY")
@@ -449,10 +448,11 @@ class PosterGenRendererUnit:
             "Content-Type": "application/json",
         }
         
-        # Gemini native API supports systemInstruction
-        # For simplicity we pass system prompt as systemInstruction (per test.sh example)
+        # Gemini 原生 API 支持 systemInstruction
+        # 但为了简单兼容，我们把 system prompt 拼接到 user content 或者作为 systemInstruction 传入
+        # 根据 test.sh 示例，可以使用 systemInstruction 字段
         
-        # Build user content text
+        # 构造 user content 文本
         user_text = json.dumps(user_payload, ensure_ascii=False)
         
         payload = {
@@ -479,7 +479,7 @@ class PosterGenRendererUnit:
                 
                 res_json = resp.json()
                 
-                # Error check
+                # 错误检查
                 if "error" in res_json:
                      raise RuntimeError(f"API Error: {res_json.get('error')}")
 
@@ -506,42 +506,6 @@ class PosterGenRendererUnit:
         
         raise RuntimeError(f"Gemini native call failed: {last_err}")
 
-    def _call_qwen(self, model: str, system_prompt: str, user_payload: dict, temperature: float, max_tokens: int, attempts: int) -> str:
-        """Call Qwen/QST MAAS API via OpenAI SDK."""
-        if OpenAI is None:
-            raise RuntimeError("openai package not installed, cannot call Qwen API")
-
-        api_key = os.getenv("QST_API_KEY") or os.getenv("OPENAI_API_KEY")
-        base_url = os.getenv("QST_BASE_URL") or os.getenv("OPENAI_BASE_URL")
-        if not api_key:
-            raise RuntimeError("missing QST_API_KEY or OPENAI_API_KEY for Qwen call")
-        if not base_url:
-            raise RuntimeError("missing QST_BASE_URL or OPENAI_BASE_URL for Qwen call")
-
-        client = OpenAI(api_key=api_key, base_url=base_url)
-        user_text = json.dumps(user_payload, ensure_ascii=False)
-
-        last_err: Exception | None = None
-        for _ in range(max(1, attempts)):
-            try:
-                resp = client.chat.completions.create(
-                    model=model,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_text}
-                    ],
-                    stream=False,
-                )
-                content = resp.choices[0].message.content if resp and resp.choices else ""
-                if not content:
-                    raise RuntimeError("empty completion content from Qwen")
-                return self._strip_code_fences(content)
-            except Exception as e:
-                last_err = e
-        raise RuntimeError(f"Qwen API call failed after {attempts} attempts: {last_err}")
-
     def _init_llm_client(self):
         if OpenAI is None:
             return None
@@ -553,51 +517,132 @@ class PosterGenRendererUnit:
             return OpenAI(api_key=api_key, base_url=base_url)
         return OpenAI(api_key=api_key)
 
+    # ------------------------------------------------------------------
+    #  Reference post-processing: verify URLs & replace inline citations
+    # ------------------------------------------------------------------
+
+    _URL_RE = re.compile(
+        r'https?://[^\s\)\]>"\'，。、；：！？）】」』\u3000<]+'
+    )
+
+    @staticmethod
+    def _extract_source_urls(raw_text: str) -> set:
+        """Extract every URL that appears in the original source text."""
+        urls = set()
+        for m in PosterGenRendererUnit._URL_RE.finditer(raw_text):
+            urls.add(m.group(0).rstrip('/.,;:!?'))
+        return urls
+
+    @staticmethod
+    def _url_verified(url: str, source_urls: set) -> bool:
+        """Strict check: URL (after normalisation) must appear in source."""
+        clean = url.rstrip('/.,;:!?')
+        return any(clean == s for s in source_urls)
+
+    @staticmethod
+    def _postprocess_references(html: str, raw_text: str) -> str:
+        """Verify every inline citation URL against the original source text.
+
+        - Verified: keep the clickable ``<a class="cite-ref">`` as-is.
+        - Unverified (hallucinated / placeholder): remove the entire tag.
+        """
+        if not raw_text:
+            return html
+
+        source_urls = PosterGenRendererUnit._extract_source_urls(raw_text)
+        if not source_urls:
+            # No URLs in source → strip all cite-ref tags
+            html = re.sub(
+                r'<a\b[^>]*class="cite-ref"[^>]*>.*?</a>',
+                '', html, flags=re.IGNORECASE,
+            )
+            return html
+
+        def _check(m: re.Match) -> str:
+            tag = m.group(0)
+            href_m = re.search(r'href=["\'](https?://[^"\']+)["\']', tag)
+            if href_m and PosterGenRendererUnit._url_verified(href_m.group(1), source_urls):
+                return tag  # keep
+            return ''  # remove
+
+        html = re.sub(
+            r'<a\b[^>]*class="cite-ref"[^>]*>.*?</a>',
+            _check, html, flags=re.IGNORECASE,
+        )
+        return html
+
+    @staticmethod
+    def _postprocess_html(html: str) -> str:
+        """Inject AOS graceful-degradation: content visible by default,
+        animations activate only after AOS loads successfully."""
+        AOS_FALLBACK = (
+            '\n<!-- AOS graceful degradation -->\n'
+            '<style id="aos-fallback">\n'
+            '  [data-aos] { opacity: 1 !important; transform: none !important; transition: none !important; }\n'
+            '</style>\n'
+        )
+        AOS_ACTIVATE = (
+            '\n<script>\n'
+            '// Remove fallback only if AOS loaded — let original AOS.init() handle animations\n'
+            '(function(){\n'
+            '  var fb = document.getElementById("aos-fallback");\n'
+            '  if (typeof AOS !== "undefined" && fb) fb.remove();\n'
+            '})();\n'
+            '</script>\n'
+        )
+        # Inject fallback style right before </head>
+        if '</head>' in html:
+            html = html.replace('</head>', AOS_FALLBACK + '</head>', 1)
+        # Inject activation script right before </body>
+        if '</body>' in html:
+            html = html.replace('</body>', AOS_ACTIVATE + '</body>', 1)
+        return html
+
     def _strip_code_fences(self, text: str) -> str:
         """
-        Remove outermost code fence wrappers like ```html ... ``` or ``` ... ```.
-        Only strips leading/trailing fences; does not alter inner content.
+        去除形如 ```html ... ``` 或 ``` ... ``` 的最外层代码块包裹。
+        仅清理首尾围栏，不影响正文内部内容。
         """
         if not text:
             return text
         t = text.strip()
-        # Strip leading fence: ``` or ```lang
+        # 去首部围栏：``` 或 ```lang
         t = re.sub(r"^\s*```[a-zA-Z0-9_-]*\s*\n", "", t)
-        # Strip trailing fence: ```
+        # 去尾部围栏：```
         t = re.sub(r"\n?\s*```\s*$", "", t)
         return t.strip()
 
     def _load_doubao_template(self, template_name: str = None) -> str:
         templates_dir = Path(__file__).parent / "templates"
-        # Allow selecting template file or absolute path via parameter or env var; default doubao.txt
+        # 允许通过参数或环境变量选择模板文件名或绝对路径，默认 doubao.txt
         name = template_name or os.getenv("POSTER_TEMPLATE") or "doubao.txt"
         
         candidate_path = Path(name)
-        # If absolute path, use directly
+        # 如果是绝对路径，直接使用
         if candidate_path.is_absolute():
             template_path = candidate_path
-        # If no extension specified, append .txt by default
+        # 如果没有指定后缀，默认追加 .txt
         elif not name.endswith(".txt"):
              template_path = templates_dir / f"{name}.txt"
         else:
             template_path = templates_dir / name
             
         if not template_path.exists():
-            # Strict error only when user explicitly specified POSTER_TEMPLATE or template_name
-            # If default "doubao.txt" is missing, still raise since it is fallback logic
+            # 只有当用户显式指定了 POSTER_TEMPLATE 或 template_name 时才严格报错
+            # 如果仅仅是默认值 "doubao.txt" 找不到，可能还是需要报错，因为这是兜底逻辑
             raise FileNotFoundError(f"template not found at {template_path}")
             
         return template_path.read_text(encoding='utf-8')
 
     def _list_templates(self) -> list:
-        """Scan templates directory and return full paths of all .txt templates."""
+        """扫描 templates 目录，返回所有 .txt 模板的完整路径列表。"""
         templates_dir = Path(__file__).parent / "templates"
         if not templates_dir.exists():
             return []
         return [str(p) for p in templates_dir.glob("*.txt")]
 
     def _get_html_template(self) -> str:
-        """Single-column natural layout template (Hero + body + gallery style)."""
+        """单列自然排版模板（Hero + 正文 + 图集样式）。"""
         return """
 <!DOCTYPE html>
 <html lang="en">

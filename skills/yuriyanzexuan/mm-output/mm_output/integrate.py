@@ -47,11 +47,17 @@ def add_mm_output_args(parser: argparse.ArgumentParser):
         action="store_true",
         help="Generate DOCX (Word) output from HTML"
     )
+
+    mm_group.add_argument(
+        "--output-pptx",
+        action="store_true",
+        help="Generate PPTX (PowerPoint) output from HTML"
+    )
     
     mm_group.add_argument(
         "--output-all",
         action="store_true",
-        help="Generate all supported output formats (PDF, PNG, DOCX)"
+        help="Generate all supported output formats (PDF, PNG, DOCX, PPTX)"
     )
     
     mm_group.add_argument(
@@ -125,7 +131,7 @@ def generate_mm_outputs(
         Dictionary mapping format names to output paths, or None if no outputs generated
     """
     # Check if any MM output is requested
-    if not (args.output_pdf or args.output_png or args.output_docx or args.output_all):
+    if not (args.output_pdf or args.output_png or args.output_docx or getattr(args, "output_pptx", False) or args.output_all):
         return None
     
     # Determine output directory
@@ -139,7 +145,7 @@ def generate_mm_outputs(
     # Determine formats to generate
     formats = []
     if args.output_all:
-        formats = ["pdf", "png", "docx"]
+        formats = ["pdf", "png", "docx", "pptx"]
     else:
         if args.output_pdf:
             formats.append("pdf")
@@ -147,6 +153,8 @@ def generate_mm_outputs(
             formats.append("png")
         if args.output_docx:
             formats.append("docx")
+        if getattr(args, "output_pptx", False):
+            formats.append("pptx")
     
     if not formats:
         return None
@@ -198,6 +206,9 @@ def generate_mm_outputs(
                     elif fmt == 'docx':
                         result = gen.html_to_docx(html_path, output_path, **docx_options)
                         results['docx'] = result
+                    elif fmt == 'pptx':
+                        result = gen.html_to_pptx(html_path, output_path)
+                        results['pptx'] = result
                 except Exception as e:
                     if verbose:
                         print(f"[MMOutput] Error generating {fmt.upper()}: {e}")

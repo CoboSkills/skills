@@ -40,6 +40,15 @@
             transition: background 0.2s ease;
         }
         .link-pill:hover { background: #E5E7EB; }
+        /* Inline citations */
+        .cite-ref {
+            color: #4F46E5;
+            font-size: 0.75em;
+            text-decoration: none;
+            font-weight: 600;
+            vertical-align: super;
+        }
+        .cite-ref:hover { text-decoration: underline; }
     </style>
 </head>
 <body class="bg-white">
@@ -56,7 +65,7 @@
             <div class="card p-6">
                 <h3 class="text-lg font-semibold text-gray-800 mb-3"><i class="fa-solid fa-flask mr-2 text-blue-500"></i>方法与数据</h3>
                 <ul class="list-disc list-inside text-gray-600 space-y-2">
-                    <li>方法概览与关键步骤</li>
+                    <li>方法概览与关键步骤<a class="cite-ref" href="https://example.com/source" target="_blank">[1]</a></li>
                     <li>数据来源与规模</li>
                     <li>实现细节与配置</li>
                 </ul>
@@ -79,27 +88,6 @@
             </div>
         </div>
 
-        <!-- 新增：引用与链接区（页面靠后部分） -->
-        <div class="card p-8">
-            <h2 class="text-2xl font-bold text-gray-800 mb-4 flex items-center"><i class="fa-solid fa-link mr-3 text-indigo-500"></i>参考与引用</h2>
-            <p class="text-gray-600 mb-4">以下为关键参考文献与相关链接（LLM 请将重要引用整理为可点击列表，包含标题与来源链接）：</p>
-            <ol class="list-decimal list-inside space-y-2 text-gray-700" id="references-slot">
-                <!-- 示例：
-                <li>
-                    <a href="https://example.com/paper1" class="text-indigo-600 hover:underline" target="_blank" rel="noreferrer">[1] Author A. Title, Venue, Year.</a>
-                </li>
-                <li>
-                    <a href="https://example.com/project" class="text-indigo-600 hover:underline" target="_blank" rel="noreferrer">[2] 项目主页 / 代码仓库</a>
-                </li>
-                -->
-            </ol>
-            <div class="mt-4 flex flex-wrap gap-2">
-                <!-- 可选：快捷链接胶囊 -->
-                <a class="link-pill" href="#" target="_blank" rel="noreferrer"><i class="fa-solid fa-file-lines"></i><span>Paper</span></a>
-                <a class="link-pill" href="#" target="_blank" rel="noreferrer"><i class="fa-brands fa-github"></i><span>Code</span></a>
-                <a class="link-pill" href="#" target="_blank" rel="noreferrer"><i class="fa-solid fa-globe"></i><span>Project</span></a>
-            </div>
-        </div>
     </div>
 </body>
 </html>

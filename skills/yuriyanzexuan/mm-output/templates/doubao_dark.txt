@@ -35,6 +35,14 @@
         .caption { color: #9CA3AF; }
         a { color: #93C5FD; }
         a:hover { color: #BFDBFE; }
+        .cite-ref {
+            color: #93C5FD;
+            font-size: 0.75em;
+            text-decoration: none;
+            font-weight: 600;
+            vertical-align: super;
+        }
+        .cite-ref:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -49,7 +57,7 @@
             <div class="card p-6">
                 <h2 class="text-xl font-bold mb-4 section-title"><i class="fa-solid fa-note-sticky accent mr-2"></i>文本</h2>
                 <div class="prose prose-invert max-w-none">
-                    <p>将论文摘要、背景与方法论放置在此，使用列表或小节增强可读性。</p>
+                    <p>将论文摘要、背景与方法论放置在此，使用列表或小节增强可读性<a class="cite-ref" href="https://example.com/source" target="_blank">[1]</a>。</p>
                     <ul>
                         <li>背景与动机</li>
                         <li>方法与创新点</li>
@@ -59,14 +67,6 @@
             </div>
         </div>
 
-        <!-- 引用区 -->
-        <div class="card p-6">
-            <h2 class="text-2xl font-bold section-title mb-4"><i class="fa-solid fa-link accent mr-2"></i>参考与引用</h2>
-            <ol class="list-decimal list-inside space-y-2">
-                <li><a href="#" target="_blank" rel="noreferrer">[1] 论文或项目链接</a></li>
-                <li><a href="#" target="_blank" rel="noreferrer">[2] 相关资料或数据源</a></li>
-            </ol>
-        </div>
     </div>
 </body>
 </html>

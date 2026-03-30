@@ -327,6 +327,17 @@
             color: var(--primary-color);
             margin-right: 0.5rem;
         }
+
+        /* Inline citations */
+        .cite-ref {
+            color: var(--primary-color);
+            font-size: 0.75em;
+            text-decoration: none;
+            font-weight: 600;
+            vertical-align: super;
+        }
+        .cite-ref:hover { text-decoration: underline; }
+
     </style>
 </head>
 <body>
@@ -362,7 +373,7 @@
                 </h2>
                 
                 <div class="content-text">
-                    <strong>随着机器人技术的快速发展，消费娱乐机器人和格斗机器人作为新兴应用领域，正迎来政策红利期</strong>。本报告系统梳理了国家及地方层面针对两类机器人产业的政策支持体系，重点关注与工匠社科技公司业务高度相关的规划、意见、措施和细则，为行业参与者提供政策参考框架。
+                    <strong>随着机器人技术的快速发展，消费娱乐机器人和格斗机器人作为新兴应用领域，正迎来政策红利期</strong><a class="cite-ref" href="https://example.com/source" target="_blank">[1]</a>。本报告系统梳理了国家及地方层面针对两类机器人产业的政策支持体系，重点关注与工匠社科技公司业务高度相关的规划、意见、措施和细则，为行业参与者提供政策参考框架。
                 </div>
 
                 <div class="stats-grid" data-aos="fade-up" data-aos-delay="200">

@@ -42,15 +42,17 @@
         .dropcap:first-letter {
             float: left; font-size: 48px; line-height: 1; padding: 6px 8px 0 0; font-weight: 700; color: var(--accent);
         }
-        .figure, .table { margin-bottom: 16px; }
-        img { max-width: 100%; border: 1px solid var(--rule); }
+        .table { margin-bottom: 16px; }
         .caption { color: var(--muted); font-size: 12px; margin-top: 6px; font-family: 'Inter', sans-serif; }
 
-        .references { margin-top: 20px; background: #fff; border: 1px solid var(--rule); padding: 16px; }
-        .references h2 { font-size: 18px; margin: 0 0 10px; }
-        .references ol { padding-left: 18px; margin: 0; }
-        .references a { color: #1d4ed8; text-decoration: none; }
-        .references a:hover { text-decoration: underline; }
+        .cite-ref {
+            color: #1d4ed8;
+            font-size: 0.75em;
+            text-decoration: none;
+            font-weight: 600;
+            vertical-align: super;
+        }
+        .cite-ref:hover { text-decoration: underline; }
 
         @media (max-width: 1000px) {
             .grid { grid-template-columns: 1fr; }
@@ -71,23 +73,16 @@
                 <div class="byline">作者：[作者姓名] | 日期：[日期]</div>
                 <p class="dropcap">
                     [在此处插入摘要的首段。首字母下沉效果已自动应用。]
-                    在此处继续阐述研究背景、动机和核心问题。
+                    在此处继续阐述研究背景、动机和核心问题<a class="cite-ref" href="https://example.com/source" target="_blank">[1]</a>。
                 </p>
                 <p>
                     [更多背景介绍文本...]
                 </p>
             </div>
 
-            <!-- 第二栏：方法与图示 -->
+            <!-- 第二栏：方法论 -->
             <div class="column">
                 <div class="section-title">方法论</div>
-                <div class="figure">
-                    <!-- 占位图 -->
-                    <div style="background:#eee; height:150px; display:flex; align-items:center; justify-content:center; border:1px solid var(--rule);">
-                        <span style="color:#999;">[架构图/流程图]</span>
-                    </div>
-                    <div class="caption">图 1：系统架构示意图</div>
-                </div>
                 <p>
                     [在此处描述核心方法、算法流程或系统架构的设计细节。]
                 </p>
@@ -127,14 +122,6 @@
             </div>
         </div>
 
-        <!-- 引用区 -->
-        <div class="references" style="margin-top:22px;">
-            <h2>参考与链接</h2>
-            <ol>
-                <li><a href="#" target="_blank" rel="noreferrer">[1] 论文链接 / 项目主页</a></li>
-                <li><a href="#" target="_blank" rel="noreferrer">[2] 代码仓库 / 数据源</a></li>
-            </ol>
-        </div>
     </div>
 </body>
 </html>

@@ -16,22 +16,13 @@ class PosterGenParserUnit:
         self.name = "PosterGenParserUnit"
         print(f"Initializing {self.name}")
         
-        # Default batch sizes, can be customized if needed
-        batch_config = {
-            "recognition": 4,
-            "layout": 4,
-            "detection": 4,
-            "table_rec": 4,
-            "ocr_error": 4,
-            "equation": 4,
-        }
         config = {
-            "recognition_batch_size": batch_config["recognition"],
-            "layout_batch_size": batch_config["layout"],
-            "detection_batch_size": batch_config["detection"],
-            "table_rec_batch_size": batch_config["table_rec"],
-            "ocr_error_batch_size": batch_config["ocr_error"],
-            "equation_batch_size": batch_config["equation"],
+            "recognition_batch_size": 4,
+            "layout_batch_size": 4,
+            "detection_batch_size": 4,
+            "table_rec_batch_size": 4,
+            "ocr_error_batch_size": 4,
+            "equation_batch_size": 4,
             "disable_tqdm": False,
         }
 
@@ -42,76 +33,63 @@ class PosterGenParserUnit:
     def parse(self, pdf_path: str, output_dir: str) -> Dict:
         print(f"[{self.name}] Starting parsing for: {pdf_path}")
 
-        try:
-            output_path = Path(output_dir)
-            assets_dir = output_path / "assets"
-            output_path.mkdir(parents=True, exist_ok=True)
-            assets_dir.mkdir(parents=True, exist_ok=True)
+        out = Path(output_dir)
+        assets = out / "assets"
+        out.mkdir(parents=True, exist_ok=True)
+        assets.mkdir(parents=True, exist_ok=True)
 
-            # Extract raw text and assets
-            raw_text, raw_result = self._extract_raw_text(pdf_path, output_path)
+        text, result = self._extract_raw_text(pdf_path, out)
+        figures, tables = self._extract_assets(result, assets)
 
-            figures, tables = self._extract_assets(raw_result, assets_dir)
-
-            print(f"[{self.name}] Successfully extracted raw text, {len(figures)} images, and {len(tables)} tables.")
-            
-            return {
-                "raw_text_path": str(output_path / "raw.md"),
-                "figures_path": str(assets_dir / "figures.json"),
-                "tables_path": str(assets_dir / "tables.json"),
-                "figure_count": len(figures),
-                "table_count": len(tables)
-            }
-
-        except Exception as e:
-            print(f"[{self.name}] An error occurred: {e}")
-            raise
+        print(f"[{self.name}] Successfully extracted raw text, {len(figures)} images, and {len(tables)} tables.")
+        
+        return {
+            "raw_text_path": str(out / "raw.md"),
+            "figures_path": str(assets / "figures.json"),
+            "tables_path": str(assets / "tables.json"),
+            "figure_count": len(figures),
+            "table_count": len(tables)
+        }
 
     def parse_markdown(self, md_path: str, output_dir: str) -> Dict:
         """
-        Compatibility handling based on existing Markdown file only:
-        - Copy/write to output_dir/raw.md
-        - Create empty figures.json / tables.json
-        - Return result dict consistent with parse(), with counts as 0
+        仅基于现有 Markdown 文件进行兼容处理：
+        - 拷贝/写入到 output_dir/raw.md
+        - 创建空的 figures.json / tables.json
+        - 返回与 parse() 一致的结果字典，计数为 0
         """
         print(f"[{self.name}] Using existing Markdown (no PDF): {md_path}")
-        try:
-            source_md = Path(md_path)
-            if not source_md.exists():
-                raise FileNotFoundError(f"Markdown file not found: {md_path}")
+        
+        source = Path(md_path)
+        if not source.exists():
+            raise FileNotFoundError(f"Markdown file not found: {md_path}")
 
-            output_path = Path(output_dir)
-            assets_dir = output_path / "assets"
-            output_path.mkdir(parents=True, exist_ok=True)
-            assets_dir.mkdir(parents=True, exist_ok=True)
+        out = Path(output_dir)
+        assets = out / "assets"
+        out.mkdir(parents=True, exist_ok=True)
+        assets.mkdir(parents=True, exist_ok=True)
 
-            target_md = output_path / "raw.md"
-            # Copy content directly, ensure consistent encoding
-            text = source_md.read_text(encoding="utf-8")
-            text = self.clean_pattern.sub("", text)
-            target_md.write_text(text, encoding="utf-8")
+        target = out / "raw.md"
+        text = source.read_text(encoding="utf-8")
+        text = self.clean_pattern.sub("", text)
+        target.write_text(text, encoding="utf-8")
 
-            # Write empty asset placeholder files for robust downstream rendering
-            (assets_dir / "figures.json").write_text("{}", encoding="utf-8")
-            (assets_dir / "tables.json").write_text("{}", encoding="utf-8")
+        (assets / "figures.json").write_text("{}", encoding="utf-8")
+        (assets / "tables.json").write_text("{}", encoding="utf-8")
 
-            print(f"[{self.name}] Markdown copied. No figures/tables extracted.")
-            return {
-                "raw_text_path": str(target_md),
-                "figures_path": str(assets_dir / "figures.json"),
-                "tables_path": str(assets_dir / "tables.json"),
-                "figure_count": 0,
-                "table_count": 0,
-            }
-        except Exception as e:
-            print(f"[{self.name}] An error occurred while handling markdown: {e}")
-            raise
+        print(f"[{self.name}] Markdown copied. No figures/tables extracted.")
+        return {
+            "raw_text_path": str(target),
+            "figures_path": str(assets / "figures.json"),
+            "tables_path": str(assets / "tables.json"),
+            "figure_count": 0,
+            "table_count": 0,
+        }
 
     def _extract_raw_text(self, pdf_path: str, content_dir: Path) -> Tuple[str, Any]:
         print(f"[{self.name}] Converting PDF to raw text...")
         document = self.converter.build_document(pdf_path)
 
-        # Create renderer and get rendered output from the existing document
         renderer = self.converter.resolve_dependencies(MarkdownRenderer)
         rendered = renderer(document)
 
@@ -122,8 +100,7 @@ class PosterGenParserUnit:
 
         print(f"[{self.name}] Extracted {len(text)} characters of text.")
 
-        raw_result = (document, rendered, images)
-        return text, raw_result
+        return text, (document, rendered, images)
 
     def _extract_assets(self, result, assets_dir: Path) -> Tuple[Dict, Dict]:
         print(f"[{self.name}] Extracting assets (figures and tables)...")
@@ -133,31 +110,31 @@ class PosterGenParserUnit:
 
         figures = {}
         tables = {}
-        image_count = 0
-        table_count = 0
+        img_cnt = 0
+        tab_cnt = 0
 
         for img_name, pil_image in marker_images.items():
-            caption_info = caption_map.get(img_name, {'captions': [], 'block_type': 'Unknown'})
+            info = caption_map.get(img_name, {'captions': [], 'block_type': 'Unknown'})
 
-            if 'table' in img_name.lower() or 'Table' in img_name or caption_info.get('block_type') == 'Table':
-                table_count += 1
-                path = assets_dir / f"table-{table_count}.png"
+            if 'table' in img_name.lower() or 'Table' in img_name or info.get('block_type') == 'Table':
+                tab_cnt += 1
+                path = assets_dir / f"table-{tab_cnt}.png"
                 pil_image.save(path, "PNG")
 
-                tables[str(table_count)] = {
-                    'caption': caption_info['captions'][0] if caption_info['captions'] else f"Table {table_count}",
+                tables[str(tab_cnt)] = {
+                    'caption': info['captions'][0] if info['captions'] else f"Table {tab_cnt}",
                     'path': str(path),
                     'width': pil_image.width,
                     'height': pil_image.height,
                     'aspect': pil_image.width / pil_image.height if pil_image.height > 0 else 1,
                 }
             else:
-                image_count += 1
-                path = assets_dir / f"figure-{image_count}.png"
+                img_cnt += 1
+                path = assets_dir / f"figure-{img_cnt}.png"
                 pil_image.save(path, "PNG")
 
-                figures[str(image_count)] = {
-                    'caption': caption_info['captions'][0] if caption_info['captions'] else f"Figure {image_count}",
+                figures[str(img_cnt)] = {
+                    'caption': info['captions'][0] if info['captions'] else f"Figure {img_cnt}",
                     'path': str(path),
                     'width': pil_image.width,
                     'height': pil_image.height,

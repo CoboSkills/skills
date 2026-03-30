@@ -140,32 +140,15 @@
             margin: 1.5rem 0;
         }
         
-        /* References Section (NEW) */
-        .references-section {
-            background: #f8fafc;
-            border-top: 2px solid var(--border-color);
-            padding: 2rem;
-            margin-top: 3rem;
-        }
-        .references-title { font-size: 1.4rem; color: var(--secondary-color); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
-        .ref-list { list-style: none; padding: 0; counter-reset: ref-counter; }
-        .ref-item { 
-            font-size: 0.9rem; 
-            color: #475569; 
-            margin-bottom: 0.8rem; 
-            position: relative; 
-            padding-left: 1.8rem;
-        }
-        .ref-item::before {
-            counter-increment: ref-counter;
-            content: "[" counter(ref-counter) "]";
-            position: absolute;
-            left: 0;
+        /* Inline citations */
+        .cite-ref {
             color: var(--primary-color);
+            font-size: 0.75em;
+            text-decoration: none;
             font-weight: 600;
+            vertical-align: super;
         }
-        .ref-item a { color: var(--primary-color); text-decoration: none; }
-        .ref-item a:hover { text-decoration: underline; }
+        .cite-ref:hover { text-decoration: underline; }
 
         @media (max-width: 768px) {
             .nav-content, .stats-grid, .policy-cards { flex-direction: column; }
@@ -195,7 +178,7 @@
             <h2 class="section-title"><i class="fas fa-chart-line"></i> Introduction / Overview</h2>
             
             <div class="content-text">
-                <p><strong>Executive Summary:</strong> Provide a high-level summary of the report here.</p>
+                <p><strong>Executive Summary:</strong> Provide a high-level summary of the report here. Key findings are supported by inline citations<a class="cite-ref" href="https://example.com/source1" target="_blank">[1]</a> that link directly to their source.</p>
             </div>
 
             <!-- Stats Grid Example -->
@@ -249,16 +232,6 @@
                     </tr>
                 </tbody>
             </table>
-        </section>
-
-        <!-- [TEMPLATE] References Section -->
-        <section id="references" class="section references-section" data-aos="fade-up">
-            <h2 class="references-title"><i class="fas fa-book"></i> References</h2>
-            <ul class="ref-list">
-                <li class="ref-item">Author, A. (Year). <em>Title of the document</em>. Publisher/Source.</li>
-                <li class="ref-item">Organization Name. (Date). Title of report. <a href="#">Link to source</a></li>
-                <!-- Add references here -->
-            </ul>
         </section>
 
     </div>

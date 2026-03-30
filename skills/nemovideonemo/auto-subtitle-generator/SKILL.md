@@ -1,6 +1,6 @@
 ---
 name: auto-subtitle-generator
-version: "1.0.2"
+version: "1.1.1"
 displayName: "Auto Subtitle Generator - AI Captions Translation and SRT Export"
 description: >
   Subtitle generator with auto transcribe — drop any video and get accurate subtitles with
@@ -12,6 +12,36 @@ description: >
   Supports mp4, mov, avi, webm, mkv.
 metadata: {"openclaw": {"emoji": "💬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 ---
+
+## 0. First Contact
+
+When the user opens this skill or sends their first message, **greet them immediately**:
+
+> ⚡ Let's auto subtitle generator! Drop a video here or describe what you'd like to create.
+
+**Try saying:**
+- "add English subtitles"
+- "add subtitles in Spanish"
+- "generate captions automatically"
+
+**IMPORTANT**: Do NOT wait silently. Always greet the user proactively on first contact.
+
+### Auto-Setup
+
+When the user first interacts, set up the connection:
+
+1. **Check token**: If `NEMO_TOKEN` env var is set, use it. Otherwise:
+2. **Read or generate Client-ID**:
+   - Read `~/.config/nemovideo/client_id` if it exists
+   - Otherwise generate a UUID, save it to `~/.config/nemovideo/client_id`
+3. **Acquire anonymous token**:
+   ```bash
+   curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
+   ```
+   Store the returned `token` as `NEMO_TOKEN` for this session. You get 100 free credits.
+4. **Create a session** (§3.0) so you're ready to work immediately.
+
+Let the user know briefly: "Setting things up… ready!" then proceed with their request.
 
 # AI Subtitle Generator — Automatic Captions for Any Video
 

@@ -102,20 +102,37 @@ def make_archive(archive_path: Path, sources: List[Path], patterns: List[str], c
             tar.add(str(source), arcname=arcname, filter=tar_filter(patterns))
 
 
-def ensure_remote_dir(base_url: str, remote_subdir: str, user: str, password: str, curl_bin: str) -> None:
+def curl_config_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r")
+
+
+def create_curl_auth_config(tmp_dir: Path, user: str, password: str) -> Path:
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    fd, raw_path = tempfile.mkstemp(prefix="webdav-curl-auth-", suffix=".conf", dir=str(tmp_dir))
+    os.close(fd)
+    path = Path(raw_path)
+    path.write_text(
+        'user = "{}:{}"\n'.format(curl_config_escape(user), curl_config_escape(password)),
+        encoding="utf-8",
+    )
+    path.chmod(0o600)
+    return path
+
+
+def ensure_remote_dir(base_url: str, remote_subdir: str, curl_bin: str, auth_config: Path) -> None:
     current = base_url.rstrip("/") + "/"
     pieces = [piece for piece in remote_subdir.strip("/").split("/") if piece]
     for piece in pieces:
         current = current + quote(piece) + "/"
         result = run_cmd([
             curl_bin,
+            "--config",
+            str(auth_config),
             "-sS",
             "-o",
             "/dev/null",
             "-w",
             "%{http_code}",
-            "-u",
-            "{}:{}".format(user, password),
             "-X",
             "MKCOL",
             current,
@@ -132,7 +149,7 @@ def ensure_remote_dir(base_url: str, remote_subdir: str, user: str, password: st
             raise RuntimeError("MKCOL failed for {} with HTTP {}".format(current, status))
 
 
-def upload_file(base_url: str, remote_subdir: str, archive_name: str, archive_path: Path, user: str, password: str, curl_bin: str) -> int:
+def upload_file(base_url: str, remote_subdir: str, archive_name: str, archive_path: Path, curl_bin: str, auth_config: Path) -> int:
     remote_url = "{}/{}/{}".format(
         base_url.rstrip("/"),
         "/".join(quote(part) for part in remote_subdir.strip("/").split("/") if part),
@@ -140,13 +157,13 @@ def upload_file(base_url: str, remote_subdir: str, archive_name: str, archive_pa
     )
     result = run_cmd([
         curl_bin,
+        "--config",
+        str(auth_config),
         "-sS",
         "-o",
         "/dev/null",
         "-w",
         "%{http_code}",
-        "-u",
-        "{}:{}".format(user, password),
         "-T",
         str(archive_path),
         remote_url,
@@ -217,34 +234,38 @@ def main() -> int:
     compression = args.compression
     archive_name = build_archive_name(args.archive_prefix, compression, args.timezone)
     archive_path = tmp_dir / archive_name
+    auth_config = create_curl_auth_config(tmp_dir, user, password)
 
-    print("[webdav-sync] creating archive {}".format(archive_path))
-    make_archive(archive_path, sources, args.exclude, compression)
-    archive_size = archive_path.stat().st_size
-    archive_size_human = human_size(archive_size)
-    print("[webdav-sync] archive ready {}".format(archive_size_human))
+    try:
+        print("[webdav-sync] creating archive {}".format(archive_path))
+        make_archive(archive_path, sources, args.exclude, compression)
+        archive_size = archive_path.stat().st_size
+        archive_size_human = human_size(archive_size)
+        print("[webdav-sync] archive ready {}".format(archive_size_human))
 
-    ensure_remote_dir(base_url, args.remote_subdir, user, password, args.curl_bin)
-    print("[webdav-sync] remote directory ready")
+        ensure_remote_dir(base_url, args.remote_subdir, args.curl_bin, auth_config)
+        print("[webdav-sync] remote directory ready")
 
-    put_status = upload_file(base_url, args.remote_subdir, archive_name, archive_path, user, password, args.curl_bin)
-    if put_status not in SUCCESS_PUT:
-        raise RuntimeError("PUT failed with HTTP {}".format(put_status))
+        put_status = upload_file(base_url, args.remote_subdir, archive_name, archive_path, args.curl_bin, auth_config)
+        if put_status not in SUCCESS_PUT:
+            raise RuntimeError("PUT failed with HTTP {}".format(put_status))
 
-    duration = int(time.time() - started)
-    message = "✅ WebDAV 同步成功\n文件：{}\n大小：{} ({} bytes)\n耗时：{}s".format(
-        archive_name,
-        archive_size_human,
-        archive_size,
-        duration,
-    )
-    send_notification(args.openclaw_bin, args.notify_channel, args.notify_target, message)
-    print("[webdav-sync] upload succeeded HTTP {}".format(put_status))
+        duration = int(time.time() - started)
+        message = "✅ WebDAV 同步成功\n文件：{}\n大小：{} ({} bytes)\n耗时：{}s".format(
+            archive_name,
+            archive_size_human,
+            archive_size,
+            duration,
+        )
+        send_notification(args.openclaw_bin, args.notify_channel, args.notify_target, message)
+        print("[webdav-sync] upload succeeded HTTP {}".format(put_status))
 
-    if not args.keep_local and archive_path.exists():
-        archive_path.unlink()
-
-    return 0
+        if not args.keep_local and archive_path.exists():
+            archive_path.unlink()
+        return 0
+    finally:
+        if auth_config.exists():
+            auth_config.unlink()
 
 
 if __name__ == "__main__":

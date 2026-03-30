@@ -10,11 +10,7 @@ Read credentials from an env file. Expected keys:
 
 Do not print these values in logs or chat replies.
 
-## Interpreter Policy
-
-Prefer a pinned Python 3.10+ interpreter for this skill.
-
-Do not rely on bare `python3` for this skill unless the host version has been verified.
+Do not inject them directly into curl command-line arguments. Prefer a temporary curl config or equivalent credential file with `0600` permissions, and delete it immediately after use.
 
 ## Wrapper Pattern
 
@@ -23,7 +19,7 @@ Use a thin wrapper around `scripts/webdav_sync.py` for host-specific scheduling 
 Example:
 
 ```bash
-python3.10 /path/to/skills/webdav-sync/scripts/webdav_sync.py --source /path/to/folder ...
+python3 /path/to/skills/webdav-sync/scripts/webdav_sync.py --source /path/to/folder ...
 ```
 
 ## Example Nightly Job

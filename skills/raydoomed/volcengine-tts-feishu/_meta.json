@@ -3,9 +3,15 @@
   "slug": "volcengine-tts-feishu",
   "displayName": "volcengine-tts-feishu",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774604082503,
-    "commit": "https://github.com/openclaw/skills/commit/79bf9a6ec90c2d64c6676f11672b2602186ec639"
+    "version": "1.0.7",
+    "publishedAt": 1774889444507,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774604082503,
+      "commit": "https://github.com/openclaw/skills/commit/79bf9a6ec90c2d64c6676f11672b2602186ec639"
+    }
+  ]
 }

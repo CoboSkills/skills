@@ -45,7 +45,7 @@ python scripts/http_tts.py \
   --access_token <你的Access Token> \
   --resource_id seed-tts-2.0 \
   --voice_type zh_female_meilinvyou_uranus_bigtts \
-  --emotion vocal-fry \
+  --emotion excited \
   --text "你好，欢迎使用火山引擎豆包语音合成。" \
   --output output.mp3
 ```
@@ -67,7 +67,7 @@ python scripts/http_tts.py \
   --access_token <你的Access Token> \
   --resource_id seed-tts-2.0 \
   --voice_type zh_female_meilinvyou_uranus_bigtts \
-  --emotion vocal-fry \
+  --emotion excited \
   --text "你好，欢迎使用火山引擎豆包语音合成。" \
   --send-to <open_id>
 ```
@@ -77,12 +77,22 @@ python scripts/http_tts.py \
 
 **使用经验：**
 - 不需要叠加多个情感，单个 `emotion` 参数效果最佳
-- `vocal-fry` (ASMR低语) 情感模型会自动调整语速，不需要手动减速
-- 使用省略号断句控制停顿间隔：省略号越多停顿越长，根据语气自然增减，模型会对应留出不同长度的停顿
+- **最关键断句停顿规则（最终确认）：**
+  - `...` 表示 **大喘气/长停顿**，只在真正需要换气的时候用
+  - `，` 表示 **句间短停顿**，句子内部自然分隔用逗号
+  - **完整语义必须连着放一起**，绝对不强行拆分完整语义
+  - **能连着说就尽量连着说**，只有真的需要停下来大喘气才加 `...`
+  - 不要过度碎分到单个字或每个词都停顿（会导致有气无力，像树懒一样慢吞吞）
+  - 正常说话就是完整句子，用正常标点，根本不需要加省略号，自然合成就行
+  - 省略号直接连写，不需要在气口之间加额外空格
 - 不要在文本中添加朗读提示（如"用XX语气说"），模型会把提示也读出来
 - 开启 `--send-to` 后自动完成全套流程：MP3合成 → Opus转换 → 上传飞书 → 发送语音气泡
 - 使用 `--send-to` 时，临时MP3自动存放于系统临时目录，发送完成后自动清理，不会在技能目录残留文件
 - 仅生成文件时，MP3保存到你指定的 `--output` 路径
+
+**断句总结：**
+- ❌ 错误：过度拆分每个词、每个短句都硬加省略号、拆分完整语义 → 都会导致慢吞吞像树懒
+- ✅ 正确：`...` 只用在真正需要大喘气的地方，句子内部自然分隔用 `，`，完整语义连着不拆分
 
 ### 完整参数用法
 
@@ -114,6 +124,7 @@ python scripts/http_tts.py \
 | `--format` | 否 | 格式 `mp3/pcm/ogg_opus`，默认 `mp3` |
 | `--resource_id` | 否 | `seed-tts-1.0` / `seed-tts-2.0`，默认 `seed-tts-2.0` |
 | `--emotion` | 否 | 情感参数，见下文 |
+| `--emotion-scale` | 否 | 情感强度，范围 1~5，默认 `4`，越大情绪越明显 |
 
 ## 常用音色 (2.0模型)
 
@@ -137,7 +148,7 @@ python scripts/http_tts.py \
 | `surprised` | 惊讶 |
 | `fear` | 恐惧 |
 | `hate` | 厌恶 |
-| `excited` | 激动 |
+| ✨ `excited` | 激动 ✨ 默认 |
 | `coldness` | 冷漠 |
 | `neutral` | 中性 |
 | `depressed` | 沮丧 |
@@ -146,7 +157,7 @@ python scripts/http_tts.py \
 | `comfort` | 安慰鼓励 |
 | `tension` | 咆哮/焦急 |
 | `tender` | 温柔 |
-| `vocal-fry` | **低语/ASMR气泡音** ✨ |
+| ✨ `vocal-fry` | 低语/ASMR气泡音 ✨ |
 
 ## SSML支持
 

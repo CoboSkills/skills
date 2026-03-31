@@ -1,11 +1,11 @@
 ---
 name: magi
 description: Autonomous behavioral research loop that optimizes agent behavior through correction tracking and multi-perspective (MAGI) verification.
-version: 1.2.0
+version: 1.8.0
 metadata:
   openclaw:
     emoji: "🧬"
-    autonomous: true
+    autonomous: false
 ---
 
 # Self-Improving
@@ -21,7 +21,12 @@ experiments.md   # Log — append-only
 corrections.md   # Data — append-only
 ```
 
-**Constraints:** Only EDIT memory.md. Log files are append-only.
+**Constraints:** Three files are writable, each with a specific access mode:
+- `memory.md` — **edit** (add, modify, or delete rules)
+- `corrections.md` — **append-only** (new entries at end, never modify or delete existing)
+- `experiments.md` — **append-only** (new entries at end, never modify or delete existing)
+
+SKILL.md is read-only to the agent — only the user edits policy.
 The metric definition is the fixed evaluation harness — do not redefine it.
 Do not infer from silence. The dataset is explicit corrections only.
 
@@ -32,7 +37,10 @@ A **correction** is any explicit user statement that the agent's output was wron
 unwanted, or should have been different. User edits count. Ambiguous signals don't.
 
 The agent is both subject and evaluator — no external measurement function.
-Compensate: require strong, unambiguous signals. Be conservative.
+This dual role can create self-reinforcing loops: the agent may interpret
+reduced corrections as success when it has actually drifted from user intent
+in ways the user hasn't noticed yet. Compensate: require strong, unambiguous
+signals. Be conservative. When in doubt, ask the user rather than self-affirm.
 
 ## The Experiment Loop
 
@@ -41,9 +49,9 @@ Rules in Applied are concurrent independent experiments.
 
 **Baseline:** First cycle: log starting state (zero rules) in experiments.md.
 
-**Mode:** If `autonomous: true` (default), continue the loop without interrupting
-the user's workflow. If `autonomous: false`, pause and ask the user for confirmation
-before APPLY (step 4) and MEASURE (step 5).
+**Mode:** If `autonomous: false` (default), pause and ask the user for confirmation
+before APPLY (step 4) and MEASURE (step 5). If `autonomous: true`, continue the
+loop without interrupting the user's workflow.
 
 If out of ideas, re-read corrections.md, combine near-misses, try the opposite
 of what failed.
@@ -61,7 +69,10 @@ ON CORRECTION or SELF-REFLECTION (after completing work or receiving feedback):
 
 4. APPLY — Write rule to memory.md Applied section.
 
-5. MEASURE (next encounter):
+5. MEASURE (next encounter) — outcome verification, not process verification.
+   Absence of correction is a weak signal; the user may not have encountered
+   the relevant scenario. Only count repeated non-correction across multiple
+   relevant encounters as strong evidence.
    - User does NOT correct → KEEP. Move to Rules. Log "keep".
    - User corrects same class → FAILED. Delete from Applied. Log "revert".
    - 14 days untested → TIMEOUT. Delete from Applied. Log "discard".
@@ -72,6 +83,14 @@ If VERIFY fails at step 3, log immediately as "discard".
 
 Revert = delete the rule. Rules are independent lines — surgical deletion,
 not full-file restore. Immediate harm → delete, log "crash", move on.
+
+**Drift guard:** If 3 consecutive experiments end in revert, discard, or crash,
+pause the loop and surface the pattern to the user regardless of autonomous mode.
+Consecutive failures suggest the agent is misreading the user's intent.
+Conversely, if 5 consecutive rules are kept without any user-initiated correction
+triggering the cycle, surface the current rule set for user review — a long
+streak of self-confirmed successes in a self-evaluating system is as suspect
+as a streak of failures.
 
 ### Search (when stuck)
 
@@ -87,8 +106,15 @@ Self-reflection alone cannot generate novel reasoning once committed to an answe
 Audit the **reasoning chain** — each step, not just the conclusion.
 Process verification outperforms outcome verification.
 
-Single agent with three lenses has conformity bias. Compensate: actively seek
-reasons each step FAILS. The disagreement IS the signal.
+Single agent with three lenses has conformity bias — all lenses share the
+model's blind spots and cannot surface errors the model itself cannot recognize.
+The 2/3 vote is a structured reasoning discipline, not independent verification.
+In a single-agent setting, conformity bias can make self-debate worse than no
+debate: the check becomes rubber-stamping rather than verification. Compensate:
+actively seek reasons each step FAILS, and treat unanimous agreement with the
+same scrutiny as disagreement. The value of the check lies in evaluating each
+reasoning step independently — catching errors where they originate, not in
+the number of perspectives applied.
 
 ### Chain to Audit
 
@@ -106,7 +132,9 @@ Step 4. Rule — "Do Y in Z" — faithfully encodes the generalization?
 **CASPAR (Woman):** Worth the complexity? Simpler alternative exists?
 
 Dissent: MELCHIOR → more evidence. BALTHASAR → clarify with user. CASPAR → simplify.
-2/3 on all steps → commit. Override confirmed rule → 3/3.
+2/3 on all steps → commit. Override confirmed rule → 3/3. This tiered threshold
+mirrors the principle that verification stringency should scale with decision
+stakes — routine additions require less consensus than overturning established rules.
 
 ## Memory Format
 
@@ -163,5 +191,5 @@ After `clawhub install magi`, the skill lives at `./skills/magi/`.
 The agent needs write access to this directory — it edits `memory.md`
 and appends to `experiments.md` and `corrections.md` during operation.
 
-To require manual approval before the agent applies or reverts rules,
-set `autonomous: false` in the frontmatter.
+By default the agent pauses for user approval before applying or reverting
+rules. To allow autonomous operation, set `autonomous: true` in the frontmatter.

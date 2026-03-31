@@ -71,6 +71,8 @@ if daily loss hits the strategy's cap:
 - existing positions kept (stops still active)
 - "circuit breaker triggered. -5.2% today. no new entries until tomorrow."
 
+auto-recovery: if daily loss cap triggers circuit breaker, engine auto-deploys defense strategy (24h cooldown). capital protection kicks in automatically — no operator action needed.
+
 this is correct behavior. the engine is protecting the operator.
 
 ## position sizing
@@ -83,6 +85,10 @@ the engine sizes positions based on:
 
 you don't control sizing. the engine does.
 report what it chose: "entered BTC short. $6.70 position (10% of equity)."
+
+## feedback loops
+
+layer weights adjust automatically based on execution quality — higher-accuracy layers carry more conviction. the engine tracks which layers predicted winners vs losers and rebalances influence over time. this is not configurable by the operator — the engine learns from results.
 
 ## error handling
 

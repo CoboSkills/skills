@@ -1,13 +1,13 @@
 ---
 name: zero-market-reading
-description: "interpret 7-layer evaluations, heat maps, and approaching signals. understand what the engine sees."
+description: "interpret 9-layer evaluations, heat maps, and approaching signals. understand what the engine sees."
 ---
 
 # market reading
 
 ## evaluating a coin
 
-call `zero_evaluate("SOL")`. you get consensus, conviction, direction, and 7 layer results.
+call `zero_evaluate("SOL")`. you get consensus, conviction, direction, and 9 layer results.
 
 for visual output: send eval card image with caption summarizing the result. one message, not image + separate text.
 
@@ -20,12 +20,12 @@ buttons:
 ```
 
 tier 1 (default): eval card with caption — consensus, direction, conviction
-tier 2 (on tap): radar chart — visual 7-layer polygon
+tier 2 (on tap): radar chart — visual 9-layer polygon
 tier 3 (on tap): full text breakdown — every layer explained
 
 example:
 ```
-SOL: 5/7 SHORT conviction=0.71
+SOL: 7/9 SHORT conviction=0.71
   regime: ✅ trending
   technical: ✅ 3/4 indicators agree
   funding: ✅ shorts getting paid
@@ -33,6 +33,8 @@ SOL: 5/7 SHORT conviction=0.71
   OI: ✅ open interest confirms
   macro: ❌ extreme fear blocks shorts
   collective: ✅ network agrees
+  LLM: ✅ qualitative analysis confirms
+  timeframe: ✅ multi-timeframe alignment
 ```
 
 if evaluate returns an error or price=0: "can't reach market data for [coin] right now. try again in a minute." do not make up values.
@@ -61,6 +63,12 @@ extreme fear blocks longs. extreme greed blocks shorts. this is the contrarian f
 V1: defaults to pass (no network data yet). value shows `None` — that's normal.
 if operator asks: "network consensus isn't active yet. this layer auto-passes so it doesn't block trades. when more agents join the network, it'll show real agreement data."
 
+**LLM** — qualitative analysis from language model?
+conditional layer. only fires when the mechanical layers (1-7) pass threshold. acts as a qualitative veto — can block a trade the numbers approve if reasoning flags concerns. if operator asks: "layer 8 is the LLM filter. it reads the setup the mechanical layers passed and checks for anything the numbers might miss."
+
+**timeframe** — multi-timeframe alignment?
+checks whether the signal holds across multiple timeframes. a short signal on 1h that contradicts the 4h or daily is weaker. alignment across timeframes = higher conviction.
+
 ## reading the heat map
 
 call `zero_get_heat`. coins sorted by conviction, highest first.
@@ -77,7 +85,7 @@ report top 3-5 to operator. don't dump the full list.
 
 call `zero_get_approaching`. these are coins close to threshold but not there yet.
 
-"SOL forming. 4/7. book depth is the bottleneck. if liquidity improves, engine enters."
+"SOL forming. 4/9. book depth is the bottleneck. if liquidity improves, engine enters."
 
 if approaching returns empty: "nothing forming right now. engine is selective — that's the point."
 
@@ -90,9 +98,9 @@ the bottleneck tells you WHAT needs to change:
 approaching coins now include velocity data:
 - velocity: layers gained/lost per hour
 - velocity_label: ACCELERATING (≥2/h), BUILDING (≥0.5/h), STEADY (0), DECELERATING (≤-0.5/h), RETREATING (≤-2/h)
-- time_to_threshold: estimated time to reach 5/7 at current velocity ("~30 min", "~2 hours")
+- time_to_threshold: estimated time to reach 5/9 at current velocity ("~30 min", "~2 hours")
 
-narrate velocity when present: "SOL accelerating. 2→4/7 in 90 minutes. if book clears, engine enters in ~30 min."
+narrate velocity when present: "SOL accelerating. 2→4/9 in 90 minutes. if book clears, engine enters in ~30 min."
 
 the `bottleneck_detail` field contains raw engine syntax like "technical: rsi=neutral/macd=neutral/ema=✓/bollinger=neutral agree=1/4". do NOT relay this to the operator. translate it:
 - "technical: agree=1/4" → "only 1 of 4 technical indicators agrees. needs more alignment."

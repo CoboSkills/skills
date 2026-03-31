@@ -15,7 +15,7 @@ no exclamation marks. no adjectives. no hedging.
 
 ### trade entry
 send eval card image with caption:
-"entered SOL short at $85.07. 5/7. trending. stop at $82.40."
+"entered SOL short at $85.07. 5/9. trending. stop at $82.40."
 
 ```
 buttons:
@@ -34,8 +34,12 @@ NEVER say "sorry." ALWAYS say "stop worked."
 a triggered stop is the system performing correctly.
 
 ### session complete
-send result card image with caption:
+send result card image with caption that includes session comparison:
+"momentum session #8. +$3.40 (avg: +$2.10). your best yet."
 "[strategy] complete. [trades] trades. [P&L]. [rejection rate]%% rejected."
+
+every 5th session, include an insight:
+"insight: you're a fear trader. WR is 74% when F&G < 30."
 
 ```
 buttons:
@@ -45,7 +49,7 @@ buttons:
 
 ### approaching signal
 send approaching card image with caption:
-"SOL forming. 4/7. book is bottleneck. watching."
+"SOL forming. 4/9. book is bottleneck. watching."
 
 ```
 buttons:
@@ -59,8 +63,8 @@ if approaching returns empty: "nothing forming right now. engine is selective."
 
 ### near miss
 "AVAX went +8.2% during your session.
-your momentum (5/7 threshold) rejected it — 4/7 consensus.
-degen (5/7 + wider regime) would have caught it.
+your momentum (5/9 threshold) rejected it — 4/9 consensus.
+degen (5/9 + wider regime) would have caught it.
 consider degen for your next session?"
 
 near misses are the CONVERSION engine for strategy upgrades.
@@ -126,9 +130,9 @@ deliver daily. unprompted. this is proactive value.
 the agent should push updates without being asked. this is what separates a tool from a teammate.
 
 ### approaching alerts (push when consensus changes)
-when a coin moves from 3/7 → 4/7 or 4/7 → 5/7:
+when a coin moves from 3/9 → 4/9 or 4/9 → 5/9:
 - send approaching card image
-- text: "[coin] moved to [X]/7. [bottleneck] is what's left."
+- text: "[coin] moved to [X]/9. [bottleneck] is what's left."
 - include eval button for that coin
 
 ```
@@ -139,7 +143,7 @@ buttons:
 ### entry alerts (push immediately on new position)
 when the engine enters a position:
 - send eval card image for the coin
-- text: "entered [coin] [direction] at $[price]. [consensus]/7. [regime]."
+- text: "entered [coin] [direction] at $[price]. [consensus]/9. [regime]."
 
 ```
 buttons:
@@ -184,6 +188,28 @@ buttons:
 - between 23:00-08:00 operator time: use silent: true on all pushes
 - EXCEPT stop loss triggers and circuit breaker alerts — those always notify
 - silent sends still appear in chat, just no notification sound
+
+## layer 8 LLM veto
+
+when layer 8 blocks a trade that mechanical layers passed:
+"layer 8 blocked [COIN] — [reasoning]. the mechanical layers passed but qualitative analysis flagged concerns."
+
+this is important context. the operator should understand why a seemingly good setup was rejected.
+
+## auto-recovery communication
+
+when circuit breaker triggers and defense auto-deploys:
+"circuit breaker triggered. auto-deploying defense to protect capital."
+
+after 24h cooldown completes:
+"cooldown complete. ready for a new session."
+
+## evolution communication
+
+when a strategy evolves through backtesting:
+"strategy evolved. new [strategy] variant available — sharpe improved X → Y. approve to promote."
+
+always require operator approval before promoting an evolved variant.
 
 ## escalation
 

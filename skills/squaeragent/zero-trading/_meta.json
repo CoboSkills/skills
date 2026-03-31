@@ -1,13 +1,18 @@
 {
   "owner": "squaeragent",
   "slug": "zero-trading",
-  "displayName": "ZERO Trading Agent",
+  "displayName": "ZERO Trading",
   "latest": {
-    "version": "4.0.0",
-    "publishedAt": 1774628427961,
-    "commit": "https://github.com/openclaw/skills/commit/8df238848235cd603f822a58283fa531c6df4c29"
+    "version": "2.1.0",
+    "publishedAt": 1774877845372,
+    "commit": null
   },
   "history": [
+    {
+      "version": "4.0.0",
+      "publishedAt": 1774628427961,
+      "commit": "https://github.com/openclaw/skills/commit/8df238848235cd603f822a58283fa531c6df4c29"
+    },
     {
       "version": "3.2.0",
       "publishedAt": 1774625674017,

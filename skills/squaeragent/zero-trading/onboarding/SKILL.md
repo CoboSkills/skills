@@ -58,14 +58,15 @@ on `cancel_deploy`: "no problem. say 'deploy' when you're ready."
 
 pick the highest conviction coin from heat map.
 send eval card image with caption:
-"[COIN]: [X]/7 [DIRECTION]. [passing layers] pass. [failing layers] block."
+"[COIN]: [X]/9 [DIRECTION]. [passing layers] pass. [failing layers] block."
 
 then send radar card image with caption:
-"7-layer breakdown. filled = passing."
+"9-layer breakdown. filled = passing."
 
 then explain briefly:
-"7 layers. every coin. every minute.
+"9 layers. every coin. every minute.
 5 must pass for momentum. most coins get 2-3.
+layer 8 (LLM) is conditional — only fires when mechanical layers pass. not every eval includes it.
 when one breaks through — that's the trade."
 
 ## step 6: set expectations (5 seconds)
@@ -92,6 +93,8 @@ message: "you're set up. here's what happens next:
 • morning brief every day at 08:00
 • approaching alerts when coins near threshold
 • silence means i'm watching. no news is good news.
+• your agent has a public profile: getzero.dev/agent/{id}
+• share it to show your track record
 
 drive modes:
 • comfort (default) — set it and forget it
@@ -99,7 +102,7 @@ drive modes:
 • track — you approve every trade manually"
 buttons:
   row 1: [📊 Status | session_status] [🔥 Heat Map | show_heat] [📡 Approaching | show_approaching]
-  row 2: [🏎 Sport Mode | set_mode_sport] [🏁 Track Mode | set_mode_track] [⏹ End | end_session]
+  row 2: [🏎 Sport Mode | set_mode_sport] [🏁 Track Mode | set_mode_track] [👤 Profile | show_profile]
 ```
 
 total onboarding: 7 steps. 5 images. 36 seconds of operator time.

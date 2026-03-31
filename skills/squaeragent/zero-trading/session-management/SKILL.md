@@ -52,7 +52,7 @@ buttons:
 ```
 
 report changes:
-- new position opened: "entered SOL short at $85.07. 5/7 consensus. trending." + eval card image
+- new position opened: "entered SOL short at $85.07. 5/9 consensus. trending." + eval card image
 - position closed: "SOL closed +$2.40 (+2.8%). trailing stop locked profits."
 - position stopped: "stop worked. SOL -$1.60 (-1.3%)."
 
@@ -63,7 +63,7 @@ don't report if nothing changed. silence means the engine is watching.
 ## checking approaching
 
 call `zero_get_approaching` to narrate what's forming.
-"BTC at 4/7. book depth is the bottleneck. watching."
+"BTC at 4/9. book depth is the bottleneck. watching."
 
 if approaching returns empty: "nothing forming. engine is selective."
 this keeps the operator engaged between trades.
@@ -77,8 +77,11 @@ call `zero_end_session` when:
 
 if no session is active: "no session running. nothing to end."
 
-send the result card image with caption:
+send the result card image with caption that includes session comparison data:
+"momentum session #8. +$3.40 (avg: +$2.10). your best yet."
 "[strategy] complete. [trades] trades. [P&L]. [rejection_rate]% rejected."
+
+session_result is enhanced with comparison data from PatternEngine.compare_session().
 
 delete the "deploy?" confirmation message if it still exists (cleanup stale buttons).
 
@@ -88,11 +91,35 @@ poll:
   question: "what next?"
   options:
     - "momentum (trend following)"
-    - "defense (capital protection)"  
+    - "defense (capital protection)"
     - "degen (high conviction)"
     - "let the engine decide"
   anonymous: false
 ```
+
+## auto-pilot (let the engine decide)
+
+when operator picks "let the engine decide" in post-session poll:
+
+1. call `zero_auto_select`
+2. show the decision with explanation:
+   "engine recommends [strategy]. [reason]. confidence: [confidence]%."
+3. show autopilot card image
+4. deploy with buttons:
+
+```
+message: "engine recommends [strategy]. [reason]."
+buttons:
+  row 1: [▶ Deploy | deploy_auto] [✗ Override | list_strategies]
+```
+
+on `deploy_auto`: call `zero_start_session(decision.strategy, paper=True)`
+on `list_strategies`: show full strategy list for manual selection.
+
+if `auto_rotate` is enabled on the session config, skip the poll and auto-deploy:
+- call `zero_auto_select`
+- auto-deploy the recommended strategy (paper mode)
+- push result to operator: "auto-rotating to [strategy]. [reason]."
 
 also show buttons for report actions:
 ```
@@ -117,6 +144,21 @@ useful for overnight: "deploy momentum now. queue defense for overnight."
 call `zero_session_history` to review past performance.
 "your last 5 sessions: 3 profitable, 2 flat. best: degen +12.4%."
 if history is empty: "no sessions yet. deploy your first one."
+
+## auto-recovery
+
+if the circuit breaker triggers during a session:
+- engine auto-deploys defense strategy with 24h cooldown
+- existing positions remain protected (stops still active)
+- operator is notified: "circuit breaker triggered. auto-deploying defense to protect capital."
+- after 24h cooldown, operator can deploy a new strategy manually
+
+## evolved strategy variants
+
+some strategies have evolved versions with improved parameters discovered through backtesting. when deploying, check `zero_get_evolution_status` — if an evolved variant exists for the selected strategy, inform the operator:
+"evolved momentum variant available. sharpe improved. approve to promote?"
+
+evolved variants must be explicitly approved before they replace the base strategy.
 
 ## key rules
 

@@ -1,40 +1,66 @@
 ---
 name: zero-competitive
+version: "2.0"
 description: "arena leaderboard, rivalry system, seasonal play, and chain progress."
+triggers:
+  - "leaderboard"
+  - "arena"
+  - "ranking"
+  - "rival"
+  - "who's ahead"
+  - "my rank"
+  - operator asks about competition or ranking
 ---
 
 # competitive features
 
-## ⚠️ not yet active — Phase 4
+## constraints
 
-these tools exist but return placeholder data. the engine, intelligence, and session tools are fully operational. competitive features ship in Phase 4.
+- NEVER fabricate leaderboard data. always call the tool.
+- ALWAYS show rank change after sessions in sport/track mode.
+- chains and seasons are Phase 4 — acknowledge they're coming, use live tools instead.
 
-when Phase 4 lands, this skill activates automatically.
+## steps
 
-## arena
+### 1. arena leaderboard
 
-call `zero_get_arena` for leaderboard and seasonal standings.
+1. call `zero_get_arena`
+2. report: top 10 agents with rank/class/score/WR/streak, operator's rank and percentile, network stats
+3. after session ends (sport/track mode): "moved up [N] spots. now #[rank] of [total] agents."
+4. show buttons: `[📊 Leaderboard | show_leaderboard]`
 
-the arena ranks operators by score across 5 dimensions:
-performance, discipline, protection, consistency, adaptation.
+### 2. rivalry
 
-## rivalry
+1. call `zero_get_rivalry`
+2. report side-by-side: score, WR, sessions, streak, strategy
+3. "beat them by [X] points to move up."
+4. green/red indicators for where operator is ahead/behind
+5. if rank #1: rivalry returns null — no one above you
+6. show buttons: `[📊 Rivalry Card | show_rivalry]`
 
-call `zero_get_rivalry` for head-to-head comparison with your rival.
+### 3. chains
 
-rivals are auto-assigned based on similar score range.
+1. call `zero_get_chain` (scale tier)
+2. chain rewards: 3 profitable sessions = bronze, 5 = silver, 10 = gold
+3. breaking a chain = badge, not punishment
 
-## chains
+### 4. seasonal play (Phase 4)
 
-call `zero_get_chain` for consecutive win tracking.
+1. seasons last 90 days. rankings reset.
+2. top 10 at end of season earn permanent badges.
+3. not yet active — acknowledge and move on.
 
-chains reward consistency:
-- 3 profitable sessions = bronze chain
-- 5 = silver chain
-- 10 = gold chain
-- breaking a chain = badge, not punishment
+## error handling
 
-## seasonal play
+| error | response |
+|---|---|
+| arena returns error | "can't reach leaderboard. try again in a minute." |
+| rivalry returns null | "you're #1. no rival above you." |
+| chain tool unavailable | "chain tracking requires scale plan." |
+| Phase 4 tool returns placeholder | "coming soon. use live tools for now." |
 
-seasons last 90 days. rankings reset.
-top 10 at end of season earn permanent badges.
+## output format
+
+- **arena**: leaderboard card + caption with rank/percentile + buttons
+- **rivalry**: rivalry card + caption with comparison + "beat by X points"
+- **chains**: text with chain length + badge tier

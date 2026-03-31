@@ -13,14 +13,14 @@ call `zero_get_heat`. if heat returns empty (count=0), fall back: call `zero_eva
 
 also call `zero_get_approaching` for coins near threshold.
 
-use CONSENSUS and DIRECTION from evaluations, not regime labels. the engine can show 5/7 SHORT even in "random_quiet" regime — trust the consensus number.
+use CONSENSUS and DIRECTION from evaluations, not regime labels. the engine can show 5/9 SHORT even in "random_quiet" regime — trust the consensus number.
 
 | market signal | recommend |
 |---|---|
-| 3+ coins at 5/7+ with same direction | momentum (clear trend, bread and butter) |
-| 5+ coins at 4/7+ (many approaching) | scout (wide scan, patient) |
-| 1-2 coins at 6/7+ (rare setups only) | sniper (precision, few trades) |
-| 0 coins above 4/7 | defense or watch (nothing worth trading) |
+| 3+ coins at 5/9+ with same direction | momentum (clear trend, bread and butter) |
+| 5+ coins at 4/9+ (many approaching) | scout (wide scan, patient) |
+| 1-2 coins at 6/9+ (rare setups only) | sniper (precision, few trades) |
+| 0 coins above 4/9 | defense or watch (nothing worth trading) |
 | fear & greed < 20 with 3+ coins SHORT | momentum or fade (fear = opportunity) |
 | fear & greed > 80 | defense (overheated, reversals likely) |
 
@@ -70,6 +70,39 @@ never just say "use momentum." explain WHY for this operator, this market, right
 | momentum | medium | 3% | 5 max | clear trends, default choice |
 | scout | medium | 3% | 5 max | wide scan, patient |
 | fade | medium | 3% | 4 max | mean reversion, contrarian |
-| sniper | high | 4% | 3 max | perfect setups only (7/7) |
+| sniper | high | 4% | 3 max | perfect setups only (9/9) |
 | degen | high | 6% | 4 max | fast moves, short hold |
 | apex | extreme | 8% | 4 max | maximum conviction, expert only |
+
+## evolved variants
+
+some strategies have evolved versions with improved parameters. check `zero_get_evolution_status` before recommending. if an evolved variant exists:
+"evolved momentum available. sharpe improved 1.2 → 1.6. approve to promote?"
+
+evolved variants are discovered through backtesting and must be approved by the operator before they replace the base strategy.
+
+## strategy generation
+
+the engine can generate new strategies for uncovered market conditions. if no existing strategy fits the current regime well, check whether the engine has proposed a new strategy via `zero_get_evolution_status`. new strategies go through the same approval flow as evolved variants.
+
+## auto-pilot recommendation
+
+before manual recommendation, offer auto-pilot as first option:
+
+"based on current regime and your history, engine recommends [strategy]. [reason]."
+
+call `zero_auto_select` to get the engine's recommendation. show:
+- recommended strategy with confidence score
+- regime context (what the market looks like)
+- operator stats (their WR with this strategy)
+- alternatives with scores
+
+if operator accepts: deploy via `zero_start_session`.
+if operator overrides: proceed with manual strategy selection above.
+
+auto-pilot uses:
+1. regime direction (SHORT/LONG/MIXED/QUIET) -> strategy affinity
+2. fear & greed modifiers (extreme fear boosts degen, extreme greed boosts defense)
+3. volatility modifiers (extreme vol boosts defense, low vol boosts funding)
+4. operator history (WR > 65% boosts, WR < 35% penalizes)
+5. plan gating (free/pro/scale limits available strategies)

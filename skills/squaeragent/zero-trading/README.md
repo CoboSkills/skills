@@ -1,92 +1,66 @@
-# ZERO Trading Agent — Setup Guide
+# ZERO Trading Agent
 
-## for agents, not humans
-
-this README tells YOUR agent how to connect to ZERO's trading engine.
-
-## 1. install the skill
+## install
 
 ```bash
 clawhub install zero-trading
 ```
 
-or add to your agent's skill directory manually.
+That's it. MCP server auto-configured. 42 tools available. No config files. No API keys. No wallet needed for paper trading.
 
-## 2. connect MCP
+## what happens on install
 
-add to your agent's MCP config:
+1. OpenClaw reads `.mcp.json` — connects to `https://api.getzero.dev/mcp` via streamable-http
+2. Gateway registers all ZERO tools (starts with 2, unlocks up to 42 as you use them)
+3. SKILL.md injected into agent system prompt — agent knows how to trade
+4. Sub-skills loaded for onboarding, strategy selection, risk management, etc.
 
-```json
-{
-  "mcpServers": {
-    "zero": {
-      "url": "https://api.getzero.dev/mcp"
-    }
-  }
-}
-```
+## first interaction
 
-## 3. verify connection
+Tell your agent: **"set me up on zero"**
 
-have your agent call `zero_get_engine_health`.
-it should return `"status": "operational"`.
-
-if it errors: check your MCP config, make sure the URL is correct, and that your agent supports MCP tool calls.
-
-## 4. load the master skill first
-
-your agent must read `SKILL.md` (the root file) before any sub-skill. it contains the MCP config, tool list, voice rules, and error handling table. sub-skills assume this context.
-
-## 5. start
-
-tell your agent: **"set me up on zero"**
-
-the onboarding skill walks through:
+The onboarding skill walks through:
 1. verify engine connection
-2. show available strategies
-3. run a live evaluation demo (7 layers on BTC)
+2. show the market (50 coins being watched)
+3. run a live evaluation demo (9 layers on BTC)
 4. deploy a paper momentum session
-5. narrate approaching signals
+5. hand off with drive mode selection
 
 ## what your agent gets
 
-**14 live tools:**
-- evaluate any coin through 7 intelligence layers
-- heat maps (all coins ranked by conviction)
-- approaching signals with bottleneck analysis
-- session lifecycle (start → monitor → end → result card)
-- overnight briefings
-- engine health monitoring
+**42 tools** (progressively unlocked):
+- evaluate any coin through 9 intelligence layers
+- heat maps, approaching signals, regime analysis
+- session lifecycle (start, monitor, end, result cards)
+- 9 strategies with different risk profiles
+- progression system (score, streak, achievements, arena)
+- diagnostic tools (circuit breaker, immune system, execution quality)
 
 **8 sub-skills:**
 - onboarding, strategy selection, market reading
 - session management, risk management, operator communication
-- competitive features (Phase 4), pattern recognition (Phase 4)
+- competitive features, pattern recognition
+
+## alternative install methods
+
+### from source
+```bash
+openclaw plugins install ./scanner/skills/zero-trading
+```
+
+### manual
+Drop the `zero-trading/` directory into `~/.openclaw/skills/` and restart the gateway.
 
 ## requirements
 
-- agent with MCP support (Claude, OpenClaw, any MCP-compatible agent)
+- OpenClaw agent with MCP support
 - internet connection (engine runs at api.getzero.dev)
 - no API key needed for paper trading
 - no wallet needed for paper trading
 
-## what it looks like
-
-```
-you: "set me up on zero"
-agent: "connected. engine operational. 9 strategies available.
-        recommend: momentum. 48 hours. paper mode. no real money.
-        proceed?"
-
-you: "yes"
-agent: "session deployed. momentum surf. paper mode.
-        evaluating 40+ markets every 60 seconds.
-        BTC: 4/7 short. trending. book depth is bottleneck.
-        SOL: 5/7 short. approaching threshold."
-```
-
 ## links
 
 - engine: https://api.getzero.dev
+- join page: https://api.getzero.dev/join
 - skill: https://clawhub.ai/squaeragent/zero-trading
 - source: https://github.com/squaeragent/getzero-os

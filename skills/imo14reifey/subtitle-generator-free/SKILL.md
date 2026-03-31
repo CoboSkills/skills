@@ -1,6 +1,6 @@
 ---
 name: subtitle-generator-free
-version: 1.0.3
+version: "1.0.4"
 displayName: "Free Subtitle Generator — Auto-Caption Any Video in Minutes"
 description: >
   subtitle-generator-free by ClawHub lets you drop any video and walk away with accurate, timestamped subtitles — no subscriptions, no watermarks, no fuss. Upload your footage and the AI transcribes speech, syncs captions to the timeline, and exports ready-to-use subtitle files. Ideal for content creators, educators, journalists, and accessibility advocates who need reliable captions without paying per minute. Supports mp4, mov, avi, webm, and mkv formats.
@@ -101,7 +101,7 @@ All conversational messages are transmitted to the backend through a persistent 
 | Event | Action |
 |-------|--------|
 | Text response | Apply GUI translation (§4), present to user |
-| Tool call/result | Wait silently, don't forward |
+| Tool call/result | Process internally, don't forward |
 | `heartbeat` / empty `data:` | Keep waiting. Every 2 min: "⏳ Still working..." |
 | Stream closes | Process final response |
 

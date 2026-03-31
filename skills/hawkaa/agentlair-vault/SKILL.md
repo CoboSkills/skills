@@ -1,7 +1,7 @@
 ---
 name: agentlair-vault
 description: Store and fetch credentials securely at runtime via AgentLair Vault REST API. Use when an agent needs to read an API key, store a secret, rotate credentials, or avoid putting secrets in openclaw.json. Credentials stay in the vault — only the AGENTLAIR_API_KEY lives in your environment. Use instead of environment variables or openclaw.json for third-party API keys, tokens, and secrets.
-version: 1.0.0
+version: 1.1.0
 metadata:
   openclaw:
     homepage: https://agentlair.dev
@@ -254,6 +254,41 @@ With AgentLair Vault:
 - **Scoped access.** One AGENTLAIR_API_KEY can't read another account's keys.
 
 The blast radius of a compromised skill drops from "all credentials on the machine" to "one rate-limited API key with an audit log."
+
+---
+
+## Client-Side Encryption (Optional)
+
+For secrets you don't want AgentLair to see in plaintext, encrypt before storing:
+
+```bash
+# Encrypt locally before storing
+SECRET="sk-ant-YOUR-KEY"
+ENCRYPTED=$(echo -n "$SECRET" | openssl enc -aes-256-cbc -base64 -k "$LOCAL_PASSPHRASE")
+
+curl -s -X PUT "https://agentlair.dev/v1/vault/anthropic-key" \
+  -H "Authorization: Bearer $AGENTLAIR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d "{\"ciphertext\": \"$ENCRYPTED\", \"metadata\": {\"encrypted\": \"aes-256-cbc\", \"label\": \"Anthropic API key\"}}"
+
+# Decrypt when fetching
+CIPHERTEXT=$(curl -s "https://agentlair.dev/v1/vault/anthropic-key" \
+  -H "Authorization: Bearer $AGENTLAIR_API_KEY" | grep -o '"ciphertext":"[^"]*"' | cut -d'"' -f4)
+PLAINTEXT=$(echo "$CIPHERTEXT" | openssl enc -aes-256-cbc -d -base64 -k "$LOCAL_PASSPHRASE")
+```
+
+Use this when zero-knowledge storage is required. `$LOCAL_PASSPHRASE` never leaves your environment.
+
+The [agentlair-vault-crypto](https://github.com/piiiico/agentlair-vault-crypto) library provides
+TypeScript helpers for client-side encryption/decryption with AES-256 and key derivation.
+
+---
+
+## Trust & Security
+
+- **Open-source crypto layer:** [github.com/piiiico/agentlair-vault-crypto](https://github.com/piiiico/agentlair-vault-crypto) — the encryption helpers used by the vault SDK are fully auditable
+- **Security documentation:** [agentlair.dev/security](https://agentlair.dev/security) — encryption at rest, key isolation, access audit model
+- **Trust architecture:** See the [AgentLair trust model blog post](https://agentlair.dev/blog) for how vault isolation, API key scoping, and audit logging work together
 
 ---
 

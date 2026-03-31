@@ -3,14 +3,14 @@ name: substack-ghostwriting
 description: "Write, optimize, and grow Substack content — both newsletter issues (email-first) and web posts (web-first articles/essays). Covers ghostwriting with voice matching, Substack algorithm optimization, Notes strategy, email formatting, SEO, growth tactics, and monetization planning. Use when the user mentions Substack, newsletters, write a newsletter issue, Substack post, Substack article, web post on Substack, evergreen content, SEO for Substack, newsletter growth, Notes strategy, ghostwrite for, match someone's voice, write in the style of, newsletter monetization, paid subscribers, or any task involving Substack as a platform. Also trigger for general article/newsletter writing even if Substack isn't named explicitly, or when the user wants to adapt existing content (blog post, talk, thread) into newsletter or web post format. Do NOT use for generic blog post writing without a newsletter/Substack context (-> See samber/cc-skills@technical-article-writer skill)."
 user-invocable: true
 license: MIT
-compatibility: Designed for Claude Code or similar AI coding agents.
+compatibility: Designed for Claude or similar AI agents.
 metadata:
   author: samber
-  version: "1.1.0"
+  version: "1.1.3"
   openclaw:
     emoji: "📰"
     homepage: https://github.com/samber/cc-skills
-allowed-tools: Read Edit Write Glob Grep Agent WebFetch WebSearch
+allowed-tools: Read Edit Write Glob Grep Agent WebFetch WebSearch AskUserQuestion
 ---
 
 # Substack Ghostwriting & Content Optimization
@@ -169,6 +169,12 @@ If the user has a paid tier, advise on the free/paid split:
 
 Common mistake: paywalling too early. At < 1000 subscribers, everything should be free. Growth compounds faster than paid conversion at small scale.
 
+### Phase 5b: Humanize
+
+Invoke a humanizer skill (e.g. "humanize", "humanizer", "de-slop", "natural writing check", "AI detection cleanup", "rewrite like a human") to strip AI-generated patterns — filler words, predictable cadence, over-hedging, hollow transitions, inflated language. Substack readers pay for authentic voice; AI-sounding prose kills trust and cancels subscriptions.
+
+**Preserve hooks and subject lines.** The hook and title/subject line (Phase 2) were deliberately engineered for open rate and curiosity. Instruct the humanizer to leave them intact — rewriting them for "naturalness" destroys the copywriting structure that drives opens and first-scroll retention.
+
 ### Phase 6: Image suggestions
 
 After the content is drafted, suggest **1-3 images** with specific placement. For each image, provide:
@@ -179,7 +185,7 @@ After the content is drafted, suggest **1-3 images** with specific placement. Fo
 
 For newsletter issues: use images sparingly — many email clients block them by default. Prioritize a strong cover image and at most 1-2 inline images. For web posts: images render reliably — use more freely (diagrams, charts, screenshots).
 
-Offer to generate a **Midjourney prompt** for each suggested image. If the user accepts, use the latest Midjourney model conventions to write the prompt. Use `--ar 16:9` pr `--ar 3:1` for cover images and wide illustrations (optimal for Substack headers and social sharing), `--ar 3:2` for smaller inline images. Refer to up-to-date Midjourney documentation for current prompt syntax and parameters.
+Offer to generate a **Midjourney prompt** for each suggested image. If the user accepts, use the latest Midjourney model conventions to write the prompt. Use `--ar 16:9` or `--ar 3:1` for cover images and wide illustrations (optimal for Substack headers and social sharing), `--ar 3:2` for smaller inline images. Refer to up-to-date Midjourney documentation for current prompt syntax and parameters.
 
 ### Phase 7: Social distribution posts (optional — offer, don't auto-generate)
 

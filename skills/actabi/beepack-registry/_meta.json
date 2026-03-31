@@ -1,0 +1,11 @@
+{
+  "owner": "actabi",
+  "slug": "beepack-registry",
+  "displayName": "Beepack API Registry",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774704051306,
+    "commit": null
+  },
+  "history": []
+}

@@ -47,13 +47,32 @@ Phase 2（快速观察）跳过 image tool，只用 OCR + GPA 的文字输出让
 - 操作后结果不符合预期
 - 出现弹窗、错误页面等异常
 
-## 坐标系统
+## 坐标系统 — ImageContext
 
-Mac Retina 屏幕：物理像素 = 逻辑像素 × 2
-- 截图（screencapture）：3024 × 1964 物理像素
-- 点击（pynput）：1512 × 982 逻辑像素
-- OCR 返回的坐标：已转换为逻辑像素（detect_text 内部 ÷2）
-- GPA 返回的坐标：物理像素，需要 ÷2
-- detect_all 返回：全部是物理像素，调用方根据 retina 参数决定是否 ÷2
+`detect_all()` 返回**图片像素坐标**（原始检测结果，不做转换）。
+调用者通过 `ImageContext` 将像素坐标转为屏幕点击坐标。
+裁剪直接用图片像素坐标——不需要任何转换。
 
-远程 VM（OSWorld）：1920 × 1080，无 Retina，坐标 1:1。
+```python
+from scripts.ui_detector import ImageContext
+
+ctx = ImageContext.mac_fullscreen()      # Mac 全屏（pixel_scale = backingScaleFactor）
+ctx = ImageContext.mac_window(wx, wy)    # Mac 窗口（含窗口偏移）
+ctx = ImageContext.remote()              # VM / 远程（1:1，无偏移）
+
+click_x, click_y = ctx.image_to_click(el["cx"], el["cy"])
+```
+
+| 工具 | 返回坐标 |
+|------|---------|
+| detect_icons | 图片像素 |
+| detect_text | 图片像素 |
+| detect_all 输出 | **图片像素** |
+| template_match | 图片像素 |
+| cv2 图片裁剪 | 图片像素（直接使用） |
+| pynput / pyautogui | 点击空间（需 `ctx.image_to_click()` 转换）|
+
+- **Mac Retina**：pixel_scale = 2.0（如 3024×1964 图片，1512×982 点击空间）
+- **Mac 非 Retina**：pixel_scale = 1.0
+- **远程 VM**：pixel_scale = 1.0, origin = (0, 0)
+- pixel_scale 来自 `NSScreen.main.backingScaleFactor`（不再用图片尺寸÷屏幕尺寸计算）

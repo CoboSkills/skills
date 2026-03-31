@@ -1,27 +1,28 @@
 <div align="center">
-  <img src="../assets/banner.png" alt="GUIClaw" width="100%" />
+  <img src="../assets/banner.png" alt="GUI Agent Skills" width="100%" />
 
-  <h1>🦞 GUIClaw</h1>
+  <br />
 
   <p>
-    <strong>看见屏幕。学会按钮。精准点击。</strong>
+    <strong>你的 AI 终于能看见屏幕了——而且像人一样使用它。</strong>
     <br />
-    基于视觉的桌面自动化技能，构建于 <a href="https://github.com/openclaw/openclaw">OpenClaw</a> 之上。
-    <br />
-    <em>需要 OpenClaw 作为运行时 — 不是独立的 API 或库。</em>
+    <sub>视觉记忆 • 一次学习即复用 • 零硬编码选择器</sub>
   </p>
 
   <p>
     <a href="#-快速开始"><img src="https://img.shields.io/badge/快速开始-blue?style=for-the-badge" /></a>
-    <a href="https://github.com/openclaw/openclaw"><img src="https://img.shields.io/badge/🦞_OpenClaw-red?style=for-the-badge" /></a>
-    <a href="https://discord.gg/BQbUmVuD"><img src="https://img.shields.io/badge/Discord-7289da?style=for-the-badge&logo=discord&logoColor=white" /></a>
+    <a href="https://github.com/openclaw/openclaw"><img src="https://img.shields.io/badge/OpenClaw-必需-red?style=for-the-badge" /></a>
+    <a href="https://discord.gg/vfyqn5jWQy"><img src="https://img.shields.io/badge/Discord-7289da?style=for-the-badge&logo=discord&logoColor=white" /></a>
   </p>
 
   <p>
-    <img src="https://img.shields.io/badge/平台-macOS_Apple_Silicon-black?logo=apple" />
-    <img src="https://img.shields.io/badge/检测-GPA_GUI_Detector-green" />
-    <img src="https://img.shields.io/badge/OCR-Apple_Vision-blue" />
+    <img src="https://img.shields.io/badge/平台-macOS_%7C_Linux-black?logo=apple" />
+    <img src="https://img.shields.io/badge/运行时-OpenClaw-orange" />
+    <img src="https://img.shields.io/badge/检测-GPA--GUI--Detector-green" />
+    <img src="https://img.shields.io/badge/OCR-Apple_Vision_%7C_EasyOCR-blue" />
     <img src="https://img.shields.io/badge/License-MIT-yellow" />
+    <img src="https://img.shields.io/badge/OSWorld_Chrome-93.5%25-brightgreen" />
+    <img src="https://img.shields.io/badge/OSWorld_Multi--Apps-54.3%25-green" />
   </p>
 </div>
 
@@ -36,14 +37,38 @@
 
 ## 🔥 更新日志
 
-- **[2026-03-24]** 🧠 **智能工作流导航** — 目标状态分层验证（template match → 全量检测 → LLM 回退）。通过 `detect_all` 自动跟踪性能。
-- **[2026-03-23]** 🏆 **OSWorld 基准测试：97.8%** — 46 个 Chrome 任务通过 45.0 个。[查看结果 →](../benchmarks/osworld/)
+- **[2026-03-30]** 📐 **ImageContext 坐标系统** — 用 `ImageContext` 类替代双空间模型。`detect_all()` 返回图片像素坐标（不做转换），裁剪与 scale 无关。`pixel_scale` 从 `backingScaleFactor` 获取（不再用 `图片尺寸/屏幕尺寸`）。修复非全屏截图的组件裁剪偏移 bug。[测试 →](../tests/test_image_context.py)
+- **[2026-03-29]** 🎬 **v0.3 — 统一操作接口 & 跨平台 GUI** — `gui_action.py` 作为所有 GUI 操作的统一入口。平台后端（`mac_local.py`、`http_remote.py`）通过 `--remote` 自动切换。`activate.py` 负责平台检测。OSWorld Multi-Apps：**54.3%**（44/81）。[查看结果 →](../benchmarks/osworld/multi_apps.md)
+- **[2026-03-24]** 🧠 **智能工作流导航** — 目标状态分层验证（模板匹配 → 全量检测 → LLM 回退）。通过 `detect_all` 自动跟踪性能。
+- **[2026-03-23]** 🏆 **OSWorld 基准测试（Chrome）** — **单轮尝试：93.5%**（43/46），**最多两轮尝试：97.8%**（45/46）。[查看结果 →](../benchmarks/osworld/)
 - **[2026-03-23]** 🔄 **记忆系统重构** — 拆分存储、组件自动遗忘（连续 15 次未命中 → 删除）、基于 Jaccard 相似度的状态合并。
 - **[2026-03-22]** 🔍 **统一检测管线** — `detect_all()` 作为单一入口；原子化的 检测 → 匹配 → 执行 → 验证 循环。
 - **[2026-03-21]** 🌐 **跨平台支持** — GPA-GUI-Detector 可处理任意 OS 截图（Linux VM、远程服务器等）。
 - **[2026-03-10]** 🚀 **初始发布** — GPA-GUI-Detector + Apple Vision OCR + 模板匹配 + 应用视觉记忆。
 
-## 💬 使用效果
+## 📖 技能总览
+
+GUI Agent Skills 由一个**主技能**（`SKILL.md`）编排 **7 个专用子技能**，各自负责 GUI 自动化的不同方面：
+
+<div align="center">
+
+### **驱动视觉 GUI 自动化的 7 个技能**
+
+| 技能 | 说明 |
+|:---|:---|
+| 👁️&nbsp;**[gui‑observe](../skills/gui-observe/)** | 截屏捕获、OCR 文字提取、当前状态识别。Agent 的眼睛——每次操作前必先执行。 |
+| 🎓&nbsp;**[gui‑learn](../skills/gui-learn/)** | 首次接触应用的学习——通过 GPA-GUI-Detector 检测所有 UI 组件，让 VLM 逐一标注，过滤重复，存入视觉记忆。 |
+| 🖱️&nbsp;**[gui‑act](../skills/gui-act/)** | 统一操作执行——检测 → 匹配 → 执行 → 差异对比 → 保存，一个原子化流程。处理点击、输入等所有 UI 交互。 |
+| 💾&nbsp;**[gui‑memory](../skills/gui-memory/)** | 视觉记忆管理——拆分存储（components/states/transitions）、浏览器站点隔离、活跃度遗忘、状态合并。 |
+| 🔄&nbsp;**[gui‑workflow](../skills/gui-workflow/)** | 状态图导航与工作流自动化——记录成功的任务序列，分层验证回放，BFS 路径规划。 |
+| 📊&nbsp;**[gui‑report](../skills/gui-report/)** | 任务性能追踪——自动记录耗时、token 用量、成功/失败日志。 |
+| ⚙️&nbsp;**[gui‑setup](../skills/gui-setup/)** | 新机器首次设置——安装依赖、下载模型、配置辅助功能权限。 |
+
+</div>
+
+主 `SKILL.md` 作为编排层：定义安全协议（INTENT → OBSERVE → VERIFY → ACT → CONFIRM → REPORT）、视觉与命令的边界，并按需路由到子技能。Agent 首先读取 `SKILL.md`，然后按需加载子技能。
+
+## 🔄 工作方式
 
 > **你**："用微信给小明发消息说明天见"
 
@@ -161,22 +186,22 @@ CONFIRM  → 截屏 → 进程列表为空 → 已终止 ✅
 
 </details>
 
-## ⚠️ 前置要求
+## 📋 前置要求
 
-GUIClaw 是一个 **OpenClaw 技能** — 它运行在 [OpenClaw](https://github.com/openclaw/openclaw) 内部，利用 OpenClaw 的 LLM 编排来推理 UI 操作。它**不是**独立的 API、命令行工具或 Python 库。你需要：
+GUI Agent Skills 是一个 **OpenClaw 技能** — 它运行在 [OpenClaw](https://github.com/openclaw/openclaw) 内部，利用 OpenClaw 的 LLM 编排来推理 UI 操作。它**不是**独立的 API、命令行工具或 Python 库。你需要：
 
 1. **[OpenClaw](https://github.com/openclaw/openclaw)** 已安装并运行
-2. **macOS + Apple Silicon**（用于 GPA-GUI-Detector 和 Apple Vision OCR）
-3. **辅助功能权限** 已授予 OpenClaw / Terminal
+2. **macOS + Apple Silicon**（*推荐*）— 启用 Apple Vision OCR 以获得高精度文字检测。同时支持 **Linux**（本地或通过 HTTP API 远程控制 VM，如 OSWorld）。
+3. **辅助功能权限** 已授予 OpenClaw / Terminal（仅 macOS）
 
-LLM（Claude、GPT 等）由 OpenClaw 配置提供 — GUIClaw 本身不直接调用任何外部 API。
+LLM（Claude、GPT 等）由 OpenClaw 配置提供 — GUI Agent Skills 本身不直接调用任何外部 API。
 
 ## 🚀 快速开始
 
 **1. 克隆并安装**
 ```bash
-git clone https://github.com/Fzkuji/GUIClaw.git
-cd GUIClaw
+git clone https://github.com/Fzkuji/GUI-Agent-Skills.git
+cd GUI-Agent-Skills
 bash scripts/setup.sh
 ```
 
@@ -190,28 +215,139 @@ bash scripts/setup.sh
 ```json
 {
   "skills": { "entries": { "gui-agent": { "enabled": true } } },
-  "tools": { "exec": { "timeoutSec": 60 } },
-  "messages": { "queue": { "mode": "steer" } }
+  "tools": { "exec": { "timeoutSec": 300 } }
 }
 ```
 
-> ⚠️ **`timeoutSec: 60`** 很重要 — GUIClaw 的操作（截屏 → 检测 → 点击 → 等待）通常需要 15-30 秒，默认超时太短会中途终止命令。
-
-> 💡 **`queue.mode: "steer"`** 推荐启用 — GUI 操作耗时较长，steer 模式允许你发送修正或新指令，在下一个工具调用边界立即中断当前操作。否则消息会排队，智能体完成当前动作后才能看到。
+> ⚠️ **`timeoutSec: 300`** 很重要 — GUI Agent Skills 的操作链（截屏 → 检测 → 点击 → 等待 → 验证）可能较长，推荐 5 分钟超时。默认超时太短会中途终止命令。
 
 然后直接和你的 OpenClaw 智能体对话 — 它会自动读取 `SKILL.md` 并处理一切。
 
-## 🧠 工作原理
+## 🏗️ 架构
 
 <p align="center">
-  <img src="../assets/architecture.png" alt="GUIClaw 架构图" width="700" />
+  <img src="../assets/architecture.png" alt="GUI Agent Skills 架构图" width="700" />
 </p>
 
-架构分为三层：
+GUI Agent Skills 将 GUI 智能体从**无状态**（每步重新感知所有内容）转变为**有状态**（学习、记忆、复用），通过三个核心机制实现：
 
-- **编排层** — `SKILL.md` 路由到子技能（`gui-observe`、`gui-act`、`gui-learn`、`gui-memory`、`gui-workflow`）。每一步都强制执行安全协议（INTENT → OBSERVE → VERIFY → ACT → CONFIRM → REPORT）。
-- **核心脚本** — `agent.py` 是统一入口。`app_memory.py` 处理视觉记忆（学习、检测、匹配、验证）。`ui_detector.py` 运行 GPA-GUI-Detector (YOLO) + Apple Vision OCR。
-- **记忆层** — 拆分存储：每个应用/站点维护 `components.json`、`states.json`、`transitions.json`。组件在连续未命中后自动遗忘，状态基于 Jaccard 相似度自动合并。
+### 1. 统一组件记忆（Unified Component Memory）
+
+> **问题**：现有 GUI 智能体将每次截屏当作全新的感知任务——即便面对已经见过上百次的界面。
+
+当 UI 元素首次被检测到时，GUI Agent Skills 创建一个**双重表征**：裁切的视觉模板（用于快速匹配）和 VLM 赋予的语义标签（用于推理）。这对组合存储在每个应用的记忆中，跨所有后续交互复用。
+
+**检测与标注：**
+- [GPA-GUI-Detector](https://huggingface.co/Salesforce/GPA-GUI-Detector)（YOLO 架构）检测 UI 组件 → 返回带坐标的边界框，但*不提供语义标签*
+- Apple Vision OCR 提取可见文字及精确边界框
+- VLM（Claude、GPT 等）为每个检测到的元素赋予语义标签（"搜索按钮"、"设置图标"）
+- 结果：每个组件同时携带**视觉模板**和**语义标签**
+
+**模板匹配与复用：**
+- 后续截屏中，已存储的模板通过归一化互相关进行匹配
+- 匹配结果通过目标应用的窗口边界验证（防止被重叠应用产生的误匹配）
+- 匹配到的组件携带之前赋予的标签——无需再调用 VLM
+
+**基于活跃度的遗忘：**
+- 每个组件追踪 `consecutive_misses`——每当完整检测周期未能重新检测到该组件时递增
+- 连续 **15 次**未命中后，组件自动删除（级联删除相关状态和转移）
+- 随着应用 UI 更新，记忆自动保持同步
+
+```
+memory/apps/
+├── wechat/
+│   ├── meta.json              # 元数据（detect_count, forget_threshold）
+│   ├── components.json        # 组件注册表 + 活跃度追踪
+│   ├── states.json            # 状态（由组件集合定义）
+│   ├── transitions.json       # 状态转移（字典结构，去重）
+│   ├── components/            # 裁切的 UI 元素图片
+│   │   ├── search_bar.png
+│   │   └── emoji_button.png
+│   └── workflows/             # 保存的任务序列
+├── chromium/
+│   ├── components.json        # 浏览器 UI 组件
+│   └── sites/                 # ⭐ 每个网站独立记忆（相同结构）
+│       ├── united.com/
+│       ├── delta.com/
+│       └── amazon.com/
+```
+
+### 2. 基于组件的状态转移建模（Component-Based State Transition Modeling）
+
+> **问题**：知道"屏幕上有什么"还不够——Agent 还需要知道"点击 X 会发生什么"。
+
+UI 被建模为**有向状态图**，每个状态由一组可见组件定义。
+
+**状态定义与匹配：**
+- 状态 `s = {c₁, c₂, ..., cₙ}` 是当前屏幕上的组件集合
+- 使用 **Jaccard 相似度**匹配状态：`J(s, s') = |s ∩ s'| / |s ∪ s'|`
+- 匹配阈值 > 0.7 → 识别当前状态
+- 合并阈值 > 0.85 → 相似状态自动合并（防止状态爆炸）
+
+**转移记录与 pending-confirm 验证：**
+- 每次点击记录转移元组：`(操作前状态, 被点击组件, 操作后状态)`
+- 转移**不会**立即提交——它们作为 *pending* 积累
+- 只有当任务**成功完成**时，所有 pending 转移才被确认并写入图
+- 失败时 → 所有 pending 转移被丢弃（防止探索性点击污染导航图）
+
+**BFS 路径规划：**
+- 积累的转移形成有向图 `G = (S, E)`
+- 给定当前状态 `sᶜ` 和目标状态 `sᵗ`，BFS 找到最短操作序列
+- 实现直接导航到任何已访问过的状态，无需重新探索
+- 不存在路径？→ 回退到探索模式，使用 VLM 推理
+
+```json
+// states.json
+{
+  "state_0": {
+    "defining_components": ["Chat_tab", "Cowork_tab", "Search", "Ideas"],
+    "description": "应用主视图"
+  },
+  "state_1": {
+    "defining_components": ["Chat_tab", "Account", "Billing", "Usage"],
+    "description": "设置页面"
+  }
+}
+
+// transitions.json — 在 state_0 点击 Settings → 到达 state_1
+{
+  "state_0": { "Settings": "state_1" },
+  "state_1": { "Chat_tab": "state_0" }
+}
+```
+
+### 3. 渐进式视觉到语义的定位（Progressive Visual-to-Semantic Grounding）
+
+> **问题**：VLM 会产生坐标幻觉。所有现有 GUI 智能体都让 VLM 估计像素位置——导致误点和级联失败。
+
+GUI Agent Skills 随着记忆积累，**渐进地**从图像级转向文本级定位：
+
+**阶段 1 — 图像级定位（陌生界面）：**
+- 检测器提供边界框，OCR 提取文字
+- VLM 接收完整截图来理解场景
+- VLM 决定与哪个元素交互
+- 组件被标注并存入记忆
+- 这个昂贵的过程**每个组件只发生一次**
+
+**阶段 2 — 文本级定位（熟悉界面）：**
+- 模板匹配识别屏幕上的已知组件
+- VLM 接收一个**组件名称列表**（如 `[搜索, 设置, 个人资料, 聊天]`）——*而非*截图
+- VLM 按名称选择目标（如"点击设置"）
+- 系统通过已存储模板将名称解析为精确坐标
+- **VLM 永远不估计像素位置**
+
+**为什么这很重要：**
+1. **无坐标幻觉** — 坐标完全来自模板匹配
+2. **无冗余视觉处理** — 熟悉界面在纯文本空间处理
+3. **成本随使用递减** — 随着记忆增长，更多交互使用文本级定位，延迟降低约 5.3 倍，token 消耗降低约 60-100 倍
+
+**分层验证**（工作流执行期间）：
+
+| 层级 | 方法 | 速度 | 使用场景 |
+|------|------|------|----------|
+| **Level 0** | 模板匹配目标组件 | ~0.3s | 默认首选检查 |
+| **Level 1** | 全量检测 + 状态识别 | ~2s | Level 0 失败或有歧义 |
+| **Level 2** | VLM 视觉回退 | ~5s+ | Level 1 无法确定状态 |
 
 ### 检测引擎
 
@@ -221,202 +357,9 @@ bash scripts/setup.sh
 | **Apple Vision OCR** | ~1.6s | 文字元素（中英文） |
 | **模板匹配** | ~0.3s | 已知组件（首次学习后） |
 
-## 📁 应用视觉记忆
-
-每个应用拥有独立的视觉记忆，采用**点击图状态模型**。
-浏览器比较特殊 — 它承载多个网站，因此每个网站都有独立的**嵌套记忆**，结构与普通应用完全相同。
-
-```
-memory/apps/
-├── wechat/
-│   ├── meta.json                 # 元数据（detect_count, forget_threshold）
-│   ├── components.json           # 组件注册表 + 活跃度追踪
-│   ├── states.json               # 状态（由组件集合定义）
-│   ├── transitions.json          # 状态转移（字典结构，去重）
-│   ├── components/               # 裁切的 UI 元素图片
-│   │   ├── search_bar.png
-│   │   ├── emoji_button.png
-│   │   └── ...
-│   ├── workflows/                # 保存的任务序列
-│   │   └── send_message.json
-│   └── pages/
-│       └── main_annotated.jpg
-├── cleanmymac_x/
-│   ├── meta.json
-│   ├── components.json
-│   ├── states.json
-│   ├── transitions.json
-│   ├── components/
-│   ├── workflows/
-│   │   └── smart_scan_cleanup.json
-│   └── pages/
-├── claude/
-│   ├── meta.json
-│   ├── components.json
-│   ├── states.json
-│   ├── transitions.json
-│   ├── components/
-│   ├── workflows/
-│   │   └── check_usage.json
-│   └── pages/
-└── chromium/
-    ├── meta.json                 # 浏览器级元数据
-    ├── components.json           # 浏览器 UI 组件（工具栏、设置）
-    ├── states.json
-    ├── transitions.json
-    ├── components/               # 浏览器 UI 元素模板
-    ├── pages/
-    └── sites/                    # ⭐ 每个网站的记忆（结构与普通应用相同）
-        ├── united.com/
-        │   ├── meta.json
-        │   ├── components.json   # 网站 UI：导航栏、表单、链接
-        │   ├── states.json
-        │   ├── transitions.json
-        │   ├── components/       # 网站特定的裁切 UI 元素
-        │   └── pages/            # 页面截图
-        ├── delta.com/
-        │   ├── meta.json
-        │   ├── components.json
-        │   ├── states.json
-        │   ├── transitions.json
-        │   ├── components/
-        │   └── pages/
-        └── amazon.com/
-            ├── meta.json
-            ├── components.json
-            ├── states.json
-            ├── transitions.json
-            ├── components/
-            └── pages/
-```
-
-### 点击图（Click Graph）
-
-UI 被建模为**状态图**。每个状态由 `defining_components` 集合定义 — 即屏幕上检测到的组件集合。状态匹配使用当前屏幕组件与已保存状态定义集合之间的 **Jaccard 相似度**。
-
-**components.json 结构：**
-```json
-{
-  "Search": {
-    "type": "icon",
-    "rel_x": 115, "rel_y": 143,
-    "icon_file": "components/Search.png",
-    "last_seen": "2026-03-24T01:30:00",
-    "seen_count": 12,
-    "consecutive_misses": 0
-  },
-  "Settings": {
-    "type": "icon",
-    "rel_x": 63, "rel_y": 523,
-    "icon_file": "components/Settings.png",
-    "last_seen": "2026-03-24T01:30:00",
-    "seen_count": 8,
-    "consecutive_misses": 2
-  }
-}
-```
-
-**states.json 结构：**
-```json
-{
-  "state_0": {
-    "defining_components": ["Chat_tab", "Cowork_tab", "Code_tab", "Search", "Ideas"],
-    "description": "Main app view when first opened"
-  },
-  "state_1": {
-    "defining_components": ["Chat_tab", "Account", "Billing", "Usage", "General"],
-    "description": "Settings page"
-  },
-  "state_2": {
-    "defining_components": ["Chat_tab", "Account", "Billing", "Usage", "Developer"],
-    "description": "Settings > Usage tab"
-  }
-}
-```
-
-**工作方式：**
-1. **状态 = 组件集合** — 每个状态由当前可见的组件（`defining_components`）定义
-2. **Jaccard 匹配** — 当前屏幕检测到的组件与各状态对比：`|A ∩ B| / |A ∪ B|`
-3. **匹配阈值 > 0.7** — 识别当前状态
-4. **合并阈值 > 0.85** — 新状态与已有状态过于相似时，自动合并
-5. **组件属于状态** — 一个组件可以出现在多个状态中（如 `Chat_tab` 同时在 `state_0`、`state_1`、`state_2`）
-6. **匹配是状态相关的** — 只匹配属于当前识别状态的组件
-
-**组件自动遗忘：**
-- 每个组件追踪 `last_seen`、`seen_count` 和 `consecutive_misses`
-- 当组件连续 **15 次 detect_all 运行**未被检测到时，自动删除
-- 随着应用 UI 更新，记忆自动保持精简
-
-**为什么这样设计：**
-- 无需预定义"页面"或"区域" — 状态通过交互自动发现
-- 状态识别速度快（Jaccard 组件集合匹配，无需视觉模型）
-- 相似状态自动合并，防止状态爆炸
-- 过时组件自动遗忘，保持记忆精简
-- 自然处理弹窗、覆盖层、嵌套导航
-- 可扩展到具有复杂 UI 状态的应用
-
-## 🔄 工作流记忆
-
-完成的任务会被保存为可复用的工作流。下次收到类似请求时，智能体自动进行语义匹配。
-
-```
-memory/apps/cleanmymac_x/workflows/smart_scan_cleanup.json
-memory/apps/claude/workflows/check_usage.json
-```
-
-**匹配机制：**
-1. 用户说"帮我清理一下电脑" / "scan my Mac" / "run CleanMyMac"
-2. 智能体列出目标应用的已保存工作流
-3. **LLM 语义匹配**（不是字符串匹配）— 智能体本身就是 LLM
-4. 匹配成功 → 加载工作流步骤，观察当前状态，从正确步骤恢复
-5. 没有匹配 → 正常操作，成功后保存新工作流
-
-**分层验证（Workflow v2）：**
-
-每个工作流步骤采用分层验证 — 先执行快速检查，必要时才使用昂贵方法：
-
-| 层级 | 方法 | 速度 | 使用场景 |
-|------|------|------|----------|
-| **Level 0** | `quick_template_check` — 模板匹配目标组件 | ~0.3s | 默认首选检查 |
-| **Level 1** | `detect_all` + `identify_current_state` — 全量检测 | ~2s | Level 0 失败或有歧义 |
-| **Level 2** | LLM 视觉回退 | ~5s+ | Level 1 无法确定状态 |
-
-**执行模式：**
-- **Auto 模式** — 按已保存的工作流步骤执行，每步使用分层验证
-- **Explore 模式** — 无已保存工作流；智能体交互式发现步骤，成功后保存
-
-**`execute_workflow()` 返回值：**
-- `success` — 所有步骤完成并验证通过
-- `fallback` — 工作流偏离，回退到 Explore 模式
-- `error` — 不可恢复的错误
-
-**工作流示例** (`smart_scan_cleanup.json`)：
-```json
-{
-  "steps": [
-    {"action": "open", "target": "CleanMyMac X"},
-    {"action": "observe", "note": "check current state"},
-    {"action": "click", "target": "Scan"},
-    {"action": "wait_for", "target": "Run", "timeout": 120},
-    {"action": "click", "target": "Run"},
-    {"action": "wait_for", "target": "Ignore", "timeout": 30},
-    {"action": "click", "target": "Ignore", "condition": "only if quit dialog appeared"}
-  ]
-}
-```
-
-**`wait_for` — 异步 UI 轮询：**
-```bash
-python3 agent.py wait_for --app "CleanMyMac X" --component Run
-# ⏳ Waiting for 'Run' (timeout=120s, poll=10s)...
-# ✅ Found 'Run' at (855,802) conf=0.98 after 45.2s (5 polls)
-```
-- 每 10 秒模板匹配（单次约 0.3 秒）
-- 超时 → 保存截图供检查，**绝不盲点**
-
 ## 🔴 视觉 vs 命令
 
-GUIClaw 用视觉检测做**决策**，用最高效的方式做**执行**：
+GUI Agent Skills 用视觉检测做**决策**，用最高效的方式做**执行**：
 
 | | 必须基于视觉 | 可以用键盘/命令 |
 |---|---|---|
@@ -432,9 +375,7 @@ GUIClaw 用视觉检测做**决策**，用最高效的方式做**执行**：
 | **GPA-GUI-Detector** (`detect_icons`) | 边界框 + 坐标 ✅（无标签） | 找图标、按钮、非文字元素 |
 | **image 工具** (LLM 视觉) | 语义理解 ⛔ 不提供坐标 | 理解场景，决定点击什么 |
 
-**渐进式流程**：首次访问 → 三种方法全用。熟悉的页面 → 仅 OCR + detector（跳过 image 工具，节省 token）。
-
-## ⚠️ 安全与协议
+## 🛡️ 安全与协议
 
 每个操作遵循统一的 检测→匹配→执行→保存 协议：
 
@@ -459,10 +400,10 @@ GUIClaw 用视觉检测做**决策**，用最高效的方式做**执行**：
 ## 🗂️ 项目结构
 
 ```
-GUIClaw/
-├── SKILL.md                   # 🧠 主技能文件 — 智能体首先读取此文件
-│                              #    定义：视觉 vs 命令边界、三种视觉方法、执行流程
-├── skills/                    # 📖 子技能
+GUI-Agent-Skills/
+├── SKILL.md                   # 🧠 主技能——编排层
+│                              #    安全协议、视觉/命令边界、按需路由子技能
+├── skills/                    # 📖 子技能（7 个专用模块）
 │   ├── gui-observe/SKILL.md   #   👁️ 截屏、OCR、状态识别
 │   ├── gui-learn/SKILL.md     #   🎓 检测组件、标注、过滤、保存
 │   ├── gui-act/SKILL.md       #   🖱️ 统一流程：检测→匹配→执行→差异→保存
@@ -472,10 +413,14 @@ GUIClaw/
 │   └── gui-setup/SKILL.md     #   ⚙️ 新机器首次设置
 ├── scripts/
 │   ├── setup.sh               # 🔧 一键安装
-│   ├── agent.py               # 🎯 统一入口（所有 GUI 操作经由此处）
+│   ├── activate.py            # 🌐 平台检测 — 检测 OS 并输出平台信息
+│   ├── gui_action.py          # 🎯 统一 GUI 操作接口（click/type/key/screenshot）
+│   │                          #    通过 --remote 自动选择后端：mac_local 或 http_remote
+│   ├── backends/              # 🔌 平台后端
+│   │   ├── mac_local.py       #     macOS：cliclick + AppleScript
+│   │   └── http_remote.py     #     远程 VM：通过 HTTP API 调用 pyautogui（如 OSWorld）
 │   ├── ui_detector.py         # 🔍 检测引擎（GPA-GUI-Detector + OCR + Swift 窗口信息）
 │   ├── app_memory.py          # 🧠 视觉记忆（学习/检测/点击/验证/learn_site）
-│   ├── gui_agent.py           # 🖱️ 旧版任务执行器
 │   └── template_match.py      # 🎯 模板匹配工具
 ├── memory/                    # 🔒 视觉记忆（gitignored 但至关重要）
 │   ├── apps/<appname>/        #   每个应用的记忆：
@@ -486,9 +431,16 @@ GUIClaw/
 │   │   ├── components/        #     模板图片
 │   │   ├── pages/             #     页面截图
 │   │   └── sites/<domain>/    #   每个网站的记忆（浏览器专用，相同结构）
+├── platforms/                  # 🌐 平台指南与检测
+│   ├── detect.py              #     平台自动检测脚本
+│   ├── macos.md               #     macOS 特定技巧与注意事项
+│   ├── linux.md               #     Linux 特定技巧与注意事项
+│   └── DESIGN.md              #     跨平台架构设计
 ├── benchmarks/osworld/        # 📈 OSWorld 基准测试结果
 ├── assets/                    # 🎨 架构图、banner
-├── actions/_actions.yaml      # 📋 原子操作定义
+├── actions/
+│   ├── _actions_macos.yaml    # 📋 macOS 操作定义
+│   └── _actions_linux.yaml    # 📋 Linux 操作定义
 ├── docs/
 │   ├── core.md                # 📚 经验教训与硬规则
 │   └── README_CN.md           # 🇨🇳 中文文档
@@ -498,17 +450,18 @@ GUIClaw/
 
 ## 📦 环境要求
 
-- **macOS** + Apple Silicon（M1/M2/M3/M4）
-- **辅助功能权限**：系统设置 → 隐私与安全性 → 辅助功能
+- **macOS** + Apple Silicon（M1/M2/M3/M4）— 本地 GUI 自动化
+- **Linux**（Ubuntu 22.04+）— 通过 HTTP API 远程控制 VM
+- **辅助功能权限**（仅 macOS）：系统设置 → 隐私与安全性 → 辅助功能
 - 其余依赖由 `bash scripts/setup.sh` 自动安装
 
 ## 🤝 生态系统
 
 | | |
 |---|---|
-| 🦞 **[OpenClaw](https://github.com/openclaw/openclaw)** | AI 助手框架 — 将 GUIClaw 作为技能加载 |
+| 🦞 **[OpenClaw](https://github.com/openclaw/openclaw)** | AI 助手框架 — 将 GUI Agent Skills 作为技能加载 |
 | 🔍 **[GPA-GUI-Detector](https://huggingface.co/Salesforce/GPA-GUI-Detector)** | Salesforce/GPA-GUI-Detector — 通用 UI 元素检测模型 |
-| 💬 **[Discord 社区](https://discord.gg/BQbUmVuD)** | 获取帮助，分享反馈 |
+| 💬 **[Discord 社区](https://discord.gg/vfyqn5jWQy)** | 获取帮助，分享反馈 |
 
 ## 📄 许可证
 
@@ -518,15 +471,15 @@ MIT — 详见 [LICENSE](../LICENSE)。
 
 ## 📌 引用
 
-如果 GUIClaw 对你的研究有帮助，请引用：
+如果 GUI Agent Skills 对你的研究有帮助，请引用：
 
 ```bibtex
-@misc{fu2026guiclaw,
+@misc{fu2026gui-agent-skills,
   author       = {Fu, Zichuan},
-  title        = {GUIClaw: Visual Memory-Driven GUI Automation for macOS},
+  title        = {GUI Agent Skills: Visual Memory-Driven GUI Automation for macOS},
   year         = {2026},
   publisher    = {GitHub},
-  url          = {https://github.com/Fzkuji/GUIClaw},
+  url          = {https://github.com/Fzkuji/GUI-Agent-Skills},
 }
 ```
 
@@ -535,15 +488,15 @@ MIT — 详见 [LICENSE](../LICENSE)。
 ## ⭐ Star History
 
 <p align="center">
-  <a href="https://star-history.com/#Fzkuji/GUIClaw&Date">
+  <a href="https://star-history.com/#Fzkuji/GUI-Agent-Skills&Date">
     <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Fzkuji/GUIClaw&type=Date&theme=dark" />
-      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Fzkuji/GUIClaw&type=Date" />
-      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Fzkuji/GUIClaw&type=Date" width="600" />
+      <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Fzkuji/GUI-Agent-Skills&type=Date&theme=dark" />
+      <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Fzkuji/GUI-Agent-Skills&type=Date" />
+      <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Fzkuji/GUI-Agent-Skills&type=Date" width="600" />
     </picture>
   </a>
 </p>
 
 <p align="center">
-  <sub>由 🦞 GUIClaw 团队构建 · 基于 <a href="https://github.com/openclaw/openclaw">OpenClaw</a></sub>
+  <sub>由 🦞 GUI Agent Skills 团队构建 · 基于 <a href="https://github.com/openclaw/openclaw">OpenClaw</a></sub>
 </p>

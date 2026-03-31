@@ -1,16 +1,16 @@
-# OSWorld Benchmark Results — GUIClaw
+# OSWorld Benchmark Results — GUI Agent Skills
 
 > Last updated: 2026-03-23
 
 ## Overview
 
-**GUIClaw** is evaluated on [OSWorld](https://github.com/xlang-ai/OSWorld), a real-computer benchmark for multimodal agents with 356 tasks across 10 domains.
+**GUI Agent Skills** is evaluated on [OSWorld](https://github.com/xlang-ai/OSWorld), a real-computer benchmark for multimodal agents with 356 tasks across 10 domains.
 
 ## Results Summary
 
 | Domain | Score | Total | Rate | Status |
 |--------|-------|-------|------|--------|
-| **Chrome** | 45.0 | 46 | **97.8%** | ✅ Complete |
+| **Chrome** | 43 | 46 | **93.5%** | ✅ Complete |
 | GIMP | — | 26 | — | Not tested |
 | LibreOffice Calc | — | 47 | — | Not tested |
 | LibreOffice Impress | — | 47 | — | Not tested |
@@ -20,7 +20,7 @@
 | Thunderbird | — | 15 | — | Not tested |
 | VLC | — | 17 | — | Not tested |
 | VS Code | — | 22 | — | Not tested |
-| **Total** | **45.0** | **356** | — | 1/10 domains |
+| **Total** | **43** | **356** | — | 1/10 domains |
 
 > Scoring: ✅ = 1.0, ⚠️ env-change = 1.0, ⚠️ retry = 0.5, ❌ = 0
 
@@ -32,7 +32,7 @@ Reference scores from the [OSWorld leaderboard](https://os-world.github.io/):
 |------|-------|--------|---------|------|
 | 1 | HIPPO Agent w/Opus 4.5 (Lenovo) | 60.4% | 74.5% | Agentic framework |
 | 2 | Claude Sonnet 4.6 (Anthropic) | 78.5% | 72.1% | General model |
-| — | **GUIClaw** | **97.8%** | TBD | OpenClaw + Claude Opus 4.6 |
+| — | **GUI Agent Skills** | **93.5%** | TBD | OpenClaw + Claude Opus 4.6 |
 
 ## Framework & Pipeline
 
@@ -42,7 +42,7 @@ Reference scores from the [OSWorld leaderboard](https://os-world.github.io/):
 │  ┌─────────────────────────────────────────────────┐    │
 │  │  OpenClaw (runtime framework)                   │    │
 │  │  └─ Claude Opus 4.6 (LLM reasoning & planning)  │    │
-│  │     └─ GUIClaw Skill                            │    │
+│  │     └─ GUI Agent Skills Skill                            │    │
 │  │        ├─ Salesforce/GPA-GUI-Detector (UI det.) │    │
 │  │        ├─ Apple Vision OCR (text recognition)   │    │
 │  │        └─ pyautogui (action execution)          │    │
@@ -76,7 +76,7 @@ Reference scores from the [OSWorld leaderboard](https://os-world.github.io/):
 
 ## Domain Results
 
-- [Chrome](chrome.md) — 45.0/46 (97.8%) ✅
+- [Chrome](chrome.md) — 43/46 (93.5%) ✅
 
 ## Environment
 

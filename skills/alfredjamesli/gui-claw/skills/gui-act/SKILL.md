@@ -21,7 +21,7 @@ This is the core action loop. Every action follows this flow. Do not skip any pa
 │ 4. DECIDE & EXECUTE: Pick target → click/type at coordinates     │
 │ 5. DETECT AGAIN: Screenshot → OCR (only if action might fail)    │
 │ 6. DIFF:    Compare before vs after OCR texts                    │
-│ 7. SAVE TRANSITION: Record state change to profile.json          │
+│ 7. SAVE TRANSITION: Record state change to transitions.json      │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -36,7 +36,7 @@ This is the core action loop. Every action follows this flow. Do not skip any pa
 
 Two platform-independent functions handle ALL saving automatically.
 They work on any screenshot (local Mac, remote VM, downloaded image).
-**The LLM does NOT manually crop or write profile.json** — call these functions instead.
+**The LLM does NOT manually crop or write JSON files** — call these functions instead.
 
 ### `learn_from_screenshot(img_path, domain, app_name, page_name)`
 Runs GPA-GUI-Detector + OCR on a screenshot, crops all components, saves to memory.
@@ -51,8 +51,9 @@ result = learn_from_screenshot(
     domain="united.com",           # None for non-browser apps
     app_name="chromium",           # Browser or app name
     page_name="homepage",          # Human-readable page label
-    retina=False,                  # True for Mac Retina, False for VMs
 )
+# Note: Scale (detection→click) is computed dynamically by detect_all()
+# via refresh_screen_info(). No manual retina flag needed.
 # result = {"saved": 42, "new": 38, "components": ["Booking", "Travel_info", ...]}
 ```
 
@@ -68,10 +69,9 @@ result = record_page_transition(
     before_img_path="/path/to/before.png",
     after_img_path="/path/to/after.png",
     click_label="Travel_info",     # What was clicked
-    click_pos=(779, 187),          # Where it was clicked
+    click_pos=(779, 187),          # Where it was clicked (click space)
     domain="united.com",
     app_name="chromium",
-    retina=False,
 )
 # result = {"appeared": [...], "disappeared": [...], "from": "...", "to": "..."}
 ```
@@ -124,7 +124,7 @@ learn_from_screenshot(
 )
 ```
 
-This is automated — no manual cropping, no manual profile.json editing.
+This is automated — no manual cropping, no manual JSON editing.
 The function handles: detection, filtering, naming, dedup, cropping, saving.
 
 ### Step 4: DECIDE & EXECUTE
@@ -149,7 +149,7 @@ import pyautogui
 pyautogui.click(779, 187)
 ```
 
-**CRITICAL:** For local Mac, always use `click_and_record()` or `click_component()`, never raw `click_at()`.
+**CRITICAL:** Always use `gui_action.py click` (with appropriate --remote if needed), never raw platform-specific calls.
 
 ### Step 5: DETECT AGAIN (if needed)
 
@@ -187,36 +187,39 @@ record_page_transition(
 )
 ```
 
-This automatically: runs OCR on both images, diffs them, saves states + transition to profile.json.
+This automatically: runs OCR on both images, diffs them, saves states + transition to `states.json` / `transitions.json`.
 
 ---
 
 ## Concrete Example: OSWorld Task
 
-```
-# Step 1: Screenshot + detect
-screenshot → download to Mac → OCR finds "Travel info" at (779, 187)
+```python
+from scripts.ui_detector import ImageContext, detect_all
+
+# Step 1: Screenshot + detect (returns IMAGE PIXEL coords)
+# Download VM screenshot to Mac, then detect locally
+elements = detect_all("screenshot.png")  # returns image pixel coords
 
 # Step 2: Match — first visit, no memory yet → all new
 
 # Step 3: Save components BEFORE clicking
 learn_from_screenshot("screenshot.png", domain="united.com", page_name="homepage")
-→ 42 components saved automatically
+# → 42 components saved automatically (crops use pixel coords directly)
 
-# Step 4: Click
-pyautogui.click(779, 187)  # via VM API
+# Step 4: Click — convert pixel coords to click-space
+ctx = ImageContext.remote()  # VM screenshot = 1:1
+click_x, click_y = ctx.image_to_click(779, 187)  # → (779, 187) for remote
+pyautogui.click(click_x, click_y)  # via VM API
 
 # Step 5: Detect again
-new_screenshot → download to Mac → OCR finds dropdown menu
+new_elements = detect_all("new_screenshot.png")
 
 # Step 6+7: Diff + save transition
 record_page_transition("screenshot.png", "new_screenshot.png",
                        click_label="Travel_info", click_pos=(779, 187),
                        domain="united.com")
-→ appeared: ["Bags", "United app", ...], disappeared: [...]
-→ transition saved to profile.json
-
-# Now repeat steps 1-7 for clicking "Bags"...
+# → appeared: ["Bags", "United app", ...], disappeared: [...]
+# → transition saved to transitions.json
 ```
 
 ---
@@ -241,11 +244,25 @@ Screenshot → template match against saved components → instant recognition
 
 ## How Coordinates Work
 
-| Source | Method | Precision |
+`detect_all()` returns **image pixel coordinates**. Use `ImageContext` to convert to click-space:
+
+```python
+from scripts.ui_detector import ImageContext
+
+# Choose context based on screenshot source:
+ctx = ImageContext.remote()              # VM / remote screenshots
+ctx = ImageContext.mac_fullscreen()      # Mac fullscreen
+ctx = ImageContext.mac_window(wx, wy)    # Mac window crop
+
+# Convert for clicking:
+click_x, click_y = ctx.image_to_click(el["cx"], el["cy"])
+```
+
+| Source | Method | Returns |
 |---|---|---|
-| Saved component | Template matching (`match_all_components`) | Pixel-precise |
-| Text element | OCR (`detect_text`) | Bbox-precise |
-| UI component | GPA-GUI-Detector (`detect_icons`) | Bbox-precise |
+| Saved component | Template matching (`match_all_components`) | Click-space (already converted) |
+| Text element | OCR via `detect_all()` | **Image pixels** → use `ctx.image_to_click()` |
+| UI component | GPA via `detect_all()` | **Image pixels** → use `ctx.image_to_click()` |
 | **image tool** | **NEVER for coordinates** | **Understanding only** |
 
 ## Not Found?
@@ -253,16 +270,21 @@ Screenshot → template match against saved components → instant recognition
 Component not matching (conf < 0.8) = not on screen in its saved form.
 **Don't lower threshold.** Run `learn_from_screenshot()` on current page to discover what IS on screen.
 
-## Input Methods (platform_input.py)
+## Input Methods (gui_action.py)
 
-```python
-click_at(x, y)                    # Left click
-mouse_right_click(x, y)           # Right click
-paste_text("中文")                 # Clipboard + Cmd+V (CJK safe)
-type_text("hello")                # Direct typing (ASCII only)
-key_press("return")               # Single key
-key_combo("command", "v")         # Key combination
-screenshot("/tmp/check.png")      # Full screen capture
+All GUI operations go through `gui_action.py`. Add `--remote URL` for remote targets.
+
+```bash
+gui_action.py click X Y                   # Left click
+gui_action.py right_click X Y             # Right click
+gui_action.py type "text"                 # Type text (handles special chars)
+gui_action.py key enter                   # Single key (enter/tab/escape...)
+gui_action.py shortcut ctrl+s             # Key combination
+gui_action.py screenshot /tmp/s.png       # Screenshot
+gui_action.py focus "window title"        # Focus window
+gui_action.py close "window title"        # Close window
+gui_action.py list_windows                # List all windows
+# Remote: add --remote http://IP:PORT
 ```
 
 ---
@@ -285,3 +307,30 @@ $TRACKER report --context 120000
 ```
 
 See `gui-report/SKILL.md` for details.
+
+## ⛔ ABSOLUTE RULES — Coordinate Sources
+
+```
+✅ ALLOWED coordinate sources:
+   1. GPA-GUI-Detector (detect_icons) → bounding box center
+   2. OCR (detect_text) → text bounding box center
+   3. Template matching → saved component position
+
+❌ FORBIDDEN:
+   - LLM/vision model guessing coordinates
+   - Hardcoded pixel positions from memory or documentation
+   - Coordinates from image tool analysis (image tool = understanding ONLY)
+```
+
+Every click: screenshot → detect → get coordinates from detection → click. No exceptions.
+
+## Key Principles
+
+1. **Vision-driven** — screenshot → detect → match → click
+2. **Coordinates from detection only** — image tool is for understanding, NOT coordinates
+3. **Not found = not on screen** — re-learn, don't guess
+4. **State graph drives navigation** — each click records a transition
+5. **First time: screenshot + image. Repeat: detection only** — saves tokens
+6. **Paste > Type** for CJK text
+7. **Integer logical coordinates** — use detect_to_click() for Retina
+8. **ALWAYS save to memory** — every GUI operation saves to memory/apps/

@@ -1653,11 +1653,20 @@ function main() {
   }
 
   const dateStr = args[0];
-  const sex = parseInt(args[1]);
+  const sexArg = args[1];
+  const sex = sexArg === '男' ? 1 : sexArg === '女' ? 0 : parseInt(sexArg);
   const timeStr = args[2] || '12:00';
 
   const [year, month, day] = dateStr.split('-').map(Number);
-  const [hour, minute = 0] = timeStr.split(':').map(Number);
+
+  const SHICHEN_MAP = {'子':0,'丑':2,'寅':4,'卯':6,'辰':8,'巳':10,'午':12,'未':14,'申':16,'酉':18,'戌':20,'亥':22};
+  let hour, minute;
+  if (SHICHEN_MAP[timeStr] !== undefined) {
+    hour = SHICHEN_MAP[timeStr];
+    minute = 0;
+  } else {
+    [hour, minute = 0] = timeStr.split(':').map(Number);
+  }
 
   try {
     const result = analyzePlate(year, month, day, hour, minute, sex);

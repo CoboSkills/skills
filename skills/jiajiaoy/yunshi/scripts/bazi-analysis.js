@@ -353,15 +353,19 @@ function analyzeYongShen(dayStem, monthBranch, monthStem, strengthResult) {
   // 判断格局类型
   let patternType = '正格';
   const { 总分: score, 强弱等级: level } = strengthResult;
-  if (score < 80 && ['七杀', '正官', '偏财', '正财'].includes(pattern)) patternType = '从格';
+  if (score < 80 && ['七杀', '正官', '偏财', '正财', '食神', '伤官'].includes(pattern)) patternType = '从格';
   else if (score > 450 && ['比肩', '劫财'].includes(pattern)) patternType = '专旺格';
 
   // 善用神判断
+  // 从格/专旺格：顺从格局主气，月令本气即为用神（isGood = true）
+  // 正格：按身强/身弱扶抑法判断
   const isStrong = ['偏强', '强', '极强'].includes(level);
   const isWeak   = ['极弱', '弱', '偏弱'].includes(level);
   let isGood = true;
-  if (isStrong && ['比肩', '劫财', '正印', '偏印'].includes(pattern)) isGood = false;
-  if (isWeak   && ['七杀', '正官', '偏财', '正财', '食神', '伤官'].includes(pattern)) isGood = false;
+  if (patternType === '正格') {
+    if (isStrong && ['比肩', '劫财', '正印', '偏印'].includes(pattern)) isGood = false;
+    if (isWeak   && ['七杀', '正官', '偏财', '正财', '食神', '伤官'].includes(pattern)) isGood = false;
+  }
 
   return {
     月令: monthBranch,

@@ -14,6 +14,99 @@ const tianGan = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', 
 const diZhi = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'];
 const zodiacMap = { '子': '鼠', '丑': '牛', '寅': '虎', '卯': '兔', '辰': '龙', '巳': '蛇', '午': '马', '未': '羊', '申': '猴', '酉': '鸡', '戌': '狗', '亥': '猪' };
 
+// ============================================================
+// 真太阳时修正
+// ============================================================
+
+/** 主要城市经度表（东经度） */
+const CITY_LONGITUDE = {
+  '上海': 121.47, '北京': 116.40, '广州': 113.26, '深圳': 114.06,
+  '杭州': 120.15, '南京': 118.80, '成都': 104.07, '重庆': 106.55,
+  '武汉': 114.30, '西安': 108.93, '沈阳': 123.43, '哈尔滨': 126.68,
+  '长春': 125.32, '大连': 121.62, '天津': 117.19, '济南': 117.00,
+  '青岛': 120.38, '郑州': 113.65, '石家庄': 114.51, '太原': 112.55,
+  '呼和浩特': 111.76, '乌鲁木齐': 87.62, '拉萨': 91.11, '昆明': 102.68,
+  '贵阳': 106.63, '南宁': 108.37, '海口': 110.33, '福州': 119.30,
+  '厦门': 118.08, '南昌': 115.89, '合肥': 117.27, '长沙': 112.98,
+  '兰州': 103.82, '西宁': 101.74, '银川': 106.23, '昭通': 103.72,
+  '曲靖': 103.80, '丽江': 100.22, '大理': 100.27, '玉溪': 102.55,
+  '保山': 99.16, '普洱': 100.97, '临沧': 100.08, '香港': 114.17,
+  '澳门': 113.55, '台北': 121.53, '苏州': 120.62, '无锡': 120.30,
+  '宁波': 121.55, '温州': 120.67, '济宁': 116.59, '烟台': 121.39,
+  '徐州': 117.18, '洛阳': 112.45, '唐山': 118.18, '秦皇岛': 119.60
+};
+
+/**
+ * 均时差（分钟）：地球椭圆公转导致的时差，精度约 ±1 分钟
+ */
+function getEquationOfTime(date) {
+  const startOfYear = new Date(date.getFullYear(), 0, 1);
+  const doy = Math.floor((date - startOfYear) / 86400000) + 1;
+  const B = (2 * Math.PI * (doy - 1)) / 365;
+  return 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+}
+
+/**
+ * 计算真太阳时，返回修正后的日期和时间
+ * @param {string} birthDate YYYY-MM-DD
+ * @param {string} birthTime HH:MM
+ * @param {string} birthPlace 出生地（城市名）
+ * @returns {{ date: string, time: string, offsetMinutes: number, city: string|null }}
+ */
+function getTrueSolarTime(birthDate, birthTime, birthPlace) {
+  // 匹配城市经度（支持"上海市"、"上海浦东"等写法）
+  let longitude = null;
+  let matchedCity = null;
+  if (birthPlace) {
+    for (const [city, lng] of Object.entries(CITY_LONGITUDE)) {
+      if (birthPlace.includes(city)) {
+        longitude = lng;
+        matchedCity = city;
+        break;
+      }
+    }
+  }
+
+  if (longitude === null) {
+    // 未知城市，不做修正
+    return { date: birthDate, time: birthTime, offsetMinutes: 0, city: null };
+  }
+
+  const date = new Date(`${birthDate}T12:00:00+08:00`);
+  const geoOffset = (longitude - 120) * 4;       // 地理时差（分钟）
+  const eot = getEquationOfTime(date);             // 均时差（分钟）
+  const totalOffset = Math.round(geoOffset + eot); // 总修正量（分钟，四舍五入）
+
+  const [h, m] = birthTime.split(':').map(Number);
+  let totalMinutes = h * 60 + m + totalOffset;
+
+  // 处理跨日
+  let correctedDate = birthDate;
+  if (totalMinutes < 0) {
+    const d = new Date(`${birthDate}T12:00:00+08:00`);
+    d.setDate(d.getDate() - 1);
+    correctedDate = d.toISOString().slice(0, 10);
+    totalMinutes += 1440;
+  } else if (totalMinutes >= 1440) {
+    const d = new Date(`${birthDate}T12:00:00+08:00`);
+    d.setDate(d.getDate() + 1);
+    correctedDate = d.toISOString().slice(0, 10);
+    totalMinutes -= 1440;
+  }
+
+  const ch = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+  const cm = String(totalMinutes % 60).padStart(2, '0');
+
+  return {
+    date: correctedDate,
+    time: `${ch}:${cm}`,
+    offsetMinutes: totalOffset,
+    city: matchedCity,
+    geoOffsetMin: Math.round(geoOffset),
+    eotMin: Math.round(eot)
+  };
+}
+
 /**
  * 内置八字计算（使用精确节气算法）
  */
@@ -59,8 +152,11 @@ function calculateBazi(birthDate, birthTime, gender, sect = 1) {
  * 生成初始档案
  */
 function createProfile(userId, name, gender, birthDate, birthTime, birthPlace, sect = 1) {
-  // 计算八字
-  const bazi = calculateBazi(birthDate, birthTime, gender === '男' ? 1 : 0, sect);
+  // 真太阳时修正
+  const solar = getTrueSolarTime(birthDate, birthTime, birthPlace);
+
+  // 用真太阳时计算八字
+  const bazi = calculateBazi(solar.date, solar.time, gender === '男' ? 1 : 0, sect);
 
   const profile = {
     userId,
@@ -71,7 +167,11 @@ function createProfile(userId, name, gender, birthDate, birthTime, birthPlace, s
       birthTime,
       birthPlace,
       gender,
-      timezone: 'Asia/Shanghai'
+      timezone: 'Asia/Shanghai',
+      trueSolarTime: solar.time,
+      trueSolarDate: solar.date,
+      solarCorrectionMin: solar.offsetMinutes,
+      solarCorrectionCity: solar.city
     },
     bazi: {
       year: bazi?.year || '',
@@ -253,6 +353,21 @@ const profile = createProfile(userId, name, gender, birthDate, birthTime, birthP
 const filePath = saveProfile(userId, profile);
 
 console.log('✅ 注册成功！\n');
+
+// 真太阳时提示
+const sc = profile.profile.solarCorrectionMin;
+if (sc !== 0 && profile.profile.solarCorrectionCity) {
+  const sign = sc > 0 ? '+' : '';
+  console.log(`🌞 真太阳时修正（${profile.profile.solarCorrectionCity}）`);
+  console.log(`  北京时间: ${birthDate} ${birthTime}`);
+  console.log(`  真太阳时: ${profile.profile.trueSolarDate} ${profile.profile.trueSolarTime} (${sign}${sc}分钟)`);
+  console.log(`  八字时柱以真太阳时计算`);
+  console.log('');
+} else if (!profile.profile.solarCorrectionCity) {
+  console.log(`🌞 真太阳时：未识别城市"${birthPlace}"，以北京时间计算（如需精确请使用主要城市名）`);
+  console.log('');
+}
+
 console.log('📊 八字信息');
 console.log(`  年柱: ${profile.bazi.year}`);
 console.log(`  月柱: ${profile.bazi.month}`);

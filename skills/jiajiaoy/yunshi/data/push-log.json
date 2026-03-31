@@ -105,6 +105,33 @@
           "status": "dry-run"
         }
       ]
+    },
+    {
+      "date": "2026-03-30",
+      "timestamp": "2026-03-30T09:20:09.315Z",
+      "dryRun": true,
+      "results": [
+        {
+          "userId": "test001",
+          "name": "张三",
+          "status": "dry-run"
+        },
+        {
+          "userId": "test002",
+          "name": "测试",
+          "status": "dry-run"
+        },
+        {
+          "userId": "test003",
+          "name": "测试",
+          "status": "dry-run"
+        },
+        {
+          "userId": "user001",
+          "name": "测试用户",
+          "status": "dry-run"
+        }
+      ]
     }
   ]
 }

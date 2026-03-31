@@ -6,8 +6,73 @@
  * 基于：紫微斗数、奇门遁甲、黄历建除十二神、彭祖百忌
  */
 
-const lunarLib = require('lunar-typescript');
-const { astro } = require('iztro');
+// ============================================================
+// 内置农历/黄历算法（替代 lunar-typescript，无外部依赖）
+// ============================================================
+
+const _GAN  = ['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const _ZHI  = ['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+
+const _CHONG = { '子':'午','丑':'未','寅':'申','卯':'酉','辰':'戌','巳':'亥','午':'子','未':'丑','申':'寅','酉':'卯','戌':'辰','亥':'巳' };
+
+const _JIAN_CHU = ['建','除','满','平','定','执','破','危','成','收','开','闭'];
+
+const _JIAN_CHU_YI_JI = {
+  '建': { yi: ['出行','上任','祭祀','求财'],         ji: ['嫁娶','动土','破土','安葬'] },
+  '除': { yi: ['扫除','解除','移徙','沐浴'],         ji: ['嫁娶','破土','安葬','入殓'] },
+  '满': { yi: ['嫁娶','开业','纳财','入宅'],         ji: ['出行','动土','破土','诉讼'] },
+  '平': { yi: ['出行','移徙','求医','上任'],         ji: ['嫁娶','安葬','破土'] },
+  '定': { yi: ['嫁娶','开业','签约','求财'],         ji: ['出行','诉讼','动土'] },
+  '执': { yi: ['祭祀','纳财','捕猎','捉贼'],         ji: ['开业','嫁娶','移徙','出行'] },
+  '破': { yi: [],                                   ji: ['开业','嫁娶','出行','移徙','动土','签约'] },
+  '危': { yi: ['祭祀'],                             ji: ['出行','登高','嫁娶','开业'] },
+  '成': { yi: ['开业','嫁娶','移徙','上任','出行'], ji: ['诉讼','破土'] },
+  '收': { yi: ['纳财','收获','祭祀'],               ji: ['出行','嫁娶','动土','开业'] },
+  '开': { yi: ['开业','嫁娶','出行','求财','移徙'], ji: ['入殓','安葬','破土'] },
+  '闭': { yi: ['入殓','安葬','封穴'],               ji: ['开业','嫁娶','出行','动土'] }
+};
+
+const _PENG_ZU_GAN = {
+  '甲':'甲不开仓财物耗散','乙':'乙不栽植千株不长','丙':'丙不修灶必见灾殃',
+  '丁':'丁不剃头头必生疮','戊':'戊不受田田主不祥','己':'己不破券二比并亡',
+  '庚':'庚不经络织机虚张','辛':'辛不合酱主人不尝','壬':'壬不决水更难提防',
+  '癸':'癸不词讼理弱敌强'
+};
+
+function _getDayGanZhi(date) {
+  const base = new Date('2024-01-01T12:00:00');
+  const diff = Math.round((date - base) / 86400000);
+  return _GAN[((diff % 10) + 10) % 10] + _ZHI[((diff % 12) + 12) % 12];
+}
+
+function _getZhiXing(date) {
+  const m = date.getMonth() + 1;          // solar month 1-12
+  const monthZhiIdx = m % 12;             // 1→丑(1), 2→寅(2)…12→子(0)
+  const gz = _getDayGanZhi(date);
+  const dayZhiIdx = _ZHI.indexOf(gz[1]);
+  return _JIAN_CHU[((dayZhiIdx - monthZhiIdx) + 12) % 12];
+}
+
+/** 模拟 lunar-typescript Lunar 对象 */
+function createLunarDate(date) {
+  const gz       = _getDayGanZhi(date);
+  const dayGan   = gz[0];
+  const dayZhi   = gz[1];
+  const zhiXing  = _getZhiXing(date);
+  const chongZhi = _CHONG[dayZhi] || '';
+  const yiji     = _JIAN_CHU_YI_JI[zhiXing] || { yi: [], ji: [] };
+  return {
+    getDayInGanZhi: () => gz,
+    getDayGan:      () => dayGan,
+    getDayZhi:      () => dayZhi,
+    getZhiXing:     () => zhiXing,
+    getDayYi:       () => yiji.yi,
+    getDayJi:       () => yiji.ji,
+    getPengZuGan:   () => _PENG_ZU_GAN[dayGan] || '',
+    getChong:       () => chongZhi,
+    getChongDesc:   () => `冲${chongZhi}`
+  };
+}
 
 // ============================================
 // 常量定义
@@ -147,8 +212,8 @@ function isYangDun(date = new Date()) {
  * 计算值符星
  */
 function getZhiFuStar(date, isYang) {
-  const baseDate = new Date('2024-01-01T00:00:00');
-  const diffDays = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
+  const baseDate = new Date('2024-01-01T12:00:00');
+  const diffDays = Math.round((date - baseDate) / (1000 * 60 * 60 * 24));
   const hour = date.getHours();
   const shichen = Math.floor((hour + 1) / 2) % 12;
   const idx = ((diffDays * 12 + shichen) % 9 + 9) % 9;
@@ -159,8 +224,8 @@ function getZhiFuStar(date, isYang) {
  * 计算值使门
  */
 function getZhiShiDoor(date, isYang) {
-  const baseDate = new Date('2024-01-01T00:00:00');
-  const diffDays = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
+  const baseDate = new Date('2024-01-01T12:00:00');
+  const diffDays = Math.round((date - baseDate) / (1000 * 60 * 60 * 24));
   const hour = date.getHours();
   const shichen = Math.floor((hour + 1) / 2) % 12;
   const idx = ((diffDays * 12 + shichen) % 8 + 8) % 8;
@@ -171,7 +236,7 @@ function getZhiShiDoor(date, isYang) {
  * 获取某日吉时（基于五行）
  */
 function getLuckyHoursForDate(date) {
-  const lunarDate = lunarLib.Lunar.fromDate(date);
+  const lunarDate = createLunarDate(date);
   const ganZhi = lunarDate.getDayInGanZhi();
   const dayZhi = ganZhi[1];
   const dayElement = ZHI_ELEMENT[dayZhi] || '土';
@@ -201,7 +266,7 @@ function isSupportingElement(main, support) {
  * 评分日期
  */
 function scoreDate(date, activityType, userDayStem = null) {
-  const lunarDate = lunarLib.Lunar.fromDate(date);
+  const lunarDate = createLunarDate(date);
   const activity = ACTIVITIES[activityType] || ACTIVITIES['开业'];
   
   let score = 50; // 基础分
@@ -234,7 +299,7 @@ function scoreDate(date, activityType, userDayStem = null) {
   // 3. 彭祖百忌（检查是否与日干相冲）
   const pengZuGan = lunarDate.getPengZuGan();
   const dayGan = lunarDate.getDayGan();
-  if (pengZuGan && !pengZuGan.includes(dayGan)) {
+  if (pengZuGan && pengZuGan.includes(dayGan)) {
     score -= 5;
   }
   

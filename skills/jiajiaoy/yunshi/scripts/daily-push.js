@@ -65,8 +65,8 @@ const HOUR_INFO = {
 // ============================================================
 
 function getDayGanZhi(date = new Date()) {
-  const baseDate = new Date('2024-01-01');
-  const diffDays = Math.floor((date - baseDate) / (1000 * 60 * 60 * 24));
+  const baseDate = new Date('2024-01-01T12:00:00');
+  const diffDays = Math.round((date - baseDate) / (1000 * 60 * 60 * 24));
   const ganIndex = ((diffDays % 10) + 10) % 10;
   const zhiIndex = ((diffDays % 12) + 12) % 12;
   return GAN[ganIndex] + ZHI[zhiIndex];

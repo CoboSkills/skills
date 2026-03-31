@@ -1,16 +1,26 @@
 {
   "name": "yunshi",
-  "version": "1.0.7",
-  "description": "运势 YunShi - 每日运程推送 + 八字命理顾问。集每日运程、八字、紫微斗数、奇门遁甲、梅花易数、六爻、风水于一体的命理平台。",
+  "version": "1.1.0",
+  "description": "命理全能 Skill — 八字、紫微斗数、奇门遁甲、梅花易数、六爻、合婚风水，支持每日运程自动推送。All-in-one Chinese astrology: BaZi, ZiWei, QiMen, I Ching, daily fortune push.",
   "keywords": [
+    "算命",
     "八字",
-    "命理",
-    "风水",
+    "今日运势",
+    "每日运程",
     "紫微斗数",
     "奇门遁甲",
     "梅花易数",
     "六爻",
-    "占卜"
+    "占卜",
+    "合婚",
+    "风水",
+    "命理",
+    "fortune telling",
+    "BaZi",
+    "daily horoscope",
+    "ZiWei",
+    "divination",
+    "Chinese astrology"
   ],
   "author": "MingLi Mentor Team",
   "license": "MIT",
@@ -35,7 +45,6 @@
     "docs": "docs"
   },
   "dependencies": {
-    "iztro": "^2.5.8",
-    "lunar-typescript": "^1.8.6"
+    "iztro": "^2.5.8"
   }
 }

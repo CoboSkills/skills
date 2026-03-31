@@ -57,6 +57,7 @@ function _computeWeights(log) {
 
   for (const entry of (log || [])) {
     if (!TOPICS.includes(entry.topic)) continue;
+    if (!entry.ts || typeof entry.ts !== 'number') continue;
     const daysDelta = (now - entry.ts) / 86400000;
     const multiplier = CONTEXT_MULTIPLIERS[entry.context] || 1.0;
     totals[entry.topic] += multiplier * Math.exp(-DECAY_LAMBDA * daysDelta);

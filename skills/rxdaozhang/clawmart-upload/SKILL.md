@@ -1,7 +1,7 @@
 ---
 name: clawmart-upload
 description: Upload your current OpenClaw configuration to the ClawMart marketplace
-version: 1.4.0
+version: 1.5.0
 triggers:
   - "upload to clawmart"
   - "share my config on clawmart"
@@ -58,18 +58,20 @@ Scan `~/.openclaw/workspace/` for OpenClaw configuration files. Do **not** scan 
 | `BOOTSTRAP.md` | — | BOOTSTRAP |
 | `skills/*.skill.md` or `skills/*/SKILL.md` | — | LOCAL SKILLS |
 
-**Exclude** any file named `clawmart-upload.skill.md` or `clawmart-install.skill.md` from the list.
+**Exclude** any skill whose slug starts with `clawmart-` — these are ClawMart utility skills and should never be packaged or referenced in a user pack.
 
 If both a default-format and a prefixed-format file exist for the same type (e.g., `SOUL.md` AND `claude.soul.md`), include both and note the duplication to the user.
 
 ### Skill Classification
 
-Within `~/.openclaw/workspace/skills/`, check each skill subfolder:
+Read `~/.openclaw/workspace/.clawhub/lock.json`. This file is the authoritative record of all skills installed from clawhub.
 
-- **Has `_meta.json`** → installed from clawhub (external skill). Read `_meta.json` for `slug`, `version`, and `ownerId`. These are recorded as metadata only — file contents are **not** included in the zip.
-- **No `_meta.json`** → user-authored skill. Include the full `SKILL.md` file content in the zip under `skills/`.
+For each skill subfolder in `~/.openclaw/workspace/skills/`:
 
-Do **not** scan any other directories (not `~/.claude/`, not `~/.claude/plugins/`, not the current working directory).
+- **Slug is in `lock.json`** → installed from clawhub. Read slug and version from `lock.json`. Record as metadata only — file contents are **not** included in the zip.
+- **Slug is NOT in `lock.json`** → user-authored locally (never installed from clawhub). Include the full `SKILL.md` content in the zip under `skills/`.
+
+Do **not** use `_meta.json` presence to classify skills — it is unreliable. Do **not** scan any other directories.
 
 Show the user a summary:
 
@@ -83,16 +85,18 @@ HEARTBEAT:     HEARTBEAT.md
 MEMORY:        MEMORY.md
 TOOLS:         TOOLS.md
 USER:          USER.md
-LOCAL SKILLS (user-authored, will be included):
-  - skills/my-workflow/SKILL.md
-CLAWHUB SKILLS (installed, metadata only):
-  - clawmart-upload  (slug: clawmart-upload, v1.0.3)
-  - akshare-a-stock  (slug: akshare-a-stock, v1.0.2)
+CLAWHUB SKILLS (installed via clawhub, metadata only):
+  - <skill-slug-1>   (v1.0.0)
+  - <skill-slug-2>   (v2.1.0)
+LOCAL SKILLS (not in clawhub, full content included):
+  - <my-custom-skill>
 
 Include all? Or exclude specific files? (all / enter filenames to exclude)
 ```
 
-Wait for user confirmation. Adjust the file list based on user input.
+If `lock.json` does not exist, treat all skills as clawhub skills and note this to the user.
+
+Wait for user confirmation before proceeding.
 
 ---
 
@@ -132,33 +136,30 @@ If yes, note this for the upload.
 
 ---
 
-## Step 5: Create ZIP Package
+## Step 5: Build Upload Payload
 
-Create a ZIP file in a temporary location (e.g., `/tmp/clawmart-{random}.zip`) containing:
+Construct the `files` array for the JSON payload:
 
-- All confirmed local files from Step 2, placed at the root of the zip
-- **No subdirectories** for non-skill files
-- LOCAL SKILLS files placed in a `skills/` subdirectory within the zip
-- A `skills-manifest.json` file in the zip root listing external skills metadata:
+1. For each **non-skill OpenClaw file** confirmed in Step 2, add:
+   ```json
+   { "name": "<filename>", "content": "<full file text>" }
+   ```
+   Use just the filename (no path prefix) — e.g., `"SOUL.md"`, `"AGENTS.md"`, `"memory_projects.json"`.
 
-```json
-{
-  "clawhub_skills": [
-    {
-      "slug": "clawmart-upload",
-      "version": "1.0.3",
-      "ownerId": "kn75zb53cxzhkd8ep0zbsbq6gx82v7fj"
-    },
-    {
-      "slug": "akshare-a-stock",
-      "version": "1.0.2",
-      "ownerId": "abc123..."
-    }
-  ]
-}
-```
+2. For each **local skill** (user-authored, no `_meta.json`) confirmed in Step 2, add:
+   ```json
+   { "name": "skills/<filename>", "content": "<full SKILL.md text>" }
+   ```
+   Preserve the `skills/` prefix so the server can classify them correctly.
 
-Verify the zip does not contain any `../` path traversal patterns.
+3. If there are any **external (clawhub) skills**, add a `skills-manifest.json` entry:
+   ```json
+   {
+     "name": "skills-manifest.json",
+     "content": "{\"clawhub_skills\": [{\"slug\": \"...\", \"version\": \"...\", \"ownerId\": \"...\"}]}"
+   }
+   ```
+   Only include this entry if there is at least one external skill.
 
 ---
 
@@ -169,13 +170,14 @@ Send the upload request:
 ```
 POST {base_url}/api/packs
 Authorization: Bearer {token}
-Content-Type: multipart/form-data
+Content-Type: application/json
 
-Fields:
-  file:        <the zip file>
-  title:       <user provided title>
-  description: <user provided description>
-  version:     <version>
+{
+  "title": "<user provided title>",
+  "description": "<user provided description>",
+  "version": "<version>",
+  "files": [ ...files array from Step 5... ]
+}
 ```
 
 **On success** (HTTP 201), tell the user:
@@ -186,15 +188,9 @@ Fields:
 
 ---
 
-## Step 7: Cleanup
-
-Delete the temporary zip file created in Step 5.
-
----
-
 ## Notes
 
-- Local skill file **contents** are included in the zip under `skills/`
-- External skills are recorded in `skills-manifest.json` — name, source, and version only, no file content
+- Local skill file **contents** are included directly in the JSON payload under the `skills/` prefix
+- External skills are recorded in `skills-manifest.json` — slug, version, and ownerId only, no file content
 - The token is stored locally and reused on future uploads
 - If the token is rejected (401), ask the user to generate a new one at `{base_url}/dashboard/tokens`

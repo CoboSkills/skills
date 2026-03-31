@@ -1,118 +1,177 @@
 ---
 name: context-monitor
-description: 「macOS」常驻菜单栏的上下文显示器 · Menu bar context monitor for OpenClaw agents. Shows context usage, model, and running state via SwiftBar. Auto-detects local vs remote OpenClaw setup.
+description: 「macOS」常驻菜单栏的上下文显示器 · Menu bar context monitor for OpenClaw agents.
 ---
 
-# Context Monitor
+# MenuBar Context Monitor
 
-Real-time OpenClaw agent observability in the macOS menu bar.
+macOS 菜单栏实时显示 OpenClaw agent 的上下文用量、模型和运行状态。基于 [SwiftBar](https://github.com/swiftbar/SwiftBar)。
+
+Real-time OpenClaw agent observability in your macOS menu bar, powered by [SwiftBar](https://github.com/swiftbar/SwiftBar).
+
+**Version:** 1.1.0
+**Platform:** macOS only
+**Author:** [@hjklasdfg](https://github.com/hjklasdfg)
+**Source:** [GitHub](https://github.com/hjklasdfg/context-monitor)
+
+## Features
+
+- 🔧 Menu bar shows the most recently active agent's emoji + context usage (e.g. `🔧 140k`)
+- 📊 Dropdown lists all agents with context tokens, model alias, and last active time
+- 🫠 Warning indicator when context exceeds 100k tokens
+- ▶ / — / ✖ Running, idle, and failed state indicators
+- 🏠 Works locally or over SSH to a remote OpenClaw host
+
+## Screenshots
+
+```
+🔧 98k                          ← menu bar
+───────────────────────────────
+🦞 OpenClaw Agents (6)
+───────────────────────────────
+▶ 🔧 tech    98k/1000k (9%)  │ opus   │ 26s ago
+— 🎮 main    50k/1000k (5%)  │ opus   │ 2m ago
+— 🎯 career  52k/1000k (5%)  │ opus   │ 1m ago
+— ✍️ content 40k/1000k (4%)  │ opus   │ 20h ago
+— 💰 finance 52k/200k (26%)  │ haiku  │ 1h ago
+✖ 🧠 phil    26k/1000k (2%)  │ opus   │ 3d ago
+───────────────────────────────
+Refresh
+```
 
 ## Install
 
-### CLI setup (deterministic, preferred)
+Choose the scenario that matches your setup:
 
-After skill installation, run the installer directly:
+### Scenario A: OpenClaw runs on this Mac (local mode)
+
+Everything on one machine — OpenClaw and the menu bar monitor.
 
 ```bash
-# Local mode
+# 1. Install the skill via OpenClaw CLI
+openclaw skills install menubar-context-monitor
+
+# 2. Run the installer
 bash ~/.openclaw/skills/context-monitor/scripts/install.sh
-
-# Remote mode
-bash ~/.openclaw/skills/context-monitor/scripts/install.sh --remote user@host
 ```
 
-If the user asks to set up monitoring and prefers a deterministic approach, guide them to run the install script above instead of the natural language flow below.
+### Scenario B: OpenClaw runs on another machine (remote mode)
 
-### Natural language setup
-
-Two modes depending on where OpenClaw runs:
-
-#### Local mode (OpenClaw on the same Mac)
-
-Agent can run the installer directly:
+Most common setup — OpenClaw runs on a server / Raspberry Pi / Mac Mini, and you want the menu bar on your MacBook. **No OpenClaw installation needed on the MacBook.**
 
 ```bash
-bash scripts/install.sh
+# 1. Clone the repo
+git clone https://github.com/hjklasdfg/openclaw-context-monitor.git
+cd openclaw-context-monitor
+
+# 2. Run the installer with your OpenClaw host's SSH address
+bash scripts/install.sh --remote user@host
 ```
 
-#### Remote mode (OpenClaw on another machine)
+> **Example:** `bash scripts/install.sh --remote linyili@192.168.1.100`
+>
+> SSH key auth is required. If not set up yet, the installer will guide you.
 
-Agent CANNOT install SwiftBar on the user's Mac remotely. Follow this flow:
+### Alternative: Ask your agent
 
-**Step 0: Verify prerequisites.** Remote mode requires:
-- The user's Mac and OpenClaw host must be network-reachable (same LAN, or connected via Tailscale/ZeroTier/WireGuard)
-- SSH key auth configured (passwordless, `BatchMode=yes`)
-- Python 3 on the OpenClaw host
+If you have OpenClaw running locally, you can also just tell your agent:
 
-If the user is unsure about network connectivity, suggest Tailscale as the simplest option.
+> "Help me set up agent menu bar monitoring"
 
-**Step 1: Ask the user:**
+The agent will read this skill and walk you through it.
 
-> "Does OpenClaw run on this Mac, or on a remote machine?
-> If remote, what's the SSH address? (e.g. `user@hostname` — the two machines need to be network-reachable, e.g. same LAN or via Tailscale)"
+## SwiftBar First Launch
 
-**Step 2: Agent deploys the status collector** to the OpenClaw host (agent can do this directly):
-
-```bash
-scp scripts/openclaw-status.py <user>@<host>:~/.openclaw/openclaw-status.py
-```
-
-**Step 3: Agent generates copy-paste instructions** for the user to run on their own Mac:
+When SwiftBar opens for the first time, it asks you to choose a **plugin folder**. Press `Cmd+Shift+G` and paste:
 
 ```
-# 1. Install SwiftBar (skip if already installed)
-brew install --cask swiftbar
-
-# 2. Create plugin directory
-mkdir -p ~/Library/Application\ Support/SwiftBar/Plugins
-
-# 3. Save this plugin file (agent generates with correct SSH target)
-cat > ~/Library/Application\ Support/SwiftBar/Plugins/context-monitor.30s.sh << 'EOF'
-(agent inserts swiftbar-plugin.sh content with MINI= set to user's SSH target)
-EOF
-chmod +x ~/Library/Application\ Support/SwiftBar/Plugins/context-monitor.30s.sh
-
-# 4. Open SwiftBar
-open /Applications/SwiftBar.app
-# If first launch, select plugin folder: ~/Library/Application Support/SwiftBar/Plugins
+~/Library/Application Support/SwiftBar/Plugins
 ```
 
-**Important**: Present all commands as a single copy-paste block. Ensure SSH key auth is set up between the user's Mac and the OpenClaw host beforehand.
+The installer places the plugin script in this directory. You only need to do this once.
 
-## What it shows
+## Requirements
 
-**Menu bar**: Emoji + context length of most recently active agent (e.g. `🔧 140k`)
+- macOS (SwiftBar is macOS-only)
+- Python 3
+- [SwiftBar](https://github.com/swiftbar/SwiftBar) — installer will offer to install via Homebrew
+- SSH key auth (remote mode only)
 
-**Dropdown**:
-- Agent name, context usage (tokens/limit + %), model alias, last active time
-- `▶` running · `—` idle · `✖` failed
-- `🫠` context over 100k (approaching limits)
+## How it works
 
-## Agent emoji
+```
+SwiftBar plugin (your Mac)  →  SSH  →  status collector (OpenClaw host)  →  sessions.json
+                            or locally ↗
+```
 
-Read from each agent's `IDENTITY.md` (`- **Emoji:** 🔧`). Falls back to agent name if not set.
-
-## Model display
-
-Shows model aliases (opus, sonnet, haiku, flash, pro). Falls back to model name without provider prefix.
-
-## Files
-
-- `scripts/install.sh` — One-command installer
-- `scripts/openclaw-status.py` — Status collector (runs on OpenClaw host)
-- `scripts/swiftbar-plugin.sh` — SwiftBar plugin template (remote mode)
+Two components:
+1. **`openclaw-status.py`** — Reads agent session data on the OpenClaw host
+2. **`swiftbar-plugin.sh`** — Renders the menu bar on your Mac
 
 ## Customization
 
-- **Refresh interval**: Rename plugin file suffix (`30s` → `10s`, `1m`, `5m`)
-- **Warning threshold**: Edit `WARN = 100000` in plugin
-- **SSH target**: Edit `MINI=` in plugin or set `OPENCLAW_SSH_TARGET` env var
+| Setting | How to change |
+|---|---|
+| Refresh interval | Rename plugin: `30s` → `10s`, `1m`, `5m` |
+| Warning threshold | Edit `WARN = 100000` in the plugin |
+| SSH target | Edit `MINI=` in plugin or set `OPENCLAW_SSH_TARGET` env var |
+
+## Agent emoji
+
+Reads from each agent's `IDENTITY.md`:
+
+```markdown
+- **Emoji:** 🔧
+```
+
+Falls back to agent name if not set.
+
+## Model display
+
+Shows short aliases: opus, sonnet, haiku, flash, pro. User-configured `modelAliases` in `openclaw.json` take priority.
 
 ## Troubleshooting
 
-- `🦞 ❌` — SSH or local read failed. Check connection.
-- `🦞 ⚠️` — Data parse error. Run `python3 ~/.openclaw/openclaw-status.py` on host.
-- Agent missing — No `sessions.json` yet (agent never used).
+| Menu bar | Meaning | Fix |
+|---|---|---|
+| `🦞 ❌` | Connection failed | Check SSH / network |
+| `🦞 ⚠️` | Data parse error | Run `python3 ~/.openclaw/openclaw-status.py` on host |
+| Agent missing | No session data yet | Use the agent once to generate a session |
+
+## License
+
+MIT
+
+---
+
+<!-- Agent instructions below — not displayed on ClawHub -->
+
+## Agent Setup Guide
+
+When a user asks to set up context monitoring, follow this flow:
+
+**Before starting:** This skill requires running commands on a Mac. If the user might be on a mobile device:
+> "This needs to run on a Mac. Are you at your Mac now? If you're on another device, I'll send you the commands to run later."
+
+**Step 1:** Ask the user:
+> "Does OpenClaw run on this Mac, or on a remote machine? If remote, what's the SSH address? (e.g. `user@hostname`)"
+
+**Step 2 (local mode):** Run the installer directly:
+```bash
+bash scripts/install.sh --yes
+```
+
+**Step 2 (remote mode):** The agent cannot install SwiftBar on the user's Mac remotely. Instead:
+1. Deploy the status collector to the OpenClaw host:
+   ```bash
+   scp scripts/openclaw-status.py <user>@<host>:~/.openclaw/openclaw-status.py
+   ```
+2. Generate copy-paste instructions for the user with the full install command, including the correct SSH target baked in.
+
+**SwiftBar installation:** If SwiftBar needs to be installed, ask the user for permission first:
+> "This requires installing SwiftBar (a macOS menu bar tool). OK to install?"
+
+After confirmation, pass `--yes` to skip the script's interactive prompt.
 
 ## Triggers
 

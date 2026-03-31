@@ -117,8 +117,8 @@ def main():
             updated = s.get("updatedAt", 0)
             ago = format_ago(updated)
 
-            # Model: try alias (with and without provider prefix), then short name
-            model_raw = s.get("model", "?")
+            # Model: prefer modelOverride, then model field
+            model_raw = s.get("modelOverride") or s.get("model") or "?"
             model_display = model_raw
             # Try exact match first
             if model_raw in model_aliases:
@@ -131,8 +131,26 @@ def main():
                         model_display = alias
                         break
 
+            # Context tokens: try contextTokens, then contextLimit, then default by model
+            ctx = s.get("contextTokens") or s.get("contextLimit")
+            if not ctx:
+                # Default context limits by model
+                model_ctx = {
+                    "claude-opus-4-6": 1000000,
+                    "claude-sonnet-4-6": 1000000,
+                    "claude-haiku-4-5": 200000,
+                    "gemini-3-flash": 1000000,
+                    "gemini-3-pro-preview": 1000000,
+                }
+                for m, c in model_ctx.items():
+                    if m in model_raw:
+                        ctx = c
+                        break
+                if not ctx:
+                    ctx = 200000  # safe default
+
             print(f"{agent}\t{s.get('status', '?')}\t{s.get('totalTokens', 0)}\t"
-                  f"{s.get('contextTokens', 1)}\t{updated}\t{emoji}\t{model_display}\t{ago}")
+                  f"{ctx}\t{updated}\t{emoji}\t{model_display}\t{ago}")
         except Exception:
             pass
 

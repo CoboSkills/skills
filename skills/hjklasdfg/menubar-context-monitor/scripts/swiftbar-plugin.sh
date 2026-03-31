@@ -8,7 +8,7 @@
 # <swiftbar.hideDisablePlugin>true</swiftbar.hideDisablePlugin>
 
 MINI="${OPENCLAW_SSH_TARGET:-localhost}"
-SSH_OPTS="-o ConnectTimeout=3 -o StrictHostKeyChecking=no -o BatchMode=yes"
+SSH_OPTS="-o ConnectTimeout=3 -o StrictHostKeyChecking=accept-new -o BatchMode=yes"
 STATUS_SCRIPT="${OPENCLAW_STATUS_SCRIPT:-~/.openclaw/openclaw-status.py}"
 
 RAW=$(ssh $SSH_OPTS $MINI "python3 $STATUS_SCRIPT" 2>/dev/null)

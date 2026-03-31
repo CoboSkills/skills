@@ -1,10 +1,12 @@
 ---
 name: home-improvement-video
-version: "1.0.0"
+version: 1.0.5
 displayName: "Home Improvement Video Maker — Create Renovation and Home Repair Videos"
 description: >
   Home Improvement Video Maker — Create Renovation and Home Repair Videos.
 metadata: {"openclaw": {"emoji": "🔨", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
 ---
 
 # Home Improvement Video Maker — Renovation and Home Repair Videos

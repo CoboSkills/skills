@@ -1,212 +1,214 @@
-# XianYu Automation Skill
+---
+name: xianyu-automation
+description: Enterprise-grade automated operations for Xianyu stores with full lifecycle management and intelligent decision engine.
+version: 1.0.1
+metadata:
+  openclaw:
+    requires:
+      env:
+        - XIAN_YU_APP_KEY
+        - XIAN_YU_APP_SECRET
+      bins:
+        - python
+    primaryEnv: XIAN_YU_APP_KEY
+    homepage: https://www.goofish.pro
+---
+# 闲鱼自动化运营技能
 
-## Overview
-An intelligent automation framework for Xianyu (Xianfish) marketplace operations, designed to maximize visibility, optimize pricing, and maintain consistent seller activity without manual intervention. This skill transforms sporadic manual efforts into systematic, data-driven operational excellence for AI service providers.
+## 技能概述
 
-## Key Features
+这是一个企业级的闲鱼店铺自动化运营技能，为您提供从商品创建到订单完成的全生命周期智能管理。本技能基于完整的闲鱼管家API体系，实现了真正的"无人值守"运营模式，让您能够专注于核心业务开发，而将日常运营工作完全交给自动化系统处理。
 
-### 🤖 Intelligent Scheduling
-- **Activity Maintenance**: Automatically refresh product listings every 3 days to maintain algorithmic visibility
-- **Optimal Timing**: Execute operations during peak user activity hours (8-10 PM)
-- **Load Balancing**: Distribute operations across time windows to avoid rate limiting
-- **Failure Recovery**: Automatic retry mechanisms for transient failures
+## 核心价值
 
-### 💰 Dynamic Pricing Optimization
-- **Competitive Intelligence**: Monitor competitor pricing patterns and adjust accordingly
-- **Value-Based Pricing**: Implement psychological pricing strategies (¥299 vs ¥300)
-- **Tiered Adjustments**: Different pricing strategies for basic, standard, and premium tiers
-- **Seasonal Modifications**: Automatic price adjustments for holidays and special events
+- **全生命周期管理**：覆盖商品创建、上架、监控、优化、下架的完整流程
+- **智能决策引擎**：基于实时数据自动调整运营策略，最大化收益
+- **风险预警系统**：提前识别潜在问题，避免违规和损失
+- **效率革命**：减少90%以上的人工维护工作，实现真正的自动化运营
 
-### 📈 Performance Monitoring
-- **Key Metric Tracking**: Monitor views, inquiries, conversion rates, and revenue
-- **A/B Test Management**: Automatically rotate and evaluate different listing variations
-- **Portfolio Health**: Comprehensive dashboard for overall business performance
-- **Alert System**: Proactive notifications for underperforming listings
+## 使用前准备
 
-### 🔄 Automated Portfolio Management
-- **Smart Inventory**: Automatic stock level management based on demand patterns
-- **Listing Lifecycle**: Automated creation, optimization, and archival of listings
-- **Content Refresh**: Regular updates to descriptions and titles to maintain freshness
-- **Compliance Monitoring**: Ensure all listings meet platform requirements
+### 必需依赖
 
-## Technical Architecture
+- **xianyu-api-client-skill**：基础API通信能力
+- **xianyu-product-manager-skill**：商品模板和批量管理能力
+- **有效的闲鱼管家开发者账号**：包含完整的API权限
 
-### Core Components
-- **Scheduler Engine**: Robust task scheduling with cron-like capabilities
-- **Pricing Algorithm**: Machine learning-inspired pricing optimization logic
-- **Data Aggregator**: Unified interface for performance metrics collection
-- **Execution Manager**: Reliable operation execution with comprehensive logging
+### 运营策略配置
 
-### Integration Dependencies
-- **xianyu-api-client-skill**: Foundation for all API communications
-- **xianyu-product-manager-skill**: Product template and batch operation capabilities
-- **External Data Sources**: Competitor pricing feeds and market intelligence
+在启用自动化功能前，您需要明确以下运营策略：
 
-### Error Handling & Reliability
-- **Circuit Breaker**: Prevent cascading failures during API outages
-- **Graceful Degradation**: Continue partial operations during partial failures
-- **Comprehensive Logging**: Detailed audit trail for all automated operations
-- **Recovery Procedures**: Automated rollback and recovery for failed operations
+#### 1. 商品管理策略
 
-## Business Intelligence Capabilities
+- **商品刷新频率**：建议每3-5天刷新一次商品活跃度
+- **库存管理规则**：设置库存预警阈值和自动调整规则
+- **价格调整范围**：定义价格浮动的上下限（建议±15%）
 
-### Market Analysis
-- **Competitive Positioning**: Real-time analysis of competitor pricing and offerings
-- **Demand Forecasting**: Predict optimal inventory levels based on historical patterns
-- **Trend Detection**: Identify emerging opportunities and threats in the marketplace
-- **Customer Segmentation**: Analyze buyer behavior to optimize service offerings
+#### 2. 订单处理策略
 
-### Revenue Optimization
-- **Price Elasticity Modeling**: Determine optimal price points for maximum revenue
-- **Bundle Strategy**: Identify opportunities for service package combinations
-- **Upsell Opportunities**: Detect customers ready for premium tier upgrades
-- **Retention Strategies**: Proactive engagement for repeat business
+- **自动发货规则**：哪些类型的商品可以自动发货
+- **价格修改权限**：是否允许系统自动调整订单价格
+- **异常订单处理**：定义需要人工介入的订单类型
 
-### Operational Efficiency Metrics
-- **Time Savings**: Quantify manual effort reduction through automation
-- **Error Reduction**: Track improvement in listing quality and compliance
-- **Scale Enablement**: Measure ability to handle increased business volume
-- **ROI Calculation**: Comprehensive return on investment analysis
+#### 3. 监控告警策略
 
-## Usage Examples
+- **关键指标阈值**：浏览量、咨询量、成交率的预警线
+- **通知方式**：选择微信、邮件或其他通知渠道
+- **响应时间要求**：定义不同级别告警的响应时限
 
-### Daily Operations Plan
-```python
-from xianyu_automation_skill import XianYuAutomation
+## 功能特性
 
-automation = XianYuAutomation()
-daily_plan = automation.get_daily_operation_plan()
+### 智能商品生命周期管理
 
-print("Today's Operations:")
-for action in daily_plan['actions']:
-    print(f"  • {action}")
+- **自动创建**：根据预设模板定期创建新商品
+- **活跃度维护**：自动编辑商品信息保持算法推荐权重
+- **智能上下架**：根据销售表现和库存情况自动上下架
+- **过期清理**：自动删除长期无效果的商品
 
-print(f"\nExpected Time Savings: {daily_plan['estimated_time_savings']}")
-print(f"Expected Revenue Impact: {daily_plan['expected_revenue_impact']}")
+### 订单自动化处理
+
+- **实时监控**：7x24小时监控新订单状态
+- **自动发货**：虚拟商品自动发货（支持卡密系统）
+- **智能定价**：根据市场情况和库存自动调整商品价格
+- **异常处理**：识别并标记需要人工处理的异常订单
+
+### 数据驱动优化
+
+- **性能分析**：实时分析商品表现数据
+- **A/B测试自动化**：自动运行和评估A/B测试结果
+- **竞争情报**：监控竞争对手价格和策略变化
+- **预测分析**：基于历史数据预测最佳运营策略
+
+### 推送通知处理
+
+- **商品状态回调**：实时处理商品审核、上下架等状态变化
+- **订单状态回调**：自动响应订单创建、付款、发货等事件
+- **智能响应**：根据推送事件自动执行相应的业务逻辑
+- **日志记录**：完整记录所有推送事件和处理结果
+
+## 用户交互流程
+
+### 初始配置向导
+
+首次使用时，系统会引导您完成完整的配置流程：
+
+#### 第一步：运营目标设定
+
+```
+请选择您的主要运营目标：
+1. 最大化收入（优先高价值商品）
+2. 最大化销量（优先高转化商品）  
+3. 平衡发展（收入和销量兼顾）
+4. 品牌建设（优先高质量服务）
+
+请输入选项 [1-4]:
 ```
 
-### Automated Portfolio Deployment
-```python
-# Deploy and manage complete AI service portfolio
-result = automation.auto_create_ai_service_matrix()
-print(f"Deployed {result['success_count']} products successfully")
-print(f"Failed: {result['failed_count']} products")
+#### 第二步：自动化程度选择
+
+```
+请选择自动化程度：
+1. 半自动（关键操作需要确认）
+2. 全自动（除异常情况外无需人工干预）
+3. 自定义（逐项配置每个功能的自动化级别）
+
+请输入选项 [1-3]:
 ```
 
-### Intelligent Pricing Adjustment
-```python
-# Optimize pricing based on competitor analysis
-competitor_prices = [28000, 32000, 29500]  # Competitor prices in cents
-optimized_price = automation.optimize_pricing_strategy(29900, competitor_prices)
-print(f"Optimized price: ¥{optimized_price/100:.2f}")
+#### 第三步：风险控制配置
+
+```
+请设置风险控制参数：
+- 最大单次操作商品数量：_____
+- 价格调整最大幅度：_____%  
+- 库存预警阈值：_____
+- 异常订单处理方式：[自动暂停/标记待处理/继续执行]
+
+按回车使用默认值，或输入自定义值：
 ```
 
-### Product Activity Maintenance
-```python
-# Keep top-performing products active in algorithm
-product_ids = ["219530767978565", "219530767978566"]  # Your product IDs
-refresh_results = automation.refresh_product_activity(product_ids)
-for result in refresh_results:
-    if result['success']:
-        print(f"✅ Product {result['product_id']} refreshed successfully")
-    else:
-        print(f"❌ Failed to refresh product {result['product_id']}: {result['error']}")
+#### 第四步：通知偏好设置
+
+```
+请选择通知方式：
+□ 微信通知（需要配置微信机器人）
+□ 邮件通知（需要配置SMTP）
+□ 系统日志（仅记录到本地日志文件）
+□ 无通知（完全静默运行）
+
+可多选，请输入数字组合（如：1,2）:
 ```
 
-## Configuration & Customization
+### 日常运营确认
 
-### Default Settings
-- **Refresh Interval**: Every 3 days (configurable)
-- **Daily Product Limit**: 10 products maximum (prevents over-posting)
-- **Price Adjustment Range**: ±10% from base price (configurable)
-- **Peak Hours**: 8-10 PM local time (configurable)
+即使在全自动模式下，系统也会在关键节点请求确认：
 
-### Advanced Configuration
-```python
-automation.config.update({
-    'refresh_interval_days': 2,      # More frequent refreshes
-    'max_daily_products': 15,        # Higher daily limit  
-    'price_adjustment_range': 0.15,  # Wider price range
-    'peak_hours': [19, 22]          # Custom peak hours
-})
+#### 重大操作确认
+
+```
+检测到以下重大操作：
+- 批量下架5个商品（总价值¥3495）
+- 调整3个商品价格（平均上调12%）
+
+这可能影响您的店铺表现，是否确认执行？
+[Y] 确认执行  [N] 取消操作  [S] 查看详细影响分析
 ```
 
-### Environment Requirements
-- **Dependencies**: xianyu-api-client-skill, xianyu-product-manager-skill
-- **Python Version**: 3.7+
-- **API Credentials**: Valid Xianyu Guanjia developer access
-- **Storage**: Persistent storage for configuration and logs
+#### 异常情况处理
 
-## Implementation Roadmap
+```
+发现异常情况：
+- 商品"AI客服Agent-标准版"连续7天无浏览量
+- 竞争对手同类商品降价20%
 
-### Phase 1: Basic Automation (Week 1-2)
-- ✅ Product activity maintenance
-- ✅ Basic portfolio deployment
-- ✅ Simple pricing adjustments
+建议操作：
+1. 自动优化商品标题和描述
+2. 调整价格至¥599（降幅14%）
+3. 暂停该商品并创建新版本
 
-### Phase 2: Intelligent Optimization (Week 3-4)  
-- ✅ Competitive pricing intelligence
-- ✅ A/B testing automation
-- ✅ Performance analytics dashboard
+请选择处理方案 [1/2/3] 或 [M] 手动处理:
+```
 
-### Phase 3: Advanced Features (Month 2+)
-- ✅ Machine learning-based predictions
-- ✅ Multi-channel integration
-- ✅ Enterprise-grade monitoring
+### 交互控制选项
 
-## Business Impact Metrics
+- **紧急停止**：任何时候输入"STOP"即可暂停所有自动化操作
+- **手动覆盖**：可以临时切换到手动模式处理特定任务
+- **计划调整**：可以随时修改自动化计划和参数
 
-### Revenue Growth
-- **Baseline**: Manual operations yielding ¥6,000/month
-- **With Automation**: Expected ¥8,000-10,000/month (33-67% increase)
-- **Efficiency Gain**: 90% reduction in manual operational time
-- **Scale Potential**: Ability to manage 5x more listings with same effort
+## 最佳实践建议
 
-### Quality Improvements
-- **Consistency**: 100% adherence to professional templates
-- **Compliance**: Zero platform violations through automated checks
-- **Responsiveness**: Immediate reaction to market changes
-- **Professionalism**: Consistent brand presentation across all listings
+### 渐进式部署
 
-## Best Practices for Success
+- **第一周**：启用半自动模式，熟悉系统行为
+- **第二周**：逐步增加自动化功能，监控效果
+- **第三周**：切换到全自动模式，享受高效运营
 
-### Gradual Implementation
-- Start with basic automation features
-- Monitor performance closely during initial deployment
-- Gradually enable advanced features based on results
-- Maintain manual override capabilities for edge cases
+### 数据监控
 
-### Data-Driven Decisions
-- Collect comprehensive performance metrics from day one
-- Use A/B testing to validate optimization strategies
-- Regularly review and adjust automation parameters
-- Share insights across your business operations
+- **每日检查**：查看自动化操作日志和效果报告
+- **每周优化**：根据数据调整运营策略和参数
+- **每月复盘**：全面评估自动化效果，制定改进计划
 
-### Risk Management
-- Implement proper error handling and monitoring
-- Maintain backup manual processes for critical operations
-- Regular security audits of API credentials
-- Compliance verification with platform terms of service
+### 风险管理
 
-## Integration Ecosystem
+- **备份策略**：定期备份重要商品数据和配置
+- **应急预案**：制定自动化故障的应急处理流程
+- **合规审查**：定期检查自动化操作是否符合平台规则
 
-This skill works seamlessly within the XianYu Skills Suite:
-- **Foundation**: xianyu-api-client-skill handles all API communications
-- **Product Layer**: xianyu-product-manager-skill provides template management
-- **Automation Layer**: This skill orchestrates intelligent operations
-- **Future Extensions**: Designed for easy integration with additional capabilities
+## 依赖关系
 
-## Version Information
-- **Current Version**: 1.0.0
-- **API Compatibility**: Xianyu Guanjia Open Platform v1
-- **License**: MIT License
+- **必需依赖**：
+  - xianyu-api-client-skill（v1.0.2+）
+  - xianyu-product-manager-skill（v1.0.0+）
+- **可选依赖**：
+  - 通知服务（微信/邮件等）
 
-## Getting Started
+## 版本信息
 
-1. **Prerequisites**: Ensure xianyu-api-client-skill and xianyu-product-manager-skill are properly configured
-2. **Initial Setup**: Create XianYuAutomation instance with default or custom configuration
-3. **Test Deployment**: Run auto_create_ai_service_matrix() to deploy initial portfolio
-4. **Monitor Results**: Use get_daily_operation_plan() to understand daily operations
-5. **Optimize**: Adjust configuration based on performance data and business goals
+- **当前版本**：1.0.1
+- **兼容性**：闲鱼管家开放平台 v1
+- **Python版本**：3.7+
 
-For enterprise deployments and custom requirements, this skill provides extensive customization hooks and extension points to meet specific business needs.
+## 开始使用
+
+完成初始配置后，您就可以享受真正的自动化闲鱼店铺运营体验。系统会按照您的策略自动执行所有日常操作，同时在关键时刻请求您的确认，确保安全性和可控性。

@@ -3,11 +3,16 @@
   "slug": "ogp",
   "displayName": "OGP Federation",
   "latest": {
-    "version": "0.2.3",
-    "publishedAt": 1774411248344,
-    "commit": "https://github.com/openclaw/skills/commit/47e58df7b62a5140bfb9871ceeb0734d083be407"
+    "version": "2.0.0",
+    "publishedAt": 1774522804362,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.3",
+      "publishedAt": 1774411248344,
+      "commit": "https://github.com/openclaw/skills/commit/47e58df7b62a5140bfb9871ceeb0734d083be407"
+    },
     {
       "version": "0.2.1",
       "publishedAt": 1774295221539,

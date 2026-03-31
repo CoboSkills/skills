@@ -1,6 +1,6 @@
 ---
 name: social-draftsmith
-description: Draft, rewrite, adapt, and prepare social media posts with an approval-first workflow, including image-aware Facebook Page publishing. Use when the user wants to turn an idea, link, announcement, product update, image caption, long-form text, or sourced web context into polished social posts; when the user wants platform-specific drafts, stronger post packages with images, safer wording, or approval-before-publish flows. Current live publishing support is Facebook Pages.
+description: Draft, rewrite, adapt, and publish social media posts with an approval-first workflow across Facebook, X, and Reddit. Use when the user wants to turn an idea, link, announcement, product update, image caption, long-form text, or sourced web context into polished social posts; when the user wants platform-specific drafts, image-aware post packages, safer wording, or approval-before-publish flows with live posting support.
 ---
 
 # Social Draftsmith
@@ -14,7 +14,7 @@ Default to **drafting and previewing**, not auto-posting. Treat the unit of outp
 - platform adaptation
 - approval before publish
 
-Current v1 publishing support is focused on **Facebook Pages**. Other platforms can still be drafted for, but should be treated as manual-posting workflows unless a connector exists.
+Current live publishing support includes **Facebook Pages**, **X / Twitter**, and an owner-subreddit posting path for **Reddit**. Reddit usage should be limited to the user's own subreddit unless the user explicitly chooses otherwise and understands the moderation risk.
 
 Optimize for clarity, tone fit, and safety.
 
@@ -128,13 +128,16 @@ When the user is close to publishing, use:
 **Publish mode:**
 - [manual posting package / integration-backed publish]
 
+**Reddit posting note (if relevant):**
+- [subreddit + text/link post type]
+
 **Approval status:** Awaiting user approval before publish
 
 ### Cross-platform adaptation output
 
 When adapting one message to multiple platforms, use:
 
-- **X:** shorter, tighter, hook-first
+- **X:** shorter, tighter, hook-first, and optionally add 2-4 light hashtags when they genuinely help discovery
 - **Facebook:** more natural and conversational
 - **LinkedIn:** cleaner, more professional, more structured
 
@@ -157,6 +160,10 @@ When adapting one message to multiple platforms, use:
 - Avoid spammy engagement bait unless the user explicitly wants that style.
 - Prefer readable, human wording over generic hype.
 - Avoid reckless or potentially damaging auto-post language.
+- For X, use hashtags lightly:
+  - usually 2-4 max
+  - prefer one broad topic tag plus one or two specific tags
+  - avoid bloated hashtag piles
 
 ## Safety Rules
 
@@ -188,16 +195,33 @@ If publishing integrations are later added, keep this order of operations:
 5. publish or schedule
 6. report success/failure clearly
 
-Current v1 publishing integration:
+Current publishing integrations:
 - `scripts/facebook_publish.py` for Facebook Page posting via env-configured credentials
+- `scripts/twitter_publish.py` for X/Twitter posting via OAuth1 user-context credentials
+- `scripts/reddit_publish.py` for Reddit posting to the user's own subreddit via env-configured credentials
 - `scripts/prepare_image_asset.py` to copy a local image into a stable workspace path before publishing
 - expected env vars:
   - `FACEBOOK_PAGE_ID`
   - `FACEBOOK_PAGE_ACCESS_TOKEN`
-- supports:
-  - text-only post
-  - image + caption post via image URL
-  - image + caption post via local image file upload
+  - `TWITTER_API_KEY`
+  - `TWITTER_API_SECRET`
+  - `TWITTER_ACCESS_TOKEN`
+  - `TWITTER_ACCESS_TOKEN_SECRET`
+  - `REDDIT_CLIENT_ID`
+  - `REDDIT_CLIENT_SECRET`
+  - `REDDIT_USERNAME`
+  - `REDDIT_PASSWORD`
+  - `REDDIT_USER_AGENT`
+  - `REDDIT_DEFAULT_SUBREDDIT`
+- current support:
+  - Facebook text-only post
+  - Facebook image + caption post via image URL
+  - Facebook image + caption post via local image file upload
+  - X/Twitter text-only post
+  - X/Twitter image + text post via local image file upload
+  - Reddit text post to owner's subreddit
+  - Reddit link post to owner's subreddit
+  - Reddit image post to owner's subreddit
 - use `--dry-run` first when testing
 
 Example image-prep flow:

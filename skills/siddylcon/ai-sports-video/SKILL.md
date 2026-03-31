@@ -1,10 +1,12 @@
 ---
 name: ai-sports-video
-version: "1.0.0"
+version: 2.0.1
 displayName: "AI Sports Video Maker — Create Game Highlights and Athletic Showcase Reels"
 description: >
   Create sports highlight videos, game recaps, and athlete recruiting reels using AI-powered editing. NemoVideo detects scoring plays and crowd-energy peaks from raw game footage, auto-generates slow-motion replays, adds scoreboard overlays, and produces broadcast-quality highlight packages from single-camera phone recordings — bringing SportsCenter production to youth leagues, high school programs, and amateur athletes.
 metadata: {"openclaw": {"emoji": "⚽", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
 ---
 
 # AI Sports Video Maker — Game Highlights and Athletic Showcase Reels

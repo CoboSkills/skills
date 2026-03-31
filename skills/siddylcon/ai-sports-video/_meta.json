@@ -3,9 +3,15 @@
   "slug": "ai-sports-video",
   "displayName": "Ai Sports Video",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1774671322881,
-    "commit": "https://github.com/openclaw/skills/commit/9e1671d42d142d79021408723bbebfa346025e01"
+    "version": "2.0.1",
+    "publishedAt": 1774743715224,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1774671322881,
+      "commit": "https://github.com/openclaw/skills/commit/9e1671d42d142d79021408723bbebfa346025e01"
+    }
+  ]
 }

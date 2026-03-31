@@ -1,10 +1,12 @@
 ---
 name: screenwriting-video
-version: "1.0.0"
+version: 1.0.5
 displayName: "Screenwriting Video Maker — Create Script Writing and Film Story Videos"
 description: >
   Screenwriting Video Maker — Create Script Writing and Film Story Videos.
 metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
 ---
 
 # Screenwriting Video Maker — Script Writing and Film Story Videos

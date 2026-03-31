@@ -1,89 +1,46 @@
-const { ProxyClient } = require("../lib/proxy-client");
+const { DashboardClient } = require('../lib/dashboard-client.js');
 
-const DASHBOARD_URL = "https://app.reivo.dev";
-
-function getApiKey() {
-  const key = process.env.REIVO_API_KEY;
-  if (!key) {
-    throw new Error(
-      "REIVO_API_KEY is not set. Get your key at https://app.reivo.dev/settings"
-    );
-  }
-  return key;
-}
-
-function formatUsd(n) {
-  if (n < 0.01) return `$${n.toFixed(4)}`;
-  return `$${n.toFixed(2)}`;
-}
-
-async function execute() {
-  let data;
-  try {
-    const client = new ProxyClient(getApiKey());
-    const res = await fetch(`${client.baseUrl}/v1/stats`, {
-      headers: client._headers(),
-    });
-    if (!res.ok) throw new Error(`${res.status}`);
-    data = await res.json();
-  } catch (err) {
-    return [
-      "Could not fetch stats from Reivo proxy.",
-      `Error: ${err.message}`,
-      "",
-      `View your stats at: ${DASHBOARD_URL}`,
-    ].join("\n");
+async function main() {
+  const apiKey = process.env.REIVO_API_KEY;
+  if (!apiKey) {
+    console.log('REIVO_API_KEY not set. Run setup first.');
+    process.exit(1);
   }
 
-  const s = data.summary;
-  const m = data.month;
-  const r = data.routing;
+  const client = new DashboardClient(apiKey);
+  const data = await client.get('/overview?days=30');
 
-  const lines = [
-    "Reivo - 30 Day Summary",
-    "=".repeat(30),
-    "",
-    `Total Cost:      ${formatUsd(s.totalCost)}`,
-    `Requests:        ${s.totalRequests.toLocaleString()}`,
-    `Input Tokens:    ${s.totalInputTokens.toLocaleString()}`,
-    `Output Tokens:   ${s.totalOutputTokens.toLocaleString()}`,
-  ];
+  console.log('Monthly Report');
+  console.log('─'.repeat(40));
 
-  if (r.routedRequests > 0) {
-    lines.push("");
-    lines.push("Smart Routing");
-    lines.push("-".repeat(20));
-    lines.push(`Routed:          ${r.routedRequests} requests`);
-    lines.push(`Saved:           ${formatUsd(r.savedUsd)}`);
+  if (data.totalCostUsd !== undefined) {
+    console.log(`Total spend:      $${data.totalCostUsd.toFixed(2)}`);
+  }
+  if (data.totalRequests !== undefined) {
+    console.log(`Total requests:   ${data.totalRequests.toLocaleString()}`);
+  }
+  if (data.savedUsd !== undefined) {
+    console.log(`Saved by routing: $${data.savedUsd.toFixed(2)}`);
   }
 
-  if (data.topModels && data.topModels.length > 0) {
-    lines.push("");
-    lines.push("Top Models");
-    lines.push("-".repeat(20));
-    for (const m of data.topModels.slice(0, 3)) {
-      lines.push(`  ${m.model}: ${formatUsd(m.cost)} (${m.count} reqs)`);
+  if (data.topModels && Array.isArray(data.topModels)) {
+    console.log('');
+    console.log('Model breakdown:');
+    for (const m of data.topModels) {
+      console.log(`  ${m.model}: $${m.costUsd.toFixed(2)} (${m.requests} req)`);
     }
   }
 
-  if (data.topAgents && data.topAgents.filter((a) => a.agentId).length > 0) {
-    lines.push("");
-    lines.push("Top Agents");
-    lines.push("-".repeat(20));
-    for (const a of data.topAgents.filter((a) => a.agentId).slice(0, 3)) {
-      lines.push(`  ${a.agentId}: ${formatUsd(a.cost)} (${a.count} reqs)`);
+  if (data.topAgents && Array.isArray(data.topAgents)) {
+    console.log('');
+    console.log('Agent breakdown:');
+    for (const a of data.topAgents.slice(0, 10)) {
+      console.log(`  ${a.agentId}: $${a.costUsd.toFixed(2)} (${a.requests} req)`);
     }
   }
-
-  if (data.budgetLimitUsd) {
-    lines.push("");
-    lines.push(`Budget: ${formatUsd(m.totalCost)} / ${formatUsd(data.budgetLimitUsd)} this month`);
-  }
-
-  lines.push("");
-  lines.push(`Full dashboard: ${DASHBOARD_URL}`);
-
-  return lines.join("\n");
 }
 
-module.exports = { execute, description: "Monthly cost and savings summary" };
+main().catch((err) => {
+  console.error(`Error: ${err.message}`);
+  process.exit(1);
+});

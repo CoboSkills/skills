@@ -1,17 +1,6 @@
-const DASHBOARD_URL = "https://app.reivo.dev";
-
-async function execute() {
-  const lines = [
-    "Disable Routing",
-    "",
-    "To disable smart routing, visit your dashboard:",
-    `  ${DASHBOARD_URL}/settings`,
-    "",
-    "When routing is off, all requests pass through to the",
-    "original provider without model switching.",
-  ];
-
-  return lines.join("\n");
-}
-
-module.exports = { execute, description: "Disable smart routing (via dashboard)" };
+console.log('To stop routing through Reivo, point your API calls back to the original provider URLs:');
+console.log('  OpenAI:    https://api.openai.com/v1');
+console.log('  Anthropic: https://api.anthropic.com/v1');
+console.log('  Google:    https://generativelanguage.googleapis.com/v1beta');
+console.log('');
+console.log('Your Reivo API key and data are preserved — you can re-enable anytime.');

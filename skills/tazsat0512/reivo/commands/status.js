@@ -1,39 +1,47 @@
-const { ProxyClient } = require("../lib/proxy-client");
+const { DashboardClient } = require('../lib/dashboard-client.js');
+const { formatStatus } = require('../lib/formatter.js');
 
-const DASHBOARD_URL = "https://app.reivo.dev";
-
-function getApiKey() {
-  const key = process.env.REIVO_API_KEY;
-  if (!key) {
-    throw new Error(
-      "REIVO_API_KEY is not set. Get your key at https://reivo.dev/settings and set it as an environment variable."
-    );
-  }
-  return key;
-}
-
-async function execute() {
-  const client = new ProxyClient(getApiKey());
-
-  let healthStatus;
-  try {
-    healthStatus = await client.checkHealth();
-  } catch (err) {
-    return `Reivo proxy is unreachable: ${err.message}`;
+async function main() {
+  const apiKey = process.env.REIVO_API_KEY;
+  if (!apiKey) {
+    console.log('REIVO_API_KEY not set. Run setup first.');
+    process.exit(1);
   }
 
-  const lines = [
-    "Reivo Status",
-    `├── Proxy: connected (${client.baseUrl})`,
-    `├── API Key: set (REIVO_API_KEY)`,
-    `├── Health: ${healthStatus.status || "ok"}`,
-    `└── Dashboard: ${DASHBOARD_URL}`,
-    "",
-    "View detailed stats, routing decisions, and cost breakdowns at:",
-    `  ${DASHBOARD_URL}`,
-  ];
+  const client = new DashboardClient(apiKey);
+  const days = parseInt(process.argv[2], 10) || 7;
+  const data = await client.get(`/overview?days=${days}`);
 
-  return lines.join("\n");
+  console.log(`Cost Overview (last ${days} days)`);
+  console.log('─'.repeat(40));
+
+  if (data.totalCostUsd !== undefined) {
+    console.log(`Total spend:    $${data.totalCostUsd.toFixed(2)}`);
+  }
+  if (data.totalRequests !== undefined) {
+    console.log(`Requests:       ${data.totalRequests.toLocaleString()}`);
+  }
+  if (data.savedUsd !== undefined) {
+    console.log(`Saved by routing: $${data.savedUsd.toFixed(2)}`);
+  }
+  if (data.daily && Array.isArray(data.daily)) {
+    console.log('');
+    console.log('Daily breakdown:');
+    for (const d of data.daily) {
+      const bar = '█'.repeat(Math.max(1, Math.round((d.costUsd / (data.totalCostUsd || 1)) * 20)));
+      console.log(`  ${d.date}  ${bar}  $${d.costUsd.toFixed(2)}`);
+    }
+  }
+  if (data.topModels && Array.isArray(data.topModels)) {
+    console.log('');
+    console.log('Top models by cost:');
+    for (const m of data.topModels.slice(0, 5)) {
+      console.log(`  ${m.model}: $${m.costUsd.toFixed(2)} (${m.requests} req)`);
+    }
+  }
 }
 
-module.exports = { execute, description: "Check proxy connectivity and show dashboard link" };
+main().catch((err) => {
+  console.error(`Error: ${err.message}`);
+  process.exit(1);
+});

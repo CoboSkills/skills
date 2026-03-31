@@ -1,74 +1,35 @@
-const { DashboardClient } = require("../lib/dashboard-client");
+const { DashboardClient } = require('../lib/dashboard-client.js');
 
-const DASHBOARD_URL = "https://app.reivo.dev";
-
-function getApiKey() {
-  const key = process.env.REIVO_API_KEY;
-  if (!key) {
-    throw new Error(
-      "REIVO_API_KEY is not set. Get your key at https://app.reivo.dev/settings"
-    );
+async function main() {
+  const apiKey = process.env.REIVO_API_KEY;
+  if (!apiKey) {
+    console.log('REIVO_API_KEY not set. Run setup first.');
+    process.exit(1);
   }
-  return key;
-}
 
-function formatUsd(n) {
-  if (n < 0.01) return `$${n.toFixed(4)}`;
-  return `$${n.toFixed(2)}`;
-}
+  const client = new DashboardClient(apiKey);
+  const data = await client.get('/optimization');
 
-const SEVERITY_ICON = { high: "!!!", medium: "!!", low: "!" };
-
-async function execute() {
-  let data;
-  try {
-    const client = new DashboardClient(getApiKey());
-    data = await client.get("/optimization");
-  } catch (err) {
-    return [
-      "Could not fetch optimization tips from Reivo.",
-      `Error: ${err.message}`,
-      "",
-      `Check your dashboard: ${DASHBOARD_URL}/optimization`,
-    ].join("\n");
-  }
+  console.log('Optimization Tips');
+  console.log('─'.repeat(40));
 
   if (!data.tips || data.tips.length === 0) {
-    return [
-      "Reivo - Optimization",
-      "=".repeat(25),
-      "",
-      `Analyzed ${data.analyzedRequests} requests from the last 7 days.`,
-      "",
-      "No optimization tips found. Your usage looks efficient!",
-      "",
-      `Full details: ${DASHBOARD_URL}/optimization`,
-    ].join("\n");
+    console.log('No optimization tips available — your usage looks efficient!');
+    return;
   }
-
-  const lines = [
-    "Reivo - Optimization Tips",
-    "=".repeat(30),
-    "",
-    `Analyzed ${data.analyzedRequests} requests (last 7 days)`,
-    `Potential savings: ${formatUsd(data.totalEstimatedSavingsUsd)}/week`,
-    "",
-  ];
 
   for (const tip of data.tips) {
-    const icon = SEVERITY_ICON[tip.severity] || "!";
-    lines.push(`[${icon}] ${tip.title} (${tip.severity})`);
-    lines.push(`    ${tip.description}`);
-    if (tip.estimatedSavingsUsd > 0) {
-      lines.push(`    Estimated savings: ${formatUsd(tip.estimatedSavingsUsd)}/week`);
+    const icon = tip.severity === 'high' ? '🔴' : tip.severity === 'medium' ? '🟡' : '🟢';
+    console.log(`${icon} ${tip.title}`);
+    console.log(`   ${tip.description}`);
+    if (tip.estimatedSavingsUsd) {
+      console.log(`   Estimated savings: $${tip.estimatedSavingsUsd.toFixed(2)}/month`);
     }
-    lines.push(`    Affected: ${tip.affectedRequests} requests`);
-    lines.push("");
+    console.log('');
   }
-
-  lines.push(`Full details: ${DASHBOARD_URL}/optimization`);
-
-  return lines.join("\n");
 }
 
-module.exports = { execute, description: "Show cost optimization recommendations" };
+main().catch((err) => {
+  console.error(`Error: ${err.message}`);
+  process.exit(1);
+});

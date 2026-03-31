@@ -1,81 +1,52 @@
-const { DashboardClient } = require("../lib/dashboard-client");
+const { DashboardClient } = require('../lib/dashboard-client.js');
 
-const DASHBOARD_URL = "https://app.reivo.dev";
-
-function getApiKey() {
-  const key = process.env.REIVO_API_KEY;
-  if (!key) {
-    throw new Error(
-      "REIVO_API_KEY is not set. Get your key at https://app.reivo.dev/settings"
-    );
+async function main() {
+  const apiKey = process.env.REIVO_API_KEY;
+  if (!apiKey) {
+    console.log('REIVO_API_KEY not set. Run setup first.');
+    process.exit(1);
   }
-  return key;
+
+  const client = new DashboardClient(apiKey);
+  const action = process.argv[2] || 'status';
+
+  if (action === 'set') {
+    const amount = parseFloat(process.argv[3]);
+    if (isNaN(amount) || amount <= 0) {
+      console.log('Usage: budget set <amount>');
+      console.log('Example: budget set 50');
+      process.exit(1);
+    }
+    const result = await client.post('/settings', { budgetLimitUsd: amount });
+    console.log(`✓ Budget set to $${amount.toFixed(2)}`);
+    return;
+  }
+
+  if (action === 'clear') {
+    await client.post('/settings', { budgetLimitUsd: null });
+    console.log('✓ Budget limit removed');
+    return;
+  }
+
+  // Default: show status
+  const data = await client.get('/defense-status');
+  if (data.budget) {
+    const pct = data.budget.limitUsd > 0
+      ? Math.round((data.budget.usedUsd / data.budget.limitUsd) * 100)
+      : 0;
+    const bar = '█'.repeat(Math.min(20, Math.round(pct / 5))) + '░'.repeat(Math.max(0, 20 - Math.round(pct / 5)));
+    console.log(`Budget: $${data.budget.usedUsd.toFixed(2)} / $${data.budget.limitUsd.toFixed(2)} (${pct}%)`);
+    console.log(`  [${bar}]`);
+  }
+  if (data.loops) {
+    console.log(`Loops detected: ${data.loops.today || 0} today, ${data.loops.week || 0} this week`);
+  }
+  if (data.blocked) {
+    console.log(`Requests blocked: ${data.blocked.today || 0} today, ${data.blocked.week || 0} this week`);
+  }
 }
 
-async function execute(args) {
-  const amount = args ? parseFloat(args.trim().replace("$", "")) : NaN;
-
-  // If no amount provided, show current budget status
-  if (isNaN(amount)) {
-    let data;
-    try {
-      const client = new DashboardClient(getApiKey());
-      data = await client.get("/defense-status");
-    } catch (err) {
-      return [
-        "Could not fetch budget status.",
-        `Error: ${err.message}`,
-        "",
-        `Check dashboard: ${DASHBOARD_URL}/settings`,
-      ].join("\n");
-    }
-
-    if (data.budgetLimit) {
-      const pct = data.budgetPercent ?? 0;
-      const filled = Math.round(pct / 5);
-      const bar = "\u2588".repeat(filled) + "\u2591".repeat(20 - filled);
-      return [
-        "Budget Status",
-        "",
-        `  ${bar} ${pct}%`,
-        `  $${data.budgetUsed.toFixed(2)} / $${data.budgetLimit.toFixed(2)} this month`,
-        "",
-        "To change: /reivo budget <amount>",
-        "To remove: /reivo budget 0",
-        "",
-        `Manage: ${DASHBOARD_URL}/settings`,
-      ].join("\n");
-    }
-
-    return [
-      "Budget: not set",
-      "",
-      "Usage: /reivo budget <amount>",
-      "  e.g. /reivo budget 50",
-      "",
-      `Or set in dashboard: ${DASHBOARD_URL}/settings`,
-    ].join("\n");
-  }
-
-  // Set budget
-  const val = amount <= 0 ? null : amount;
-  try {
-    const client = new DashboardClient(getApiKey());
-    await client.post("/settings", { budgetLimitUsd: val });
-  } catch (err) {
-    return `Failed to set budget: ${err.message}`;
-  }
-
-  if (val === null) {
-    return "Budget cap removed. Requests will no longer be blocked by budget.";
-  }
-
-  return [
-    `Budget set to $${val.toFixed(2)}/month`,
-    "",
-    "You'll receive alerts at 50%, 80%, and 100%.",
-    "Requests will be blocked when the limit is reached.",
-  ].join("\n");
-}
-
-module.exports = { execute, description: "View or set monthly budget cap" };
+main().catch((err) => {
+  console.error(`Error: ${err.message}`);
+  process.exit(1);
+});

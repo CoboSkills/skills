@@ -1,19 +1,28 @@
-const DASHBOARD_URL = "https://app.reivo.dev";
+const { DashboardClient } = require('../lib/dashboard-client.js');
 
-async function execute() {
-  const lines = [
-    "Routing Mode",
-    "",
-    "To change routing mode, visit your dashboard:",
-    `  ${DASHBOARD_URL}/settings`,
-    "",
-    "Available modes:",
-    "  auto         — balance cost and quality (default)",
-    "  conservative — prefer quality, save less",
-    "  aggressive   — maximize savings",
-  ];
+async function main() {
+  const apiKey = process.env.REIVO_API_KEY;
+  if (!apiKey) {
+    console.log('REIVO_API_KEY not set. Run setup first.');
+    process.exit(1);
+  }
 
-  return lines.join("\n");
+  const mode = process.argv[2];
+  if (!mode || !['aggressive', 'balanced', 'quality'].includes(mode)) {
+    console.log('Usage: mode <aggressive|balanced|quality>');
+    console.log('');
+    console.log('  aggressive — maximize savings, route to cheapest capable model');
+    console.log('  balanced   — balance cost and quality (default)');
+    console.log('  quality    — prefer original model, only route when confident');
+    process.exit(1);
+  }
+
+  const client = new DashboardClient(apiKey);
+  await client.post('/settings', { routingMode: mode });
+  console.log(`✓ Routing mode set to: ${mode}`);
 }
 
-module.exports = { execute, description: "Set routing mode (via dashboard)" };
+main().catch((err) => {
+  console.error(`Error: ${err.message}`);
+  process.exit(1);
+});

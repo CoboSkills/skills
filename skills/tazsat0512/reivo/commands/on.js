@@ -1,19 +1,5 @@
-const DASHBOARD_URL = "https://app.reivo.dev";
-
-async function execute() {
-  const lines = [
-    "Smart Routing",
-    "",
-    "To enable or configure smart routing, visit your dashboard:",
-    `  ${DASHBOARD_URL}/settings`,
-    "",
-    "Routing modes:",
-    "  auto         — balance cost and quality",
-    "  conservative — prefer quality, save less",
-    "  aggressive   — maximize savings",
-  ];
-
-  return lines.join("\n");
-}
-
-module.exports = { execute, description: "Enable smart routing (via dashboard)" };
+console.log('Reivo proxy is always active when REIVO_API_KEY is set.');
+console.log('Route your API calls through the proxy base URLs:');
+console.log('  OpenAI:    https://proxy.reivo.dev/openai/v1');
+console.log('  Anthropic: https://proxy.reivo.dev/anthropic/v1');
+console.log('  Google:    https://proxy.reivo.dev/google/v1beta');

@@ -1,0 +1,11 @@
+{
+  "owner": "violetlength",
+  "slug": "newslatest",
+  "displayName": "newslatest",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774492265635,
+    "commit": null
+  },
+  "history": []
+}

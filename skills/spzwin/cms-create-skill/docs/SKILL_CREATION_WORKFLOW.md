@@ -2,6 +2,10 @@
 
 > 本文档是按 XGJK 协议模板从零构建 Skill 包的完整操作手册。
 > 由 `SKILL.md` 路由至此，协议规范详见 `XGJK_SKILL_PROTOCOL.md`。
+>
+> **适用范围**：仅适用于**内部 Skill**，也就是按我方协议规范从零创建的新 Skill。
+>
+> **不适用范围**：如果用户表达的是“我在 ClawHub 找到一个 Skill，帮我同步到我们平台”，这属于**外部 Skill 同步**，应走 `skill-management` 发布流程，不走本 5 步流程。
 
 ---
 

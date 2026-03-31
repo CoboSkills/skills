@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-一站式发布 Skill（打包 → 上传七牛 → 注册/更新）
+一站式发布 Skill（内部：打包 → 上传七牛 → 注册/更新；外部：直接注册/更新）
 
 用途：
-  将指定 Skill 目录一键完成：打包 ZIP → 上传到七牛 → 注册到平台（或更新已有 Skill）
+  将指定 Skill 目录一键完成发布到平台。
+  - 内部模式：打包 ZIP → 上传到七牛 → 注册/更新
+  - 外部模式：跳过七牛上传，直接使用 ClawHub 下载地址注册/更新
 
 使用方式：
   # 首次发布（注册）
@@ -11,6 +13,9 @@
 
   # 更新已有 Skill（加 --update）
   python3 cms-create-skill/scripts/skill-management/publish_skill.py ./im-robot --code im-robot --update [--name "新名称"] [--version 2]
+
+  # 外部 Skill（ClawHub）发布
+  python3 cms-create-skill/scripts/skill-management/publish_skill.py ./im-robot --code im-robot --name "IM 机器人" --external
 
 参数说明：
   skill_dir       Skill 目录路径（必须）
@@ -22,7 +27,8 @@
   --update        更新模式（默认为注册模式）
   --output        ZIP 输出路径（可选）
   --file-key      七牛文件 key（可选，默认自动生成）
-  --internal      标记为内部 Skill
+  --internal      标记为内部 Skill（默认发布链路）
+  --external      标记为外部 Skill（使用 ClawHub 下载地址）
 
 环境变量：
   XG_USER_TOKEN  — access-token（必须）
@@ -33,6 +39,7 @@ import os
 import json
 import time
 import argparse
+from urllib.parse import quote
 
 # 导入同目录下的模块
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -44,13 +51,20 @@ from register_skill import call_api as register_api
 from update_skill import call_api as update_api
 
 
+EXTERNAL_DOWNLOAD_URL_TEMPLATE = "https://wry-manatee-359.convex.site/api/v1/download?slug={}"
+
+
+def build_external_download_url(skill_code: str) -> str:
+    return EXTERNAL_DOWNLOAD_URL_TEMPLATE.format(quote(skill_code, safe=""))
+
+
 def main():
     token = os.environ.get("XG_USER_TOKEN")
     if not token:
         print("错误: 请设置环境变量 XG_USER_TOKEN", file=sys.stderr)
         sys.exit(1)
 
-    parser = argparse.ArgumentParser(description="一站式发布 Skill（打包 → 上传 → 注册/更新）")
+    parser = argparse.ArgumentParser(description="一站式发布 Skill")
     parser.add_argument("skill_dir", help="Skill 目录路径")
     parser.add_argument("--code", required=True, help="Skill 唯一标识")
     parser.add_argument("--name", default="", help="Skill 名称（注册时必须）")
@@ -61,7 +75,15 @@ def main():
     parser.add_argument("--output", default="", help="ZIP 输出路径")
     parser.add_argument("--file-key", default="", help="七牛文件 key")
     parser.add_argument("--internal", action="store_true", help="标记为内部 Skill")
+    parser.add_argument("--external", action="store_true", help="标记为外部 Skill（使用 ClawHub 下载地址）")
     args = parser.parse_args()
+
+    if args.internal and args.external:
+        print("错误: --internal 和 --external 不能同时使用", file=sys.stderr)
+        sys.exit(1)
+
+    is_external = args.external
+    is_internal = not is_external
 
     mode = "更新" if args.update else "注册"
     if not args.update and not args.name:
@@ -70,35 +92,42 @@ def main():
 
     skill_name = os.path.basename(os.path.abspath(args.skill_dir))
 
-    # ── Step 1: 打包 ──
-    zip_output = args.output or f"{skill_name}.zip"
-    print(f"\n{'='*50}", file=sys.stderr)
-    print(f"[Step 1/3] 打包 Skill 目录 → ZIP", file=sys.stderr)
-    print(f"{'='*50}", file=sys.stderr)
-    zip_path = pack_skill(args.skill_dir, zip_output)
+    if is_internal:
+        # ── Step 1: 打包 ──
+        zip_output = args.output or f"{skill_name}.zip"
+        print(f"\n{'='*50}", file=sys.stderr)
+        print(f"[Step 1/3] 打包 Skill 目录 → ZIP", file=sys.stderr)
+        print(f"{'='*50}", file=sys.stderr)
+        zip_path = pack_skill(args.skill_dir, zip_output)
 
-    # ── Step 2: 上传七牛 ──
-    file_key = args.file_key or f"skills/{args.code}/{int(time.time())}-{os.path.basename(zip_path)}"
-    print(f"\n{'='*50}", file=sys.stderr)
-    print(f"[Step 2/3] 上传到七牛 (fileKey={file_key})", file=sys.stderr)
-    print(f"{'='*50}", file=sys.stderr)
+        # ── Step 2: 上传七牛 ──
+        file_key = args.file_key or f"skills/{args.code}/{int(time.time())}-{os.path.basename(zip_path)}"
+        print(f"\n{'='*50}", file=sys.stderr)
+        print(f"[Step 2/3] 上传到七牛 (fileKey={file_key})", file=sys.stderr)
+        print(f"{'='*50}", file=sys.stderr)
 
-    creds = get_qiniu_token(token, file_key)
-    qiniu_token = creds["token"]
-    domain = creds["domain"]
-    print(f"凭证获取成功，domain={domain}", file=sys.stderr)
+        creds = get_qiniu_token(token, file_key)
+        qiniu_token = creds["token"]
+        domain = creds["domain"]
+        print(f"凭证获取成功，domain={domain}", file=sys.stderr)
 
-    size_kb = os.path.getsize(zip_path) / 1024
-    print(f"上传 {os.path.basename(zip_path)} ({size_kb:.1f} KB) ...", file=sys.stderr)
-    upload_file(qiniu_token, file_key, zip_path)
+        size_kb = os.path.getsize(zip_path) / 1024
+        print(f"上传 {os.path.basename(zip_path)} ({size_kb:.1f} KB) ...", file=sys.stderr)
+        upload_file(qiniu_token, file_key, zip_path)
 
-    base_url = domain if domain.startswith("http") else f"https://{domain}"
-    download_url = f"{base_url.rstrip('/')}/{file_key}"
-    print(f"上传成功! 下载地址: {download_url}", file=sys.stderr)
+        base_url = domain if domain.startswith("http") else f"https://{domain}"
+        download_url = f"{base_url.rstrip('/')}/{file_key}"
+        print(f"上传成功! 下载地址: {download_url}", file=sys.stderr)
+    else:
+        print(f"\n{'='*50}", file=sys.stderr)
+        print(f"[Step 1/2] 外部 Skill 模式：跳过七牛上传", file=sys.stderr)
+        print(f"{'='*50}", file=sys.stderr)
+        download_url = build_external_download_url(args.code)
+        print(f"外部 Skill 下载地址: {download_url}", file=sys.stderr)
 
     # ── Step 3: 注册/更新 ──
     print(f"\n{'='*50}", file=sys.stderr)
-    print(f"[Step 3/3] {mode} Skill (code={args.code})", file=sys.stderr)
+    print(f"[{3 if is_internal else 2}/{3 if is_internal else 2}] {mode} Skill (code={args.code})", file=sys.stderr)
     print(f"{'='*50}", file=sys.stderr)
 
     if args.update:
@@ -112,8 +141,7 @@ def main():
             payload["label"] = args.label
         if args.version:
             payload["version"] = args.version
-        if args.internal:
-            payload["isInternal"] = True
+        payload["isInternal"] = is_internal
         result = update_api(token, payload)
     else:
         # 注册模式
@@ -121,13 +149,12 @@ def main():
             "code": args.code,
             "name": args.name,
             "downloadUrl": download_url,
+            "isInternal": is_internal,
         }
         if args.description:
             payload["description"] = args.description
         if args.label:
             payload["label"] = args.label
-        if args.internal:
-            payload["isInternal"] = True
         result = register_api(token, payload)
 
     print(f"\n{'='*50}", file=sys.stderr)

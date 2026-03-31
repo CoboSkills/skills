@@ -8,7 +8,7 @@ dependencies:
 
 # CMS Skill 创建工具
 
-**当前版本**: v1.0.7
+**当前版本**: v1.1.0
 
 > **⚠️ 身份声明**：本 Skill 是 **Skill 全生命周期工具**，提供三大核心能力：
 >
@@ -24,6 +24,33 @@ dependencies:
 > - "发现 Skill" = 调用查询接口，浏览和了解平台现有 Skill（**入口，先看有什么**）
 > - "创建 Skill" = 使用本工具的 **生成流程**（Step 1-5）来按协议模板创建一套新的 Skill 文件
 > - "发布 Skill" = 调用 **skill-management 模块**的接口，将已完成的 Skill 注册到平台
+
+## 内部 / 外部定义
+
+### 内部 Skill
+
+- 定义：按照 `docs/XGJK_SKILL_PROTOCOL.md` 生成的 Skill 包
+- 来源：通常是新建 Skill，或在本仓库内按协议完成改造后的 Skill
+- 发布方式：走当前平台已有接口，内部模式下通常是 `打包 ZIP → 上传七牛 → register/update`
+- 典型用户表达：
+  - "帮我按协议创建一个新 Skill，然后发布到平台"
+  - "这个 Skill 是我们内部规范生成的，帮我上传发布"
+
+### 外部 Skill
+
+- 定义：非按我方协议原生生成、通常已存在于 ClawHub 的 Skill
+- 来源：用户先在 ClawHub 搜索、查看或确认某个 Skill，再要求同步到我方平台
+- 发布方式：不走本地七牛上传，直接使用固定下载地址 `https://wry-manatee-359.convex.site/api/v1/download?slug={skillCode}` 调用平台注册/更新接口
+- 典型用户表达：
+  - "我在 ClawHub 找到一个 Skill，帮我同步到我们平台"
+  - "把 ClawHub 上这个 skill 推到我们自己的平台"
+  - "这个不是内部协议生成的，是外部 skill，帮我上架到技能平台"
+
+### 关键边界
+
+1. **5 步创建流程只适用于内部 Skill**
+2. **外部 Skill 的核心动作是“同步到平台”而不是“按协议新建”**
+3. **外部 Skill 发布时，下载地址固定来自 ClawHub slug，不需要本地上传七牛包**
 
 ---
 
@@ -77,7 +104,8 @@ dependencies:
 
 | 能力 | 模块 | 说明 | 需要登录 |
 |---|---|---|---|
-| 一站式发布 | `skill-management` | 打包 + 上传七牛 + 注册，一条命令完成 | 是 |
+| 一站式发布（内部） | `skill-management` | 打包 + 上传七牛 + 注册，一条命令完成 | 是 |
+| 同步外部 Skill 到平台 | `skill-management` | 直接使用 ClawHub 下载地址注册/更新到平台 | 是 |
 | 打包 Skill 为 ZIP | `skill-management` | 将 Skill 目录打成 .zip 文件 | 否 |
 | 上传到七牛 | `skill-management` | 获取七牛凭证 + 上传 ZIP，返回下载地址 | 是 |
 | 发布（注册）Skill | `skill-management` | 将 Skill 包注册到平台 | 是 |
@@ -102,6 +130,7 @@ dependencies:
 | 用户说 | 路由到 | 打开文档 | 执行脚本 | 需要 token |
 |---|---|---|---|---|
 | "构建 Skill 包"/"按模板创建 Skill" | **生成流程** Step 1-5 | `docs/SKILL_CREATION_WORKFLOW.md` | `scripts/fetch_api_doc.py` | 否 |
+| "按我们的协议新建一个 Skill"/"从零生成内部 Skill" | **生成流程** Step 1-5 | `docs/SKILL_CREATION_WORKFLOW.md` | `scripts/fetch_api_doc.py` | 否 |
 | "获取接口文档"/"拉取 API 定义" | 工具脚本 | — | `scripts/fetch_api_doc.py` | 否 |
 
 ### 🚀 发布 Skill
@@ -109,6 +138,8 @@ dependencies:
 | 用户说 | 路由到 | 打开文档 | 执行脚本 | 需要 token |
 |---|---|---|---|---|
 | "打包并发布"/"帮我发布这个 Skill" | skill-management | `openapi/skill-management/publish-skill.md` | `scripts/skill-management/publish_skill.py` | 是 |
+| "把 ClawHub 上这个 Skill 同步到我们平台"/"把外部 Skill 推送到我们平台" | skill-management | `openapi/skill-management/publish-skill.md` | `scripts/skill-management/publish_skill.py --external` | 是 |
+| "我在 ClawHub 找到一个 skill，帮我同步" | skill-management | `openapi/skill-management/publish-skill.md` | `scripts/skill-management/publish_skill.py --external` | 是 |
 | "打包并更新"/"更新这个 Skill" | skill-management | `openapi/skill-management/publish-skill.md` | `scripts/skill-management/publish_skill.py --update` | 是 |
 | "打包 Skill"/"生成 ZIP" | skill-management | `openapi/skill-management/pack-skill.md` | `scripts/skill-management/pack_skill.py` | 否 |
 | "上传到七牛"/"上传 ZIP" | skill-management | `openapi/skill-management/upload-to-qiniu.md` | `scripts/skill-management/upload_to_qiniu.py` | 是 |
@@ -182,16 +213,30 @@ Step 5  完成输出总结
 ### 一站式发布（推荐）
 
 ```bash
-# 首次发布（打包 + 上传七牛 + 注册，一条命令）
+# 内部 Skill：首次发布（打包 + 上传七牛 + 注册，一条命令）
 python3 cms-create-skill/scripts/skill-management/publish_skill.py \
-  ./im-robot --code im-robot --name "IM 机器人"
+  ./im-robot --code im-robot --name "IM 机器人" --internal
 
-# 更新已有 Skill（打包 + 上传七牛 + 更新，一条命令）
+# 内部 Skill：更新已有 Skill（打包 + 上传七牛 + 更新，一条命令）
 python3 cms-create-skill/scripts/skill-management/publish_skill.py \
-  ./im-robot --code im-robot --update --version 2
+  ./im-robot --code im-robot --update --version 2 --internal
+
+# 外部 Skill：发布到平台（跳过七牛上传，使用 ClawHub 下载地址）
+python3 cms-create-skill/scripts/skill-management/publish_skill.py \
+  ./im-robot --code im-robot --name "IM 机器人" --external
 ```
 
-> `publish_skill.py` 自动串联：打包 ZIP → 获取七牛凭证 → 上传 → 注册/更新。执行前先通过 `cms-auth-skills` 准备好 `access-token`，并写入 `XG_USER_TOKEN`。
+> `publish_skill.py` 支持两种发布模式：
+> - 内部 Skill：打包 ZIP → 获取七牛凭证 → 上传 → 注册/更新
+> - 外部 Skill：跳过七牛上传，直接使用 `https://wry-manatee-359.convex.site/api/v1/download?slug={skillCode}` 注册/更新
+> 
+> 执行前先通过 `cms-auth-skills` 准备好 `access-token`，并写入 `XG_USER_TOKEN`。
+
+**外部 Skill 的典型使用场景**：
+
+- 用户先说："我在 ClawHub 搜到一个 Skill，skillCode 是 xxx，帮我同步到我们平台"
+- 或者说："把 ClawHub 上已经存在的 xxx skill 上架到我们的技能平台"
+- 这类请求应直接进入 **外部发布模式**，不要误走 Step 1-5 的内部创建流程
 
 ### 分步操作 / 其他管理
 

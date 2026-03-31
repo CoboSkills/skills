@@ -248,9 +248,10 @@ def main():
     
     parser = argparse.ArgumentParser(description="Tiered Recall 记忆加载器")
     parser.add_argument("--deep", action="store_true", help="深度加载（突破token限制）")
+    parser.add_argument("--full", action="store_true", help="全量加载（所有记忆文件）")
     parser.add_argument("--project", type=str, help="加载指定项目的记忆")
     parser.add_argument("--topic", type=str, help="加载指定主题的记忆")
-    parser.add_argument("--days", type=int, default=2, help="加载最近N天的日志")
+    parser.add_argument("--days", type=int, default=None, help="加载最近N天的日志（默认从config读取，--full时忽略）")
     parser.add_argument("--workspace", type=str, help="指定工作区路径")
     args = parser.parse_args()
     
@@ -271,8 +272,31 @@ def main():
     
     memory_dir = workspace / "memory"
     output_dir = workspace / ".tiered-recall"
+    config_file = Path(__file__).parent.parent / "config.json"
     
-    print("🧠 Tiered Recall - 记忆加载器")
+    # 读取配置
+    default_days = 7  # 默认7天
+    if config_file.exists():
+        try:
+            with open(config_file, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                default_days = config.get("recentDays", 7)
+        except:
+            pass
+    
+    # 确定加载天数
+    if args.full:
+        # 全量加载：扫描所有记忆文件
+        all_files = list(memory_dir.glob("*.md"))
+        days = len(all_files)
+        print(f"🧠 全量回忆模式：加载全部 {days} 天记忆")
+    elif args.days is not None:
+        days = args.days
+        print(f"🧠 自定义回忆：加载最近 {days} 天")
+    else:
+        days = default_days
+        print(f"🧠 默认回忆：加载最近 {days} 天（可在config.json修改）")
+    
     print("=" * 40)
     
     # 检查索引是否存在
@@ -313,8 +337,8 @@ def main():
     memory_md = load_memory_md(workspace)
     
     # L1
-    print(f"  L1: 最近{args.days}天日志...")
-    recent_logs = load_recent_logs(memory_dir, args.days)
+    print(f"  L1: 最近{days}天日志...")
+    recent_logs = load_recent_logs(memory_dir, days)
     
     # L2
     print("  L2: 活跃项目...")

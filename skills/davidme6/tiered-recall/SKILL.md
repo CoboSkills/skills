@@ -1,13 +1,13 @@
 ---
 name: tiered-recall
-version: 1.1.0
-description: 分层回忆系统 - 解决上下文长度限制，保持项目延续性。每次新session自动加载核心记忆+最近日志+活跃项目，支持手动深度回忆。索引含10字内摘要，方便区分同名条目。
+version: 1.2.0
+description: 分层回忆系统 - 解决上下文长度限制，保持项目延续性。自动加载最近7天记忆，支持手动全量回忆或自定义天数。索引含10字内摘要，方便区分同名条目。
 license: MIT
 author: davidme6
 homepage: https://clawhub.com/skill/tiered-recall
 repository: https://github.com/davidme6/tiered-recall
 keywords: [memory, recall, context, session, continuity]
-changelog: "v1.1.0: 增加10字内极致摘要，方便区分同名条目。v1.0.3: 加标题。v1.0.0: 初始版本"
+changelog: "v1.2.0: 改为自动7天 + 手动全量/自定义天数。v1.1.0: 增加10字内极致摘要。v1.0.0: 初始版本"
 ---
 
 # Tiered Recall 🧠📚
@@ -35,12 +35,14 @@ changelog: "v1.1.0: 增加10字内极致摘要，方便区分同名条目。v1.0
 | 层级 | 内容 | Token预算 | 加载条件 |
 |------|------|-----------|----------|
 | 🔴 L0 核心 | `MEMORY.md` | ~4k | 始终加载 |
-| 🟠 L1 近期 | 最近2天日志 | ~10k | 始终加载 |
+| 🟠 L1 近期 | 最近7天日志 | ~15k | 始终加载（智能跳过无记录天） |
 | 🟡 L2 项目 | 活跃项目文件 | ~5k | 自动检测 |
 | 🟢 L3 索引 | 记忆索引 | ~1k | 始终加载 |
-| **总计** | | **~20k** | |
+| **总计** | | **~25k** | |
 
-**总预算：~20k token，约占总上下文的10%**
+**总预算：~25k token，约占总上下文的12.5%**
+
+**可在 `config.json` 中修改 `recentDays` 调整自动加载天数**
 
 ---
 
@@ -143,9 +145,9 @@ workspace/
 
 | 指令 | 作用 | 示例 |
 |------|------|------|
-| `继续回忆` | 加载更多相关记忆 | "继续回忆游戏项目" |
+| `回忆全部` | 加载所有记忆文件（动态计算天数） | "回忆全部" |
+| `回忆 [N天]` | 加载最近N天日志 | "回忆最近14天" |
 | `回忆 [项目名]` | 加载该项目全部记忆 | "回忆搞钱特战队" |
-| `回忆 [天数]` | 加载指定天数日志 | "回忆最近7天" |
 | `回忆 [日期]` | 加载指定日期日志 | "回忆3月20日" |
 | `回忆 [关键词]` | 按关键词搜索记忆 | "回忆抖音小游戏" |
 
@@ -214,15 +216,31 @@ python skills/tiered-recall/scripts/update-projects.py
 - 扫描最近日志中提到的项目
 - 更新 `projects.json`
 
-### 完整加载
+### 加载记忆
 
 ```bash
-python skills/tiered-recall/scripts/load.py [--deep] [--project NAME]
+# 默认加载（最近7天）
+python skills/tiered-recall/scripts/load.py
+
+# 全量加载（所有记忆）
+python skills/tiered-recall/scripts/load.py --full
+
+# 自定义天数
+python skills/tiered-recall/scripts/load.py --days 14
+
+# 按项目加载
+python skills/tiered-recall/scripts/load.py --project "搞钱特战队"
+
+# 按主题加载
+python skills/tiered-recall/scripts/load.py --topic "游戏开发"
 ```
 
 **参数：**
-- `--deep` 深度加载，突破默认token限制
+- `--full` 全量加载，加载所有记忆文件
+- `--days N` 加载最近N天的日志
 - `--project NAME` 只加载指定项目
+- `--topic NAME` 只加载指定主题
+- `--deep` 深度加载，突破默认token限制
 
 ---
 
@@ -312,11 +330,12 @@ AI:
 
 ```json
 {
+  "version": "1.2.0",
   "defaultLayers": ["L0", "L1", "L2", "L3"],
-  "recentDays": 2,
+  "recentDays": 7,
   "maxTokensPerLayer": {
     "L0": 4000,
-    "L1": 10000,
+    "L1": 15000,
     "L2": 5000,
     "L3": 1000
   },
@@ -324,6 +343,10 @@ AI:
   "autoLoadOnNewSession": true
 }
 ```
+
+**关键配置说明：**
+- `recentDays`: 自动加载最近N天（默认7天，可自定义）
+- `deepRecallBudget`: 深度回忆时的token预算上限
 
 ---
 
@@ -444,12 +467,19 @@ python skills/tiered-recall/scripts/build-index.py --clean
 
 ## 📝 Changelog
 
+### v1.2.0 (2026-03-27)
+- 🔄 改为自动加载最近7天
+- ✨ 新增 `--full` 全量加载参数
+- ✨ 新增 `--days N` 自定义天数参数
+- 📊 优化token预算分配
+
+### v1.1.0 (2026-03-25)
+- ✨ 增加10字内极致摘要
+
 ### v1.0.0 (2026-03-25)
 - ✨ 初始版本
 - 🔄 支持分层自动加载
 - 🔍 支持手动深度回忆
-- 📊 Token预算控制
-- 🗂️ 记忆索引生成
 
 ---
 

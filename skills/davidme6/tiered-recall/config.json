@@ -1,9 +1,9 @@
 {
-  "version": "1.0.0",
-  "lastUpdated": "2026-03-25T10:00:00",
-  "description": "分层回忆系统配置",
+  "version": "1.2.0",
+  "lastUpdated": "2026-03-27T13:40:00",
+  "description": "分层回忆系统配置 - 自动7天 + 手动全量/自定义天数",
   "defaultLayers": ["L0", "L1", "L2", "L3"],
-  "recentDays": 2,
+  "recentDays": 7,
   "maxTokensPerLayer": {
     "L0": 4000,
     "L1": 10000,

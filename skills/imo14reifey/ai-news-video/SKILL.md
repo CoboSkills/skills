@@ -1,10 +1,12 @@
 ---
 name: ai-news-video
-version: "1.0.0"
+version: 1.0.5
 displayName: "AI News Video Maker — Create Artificial Intelligence News and Update Videos"
 description: >
   AI News Video Maker — Create Artificial Intelligence News and Update Videos.
 metadata: {"openclaw": {"emoji": "🧠", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
 ---
 
 # AI News Video Maker — Artificial Intelligence News and Update Videos

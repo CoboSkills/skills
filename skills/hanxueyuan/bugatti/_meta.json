@@ -3,9 +3,15 @@
   "slug": "bugatti",
   "displayName": "bugatti",
   "latest": {
-    "version": "0.2.0",
-    "publishedAt": 1774487485399,
-    "commit": "https://github.com/openclaw/skills/commit/0d8e4c5a802290dfd0865e89fcce3d3c17d25dce"
+    "version": "0.1.0",
+    "publishedAt": 1774605418195,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.2.0",
+      "publishedAt": 1774487485399,
+      "commit": "https://github.com/openclaw/skills/commit/0d8e4c5a802290dfd0865e89fcce3d3c17d25dce"
+    }
+  ]
 }

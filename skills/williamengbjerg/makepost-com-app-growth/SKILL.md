@@ -41,6 +41,8 @@ Authorization: Bearer <MAKEPOST_API_KEY>
 
 MCP endpoint: `https://makepost.com/api/mcp/`
 
+API docs: `https://api.makepost.com`
+
 ## Available Tools
 
 ### Publishing
@@ -57,11 +59,17 @@ MCP endpoint: `https://makepost.com/api/mcp/`
 - `app_id` (string) — App to link to. Accepts app ID, name, or bundle ID. Auto-selects if you have one app.
 - Returns: video_id, url, title, duration, file_size, is_short_eligible.
 - Runs content moderation automatically. Rejected content is deleted.
+- For direct file uploads (not URL), use the REST API endpoint `POST /v1/media/upload-file` with multipart form data.
 
 **list_accounts** — List connected social media accounts.
-- Returns: account ID, platform, username, provider.
+- Returns: account ID, platform, username, provider, avatar_url.
 - Only active (connected) accounts returned. Disconnected accounts excluded.
 - Platforms: tiktok, instagram, youtube, facebook, x, linkedin, threads, pinterest, bluesky.
+
+**list_account_groups** — List account groups with their member accounts.
+- Returns: group ID, name, account_ids, accounts (with platform and name).
+- Groups are collections of accounts that can be published to together.
+- Use group IDs with the group_ids parameter in publish_content.
 
 **schedule_post** — Schedule a video to one or more social media accounts at a specific time.
 - `video_id` (string, required) — Video ID from list_videos.
@@ -91,11 +99,57 @@ MCP endpoint: `https://makepost.com/api/mcp/`
 - `post_id` (string, required) — Post ID to check.
 - Returns: status, platform_url (null while pending), stats (views, likes, comments, shares — null until synced), error_message (only for failed posts).
 
+### Content Publishing
+
+**publish_content** — Create and publish content (text, image, video, or carousel) to one or more accounts.
+- `content_type` (string, required) — "text", "image", "video", or "carousel".
+- `caption` (string, required) — Main post caption. Used for all platforms unless overridden by captions.
+- `account_ids` (list of strings) — Account IDs to post to. Required unless is_draft=True.
+- `media_id` (string) — Pre-uploaded media ID (from upload_image or upload_video). Required for image/video/carousel.
+- `scheduled_at` (string) — ISO 8601 datetime. Omit to publish immediately.
+- `timezone` (string) — IANA timezone for scheduled_at.
+- `is_draft` (bool, default false) — Save as draft without publishing. Account IDs and captions are stored for later use.
+- `title` (string) — Optional title (used by YouTube).
+- `app_id` (string) — App or project ID to associate content with (from list_apps).
+- `captions` (dict) — Per-platform caption overrides, e.g. {"linkedin": "Professional version", "x": "Short version"}.
+- `group_ids` (list of strings) — Account group IDs to resolve to individual accounts (from list_account_groups).
+- Text-only posts work on X, LinkedIn, Threads, Bluesky, Facebook. TikTok, Instagram, YouTube, Pinterest require media.
+
+**upload_image** — Upload an image from a public URL into MakePost.
+- `image_url` (string, required) — Public URL to .jpg, .png, .webp, or .gif. Max 20MB.
+- `title` (string) — Image title.
+- `app_id` (string) — App to link to. Auto-selects if you have one app.
+- Returns: media_id, url, title. Use media_id with publish_content.
+- For direct file uploads (not URL), use the REST API endpoint `POST /v1/media/upload-file` with multipart form data.
+
+**list_drafts** — List your draft posts.
+- `limit` (int, default 50) — Max drafts to return (1-100).
+- Sorted newest first.
+- Returns draft_account_ids (stored target accounts) and draft_captions (stored per-platform captions) if set.
+
+**publish_draft_tool** — Publish a draft post (immediately or scheduled).
+- `post_id` (string, required) — Draft post ID from list_drafts.
+- `account_ids` (list of strings) — Account IDs. If omitted, uses accounts stored when the draft was created.
+- `scheduled_at` (string) — ISO 8601 datetime. Omit for immediate.
+- `timezone` (string) — IANA timezone.
+
+**update_draft_tool** — Update a draft post's content, accounts, or captions.
+- `post_id` (string, required) — Draft post ID.
+- `caption` (string) — New main caption text.
+- `content_type` (string) — New content type.
+- `media_id` (string) — New media ID.
+- `account_ids` (list of strings) — Updated list of account IDs for this draft.
+- `captions` (dict) — Updated per-platform caption overrides, e.g. {"x": "Short", "linkedin": "Long"}.
+
+**delete_draft_tool** — Delete a draft post permanently.
+- `post_id` (string, required) — Draft post ID to delete.
+
 ### App Analytics
 
-**list_apps** — List your connected iOS apps with App Store metadata.
-- Returns: app ID, name, bundle ID, rating (1-5), rating_count.
+**list_apps** — List your apps and projects.
+- Returns: app ID, name, type ("ios_app" or "project"), bundle ID, rating (1-5), rating_count.
 - Rating is null if the app has no ratings yet. Sorted newest first.
+- Use the type field to distinguish iOS apps from projects.
 
 **get_app_analytics** — Get download and revenue stats for an app over a period.
 - `app_id` (string) — App ID, name, or bundle ID. Auto-selects if you have one app.
@@ -170,6 +224,11 @@ MCP endpoint: `https://makepost.com/api/mcp/`
 
 ## Example Workflows
 
+- "Post 'Just launched v2.0!' to all my accounts" — Creates a text post and publishes to all text-compatible platforms.
+- "Upload this image and post it to Instagram and Facebook with the caption 'New feature'" — Uploads the image, then publishes to selected accounts.
+- "Save a draft post about our upcoming feature for later" — Creates a draft that can be edited and published when ready. Accounts and per-platform captions are preserved.
+- "Draft a post for X and LinkedIn with different captions for each" — Creates a draft with per-platform captions stored for later publishing.
+- "Post to all accounts in my MakePost group" — Uses list_account_groups to find the group, then publishes with group_ids.
 - "Upload https://example.com/my-video.mp4 and schedule it to all my accounts tomorrow at noon" — Downloads the video, runs moderation, and schedules across all connected platforms.
 - "Post my latest video to TikTok and Instagram tomorrow at 3pm" — Finds your most recent video, picks the right accounts, and schedules it.
 - "How are my app downloads this week compared to last week?" — Pulls analytics for all your apps and compares the two periods.
@@ -186,6 +245,25 @@ MCP endpoint: `https://makepost.com/api/mcp/`
 - **Subscription IDs**: Always use apple_subscription_id (not id) when calling pricing tools.
 - **Price push safety**: Always confirm with the user before calling push_price_changes — changes can take effect immediately.
 - Post to multiple platforms simultaneously by including multiple account IDs in schedule_post.
+
+## REST API
+
+The MCP tools above also have equivalent REST API endpoints at `https://api.makepost.com/v1/`. Full interactive docs at `https://api.makepost.com`.
+
+**Direct file upload** (REST API only — not available via MCP):
+```
+POST https://api.makepost.com/v1/media/upload-file
+Content-Type: multipart/form-data
+Authorization: Bearer <MAKEPOST_API_KEY>
+
+file: <binary>       (required) Image or video file
+type: "image"|"video" (default "image")
+title: string         (optional)
+app_id: string        (optional)
+```
+- Images: max 20MB, JPEG/PNG/WebP/GIF
+- Videos: max 500MB, MP4/MOV/WebM, max 10 minutes
+- Returns same response as upload_image or upload_video
 
 ## Supported Platforms
 

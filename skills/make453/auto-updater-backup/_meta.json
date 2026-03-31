@@ -1,0 +1,11 @@
+{
+  "owner": "make453",
+  "slug": "auto-updater-backup",
+  "displayName": "Auto Updater Backup",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774637659162,
+    "commit": null
+  },
+  "history": []
+}

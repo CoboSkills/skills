@@ -1,0 +1,11 @@
+{
+  "owner": "kagura-agent",
+  "slug": "openclaw-teleport",
+  "displayName": "openclaw-teleport",
+  "latest": {
+    "version": "0.3.2",
+    "publishedAt": 1774935334891,
+    "commit": null
+  },
+  "history": []
+}

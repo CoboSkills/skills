@@ -24,7 +24,7 @@ The complete Impressionism Taste Skill (available at [InspiredHub](https://inspi
 
 ## About InspiredHub
 
-[InspiredHub](https://inspiredhub.ai) is a sanctuary for artists, aspiring creators, and AI. Explore 76+ aesthetic skills at [inspiredhub.ai/taste](https://inspiredhub.ai/taste).
+[InspiredHub](https://inspiredhub.ai) is a sanctuary for artists, aspiring creators, and AI. Explore 86 aesthetic skills at [inspiredhub.ai/taste](https://inspiredhub.ai/taste).
 
 ## License
 

@@ -67,7 +67,7 @@ This is a **preview** of the Impressionism Taste Skill. The full version include
 
 **Unlock the complete skill at [InspiredHub](https://inspiredhub.ai/taste/impressionism-movement)**
 
-Explore 76+ aesthetic skills for AI agents at [inspiredhub.ai/taste](https://inspiredhub.ai/taste)
+Explore 86 aesthetic skills for AI agents at [inspiredhub.ai/taste](https://inspiredhub.ai/taste)
 
 ---
 

@@ -1,10 +1,12 @@
 ---
 name: cat-video-creator
-version: "1.0.0"
+version: 1.0.5
 displayName: "Cat Video Creator — Create Feline Behavior and Cat Life Showcase Videos"
 description: >
   Cat Video Creator — Create Feline Behavior and Cat Life Showcase Videos.
 metadata: {"openclaw": {"emoji": "🐱", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
 ---
 
 # Cat Video Creator — Feline Behavior and Cat Life Showcase Videos

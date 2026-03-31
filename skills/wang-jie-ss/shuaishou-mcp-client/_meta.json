@@ -1,11 +1,17 @@
 {
   "owner": "wang-jie-ss",
   "slug": "shuaishou-mcp-client",
-  "displayName": "甩手店长上货",
+  "displayName": "甩手店长一键采集，刊登",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774494654330,
-    "commit": "https://github.com/openclaw/skills/commit/efc20b7879799d3505190c75dfc48dd79bc200c8"
+    "version": "1.0.1",
+    "publishedAt": 1774838518236,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774494654330,
+      "commit": "https://github.com/openclaw/skills/commit/efc20b7879799d3505190c75dfc48dd79bc200c8"
+    }
+  ]
 }

@@ -6,10 +6,12 @@ import http from "node:http";
 import https from "node:https";
 
 function getMcpUrl() {
+  // 正式环境：生产服务器
   return process.env.MCP_URL ?? "https://dz.shuaishou.com/mcp";
 }
 
 function getConfigFilePath() {
+  // 正式环境配置文件，与开发环境隔离
   return path.join(os.homedir(), ".htyd-mcp-client-streamable.json");
 }
 
@@ -92,11 +94,20 @@ Convenience commands (mapped to tool calls):
   node htyd-mcp.mjs collect_goods --originList <url1> [--originList <url2> ...] [--ssuid <id>]
   node htyd-mcp.mjs list_collected_goods [--claimStatus 0|1] [--pageNo <n>] [--pageSize <n>]
   node htyd-mcp.mjs claim_goods --itemIds <id1,id2,...> --platId <n> --merchantIds <id1,id2,...>
+  node htyd-mcp.mjs collect_and_publish --originList <url> --platId <n> --merchantIds <id> [--pubShops <id>]
+  node htyd-mcp.mjs publish_and_track --itemIds <id1,id2,...> [--pubShops <id1,id2,...>] [--timeoutSec <n>] [--intervalSec <n>]
 
 Env:
   MCP_URL (default: ${getMcpUrl()})
   MCP_APP_KEY (optional; used as Bearer token)
   MCP_AUTHORIZATION (optional; overrides Authorization header)
+
+New: collect_and_publish workflow:
+  1. collect_goods      - Collect product from 1688/Taobao
+  2. claim_goods        - Claim to target shop (creates draft)
+  3. list_temu_drafts   - Find the draft by origin URL + shop
+  4. publish_temu       - Publish the draft to shop
+  5. list_publish_records_by_item_id - Track publish status/result
 `;
   // eslint-disable-next-line no-console
   console.error(msg.trim());
@@ -176,6 +187,141 @@ function extractCollectedItems(payload) {
   return [];
 }
 
+function extractPublishRecords(payload) {
+  const p = tryParseJson(payload);
+  if (!p || typeof p !== "object") return [];
+
+  // common shapes:
+  // - { data: { records: [...] } }
+  // - { records: [...] }
+  // - { data: { list: [...] } }
+  // - { list: [...] }
+  // - { data: [...] }
+  const candidates = [
+    p?.data?.records,
+    p?.records,
+    p?.data?.list,
+    p?.list,
+    p?.data?.data?.records,
+    p?.data?.data?.list,
+    p?.data,
+  ];
+  for (const c of candidates) {
+    if (Array.isArray(c)) return c;
+  }
+  return [];
+}
+
+function getPublishStatusField(obj) {
+  const raw =
+    obj?.publishStatus ??
+    obj?.publish_status ??
+    obj?.status ??
+    obj?.publishState ??
+    obj?.state;
+  if (raw == null) return "";
+  return String(raw).trim();
+}
+
+function isPublishSuccess(status) {
+  const s = String(status ?? "").toUpperCase();
+  return s === "SUCCESS" || s === "SUCCEED" || s === "DONE";
+}
+
+function isPublishFail(status) {
+  const s = String(status ?? "").toUpperCase();
+  return s === "FAIL" || s === "FAILED" || s === "ERROR";
+}
+
+function extractPublishErrorMessage(obj) {
+  const candidates = [
+    obj?.errorMessage,
+    obj?.error_message,
+    obj?.failReason,
+    obj?.fail_reason,
+    obj?.reason,
+    obj?.msg,
+    obj?.message,
+    obj?.remark,
+    obj?.error,
+  ];
+  for (const c of candidates) {
+    if (c == null) continue;
+    const s = String(c).trim();
+    if (s) return s;
+  }
+  return "";
+}
+
+function toNumberOrNull(v) {
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function getRecordSortKey(obj) {
+  const t =
+    obj?.updateTime ??
+    obj?.update_time ??
+    obj?.publishTime ??
+    obj?.publish_time ??
+    obj?.createTime ??
+    obj?.create_time ??
+    obj?.gmtCreate ??
+    obj?.gmt_create;
+  if (t != null) {
+    const s = String(t);
+    const ms = Date.parse(s);
+    if (!Number.isNaN(ms)) return ms;
+  }
+  const id =
+    toNumberOrNull(obj?.id) ??
+    toNumberOrNull(obj?.recordId) ??
+    toNumberOrNull(obj?.record_id);
+  if (id != null) return id;
+  return 0;
+}
+
+async function waitForPublishResult(client, {
+  ids,
+  timeoutMs,
+  intervalMs,
+} = {}) {
+  const start = Date.now();
+  const timeout = timeoutMs ?? 180000;
+  const interval = intervalMs ?? 3000;
+
+  const idList = Array.isArray(ids) ? ids : (ids == null ? [] : [ids]);
+  if (!idList.length) {
+    return { ok: false, status: "INVALID_PARAM", record: null, errorMessage: "ids 不能为空" };
+  }
+
+  while (Date.now() - start <= timeout) {
+    const res = await client.callTool("list_publish_records_by_item_id", {
+      ids: idList.map((x) => Number(x)).filter((x) => Number.isFinite(x) && x > 0),
+    });
+
+    const records = extractPublishRecords(res);
+    const sorted = records.slice().sort((a, b) => getRecordSortKey(b) - getRecordSortKey(a));
+
+    const pick = sorted[0];
+
+    if (pick) {
+      const st = getPublishStatusField(pick);
+      if (isPublishSuccess(st)) {
+        return { ok: true, status: st, record: pick };
+      }
+      if (isPublishFail(st)) {
+        return { ok: false, status: st, record: pick, errorMessage: extractPublishErrorMessage(pick) };
+      }
+    }
+
+    await delay(interval);
+  }
+
+  return { ok: false, status: "TIMEOUT", record: null, errorMessage: "发布结果查询超时，请稍后用 list_publish_records_by_item_id 再查询" };
+}
+
 function getStringField(obj, keys) {
   for (const k of keys) {
     const v = obj?.[k];
@@ -241,20 +387,27 @@ function isCollectingItem(item) {
   return false;
 }
 
+function isClaimedItem(item) {
+  const claimStatus = item?.claimStatus ?? item?.claim_status;
+  if (claimStatus === 1 || claimStatus === "1") return true;
+  
+  // 如果 claimStatus 为 null 但商品有 claintList 或 platList，也认为已认领
+  const claintList = item?.claintList ?? item?.claint_list ?? [];
+  const platList = item?.platList ?? item?.plat_list ?? [];
+  if (claintList.length > 0 || platList.length > 0) return true;
+  
+  return false;
+}
+
 function isCollectSuccessItem(item) {
   const statusText = getStringField(item, [
-    "collectStatusName",
-    "collect_status_name",
-    "statusName",
-    "status_name",
+    "collectStatusName", "collect_status_name", "statusName", "status_name", "status"
   ]);
-  if (statusText.includes("采集成功") || statusText === "成功") return true;
+  // 只算真正的采集成功，重复采集(repeat)不算
+  if (statusText.includes("采集成功") || statusText === "成功" || statusText === "success") return true;
 
-  const statusCode =
-    item?.collectStatus ??
-    item?.collect_status ??
-    item?.status;
-  if (statusCode === 1 || statusCode === "1" || statusCode === "SUCCESS") return true;
+  const statusCode = item?.collectStatus ?? item?.collect_status ?? item?.status;
+  if (statusCode === 1 || statusCode === "1" || statusCode === "SUCCESS" || statusCode === "success") return true;
 
   return false;
 }
@@ -268,11 +421,33 @@ function matchOrigin(item, originList) {
     "origin_link",
     "sourceUrl",
     "source_url",
+    "oriUrl",
+    "ori_url",
     "url",
     "link",
   ]);
   if (!url) return false;
-  return originList.some((u) => String(u).trim() && url.includes(String(u).trim()));
+  
+  // 规范化 URL：去除协议和 www 前缀，便于匹配
+  const normalize = (u) => String(u).trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+  const normalizedUrl = normalize(url);
+  
+  return originList.some((u) => {
+    const normalizedU = normalize(u);
+    return normalizedU && (normalizedUrl.includes(normalizedU) || normalizedU.includes(normalizedUrl));
+  });
+}
+
+// 从 URL 中提取商品 ID 用于精确匹配
+function extractProductId(url) {
+  if (!url) return null;
+  // 1688: https://detail.1688.com/offer/123456.html
+  const match1688 = url.match(/\/offer\/(\d+)/);
+  if (match1688) return { platform: '1688', id: match1688[1] };
+  // 淘宝: https://item.taobao.com/item.htm?id=123456
+  const matchTaobao = url.match(/[?&]id=(\d+)/);
+  if (matchTaobao) return { platform: 'taobao', id: matchTaobao[1] };
+  return null;
 }
 
 // Minimal MCP client: Streamable HTTP (POST /mcp JSON-RPC)
@@ -612,6 +787,309 @@ async function cmdClaimGoods(flags) {
   });
 }
 
+async function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function cmdCollectAndPublish(flags) {
+  const originList = normalizeMulti(flags.originList);
+  const platId = flags.platId == null ? undefined : Number(flags.platId);
+  const merchantIds = csvToList(flags.merchantIds).map((x) => Number(x));
+  const pubShops = csvToList(flags.pubShops).map((x) => Number(x));
+  const track = flags.track == null ? true : String(flags.track) !== "false";
+  const timeoutSec = flags.timeoutSec == null ? 180 : Number(flags.timeoutSec);
+  const intervalSec = flags.intervalSec == null ? 3 : Number(flags.intervalSec);
+
+  if (!originList.length) {
+    // eslint-disable-next-line no-console
+    console.error("collect_and_publish: --originList cannot be empty");
+    usage(2);
+  }
+  if (!Number.isFinite(platId) || !merchantIds.length) {
+    // eslint-disable-next-line no-console
+    console.error("collect_and_publish: --platId and --merchantIds are required");
+    usage(2);
+  }
+
+  const targetPubShops = pubShops.length ? pubShops : [merchantIds[0]];
+
+  await withClient(async (client) => {
+    const results = [];
+
+    for (let i = 0; i < originList.length; i++) {
+      const targetUrl = originList[i];
+      const itemNum = i + 1;
+      const total = originList.length;
+
+      // eslint-disable-next-line no-console
+      console.log(`\n[${itemNum}/${total}] Processing: ${targetUrl}`);
+
+      try {
+        const result = await processSingleItem(client, {
+          targetUrl,
+          platId,
+          merchantIds,
+          targetPubShops,
+          itemNum,
+          total,
+          track,
+          timeoutSec,
+          intervalSec
+        });
+        results.push(result);
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.error(`[${itemNum}/${total}] Failed: ${e.message}`);
+        results.push({
+          success: false,
+          originUrl: targetUrl,
+          itemId: null,
+          title: "",
+          status: "ERROR",
+          temuProductId: null,
+          failReason: e.message
+        });
+      }
+    }
+
+    // Final summary
+    const finalOutput = {
+      success: results.every(r => r.success),
+      total: results.length,
+      successCount: results.filter(r => r.success).length,
+      failCount: results.filter(r => !r.success).length,
+      results
+    };
+
+    // eslint-disable-next-line no-console
+    console.log("\n========== Final Summary ==========");
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify(finalOutput, null, 2));
+  });
+}
+
+async function processSingleItem(client, { targetUrl, platId, merchantIds, targetPubShops, itemNum, total, track, timeoutSec, intervalSec }) {
+  // 1. Collect goods
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] [1/6] Collecting...`);
+  const collectRes = await client.callTool("collect_goods", {
+    originList: [targetUrl],
+  });
+
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] [1/6] Result: ${typeof collectRes === "string" ? collectRes.slice(0, 200) : JSON.stringify(collectRes).slice(0, 200)}`);
+
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] [1/6] Waiting 5s...`);
+  await delay(5000);
+
+  // 2. Query collected list
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] [2/6] Querying collected items...`);
+
+  let eligible = [];
+  let itemId = "";
+  let targetItem = null;
+  let isAlreadyClaimed = false;
+  const pageSize = 200;
+  const maxPages = 5;
+
+  const sourceItemId = extractProductId(targetUrl)?.id || "";
+
+  const queryEligible = async (claimStatus) => {
+    const allItems = [];
+    for (let pageNo = 1; pageNo <= maxPages; pageNo++) {
+      const listRes = await client.callTool("list_collected_goods", {
+        ...(claimStatus === undefined ? {} : { claimStatus }),
+        ...(sourceItemId ? { itemId: String(sourceItemId) } : {}),
+        pageNo,
+        pageSize,
+      });
+      const items = extractCollectedItems(listRes);
+      allItems.push(...items);
+      if (!items.length || items.length < pageSize) break;
+    }
+
+    const matched = allItems.filter((it) => matchOrigin(it, [targetUrl]));
+    const successItems = matched
+      .filter((it) => isCollectSuccessItem(it))
+      .filter((it) => !isDuplicateCollectedItem(it))
+      .filter((it) => !isCollectingItem(it));
+
+    // eslint-disable-next-line no-console
+    console.log(
+      `[${itemNum}/${total}] [2/6] Locate in collected list: claimStatus=${claimStatus === undefined ? "ALL" : String(claimStatus)}, sourceItemId=${sourceItemId || "(none)"}, total=${allItems.length}, matched=${matched.length}, successEligible=${successItems.length}`
+    );
+
+    return successItems;
+  };
+
+  eligible = await queryEligible(0);
+  if (!eligible.length) eligible = await queryEligible(1);
+  if (!eligible.length) eligible = await queryEligible(undefined);
+
+  if (eligible.length > 0) {
+    targetItem = eligible.sort((a, b) => {
+      const idA = Number(getIdField(a)) || 0;
+      const idB = Number(getIdField(b)) || 0;
+      return idB - idA;
+    })[0];
+    itemId = getIdField(targetItem);
+    isAlreadyClaimed = isClaimedItem(targetItem);
+  }
+
+  if (!eligible.length || !itemId) {
+    throw new Error("No eligible items found");
+  }
+
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] [2/6] Found: itemId=${itemId}${isAlreadyClaimed ? " (exists, will re-claim)" : ""}`);
+
+  // 3. Claim goods (claim can be repeated)
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] [3/6] Claiming...`);
+  await client.callTool("claim_goods", {
+    itemIds: [itemId],
+    plats: [{ platId, merchantIds }],
+  });
+
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] [3/6] Claimed, waiting 5s...`);
+  await delay(5000);
+
+  // 4. Query drafts
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] [4/6] Querying drafts...`);
+  const draftRes = await client.callTool("list_temu_drafts", {
+    shopId: String(merchantIds[0]),
+    status: "UNPUBLISH",
+    pageNo: 1,
+    pageSize: 20,
+  });
+
+  const draftData = tryParseJson(draftRes);
+  const draftList = draftData?.data?.list ?? draftData?.data?.records ?? draftData?.list ?? draftData?.records ?? [];
+
+  const sortedDrafts = draftList.sort((a, b) => {
+    const timeA = a?.claimDate || a?.claimTime || "";
+    const timeB = b?.claimDate || b?.claimTime || "";
+    return String(timeB).localeCompare(String(timeA));
+  });
+
+  const targetProductId = extractProductId(targetUrl);
+  const matchedDraft = sortedDrafts.find((d) => {
+    const draftUrl = getStringField(d, ["originUrl", "fromUrl", "oriUrl"]);
+    const draftProductId = extractProductId(draftUrl);
+    return draftProductId && targetProductId &&
+           draftProductId.platform === targetProductId.platform &&
+           draftProductId.id === targetProductId.id;
+  });
+
+  if (!matchedDraft) {
+    throw new Error("No matching draft found");
+  }
+
+  const draftItemId = matchedDraft?.id ?? matchedDraft?.itemId ?? matchedDraft?.item_id;
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] [4/6] Found draft: ${draftItemId}`);
+
+  // 5. Publish
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] [5/6] Publishing...`);
+  const publishRes = await client.callTool("publish_temu", {
+    itemIds: [String(draftItemId)],
+    pubShops: targetPubShops.map(String),
+    uploadDetail: true,
+  });
+
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] [5/6] Published, tracking...`);
+
+  if (!track) {
+    return {
+      success: true,
+      originUrl: targetUrl,
+      itemId: String(draftItemId),
+      title: targetItem?.title || matchedDraft?.title || "",
+      status: "PUBLISHING",
+      temuProductId: null,
+      failReason: null
+    };
+  }
+
+  // 6. Track result
+  const trackRes = await waitForPublishResult(client, {
+    ids: [Number(draftItemId)],
+    timeoutMs: Number.isFinite(timeoutSec) ? timeoutSec * 1000 : 180000,
+    intervalMs: Number.isFinite(intervalSec) ? intervalSec * 1000 : 3000,
+  });
+
+  // Query fail reason if failed - use reason field from publish record
+  let failReason = trackRes.record?.reason || trackRes.errorMessage || null;
+
+  // eslint-disable-next-line no-console
+  console.log(`[${itemNum}/${total}] Done: status=${trackRes.status}`);
+
+  return {
+    success: trackRes.ok,
+    originUrl: targetUrl,
+    itemId: String(draftItemId),
+    title: targetItem?.title || matchedDraft?.title || "",
+    status: trackRes.status,
+    temuProductId: trackRes.record?.productId || null,
+    failReason: failReason
+  };
+}
+
+async function cmdPublishAndTrack(flags) {
+  const itemIds = csvToList(flags.itemIds);
+  const pubShops = csvToList(flags.pubShops).map((x) => Number(x));
+  const timeoutSec = flags.timeoutSec == null ? 180 : Number(flags.timeoutSec);
+  const intervalSec = flags.intervalSec == null ? 3 : Number(flags.intervalSec);
+
+  if (!itemIds.length) {
+    // eslint-disable-next-line no-console
+    console.error("publish_and_track: --itemIds cannot be empty");
+    usage(2);
+  }
+  await withClient(async (client) => {
+    // eslint-disable-next-line no-console
+    console.error(`[1/2] Calling publish_temu (itemIds=${itemIds.join(",")})...`);
+    const publishRes = await client.callTool("publish_temu", {
+      itemIds,
+      ...(pubShops.length ? { pubShops: pubShops.map(String) } : {}),
+      uploadDetail: true,
+    });
+
+    // eslint-disable-next-line no-console
+    console.error("[1/2] publish_temu called. Tracking publish result...");
+
+    const trackRes = await waitForPublishResult(client, {
+      ids: itemIds.map((x) => Number(x)).filter((x) => Number.isFinite(x)),
+      timeoutMs: Number.isFinite(timeoutSec) ? timeoutSec * 1000 : 180000,
+      intervalMs: Number.isFinite(intervalSec) ? intervalSec * 1000 : 3000,
+    });
+
+    if (trackRes.ok) {
+      // eslint-disable-next-line no-console
+      console.error(`[DONE] 发布成功 (status=${trackRes.status})`);
+      // eslint-disable-next-line no-console
+      console.log(JSON.stringify({ publishStatus: trackRes.status, record: trackRes.record, publishCall: publishRes }, null, 2));
+      return;
+    }
+
+    // eslint-disable-next-line no-console
+    console.error(`[DONE] 发布失败/未完成 (status=${trackRes.status})`);
+    // eslint-disable-next-line no-console
+    console.error(`错误信息：${trackRes.errorMessage || "(上游未返回明确错误信息)"}`);
+    // eslint-disable-next-line no-console
+    console.error("建议：到【甩手店长】后台对失败商品批量完善/修正信息后，再重新发布。");
+    // eslint-disable-next-line no-console
+    console.log(JSON.stringify({ publishStatus: trackRes.status, record: trackRes.record, publishCall: publishRes }, null, 2));
+    process.exit(trackRes.status === "TIMEOUT" ? 5 : 6);
+  });
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const cmd = argv[0];
@@ -631,6 +1109,8 @@ async function main() {
   if (cmd === "collect_goods") return await cmdCollectGoods(flags);
   if (cmd === "list_collected_goods") return await cmdListCollectedGoods(flags);
   if (cmd === "claim_goods") return await cmdClaimGoods(flags);
+  if (cmd === "collect_and_publish") return await cmdCollectAndPublish(flags);
+  if (cmd === "publish_and_track") return await cmdPublishAndTrack(flags);
 
   usage(2);
 }

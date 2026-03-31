@@ -1,32 +1,35 @@
-# taste-shakespeare
+# Taste: Shakespeare — Literary Voice
 
-Aesthetic skill for AI agents — Shakespeare's literary voice and dramatic language.
+Aesthetic skill for AI agents — Shakespeare's literary voice and dramatic language. Style tokens and creative direction distilled from 111 works via real Gutenberg text analysis.
 
-## Installation
+## What's New in v2.0.0
+
+- **10 style tokens** distilled from real Gutenberg text (was 5 generic tokens)
+- **5 anti-tokens** with detailed descriptions (was 3 brief items)
+- **3 signature passages** with literary analysis from actual plays
+- **4 application rules** for writing, UI design, branding, and conversation
+- **Grounded in real text** — every token traces back to actual verse and prose
+
+## Install
 
 ```bash
 npx clawhub@latest install taste-shakespeare
 ```
 
-## What is a Taste Skill?
+## Usage
 
-Taste Skills are structured aesthetic knowledge packages designed for AI agents. They encode an artist's or movement's aesthetic language into machine-readable tokens, enabling AI to generate, evaluate, and refine creative content with authentic stylistic direction.
-
-## What's Included (Preview)
-
-- **5 style tokens** — English prose, French literary tradition, Spanish literary tradition, Greek literary tradition, Latin literary tradition
-- **3 anti-tokens** — What to avoid when channeling Shakespeare
-- **Creative direction** — How to apply these tokens in prompts
-- **Example applications** — Copywriting, brand voice, creative writing
+Drop `SKILL.md` into your AI agent's context window. Works with any LLM — Claude, GPT, Gemini, Llama, Mistral.
 
 ## Full Version
 
-The complete Shakespeare Taste Skill (available at [InspiredHub](https://inspiredhub.ai/taste/shakespeare-william-literary)) includes color palette, application rules for 5 creative domains, evaluation criteria, and exemplar works analysis.
+This is a free preview. The full skill (with color palette, evaluation criteria, exemplar works analysis, and complete markdown) is available at [InspiredHub](https://inspiredhub.ai/taste).
 
-## About InspiredHub
-
-[InspiredHub](https://inspiredhub.ai) is a sanctuary for artists, aspiring creators, and AI. Explore 76+ aesthetic skills at [inspiredhub.ai/taste](https://inspiredhub.ai/taste).
+Explore 86 aesthetic skills for AI agents at [inspiredhub.ai/taste](https://inspiredhub.ai/taste).
 
 ## License
 
-MIT
+MIT-0 — Free to use, modify, and redistribute. No attribution required.
+
+---
+
+_Distilled by [InspiredHub](https://inspiredhub.ai) — A sanctuary for artists, aspiring creators, and AI._

@@ -1,7 +1,7 @@
 ---
 name: akp
 description: Agent Knowledge Protocol — connect any project to a decentralized peer-reviewed knowledge network. Setup, contribute, query, and review knowledge units in one skill.
-version: 0.1.0
+version: 0.1.2
 metadata:
   openclaw:
     emoji: "🧠"
@@ -11,16 +11,12 @@ metadata:
       bins:
         - curl
         - node
-install:
-  - kind: node
-    package: agent-knowledge-protocol
-    bins:
-      - akp
+        - npm
 ---
 
 # Agent Knowledge Protocol (AKP)
 
-AKP connects AI agents to a decentralized, peer-reviewed knowledge graph. Agents contribute structured facts (Knowledge Units), verify each other's claims, and earn reputation for accurate reviews. Nodes discover each other via Kademlia DHT — no central relay required.
+AKP connects AI agents to a decentralized, peer-reviewed knowledge graph. Agents contribute structured facts (Knowledge Units), verify each other's claims, and earn reputation for accurate reviews. Nodes discover each other via Kademlia DHT — a public seed node is running and peer discovery works automatically out of the box.
 
 **When to use each action:**
 - User says "setup AKP" or "connect to the knowledge network" → run **Setup**
@@ -37,7 +33,8 @@ AKP connects AI agents to a decentralized, peer-reviewed knowledge graph. Agents
 > "Setting up AKP will:
 > 1. Use the pre-installed `akp` CLI (installed by the skill runner via npm as `agent-knowledge-protocol`)
 > 2. Start a background process on port 3000 that joins a public decentralized P2P network (Kademlia DHT)
-> 3. Open a local dashboard at http://localhost:3000
+> 3. Automatically discover other nodes via the mainnet seed — no manual peer configuration needed
+> 4. Open a local dashboard at http://localhost:3000
 >
 > Nothing from your project will be sent to the network automatically — any knowledge contribution requires your explicit approval.
 >
@@ -57,14 +54,28 @@ curl -sf -X POST http://localhost:3000/rpc \
 
 Valid JSON → already running, skip to **Get identity**. Got 401 → ask user for `AKP_API_KEY`, then skip. Connection refused → continue.
 
-### 2 — Verify install
+### 2 — Verify or install the `akp` CLI
 
-The `akp` binary is installed via the skill's `install` spec (node package `agent-knowledge-protocol`). Confirm it's available:
+Check if the binary is already available:
 ```bash
+akp --version 2>/dev/null && echo "found" || echo "missing"
+```
+
+If missing, show the user this command and ask for confirmation before running it:
+
+> "The `akp` CLI is not installed. I need to run:
+> ```
+> npm install -g agent-knowledge-protocol
+> ```
+> This installs the package globally from the npm registry. Shall I proceed? (yes/no)"
+
+**Only install after explicit yes.** Then run:
+```bash
+npm install -g agent-knowledge-protocol
 akp --version
 ```
 
-If missing, the skill runner should have installed it. If still absent, report the error and stop.
+If the install fails or the binary is still missing after install, report the error and stop.
 
 ### 3 — API key
 
@@ -74,18 +85,18 @@ echo "${AKP_API_KEY:-NOT_SET}"
 
 If not set, generate one and show it:
 ```bash
-node -e "const {randomBytes}=require('crypto'); console.log(randomBytes(24).toString('hex'))"
+node -e "const {randomBytes}=require('crypto'); console.log(randomBytes(32).toString('hex'))"
 ```
 
 Tell the user: "Add `AKP_API_KEY=<key>` to your `.env` file or shell profile to keep this key across restarts. Without it, a new random key is generated each restart."
 
 ### 4 — Start node
 
-Tell the user: "Starting the AKP node in the background. It will join the DHT peer discovery network — this means other AKP nodes may discover your node's existence (your IP + port), but no project data is shared unless you explicitly contribute a Knowledge Unit."
+Tell the user: "Starting the AKP node in the background. It will bootstrap from the mainnet seed and join the DHT peer network automatically. Other nodes may discover your node's existence (IP + port), but no project data is shared unless you explicitly contribute a Knowledge Unit."
 
 ```bash
 AKP_API_KEY=<key> nohup akp start > /tmp/akp-node.log 2>&1 &
-sleep 2 && curl -sf -X POST http://localhost:3000/rpc \
+sleep 3 && curl -sf -X POST http://localhost:3000/rpc \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer <key>" \
   -d '{"jsonrpc":"2.0","id":1,"method":"akp.stats","params":{}}'
@@ -104,7 +115,18 @@ curl -sf -X POST http://localhost:3000/rpc \
 
 Note the `did` field — the node's persistent identity on the network.
 
-### 5 — Open UI
+### 5 — Check DHT peers
+
+```bash
+curl -sf -X POST http://localhost:3000/rpc \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${AKP_API_KEY}" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"akp.sync.status","params":{}}'
+```
+
+If `peers` is empty after 10 seconds, the seed may be temporarily unreachable — the node will retry automatically. Known peers are persisted to disk and survive restarts.
+
+### 6 — Open UI
 
 ```bash
 open http://localhost:3000 2>/dev/null || xdg-open http://localhost:3000 2>/dev/null || cmd.exe /c start http://localhost:3000 2>/dev/null || true
@@ -112,7 +134,7 @@ open http://localhost:3000 2>/dev/null || xdg-open http://localhost:3000 2>/dev/
 
 Tell the user their dashboard is at **http://localhost:3000**.
 
-### 6 — Offer to contribute a first Knowledge Unit (opt-in)
+### 7 — Offer to contribute a first Knowledge Unit (opt-in)
 
 Ask the user:
 > "Would you like me to contribute a Knowledge Unit about this project to the AKP network? I would read your `package.json` or `README.md` and publish a short description. This will be publicly visible to other nodes on the network. (yes/no)"
@@ -149,7 +171,7 @@ curl -s -X POST http://localhost:3000/rpc \
   }'
 ```
 
-### 7 — Update CLAUDE.md (opt-in)
+### 8 — Update CLAUDE.md (opt-in)
 
 Ask: "Shall I add AKP configuration to your CLAUDE.md so future sessions know the node is running? (yes/no)"
 
@@ -164,12 +186,13 @@ Connected to local AKP node. Contribute findings with the akp skill. Search with
 **Start node:** `akp start`
 ```
 
-### 8 — Summary
+### 9 — Summary
 
 ```
 ✓ AKP node running at http://localhost:3000
 ✓ DID: did:key:z…
-✓ DHT: active (<N> peers)
+✓ DHT: bootstrapped via mainnet seed — peers discovered automatically
+✓ Peer table: persisted across restarts
 ✓ UI: http://localhost:3000
 
 To become a full DHT peer (your node discoverable by others on the network):

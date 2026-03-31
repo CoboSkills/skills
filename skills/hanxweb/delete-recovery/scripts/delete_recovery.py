@@ -1,8 +1,27 @@
 #!/usr/bin/env python3
 """
-delete_recovery.py - delete-recovery skill core script v0.3.1
+delete_recovery.py - delete-recovery skill core script v0.6.0
 
-v0.3.1 Security fix (via safe_path.py):
+v0.6.0 Performance optimizations (Scheme 1 + Scheme 2):
+- Scheme 1: Cleanup task separation
+  - 7-day backup and 30-day log cleanup changed to time-triggered (default 24-hour interval),
+    no longer running full scan on every backup/restore/search/list call
+  - Each call only performs lightweight manifest stale entry cleanup (folder existence check)
+  - cleanup command itself is unaffected, still runs full cleanup immediately
+- Scheme 2: Incremental manifest operations
+  - restore/delete_backup no longer load→filter→save the entire manifest,
+    changed to atomic rewrite (only when candidate set ≤100 entries), incremental compaction for large sets
+  - list/search/log trigger incremental compaction check (compacts only when threshold exceeded)
+  - backup operation completely unaffected (only appends one line)
+
+v0.5.0 Manifest index (NEW):
+- Added manifest.jsonl for fast retrieval of deleted file metadata
+- backup: appends index entry (filename, description ≤6 chars, path)
+- restore: removes index entry on successful restore
+- search: lightweight keyword search over the manifest
+- Auto-cleanup: stale entries purged when backup folder expires (7 days)
+
+v0.4.0 Security fix (via safe_path.py):
 - --force no longer skips PATH cross-check when SHA256 is absent (A4 bypass closed)
 
 v0.3.0 Security fixes:
@@ -12,20 +31,18 @@ v0.3.0 Security fixes:
 - SHA256 is now STRICTLY REQUIRED on restore: missing or empty .sha256 blocks
   restore by default (use --force to bypass with explicit warning)
   This prevents the v0.2.0 bypass where deleting the .sha256 file disabled integrity
-- allowed_roots is not enforced by default (None → []): restore destinations are NOT
-  restricted to any specific directory tree; security relies on SHA256 integrity
-  + PATH cross-check, not on directory confinement
-- Added --force flag to restore command to bypass SHA256 existence check
-  (for pre-v0.3.0 backups created before SHA256 was mandatory)
+- allowed_roots is not enforced by default (None → []): security relies on SHA256
+  integrity + PATH cross-check, not on directory confinement
 
-Backup auto-cleanup: 7 days
-Log auto-cleanup: 30 days
-Backup deleted by default after successful restore (use --keep-backup to retain)
+Backup auto-cleanup: 7 days (time-triggered, not per-call)
+Log auto-cleanup: 30 days (time-triggered, not per-call)
+Manifest auto-cleanup: stale entries pruned on every call; compact on threshold
 
 Usage:
-    backup:       python delete_recovery.py backup <file_path> [original_path]
+    backup:       python delete_recovery.py backup <file_path> [original_path] [description]
     restore:      python delete_recovery.py restore <backup_folder> <safe_name> [--keep-backup] [--force]
     list:         python delete_recovery.py list
+    search:       python delete_recovery.py search <keyword>
     delete:       python delete_recovery.py delete_backup <backup_folder>
     cleanup:      python delete_recovery.py cleanup
     log:          python delete_recovery.py log [lines]
@@ -36,6 +53,7 @@ import os
 import sys
 import json
 import shutil
+import tempfile
 from pathlib import Path
 from datetime import datetime, timedelta
 
@@ -51,17 +69,331 @@ except ImportError:
         HAS_SAFE_PATH = False
         SafePathError = Exception
 
-# Skill root directory (resolved from script location)
+# Workspace root: scripts/ → skill/ → workspace/
+# __file__ = C:\Users\user\.openclaw\workspace1\skills\delete-recovery\scripts\delete_recovery.py
+#   .parent     = delete-recovery/scripts/
+#   .parent     = delete-recovery/          (.parent.parent)
+#   .parent     = skills/                          (.parent.parent.parent)
+#   .parent     = workspace1/                       (.parent.parent.parent.parent)
+WORKSPACE_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
+# Skill directory: scripts/ → skill/
 SKILL_DIR = Path(__file__).parent.parent.resolve()
-BACKUP_ROOT = SKILL_DIR / "delete_backup"
+# Backup and log now live at workspace root (not inside the skill folder)
+# This ensures backups survive even if the skill folder is removed
+BACKUP_ROOT = WORKSPACE_ROOT / "delete_backup"
 BACKUP_ROOT.mkdir(exist_ok=True)
 
-LOG_FILE = SKILL_DIR / "log.txt"
+LOG_FILE = WORKSPACE_ROOT / "log_delete_recovery.txt"
+MANIFEST_FILE = BACKUP_ROOT / "manifest.jsonl"
+
+# ─── v0.6.0 Performance constants ────────────────────────────────────
+# 时间触发清理间隔（小时）：两次 full cleanup 之间至少间隔这么多小时
+CLEANUP_INTERVAL_HOURS = 24
+# 触发 manifest 压缩的已删除条目数阈值
+MANIFEST_COMPACT_THRESHOLD = 100
+# 触发 manifest 压缩的文件大小阈值（字节）
+MANIFEST_COMPACT_SIZE_BYTES = 100 * 1024  # 100 KB
+# 定时器文件（存储上次清理时间）
+_TIMER_FILE = BACKUP_ROOT / ".cleanup_timer"
+
 
 # v0.3.0: allowed_roots left empty (None) — security comes from SHA256
-# integrity + path cross-check, NOT from restricting to a fixed directory tree.
-# allowed_roots is available for users who want extra restrictions.
 SAFE_VALIDATOR = SafePathValidator(BACKUP_ROOT, allowed_roots=None) if HAS_SAFE_PATH else None
+
+
+# ─────────────────────────────────────────────────────────────────
+# Helper: Atomic file write (for timer and manifest compaction)
+# ─────────────────────────────────────────────────────────────────
+
+def _atomic_write_text(file_path: Path, content: str, encoding: str = "utf-8") -> None:
+    """
+    Atomically write text to a file by writing to a temp file then renaming.
+    On Windows this is atomic for files on the same filesystem.
+    """
+    file_path = Path(file_path)
+    parent = file_path.parent
+    parent.mkdir(parents=True, exist_ok=True)
+    # Write to a temp file in the same directory (same filesystem → atomic rename)
+    fd, tmp_path = tempfile.mkstemp(dir=str(parent), prefix=".tmp_", suffix=".atomic")
+    try:
+        with os.fdopen(fd, "w", encoding=encoding) as f:
+            f.write(content)
+        os.replace(tmp_path, file_path)  # atomic on Windows NTFS
+    except Exception:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        raise
+
+
+# ─────────────────────────────────────────────────────────────────
+# v0.6.0 方案一：时间触发清理
+# ─────────────────────────────────────────────────────────────────
+
+def _load_timer() -> dict:
+    """Load last cleanup timestamps from timer file."""
+    if not _TIMER_FILE.exists():
+        return {"last_backup_cleanup": None, "last_log_cleanup": None}
+    try:
+        return json.loads(_TIMER_FILE.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return {"last_backup_cleanup": None, "last_log_cleanup": None}
+
+
+def _save_timer(data: dict) -> None:
+    """Save cleanup timestamps atomically."""
+    _atomic_write_text(_TIMER_FILE, json.dumps(data, ensure_ascii=False))
+
+
+def _should_run_backup_cleanup() -> bool:
+    """Check if 7-day backup cleanup should run based on elapsed time."""
+    timer = _load_timer()
+    last = timer.get("last_backup_cleanup")
+    if last is None:
+        return True
+    try:
+        last_time = datetime.strptime(last, "%Y-%m-%d %H:%M:%S")
+        elapsed = datetime.now() - last_time
+        return elapsed >= timedelta(hours=CLEANUP_INTERVAL_HOURS)
+    except (ValueError, TypeError):
+        return True
+
+
+def _should_run_log_cleanup() -> bool:
+    """Check if 30-day log cleanup should run based on elapsed time."""
+    timer = _load_timer()
+    last = timer.get("last_log_cleanup")
+    if last is None:
+        return True
+    try:
+        last_time = datetime.strptime(last, "%Y-%m-%d %H:%M:%S")
+        elapsed = datetime.now() - last_time
+        return elapsed >= timedelta(hours=CLEANUP_INTERVAL_HOURS)
+    except (ValueError, TypeError):
+        return True
+
+
+def _touch_backup_cleanup() -> None:
+    """Record that a 7-day backup cleanup just ran."""
+    timer = _load_timer()
+    timer["last_backup_cleanup"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _save_timer(timer)
+
+
+def _touch_log_cleanup() -> None:
+    """Record that a 30-day log cleanup just ran."""
+    timer = _load_timer()
+    timer["last_log_cleanup"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    _save_timer(timer)
+
+
+# ─────────────────────────────────────────────────────────────────
+# Manifest index (v0.5.0, optimized for v0.6.0)
+# ─────────────────────────────────────────────────────────────────
+
+def _load_manifest() -> list:
+    """Load all manifest entries as a list of dicts, skipping tombstone lines."""
+    if not MANIFEST_FILE.exists():
+        return []
+    entries = []
+    with open(MANIFEST_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+                entries.append(obj)
+            except json.JSONDecodeError:
+                pass
+    return entries
+
+
+def _save_manifest(entries: list) -> None:
+    """Rewrite manifest file with the given entries list atomically."""
+    if not entries:
+        # Fast path: empty manifest
+        if MANIFEST_FILE.exists():
+            MANIFEST_FILE.unlink()
+        return
+    content = "\n".join(json.dumps(e, ensure_ascii=False) for e in entries) + "\n"
+    _atomic_write_text(MANIFEST_FILE, content)
+
+
+def _append_manifest_entry(folder, safe_name, original_path, description=None):
+    """
+    Append a new entry to manifest.jsonl (append-only, no rewrite).
+    """
+    filename = Path(original_path).name
+    entry = {
+        "ts": datetime.now().strftime("%Y%m%d%H%M%S"),
+        "folder": folder,
+        "safe_name": safe_name,
+        "filename": filename,
+        "description": description if description else filename,
+        "path": original_path,
+    }
+    with open(MANIFEST_FILE, "a", encoding="utf-8") as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
+    return entry
+
+
+# ─── v0.6.0 方案二：manifest 增量操作 ────────────────────────────────
+
+def _count_manifest_entries() -> tuple:
+    """
+    Returns (active_count, removed_count, total_size).
+    Active = entries without _removed marker.
+    """
+    if not MANIFEST_FILE.exists():
+        return 0, 0, 0
+    active = 0
+    removed = 0
+    size = MANIFEST_FILE.stat().st_size
+    with open(MANIFEST_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                obj = json.loads(line)
+                if obj.get("_removed"):
+                    removed += 1
+                else:
+                    active += 1
+            except json.JSONDecodeError:
+                pass
+    return active, removed, size
+
+
+def _compact_manifest() -> int:
+    """
+    Physically remove tombstone entries from manifest.jsonl.
+    Returns number of entries removed.
+    """
+    if not MANIFEST_FILE.exists():
+        return 0
+    entries = _load_manifest()
+    original_count = len(entries)
+    surviving = [e for e in entries if not e.get("_removed")]
+    removed_count = original_count - len(surviving)
+    if removed_count > 0:
+        _save_manifest(surviving)
+    return removed_count
+
+
+def _maybe_compact_manifest() -> None:
+    """
+    v0.6.0: Compact manifest if it exceeds size or tombstone thresholds.
+    Called during non-critical commands to keep manifest lean.
+    """
+    active, removed, size = _count_manifest_entries()
+    if removed >= MANIFEST_COMPACT_THRESHOLD or size >= MANIFEST_COMPACT_SIZE_BYTES:
+        pruned = _compact_manifest()
+        if pruned > 0:
+            log("ManifestCompact", "CLEANUP", f"Compacted {pruned} removed entries from manifest")
+
+
+def _mark_manifest_entries_removed(folder: str, safe_names: list) -> None:
+    """
+    Mark multiple entries as removed in manifest without rewriting entire file.
+    Appends tombstone lines — actual physical removal happens in _compact_manifest().
+    """
+    for sn in safe_names:
+        tombstone = {
+            "_removed": True,
+            "folder": folder,
+            "safe_name": sn,
+            "ts": datetime.now().strftime("%Y%m%d%H%M%S"),
+        }
+        with open(MANIFEST_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(tombstone, ensure_ascii=False) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+
+
+def _remove_manifest_entry(folder, safe_name):
+    """
+    v0.6.0: Remove the entry matching (folder, safe_name) from manifest.jsonl.
+    
+    Strategy:
+    - If total entries ≤ MANIFEST_COMPACT_THRESHOLD: load → filter → save (simple rewrite)
+    - If entries > threshold: append tombstone (fast), let _maybe_compact_manifest() handle compaction later
+    """
+    if not MANIFEST_FILE.exists():
+        return None
+    
+    active, removed, size = _count_manifest_entries()
+    
+    if active <= MANIFEST_COMPACT_THRESHOLD:
+        # Small manifest: full rewrite (fast, no bloat)
+        entries = _load_manifest()
+        new_entries = [e for e in entries
+                       if not (e.get("folder") == folder and e.get("safe_name") == safe_name)
+                       and not e.get("_removed")]
+        removed_entry = next(
+            (e for e in entries if e.get("folder") == folder and e.get("safe_name") == safe_name),
+            None
+        )
+        if len(new_entries) < len(entries):
+            _save_manifest(new_entries)
+        return removed_entry
+    else:
+        # Large manifest: append tombstone (O(1)), defer physical deletion
+        tombstone = {
+            "_removed": True,
+            "folder": folder,
+            "safe_name": safe_name,
+            "ts": datetime.now().strftime("%Y%m%d%H%M%S"),
+        }
+        with open(MANIFEST_FILE, "a", encoding="utf-8") as f:
+            f.write(json.dumps(tombstone, ensure_ascii=False) + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        # Return a dummy removed entry (caller doesn't need to distinguish)
+        return {"folder": folder, "safe_name": safe_name}
+
+
+def _prune_stale_manifest_entries() -> int:
+    """
+    Remove manifest entries whose backup folder no longer exists.
+    Also removes any orphan tombstone entries for non-existent folders.
+    Called during cleanup and on every script invocation.
+    """
+    if not MANIFEST_FILE.exists():
+        return 0
+    entries = _load_manifest()
+    original_count = len([e for e in entries if not e.get("_removed")])
+    # Keep active entries whose backup folder still exists
+    surviving = [
+        e for e in entries
+        if not e.get("_removed") and (BACKUP_ROOT / e["folder"]).exists()
+    ]
+    # Also keep all tombstone entries (they don't hurt and are cleaned up by compaction)
+    surviving += [e for e in entries if e.get("_removed")]
+    pruned_count = original_count - len([e for e in surviving if not e.get("_removed")])
+    if len(surviving) < len(entries):
+        _save_manifest(surviving)
+    return pruned_count
+
+
+def _search_manifest(keyword: str) -> list:
+    """
+    Return all active manifest entries whose filename, description, or path
+    contains the keyword (case-insensitive substring match).
+    Tombstone (_removed) entries are excluded.
+    """
+    k = keyword.lower()
+    return [
+        e for e in _load_manifest()
+        if not e.get("_removed")
+        and (
+            k in e.get("filename", "").lower()
+            or k in e.get("description", "").lower()
+            or k in e.get("path", "").lower()
+        )
+    ]
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -69,7 +401,7 @@ SAFE_VALIDATOR = SafePathValidator(BACKUP_ROOT, allowed_roots=None) if HAS_SAFE_
 # ─────────────────────────────────────────────────────────────────
 
 def cleanup_old_logs():
-    """Delete logs older than 30 days"""
+    """Delete logs older than 30 days. Caller must call _touch_log_cleanup() after."""
     if not LOG_FILE.exists():
         return []
 
@@ -101,8 +433,7 @@ def log(action, status, detail=""):
     """
     Write a log entry.
     Security: strips newlines, carriage returns, and log-format delimiters from
-    detail to prevent log-injection attacks (e.g. injecting fake timestamped
-    log entries via a crafted detail string).
+    detail to prevent log-injection attacks.
     """
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     level_map = {
@@ -112,12 +443,9 @@ def log(action, status, detail=""):
         "SECURITY": "SECURITY",
     }
     level = level_map.get(status, "INFO")
-    # Sanitize detail: remove chars that could inject fake log entries
     if detail:
-        # Strip \r, \n, and the log delimiter sequence "["
-        # (the log format is "[timestamp] [level] [action] status | detail\n")
         detail = detail.replace("\r", "").replace("\n", "")
-        detail = detail.replace("[", "")  # prevents "[timestamp] [LEVEL] [FAKE]" injection
+        detail = detail.replace("[", "")
     record = f"[{timestamp}] [{level}] [{action}] {status}"
     if detail:
         record += f" | {detail}"
@@ -132,7 +460,7 @@ def get_timestamp():
 
 
 def cleanup_old_backups():
-    """Delete backups older than 7 days"""
+    """Delete backups older than 7 days. Caller must call _touch_backup_cleanup() after."""
     if not BACKUP_ROOT.exists():
         return []
 
@@ -180,14 +508,14 @@ def list_backups():
 # Core: backup & restore (with security validation)
 # ─────────────────────────────────────────────────────────────────
 
-def backup_file(file_path, original_path):
+def backup_file(file_path, original_path, description=None):
     """
     Back up a file to a timestamped folder.
-    v0.3.0: SHA256 file stores BOTH file hash AND original path (cross-linked).
-    Tampering with either backup or .path requires forging both records correctly.
+    v0.6.0: No functional change — manifest append is already O(1).
 
     file_path:     Full path of the file to back up
     original_path: Original file path (used to locate target during restore)
+    description:   Brief note ≤6 chars (defaults to filename)
     """
     file_path = Path(file_path)
     if not file_path.exists():
@@ -197,43 +525,42 @@ def backup_file(file_path, original_path):
     backup_dir = BACKUP_ROOT / timestamp
     backup_dir.mkdir(exist_ok=True)
 
-    # Encode path separators to make safe filenames
     safe_name = str(file_path).replace("/", "__").replace("\\", "__").replace(":", "")
     backup_path = backup_dir / safe_name
 
     shutil.copy2(file_path, backup_path)
 
-    # Store original path alongside the backup for restore targeting
     path_file = backup_dir / (safe_name + ".path")
     path_file.write_text(original_path, encoding="utf-8")
 
-    # v0.3.0: Compute SHA256 and write signed SHA256 file (hash + path bound together)
     sha256_file = backup_dir / (safe_name + ".sha256")
     if HAS_SAFE_PATH:
         file_hash = SafePathValidator.compute_sha256(backup_path)
         SafePathValidator.write_sha256_file(sha256_file, file_hash, original_path)
         integrity_note = f" (SHA256: {file_hash[:16]}..., PATH bound)"
     else:
-        # Graceful degradation: if safe_path.py is missing, write a minimal record
-        # (still includes path to preserve some cross-check value)
         sha256_file.write_text(f"PATH:{original_path}\n", encoding="utf-8")
         integrity_note = " (safe_path.py not found, integrity check limited)"
 
-    log("Backup", "SUCCESS", f"Backed up: {original_path} -> {timestamp}/" + integrity_note)
-    return backup_dir.name, safe_name
+    # v0.5.0: index in manifest (append-only, no rewrite)
+    manifest_entry = _append_manifest_entry(timestamp, safe_name, original_path, description)
+
+    log("Backup", "SUCCESS",
+        f"Backed up: {original_path} -> {timestamp}/ | description: {manifest_entry['description']}"
+        f" | {integrity_note}")
+    return backup_dir.name, safe_name, manifest_entry["description"]
 
 
 def restore_file(backup_folder, safe_name, delete_backup_after=True, force=False):
     """
     Restore a file from backup to its original location.
+    v0.6.0: Uses _remove_manifest_entry() with threshold-based rewrite strategy.
+
     v0.3.0: Integrates full safe_path validation (integrity + path cross-check +
-            allowed_roots enforcement). Refuses to restore tampered backups.
-            SHA256 record is STRICTLY REQUIRED by default.
+            allowed_roots enforcement). SHA256 record is STRICTLY REQUIRED.
 
     delete_backup_after: Whether to delete the backup folder after restore (default True)
-    force:              v0.3.0 new — bypass SHA256 existence check (for pre-v0.3.0 backups).
-                        Does NOT bypass hash correctness check or path validation.
-                        WARNING: Use only when restoring backups made before v0.3.0.
+    force:               Bypass SHA256 existence check (pre-v0.3.0 backups only)
     """
     backup_dir = BACKUP_ROOT / backup_folder
     if not backup_dir.exists():
@@ -250,7 +577,6 @@ def restore_file(backup_folder, safe_name, delete_backup_after=True, force=False
     original_path = path_file.read_text(encoding="utf-8").strip()
     dest = Path(original_path)
 
-    # ── v0.3.0 Security validation layer ───────────────────────
     sha256_file = backup_dir / (safe_name + ".sha256")
 
     if HAS_SAFE_PATH:
@@ -270,11 +596,9 @@ def restore_file(backup_folder, safe_name, delete_backup_after=True, force=False
                 f"If this backup was created before v0.3.0 and lacks a SHA256 record,\n"
                 f"use --force to bypass the SHA256 existence check (path validation still applies)."
             ) from e
-    # ── /Security validation layer ───────────────────────────
 
     dest.parent.mkdir(parents=True, exist_ok=True)
 
-    # If destination file already exists, move it to temp_existing/
     if dest.exists():
         temp_dir = BACKUP_ROOT / "temp_existing"
         temp_dir.mkdir(parents=True, exist_ok=True)
@@ -284,7 +608,6 @@ def restore_file(backup_folder, safe_name, delete_backup_after=True, force=False
     shutil.copy2(backup_path, dest)
 
     if delete_backup_after:
-        # Record restored file in manifest; only delete folder when ALL files are restored
         manifest_file = backup_dir / ".restored"
         restored_set = set()
         if manifest_file.exists():
@@ -292,7 +615,6 @@ def restore_file(backup_folder, safe_name, delete_backup_after=True, force=False
         restored_set.add(safe_name)
         manifest_file.write_text("\n".join(restored_set), encoding="utf-8")
 
-        # Check how many files in this folder are still pending restore
         all_files = {
             f.name for f in backup_dir.iterdir()
             if f.name not in (".restored")
@@ -303,12 +625,19 @@ def restore_file(backup_folder, safe_name, delete_backup_after=True, force=False
 
         if not pending:
             shutil.rmtree(backup_dir)
-            log("Restore", "SUCCESS", f"All files restored from {backup_folder}, backup cleaned up")
+            log("Restore", "SUCCESS",
+                f"All files restored from {backup_folder}, backup cleaned up")
         else:
             log("Restore", "SUCCESS",
-                f"{original_path} restored, {len(pending)} file(s) still pending in {backup_folder}, backup kept")
+                f"{original_path} restored, {len(pending)} file(s) still pending "
+                f"in {backup_folder}, backup kept")
     else:
-        log("Restore", "SUCCESS", f"{original_path} restored, backup {backup_folder} kept")
+        log("Restore", "SUCCESS",
+            f"{original_path} restored, backup {backup_folder} kept")
+
+    # v0.6.0: remove from manifest using threshold-based strategy
+    removed = _remove_manifest_entry(backup_folder, safe_name)
+    manifest_note = f", removed from manifest" if removed else ", not in manifest"
 
     return original_path
 
@@ -316,9 +645,7 @@ def restore_file(backup_folder, safe_name, delete_backup_after=True, force=False
 def verify_backup(backup_folder, safe_name):
     """
     Verify backup integrity without restoring.
-    Checks whether SHA256 matches the actual backup file content,
-    and whether .sha256 PATH matches .path record.
-    v0.3.0: This also reads and validates the SHA256 record format.
+    v0.3.0: Reads and validates the SHA256 record format.
     """
     backup_dir = BACKUP_ROOT / backup_folder
     if not backup_dir.exists():
@@ -338,12 +665,10 @@ def verify_backup(backup_folder, safe_name):
             "integrity_check": False,
         }
 
-    # Read path from .path file for cross-check
     original_path = ""
     if path_file.exists():
         original_path = path_file.read_text(encoding="utf-8").strip()
 
-    # Try to read SHA256 record
     try:
         file_hash, stored_path = SafePathValidator.read_sha256_file(sha256_file)
     except SafePathError as e:
@@ -355,11 +680,9 @@ def verify_backup(backup_folder, safe_name):
                          "Use 'restore --force' to attempt recovery (path checks still apply).",
         }
 
-    # Integrity check
     actual_sha256 = SafePathValidator.compute_sha256(backup_path)
     hash_match = (actual_sha256 == file_hash.lower())
 
-    # Path cross-check (v0.3.0 new)
     path_match = True
     path_check_done = False
     if original_path and stored_path:
@@ -386,10 +709,41 @@ def verify_backup(backup_folder, safe_name):
 
 
 def delete_backup_folder(backup_folder):
-    """Delete a specific backup folder manually"""
+    """Delete a specific backup folder manually; also removes its manifest entries."""
     backup_dir = BACKUP_ROOT / backup_folder
     if backup_dir.exists():
         shutil.rmtree(backup_dir)
+        # v0.6.0: remove all manifest entries for this folder
+        # Use tombstone approach for large manifest
+        removed = _remove_manifest_entry(backup_folder, None)
+        # If safe_name is None, we need to mark all entries for this folder
+        # Re-load and mark all matching entries as removed
+        if MANIFEST_FILE.exists():
+            active, _, _ = _count_manifest_entries()
+            if active <= MANIFEST_COMPACT_THRESHOLD:
+                entries = _load_manifest()
+                new_entries = [
+                    e for e in entries
+                    if e.get("folder") != backup_folder and not e.get("_removed")
+                ]
+                # Also collect remaining tombstones for this folder
+                remaining = [
+                    e for e in entries
+                    if e.get("folder") != backup_folder or e.get("_removed")
+                ]
+                # Keep tombstones for other folders
+                surviving = [e for e in remaining if not (e.get("folder") == backup_folder and e.get("_removed"))]
+                if len(surviving) < len(entries):
+                    _save_manifest(surviving)
+            else:
+                # Large manifest: mark all entries for this folder as removed
+                entries = _load_manifest()
+                safe_names = [
+                    e["safe_name"] for e in entries
+                    if e.get("folder") == backup_folder and not e.get("_removed")
+                ]
+                if safe_names:
+                    _mark_manifest_entries_removed(backup_folder, safe_names)
         log("DeleteBackup", "SUCCESS", f"Manually deleted backup folder: {backup_folder}")
         return True
     return False
@@ -409,9 +763,10 @@ def view_log(lines=50):
 # ─────────────────────────────────────────────────────────────────
 
 def main():
-    # Auto-cleanup expired backups and logs on every invocation
-    cleanup_old_backups()
-    cleanup_old_logs()
+    # v0.6.0 方案一：
+    # - 只在每次调用时执行轻量的 manifest stale entry 清理
+    # - 7天备份清理和30天日志清理改为时间触发，不在每个命令里都跑
+    _prune_stale_manifest_entries()
 
     if len(sys.argv) < 2:
         print(json.dumps({"error": "Missing action argument"}))
@@ -421,18 +776,41 @@ def main():
 
     try:
         if action == "cleanup":
+            # cleanup 命令：立即执行全量清理（不检查时间）
             deleted_backups = cleanup_old_backups()
+            _touch_backup_cleanup()
             deleted_logs = cleanup_old_logs()
+            _touch_log_cleanup()
+            pruned = _prune_stale_manifest_entries()
+            compacted = _compact_manifest()
             print(json.dumps({
                 "deleted_backups": deleted_backups,
                 "deleted_logs": deleted_logs,
+                "pruned_manifest_entries": pruned,
+                "compacted_manifest_entries": compacted,
                 "backup_count": len(deleted_backups),
-                "log_count": len(deleted_logs)
+                "log_count": len(deleted_logs),
             }))
 
         elif action == "list":
+            # list：触发增量压缩检查
+            _maybe_compact_manifest()
             backups = list_backups()
             print(json.dumps({"backups": backups}))
+
+        elif action == "search":
+            if len(sys.argv) < 3:
+                print(json.dumps({"error": "Missing search keyword"}))
+                sys.exit(1)
+            # search：触发增量压缩检查（保持 manifest 搜索速度）
+            _maybe_compact_manifest()
+            keyword = sys.argv[2]
+            results = _search_manifest(keyword)
+            print(json.dumps({
+                "keyword": keyword,
+                "results": results,
+                "count": len(results),
+            }))
 
         elif action == "backup":
             if len(sys.argv) < 3:
@@ -440,8 +818,23 @@ def main():
                 sys.exit(1)
             file_path = sys.argv[2]
             original_path = sys.argv[3] if len(sys.argv) > 3 else file_path
-            folder, safe_name = backup_file(file_path, original_path)
-            print(json.dumps({"ok": True, "folder": folder, "file": safe_name}))
+            description = sys.argv[4] if len(sys.argv) > 4 else None
+            
+            # v0.6.0 方案一：backup 时判断是否需要触发备份清理
+            if _should_run_backup_cleanup():
+                cleanup_old_backups()
+                _touch_backup_cleanup()
+            if _should_run_log_cleanup():
+                cleanup_old_logs()
+                _touch_log_cleanup()
+            
+            folder, safe_name, desc = backup_file(file_path, original_path, description)
+            print(json.dumps({
+                "ok": True,
+                "folder": folder,
+                "file": safe_name,
+                "description": desc,
+            }))
 
         elif action == "restore":
             if len(sys.argv) < 4:
@@ -452,6 +845,8 @@ def main():
             delete_backup_after = "--keep-backup" not in sys.argv
             force = "--force" in sys.argv
             restored = restore_file(folder, safe_name, delete_backup_after=delete_backup_after, force=force)
+            # v0.6.0 方案二：restore 后触发增量压缩检查
+            _maybe_compact_manifest()
             print(json.dumps({
                 "ok": True,
                 "restored_to": restored,
@@ -465,6 +860,8 @@ def main():
                 sys.exit(1)
             folder = sys.argv[2]
             deleted = delete_backup_folder(folder)
+            # v0.6.0 方案二：delete_backup 后触发增量压缩检查
+            _maybe_compact_manifest()
             print(json.dumps({"ok": deleted}))
 
         elif action == "verify":
@@ -483,6 +880,8 @@ def main():
                     lines = int(sys.argv[2])
                 except ValueError:
                     pass
+            # log：触发增量压缩检查
+            _maybe_compact_manifest()
             log_lines = view_log(lines)
             print(json.dumps({"log": log_lines, "count": len(log_lines)}))
 
@@ -491,11 +890,10 @@ def main():
             sys.exit(1)
 
     except SafePathError as e:
-        # Security errors handled separately to preserve correct log level
         print(json.dumps({"error": str(e), "security_error": True}))
         sys.exit(1)
     except Exception as e:
-        log(action if 'action' in dir() else "Unknown", "FAIL", str(e))
+        log(action if "action" in dir() else "Unknown", "FAIL", str(e))
         print(json.dumps({"error": str(e)}))
         sys.exit(1)
 

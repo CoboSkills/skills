@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 """
 Daily English News PDF - 完整文章 + 全文翻译 + 全部生词
-    pdf.set_font('Helvetica', '', 11)
-    pdf.cell(0, 6, 'Miaosi English Team', ln=True, align='C')
 """
 
 import os
@@ -141,6 +139,22 @@ def extract_text(html):
     return paras
 
 
+def clean_text(text):
+    """清理特殊字符"""
+    text = text.replace('–', '-').replace('—', '-')
+    text = text.replace('‘', "'").replace('’', "'")
+    text = text.replace('“', '"').replace('”', '"')
+    text = text.replace('…', '...')  # ellipsis
+    text = text.replace(' ', ' ')  # non-breaking space
+    # Remove any remaining non-ASCII except Chinese
+    result = ''
+    for c in text:
+        if ord(c) < 128 or ord(c) > 0x4e00:
+            result += c
+        else:
+            result += c  # keep Chinese
+    return result
+
 def get_all_words(text):
     """获取文章中所有单词"""
     words = re.findall(r'\b[a-zA-Z]+\b', text.lower())
@@ -189,7 +203,7 @@ def create_pdf(articles, output_path):
         
         full_text = '\n\n'.join(paras)
         for para in paras:
-            text = para.strip()
+            text = clean_text(para.strip())
             if text:
                 pdf.multi_cell(0, 5.5, text)
                 pdf.ln(1)
@@ -230,9 +244,10 @@ def create_pdf(articles, output_path):
 
 
 async def main():
-    pdf_output = f"/tmp/Miaosi Daily English News {datetime.now().strftime('%Y-%m-%d')}.pdf"
+    pdf_output = '/tmp/daily_english_news.pdf'
     
     print("="*50)
+    print("Daily English News PDF Generator")
     print("="*50)
     
     session = AsyncHTMLSession()
@@ -268,7 +283,7 @@ async def main():
     
     if create_pdf(all_articles, pdf_output):
         print(f"PDF: {pdf_output}")
-        dest = f"/root/.openclaw/workspace-explodegao/english-audio/Miaosi Daily English News {datetime.now().strftime('%Y-%m-%d')}.pdf"
+        dest = "/root/.openclaw/workspace-explodegao/english-audio/daily_english_news.pdf"
         import shutil
         shutil.copy(pdf_output, dest)
         print(f"Copied to: {dest}")

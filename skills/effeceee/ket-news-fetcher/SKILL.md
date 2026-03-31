@@ -1,6 +1,6 @@
 ---
 name: ket-news-fetcher
-description: 抓取KET级别英语新闻文章并生成PDF学习材料
+description: 抓取BBC News并生成Daily English News PDF，包含完整文章、全文翻译和80个词汇
 author:
   name: Maosi English Team
   github: https://github.com/effecE
@@ -10,9 +10,9 @@ metadata:
   {
     "openclaw":
       {
-        "version": "1.2.0",
+        "version": "6.8.0",
         "emoji": "📰",
-        "tags": ["english", "news", "KET", "learning", "education", "pdf"],
+        "tags": ["english", "news", "BBC", "learning", "education", "pdf"],
         "requires": { "bins": ["python3"] },
         "install":
           [
@@ -31,78 +31,79 @@ metadata:
             {
               "id": "pip",
               "kind": "pip",
+              "package": "fpdf2",
+              "label": "Install fpdf2 (for PDF generation with Chinese support)",
+            },
+            {
+              "id": "pip",
+              "kind": "pip",
               "package": "reportlab",
-              "label": "Install reportlab (for PDF generation)",
+              "label": "Install reportlab (fallback PDF generation)",
             },
           ],
       },
   }
 ---
 
-# KET News Fetcher - 英语新闻PDF生成器
+# Daily English News - BBC新闻PDF生成器
 
-抓取KET级别英语新闻，生成可打印的PDF学习材料。
+抓取BBC News RSS，生成每日英语新闻PDF，包含完整文章、全文中文翻译和80个核心词汇。
 
-## 支持来源
-
-| 来源 | 难度 | 说明 |
-|------|------|------|
-| BBC Learning English | KET-PET | BBC官方学习内容 |
-| VOA Learning English | KET | 美国之音慢速英语 |
-| News in Levels 1 | KET | 基础英语新闻 |
-
-## 工具脚本
-
-### 1. ket_news_fetcher.py - 新闻列表获取
+## 使用方法
 
 ```bash
-# 获取BBC新闻
-python3 ket_news_fetcher.py --source bbc --count 5
-
-# 获取所有来源
-python3 ket_news_fetcher.py --source all --count 10
+cd /root/.openclaw/workspace/skills/ket-news-fetcher
+python3 ket_news_pdf.py
 ```
 
-### 2. ket_news_pdf.py - PDF生成
+## 输出
 
-```bash
-# 生成BBC新闻PDF
-python3 ket_news_pdf.py --source bbc --count 3 --output daily_news.pdf
-
-# 生成所有来源PDF
-python3 ket_news_pdf.py --source all --count 3 --output /tmp/daily_english_news.pdf
-```
+- PDF文件：`/root/.openclaw/workspace-explodegao/english-audio/Miaosi Daily English News YYYY-MM-DD.pdf`
+- 包含4篇BBC News文章
 
 ## PDF内容
 
 每个PDF包含：
-- 📰 新闻来源标题
-- 📝 文章标题
-- 📊 词汇分析（KET覆盖率）
-- 🔤 生词标注
-
-## 输出格式
-
-```
-Daily English News PDF/
-├── 标题：Daily English News
-├── 日期：2026-03-25
-├── 来源1：BBC Learning English
-│   ├── 标题
-│   ├── 难度级别
-│   ├── 词汇分析
-│   └── 文章内容摘要
-├── 来源2：VOA Learning English
-│   └── ...
-└── 词汇统计
-```
+- 标题：Daily English News
+- 副标题：Miaosi English Team
+- 日期：YYYY-MM-DD
+- 4篇BBC News完整文章
+- 每篇文章：英文原文 + 中文翻译 + 80个词汇（附中文翻译）
 
 ## 技术实现
 
-- requests-html: JavaScript渲染
+- requests-html: JavaScript渲染（抓取动态页面）
 - BeautifulSoup: HTML解析
-- reportlab: PDF生成
-- KET词汇表: 1500+词
+- fpdf2: PDF生成（支持中日韩文字体）
+- Google翻译API: 实时翻译
+
+## 文章来源
+
+- BBC News RSS: https://feeds.bbci.co.uk/news/rss.xml
+- 每次抓取最新的4篇文章
+
+## 更新日志
+
+### v6.8.0 (2026-03-27)
+- 修复特殊字符导致PDF编码错误
+- 添加clean_text函数处理en-dash、em-dash、smart quotes等
+
+### v6.7 (2026-03-26)
+- 文件名更新为 "Miaosi Daily English News YYYY-MM-DD.pdf"
+
+### v6.6 (2026-03-26)
+- 添加"Miaosi English Team"副标题
+
+### v6.5 (2026-03-25)
+- 修复文件名格式
+
+### v6.4 (2026-03-24)
+- 每篇文章80个词汇（不再只是KET词汇）
+- 移除全文翻译部分
+
+### v6.3 (2026-03-23)
+- 添加全文中文翻译
+- 添加全部词汇表
 
 ## License
 Apache License 2.0

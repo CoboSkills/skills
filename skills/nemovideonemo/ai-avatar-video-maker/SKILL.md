@@ -1,10 +1,12 @@
 ---
 name: ai-avatar-video-maker
-version: "1.0.0"
+version: 1.0.3
 displayName: "AI Avatar Video Maker — Create AI Spokesperson and Digital Avatar Videos"
 description: >
   AI Avatar Video Maker — Create AI Spokesperson and Digital Avatar Videos.
 metadata: {"openclaw": {"emoji": "🤖", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
 ---
 
 # AI Avatar Video Maker — AI Spokesperson and Digital Avatar Videos

@@ -1,4 +1,37 @@
+---
+name: opc-insight-generator
+description: "OPC Journal Suite Insight Generation Module - Personalized recommendations and advice. Use when: (1) generating daily/weekly insights, (2) getting personalized recommendations, (3) understanding opportunities and risks. NOT for: professional advice → insights are suggestions, not professional guidance."
+metadata:
+  {
+    "openclaw": {
+      "emoji": "💡",
+      "requires": {}
+    }
+  }
+---
+
 # opc-insight-generator
+
+**Version**: 2.3.0  
+**Status**: Production Ready
+
+## When to Use
+
+✅ **Use this skill for:**
+
+- Generating daily or weekly insights
+- Getting personalized recommendations
+- Identifying opportunities and risks
+- Understanding historical context
+- Receiving actionable suggestions
+
+## When NOT to Use
+
+❌ **Don't use when:**
+
+- Need professional business or legal advice
+- Require medical or psychological guidance
+- Want automated decision-making
 
 ## Description
 
@@ -108,24 +141,18 @@ weekly_report:
 
 ## Configuration
 
-```yaml
-# ~/.openclaw/skills/opc-journal-suite/config.yml
+子 skill 配置继承自主 `config.yml` 的 `insight` 部分。完整配置参见：
+`~/.openclaw/skills/opc-journal-suite/config.yml`
 
+```yaml
 insight:
-  generation_frequency: "daily"  # daily / weekly / on_demand
+  generation_frequency: "daily"
   include_recommendations: true
   personalization_enabled: true
-  
   sources:
     - journal_entries
     - patterns
     - milestones
-    - external_data  # e.g., GitHub, revenue metrics
-    
-  output_formats:
-    - yaml          # Structured data
-    - markdown      # Human-readable report
-    - json          # API consumption
 ```
 
 ## Integration

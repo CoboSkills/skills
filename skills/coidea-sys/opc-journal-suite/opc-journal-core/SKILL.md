@@ -1,4 +1,37 @@
+---
+name: opc-journal-core
+description: "OPC Journal Suite Core Module - Smart journaling with automatic linking and retrieval. Use when: (1) recording journal entries, (2) searching historical entries, (3) exporting journals. NOT for: complex queries across multiple users → data is customer-scoped."
+metadata:
+  {
+    "openclaw": {
+      "emoji": "📔",
+      "requires": {}
+    }
+  }
+---
+
 # opc-journal-core
+
+**Version**: 2.3.0  
+**Status**: Production Ready
+
+## When to Use
+
+✅ **Use this skill for:**
+
+- Recording structured journal entries with context
+- Searching and retrieving historical journal data
+- Linking related entries automatically
+- Exporting journals to various formats
+- Generating daily/weekly digests
+
+## When NOT to Use
+
+❌ **Don't use when:**
+
+- Need complex multi-customer analytics
+- Require real-time collaborative editing
+- Need external sync (cloud, other devices)
 
 ## Description
 
@@ -235,35 +268,20 @@ support_hub:
 
 ## Configuration
 
-```yaml
-# config.yml
+子 skill 配置继承自主 `config.yml` 的 `journal` 部分。完整配置参见：
+`~/.openclaw/skills/opc-journal-suite/config.yml`
 
+```yaml
 journal_core:
-  # 存储配置
   storage:
-    backend: "filesystem"  # filesystem / database / hybrid
+    backend: "filesystem"
     path: "customers/{customer_id}/journal/"
     compression: true
-    encryption: false
-  
-  # 索引配置
   indexing:
     enable_fulltext: true
-    enable_semantic: true  # 需要 embedding model
     auto_tag: true
-  
-  # 摘要配置
-  digest:
-    auto_generate: true
-    daily_schedule: "22:00"
-    weekly_day: "sunday"
-    monthly_day: "last_day"
-  
-  # 隐私配置
   privacy:
     default_level: "normal"
-    vault_encryption: "aes-256"
-    audit_log: true
 ```
 
 ## Best Practices

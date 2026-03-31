@@ -1,131 +1,186 @@
 """opc-journal-core initialization module.
 
-This module handles the initialization of the journal core skill,
-including configuration loading and database setup.
+Initializes journal for a new customer using OpenClaw native tools.
+Supports both direct execution and delegated execution modes.
 """
-# Add project root to path for imports (must be first)
-import sys
-from pathlib import Path
-_script_dir = Path(__file__).parent.resolve()
-_project_root = _script_dir.parent.parent.parent.parent.resolve()
-if str(_project_root) not in sys.path:
-    sys.path.insert(0, str(_project_root))
-
 import json
-import os
-import sqlite3
-from typing import Any, Optional
+import sys
+from datetime import datetime
+from pathlib import Path
 
-# Try import with fallback to ensure src is found
+# Add parent directory to path for utils import
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 try:
-    from src.journal.core import JournalManager
-    from src.journal.storage import SQLiteStorage
-    from src.utils.logging import Logger, get_logger
-except ImportError as e:
-    # If import fails, try adding current working directory
-    import os as _os
-    _cwd = _os.getcwd()
-    if _cwd not in sys.path:
-        sys.path.insert(0, _cwd)
-    from src.journal.core import JournalManager
-    from src.journal.storage import SQLiteStorage
-    from src.utils.logging import Logger, get_logger
+    from utils.storage import (
+        build_memory_path,
+        write_memory_file,
+        create_tool_call,
+        format_result
+    )
+except ImportError:
+    # Fallback for standalone execution
+    def build_memory_path(customer_id: str, date: str = None) -> str:
+        if date is None:
+            date = datetime.now().strftime("%Y-%m-%d")
+        return f"~/.openclaw/customers/{customer_id}/memory/{date}.md"
+    
+    def write_memory_file(path: str, content: str, mode: str = "a"):
+        import os
+        try:
+            full_path = os.path.expanduser(path)
+            os.makedirs(os.path.dirname(full_path), exist_ok=True)
+            with open(full_path, "a") as f:
+                if f.tell() > 0:
+                    f.write("\n\n")
+                f.write(content)
+            return {"success": True, "path": full_path}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
+    def create_tool_call(tool: str, params: dict, sequence: int = 1):
+        return {"tool": tool, "params": params, "sequence": sequence}
+    
+    def format_result(status: str, result: any, message: str, execution_mode: str):
+        return {
+            "status": status,
+            "result": result,
+            "message": message,
+            "execution_mode": execution_mode,
+            "_schema_version": "1.0"
+        }
+
+
+def format_init_entry(entry: dict) -> str:
+    """Format entry as markdown."""
+    goals_md = "\n".join(f"- {g}" for g in entry.get("goals", []))
+    prefs_json = json.dumps(entry.get("preferences", {}), indent=2, ensure_ascii=False)
+    
+    return f"""# Journal Init - {entry['timestamp'][:10]}
+
+**Entry Type**: {entry['entry_type']}  
+**Customer**: {entry['customer_id']}  
+**Day**: {entry['day']}
+
+## Goals
+{goals_md}
+
+## Preferences
+```json
+{prefs_json}
+```
+
+---
+*Version: {entry['version']}*"""
 
 
 def main(context: dict) -> dict:
-    """Initialize the opc-journal-core skill.
+    """Initialize the opc-journal-core skill for a customer.
     
     Args:
         context: Dictionary containing:
             - customer_id: The customer identifier
-            - input: Initialization parameters
-            - config: Skill configuration
-            - memory: Memory context
+            - input: Initialization parameters (day, goals, preferences)
+            - execution_mode: "direct" (default) or "delegated"
     
     Returns:
         Dictionary with status, result, and message
     """
-    logger = get_logger("opc-journal-core.init")
+    execution_mode = context.get("execution_mode", "direct")
     
     try:
         customer_id = context.get("customer_id")
         input_data = context.get("input", {})
-        config = context.get("config", {})
-        memory = context.get("memory", {})
         
         if not customer_id:
-            return {
-                "status": "error",
-                "result": None,
-                "message": "customer_id is required"
-            }
+            return format_result(
+                status="error",
+                result=None,
+                message="customer_id is required",
+                execution_mode=execution_mode
+            )
         
-        logger.info(f"Initializing journal core for customer: {customer_id}")
-        
-        # Get storage path from input.data_dir, config.storage.path, or use default
-        storage_config = config.get("storage", {})
-        if input_data.get("data_dir"):
-            base_path = Path(input_data["data_dir"]) / customer_id / "journal"
-        elif storage_config.get("path"):
-            base_path = Path(storage_config["path"])
-        else:
-            base_path = Path(f"customers/{customer_id}/journal")
-        base_path.mkdir(parents=True, exist_ok=True)
-        
-        # Initialize database
-        db_path = base_path / "journal.db"
-        storage = SQLiteStorage(db_path=db_path)
-        storage.create_tables()
-        
-        # Create initial customer configuration
-        customer_config = {
+        # Build initialization entry
+        init_entry = {
+            "entry_type": "journal_init",
             "customer_id": customer_id,
-            "initialized_at": memory.get("timestamp", ""),
-            "storage_path": str(base_path),
-            "privacy_level": config.get("privacy", {}).get("default_level", "normal"),
-            "retention_days": config.get("retention_days", 365),
+            "day": input_data.get("day", 1),
+            "goals": input_data.get("goals", []),
+            "preferences": input_data.get("preferences", {}),
+            "timestamp": datetime.now().isoformat(),
+            "version": "1.0"
         }
         
-        # Save customer configuration
-        config_path = base_path / "config.json"
-        with open(config_path, "w", encoding="utf-8") as f:
-            json.dump(customer_config, f, indent=2)
+        # Format content and build path
+        content = format_init_entry(init_entry)
+        memory_path = build_memory_path(customer_id)
         
-        logger.info(f"Journal core initialized successfully", 
-                   customer_id=customer_id, 
-                   db_path=str(db_path))
-        
-        return {
-            "status": "success",
-            "result": {
-                "customer_id": customer_id,
-                "storage_path": str(base_path),
-                "db_path": str(db_path),
-                "initialized": True
-            },
-            "message": f"Journal core initialized for customer {customer_id}"
-        }
+        if execution_mode == "delegated":
+            # Return tool_calls for Agent to execute
+            return format_result(
+                status="needs_tool_execution",
+                result={
+                    "tool_calls": [
+                        create_tool_call(
+                            tool="write",
+                            params={
+                                "path": memory_path,
+                                "content": content
+                            },
+                            sequence=1
+                        )
+                    ]
+                },
+                message=f"Tool execution required to initialize journal for {customer_id}",
+                execution_mode="delegated"
+            )
+        else:
+            # Direct execution - write file immediately
+            write_result = write_memory_file(memory_path, content)
+            
+            if write_result["success"]:
+                return format_result(
+                    status="success",
+                    result={
+                        "customer_id": customer_id,
+                        "initialized": True,
+                        "day": init_entry["day"],
+                        "goals_count": len(init_entry["goals"]),
+                        "memory_path": memory_path
+                    },
+                    message=f"Journal initialized for {customer_id} (Day {init_entry['day']})",
+                    execution_mode="direct"
+                )
+            else:
+                return format_result(
+                    status="error",
+                    result={"error": write_result.get("error")},
+                    message=f"Failed to write memory file: {write_result.get('error')}",
+                    execution_mode="direct"
+                )
         
     except Exception as e:
-        logger.error(f"Failed to initialize journal core", error=str(e))
-        return {
-            "status": "error",
-            "result": None,
-            "message": f"Initialization failed: {str(e)}"
-        }
+        return format_result(
+            status="error",
+            result=None,
+            message=f"Initialization failed: {str(e)}",
+            execution_mode=execution_mode
+        )
 
 
 if __name__ == "__main__":
     # Test entry point
     test_context = {
         "customer_id": "OPC-TEST-001",
-        "input": {},
-        "config": {
-            "storage": {"path": "test_customers/OPC-TEST-001/journal"},
-            "privacy": {"default_level": "normal"},
-            "retention_days": 365
-        },
-        "memory": {"timestamp": "2026-03-24T03:38:00Z"}
+        "input": {
+            "day": 1,
+            "goals": ["Complete product MVP", "Acquire first paying customer"],
+            "preferences": {
+                "communication_style": "friendly_professional",
+                "work_hours": "09:00-18:00",
+                "timezone": "Asia/Shanghai"
+            }
+        }
     }
     
     result = main(test_context)

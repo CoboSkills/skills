@@ -1,4 +1,37 @@
+---
+name: opc-pattern-recognition
+description: "OPC Journal Suite Pattern Recognition Module - Behavioral analysis and habit identification. Use when: (1) analyzing work patterns and rhythms, (2) identifying decision-making styles, (3) detecting productivity trends. NOT for: predicting future outcomes with certainty → patterns are probabilistic."
+metadata:
+  {
+    "openclaw": {
+      "emoji": "🧠",
+      "requires": {}
+    }
+  }
+---
+
 # opc-pattern-recognition
+
+**Version**: 2.3.0  
+**Status**: Production Ready
+
+## When to Use
+
+✅ **Use this skill for:**
+
+- Analyzing work rhythms and productive hours
+- Identifying decision-making patterns
+- Detecting stress triggers and recovery patterns
+- Tracking learning velocity and skill acquisition
+- Understanding emotional patterns in work
+
+## When NOT to Use
+
+❌ **Don't use when:**
+
+- Need guaranteed predictions of future behavior
+- Require clinical psychological analysis
+- Want to compare with other users (privacy-respecting, no cross-user data)
 
 ## Description
 
@@ -259,35 +292,21 @@ Sun: 8 ██████████░░
 
 ## Configuration
 
+子 skill 配置继承自主 `config.yml` 的 `pattern_recognition` 部分。完整配置参见：
+`~/.openclaw/skills/opc-journal-suite/config.yml`
+
 ```yaml
 pattern_recognition:
   analysis_schedule:
-    daily: "22:00"      # 每日简要分析
-    weekly: "sunday_20:00"  # 周模式报告
-    monthly: "last_day"     # 月度成长报告
-    
+    daily: "22:00"
+    weekly: "sunday_20:00"
+    monthly: "last_day"
   dimensions:
-    work_rhythm:
-      enabled: true
-      granulariry: "hourly"
-      
-    decision_patterns:
-      enabled: true
-      track_types: ["technical", "business", "hiring", "marketing"]
-      
-    emotional_patterns:
-      enabled: true
-      privacy: "high"  # 敏感数据处理
-      
+    work_rhythm: { enabled: true }
+    decision_patterns: { enabled: true }
   predictions:
     enabled: true
     lookahead_days: 7
-    confidence_threshold: 0.7
-    
-  similar_customers:
-    enabled: true  # 匿名化比较
-    anonymity_level: "high"
-    min_similarity: 0.6
 ```
 
 ## Privacy Considerations

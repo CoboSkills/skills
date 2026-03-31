@@ -1,230 +1,122 @@
 ---
 name: video-maker-free
-version: "1.0.0"
-displayName: "Free Video Maker: Create & Edit Videos Instantly with AI"
+version: 1.2.1
+displayName: "Video Maker Free — Make Videos from Photos Text and Clips with AI for Free"
 description: >
-  video-maker-free is a ClawHub AI skill that lets anyone assemble, trim, and enhance videos through plain conversation — no timeline scrubbing or manual exports required. Upload raw footage, describe what you want, and the skill handles cuts, transitions, text overlays, and basic color grading autonomously. Ideal for content creators, small business owners, educators, and social media managers who need polished results without subscription fees. Supports mp4, mov, avi, webm, and mkv formats.
+  Make videos for free using AI — combine photos, text, and video clips into polished content with transitions, music, voiceover, subtitles, and effects. NemoVideo creates videos from whatever you have: a set of product photos becomes a promotional video, a text script becomes a narrated explainer, scattered phone clips become a cohesive story, and raw ideas become publishable content — all free, all full quality, no watermarks.
 metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 homepage: https://nemovideo.com
 repository: https://github.com/nemovideo/nemovideo_skills
 ---
 
-# Turn Raw Footage Into Finished Videos Through Conversation
+# Video Maker Free — Make Any Video from Photos, Text or Clips
 
-Most video editing tools assume you already know your way around a timeline. video-maker-free flips that assumption entirely. Instead of dragging clips and hunting for the right menu, you describe the outcome you want — 'cut the first ten seconds, add a title card, and fade to black at the end' — and the skill executes it. This makes professional-looking video production accessible to people who have never opened an editing application in their lives.
+Most people who need a video don't start with footage — they start with whatever they have. A real estate agent has 15 property photos. A small business owner has a product description. A student has presentation slides. A parent has scattered phone clips from a birthday party. A marketing team has bullet points from a strategy meeting. None of these are "footage" in the traditional sense, but every one of them could be a compelling video. The gap between "what I have" and "a finished video" is the editing process: importing assets into software, arranging them on a timeline, adding motion to photos (Ken Burns, pan-and-zoom), timing text overlays, finding and mixing music, recording or generating voiceover, adding transitions between elements, and exporting at the right settings for each platform. NemoVideo bridges that gap with one command. Provide whatever you have — photos, text, clips, or a combination — and describe the video you want. The AI assembles, animates, narrates, scores, and exports a finished video. Photos get motion and transitions. Text becomes narrated scenes with supporting visuals. Clips get trimmed, color-matched, and joined. The output is a real video — not a slideshow with a filter, but a produced piece of content with professional pacing, audio, and visual quality.
 
-Behind every request sits the OpenClaw agent, ClawHub's orchestration layer that interprets your instructions, breaks them into discrete editing operations, and sequences them against your uploaded footage. The agent resolves ambiguity by asking targeted follow-up questions rather than guessing, which means fewer do-overs and faster turnarounds. It also tracks the state of your project across multiple turns, so you can refine iteratively without re-explaining context each time.
+## Use Cases
 
-The skill is deliberately scoped around the tasks that consume the most time for casual creators: trimming dead air, stitching clips in order, dropping in lower-thirds or captions, and adjusting brightness or contrast for consistency across shots. Because it operates on your actual media files rather than a preview proxy, the exported result is ready to publish immediately in whichever format you supplied — mp4, mov, avi, webm, or mkv.
+1. **Photos → Product Video (30-60s)** — An Etsy seller has 8 product photos and needs a video for Instagram. NemoVideo: sequences photos with smooth Ken Burns motion (slow zoom on detail shots, pan across wide shots), adds product name and price as animated text overlays, underlays upbeat acoustic music, applies a consistent warm color grade, and exports 9:16 for Instagram and 1:1 for the listing page. Eight static images become a dynamic product showcase.
+2. **Text → Explainer Video (60-180s)** — A SaaS startup has a 300-word product description and needs a landing page video. NemoVideo: breaks the text into Problem → Solution → Benefits → CTA scenes, generates supporting visuals for each scene (office frustration, clean dashboard UI, happy team, pricing page), narrates with a professional voice, adds animated statistics, and exports 16:9 for the website. No filming, no stock footage budget.
+3. **Mixed Media → Story Video (2-5 min)** — A parent has 20 phone photos and 8 short clips from their child's first birthday party. NemoVideo: sorts by timestamp, sequences photos with gentle motion and clips at key moments (cake smash, candle blowing, gift opening), adds cheerful background music, overlays the child's name and age as animated titles, and exports as a shareable family video with a clean opening and closing.
+4. **Slides → Training Video (5-15 min)** — An HR department has a 30-slide presentation that nobody reads. NemoVideo: converts each slide into a video scene with animated bullet points, generates voiceover narration from the slide notes, adds transitions between topics, inserts knowledge-check pause points, and exports as a training module that employees actually watch. Slide decks become engaging video content.
+5. **Bullet Points → Social Content (15-30s per video)** — A marketing manager has 10 product features as bullet points and needs 10 short social videos. NemoVideo batch-generates: each bullet becomes a 15-second video with bold animated text, supporting visual, music, and CTA. Ten social videos from ten lines of text — a month of daily posts produced in one batch.
 
-### Environment Variables
+## How It Works
 
-| Variable | Required | Default |
-|----------|----------|--------|
-| `NEMO_TOKEN` | No | Auto-generated (100 free credits, expires in 7 days, revocable via Settings → API Tokens) |
-| `NEMO_API_URL` | No | `https://mega-api-prod.nemovideo.ai` |
-| `NEMO_WEB_URL` | No | `https://nemovideo.com` |
-| `NEMO_CLIENT_ID` | No | Auto-generated UUID, persisted to `~/.config/nemovideo/client_id` (UUID only, no secrets) |
-| `SKILL_SOURCE` | No | Auto-detected from install path, fallback `unknown` |
+### Step 1 — Provide Your Materials
+Upload photos, video clips, text, or any combination. NemoVideo accepts all formats and intelligently assembles mixed media.
 
-If `NEMO_TOKEN` is not set, get one (requires `X-Client-Id` header):
+### Step 2 — Describe the Video
+Tell NemoVideo what you want: the story, the style, the mood, the platform. Detailed instructions or "make something beautiful from these photos" — both work.
+
+### Step 3 — Generate
 ```bash
-# Generate or read persisted Client-Id
-CLIENT_ID="${NEMO_CLIENT_ID:-$(cat ~/.config/nemovideo/client_id 2>/dev/null)}"
-if [ -z "$CLIENT_ID" ]; then
-  CLIENT_ID=$(uuidgen 2>/dev/null || echo "client-$(date +%s)-$RANDOM")
-  mkdir -p ~/.config/nemovideo && echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
-fi
-curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
-# → {"code":0,"data":{"token":"nmv_usr_xxx","credits":100,...}}
-```
-Save `token` as `NEMO_TOKEN`, `CLIENT_ID` as `NEMO_CLIENT_ID`. Anonymous: 1 token per client per 7 days; token expires in 7 days and can be revoked at any time via **Settings → API Tokens** on nemovideo.com. If your token expires, request a new one with the same `X-Client-Id`.
-
-**Local persistence:** This skill writes `~/.config/nemovideo/client_id` to persist the Client-Id across sessions. This avoids generating a new ID on every request, which would hit the per-IP rate limit quickly (default 10 tokens per 7 days per IP). The file contains only a UUID — no credentials are stored locally.
-
-## 2. Routing Incoming Requests to the Correct Endpoint
-
-Use the table below to determine which API endpoint should handle each type of user request.
-
-| User says... | Action | Skip SSE? |
-|-------------|--------|----------|
-| "export" / "导出" / "download" / "send me the video" | → §3.5 Export | ✅ |
-| "credits" / "积分" / "balance" / "余额" | → §3.3 Credits | ✅ |
-| "status" / "状态" / "show tracks" | → §3.4 State | ✅ |
-| "upload" / "上传" / user sends file | → §3.2 Upload | ✅ |
-| Everything else (generate, edit, add BGM…) | → §3.1 SSE | ❌ |
-
-## 3. Primary Workflow Procedures
-
-$API = `${NEMO_API_URL:-https://mega-api-prod.nemovideo.ai}`, $TOKEN = `${NEMO_TOKEN}`, $WEB = `${NEMO_WEB_URL:-https://nemovideo.com}`.
-
-Skill attribution variables — do NOT hardcode:
-- `$SKILL_NAME` = this file's YAML frontmatter `name`
-- `$SKILL_VERSION` = this file's YAML frontmatter `version`
-- `$SKILL_SOURCE` = detect at runtime using the first match:
-  1. Env `SKILL_SOURCE` if set
-  2. If this file's path contains a known platform directory (e.g. `~/.clawhub/` → `clawhub`, `~/.cursor/skills/` → `cursor`)
-  3. Fallback: `unknown`
-
-**CRITICAL**: ALL API requests (including render/export/upload/state/credits) MUST include these headers. Missing them will cause export to fail with 402.
-```
-X-Skill-Source: $SKILL_NAME
-X-Skill-Version: $SKILL_VERSION
-X-Skill-Platform: $SKILL_SOURCE
+curl -X POST https://mega-api-prod.nemovideo.ai/api/v1/generate \
+  -H "Authorization: Bearer $NEMO_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "skill": "video-maker-free",
+    "prompt": "Make a 45-second product showcase video from 8 product photos. Style: clean and modern with white background accents. Each photo gets 4-5 seconds with smooth Ken Burns motion (slow zoom on details, pan on wide shots). Add product name as animated text: Artisan Ceramic Mug Collection. Price: from $28. Music: warm acoustic guitar at -14dB. Color grade: bright and clean. End frame: Shop now at artisanceramics.com. Export 9:16 for Instagram and 1:1 for website.",
+    "media_type": "photos",
+    "photo_count": 8,
+    "style": "clean-modern",
+    "music": "acoustic-guitar-warm",
+    "music_volume": "-14dB",
+    "text_overlays": ["Artisan Ceramic Mug Collection", "From $28"],
+    "cta": "Shop now at artisanceramics.com",
+    "exports": ["9:16", "1:1"],
+    "watermark": false
+  }'
 ```
 
-### 3.0 Initializing a New Session
-```bash
-curl -s -X POST "$API/api/tasks/me/with-session/nemo_agent" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
-  -d '{"task_name":"project","language":"<lang>"}'
-# → {"code":0,"data":{"task_id":"...","session_id":"..."}}
-```
-Before any other API calls can be made, a session must be established. This session identifier is required for all subsequent interactions within the same conversation.
+### Step 4 — Preview and Share
+Preview. Adjust photo order, transition timing, text placement, or music. Export and share — free, full quality.
 
-**Open in browser**: After creating a session, give the user a link to view/edit the task in NemoVideo:
-`$WEB/workspace/claim?token=$TOKEN&task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
+## Parameters
 
-### 3.1 Delivering Messages Through SSE
-```bash
-curl -s -X POST "$API/run_sse" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" --max-time 900 \
-  -d '{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}'
-```
-All message exchanges with the backend are streamed to the client using Server-Sent Events (SSE).
+| Parameter | Type | Required | Description |
+|-----------|------|:--------:|-------------|
+| `prompt` | string | ✅ | Describe the video and materials |
+| `media_type` | string | | "photos", "clips", "text", "mixed" |
+| `style` | string | | "clean-modern", "cinematic", "playful", "elegant", "bold" |
+| `music` | string | | "acoustic", "lo-fi", "corporate", "cinematic", "electronic" |
+| `music_volume` | string | | "-12dB" to "-22dB" |
+| `voice` | string | | Voiceover: "warm-male", "friendly-female", "none" |
+| `text_overlays` | array | | Text to display as animated overlays |
+| `cta` | string | | Call-to-action text |
+| `photo_motion` | string | | "ken-burns", "parallax", "slide", "zoom" |
+| `duration` | string | | "30 sec", "45 sec", "60 sec", "natural" |
+| `exports` | array | | ["16:9", "9:16", "1:1"] |
+| `batch` | array | | Multiple videos from separate material sets |
+| `watermark` | boolean | | Always false |
 
-#### SSE Handling
+## Output Example
 
-| Event | Action |
-|-------|--------|
-| Text response | Apply GUI translation (§4), present to user |
-| Tool call/result | Wait silently, don't forward |
-| `heartbeat` / empty `data:` | Keep waiting. Every 2 min: "⏳ Still working..." |
-| Stream closes | Process final response |
-
-Typical durations: text 5-15s, video generation 100-300s, editing 10-30s.
-
-**Timeout**: 10 min heartbeats-only → assume timeout. **Never re-send** during generation (duplicates + double-charge).
-
-Ignore trailing "I encountered a temporary issue" if prior responses were normal.
-
-#### Silent Response Fallback (CRITICAL)
-
-Approximately 30% of editing operations complete without returning any text content in the SSE stream. When no text is received after the stream closes, do not treat this as a failure — instead, immediately call the state query endpoint to retrieve the current project status and surface the result to the user.
-
-**Two-stage generation**: After the raw video is produced, the backend automatically triggers a second processing stage that layers in background music and a title overlay. Expect two distinct completion events: one when the raw video is ready and a second when the fully composed version with BGM and title is finalized.
-
-### 3.2 Handling File Uploads
-
-**File upload**: `curl -s -X POST "$API/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -F "files=@/path/to/file"`
-
-**URL upload**: `curl -s -X POST "$API/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -d '{"urls":["<url>"],"source_type":"url"}'`
-
-Use **me** in the path; backend resolves user from token.
-
-Supported: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
-
-The upload endpoint accepts media files that users wish to incorporate into their video projects.
-
-### 3.3 Checking Available Credits
-```bash
-curl -s "$API/api/credits/balance/simple" -H "Authorization: Bearer $TOKEN" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
-# → {"code":0,"data":{"available":XXX,"frozen":XX,"total":XXX}}
-```
-Query the credits endpoint before starting a generation task to confirm the user has a sufficient balance.
-
-### 3.4 Retrieving Current Project State
-```bash
-curl -s "$API/api/state/nemo_agent/me/<sid>/latest" -H "Authorization: Bearer $TOKEN" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
-```
-Use **me** for user in path; backend resolves from token.
-Key fields: `data.state.draft`, `data.state.video_infos`, `data.state.canvas_config`, `data.state.generated_media`.
-
-**Draft field mapping**: `t`=tracks, `tt`=track type (0=video, 1=audio, 7=text), `sg`=segments, `d`=duration(ms), `m`=metadata.
-
-**Draft ready for export** when `draft.t` exists with at least one track with non-empty `sg`.
-
-**Track summary format**:
-```
-Timeline (3 tracks): 1. Video: city timelapse (0-10s) 2. BGM: Lo-fi (0-10s, 35%) 3. Title: "Urban Dreams" (0-3s)
+```json
+{
+  "job_id": "vmf-20260328-001",
+  "status": "completed",
+  "source_materials": "8 photos",
+  "watermark": false,
+  "outputs": [
+    {
+      "format": "9:16",
+      "resolution": "1080x1920",
+      "duration": "0:44",
+      "file_size_mb": 12.4,
+      "photo_motion": "ken-burns (zoom + pan)",
+      "text_overlays": 3,
+      "music": "acoustic-guitar-warm at -14dB"
+    },
+    {
+      "format": "1:1",
+      "resolution": "1080x1080",
+      "duration": "0:44",
+      "file_size_mb": 11.8
+    }
+  ]
+}
 ```
 
-### 3.5 Exporting and Delivering the Final Video
+## Tips
 
-**Export does NOT cost credits.** Only generation/editing consumes credits.
+1. **Photos with motion beat static slideshows** — Ken Burns pan-and-zoom adds life to still images. A slow zoom into a product detail feels cinematic. A gentle pan across a room feels like a camera movement. Static photos displayed full-frame feel like PowerPoint.
+2. **4-5 seconds per photo is the engagement sweet spot** — Shorter than 3 seconds feels rushed and the viewer can't absorb the image. Longer than 6 seconds and attention drifts. 4-5 seconds with smooth motion holds attention perfectly.
+3. **Music without speech can be louder** — Photo/product videos without voiceover benefit from music at -12 to -14dB (louder than the -18dB used under speech). The music carries the emotional energy that speech would normally provide.
+4. **Batch generation scales content instantly** — 10 products × 1 video each = 10 social media posts. Batch-process with consistent style for brand cohesion but unique content per product.
+5. **Multi-format export from one generation** — 9:16 for Instagram/TikTok + 1:1 for feed + 16:9 for website. Three formats, one command, one consistent video.
 
-Triggering an export does not deduct any credits from the user's balance. The export flow proceeds as follows: (a) call the export endpoint with the project ID, (b) receive the export job identifier from the response, (c) poll the export status endpoint until the job reaches a completed state, (d) retrieve the download URL from the completed response, and (e) present the URL to the user for download or sharing.
+## Output Formats
 
-**b)** Submit: `curl -s -X POST "$API/api/render/proxy/lambda" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -d '{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}'`
+| Format | Resolution | Use Case |
+|--------|-----------|----------|
+| MP4 9:16 | 1080x1920 | Instagram / TikTok / Stories |
+| MP4 16:9 | 1920x1080 | YouTube / website / email |
+| MP4 1:1 | 1080x1080 | Instagram feed / Twitter |
+| GIF | 720p | Preview / thumbnail |
 
-Note: `sessionId` is **camelCase** (exception). On failure → new `id`, retry once.
+## Related Skills
 
-**c)** Poll (every 30s, max 10 polls): `curl -s "$API/api/render/proxy/lambda/<id>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"`
-
-Status at top-level `status`: pending → processing → completed / failed. Download URL at `output.url`.
-
-**d)** Download from `output.url` → send to user. Fallback: `$API/api/render/proxy/<id>/download`.
-
-**e)** When delivering the video, **always also give the task detail link**: `$WEB/workspace/claim?token=$TOKEN&task={task_id}&session={session_id}&skill_name=$SKILL_NAME&skill_version=$SKILL_VERSION&skill_source=$SKILL_SOURCE`
-
-Progress messages: start "⏳ Rendering ~30s" → "⏳ 50%" → "✅ Video ready!" + file + **task detail link**.
-
-### 3.6 Recovering from an SSE Disconnection
-
-When an SSE connection drops unexpectedly, follow these five steps to recover: (1) detect the disconnection via a connection-close or error event on the stream; (2) wait a brief interval before attempting to reconnect to avoid hammering the server; (3) re-open the SSE connection using the same session and message identifiers; (4) call the state query endpoint to determine whether the backend completed the task during the outage; (5) if the task is already finished, present the result to the user directly without re-submitting the request.
-
-## 4. Translating Backend GUI References for Users
-
-The backend is built around the assumption that users are interacting through a graphical interface, so any GUI-specific instructions or labels returned by the backend must be converted into plain conversational language before being shown to the user.
-
-| Backend says | You do |
-|-------------|--------|
-| "click [button]" / "点击" | Execute via API |
-| "open [panel]" / "打开" | Show state via §3.4 |
-| "drag/drop" / "拖拽" | Send edit via SSE |
-| "preview in timeline" | Show track summary |
-| "Export button" / "导出" | Execute §3.5 |
-| "check account/billing" | Check §3.3 |
-
-**Keep** content descriptions. **Strip** GUI actions.
-
-## 5. Recommended Interaction Patterns
-
-• Always confirm what the user wants to create or modify before initiating an API call, reducing unnecessary requests.
-• After a silent SSE response, proactively query project state and report back rather than asking the user to retry.
-• When presenting export links, include a brief summary of what was produced so the user has context alongside the download URL.
-• If a user's request is ambiguous — for example, unclear clip length or style — ask a single clarifying question rather than making assumptions.
-• Keep the user informed during long-running operations by acknowledging that processing is underway and that results will appear shortly.
-
-## 6. Known Constraints and Limitations
-
-• Video generation tasks are asynchronous and may take several minutes; real-time preview is not supported.
-• The API does not support simultaneous concurrent editing sessions under the same user account.
-• Uploaded files must conform to the accepted format and size limits defined by the upload endpoint; oversized or unsupported files will be rejected.
-• Credits are consumed at the point of generation, not at export; failed generations may still result in a credit deduction depending on how far processing progressed.
-• SSE streams do not guarantee a text payload on every successful operation — silent completions are normal and must be handled via state polling.
-
-## 7. Error Handling Reference
-
-The table below maps common HTTP error codes and API-specific error states to the recommended recovery action for each.
-| Code | Meaning | Action |
-|------|---------|--------|
-| 0 | Success | Continue |
-| 1001 | Bad/expired token | Re-auth via anonymous-token (tokens expire after 7 days) |
-| 1002 | Session not found | New session §3.0 |
-| 2001 | No credits | Anonymous: show registration URL with `?bind=<id>` (get `<id>` from create-session or state response when needed). Registered: "Top up at nemovideo.ai" |
-| 4001 | Unsupported file | Show supported formats |
-| 4002 | File too large | Suggest compress/trim |
-| 400 | Missing X-Client-Id | Generate Client-Id and retry (see §1) |
-| 402 | Free plan export blocked | Subscription tier issue, NOT credits. "Register at nemovideo.ai to unlock export." |
-| 429 | Rate limit (1 token/client/7 days) | Retry in 30s once |
-
-**Common**: no video → generate first; render fail → retry new `id`; SSE timeout → §3.6; silent edit → §3.1 fallback.
-
-## 8. API Version and Required Token Scopes
-
-Always verify that the API version specified in your request headers matches the version documented here before going live; mismatched versions may cause unexpected behavior or endpoint unavailability. The access token used for all requests must include the scopes required by each endpoint — ensure token scopes are provisioned correctly during OAuth authorization, as requests made with insufficient scopes will be rejected with a 403 response.
+- [free-youtube-video-editor](/skills/free-youtube-video-editor) — YouTube editing
+- [how-to-add-music-to-video](/skills/how-to-add-music-to-video) — Add music
+- [free-video-generator-ai](/skills/free-video-generator-ai) — AI video generation

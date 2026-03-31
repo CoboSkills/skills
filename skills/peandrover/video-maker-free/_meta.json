@@ -3,9 +3,15 @@
   "slug": "video-maker-free",
   "displayName": "Video Maker Free",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774539392135,
-    "commit": "https://github.com/openclaw/skills/commit/d46d49ebfdccae63aeeb9b0df30a77916a759b0c"
+    "version": "1.0.1",
+    "publishedAt": 1774747200919,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774539392135,
+      "commit": "https://github.com/openclaw/skills/commit/d46d49ebfdccae63aeeb9b0df30a77916a759b0c"
+    }
+  ]
 }

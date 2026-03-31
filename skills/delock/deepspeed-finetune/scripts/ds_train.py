@@ -16,6 +16,7 @@ from pathlib import Path
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
+    Trainer,
     TrainingArguments,
     HfArgumentParser,
     set_seed,
@@ -400,7 +401,7 @@ def main():
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         data_collator=DataCollatorForSeq2Seq(tokenizer, pad_to_multiple_of=8),
         callbacks=callbacks if callbacks else None,
     )

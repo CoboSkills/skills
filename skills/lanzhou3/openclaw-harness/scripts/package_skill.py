@@ -36,10 +36,10 @@ def should_exclude(path_str):
     for pattern in EXCLUDE_PATTERNS:
         if fnmatch.fnmatch(path_str, pattern):
             return True
-        # Handle directory names that start with .harness
+        # Handle directory names that start with .harness or .git
         parts = Path(path_str).parts
         for part in parts:
-            if part == '.harness' or part.startswith('.harness.'):
+            if part == '.harness' or part.startswith('.harness.') or part == '.git':
                 return True
     return False
 

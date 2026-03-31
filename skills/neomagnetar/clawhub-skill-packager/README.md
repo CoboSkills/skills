@@ -14,19 +14,17 @@ Take any combination of:
 - invocation ideas
 - packaging notes
 
-and turn it into:
-1. a publish-ready skill package
-2. a separate plain-text review record
-3. a publish/install handoff file
+and turn it into exactly two user-facing outputs:
+1. a publish-ready skill package zip
+2. a separate plain-text review file
 
 ## Core philosophy
 This skill is built for low-friction handoff.
 
 The user should be able to hand over draft material and receive:
-- a completed package
-- a review record
+- a completed release-style package zip
+- a separate review file
 - a clear summary of what was inferred, fixed, changed, or flagged
-- a publish/install handoff
 
 The skill should minimize question loops and favor best-effort packaging plus clear review notes.
 
@@ -45,27 +43,31 @@ This skill:
 - aligns slug, skill key, and package naming
 - builds the final folder
 - performs a second-pass self-review
-- produces a plain-text change log / review file for the user
-- produces a publish/install handoff file
+- produces one pure publish bundle zip
+- produces one separate plain-text review file
 
-## Deliverables
-The skill should finish with:
-- a zip-ready skill bundle
-- a plain-text report for records and review
-- a short completion summary for the user
-- a publish/install handoff file
+## Release-style boundary
 
-## Review emphasis
-Important assumptions and risky guesses should be highlighted using:
-- **⚠️ REQUIRED REVIEW**
-- **🔶 INFERRED FIELD**
-- **✅ FIXED AUTOMATICALLY**
-- **📝 EDITED FOR ALIGNMENT**
-- **🚀 READY TO PUBLISH**
+The publish zip should contain only files that directly belong to the skill as a release artifact.
+
+The review file should remain outside the publish zip and should contain:
+- inputs received
+- missing information
+- assumptions
+- changes made
+- review flags
+- publish-readiness
+- handoff details
+
+## Included support files in this skill package
+
+These are part of the packager skill itself:
+- `REVIEW-CHECKLIST.txt`
+- `REVIEW-RECORD-TEMPLATE.txt`
 
 ## Publish fields
 - Slug: `clawhub-skill-packager`
 - Internal skill name / slash command: `clawhub-pack`
 - Skill key: `clawhub-skill-packager`
-- Version: `1.3.0`
+- Version: `1.4.0`
 - Tags: `latest, clawhub, openclaw, packaging, review, audit, skills`

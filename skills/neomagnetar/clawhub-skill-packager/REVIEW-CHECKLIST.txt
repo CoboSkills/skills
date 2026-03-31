@@ -34,11 +34,15 @@ RUNTIME / SECURITY AWARENESS
 - Privilege assumptions are documented
 - Risky surfaces are highlighted
 
+DELIVERABLE SEPARATION
+- Publish bundle contains only skill-release files
+- Review content is kept outside the publish bundle
+- Review file is plain text
+- Final artifacts are surfaced separately
+
 DELIVERABLES
 - Package bundle created
-- Review record created
-- Delivery summary created
-- Publish handoff created
+- Separate review file created
 - Changes summarized
 - Assumptions highlighted
 - Publish-readiness stated

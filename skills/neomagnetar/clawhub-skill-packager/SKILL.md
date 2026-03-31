@@ -1,7 +1,7 @@
 ---
 name: clawhub-pack
-description: "Review, repair, package, and self-audit ClawHub/OpenClaw skill bundles into a publish-ready zip plus a plain-text review record using an inference-first, low-friction packaging workflow."
-version: "1.3.0"
+description: "Review, repair, package, and self-audit ClawHub/OpenClaw skill bundles into a publish-ready zip plus one separate plain-text review file using an inference-first, low-friction workflow."
+version: "1.4.0"
 user-invocable: true
 disable-model-invocation: true
 metadata: {"openclaw":{"emoji":"📦","skillKey":"clawhub-skill-packager"}}
@@ -29,7 +29,7 @@ It is designed to:
 - repair inconsistencies
 - build the package anyway when a safe best-effort package is possible
 - self-audit the result
-- return both the package and clear review artifacts
+- return one pure publish bundle plus one separate plain-text review file
 
 ## Operating stance
 
@@ -51,34 +51,49 @@ If something is missing but inferable:
 
 If something is risky, ambiguous, or likely to affect publishing:
 - still produce the package
-- highlight the issue clearly in the review record
+- highlight the issue clearly in the review file
 - mark it for user review
 
 Do not stop at “more info needed” when a reasonable package can still be built.
 
-## Required outputs
+Default to the **full release-bundle standard**, not the minimal valid skill standard, unless the user explicitly asks for a minimal package.
 
-Always produce both primary deliverables:
+## Exact output contract
 
-### A. Publish bundle
-A zip-ready skill folder containing the files needed for ClawHub / OpenClaw publishing.
+Always produce exactly **two user-facing deliverables**.
 
-Minimum expected files:
+### A. Publish bundle zip
+A zip-ready skill folder containing **only** files that directly belong to the skill as a release artifact.
+
+This bundle must include:
 - `SKILL.md`
 - `README.md`
 - `CHANGELOG.md`
 
-Optional files when useful:
-- `NOTES.txt`
-- `EXAMPLES.md`
+It may also include only those additional files that are genuinely part of the skill itself or required for the skill to function correctly, such as:
+- references
+- examples
+- scripts
+- configs
+- assets
 
-### B. Plain-text review record
-A simple file that any user or system can open without special software.
+Do **not** include inside the publish bundle:
+- review notes
+- inference notes
+- build commentary
+- user/AI discussion notes
+- release review records
+- handoff notes that are only about packaging this build
+
+The publish bundle should look like it was made for the skill itself, not for the conversation that created it.
+
+### B. Separate plain-text review file
+A separate review file in plain text.
 
 Preferred format:
 - `.txt`
 
-This review record should say:
+This review file should say:
 - what inputs were provided
 - what information was missing
 - what assumptions were made
@@ -88,17 +103,18 @@ This review record should say:
 - what was inferred
 - what still deserves human review
 - whether the package appears publish-ready
+- the final publish/install handoff details
 
-## Standard support artifacts
+The review file must remain **outside** the publish bundle unless the user explicitly asks for it to be embedded.
 
-This packager also maintains reusable support files.
+## Standard support artifacts inside this packager skill
+
+This packager skill ships with reusable support files that are part of the skill itself.
 
 Use them like this:
 
 - `REVIEW-CHECKLIST.txt` = the permanent self-audit standard
-- `REVIEW-RECORD-TEMPLATE.txt` = the base for the generated per-run review record
-- `DELIVERY-SUMMARY-TEMPLATE.txt` = the short user-facing completion summary
-- `PUBLISH-HANDOFF.txt` = the final publish/install handoff format
+- `REVIEW-RECORD-TEMPLATE.txt` = the base for the generated separate review file
 
 ## Packaging promise
 
@@ -106,7 +122,7 @@ Always finish by producing the intended package, even if some fields required in
 
 If information is missing:
 - determine the best safe default
-- state the assumption clearly in the review record
+- state the assumption clearly in the review file
 - highlight the assumption for user review
 
 If information is sufficient:
@@ -147,7 +163,7 @@ Pass 1:
 Pass 2:
 - build files
 - self-audit
-- generate review record and handoff artifacts
+- generate the separate review file
 
 ### Repair-existing-skill
 Pass 1:
@@ -158,7 +174,7 @@ Pass 1:
 Pass 2:
 - repair and normalize
 - self-audit
-- generate review record and handoff artifacts
+- generate the separate review file
 
 ### Audit-only
 Pass 1:
@@ -166,7 +182,7 @@ Pass 1:
 - identify strengths, issues, risks, and missing information
 
 Pass 2:
-- generate the review record and user-facing summary
+- generate the review file
 - do not build a replacement package unless the user also asked for packaging
 
 ### Republish / update
@@ -178,7 +194,7 @@ Pass 1:
 Pass 2:
 - update files
 - self-audit
-- generate review record and handoff artifacts
+- generate the separate review file
 
 ### Rename / rebrand
 Pass 1:
@@ -189,7 +205,7 @@ Pass 1:
 Pass 2:
 - rewrite aligned identity surfaces
 - self-audit
-- generate review record and handoff artifacts
+- generate the separate review file
 
 ## Packaging workflow
 
@@ -237,12 +253,27 @@ Create the full package folder and final file contents.
 Run a second-pass review using `REVIEW-CHECKLIST.txt`.
 
 ### Step 6 — Deliver
-Deliver:
-- the final zip/package
-- the plain-text review record built from `REVIEW-RECORD-TEMPLATE.txt`
-- the short user-facing summary built from `DELIVERY-SUMMARY-TEMPLATE.txt`
-- the publish/install handoff built from `PUBLISH-HANDOFF.txt`
-- any highlighted assumptions or issues needing user review
+Deliver exactly two user-facing artifacts:
+- the final publish bundle zip
+- the separate review file built from `REVIEW-RECORD-TEMPLATE.txt`
+
+Then provide a short summary in the response telling the user:
+- here is your publish bundle
+- here is your review file
+- here is what I inferred
+- here is what I fixed
+- here is what may still deserve review
+
+## Visibility rule
+
+Do not bury final deliverables in an internal-only path without clearly surfacing them.
+
+The publish zip and the separate review file must be:
+- clearly identified
+- surfaced directly to the user
+- returned as the final two artifacts
+
+Do not report completion until both artifacts are available in a directly user-visible way for the current environment.
 
 ## Skill type awareness
 
@@ -277,7 +308,7 @@ Inspect for:
 
 If these exist:
 - package the skill anyway when safe
-- state them clearly in the review record
+- state them clearly in the review file
 - highlight them for review
 
 ## Frontmatter rules
@@ -361,9 +392,15 @@ A package should be checked for all of the following:
 - privilege assumptions are documented
 - risky surfaces are highlighted
 
+### Deliverable separation
+- publish bundle contains only skill-release files
+- review content is kept outside the publish bundle
+- review file is plain text
+- final deliverables are surfaced separately
+
 ### Deliverables
 - package files were generated
-- review record was generated
+- separate review file was generated
 - changes are summarized
 - assumptions are highlighted
 - publish-readiness is stated
@@ -382,22 +419,14 @@ Use these markers consistently:
 
 At completion, report in this order:
 1. brief status line
-2. link or handoff to the publish-ready package
-3. link or handoff to the review record
-4. link or handoff to the publish/install handoff
-5. short bullet summary of:
+2. the publish bundle zip
+3. the separate review file
+4. short bullet summary of:
    - what was created
    - what was changed
    - what assumptions were made
    - what should be reviewed
-6. publish-readiness statement
-
-The response should tell the user, in plain terms:
-- here is what you gave me
-- here is what I inferred
-- here is what I fixed
-- here is what I packaged
-- here is what I think you may want to adjust
+5. publish-readiness statement
 
 ## Second-pass workflow
 

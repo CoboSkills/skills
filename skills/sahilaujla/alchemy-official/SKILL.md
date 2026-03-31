@@ -305,4 +305,4 @@ export function verify(rawBody: string, signature: string, secret: string) {
 ## Official Links
 - [Developer docs](https://www.alchemy.com/docs)
 - [Get Started guide](https://www.alchemy.com/docs/get-started)
-- [Create a free API key](https://www.dashboard.alchemy.com)
+- [Create a free API key](https://dashboard.alchemy.com)

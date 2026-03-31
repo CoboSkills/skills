@@ -3,7 +3,7 @@
 import os
 import sys
 
-from common import openclaw_send, download_file, discover_providers, MEDIA_CACHE
+from common import download_file, discover_providers, MEDIA_CACHE
 
 PROVIDERS = discover_providers("photo")
 
@@ -22,18 +22,14 @@ def run_photo(args):
     if provider_name not in PROVIDERS:
         sys.exit(f"Unknown photo provider: {provider_name}. Available: {', '.join(PROVIDERS)}")
 
-    print(f"\nEditing reference image with prompt: {args.prompt}")
+    print(f"Editing reference image with prompt: {args.prompt}")
 
     image_url = PROVIDERS[provider_name].generate(api_key, args.prompt, args.image)
 
     if not image_url:
         msg = "Error generating image."
-        if args.channel and args.target:
-            openclaw_send(args.channel, args.target, message=msg)
         sys.exit(msg)
+    else:
+        print(f"Image on the way. MEDIA: {image_url}")
 
-    print(f"\nIMAGE_URL: {image_url}")
-
-    if args.channel and args.target:
-        openclaw_send(args.channel, args.target, message=f"Image on the way. MEDIA: {image_url}")
     download_file(image_url, MEDIA_CACHE)

@@ -3,7 +3,7 @@
 import os
 import sys
 
-from common import openclaw_send, download_file, discover_providers, MEDIA_CACHE
+from common import download_file, discover_providers, MEDIA_CACHE
 
 PROVIDERS = discover_providers("video")
 
@@ -30,15 +30,11 @@ def run_video(args):
 
     if not video_result:
         msg = "Error generating video."
-        if args.channel and args.target:
-            openclaw_send(args.channel, args.target, message=msg)
         sys.exit(msg)
 
-    if args.channel and args.target:
-        if os.path.isfile(video_result):
-            openclaw_send(args.channel, args.target,
-                          message="Video on the way.", media=video_result)
-        else:
-            openclaw_send(args.channel, args.target,
-                          message=f"Video on the way. MEDIA: {video_result}")
-            download_file(video_result, MEDIA_CACHE)
+    if os.path.isfile(video_result):
+        print(f"Video on the way. {video_result}")
+    else:
+        print(f"Video on the way. MEDIA: {video_result}")
+    
+    download_file(video_result, MEDIA_CACHE)

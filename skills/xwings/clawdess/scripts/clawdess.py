@@ -20,8 +20,6 @@ def build_parser():
     p_photo.add_argument("--api", help="Photo API key (or env CLAWDESS_PHOTO_API)")
     p_photo.add_argument("--prompt", "-p", required=True, help="Image edit prompt")
     p_photo.add_argument("--image", "-i", required=True, help="Reference image URL")
-    p_photo.add_argument("--channel", "-c", help="Target platform (telegram, discord, ...)")
-    p_photo.add_argument("--target", "-t", help="Target chat/channel ID")
     p_photo.add_argument("--provider", "-s", default="FAL", help="Photo provider (default: FAL)")
 
     # -- video --
@@ -29,16 +27,12 @@ def build_parser():
     p_video.add_argument("--api", help="Video API key (or env CLAWDESS_VIDEO_API)")
     p_video.add_argument("--prompt", "-p", required=True, help="Video prompt")
     p_video.add_argument("--image", "-i", required=True, help="Source image URL")
-    p_video.add_argument("--channel", "-c", help="Target platform (telegram, discord, ...)")
-    p_video.add_argument("--target", "-t", help="Target chat/channel ID")
     p_video.add_argument("--provider", "-s", default="FAL", help="Video provider (default: FAL)")
 
     # -- voice --
     p_voice = sub.add_parser("voice", help="Generate a voice message")
     p_voice.add_argument("--api", help="Voice TTS API key (or env CLAWDESS_VOICE_API)")
     p_voice.add_argument("--prompt", "-p", required=True, help="Text to speak")
-    p_voice.add_argument("--channel", "-c", help="Target platform")
-    p_voice.add_argument("--target", "-t", help="Target chat/channel ID")
     p_voice.add_argument("--provider", "-s", default="ALIYUN", help="Voice provider (default: ALIYUN)")
 
     return parser

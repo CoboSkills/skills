@@ -69,7 +69,6 @@ def extract_url(obj):
                 return found
     return None
 
-
 def download_file(url, dest_dir):
     """Download *url* into *dest_dir*, creating it if needed."""
     os.makedirs(dest_dir, exist_ok=True)
@@ -77,25 +76,6 @@ def download_file(url, dest_dir):
     dest = os.path.join(dest_dir, fname)
     urllib.request.urlretrieve(url, dest)
     return dest
-
-
-def openclaw_send(channel, target, message="", media=""):
-    """Send a message/media through OpenClaw."""
-    openclaw_bin = shutil.which("openclaw")
-    cmd = [openclaw_bin, "message", "send", "--channel", channel, "--target", target]
-
-    if message:
-        cmd += ["-m", shlex.quote(message)]
-    if media:
-        cmd += ["--media", shlex.quote(media)]
-
-    shell_cmd = " ".join(cmd)
-    print(f"OpenClaw cmd: {shell_cmd}")
-    result = subprocess.run(shell_cmd, shell=True, capture_output=True, text=True)
-    if result.returncode != 0:
-        print(f"OpenClaw error: {result.stderr}", file=sys.stderr)
-    return result.returncode
-
 
 def poll_for_url(url, headers, max_attempts=300, interval=5):
     """Poll a URL until a 'url' field appears in the response."""

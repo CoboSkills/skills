@@ -3,7 +3,7 @@
 import os
 import sys
 
-from common import openclaw_send, discover_providers
+from common import discover_providers
 
 PROVIDERS = discover_providers("voice")
 
@@ -24,15 +24,7 @@ def run_voice(args):
     voice_url = PROVIDERS[provider_name].generate(api_key, args.prompt)
 
     if not voice_url:
-        sys.exit("Error: Failed to generate voice.")
-
-    print(f"\nVOICE_URL: {voice_url}")
-
-    if args.channel and args.target:
-        rc = openclaw_send(args.channel, args.target, media=voice_url)
-        if rc == 0:
-            print("Voice sent successfully!")
-        else:
-            print(f"Warning: OpenClaw send failed, but voice URL: {voice_url}", file=sys.stderr)
+        msg = "Error generating Voice."
+        sys.exit(msg)
     else:
-        print(f"Voice generated! URL: {voice_url}")
+        print(f"Voice on the way. MEDIA: {voice_url}")

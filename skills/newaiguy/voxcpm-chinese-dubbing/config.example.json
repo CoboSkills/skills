@@ -7,6 +7,10 @@
     "api_key": "YOUR_API_KEY_HERE",
     "model": "tencent/Hunyuan-MT-7B"
   },
+  "vision": {
+    "api_url": "https://api.siliconflow.cn/v1/chat/completions",
+    "model": "Qwen/Qwen2.5-VL-72B-Instruct"
+  },
   "whisper": {
     "model": "medium",
     "language": "en"

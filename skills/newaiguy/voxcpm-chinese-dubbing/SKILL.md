@@ -1,9 +1,35 @@
 ---
 name: voxcpm-chinese-dubbing
 description: "🎯 **唯一使用VoxCPM的中文配音技能** - 外语视频一键中文配音，支持硬字幕检测、断点续传、智能BGM。触发场景：(1) 用户需要给外语视频配音 (2) 视频翻译需求 (3) 多语言内容本地化"
-version: 1.0.0
+version: 1.1.0
 author: newaiguy
 tags: [video, dubbing, voxcpm, chinese, translation, whisper, tts]
+credentials:
+  - name: TRANSLATE_API_KEY
+    description: 翻译API密钥（SiliconFlow/兼容OpenAI格式的API）
+    required: true
+  - name: VOXCPM_DIR
+    description: VoxCPM模型目录路径
+    required: true
+endpoints:
+  - name: TRANSLATE_API_URL
+    description: 翻译API端点
+    default: https://api.siliconflow.cn/v1/chat/completions
+  - name: VISION_API_URL
+    description: 硬字幕检测API端点（支持Vision模型）
+    default: https://api.siliconflow.cn/v1/chat/completions
+paths:
+  - name: WORK_DIR
+    description: 工作目录
+    default: ./workspace
+  - name: REFERENCE_AUDIO
+    description: TTS参考音频路径
+    default: ./reference_audio/speaker.wav
+external_calls:
+  - description: 翻译API调用（批量翻译英文到中文）
+    trigger: 自动调用（配音流程中必需）
+  - description: Vision API调用（硬字幕检测）
+    trigger: 自动调用（可选，检测视频是否有烧录字幕）
 ---
 
 # 🎬 VoxCPM中文视频配音
@@ -65,11 +91,18 @@ cp config.example.json config.json
     "api_key": "YOUR_API_KEY",
     "model": "tencent/Hunyuan-MT-7B"
   },
+  "vision": {
+    "api_url": "https://api.siliconflow.cn/v1/chat/completions",
+    "model": "Qwen/Qwen2.5-VL-72B-Instruct"
+  },
   "tts": {
     "reference_audio": "./reference_audio/speaker.wav",
     "reference_text": "参考音频对应的文本"
   }
 }
+```
+
+> **注意**: 所有配置项均可通过环境变量覆盖，优先级：环境变量 > config.json > 默认值
 ```
 
 ### 3. 运行
@@ -155,10 +188,20 @@ video-dubbing/
 
 ## 🔑 环境变量
 
-| 变量 | 说明 |
-|------|------|
-| `TRANSLATE_API_KEY` | 翻译API密钥（可替代配置文件） |
-| `VOXCPM_DIR` | VoxCPM目录（可替代配置文件） |
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `TRANSLATE_API_KEY` | 翻译API密钥（必需） | - |
+| `VOXCPM_DIR` | VoxCPM目录 | `./VoxCPM` |
+| `WORK_DIR` | 工作目录 | `./workspace` |
+| `REFERENCE_AUDIO` | TTS参考音频路径 | `./reference_audio/speaker.wav` |
+| `REFERENCE_TEXT` | 参考音频对应文本 | - |
+| `TRANSLATE_API_URL` | 翻译API端点 | SiliconFlow |
+| `TRANSLATE_MODEL` | 翻译模型 | `tencent/Hunyuan-MT-7B` |
+| `VISION_API_URL` | 硬字幕检测API端点 | SiliconFlow |
+| `VISION_MODEL` | Vision模型 | `Qwen/Qwen2.5-VL-72B-Instruct` |
+| `WHISPER_MODEL` | Whisper模型 | `medium` |
+| `WHISPER_LANGUAGE` | 源语言 | `en` |
+| `FFMPEG_PATH` | ffmpeg路径 | `ffmpeg` |
 
 ## 📊 音频匹配质量
 

@@ -22,23 +22,27 @@ import scipy.signal
 os.environ['TORCH_COMPILE_DISABLE'] = '1'
 os.environ['TORCHDYNAMO_DISABLE'] = '1'
 
-# 默认配置
+# 默认配置（所有路径和端点均可通过环境变量覆盖）
 DEFAULT_CONFIG = {
-    "work_dir": "./workspace",
-    "voxcpm_dir": "./VoxCPM",
-    "ffmpeg_path": "ffmpeg",
+    "work_dir": os.environ.get('WORK_DIR', './workspace'),
+    "voxcpm_dir": os.environ.get('VOXCPM_DIR', './VoxCPM'),
+    "ffmpeg_path": os.environ.get('FFMPEG_PATH', 'ffmpeg'),
     "translate": {
-        "api_url": "https://api.siliconflow.cn/v1/chat/completions",
-        "api_key": "",
-        "model": "tencent/Hunyuan-MT-7B"
+        "api_url": os.environ.get('TRANSLATE_API_URL', 'https://api.siliconflow.cn/v1/chat/completions'),
+        "api_key": os.environ.get('TRANSLATE_API_KEY', ''),
+        "model": os.environ.get('TRANSLATE_MODEL', 'tencent/Hunyuan-MT-7B')
+    },
+    "vision": {
+        "api_url": os.environ.get('VISION_API_URL', 'https://api.siliconflow.cn/v1/chat/completions'),
+        "model": os.environ.get('VISION_MODEL', 'Qwen/Qwen2.5-VL-72B-Instruct')
     },
     "whisper": {
-        "model": "medium",
-        "language": "en"
+        "model": os.environ.get('WHISPER_MODEL', 'medium'),
+        "language": os.environ.get('WHISPER_LANGUAGE', 'en')
     },
     "tts": {
-        "reference_audio": "./reference_audio/speaker.wav",
-        "reference_text": "参考音频对应的文本内容",
+        "reference_audio": os.environ.get('REFERENCE_AUDIO', './reference_audio/speaker.wav'),
+        "reference_text": os.environ.get('REFERENCE_TEXT', '参考音频对应的文本内容'),
         "max_group_duration": 15.0,
         "inference_timesteps": 10,
         "cfg_value": 2.0
@@ -59,7 +63,7 @@ DEFAULT_CONFIG = {
 
 
 def load_config(config_path=None):
-    """加载配置文件"""
+    """加载配置文件（环境变量已在DEFAULT_CONFIG中处理）"""
     config = DEFAULT_CONFIG.copy()
     
     if config_path and os.path.exists(config_path):
@@ -71,12 +75,6 @@ def load_config(config_path=None):
                     config[key].update(value)
                 else:
                     config[key] = value
-    
-    # 环境变量覆盖
-    if os.environ.get('TRANSLATE_API_KEY'):
-        config['translate']['api_key'] = os.environ['TRANSLATE_API_KEY']
-    if os.environ.get('VOXCPM_DIR'):
-        config['voxcpm_dir'] = os.environ['VOXCPM_DIR']
     
     return config
 
@@ -107,7 +105,7 @@ def detect_hard_subtitle(video_path, config, translate_key):
     with open(frame_path, 'rb') as f:
         image_data = base64.b64encode(f.read()).decode()
     
-    # AI分析
+    # AI分析（使用配置中的vision API）
     prompt = """分析这张视频截图，判断是否存在硬字幕（烧录在画面中的字幕文字）。
 
 请回答JSON格式：
@@ -120,12 +118,16 @@ def detect_hard_subtitle(video_path, config, translate_key):
 
 只返回JSON。"""
     
+    # 从配置获取vision API信息
+    vision_url = config.get('vision', {}).get('api_url', 'https://api.siliconflow.cn/v1/chat/completions')
+    vision_model = config.get('vision', {}).get('model', 'Qwen/Qwen2.5-VL-72B-Instruct')
+    
     try:
         resp = requests.post(
-            "https://api.siliconflow.cn/v1/chat/completions",
+            vision_url,
             headers={"Authorization": f"Bearer {translate_key}", "Content-Type": "application/json"},
             json={
-                "model": "Qwen/Qwen2.5-VL-72B-Instruct",
+                "model": vision_model,
                 "messages": [{"role": "user", "content": [
                     {"type": "text", "text": prompt},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_data}"}}

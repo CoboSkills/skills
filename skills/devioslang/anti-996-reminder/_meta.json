@@ -3,9 +3,15 @@
   "slug": "anti-996-reminder",
   "displayName": "Anti 996 Reminder",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1774515321086,
-    "commit": "https://github.com/openclaw/skills/commit/dc443c0e88abcb873f6351557775e47f498f98fc"
+    "version": "1.2.0",
+    "publishedAt": 1774552464354,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1774515321086,
+      "commit": "https://github.com/openclaw/skills/commit/dc443c0e88abcb873f6351557775e47f498f98fc"
+    }
+  ]
 }

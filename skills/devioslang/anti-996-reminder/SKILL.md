@@ -11,6 +11,7 @@ metadata: {"openclaw":{"emoji":"🌿","requires":{"config":[]}}}
 - 每日 `12:05` 推送午间暖心提醒（舒缓压力、提醒休息）
 - 每日 `23:00` 推送睡前暖心提醒（劝导早睡、关怀放松）
 - 23点推送支持"打卡"回应，攒积分，记录连续打卡天数
+- 每周一 `07:30` 自动推送上周打卡周报（打卡天数 / 漏打卡天数）
 - 内容每次随机选取，避免重复
 
 ## 定时任务设置（CLI 手动注册）
@@ -31,7 +32,7 @@ openclaw cron add \
   --tz "Asia/Shanghai" \
   --session isolated \
   --light-context \
-  --timeout-seconds 90 \
+  --timeout-seconds 150 \
   --message "你是一个暖心的健康助手。现在是午间。用以下 bash 命令从午间内容池随机选一条内容：
 
 python3 -c \"import json,random; c=json.load(open('/root/.openclaw/workspace/skills/anti-996-reminder/contents/noon.json')); item=random.choice(c); print(f'午安~现在是12:05，该休息一下啦。{item[\\\"text\\\"]}')\"
@@ -53,7 +54,7 @@ openclaw cron add \
   --tz "Asia/Shanghai" \
   --session isolated \
   --light-context \
-  --timeout-seconds 90 \
+  --timeout-seconds 150 \
   --message "你是一个暖心的健康助手。现在是睡前时间。用以下 bash 命令从睡前内容池随机选一条内容：
 
 python3 -c \"import json,random; c=json.load(open('/root/.openclaw/workspace/skills/anti-996-reminder/contents/night.json')); item=random.choice(c); print(f'夜深了~23点啦，放下手机，好好休息吧。{item[\\\"text\\\"]}\\n\\n回复【睡】打卡，今晚就赢1分~🌙')\"
@@ -67,6 +68,37 @@ python3 -c \"import json,random; c=json.load(open('/root/.openclaw/workspace/ski
 ```
 
 > ⚠️ `--account` 和 `--to` 需要替换为实际值。账号 ID 可通过 `openclaw channels list` 查看。
+
+### 任务三：周报（每周一 07:30）
+
+```bash
+openclaw cron add \
+  --name "anti-996-weekly" \
+  --cron "0 7 * * 1" \
+  --tz "Asia/Shanghai" \
+  --session isolated \
+  --light-context \
+  --timeout-seconds 150 \
+  --message "你是一个暖心的健康助手。现在是周一早上，来统计上周的打卡情况并发送周报。
+
+用以下 python 命令计算：
+python3 -c \"import json,datetime; data=json.load(open('/root/.openclaw/workspace/skills/anti-996-reminder/points.json')); history=data.get('history',[]); today=datetime.date.today(); lm=today-datetime.timedelta(days=today.weekday()+7); tm=today-datetime.timedelta(days=today.weekday()); wc=sum(1 for d in history if lm<=datetime.date.fromisoformat(d)<tm); print(f'{lm}~{(tm-datetime.timedelta(days=1))} 周报|打卡:{wc}/7|漏打卡:{7-wc}天|累计:{data.get(\\\"total\\\",0)}分|连续:{data.get(\\\"streak\\\",0)}天')\"
+
+得到输出后，直接输出为一条温暖的消息即可，格式如下：
+
+📋 上周睡眠周报（X月X日~X月X日）
+✅ 打卡：X / 7 天
+❌ 漏打卡：X 天
+🌙 累计积分：X分
+💪 连续打卡：X天
+
+附加一句温暖的鼓励即可。" \
+  --announce \
+  --account "8592acfc8006-im-bot" \
+  --to "o9cq800M8K-wyrmql8S5MSqz9piM@im.wechat" \
+  --channel openclaw-weixin \
+  --best-effort-deliver
+```
 
 ## 打卡积分系统
 

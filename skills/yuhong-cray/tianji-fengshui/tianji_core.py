@@ -104,29 +104,37 @@ class TianjiProcessor:
         # 使用更灵活但安全的模式，配合后续的安全验证
         patterns = [
             # 模式1: /tmp/目录下的图片文件
-            r'(/tmp/[^\s]*\.(?:jpg|png|jpeg|JPG|PNG|JPEG))',
+            r'(/tmp/[^\s]*\.(?:jpg|png|jpeg|JPG|PNG|JPEG|gif|webp|bmp))',
             # 模式2: 当前用户home目录下的图片文件
-            r'(/home/[^/\s]+/[^\s]*\.(?:jpg|png|jpeg|JPG|PNG|JPEG))',
+            r'(/home/[^/\s]+/[^\s]*\.(?:jpg|png|jpeg|JPG|PNG|JPEG|gif|webp|bmp))',
+            # 模式3: 用户主目录下的图片（~扩展）
+            r'(~/[^\s]*\.(?:jpg|png|jpeg|JPG|PNG|JPEG|gif|webp|bmp))',
         ]
         
         for pattern in patterns:
             matches = re.findall(pattern, text)
             if matches:
                 file_path = matches[0]
-                # 安全验证：检查路径是否包含危险模式
-                if self.is_safe_file_path(file_path):
+                # 扩展~为完整路径
+                if file_path.startswith('~'):
+                    import os
+                    file_path = os.path.expanduser(file_path)
+                
+                # 基本安全验证：检查路径是否包含危险模式
+                if self.is_basic_safe_path(file_path):
                     return file_path
         
         return None
     
-    def is_safe_file_path(self, file_path):
-        """验证文件路径是否安全"""
+    def is_basic_safe_path(self, file_path):
+        """基本路径安全检查（不检查文件存在性）"""
         import os
+        import re
         
         # 拒绝危险路径模式
         dangerous_patterns = [
             r'\.\./',  # 目录遍历
-            r'\.\.\\',  # Windows目录遍历
+            r'\.\\.',  # Windows目录遍历
             r'^/etc/',  # 系统配置文件
             r'^/var/',  # 系统目录
             r'^/usr/',  # 系统程序
@@ -145,29 +153,114 @@ class TianjiProcessor:
         ]
         
         # 转换为绝对路径并规范化
-        import os
         abs_path = os.path.abspath(file_path)
-        
-        # 检查是否在允许的目录下
-        allowed_prefixes = [
-            '/tmp/',
-            f'/home/{os.getenv("USER", "test")}/',
-            f'/home/{os.getenv("USER", "test")}/.openclaw/workspace/',
-        ]
         
         # 验证1: 不在危险目录中
         for pattern in dangerous_patterns:
             if re.search(pattern, abs_path):
                 return False
         
+        # 验证2: 文件扩展名检查
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.JPG', '.JPEG', '.PNG', '.GIF', '.WEBP', '.BMP']
+        file_ext = os.path.splitext(abs_path)[1]
+        if file_ext not in allowed_extensions:
+            return False
+        
+        return True
+    
+    def is_safe_file_path(self, file_path):
+        """验证文件路径是否安全（增强版）"""
+        import os
+        
+        # 拒绝危险路径模式
+        dangerous_patterns = [
+            r'\.\./',  # 目录遍历
+            r'\.\\.',  # Windows目录遍历
+            r'^/etc/',  # 系统配置文件
+            r'^/var/',  # 系统目录
+            r'^/usr/',  # 系统程序
+            r'^/bin/',  # 系统二进制
+            r'^/sbin/',  # 系统管理二进制
+            r'^/proc/',  # 进程信息
+            r'^/sys/',  # 系统信息
+            r'^/dev/',  # 设备文件
+            r'^/boot/',  # 启动文件
+            r'^/lib/',  # 系统库
+            r'^/opt/',  # 可选软件
+            r'^/srv/',  # 服务数据
+            r'^/media/',  # 可移动媒体
+            r'^/mnt/',  # 挂载点
+            r'^/root/',  # root用户目录
+            r'^/home/[^/]+/\.(ssh|bash|profile|history)',  # 用户敏感文件
+            r'^/home/[^/]+/\.openclaw/openclaw\.json$',  # 配置文件（需特殊权限）
+        ]
+        
+        # 转换为绝对路径并规范化
+        abs_path = os.path.abspath(file_path)
+        
+        # 获取用户主目录
+        user_home = os.path.expanduser('~')
+        
+        # 显式白名单目录
+        allowed_prefixes = [
+            '/tmp/',
+            f'{user_home}/.openclaw/workspace/',
+            f'{user_home}/.openclaw/media/inbound/',  # 仅限inbound目录
+            f'{user_home}/Downloads/',
+            f'{user_home}/Desktop/',
+            f'{user_home}/Documents/',
+            f'{user_home}/Pictures/',
+        ]
+        
+        # 验证1: 不在危险目录中
+        for pattern in dangerous_patterns:
+            if re.search(pattern, abs_path):
+                print(f"🚫 路径安全拒绝: 匹配危险模式 {pattern}")
+                return False
+        
         # 验证2: 在允许的目录下
+        is_allowed = False
         for prefix in allowed_prefixes:
             if abs_path.startswith(prefix):
-                # 验证3: 文件存在且可读
-                if os.path.exists(abs_path) and os.access(abs_path, os.R_OK):
-                    # 验证4: 是普通文件（不是目录、符号链接等）
-                    if os.path.isfile(abs_path):
-                        return True
+                is_allowed = True
+                break
+        
+        if not is_allowed:
+            print(f"🚫 路径安全拒绝: 不在白名单目录中")
+            print(f"   允许的目录: {allowed_prefixes}")
+            return False
+        
+        # 验证3: 文件存在且可读
+        if not os.path.exists(abs_path):
+            print(f"🚫 路径安全拒绝: 文件不存在")
+            return False
+        
+        if not os.access(abs_path, os.R_OK):
+            print(f"🚫 路径安全拒绝: 文件不可读")
+            return False
+        
+        # 验证4: 是普通文件（不是目录、符号链接等）
+        if not os.path.isfile(abs_path):
+            print(f"🚫 路径安全拒绝: 不是普通文件")
+            return False
+        
+        # 验证5: 文件大小限制（最大50MB）
+        file_size = os.path.getsize(abs_path)
+        max_size = 50 * 1024 * 1024  # 50MB
+        if file_size > max_size:
+            print(f"🚫 路径安全拒绝: 文件过大 ({file_size} > {max_size} bytes)")
+            return False
+        
+        # 验证6: 文件扩展名检查
+        allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp']
+        file_ext = os.path.splitext(abs_path)[1].lower()
+        if file_ext not in allowed_extensions:
+            print(f"🚫 路径安全拒绝: 不支持的文件扩展名 {file_ext}")
+            print(f"   允许的扩展名: {allowed_extensions}")
+            return False
+        
+        print(f"✅ 路径安全检查通过: {abs_path}")
+        return True
         
         return False
     

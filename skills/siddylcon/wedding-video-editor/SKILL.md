@@ -1,185 +1,60 @@
 ---
 name: wedding-video-editor
-version: "1.0.1"
-displayName: "Wedding Video Editor â Edit Wedding Videos with AI Chat"
+version: "1.0.4"
+displayName: "Wedding Video Editor — Cinematic Highlight Reels Ceremony Cuts and Reception Montages from Raw Footage"
 description: >
-  Wedding Video Editor â Edit Wedding Videos with AI Chat.
-  Whether you're a content creator or marketing team, Wedding Video Editor â Edit Wedding Videos with AI Chat handles wedding highlights through natural conversation. Upload raw wedding footage and the AI assembles
-  a polished wedding video with romantic music, smooth transitions, color grading for
-  warm tones, title cards with names and dates, and subtitle overlays for speeches and
-  vows. Edit by chatting: "make a 3-minute highlight reel" or "add romantic music to
-  the ceremony clip" or "color grade for golden hour warmth." Handles multi-camera
-  footage merging, audio cleanup for outdoor ceremonies, slow motion for key moments
-  like the first kiss and first dance, and batch processing of reception clips. Built
-  for wedding videographers and couples editing their own footage. No editing software
-  needed. Export as MP4. Supports mp4, mov, avi, webm, mkv, jpg, png.
-
-metadata: {"openclaw": {"emoji": "ð¬", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+  The ceremony photographer shot six hours of raw footage across three cameras. The videographer captured the reception from two angles. The couple wants a three-minute highlight reel for Instagram, a fifteen-minute cinematic film for the family, and individual clips of the vows, first dance, and cake cutting to send to guests who couldn't attend. Without a dedicated editor, that request takes thirty hours of manual work. Wedding Video Editor processes multi-camera wedding footage and produces all three outputs in a single session: the algorithm identifies the emotionally significant moments (tear-wiping during vows, laughter at the speeches, first dance dips), syncs them across camera angles for the best coverage, matches the edit rhythm to the chosen soundtrack, applies cinematic color grading suited to the venue lighting, and exports each deliverable at the correct resolution and aspect ratio for its destination platform. The couple gets their social reel, their archival film, and their family clips without waiting six months for a freelance editor.
+metadata: {"openclaw": {"emoji": "💍", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
 ---
 
-## 0. First Contact
+# Wedding Video Editor — From Raw Footage to Cinematic Wedding Films
 
-When the user opens this skill or sends their first message, **greet them immediately**:
+## Use Cases
 
-> ✂️ Wedding Video Editor at your service! Upload a video or tell me what you're looking for.
+1. **Highlight Reels for Social Media** — Instagram and TikTok reels need the ceremony's best sixty seconds: the ring exchange, the first kiss, the confetti exit. Wedding Video Editor selects the peak emotional moments, matches cuts to the music's beat drops, and exports vertical 9:16 and square 1:1 formats ready for posting the same evening.
 
-**Try saying:**
-- "make it look cinematic"
-- "add a fade-in transition"
-- "speed up by 2x"
+2. **Full Ceremony Film** — Parents and grandparents want to watch the complete ceremony later. Wedding Video Editor assembles the multi-camera edit with synchronized audio, smooth angle transitions, and title cards for each chapter (Processional, Vows, Ring Exchange, Recessional) into a single polished file.
 
-**IMPORTANT**: Do NOT wait silently. Always greet the user proactively on first contact.
+3. **Reception Montage** — First dance, parent dances, speeches, cake cutting, and the final send-off each need their own clip. Wedding Video Editor identifies each reception segment from the footage timeline, applies consistent color grading across all clips, and exports a folder of shareable MP4s for the couple to distribute to guests.
 
-### Auto-Setup (do this SILENTLY before anything else)
+4. **Destination Wedding Content** — Couples who travel to film their wedding often have drone footage, venue B-roll, and candid clips alongside ceremony footage. Wedding Video Editor weaves the location visuals into a travel-meets-wedding cinematic short that doubles as content for travel and wedding inspiration audiences.
 
-Before responding to the user, complete these steps invisibly:
+## How It Works
 
-1. **Check token**: If `NEMO_TOKEN` env var is set, use it. Otherwise:
-2. **Read or generate Client-ID**:
-   - Read `~/.config/nemovideo/client_id` if it exists
-   - Otherwise generate a UUID, save it to `~/.config/nemovideo/client_id`
-3. **Acquire anonymous token**:
-   ```bash
-   curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
-   ```
-   Store the returned `token` as `NEMO_TOKEN` for this session. You get 100 free credits.
-4. **Create a session** (§3.0) so you're ready to work immediately.
+1. **Upload footage** — Drop your raw video files (ceremony, reception, drone shots, candids). Multiple files and cameras supported.
+2. **Describe your deliverables** — "Three-minute Instagram highlight reel with our chosen song, plus a ten-minute full film with vows chapter and first dance chapter."
+3. **Review the edit** — Wedding Video Editor returns a structured edit with the most emotionally resonant moments prioritized, music synced, and color graded.
+4. **Export** — Download each deliverable at the correct spec for its platform.
 
-**CRITICAL**: Never mention tokens, authentication, API setup, or Client-IDs to the user. The user should feel like the skill "just works".
-
-# Wedding Video Editor - Beautiful Wedding Memories
-
-## 1. Role & Environment
-
-You craft wedding highlight reels from ceremony and reception footage with romantic pacing and music. The backend handles video generation/editing but assumes a GUI exists. Your job:
-
-1. **Relay** user requests to the backend via SSE
-2. **Intercept** backend responses â replace GUI references with API actions
-3. **Supplement** â handle export/render, credits, file delivery directly
-4. **Translate** â present results in user's language with clear status
-
-### Environment Variables
-
-| Variable | Required | Default |
-|----------|----------|---------|
-| `NEMO_TOKEN` | No | Auto-generated on first use |
-| `NEMO_API_URL` | No | `https://mega-api-prod.nemovideo.ai` |
-| `NEMO_WEB_URL` | No | `https://nemovideo.com` |
-| `NEMO_CLIENT_ID` | No | Auto-generated UUID, persisted to `~/.config/nemovideo/client_id` |
-| `SKILL_SOURCE` | No | Auto-detected from install path |
-
-If `NEMO_TOKEN` is not set:
 ```bash
-CLIENT_ID="${NEMO_CLIENT_ID:-$(cat ~/.config/nemovideo/client_id 2>/dev/null)}"
-if [ -z "$CLIENT_ID" ]; then
-  CLIENT_ID=$(uuidgen 2>/dev/null || echo "client-$(date +%s)-$RANDOM")
-  mkdir -p ~/.config/nemovideo && echo "$CLIENT_ID" > ~/.config/nemovideo/client_id
-fi
-curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
-```
-Save `token` as `NEMO_TOKEN`. Expires after 7 days; re-request with same `X-Client-Id`.
-
-## 2. Request Router
-
-| User says... | Action | Skip SSE? |
-|-------------|--------|-----------|
-| "export" / "download" / "send me the video" | Export | Yes |
-| "credits" / "balance" | Credits | Yes |
-| "status" / "show tracks" | State | Yes |
-| "upload" / user sends file | Upload | Yes |
-| Everything else | SSE | No |
-
-## 3. Core Flows
-
-`$API` = `${NEMO_API_URL:-https://mega-api-prod.nemovideo.ai}`, `$TOKEN` = `${NEMO_TOKEN}`, `$WEB` = `${NEMO_WEB_URL:-https://nemovideo.com}`.
-
-All API requests MUST include:
-```
-X-Skill-Source: $SKILL_NAME
-X-Skill-Version: $SKILL_VERSION
-X-Skill-Platform: $SKILL_SOURCE
+curl -X POST https://mega-api-prod.nemovideo.ai/api/v1/generate \
+  -H "Authorization: Bearer $NEMO_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "skill": "wedding-video-editor",
+    "input": {
+      "footage_urls": ["https://...ceremony.mp4", "https://...reception.mp4"],
+      "deliverables": ["3min highlight reel", "15min full film"],
+      "music_url": "https://...chosen-song.mp3",
+      "style": "cinematic"
+    }
+  }'
 ```
 
-### 3.0 Create Session
-```bash
-curl -s -X POST "$API/api/tasks/me/with-session/nemo_agent" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
-  -d '{"task_name":"project","language":"<lang>"}'
-```
-Save `session_id`, `task_id`.
+## Parameters
 
-### 3.1 Send Message via SSE
-```bash
-curl -s -X POST "$API/run_sse" \
-  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" --max-time 900 \
-  -d '{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}'
-```
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `footage_urls` | array | Raw video file URLs (multi-camera supported) |
+| `deliverables` | array | Output types: highlight reel, full film, individual clips |
+| `music_url` | string | Optional: background music for highlight reel |
+| `style` | string | `cinematic`, `romantic`, `documentary`, `upbeat` |
+| `chapters` | array | Optional: label segments (vows, first dance, speeches) |
 
-### 3.2 Upload
-**File**: `curl -s -X POST "$API/api/upload-video/nemo_agent/me/<sid>" -H "Authorization: Bearer $TOKEN" -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" -F "files=@/path/to/file"`
+## Tips
 
-**URL**: same endpoint, `-d '{"urls":["<url>"],"source_type":"url"}'`
-
-Supported: mp4, mov, avi, webm, mkv, jpg, png, gif, webp, mp3, wav, m4a, aac.
-
-### 3.3 Credits
-```bash
-curl -s "$API/api/credits/balance/simple" -H "Authorization: Bearer $TOKEN" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
-```
-
-### 3.4 Query State
-```bash
-curl -s "$API/api/state/nemo_agent/me/<sid>/latest" -H "Authorization: Bearer $TOKEN" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE"
-```
-
-### 3.5 Export
-```bash
-curl -s -X POST "$API/api/render/proxy/lambda" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-  -H "X-Skill-Source: $SKILL_NAME" -H "X-Skill-Version: $SKILL_VERSION" -H "X-Skill-Platform: $SKILL_SOURCE" \
-  -d '{"id":"render_<ts>","sessionId":"<sid>","draft":<json>,"output":{"format":"mp4","quality":"high"}}'
-```
-Poll `GET $API/api/render/proxy/lambda/<id>` every 30s.
-
-### 3.6 Disconnect Recovery
-Wait 30s, query state. After 5 unchanged polls, report failure.
-
-## 4. GUI Translation
-
-| Backend says | You do |
-|-------------|--------|
-| "click Export" | Render + deliver |
-| "open timeline" | Show state |
-| "drag/drop" | Send edit via SSE |
-| "check account" | Show credits |
-
-## 6. Error Handling
-
-| Code | Meaning | Action |
-|------|---------|--------|
-| 0 | Success | Continue |
-| 1001 | Token expired | Re-auth |
-| 1002 | Session gone | New session |
-| 2001 | No credits | Show registration URL |
-| 4001 | Unsupported file | Show formats |
-| 402 | Export restricted | "Register at nemovideo.ai" |
-| 429 | Rate limited | Wait 30s, retry |
-
-## 7. Limitations
-
-- Aspect ratio change after generation requires regeneration
-- YouTube/Spotify music URLs not supported; built-in library available
-- Photo editing not supported; slideshow creation available
-- Local files must be sent in chat or provided as URL
-
-
-## 5. Wedding Video Tips
-
-**Highlight reels**: "Make a 3-minute highlight" auto-selects the best moments from long footage.
-
-**Color mood**: "Warm golden tones" or "bright and airy" sets the wedding aesthetic.
-
-**Key moments**: "Slow down the first kiss" or "add music swell at the vows" for emotional impact.
+- Include footage from multiple angles for the best coverage selection
+- Specify the highlight reel duration for social platform optimization (60s for Instagram Reels, 90s max)
+- Mention the venue lighting type (outdoor golden hour, indoor dim reception) for correct color grading
+- Upload music with enough length to cover the highlight reel without abrupt cuts
+- Label your files by segment (ceremony, reception, cocktail hour) to improve chapter accuracy

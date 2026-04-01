@@ -1,0 +1,11 @@
+{
+  "owner": "twinsgeeks",
+  "slug": "mac-mini-ai",
+  "displayName": "Mac Mini AI — Mac Mini Local LLM, Image Gen, STT on Apple Silicon",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1774941169210,
+    "commit": null
+  },
+  "history": []
+}

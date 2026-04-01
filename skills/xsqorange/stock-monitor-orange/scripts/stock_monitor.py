@@ -550,6 +550,10 @@ def get_market_index() -> List[Dict]:
         ('sh000300', '沪深300'),
         ('sh000016', '上证50'),
         ('sz399905', '中证500'),
+        # 港股指数
+        ('hkHSI', '恒生指数'),
+        ('hkHSTECH', '恒生科技'),
+        ('hkHSCEI', '恒生国企'),
     ]
 
     results = []

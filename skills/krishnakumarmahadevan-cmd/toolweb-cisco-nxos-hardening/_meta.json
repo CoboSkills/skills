@@ -1,0 +1,11 @@
+{
+  "owner": "krishnakumarmahadevan-cmd",
+  "slug": "toolweb-cisco-nxos-hardening",
+  "displayName": "Cisco NXOS Hardening",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774895301103,
+    "commit": null
+  },
+  "history": []
+}

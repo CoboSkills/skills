@@ -1,6 +1,41 @@
 ---
 name: bardi-smart-home-tuya
-description: "Mengontrol perangkat smart home Tuya melalui Cloud API, termasuk lampu, colokan, sensor, meteran, dan lainnya. Mendukung lampu pintar Bardi dengan fitur pengaturan warna, kecerahan (brightness), suhu warna putih, serta kontrol HSV. Selain itu, juga bisa digunakan untuk mengontrol perangkat Tuya secara umum (nyala/mati, cek status, kirim perintah DP) dan menemukan perangkat di jaringan lokal. Fitur ini cocok digunakan saat pengguna ingin menyalakan atau mematikan lampu, mengatur kecerahan, mengubah warna, mengecek status perangkat, memindai perangkat di jaringan lokal, atau memberikan perintah ke perangkat smart home Bardi/Tuya."
+description: "Mengontrol perangkat smart home Tuya melalui Cloud API, termasuk lampu, colokan, sensor, meteran, dan lainnya. Mendukung lampu pintar Bardi dengan fitur pengaturan warna, kecerahan (brightness), suhu warna putih, serta kontrol HSV. Selain itu, juga bisa digunakan untuk mengontrol perangkat Tuya secara umum (nyala/mati, cek status, kirim perintah DP) dan menemukan perangkat di jaringan lokal. Credential dibaca dari environment variable: TUYA_ACCESS_ID (required), TUYA_ACCESS_SECRET (required), TUYA_API_REGION (opsional, default: sg). Fitur ini cocok digunakan saat pengguna ingin menyalakan atau mematikan lampu, mengatur kecerahan, mengubah warna, mengecek status perangkat, memindai perangkat di jaringan lokal, atau memberikan perintah ke perangkat smart home Bardi/Tuya."
+metadata:
+  {
+    "openclaw":
+      {
+        "emoji": "🏠",
+        "name": "bardi-smart-home-tuya",
+        "description": "Mengontrol perangkat smart home Tuya melalui Cloud API, termasuk lampu, colokan, sensor, meteran, dan lainnya.",
+        "requires": { "env": ["TUYA_ACCESS_ID", "TUYA_ACCESS_SECRET"], "pip": ["tinytuya"] },
+        "primaryEnv": "TUYA_ACCESS_ID",
+        "env":
+          {
+            "TUYA_ACCESS_ID":
+              {
+                "label": "Tuya Access ID",
+                "description": "Cloud project Access ID from Tuya IoT Platform (iot.tuya.com)",
+                "placeholder": "your-access-id",
+                "required": true
+              },
+            "TUYA_ACCESS_SECRET":
+              {
+                "label": "Tuya Access Secret",
+                "description": "Cloud project Access Secret from Tuya IoT Platform (iot.tuya.com)",
+                "placeholder": "your-access-secret",
+                "required": true
+              },
+            "TUYA_API_REGION":
+              {
+                "label": "Tuya API Region",
+                "description": "Data center region: sg (default), us, eu, cn, in",
+                "placeholder": "sg",
+                "required": false
+              }
+          }
+      }
+  }
 ---
 
 # Bardi-Tuya Smart Home
@@ -10,11 +45,16 @@ Control Tuya smart home devices via cloud API.
 ## Requirements
 
 - `tinytuya` Python library installed
-- Tuya IoT credentials set as environment variables
+- Environment variables must be set:
+  - `TUYA_ACCESS_ID` — Cloud project Access ID
+  - `TUYA_ACCESS_SECRET` — Cloud project Access Secret
+  - `TUYA_API_REGION` — Data center region (default: `sg`)
+
+The skill will not function if TUYA_ACCESS_ID and TUYA_ACCESS_SECRET are missing.
 
 ## Setup
 
-See [SETUP.md](SETUP.md) for installation and configuration.
+See [SETUP.md](SETUP.md) for detailed installation and configuration instructions.
 
 ## API Reference
 

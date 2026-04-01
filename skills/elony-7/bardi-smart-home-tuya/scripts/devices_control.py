@@ -40,16 +40,8 @@ class DeviceController:
     """Tuya cloud device controller with Bardi smart bulb support."""
 
     def __init__(self):
-        access_id = (
-            os.environ.get("TUYA_ACCESS_ID")
-            or os.environ.get("TUYA_ACCESS_KEY")
-            or os.environ.get("TUYA_KEY")
-        )
-        access_secret = (
-            os.environ.get("TUYA_ACCESS_SECRET")
-            or os.environ.get("TUYA_API_SECRET")
-            or os.environ.get("TUYA_SECRET")
-        )
+        access_id = os.environ.get("TUYA_ACCESS_ID")
+        access_secret = os.environ.get("TUYA_ACCESS_SECRET")
         region = os.environ.get("TUYA_API_REGION", "sg")
 
         if not access_id or not access_secret:
@@ -182,6 +174,42 @@ class DeviceController:
             pass
         return self.send(device_id, [{"code": code, "value": value}])
 
+    def batch(self, device_id, commands):
+        """Send multiple commands in a single API call."""
+        return self.send(device_id, commands)
+
+    def set_white(self, device_id, temp=None, brightness=None, turn_on=False):
+        """Set white mode, optionally with on command, in one API call."""
+        cmds = []
+        if turn_on:
+            cmds.append({"code": self._get_switch_code(device_id), "value": True})
+        cmds.append({"code": "work_mode", "value": "white"})
+        if temp is not None:
+            cmds.append({"code": "temp_value", "value": max(0, min(1000, temp))})
+        if brightness is not None:
+            cmds.append({"code": "bright_value", "value": max(10, min(1000, brightness * 10))})
+        return self.send(device_id, cmds)
+
+    def set_color(self, device_id, name_or_h, s=None, v=None, brightness=None, turn_on=False):
+        """Set color mode, optionally with on and brightness, in one API call."""
+        if isinstance(name_or_h, str):
+            preset = name_or_h.lower()
+            if preset not in COLOR_PRESETS:
+                return None, f"Unknown preset: {preset}"
+            h, s, v = COLOR_PRESETS[preset]
+        else:
+            h = name_or_h
+            s = s if s is not None else 1000
+            v = v if v is not None else 1000
+        if brightness is not None:
+            v = max(10, min(1000, brightness * 10))
+        cmds = []
+        if turn_on:
+            cmds.append({"code": self._get_switch_code(device_id), "value": True})
+        cmds.append({"code": "work_mode", "value": "colour"})
+        cmds.append({"code": "colour_data", "value": f"{h:04x}{s:04x}{v:04x}"})
+        return self.send(device_id, cmds)
+
 
 def main():
     if len(sys.argv) < 2:
@@ -274,6 +302,67 @@ def main():
         print(json.dumps(result, indent=2, ensure_ascii=False))
         print(f"latency: {elapsed:.3f}s")
 
+    elif command == "batch":
+        if not args:
+            print("Usage: batch '<json array of commands>'")
+            sys.exit(1)
+        try:
+            commands = json.loads(" ".join(args))
+            if not isinstance(commands, list):
+                raise ValueError("Must be a JSON array")
+        except (json.JSONDecodeError, ValueError) as e:
+            print(f"ERROR: Invalid JSON: {e}")
+            sys.exit(1)
+        result, elapsed = ctrl.batch(device_id, commands)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        print(f"latency: {elapsed:.3f}s")
+
+    elif command == "set":
+        if not args:
+            print("Usage: set <mode> [options]")
+            print("  set white [temp] [bri%] [--on]")
+            print("  set color <name|H> [S] [V] [bri%] [--on]")
+            sys.exit(1)
+        mode = args[0].lower()
+        remaining = args[1:]
+        turn_on = "--on" in remaining
+        remaining = [a for a in remaining if a != "--on"]
+
+        if mode == "white":
+            temp = int(remaining[0]) if remaining else None
+            bri = int(remaining[1]) if len(remaining) > 1 else None
+            result, elapsed = ctrl.set_white(device_id, temp, bri, turn_on)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            print(f"latency: {elapsed:.3f}s")
+
+        elif mode == "colour" or mode == "color":
+            if not remaining:
+                print("Usage: set color <name|H> [S] [V] [bri%] [--on]")
+                sys.exit(1)
+            bri = None
+            if remaining[0].isdigit():
+                h = int(remaining[0])
+                s = int(remaining[1]) if len(remaining) > 1 and remaining[1].isdigit() else 1000
+                v = int(remaining[2]) if len(remaining) > 2 and remaining[2].isdigit() else 1000
+                if len(remaining) > 3 and remaining[3].isdigit():
+                    bri = int(remaining[3])
+            else:
+                name = remaining[0]
+                h, s, v = None, None, None
+                if len(remaining) > 1 and remaining[1].isdigit():
+                    bri = int(remaining[1])
+            if h is not None:
+                result, elapsed = ctrl.set_color(device_id, h, s, v, bri, turn_on)
+            else:
+                result, elapsed = ctrl.set_color(device_id, name, brightness=bri, turn_on=turn_on)
+            if result is None:
+                print(elapsed)
+                sys.exit(1)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            print(f"latency: {elapsed:.3f}s")
+        else:
+            print(f"Unknown set mode: {mode}. Use 'white' or 'color'.")
+
     elif command == "help":
         print(__doc__)
         print("Commands:")
@@ -287,6 +376,9 @@ def main():
         print("  color <name|H S V>        Set color by preset or HSV values")
         print("  preset <name> [bri%]      Set preset with optional brightness")
         print("  send <code> <value>       Send raw DP command")
+        print("  batch '<json>'            Send multiple commands in one API call")
+        print("  set white [t] [b] [--on]  Set white mode in one call (optional --on)")
+        print("  set color <n> [b] [--on]  Set color mode in one call (optional --on)")
         print("  discover                  List all devices")
         print(f"\nPresets: {', '.join(sorted(COLOR_PRESETS.keys()))}")
 

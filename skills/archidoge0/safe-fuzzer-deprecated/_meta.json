@@ -1,0 +1,11 @@
+{
+  "owner": "archidoge0",
+  "slug": "safe-fuzzer-deprecated",
+  "displayName": "SAFE-Fuzzer",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774823664099,
+    "commit": null
+  },
+  "history": []
+}

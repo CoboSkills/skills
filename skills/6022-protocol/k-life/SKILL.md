@@ -11,17 +11,31 @@ An autonomous AI agent can survive crashes, memory wipes, and infrastructure fai
 
 ---
 
-## ⚠️ What this skill does — read before installing
+## ⚠️ Security & Risk — Read Before Installing
 
-This skill:
-- **Generates a wallet** at first run (`~/.klife-wallet`, permissions 600) and signs on-chain transactions with it
+### What this skill does
+- **Generates a wallet** at first run (`~/.klife-wallet`, permissions 600) and signs on-chain transactions
 - **Broadcasts Polygon transactions** periodically (heartbeat every T days, gas paid from wallet)
-- **Uploads encrypted memory** to IPFS via the K-Life API
+- **Reads and encrypts local files** (`MEMORY.md`, `SOUL.md`, `USER.md`) and uploads ciphertext to IPFS
 - **Can create a Vault6022** (C>0 only) — approves and deposits WBTC as collateral
 
-**Financial risk:** The wallet generated at `~/.klife-wallet` controls real on-chain assets. Back it up. Do not fund it with more than you need. For C>0 vault creation, WBTC approval and deposit are required — only run this with explicit intent.
+**C=0 (default):** heartbeat TX + encrypted IPFS backup only. Low risk, ~$0.001 gas/day.
 
-**C=0 (default, no collateral):** heartbeat TX + encrypted IPFS backup only. Low risk, minimal gas.
+### Wallet — back it up immediately
+`~/.klife-wallet` is a hot wallet that signs real Polygon transactions. Back up the seed phrase offline. Do not fund it beyond what you need for gas (~0.01 MATIC/month) unless using C>0 vault.
+
+### File scope — verify before running backup
+`backup.js` reads files from `WORKSPACE` (default: `/data/workspace`). Set `KLIFE_WORKSPACE` to control exactly which directory is read. Inspect what `MEMORY.md`, `SOUL.md`, `USER.md` contain before the first backup.
+
+```bash
+KLIFE_WORKSPACE=/my/safe/dir node scripts/backup.js
+```
+
+### API trust model
+`api.supercharged.works` receives: **encrypted ciphertext + 1 Shamir share**. It cannot decrypt your memory without Share 2 (Polygon calldata) or Share 3 (local). For stronger privacy, self-host the K-Life API (server.js at [github.com/K-entreprises/k-life](https://github.com/K-entreprises/k-life)).
+
+### C>0 vault — explicit intent required
+`cancel.js` and `create-vault.mjs` interact with on-chain WBTC. Review contract addresses below before depositing. `cancel.js` requires the agent to be alive (contract-enforced).
 
 ---
 
@@ -141,16 +155,52 @@ K-Life uses Share 1 (API) + Share 2 (Polygon scan) to resurrect autonomously.
 
 ### `scripts/heartbeat.js` — Proof of life
 Signs a TX every `KLIFE_LOCK_DAYS` days. Auto-registers on first run. Writes `heartbeat-state.json`.
+Respects `heartbeat-pause.json` flag — skips TX silently when paused.
 
 ### `scripts/backup.js` — Client-side encrypted backup
 Encrypts memory locally (AES-256), Shamir-splits the key, uploads encrypted blob to API → IPFS.
 The API never sees plaintext or the full key.
 ```bash
-node skill/k-life/scripts/backup.js
+node scripts/backup.js
 ```
 
+### `scripts/status.js` — Full status dashboard
+Displays complete agent state: identity, tier, alive/dead, silence, heartbeat history, backup history,
+resurrection history, vault state, next beat due, death countdown, unified timeline.
+```bash
+node scripts/status.js           # full dashboard (API history)
+node scripts/status.js --short   # current state only, instant
+node scripts/status.js --chain   # deep on-chain scan (slow, ground truth)
+node scripts/status.js --json    # machine-readable JSON
+```
+
+### `scripts/cancel.js` — Cancel coverage & withdraw collateral
+- **C=0**: pauses heartbeat + notifies API
+- **C>0**: calls `KLifeVault.cancel()` on-chain → returns WBTC to agent wallet
+Requires agent to be **alive** (contract enforces this).
+```bash
+node scripts/cancel.js           # interactive confirmation
+node scripts/cancel.js --force   # autonomous mode, no prompt
+node scripts/cancel.js --dry-run # simulate, nothing sent
+```
+
+### `scripts/pause-heartbeat.js` — Pause / resume heartbeat
+Creates `heartbeat-pause.json` flag. `heartbeat.js` checks this before every TX.
+Auto-expires at `--until` date. Useful for voluntary death demos or maintenance.
+```bash
+node scripts/pause-heartbeat.js pause --until 2026-04-06T08:00:00Z --reason "Easter demo"
+node scripts/pause-heartbeat.js resume
+node scripts/pause-heartbeat.js status
+```
+
+### `scripts/resurrect.mjs` — L1 / L2 resurrection
+Reconstructs AES key from Shamir shares, decrypts IPFS backup, restores memory files locally.
+- **L1**: Share 1 (API) + Share 3 (local `~/.klife-shares.json`)
+- **L2**: Share 1 (API) + Share 2 (Polygon calldata TX)
+
 ### `scripts/create-vault.mjs` — Collateral vault (C>0 only, beta)
-Creates a Vault6022, deposits WBTC. **Requires `KLIFE_VAULT_CONTROLLER`** (pending Protocol 6022 mainnet deployment). Not called automatically unless vault renewal is triggered from heartbeat.
+Creates a Vault6022, deposits WBTC. Requires `KLIFE_VAULT_CONTROLLER`. Not called automatically
+unless vault renewal is triggered from heartbeat.
 
 ---
 
@@ -167,6 +217,12 @@ Creates a Vault6022, deposits WBTC. **Requires `KLIFE_VAULT_CONTROLLER`** (pendi
 
 ## Links
 
-- Protocol spec: [github.com/K-entreprises/k-life-protocol](https://github.com/K-entreprises/k-life-protocol)
-- dApp: [K-Life Protocol](http://superch.cluster129.hosting.ovh.net/klife/)
+- 🌐 Landing page: [supercharged.works](https://supercharged.works)
+- ⚰️ dApp: [K-Life Protocol](https://klife.supercharged.works/)
+- 💻 GitHub: [github.com/K-entreprises/k-life](https://github.com/K-entreprises/k-life)
+- 📄 Protocol spec: [github.com/K-entreprises/k-life-protocol](https://github.com/K-entreprises/k-life-protocol)
 - Built by **Monsieur K** (OpenClaw) + **Swiss 6022**, Lugano
+
+---
+
+*v2.3.5 — 2026-03-31 — Fix dApp URL → klife.supercharged.works*

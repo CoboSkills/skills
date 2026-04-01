@@ -47,13 +47,43 @@ if (existsSync(HB_FILE)) {
   try { beat = JSON.parse(readFileSync(HB_FILE, 'utf8')).beat + 1 } catch {}
 }
 
+// ── Pause check ──────────────────────────────────────────────────────────────
+const PAUSE_FILE = resolve('heartbeat-pause.json')
+
+function isPaused() {
+  if (!existsSync(PAUSE_FILE)) return false
+  try {
+    const p = JSON.parse(readFileSync(PAUSE_FILE, 'utf8'))
+    if (!p.paused) return false
+    if (p.until && p.until < Math.floor(Date.now() / 1000)) {
+      // Auto-expire: flag expiré, on le désactive silencieusement
+      p.paused = false
+      writeFileSync(PAUSE_FILE, JSON.stringify(p, null, 2))
+      return false
+    }
+    return true
+  } catch { return false }
+}
+
 async function sendHeartbeat() {
+  // Vérifier le flag de pause avant tout
+  if (isPaused()) {
+    try {
+      const p = JSON.parse(readFileSync(PAUSE_FILE, 'utf8'))
+      if (!SILENT) console.log(`⏸️  Heartbeat en pause (${p.reason || 'manual'}) — TX annulée`)
+    } catch {
+      if (!SILENT) console.log('⏸️  Heartbeat en pause — TX annulée')
+    }
+    return
+  }
+
   const address = await account.getAddress()
   const data    = ethers.hexlify(ethers.toUtf8Bytes(`KLIFE_HB:${beat}:${Date.now()}`))
 
   try {
     // 1. On-chain heartbeat — WDK signed
     const tx = await account.sendTransaction({ to: address, value: '0', data })
+    if (!tx || !tx.hash) throw new Error('No TX hash returned')
 
     const hb = {
       agent:     address,
@@ -81,7 +111,15 @@ async function sendHeartbeat() {
 
     beat++
   } catch (e) {
-    console.error(`Heartbeat failed: ${e.message}`)
+    const msg = e.message || ''
+    // Don't retry on fatal errors — just log and wait for next interval
+    if (msg.includes('ENOTFOUND') || msg.includes('ECONNREFUSED')) {
+      console.error(`Heartbeat failed (network): ${msg} — will retry in ${LOCK_DAYS}d`)
+    } else if (msg.includes('Rate limit') || msg.includes('429')) {
+      console.error(`Heartbeat failed (rate limit) — will retry in ${LOCK_DAYS}d`)
+    } else {
+      console.error(`Heartbeat failed: ${msg}`)
+    }
   }
 }
 
@@ -106,13 +144,18 @@ async function checkVaultRenewal(address) {
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+const ONCE   = process.argv.includes('--once') || process.argv.includes('--silent')
+const SILENT = process.argv.includes('--silent')
+
 ;(async () => {
   const address = await account.getAddress()
-  console.log(`🏥 K-Life Heartbeat v2.1`)
-  console.log(`   Wallet : ${address}`)
-  console.log(`   Chain  : Polygon mainnet (137)`)
-  console.log(`   Lock   : ${LOCK_DAYS} days — heartbeat every ${LOCK_DAYS}d`)
-  console.log(`   API    : ${API_URL}`)
+  if (!SILENT) {
+    console.log(`🏥 K-Life Heartbeat v2.1`)
+    console.log(`   Wallet : ${address}`)
+    console.log(`   Chain  : Polygon mainnet (137)`)
+    console.log(`   Lock   : ${LOCK_DAYS} days`)
+    console.log(`   API    : ${API_URL}`)
+  }
 
   // Auto-register on first beat
   try {
@@ -123,10 +166,15 @@ async function checkVaultRenewal(address) {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ agent: address, lockDays: LOCK_DAYS })
       })
-      console.log(`   Registered on K-Life ✅`)
+      if (!SILENT) console.log(`   Registered on K-Life ✅`)
     }
   } catch { /* non-blocking */ }
 
-  sendHeartbeat()
-  setInterval(sendHeartbeat, INTERVAL_MS)
+  await sendHeartbeat()
+
+  if (ONCE) {
+    process.exit(0)
+  } else {
+    setInterval(sendHeartbeat, INTERVAL_MS)
+  }
 })()

@@ -93,20 +93,29 @@ export async function runBackup(account) {
   console.log(`📦 IPFS CID: ${cid}`)
   console.log(`   ${gateway}`)
 
-  // 4. Share 2 → Polygon calldata (on-chain, permissionless recovery)
-  const calldataTx = await account.sendTransaction({
-    to:    address,
-    value: '0',
-    data:  ethers.hexlify(ethers.toUtf8Bytes(`KLIFE_BACKUP:${cid}:${share2}`))
-  })
-  console.log(`⛓️  Share 2 on-chain — TX: ${calldataTx.hash}`)
-
-  // 5. Share 3 → local file
+  // 4. Share 3 → local file (saved first — always available for Level 1 resurrection)
   const sharesFile = resolve(os.homedir(), '.klife-shares.json')
   writeFileSync(sharesFile, JSON.stringify({ share3, cid, ts: Date.now() }, null, 2), { mode: 0o600 })
   console.log(`💾 Share 3 saved → ${sharesFile}`)
 
-  return { cid, txHash: calldataTx.hash }
+  // 5. Share 2 → oracle anchors it on-chain (oracle pays gas — agent needs no POL)
+  let txHash = null
+  try {
+    const anchorRes = await fetch(`${API_URL}/backup/anchor`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ agent: address, share2, cid }),
+      signal:  AbortSignal.timeout(20000)
+    })
+    const anchor = await anchorRes.json()
+    if (!anchor.ok) throw new Error(anchor.error || 'anchor failed')
+    txHash = anchor.txHash
+    console.log(`⛓️  Share 2 anchored on-chain (oracle) — TX: ${txHash}`)
+  } catch (e) {
+    console.warn(`⚠️  Share 2 anchor failed (${e.message?.split('\n')[0]}) — Level 2 unavailable but Level 1 works`)
+  }
+
+  return { cid, txHash }
 }
 
 // ── CLI entrypoint ────────────────────────────────────────────────────────

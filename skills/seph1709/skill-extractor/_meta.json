@@ -3,11 +3,16 @@
   "slug": "skill-extractor",
   "displayName": "Skill Extractor",
   "latest": {
-    "version": "1.2.0",
-    "publishedAt": 1774773531152,
-    "commit": "https://github.com/openclaw/skills/commit/180efa7d02c0615ac65a85db9e78022b4e5d9442"
+    "version": "1.8.1",
+    "publishedAt": 1774775731910,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.0",
+      "publishedAt": 1774773531152,
+      "commit": "https://github.com/openclaw/skills/commit/180efa7d02c0615ac65a85db9e78022b4e5d9442"
+    },
     {
       "version": "1.1.0",
       "publishedAt": 1774773246625,

@@ -1,71 +1,130 @@
 ---
 name: skill-extractor
-description: "Export any installed OpenClaw skill into a shareable ZIP: scrubs credential values, detects & stages external runtime files, generates STRUCTURE.md for LLM-guided install. Local only — no APIs, no tokens, no external calls."
+description: "Export any installed OpenClaw skill into a shareable ZIP: detects & stages external runtime files, generates STRUCTURE.md for LLM-guided install. Reads and packages local files only — no network calls, no APIs, no external transmissions."
 metadata: {"openclaw":{"emoji":"📦"}}
 ---
 
 # skill-extractor
 
-Package any installed OpenClaw skill into a clean, shareable ZIP. Credentials are scrubbed. External runtime files referenced in SKILL.md are detected, staged, and documented so a new install knows exactly where every file belongs.
+Package any installed OpenClaw skill into a clean, shareable ZIP. External runtime files referenced in SKILL.md are detected, staged under `_external/`, and documented — so a new install knows exactly where every file belongs and can reproduce full functionality.
+
+> All file operations are local only. Nothing is transmitted anywhere. The user confirms what gets included before anything is zipped.
 
 ---
 
-## Steps
+## Agent Rules
 
-### 1. List skills
-Scan for dirs containing a `SKILL.md` inside:
-- `<workspace>/skills/`
-- `~/.openclaw/skills/`
-- `~/AppData/Roaming/npm/node_modules/openclaw/skills/`
-
-Present the list. Ask which skill to export (skip if already provided).
-
-### 2. Stage skill files
-Copy the skill directory to a temp staging dir at `<workspace>/.skill-export-staging/<skill-name>/`. Never touch the originals.
-
-### 3. Detect & stage external files
-Read the staged SKILL.md. Extract every path reference matching `~/.config/`, `$HOME/.config/`, `%APPDATA%/`, or `$env:APPDATA/`. Only include paths that contain the skill name (avoids false positives on generic system paths).
-
-For each match: if the path exists on disk, copy it into `_external/` inside the staging dir, mirroring the original directory structure. If it doesn't exist yet (runtime-generated), note it as "created at runtime" — do not error.
-
-Track a map of: staged path → original target path. This is used in STRUCTURE.md.
-
-### 4. Scrub credentials
-In all staged files (skill dir + `_external/`), find fields whose **name** matches any of: `token, secret, password, api_key, apikey, auth, bearer, jwt, access_key, private_key, client_secret, webhook, passphrase, pin, otp, seed, cert, credential, private`. Set their **value** to `""`. Apply to `.json`, `.env`, `.yaml`, `.yml`, `.toml`. Skip files that can't be parsed — warn but continue.
-
-### 5. Generate STRUCTURE.md
-Write `STRUCTURE.md` into the staging dir containing:
-
-- **Folder layout** — ASCII tree of the staged dir
-- **File descriptions table** — relative path + one-line purpose for every file
-- **External files table** (if any external files were staged) — three columns: file in ZIP (`_external/...`) | install target path (`~/.config/...`) | notes (credential files: "fill in values"; worker scripts: "extracted from SKILL.md at runtime"; logs/pid/state: "recreated automatically")
-- **Install instructions** — Option A (clawhub install), Option B (manual: copy skill dir + handle external files), Option C (local clawhub install). Include a short snippet showing how to copy `_external/` files to their target paths on Windows and macOS/Linux.
-- **Credential note** — all values cleared; fill in before use; never commit to version control
-
-### 6. Zip and deliver
-Confirm the output path with the user (default: `~/Desktop/<skill-name>.zip`). Remove any existing ZIP at that path, compress the staging dir, report the file size, then delete the staging dir.
-
----
-
-## Rules
-
-- Never modify the source skill directory or any external files
-- Scrub both the skill dir and `_external/` — not just one
-- Only stage external files whose path contains the skill name
-- If an external file doesn't exist, note it in STRUCTURE.md — don't fail
+- Always list available skills before asking for selection (unless skill name is already given)
+- Always work on a staging copy — never modify the original skill directory or any external paths
+- **Always show the user what external files were found and get explicit confirmation before zipping**
+- Files are packaged as-is — values are not modified. Inform the user that sensitive files (credentials, tokens) will be included with their real values and should be reviewed before sharing
+- If an external file doesn't exist on disk yet (runtime-generated), document it as "created at runtime" — do not error
+- Generate `STRUCTURE.md` inside the staging folder before zipping
+- Default ZIP output: the user's Desktop — confirm with user first
 - If ZIP already exists at target, overwrite it
+- Clean up staging after a successful ZIP
 - If any step fails, leave staging intact and report clearly
-- No API calls, no network, no external tools — fully local PowerShell only
 
 ---
 
-## Errors
+## Step 1 — List Available Skills
+
+Scan all known OpenClaw skill locations (workspace skills folder, user-local skills folder, and the bundled npm package skills folder) for subdirectories that contain a `SKILL.md`. Present the list with skill name and source. Ask which to export.
+
+---
+
+## Step 2 — Locate Skill
+
+Find the skill folder by name. If not found, report and stop.
+
+---
+
+## Step 3 — Stage Skill Files
+
+Create a hidden temp staging folder inside the workspace named after the skill. Copy all files from the skill directory into it. Originals are never touched.
+
+---
+
+## Step 4 — Detect External Files
+
+Read the SKILL.md from the original skill directory. Extract all path-like strings that begin with a user home or app-data prefix (home dir shorthands and platform app-data equivalents). Resolve each to an absolute path.
+
+For each path:
+- If it is a **file** that exists: add it to the external files list.
+- If it is a **directory** that exists: add all files inside it recursively to the list.
+- If it doesn't exist yet: record it as a "created at runtime" entry.
+
+**Do not copy anything yet.** Build the list first — it goes to the user for review in the next step.
+
+---
+
+## Step 5 — Confirm with User
+
+Present the user with everything that will be included in the ZIP:
+
+1. All files from the skill directory
+2. The full list of detected external files with their resolved paths
+
+Clearly warn: **"These files will be packaged with their real values — including any credentials, tokens, or sensitive config. Review before sharing the ZIP."**
+
+Ask: *"Proceed with packaging these files?"*
+
+- If **yes**: stage the external files into `_external/`, mirroring the directory structure relative to the user's home, then continue.
+- If **no**: abort and clean up staging. Do not create a ZIP.
+
+---
+
+## Step 6 — Generate STRUCTURE.md
+
+Write `STRUCTURE.md` into the staging dir with these sections in order:
+
+**Header** — skill name, generation timestamp, one-line purpose statement.
+
+**Folder Layout** — ASCII tree of the staging dir. Directories before files at each level, both sorted alphabetically. Use standard tree connectors (`├──`, `└──`, `│`). Directory names end with `/`.
+
+**File Descriptions table** — two columns: relative file path and one-line purpose. Describe each file by what it does rather than its type. Well-known skill files have fixed descriptions:
+
+| File | Description |
+|---|---|
+| `SKILL.md` | Main skill instructions. The LLM agent reads this to understand purpose, setup, and usage. |
+| `_meta.json` | ClawhHub registry metadata: version, owner, credential paths, persistence info. |
+| `STRUCTURE.md` | This file. Auto-generated folder map and install guide. |
+| Any other file | Infer purpose from filename, location, and content — describe what it does in plain English. |
+
+**External Files table** — only if external files were detected. Three columns: file path inside the ZIP | target install path on the machine | notes. Determine the notes value by this logic:
+
+| Condition | Notes |
+|---|---|
+| Path suggests credentials or config | Packaged with real values — review before sharing. |
+| Path suggests a worker or background script | Extracted from SKILL.md at runtime — included here for reference. |
+| Path suggests a log, pid, or state file | Runtime-generated. Recreated automatically on first run. |
+| File did not exist at export time | Not present at export — created automatically when the skill runs. |
+| Anything else | External runtime file. Review SKILL.md for usage. |
+
+Follow the table with a brief note on how to place `_external/` files at their target paths on both Windows and Unix systems.
+
+**Install Instructions** — three options:
+- Option A: install via ClawhHub if the skill is published
+- Option B: manual — copy the skill folder into the workspace skills directory, place any `_external/` files at their target paths, confirm with `openclaw skills list`
+- Option C: local clawhub install, then handle `_external/` files manually
+
+**Footer** — credit line linking to the skill on ClawhHub.
+
+---
+
+## Step 7 — Zip and Deliver
+
+Confirm the output path with the user (default: the user's Desktop). Remove any existing ZIP at that path first. Compress the staging dir. Report the saved path and file size. Delete the staging folder.
+
+---
+
+## Error Reference
 
 | Problem | Cause | Fix |
 |---|---|---|
 | Skill not found | Name mismatch | Check spelling; run `openclaw skills list` |
-| Access denied | File ownership | Run as admin or check permissions |
-| ZIP creation fails | PowerShell < 5 or disk full | Update PowerShell or free space |
-| JSON parse error | Non-standard JSON | Scrubber skips it safely; inspect manually |
-| Staging not cleaned | ZIP step failed | Delete `<workspace>/.skill-export-staging` manually |
+| Access denied on copy | File ownership issue | Run as admin or check permissions |
+| ZIP creation fails | Disk full or missing compression support | Free space or update runtime |
+| Staging not cleaned | ZIP step failed | Delete the staging folder inside the workspace manually |
 | External file missing | Runtime-generated, not yet created | Safe to skip — document as "created at runtime" |
+| User declined confirmation | Sensitive files flagged by user | Abort — no ZIP created, staging cleaned up |

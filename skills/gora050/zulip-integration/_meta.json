@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "zulip-integration",
+  "displayName": "Zulip",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774944226172,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "hansschinkenwurst78-dev",
+  "slug": "openclaw-md2pdf",
+  "displayName": "md2pdf (Pandoc + Typst)",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774874835473,
+    "commit": null
+  },
+  "history": []
+}

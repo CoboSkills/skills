@@ -1,0 +1,11 @@
+{
+  "owner": "yananli199307-dev",
+  "slug": "agent-p2p",
+  "displayName": "Agent P2P",
+  "latest": {
+    "version": "0.5.2",
+    "publishedAt": 1774942210488,
+    "commit": null
+  },
+  "history": []
+}

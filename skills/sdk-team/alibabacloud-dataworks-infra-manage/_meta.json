@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-dataworks-infra-manage",
+  "displayName": "Alibabacloud Dataworks Infra Manage",
+  "latest": {
+    "version": "0.0.2",
+    "publishedAt": 1775045954902,
+    "commit": null
+  },
+  "history": []
+}

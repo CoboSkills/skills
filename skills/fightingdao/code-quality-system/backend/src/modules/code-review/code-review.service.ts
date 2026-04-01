@@ -21,6 +21,25 @@ export class CodeReviewService {
   constructor(private prisma: PrismaService) {}
 
   /**
+   * 🔴 Bug 3 修复：问题类型英文到中文映射
+   */
+  private mapIssueTypeToChinese(type: string): string {
+    const typeMap: Record<string, string> = {
+      'maintainability': '代码可维护性',
+      'performance': '性能问题',
+      'security': '安全问题',
+      'error_handling': '错误处理',
+      'type_definition': '类型定义',
+      'hardcoded_value': '硬编码常量',
+      'code_quality': '代码质量',
+      'best_practice': '最佳实践',
+      'testing': '测试覆盖',
+      'correctness': '代码正确性',
+    };
+    return typeMap[type] || type;
+  }
+
+  /**
    * 解析项目 ID（支持 UUID、项目 ID 或项目名称）
    */
   async resolveProjectId(projectIdOrName: string): Promise<string | null> {
@@ -59,10 +78,11 @@ export class CodeReviewService {
       await this.prisma.$executeRaw`
         INSERT INTO code_issues (
           id, analysis_id, file_path, line_start, line_end, 
-          issue_type, severity, description, suggestion, code_snippet, created_at, updated_at
+          issue_type, severity, description, suggestion, code_snippet, committer_name, created_at, updated_at
         ) VALUES (
           gen_random_uuid(), ${analysisId}, ${issue.filePath}, ${issue.lineStart || null}, ${issue.lineEnd || null},
           ${issue.type}, ${issue.severity}, ${issue.description}, ${issue.suggestion || null}, ${issue.codeSnippet || null},
+          ${issue.committerName || null},
           NOW(), NOW()
         )
       `;
@@ -73,6 +93,7 @@ export class CodeReviewService {
 
   /**
    * 获取项目的代码审查问题
+   * 🔴 Bug 3 修复：返回前转换问题类型为中文
    */
   async getProjectIssues(projectId: string, periodType: string, periodValue: string) {
     const issues = await this.prisma.$queryRaw`
@@ -89,7 +110,11 @@ export class CodeReviewService {
       ORDER BY ci.severity, ci.file_path, ci.line_start
     `;
     
-    return serializeBigInt(issues);
+    // 🔴 Bug 3 修复：转换问题类型为中文
+    return serializeBigInt(issues).map((issue: any) => ({
+      ...issue,
+      issue_type: this.mapIssueTypeToChinese(issue.issue_type),
+    }));
   }
 
   /**
@@ -138,9 +163,13 @@ export class CodeReviewService {
       ORDER BY issue_count DESC
     `;
     
+    // 🔴 Bug 3 修复：转换问题类型为中文
     return {
       stats: serializeBigInt(stats),
-      typeStats: serializeBigInt(typeStats),
+      typeStats: serializeBigInt(typeStats).map((item: any) => ({
+        ...item,
+        issue_type: this.mapIssueTypeToChinese(item.issue_type),
+      })),
       fileStats: serializeBigInt(fileStats)
     };
   }

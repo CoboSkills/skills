@@ -9,16 +9,45 @@
  * 用法：
  *   node analyze-code-v2.js 20260326  # 周维度（YYYYMMDD）
  *   node analyze-code-v2.js 202603   # 月维度（YYYYMM）
+ * 
+ * 配置文件：
+ *   默认从技能目录或 workspace 目录读取 config.json
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+// 加载配置
+function loadConfig() {
+  const configPaths = [
+    path.join(__dirname, '../config.json'),
+    path.join(process.env.HOME, '.openclaw/workspace/code-quality-config.json'),
+    path.join(process.env.HOME, '.openclaw/skills/code-quality-system/config.json')
+  ];
+  
+  for (const configPath of configPaths) {
+    if (fs.existsSync(configPath)) {
+      console.log(`加载配置文件: ${configPath}`);
+      return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    }
+  }
+  
+  // 默认配置
+  console.log('未找到配置文件，使用默认配置');
+  return {
+    codebaseDir: './codebase',
+    apiBaseUrl: 'http://localhost:3000/api/v1',
+    teamId: 'default-team'
+  };
+}
+
+const CONFIG = loadConfig();
+
 // 配置
-const CODEBASE_DIR = '/Users/zhangdi/work/codeCap/codebase';
-const API_BASE_URL = 'http://localhost:3000/api/v1';
-const TEAM_ID = 'team-42e79f51';
+const CODEBASE_DIR = CONFIG.codebaseDir || './codebase';
+const API_BASE_URL = CONFIG.apiBaseUrl || 'http://localhost:3000/api/v1';
+const TEAM_ID = CONFIG.teamId || 'default-team';
 
 // 解析周期值
 const parsePeriodValue = (periodValue) => {

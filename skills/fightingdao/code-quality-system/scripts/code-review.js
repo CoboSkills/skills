@@ -2,15 +2,47 @@
 /**
  * 代码审查脚本
  * 分析 git diff 输出，生成结构化问题明细
+ * 
+ * 用法：
+ *   node code-review.js <项目名> <周期值>
+ *   node code-review.js dove_digital 20260326
+ * 
+ * 配置文件：
+ *   默认从技能目录或 workspace 目录读取 config.json
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
+// 加载配置
+function loadConfig() {
+  const configPaths = [
+    path.join(__dirname, '../config.json'),
+    path.join(process.env.HOME, '.openclaw/workspace/code-quality-config.json'),
+    path.join(process.env.HOME, '.openclaw/skills/code-quality-system/config.json')
+  ];
+  
+  for (const configPath of configPaths) {
+    if (fs.existsSync(configPath)) {
+      console.log(`加载配置文件: ${configPath}`);
+      return JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    }
+  }
+  
+  // 默认配置
+  console.log('未找到配置文件，使用默认配置');
+  return {
+    codebaseDir: './codebase',
+    outputDir: path.join(__dirname, '../analysis-output')
+  };
+}
+
+const CONFIG = loadConfig();
+
 // 配置
-const CODEBASE_DIR = '/Users/zhangdi/work/codeCap/codebase';
-const OUTPUT_DIR = '/Users/zhangdi/work/codeCap/代码质量分析系统/analysis-output';
+const CODEBASE_DIR = CONFIG.codebaseDir || './codebase';
+const OUTPUT_DIR = CONFIG.outputDir || path.join(__dirname, '../analysis-output');
 
 // 排除文件规则
 const shouldExclude = (file) => {

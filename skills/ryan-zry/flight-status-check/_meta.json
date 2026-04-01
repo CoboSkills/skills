@@ -1,0 +1,11 @@
+{
+  "owner": "ryan-zry",
+  "slug": "flight-status-check",
+  "displayName": "航班动态查询",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774871515275,
+    "commit": null
+  },
+  "history": []
+}

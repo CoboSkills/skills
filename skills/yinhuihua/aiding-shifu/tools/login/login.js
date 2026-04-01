@@ -134,7 +134,10 @@ async function checkLoginStatus(sceneId) {
         method: 'POST'
     });
     
-    if (result.code === 200 && result.data) {
+    // 返回格式: {status: "xxx", data: {token: "..."}}
+    if (result.status) {
+        return result;
+    } else if (result.code === 200 && result.data) {
         return result.data;
     } else {
         throw new Error(result.message || '检查状态失败');
@@ -154,13 +157,24 @@ async function pollLoginStatus(sceneId, onStatusChange) {
                 
                 onStatusChange(status);
                 
-                if (status.status === 'confirmed') {
+                // 已授权 - 成功
+                if (status.status === '已授权') {
                     resolve(status);
-                } else if (status.status === 'expired') {
+                }
+                // 其他成功状态
+                else if (status.status === 'confirmed' || status.status === '登录成功') {
+                    resolve(status);
+                }
+                // 已过期
+                else if (status.status === 'expired' || status.status === '已过期') {
                     reject(new Error('二维码已过期，请重新生成'));
-                } else if (attempts >= maxAttempts) {
+                }
+                // 超时
+                else if (attempts >= maxAttempts) {
                     reject(new Error('登录超时，请重试'));
-                } else {
+                }
+                // 继续轮询
+                else {
                     setTimeout(poll, 2000);
                 }
             } catch (error) {
@@ -239,14 +253,18 @@ async function main() {
         // 5. 登录成功
         console.log('\n\n🎉 登录成功！');
         
-        if (finalStatus.token) {
-            console.log(`\n🔑 Token: ${finalStatus.token.substring(0, 50)}...`);
+        // 获取 token（access_token 在 data 里）
+        const token = finalStatus.data?.access_token || finalStatus.token;
+        
+        if (token) {
+            console.log(`\n🔑 Token: ${token.substring(0, 50)}...`);
             
             // 保存 Token
             const config = {
-                token: finalStatus.token,
+                token: token,
                 loginTime: new Date().toISOString(),
-                userInfo: finalStatus.userInfo
+                userInfo: finalStatus.data?.userInfo || finalStatus.userInfo,
+                wxUnionid: finalStatus.data?.wxUnionid || finalStatus.wxUnionid
             };
             saveConfig(config);
             

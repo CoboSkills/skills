@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-pai-dsw-manage",
+  "displayName": "Alibabacloud Pai Dsw Manage",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1774958071050,
+    "commit": null
+  },
+  "history": []
+}

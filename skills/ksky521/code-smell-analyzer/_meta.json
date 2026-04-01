@@ -1,0 +1,11 @@
+{
+  "owner": "ksky521",
+  "slug": "code-smell-analyzer",
+  "displayName": "Analyzes code for improvements including code smells, design patterns, and best practices. Invoke when user asks for code analysis, code review, or suggestions to improve code quality.",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1774918278413,
+    "commit": null
+  },
+  "history": []
+}

@@ -2,7 +2,7 @@
 # setup.sh — jobautopilot skill bundle first-time setup
 #
 # Run this once after installing the skills:
-#   bash skills/jobautopilot-bundle/setup.sh
+#   bash ~/.openclaw/workspace/skills/jobautopilot-bundle/setup.sh
 #
 # PRIVACY NOTICE:
 #   This script collects personal information (name, email, phone, LinkedIn,
@@ -44,7 +44,7 @@ if [ ${#missing[@]} -gt 0 ]; then
   echo "❌  Missing skill(s): ${missing[*]}"
   echo "    Please install them first:"
   for s in "${missing[@]}"; do
-    echo "      clawhub install jerronl/${s}"
+    echo "      clawhub install ${s}"
   done
   exit 1
 fi
@@ -123,14 +123,14 @@ export RESUME_OUTPUT_DIR="${RESUME_OUTPUT_DIR}"
 export RESUME_TEMPLATE="\$HOME/.openclaw/workspace/job_sub_agent/scripts/sample_placeholders.docx"
 export MD_TO_DOCX_SCRIPT="\$HOME/.openclaw/workspace/job_sub_agent/scripts/md_to_docx.py"
 export TRACKER_PATH="\$HOME/.openclaw/workspace/job_search/job_application_tracker.md"
-export CHECK_FIELDS_JS="\$HOME/.openclaw/workspace/job_sub_agent/scripts/check_required_fields.js"
+export JOB_SEARCH_TRACKER="\$TRACKER_PATH"  # alias used by search and tailor skills
 
 # Search settings
 export JOB_SEARCH_LOCATION="${JOB_SEARCH_LOCATION}"
 export JOB_SEARCH_KEYWORDS="${JOB_SEARCH_KEYWORDS}"
 export JOB_SEARCH_MIN_SALARY="${JOB_SEARCH_MIN_SALARY}"
 export JOB_SEARCH_MAX_AGE_DAYS="${JOB_SEARCH_MAX_AGE_DAYS}"
-export JOB_SEARCH_HANDOFF="\$HOME/.openclaw/workspace/job_search/SEARCH_BOT_HANDOFF.md"
+export JOB_SEARCH_HANDOFF="\$HOME/.openclaw/workspace/job_search/SEARCH_AGENT_HANDOFF.md"
 
 # EEOC defaults (supplied only to US job application forms on your request)
 export USER_GENDER="${USER_GENDER}"
@@ -144,9 +144,15 @@ EOF
 
 echo "✅  Config written to $CONFIG_DIR/config.sh"
 
-# ── 4. Copy scripts from installed skills to workspace ────────────────────────
-# Scripts are copied from the already-installed skill directories to a shared
-# workspace location. This is a local file copy — no network involved.
+# Restrict permissions — config contains PII (name, email, phone, EEOC fields)
+chmod 600 "$CONFIG_DIR/config.sh"
+echo "✅  Permissions set to owner-only (chmod 600)"
+
+# ── 4. Copy tailor scripts to workspace ──────────────────────────────────────
+# The tailor skill needs md_to_docx.py and its template in a shared workspace
+# location. This is a local file copy — no network involved.
+# Note: submitter scripts are used directly from the installed skill directory
+# and do not need to be copied.
 
 copy_script() {
   local src="$1" dst_dir="$2" label="$3"
@@ -158,43 +164,32 @@ copy_script() {
     fi
   else
     echo "⚠️   Source not found: $src"
-    echo "     Re-run: clawhub install jerronl/$(basename "$(dirname "$(dirname "$src")")")"
+    echo "     Re-run: clawhub install $(basename "$(dirname "$(dirname "$src")")")"
   fi
 }
 
 copy_script "$TAILOR_DIR/scripts/md_to_docx.py"                    "$SCRIPTS_DIR" "md_to_docx.py"
 copy_script "$TAILOR_DIR/scripts/sample_placeholders.docx"          "$SCRIPTS_DIR" "sample_placeholders.docx"
-copy_script "$SUBMITTER_DIR/scripts/check_required_fields.js"       "$SCRIPTS_DIR" "check_required_fields.js"
-copy_script "$SUBMITTER_DIR/scripts/fill_template.sh"               "$SCRIPTS_DIR" "fill_template.sh"
-copy_script "$SUBMITTER_DIR/scripts/match_variant_options.sh"       "$SCRIPTS_DIR" "match_variant_options.sh"
-copy_script "$SUBMITTER_DIR/ERRORS.md" \
-            "$HOME/.openclaw/workspace/job_sub_agent" "ERRORS.md"
 
-# ── 5. Create browser profiles ────────────────────────────────────────────────
-# Two isolated browser profiles are created locally so that job-site sessions
-# are kept separate from your personal browser. You can inspect or delete them
-# at any time with: openclaw browser profile list
+# ── 5. Browser profiles (manual step) ────────────────────────────────────────
+# Two isolated browser profiles keep job-site sessions separate from your
+# personal browser. You can inspect or delete them at any time with:
+#   openclaw browser profile list
 
 echo ""
-echo "==> Setting up browser profiles..."
-echo "    (Two isolated local profiles: 'search' and 'apply')"
-
-for PROFILE in search apply; do
-  EXISTING=$(openclaw browser profile list 2>/dev/null || true)
-  if echo "$EXISTING" | grep -q "^${PROFILE}$"; then
-    echo "ℹ️   Browser profile '${PROFILE}' already exists — skipped"
-  else
-    openclaw browser profile create "$PROFILE" 2>/dev/null \
-      && echo "✅  Browser profile '${PROFILE}' created" \
-      || { echo "⚠️   Could not create browser profile '${PROFILE}' — run manually:";
-           echo "    openclaw browser profile create ${PROFILE}"; }
-  fi
-done
+echo "==> Browser profiles needed: 'search' and 'apply'"
+echo "    Create them manually if they don't exist:"
+echo ""
+echo "    openclaw browser profile create search"
+echo "    openclaw browser profile create apply"
+echo ""
+echo "    (These are local browser profiles — not accounts or network services.)"
+echo "    Check existing profiles: openclaw browser profile list"
 
 # ── 6. Init tracker and handoff files ─────────────────────────────────────────
 
 TRACKER="$WORKSPACE/job_application_tracker.md"
-HANDOFF="$WORKSPACE/SEARCH_BOT_HANDOFF.md"
+HANDOFF="$WORKSPACE/SEARCH_AGENT_HANDOFF.md"
 
 if [ ! -f "$TRACKER" ]; then
 cat > "$TRACKER" << 'EOF'
@@ -209,7 +204,7 @@ else
 fi
 
 if [ ! -f "$HANDOFF" ]; then
-  echo "# Search Bot Handoff" > "$HANDOFF"
+  echo "# Search Agent Handoff" > "$HANDOFF"
   echo "✅  Handoff file created"
 fi
 
@@ -239,5 +234,5 @@ echo "  Tracker:     $TRACKER"
 echo "  Outputs:     $RESUME_OUTPUT_DIR"
 echo ""
 echo "  To update your info later, edit config.sh directly"
-echo "  or re-run: bash skills/jobautopilot-bundle/setup.sh"
+echo "  or re-run: bash ~/.openclaw/workspace/skills/jobautopilot-bundle/setup.sh"
 echo "============================================================"

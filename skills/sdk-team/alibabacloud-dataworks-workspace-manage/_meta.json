@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-dataworks-workspace-manage",
+  "displayName": "Alibabacloud Dataworks Workspace Manage",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1775037063170,
+    "commit": null
+  },
+  "history": []
+}

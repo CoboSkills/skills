@@ -1,0 +1,11 @@
+{
+  "owner": "cinience",
+  "slug": "aliyun-dns-cli",
+  "displayName": "Aliyun Dns Cli",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775092604425,
+    "commit": null
+  },
+  "history": []
+}

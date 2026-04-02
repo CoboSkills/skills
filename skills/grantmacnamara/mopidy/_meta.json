@@ -1,0 +1,11 @@
+{
+  "owner": "grantmacnamara",
+  "slug": "mopidy",
+  "displayName": "Mopidy",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775143365176,
+    "commit": null
+  },
+  "history": []
+}

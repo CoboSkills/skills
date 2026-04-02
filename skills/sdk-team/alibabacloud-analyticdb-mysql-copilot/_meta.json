@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-analyticdb-mysql-copilot",
+  "displayName": "Alibabacloud Analyticdb Mysql Copilot",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1775030294526,
+    "commit": null
+  },
+  "history": []
+}

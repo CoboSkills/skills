@@ -111,11 +111,16 @@ def load_from_cache(video_id):
     return None
 
 
-def save_to_cache(video_id, result, language=None):
-    """Save transcript to cache with metadata."""
+def write_cache_data(video_id, cache_data):
+    """Write cache data to disk."""
     ensure_cache_dir()
     cache_path = get_cache_path(video_id)
-    
+    with open(cache_path, "w", encoding="utf-8") as f:
+        json.dump(cache_data, f, ensure_ascii=False, indent=2)
+
+
+def save_to_cache(video_id, result, language=None):
+    """Save transcript to cache with metadata."""
     # Support both old (captions list) and new (text string) actor formats
     title = (result.get("title") or result.get("videoTitle") or "Unknown")
     raw_text = result.get("text", "")
@@ -131,9 +136,8 @@ def save_to_cache(video_id, result, language=None):
         "full_text": raw_text,
         "_raw_result": result  # Keep original for full fidelity
     }
-    
-    with open(cache_path, "w", encoding="utf-8") as f:
-        json.dump(cache_data, f, ensure_ascii=False, indent=2)
+
+    write_cache_data(video_id, cache_data)
 
 
 def clear_cache():
@@ -439,7 +443,7 @@ def format_transcript_json(result, video_id):
             continue
     
     output["full_text"] = " ".join(texts)
-    
+
     return output
 
 
@@ -632,7 +636,7 @@ def main():
     # Single URL mode
     result, from_cache = process_single(args.url, api_token, use_cache, args.lang, args.actor)
     video_id = extract_video_id(args.url)
-    
+
     # Format output
     if args.json:
         output = json.dumps(format_transcript_json(result, video_id), indent=2, ensure_ascii=False)

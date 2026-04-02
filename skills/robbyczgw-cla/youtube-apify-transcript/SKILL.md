@@ -1,9 +1,9 @@
 ---
 name: youtube-apify-transcript
-version: 1.2.0
-description: Fetch YouTube transcripts via APIFY API. Works from cloud IPs (Hetzner, AWS, etc.) by bypassing YouTube's bot detection. Features local caching (FREE repeat requests!) and batch mode. Free tier includes $5/month credits (~714 videos). No credit card required.
+version: 1.3.3
+description: Fetch YouTube transcripts via APIFY API. Works from cloud IPs (Hetzner, AWS, etc.) by bypassing YouTube's bot detection. Features local caching (FREE repeat requests!) and batch mode. Requires APIFY_API_TOKEN and Python requests. No credit card required for the free tier.
 tags: [youtube, transcript, apify, video, subtitles, captions, cloud-ip, free-tier, web-scraping, caching, batch]
-metadata: {"openclaw":{"requires":{"bins":["python3"],"env":{"APIFY_API_TOKEN":"required","YT_TRANSCRIPT_CACHE_DIR":"optional - defaults to .cache/ in skill dir"}}}}
+metadata: {"openclaw":{"requires":{"bins":["python3"],"env":{"APIFY_API_TOKEN":"required","YT_TRANSCRIPT_CACHE_DIR":"optional - defaults to .cache/ in skill dir"}},"install":[{"id":"pip-requests","kind":"pip","package":"requests","bins":["python3"],"label":"Install Python requests"}]}}
 ---
 
 # youtube-apify-transcript
@@ -40,6 +40,9 @@ YouTube blocks transcript requests from cloud IPs (AWS, GCP, etc.). APIFY runs t
 ```bash
 # Add to ~/.bashrc or ~/.zshrc
 export APIFY_API_TOKEN="apify_api_YOUR_TOKEN_HERE"
+
+# Install Python dependency
+pip install requests
 
 # Or use .env file (never commit this!)
 echo 'APIFY_API_TOKEN=apify_api_YOUR_TOKEN_HERE' >> .env
@@ -144,6 +147,10 @@ Today we're going to talk about...
 }
 ```
 
+## Agent Instructions
+
+When the user asks to summarize a YouTube video, first fetch the transcript using the script, then summarize the transcript text directly using your own model capabilities. Do NOT use --summarize flag.
+
 ## Error Handling
 
 The script handles common errors:
@@ -161,4 +168,6 @@ metadata:
     requires:
       env: ["APIFY_API_TOKEN"]
       bins: ["python3"]
+      python:
+        packages: ["requests"]
 ```

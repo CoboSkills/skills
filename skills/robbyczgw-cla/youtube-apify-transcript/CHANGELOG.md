@@ -1,5 +1,34 @@
 # Changelog
 
+## [1.3.3] - 2026-03-31
+
+### Fixed
+- Declared Python dependency `requests` explicitly in skill metadata and install hints
+- Expanded package metadata so required env vars and optional cache env var are stated more explicitly for registry scanners
+- Clarified setup docs around `APIFY_API_TOKEN` and Python dependency installation
+
+## [1.3.2] - 2026-03-31
+
+### Changed
+- Removed --summarize / --summary-* flags from fetch_transcript.py: summarization now handled by the OpenClaw agent directly using the configured model, not via hardcoded claude CLI subprocess
+- Removed `claude` CLI dependency from skill metadata
+- Updated SKILL.md with agent-level summarization instructions
+
+## [1.3.1] - 2026-03-31
+
+### Fixed
+- Declared `claude` CLI as required binary in metadata (`bins`) — summarization feature was invoking it without declaration, causing ClawHub review warnings
+- Fixed model IDs in summarize function: removed `anthropic/` provider prefix (Claude CLI only accepts short IDs like `claude-haiku-4-5`)
+- Updated skill description to mention optional AI summarization feature
+
+## [1.3.0] - 2026-03-31
+
+### Added
+- Added `--summarize` / `-s` to generate transcript summaries with the Claude CLI.
+- Added `--summary-model`, `--summary-style`, and `--summary-lang` flags for summary customization.
+- Cached summaries in each transcript cache file under the `summaries` key and reused cached summaries when available.
+- Added JSON output support for summaries via a top-level `summary` field.
+
 ## [1.1.3] - 2026-03-03
 
 ### Changed

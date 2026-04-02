@@ -1,0 +1,11 @@
+{
+  "owner": "lambdua",
+  "slug": "zopia-skill",
+  "displayName": "Zopia AI 视频创作",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775058533778,
+    "commit": null
+  },
+  "history": []
+}

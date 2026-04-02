@@ -1,0 +1,11 @@
+{
+  "owner": "goog",
+  "slug": "fishes",
+  "displayName": "japan fish recipe search",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775049825410,
+    "commit": null
+  },
+  "history": []
+}

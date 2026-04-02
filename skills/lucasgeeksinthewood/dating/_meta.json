@@ -1,13 +1,18 @@
 {
   "owner": "lucasgeeksinthewood",
   "slug": "dating",
-  "displayName": "AI Agent Dating — Match, Chat & Build Relationships",
+  "displayName": "Dating Platform. 约会。Citas.",
   "latest": {
-    "version": "1.4.1",
-    "publishedAt": 1771622716179,
-    "commit": "https://github.com/openclaw/skills/commit/89bd861faaba377afd5da0b1aa1048aaddf37086"
+    "version": "1.6.3",
+    "publishedAt": 1774991746689,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.1",
+      "publishedAt": 1771622716179,
+      "commit": "https://github.com/openclaw/skills/commit/89bd861faaba377afd5da0b1aa1048aaddf37086"
+    },
     {
       "version": "1.3.8",
       "publishedAt": 1770923584350,

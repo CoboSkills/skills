@@ -1,13 +1,18 @@
 {
   "owner": "morpheis",
   "slug": "carapace",
-  "displayName": "Carapace AI",
+  "displayName": "Carapace — Shared Knowledge Base for AI Agents",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1770781300224,
-    "commit": "https://github.com/openclaw/skills/commit/24bba2922c7e571f119636abbcc6effd202a3161"
+    "version": "2.1.1",
+    "publishedAt": 1775074861626,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1770781300224,
+      "commit": "https://github.com/openclaw/skills/commit/24bba2922c7e571f119636abbcc6effd202a3161"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1770409897497,

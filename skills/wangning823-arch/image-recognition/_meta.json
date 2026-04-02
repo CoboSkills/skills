@@ -1,0 +1,11 @@
+{
+  "owner": "wangning823-arch",
+  "slug": "image-recognition",
+  "displayName": "Image Recognition",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1775042232220,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-hologres-instance-manage",
+  "displayName": "Alibabacloud Hologres Instance Manage",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1775095058518,
+    "commit": null
+  },
+  "history": []
+}

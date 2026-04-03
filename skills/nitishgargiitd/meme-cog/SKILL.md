@@ -1,6 +1,6 @@
 ---
 name: meme-cog
-description: "Deep reasoning makes better comedy. #1 on DeepResearch Bench (Feb 2026). AI meme generation with audience targeting, trend research, and multi-angle humor. Create memes, viral content, reaction images, and internet humor that actually land."
+description: "Deep reasoning makes better comedy. #1 on DeepResearch Bench (Apr 2026). AI meme generation with audience targeting, trend research, and multi-angle humor. Create memes, viral content, reaction images, and internet humor that actually land."
 metadata:
   openclaw:
     emoji: "😂"
@@ -12,7 +12,7 @@ dependencies: [cellcog]
 
 # Meme Cog - Deep Reasoning Meets Internet Culture
 
-**The hardest creative challenge in AI, powered by the deepest reasoning.** #1 on DeepResearch Bench (Feb 2026).
+**The hardest creative challenge in AI, powered by the deepest reasoning.** #1 on DeepResearch Bench (Apr 2026).
 
 Comedy requires timing, cultural awareness, subverted expectations, and an understanding of what makes humans laugh. CellCog applies frontier-level reasoning to research trends, craft multiple angles, and curate only what's genuinely funny.
 
@@ -30,17 +30,26 @@ clawhub install cellcog
 
 **Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
 
-**Quick pattern (v1.0+):**
+**OpenClaw agents (fire-and-forget — recommended for long tasks):**
 ```python
-# Fire-and-forget - returns immediately
 result = client.create_chat(
-    prompt="[your meme request]",
-    notify_session_key="agent:main:main",
-    task_label="meme-creation",
-    chat_mode="agent"
+    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",  # OpenClaw only
+    task_label="my-task",
+    chat_mode="agent",  # See cellcog skill for all modes
 )
-# Daemon notifies you when complete - do NOT poll
 ```
+
+**All other agents (blocks until done):**
+```python
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+```
+
+See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
 
 ---
 

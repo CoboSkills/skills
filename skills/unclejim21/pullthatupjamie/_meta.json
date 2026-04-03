@@ -3,11 +3,16 @@
   "slug": "pullthatupjamie",
   "displayName": "PullThatUpJamie",
   "latest": {
-    "version": "1.5.3",
-    "publishedAt": 1772491504684,
-    "commit": "https://github.com/openclaw/skills/commit/e7fdc35ff821eade18608b5d8da9a050cc1b3f10"
+    "version": "1.6.0",
+    "publishedAt": 1775159785416,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.3",
+      "publishedAt": 1772491504684,
+      "commit": "https://github.com/openclaw/skills/commit/e7fdc35ff821eade18608b5d8da9a050cc1b3f10"
+    },
     {
       "version": "1.5.2",
       "publishedAt": 1771630624265,

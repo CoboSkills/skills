@@ -4,6 +4,21 @@ All notable changes to the PullThatUpJamie skill will be documented in this file
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## [1.6.0] - 2026-03-17
+
+### Added
+- **Create module** — now available. Generate shareable MP4 clips with burned-in subtitles from any search result. Full documentation in `references/create.md`.
+- **Smart Search (`smartMode`)** — LLM-powered query triage for vague and descriptive queries. Classifies intent, extracts entities (people, shows, topics, dates), resolves them against corpus metadata, rewrites queries for better transcript matching, and applies precision filters to Pinecone search. Documented in `references/podcast-rra.md`.
+- New Smart Search examples in Understanding Requests decomposition table
+- `smartMode` parameter documented in Retrieve: Semantic Search section
+- Smart Search cost analysis (~$0.0001 per triage call)
+
+### Changed
+- Modules section: Create moved from "Coming Soon" to "Available Now"
+- Search Strategy table updated to include "Vague/descriptive request" row recommending Smart Search
+- Updated skill description in frontmatter to mention clip generation and smart search
+- Added clip creation gotcha (polling guidance) to Gotchas section
+
 ## [1.5.2] - 2026-02-20
 
 ### Security

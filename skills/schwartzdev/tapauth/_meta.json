@@ -1,13 +1,18 @@
 {
   "owner": "schwartzdev",
   "slug": "tapauth",
-  "displayName": "Skill",
+  "displayName": "TapAuth",
   "latest": {
-    "version": "2.0.2",
-    "publishedAt": 1774477173724,
-    "commit": "https://github.com/openclaw/skills/commit/cd953227af882370e29e35db31c7327b18533d1d"
+    "version": "2.0.3",
+    "publishedAt": 1774907706354,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.2",
+      "publishedAt": 1774477173724,
+      "commit": "https://github.com/openclaw/skills/commit/cd953227af882370e29e35db31c7327b18533d1d"
+    },
     {
       "version": "1.4.0",
       "publishedAt": 1773850266583,

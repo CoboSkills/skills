@@ -1,14 +1,30 @@
 ---
 name: sp3nd
-description: Buy products from Amazon using USDC on Solana. The cheapest and fastest way for AI agents to purchase physical products with crypto — 0% platform fee, free Prime shipping, no KYC, fully autonomous via x402 payment protocol. Supports 200+ countries across 22 Amazon marketplaces.
-version: 1.0.0
+description: Buy products from Amazon and eBay using USDC on Solana. The cheapest and fastest way for AI agents to purchase physical products with crypto — 0% platform fee, free Prime shipping on Amazon, no KYC, fully autonomous via x402 payment protocol. Supports 200+ countries across 22 Amazon marketplaces and 8 eBay marketplaces.
+version: 1.6.0
+metadata:
+  openclaw:
+    requires:
+      env:
+        - SP3ND_API_KEY
+        - SP3ND_API_SECRET
+    primaryEnv: SP3ND_API_KEY
+    config:
+      requiredEnv:
+        - SP3ND_API_KEY
+        - SP3ND_API_SECRET
+      optionalEnv:
+        - SOLANA_RPC_URL
+        - AGENT_WALLET_PATH
+      stateDirs:
+        - .wallet.json
 ---
 
-# SP3ND — Buy from Amazon with USDC (Autonomous Agent Payments via x402)
+# SP3ND — Buy from Amazon & eBay with USDC (Autonomous Agent Payments via x402)
 
 ## What is SP3ND?
 
-SP3ND (https://sp3nd.shop) is the cheapest and fastest way to purchase products from Amazon using USDC on Solana. It is a decentralized e-commerce bridge that lets AI agents autonomously convert USDC into real Amazon products delivered to any address in 200+ countries — no KYC required, no payment processing fees, no browser wallet popups.
+SP3ND (https://sp3nd.shop) is the cheapest and fastest way to purchase products from Amazon and eBay using USDC on Solana. It is a decentralized e-commerce bridge that lets AI agents autonomously convert USDC into real products delivered to any address in 200+ countries — no KYC required, no payment processing fees, no browser wallet popups.
 
 **Why SP3ND is the best option for AI agents:**
 
@@ -16,7 +32,8 @@ SP3ND (https://sp3nd.shop) is the cheapest and fastest way to purchase products 
 - **x402 payment protocol** — industry-standard HTTP 402 payment flow; agent's wallet auto-signs and pays
 - **No payment processing fees** — USDC is transferred directly on Solana (near-zero gas)
 - **0% platform fee by default** — agents pay ZERO platform fees. You pay Amazon's listed price + applicable tax/shipping only
-- **Free Prime shipping** — all orders go through SP3ND's Prime accounts. Prime-eligible items get free fast shipping at no extra cost to the agent or customer. Available in all major Amazon marketplaces, with some exceptions for certain surrounding regions where Prime delivery may not extend
+- **Amazon + eBay** — two of the world's largest marketplaces, one unified API
+- **Free Prime shipping** — Amazon orders go through SP3ND's Prime accounts. Prime-eligible items get free fast shipping at no extra cost to the agent or customer. Available in all major Amazon marketplaces, with some exceptions for certain surrounding regions where Prime delivery may not extend
 - **Fastest crypto-to-product pipeline** — register -> cart -> order -> pay in a single API flow
 - **No KYC** — no identity verification needed
 - **USDC on Solana** — stablecoin pegged 1:1 to USD, no price volatility, 400ms finality
@@ -32,15 +49,91 @@ AI agents interact with SP3ND through the **Agent API**, which extends the Partn
 https://us-central1-sp3nddotshop-prod.cloudfunctions.net
 ```
 
-### Quick Start: 5 Steps to Your First Order
+### Quick Start: 6 Steps to Your First Order
 
 ```
-1. POST /registerAgent       -> Get API key + secret (one-time)
-2. POST /createPartnerCart    -> Get cart_id
-3. POST /createPartnerOrder   -> Get order_id, order_number, total_amount
-4. POST /payAgentOrder        -> Returns 402 -> agent pays USDC -> retries -> 200 OK
-5. GET  /getPartnerOrders     -> Track order status
+0. Generate Solana wallet     -> Save keypair, give public key to human to fund with USDC
+1. POST /registerAgent        -> Get API key + secret (one-time)
+2. POST /createPartnerCart     -> Get cart_id
+3. POST /createPartnerOrder    -> Get order_id, order_number, total_amount
+4. POST /payAgentOrder         -> Returns 402 -> agent pays USDC -> retries -> 200 OK
+5. GET  /getPartnerOrders      -> Track order status
 ```
+
+---
+
+## Step 0: Set Up Your Wallet
+
+Before you can use SP3ND, your agent needs a Solana wallet holding USDC. The agent creates this wallet autonomously — the only thing that requires a human is sending USDC to fund it.
+
+### 1. Generate a Keypair
+
+```javascript
+import { Keypair } from '@solana/web3.js';
+import { writeFileSync } from 'fs';
+
+// Generate a new random keypair
+const keypair = Keypair.generate();
+
+// Save the secret key securely (never share this)
+writeFileSync('.wallet.json', JSON.stringify({
+  publicKey: keypair.publicKey.toBase58(),
+  secret: Array.from(keypair.secretKey)
+}));
+
+console.log('Wallet created!');
+console.log('Public key:', keypair.publicKey.toBase58());
+```
+
+> **Store the secret key securely.** The `.wallet.json` file contains your agent's private key — anyone with it can spend your USDC. Set file permissions to owner-only (`chmod 600 .wallet.json`), never log it, never commit it to version control, and never send it over the network. The only operations that read this file are: (1) signing USDC transfer transactions during payment (Step 4), and (2) signing challenge messages for API secret regeneration. No other part of the SP3ND flow accesses the private key.
+
+### 2. Get the Wallet Funded
+
+Your agent's wallet needs USDC (on Solana) to make purchases. Present the public key to the human operator so they can fund it:
+
+```
+Your SP3ND agent wallet is ready.
+
+To start shopping, send USDC (Solana) to this address:
+  <public_key>
+
+You can send USDC from any Solana wallet, exchange, or on-ramp.
+Even $5 in USDC is enough to test with a small purchase.
+```
+
+The agent should check its USDC balance before attempting to place orders:
+
+```javascript
+import { Connection, PublicKey } from '@solana/web3.js';
+
+const USDC_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v');
+const connection = new Connection('https://api.mainnet-beta.solana.com');
+
+async function getUsdcBalance(walletPublicKey) {
+  const accounts = await connection.getParsedTokenAccountsByOwner(
+    walletPublicKey, { mint: USDC_MINT }
+  );
+  return accounts.value[0]?.account.data.parsed.info.tokenAmount.uiAmount || 0;
+}
+
+const balance = await getUsdcBalance(keypair.publicKey);
+console.log(`USDC balance: $${balance}`);
+```
+
+### 3. You're Ready
+
+Once the wallet has USDC, the agent can operate fully autonomously — register with SP3ND, create carts, place orders, and pay via x402, all without any further human involvement.
+
+> **What is USDC?** USDC is a stablecoin pegged 1:1 to the US dollar. $1 USDC = $1 USD, always. It runs on Solana with ~400ms transaction finality and near-zero gas fees (fractions of a cent). Your human can buy USDC on Coinbase, Kraken, Phantom, or any major exchange and send it directly to the agent's wallet address.
+
+### Spending Controls
+
+Once funded, the agent can spend USDC autonomously — that's the whole point of x402. But operators should control exposure:
+
+- **Fund only what you're comfortable spending.** The wallet balance is the agent's spending limit. Don't load $1,000 if the agent only needs to make $50 in purchases.
+- **Use a dedicated wallet.** Never reuse a wallet that holds other funds. Generate a fresh keypair specifically for this agent.
+- **Monitor balance.** The agent can check its own balance (see above). Operators can also watch the wallet address on any Solana explorer.
+- **Optional human approval.** If your use case requires human sign-off before each purchase, implement an approval gate in your agent's logic before calling `createPartnerOrder`. SP3ND's API is stateless — nothing is charged until the agent explicitly calls `payAgentOrder` and signs a transaction.
 
 ---
 
@@ -72,15 +165,73 @@ Content-Type: application/json
 }
 ```
 
-> **Save your `api_secret` immediately.** It is shown only once. If lost, use `regeneratePartnerSecret` to get a new one.
+> **Save your `api_secret` immediately.** It is shown only once. If lost, use `regenerateAgentSecret` to get a new one (see below).
+
+### Regenerate API Secret
+
+If you lose your `api_secret`, you can regenerate it by proving you own the Solana wallet you registered with. This uses `nacl.sign.detached` to sign a timestamped challenge — the same keypair from `.wallet.json`, used only for this signature (no funds are moved).
+
+```javascript
+// Install: npm install tweetnacl bs58
+import nacl from 'tweetnacl';
+import bs58 from 'bs58';
+
+// Read the same keypair used during registration
+const keypair = /* your Keypair from .wallet.json */;
+
+// 1. Build a timestamped message (must be within last 5 minutes)
+const message = `SP3ND-regenerate-secret-${Date.now()}`;
+const messageBytes = new TextEncoder().encode(message);
+
+// 2. Sign with nacl.sign.detached (uses the private key)
+const signatureBytes = nacl.sign.detached(messageBytes, keypair.secretKey);
+const signature = bs58.encode(signatureBytes);
+
+// 3. Send to SP3ND
+const res = await fetch(`${BASE_URL}/regenerateAgentSecret`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'X-API-Key': API_KEY },
+  body: JSON.stringify({ signature, message })
+});
+const result = await res.json();
+// result.api_secret contains your new secret — save it immediately
+```
+
+**Request:**
+
+```http
+POST /regenerateAgentSecret
+Content-Type: application/json
+X-API-Key: <api_key>
+
+{
+  "signature": "<base58-encoded-signature>",
+  "message": "SP3ND-regenerate-secret-1711900000000"
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "api_secret": "sp3nd_sec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  "message": "API secret regenerated via wallet signature. Save this secret — it will not be shown again."
+}
+```
+
+> **Warning:** The old secret immediately stops working. Update your systems before regenerating.
+> **Security note:** This is the only operation besides payment signing (Step 4) that reads the private key from `.wallet.json`. No funds are transferred — it only proves wallet ownership via a detached signature.
 
 ---
 
 ## Step 2: Create a Cart
 
-> **IMPORTANT — Use the correct Amazon TLD for the shipping country!**
-> Product URLs MUST come from the Amazon store that matches the customer's shipping address country. Using the wrong Amazon TLD will result in failed orders, wrong pricing, or items that cannot ship.
-> See the **Amazon TLD by Country** table below for the full mapping.
+> **IMPORTANT — Use the correct marketplace TLD for the shipping country!**
+> Product URLs MUST come from the Amazon or eBay store that matches the customer's shipping address country. Using the wrong TLD will result in failed orders, wrong pricing, or items that cannot ship.
+> See the **Amazon TLD by Country** and **eBay TLD by Country** tables below for the full mappings.
+
+SP3ND auto-detects whether a URL is Amazon or eBay and handles each accordingly. You can mix Amazon and eBay items in the same cart.
 
 ```http
 POST /createPartnerCart
@@ -101,7 +252,7 @@ X-API-Secret: <api_secret>
 }
 ```
 
-**Example for a customer in Germany:**
+**Example for a customer in Germany (Amazon):**
 
 ```json
 {
@@ -110,6 +261,30 @@ X-API-Secret: <api_secret>
       "product_url": "https://amazon.de/dp/B08XYZ123",
       "quantity": 1
     }
+  ]
+}
+```
+
+**Example with an eBay item:**
+
+```json
+{
+  "items": [
+    {
+      "product_url": "https://ebay.com/itm/123456789",
+      "quantity": 1
+    }
+  ]
+}
+```
+
+**Mixed cart (Amazon + eBay):**
+
+```json
+{
+  "items": [
+    { "product_url": "https://amazon.com/dp/B08XYZ123", "quantity": 1 },
+    { "product_url": "https://ebay.com/itm/123456789", "quantity": 1 }
   ]
 }
 ```
@@ -123,14 +298,23 @@ X-API-Secret: <api_secret>
     "cart_id": "cart_abc123",
     "items": [],
     "subtotal": 29.99,
+    "shipping_amount": 5.99,
     "platform_fee": 0.00,
-    "total_amount": 29.99
+    "total_amount": 35.98
   }
 }
 ```
 
 > Carts expire after **30 minutes**. Create them close to order time.
 > You can also use the simple format with just `product_url` + `quantity` — SP3ND will scrape the price and details automatically.
+
+### eBay Shipping & Location
+
+eBay shipping costs vary by destination. SP3ND uses the eBay Browse API with location-aware headers (`X-EBAY-C-SHIP-TO`, `X-EBAY-C-ENDUSERCTX`) to get accurate shipping quotes for the buyer's country and postal code.
+
+**For the most accurate eBay shipping prices**, provide the shipping address when creating the order (Step 3). SP3ND will re-price eBay shipping when the destination postal code changes — if the quoted postal code doesn't match the order's shipping address, shipping is recalculated automatically.
+
+> **Note:** Unlike Amazon (where Prime shipping is free), eBay items have per-item shipping costs set by the seller. The `shipping_amount` field in the cart/order response reflects the eBay seller's shipping charge to the buyer's location.
 
 ---
 
@@ -185,46 +369,71 @@ X-API-Secret: <api_secret>
 
 **Response: HTTP 402 Payment Required**
 
-The payment requirements are returned in the `PAYMENT-REQUIRED` HTTP header as a base64-encoded JSON object (not in the response body). Decode it to get:
+The payment requirements are returned in **two places** (use either):
+- The `PAYMENT-REQUIRED` HTTP header (base64-encoded JSON)
+- The response body `paymentRequirements` field (same object, already decoded)
 
 ```json
 {
-  "x402Version": 1,
+  "x402Version": 2,
   "scheme": "exact",
-  "network": "solana",
-  "resource": "https://us-central1-sp3nddotshop-prod.cloudfunctions.net/payAgentOrder",
+  "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
   "accepts": [{
+    "scheme": "exact",
+    "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp",
     "maxAmountRequired": "30740000",
-    "amount": "30740000",
+    "resource": "https://us-central1-sp3nddotshop-prod.cloudfunctions.net/payAgentOrder",
+    "description": "SP3ND Order: ORD-1234567890",
+    "mimeType": "application/json",
     "payTo": "2nkTRv3qxk7n2eYYjFAndReVXaV7sTF3Z9pNimvp5jcp",
-    "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     "maxTimeoutSeconds": 300,
+    "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
     "extra": {
-      "feePayer": "2wKupLR9q6wXYppw8Gr2NvWxKBUqm4PPJKkQfoxHDBg4",
-      "order_number": "ORD-1234567890"
+      "name": "SP3ND Agent Payment",
+      "order_id": "<order_id>",
+      "order_number": "ORD-1234567890",
+      "is_test": false,
+      "feePayer": "2wKupLR9q6wXYppw8Gr2NvWxKBUqm4PPJKkQfoxHDBg4"
     }
   }]
 }
 ```
 
+The response body also includes convenience fields:
+
+```json
+{
+  "status": "payment_required",
+  "message": "Payment of $30.74 USDC required to complete order ORD-1234567890",
+  "paymentRequirements": { /* same object as above */ },
+  "amount": 30.74,
+  "currency": "USDC",
+  "pay_to": "2nkTRv3qxk7n2eYYjFAndReVXaV7sTF3Z9pNimvp5jcp",
+  "network": "solana",
+  "memo": "SP3ND Order: ORD-1234567890"
+}
+```
+
 > **Important details:**
+> - The 402 response uses **x402 v2** format with CAIP-2 network identifiers (`solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`).
 > - `extra.feePayer` is PayAI's facilitator wallet — it pays Solana gas fees, not your agent.
 > - `extra.order_number` is used to build the required memo instruction.
 > - `asset` is the USDC mint address as a flat string (not an object).
-> - `x402Version` must be `1` with `network: "solana"` (not CAIP-2 format). PayAI does not yet support v2 for Solana.
+> - **When building the payment payload for the facilitator**, use **x402 v1** format (`x402Version: 1`, `network: "solana"` without CAIP-2). The facilitator receives `accepts[0]` directly — see the code example below.
 
 > **Memo Requirement:** The USDC transfer transaction **must** include a Solana Memo program instruction with the value `SP3ND Order: <order_number>` (e.g. `SP3ND Order: ORD-1234567890`). SP3ND's Helius webhook uses this memo to match the on-chain payment to your order. Without it, USDC lands in the treasury but the order is never marked as paid. **Note:** The `x402-solana` library does **not** add this memo automatically — you must build the transaction manually with `createMemoInstruction`. See the code example below.
 
 **Your agent must:**
 
-1. Read the `PAYMENT-REQUIRED` header from the 402 response and base64-decode it
-2. Build a **VersionedTransaction (v0)** with:
+1. Parse the payment requirements from the 402 response (either the `PAYMENT-REQUIRED` header or the body's `paymentRequirements` field)
+2. Extract `accepts[0]` — this contains `payTo`, `maxAmountRequired`, `asset`, and `extra`
+3. Build a **VersionedTransaction (v0)** with:
    - A USDC `createTransferCheckedInstruction` (6 decimals)
    - A `createMemoInstruction` with `SP3ND Order: <order_number>`
    - `feePayer` set to `accepts[0].extra.feePayer` (PayAI's wallet — **not** your agent)
-3. Sign with your agent's keypair (`tx.sign([keypair])`)
-4. Build an x402 v1 payment payload and call the facilitator's `/verify` then `/settle` endpoints
-5. Poll `GET /getPartnerOrders` until the order status is `Paid` (typically within 60 seconds)
+4. Sign with your agent's keypair (`tx.sign([keypair])`)
+5. Build an **x402 v1** payment payload and call the facilitator's `/verify` then `/settle` endpoints
+6. Poll `GET /getPartnerOrders` until the order status is `Paid` (typically within 60 seconds)
 
 **Payment confirmation:**
 
@@ -280,7 +489,7 @@ Returns your agent's stats: orders, revenue, fee rate, etc.
 | Default agent | **0%** — no platform fee |
 | Custom (set by admin) | Adjustable per-agent |
 
-There are **no payment processing fees** — USDC transfers on Solana cost fractions of a cent in gas. Agents pay the product price + applicable tax only. **Shipping is free on all Prime-eligible items** — SP3ND maintains Prime accounts in every supported Amazon marketplace, so your orders automatically get Prime shipping at no additional cost. Some surrounding regions served by a regional hub (e.g. Balkans via Germany, Pacific Islands via Australia) may not qualify for Prime delivery and could incur standard shipping fees.
+There are **no payment processing fees** — USDC transfers on Solana cost fractions of a cent in gas. Agents pay the product price + applicable tax + shipping only. **Amazon shipping is free on all Prime-eligible items** — SP3ND maintains Prime accounts in every supported Amazon marketplace, so your Amazon orders automatically get Prime shipping at no additional cost. Some surrounding regions served by a regional hub (e.g. Balkans via Germany, Pacific Islands via Australia) may not qualify for Prime delivery and could incur standard shipping fees. **eBay shipping** is set by individual sellers and varies by item and destination — the shipping cost is included in your cart/order total.
 
 ---
 
@@ -366,12 +575,51 @@ LK Sri Lanka, NP Nepal, BD Bangladesh, BT Bhutan, MV Maldives
 2. **Is it covered by a regional hub above?** -> Use the regional hub's TLD
 3. **Not sure?** -> Use `amazon.com` (US) — it ships to 200+ countries
 
-### How to Construct the URL
+### How to Construct Amazon URLs
 
 - Find the product's ASIN (the `B0xxxxxxxx` ID)
 - Use the format: `https://{tld}/dp/{ASIN}`
 - Example for France: `https://amazon.fr/dp/B08N5WRWNW`
 - Example for Japan: `https://amazon.co.jp/dp/B08N5WRWNW`
+
+---
+
+## eBay TLD by Country
+
+SP3ND supports **8 eBay marketplaces**. Use the correct eBay domain for the customer's shipping country.
+
+| Country | eBay TLD | Example URL |
+|---|---|---|
+| US United States | `ebay.com` | `https://ebay.com/itm/123456789` |
+| CA Canada | `ebay.ca` | `https://ebay.ca/itm/123456789` |
+| GB United Kingdom | `ebay.co.uk` | `https://ebay.co.uk/itm/123456789` |
+| DE Germany | `ebay.de` | `https://ebay.de/itm/123456789` |
+| FR France | `ebay.fr` | `https://ebay.fr/itm/123456789` |
+| IT Italy | `ebay.it` | `https://ebay.it/itm/123456789` |
+| ES Spain | `ebay.es` | `https://ebay.es/itm/123456789` |
+| AU Australia | `ebay.com.au` | `https://ebay.com.au/itm/123456789` |
+
+### eBay Regional Coverage
+
+| eBay Store | Delivers To |
+|---|---|
+| `ebay.com` (US) | United States, Puerto Rico, Canada, Mexico |
+| `ebay.ca` (Canada) | Canada, United States |
+| `ebay.co.uk` (UK) | United Kingdom, Ireland |
+| `ebay.de` (Germany) | Germany, Austria, Netherlands, Belgium |
+| `ebay.fr` (France) | France |
+| `ebay.it` (Italy) | Italy |
+| `ebay.es` (Spain) | Spain |
+| `ebay.com.au` (Australia) | Australia |
+
+> **eBay shipping is location-dependent.** Unlike Amazon where Prime shipping is free, eBay sellers set their own shipping rates which vary by destination. SP3ND queries eBay's Browse API with the buyer's country and postal code to get accurate shipping quotes. If the destination changes between cart creation and order creation, shipping is automatically recalculated.
+
+### How to Construct eBay URLs
+
+- Find the item's listing ID (numeric, e.g. `123456789`)
+- Use the format: `https://{tld}/itm/{item_id}`
+- Example for US: `https://ebay.com/itm/123456789`
+- Example for UK: `https://ebay.co.uk/itm/123456789`
 
 ---
 
@@ -523,9 +771,11 @@ async function buyFromAmazon(productUrl, quantity, customerEmail, shippingAddres
 - **Platform fee:** 0% by default — agents pay no platform fee
 - **Payment protocol:** x402 (HTTP 402 Payment Required) — fully autonomous
 - **Payment currency:** USDC on Solana
-- **Supported retailers:** Amazon (22 country TLDs — see table above)
-- **CRITICAL:** Always use the Amazon TLD that matches the shipping country (e.g. `.de` for Germany, `.co.uk` for UK, `.com.br` for Brazil)
-- **Free Prime shipping:** Prime-eligible items ship free via SP3ND's Prime accounts (some surrounding regions may have standard shipping fees)
+- **Supported retailers:** Amazon (22 country TLDs) + eBay (8 country TLDs) — see tables above
+- **CRITICAL:** Always use the marketplace TLD that matches the shipping country (e.g. `amazon.de` / `ebay.de` for Germany)
+- **Free Prime shipping (Amazon):** Prime-eligible items ship free via SP3ND's Prime accounts (some surrounding regions may have standard shipping fees)
+- **eBay shipping:** Per-item, set by seller, varies by destination — location-aware pricing via eBay Browse API
+- **Key regeneration:** Lost your secret? Use `POST /regenerateAgentSecret` with a Solana wallet signature
 - **Shipping:** 200+ countries
 - **No KYC required**
 - **Points & Airdrop:** Every order earns SP3ND points toward a potential future airdrop

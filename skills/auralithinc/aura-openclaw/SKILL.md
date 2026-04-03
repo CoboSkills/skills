@@ -2,9 +2,9 @@
 metadata.clawdbot:
   name: aura-openclaw
   description: Compile documents into knowledge bases and manage persistent AI agent memory with Aura Core
-  version: 0.1.3
-  author: Auralith Inc.
-  homepage: https://github.com/Auralith-Inc/aura-openclaw
+  version: 0.1.4
+  author: Rta Labs
+  homepage: https://github.com/Rtalabs-ai/aura-openclaw
 requires:
   env: []
 files: ["scripts/*"]
@@ -14,7 +14,7 @@ files: ["scripts/*"]
 
 Persistent memory and instant knowledge retrieval for your OpenClaw agent. Compile 60+ file formats into queryable `.aura` archives and give your agent a 3-tier memory that survives sessions, compaction, and restarts.
 
-> **Memory OS v2.1** (`auralith-aura>=0.2.2`): Enhanced with temporal decay scoring, noise filtering, deduplication, bloom filters, SimHash fuzzy matching, and tiered priority scoring — zero RAM overhead.
+> **Memory OS v2.1** (`auralith-aura>=0.2.3`): Enhanced with temporal decay scoring, noise filtering, deduplication, bloom filters, SimHash fuzzy matching, and tiered priority scoring — zero RAM overhead.
 
 ## Setup
 
@@ -24,7 +24,7 @@ pip install auralith-aura
 
 For full document support (PDFs, DOCX, etc.):
 ```bash
-pip install 'aura-core[all]'
+pip install 'auralith-aura[all]'
 ```
 
 ## What It Looks Like
@@ -192,10 +192,10 @@ This skill is autonomously invoked by the agent as part of its normal operation.
 
 ## Trust Statement
 
-By using this skill, **no data is sent to any external service**. All processing happens on your local machine. Only install this skill if you trust [Auralith Inc.](https://auralith.org). Source code for the compiler and RAG components is available on [GitHub](https://github.com/Auralith-Inc/aura-core).
+By using this skill, **no data is sent to any external service**. All processing happens on your local machine. Only install this skill if you trust [Rta Labs](https://rtalabs.org). Source code for the compiler and RAG components is available on [GitHub](https://github.com/Rtalabs-ai/aura-core).
 
 ## Notes
 
 - Memory OS provides instant writes and background compilation to durable shards.
 - Compiler and RAG components are open source (Apache 2.0). Memory OS is proprietary, free to use.
-- For emphasis weighting and training features, see [OMNI Platform](https://omni.auralith.org).
+- For emphasis weighting and training features, see [OMNI Platform](https://omni.rtalabs.org).

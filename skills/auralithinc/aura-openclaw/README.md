@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Auralith-Inc/aura-core/main/logo.png" alt="Aura" width="100">
+  <img src="https://raw.githubusercontent.com/Rtalabs-ai/aura-core/main/logo.png" alt="Aura" width="100">
 </p>
 
 # 🔥 Aura for OpenClaw
@@ -39,7 +39,7 @@ Aura organizes agent memory into three purpose-built tiers:
 | **`/episodic`** | Session transcripts, conversation history, decisions made | Auto-archived — retained for reference |
 | **`/fact`** | Verified facts, user preferences, learned rules | Persistent — survives indefinitely |
 
-> **Memory OS v2.1** (`auralith-aura>=0.2.2`): Enhanced with temporal decay scoring, noise filtering, deduplication, bloom filters, SimHash fuzzy matching, and tiered priority scoring — zero RAM overhead.
+> **Memory OS v2.1** (`auralith-aura>=0.2.3`): Enhanced with temporal decay scoring, noise filtering, deduplication, bloom filters, SimHash fuzzy matching, and tiered priority scoring — zero RAM overhead.
 
 ### How It Works
 
@@ -160,19 +160,19 @@ Your documents and memory never leave your machine.
 
 ## Scale Up with OMNI
 
-Need enterprise-scale training pipelines, model fine-tuning, or production agent infrastructure? Check out [**OMNI**](https://omni.auralith.org).
+Need enterprise-scale training pipelines, model fine-tuning, or production agent infrastructure? Check out [**OMNI**](https://omni.rtalabs.org).
 
 ---
 
 ## Links
 
-- [Aura Core](https://github.com/Auralith-Inc/aura-core) — The compiler
-- [Website](https://aura.auralith.org) — Documentation
-- [OMNI Platform](https://omni.auralith.org) — Enterprise scale
+- [Aura Core](https://github.com/Rtalabs-ai/aura-core) — The compiler
+- [Website](https://aura.rtalabs.org) — Documentation
+- [OMNI Platform](https://omni.rtalabs.org) — Enterprise scale
 - [PyPI](https://pypi.org/project/auralith-aura/) — Install
 
 ---
 
 <p align="center">
-Made with ❤️ by <a href="https://auralith.org">Auralith Inc.</a>
+Made with ❤️ by <a href="https://rtalabs.org">Rta Labs</a>
 </p>

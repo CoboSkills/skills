@@ -1,6 +1,6 @@
 ---
 name: turing-pyramid
-description: Motivation and action system for AI agents. 10 needs with Turing-exp tension, execution gate, spontaneity layers, deliberation protocol (structured thinking with outcome artifacts), association scan (contextual recall), continuity across sessions, and crash-resilient watchdog.
+description: Prioritized action selection for AI agents. 10 needs with tension scoring, execution-gate tracking, optional continuity scripts, and an opt-in watchdog. Use when an agent needs local stateful action prioritization inside an isolated WORKSPACE. Read the deployment tiers and security warnings before enabling cron, watchdog kill/cleanup, or optional external-model scanning.
 metadata:
   clawdbot:
     emoji: "🔺"
@@ -19,6 +19,11 @@ metadata:
         - bc
         - grep
         - find
+        - flock
+        - pgrep
+        - df
+        - kill
+        - gzip
 ---
 
 # 🔺 Turing Pyramid
@@ -26,6 +31,14 @@ metadata:
 **What it does:** Gives your agent a motivation system. 10 needs (security, connection, expression...) build tension over time via decay. Each heartbeat, the pyramid evaluates tensions, selects actions, and tells the agent what to do — from "check system health" to "write something creative."
 
 **What it is NOT:** A chatbot framework, an executor, or a system management tool.
+
+**Three layers with different scopes:**
+
+⚠️ **Safety summary**
+- This skill is **not stateless**. It writes its own state and audit files (`needs-state.json`, `audit.log`, `followups.jsonl`, `MINDSTATE.md`, watchdog logs).
+- This skill reads files under `WORKSPACE`. If `WORKSPACE` points at a sensitive directory, the skill can scan sensitive files there.
+- `allow_kill` and `allow_cleanup` are **off by default** and should be treated as elevated, opt-in features.
+- `external-model` scanning is **off by default** and should only be enabled after explicitly documenting the credential source and intended API.
 
 **Three layers with different scopes:**
 
@@ -81,7 +94,7 @@ Choose the level of integration that matches your trust and needs:
 | **4. + Watchdog (detect)** | Tier 3 + `mindstate-watchdog.sh` in cron (*/15) | Detects hung processes and orphan files, **logs only** (default). Auto-freezes stale cognition | Moderate — detection only, no destructive actions |
 | **5. Full self-healing** | Tier 4 + `allow_kill: true` + `allow_cleanup: true` | Kills hung skill processes, deletes orphan `.tmp` files | Higher — requires script review |
 
-**Start at Tier 1 or 2.** Upgrade after reviewing scripts and running the test suite in an isolated workspace. You get full motivation/action selection at Tier 1 — everything above is optional. Tier 4 (watchdog with defaults) is safe to enable without review since it only detects and logs.
+**Start at Tier 1 or 2.** Upgrade only after reviewing scripts and running the test suite in an isolated workspace. You get full motivation/action selection at Tier 1 — everything above is optional. Even detect-only watchdog/continuity modes should be reviewed before persistent cron deployment.
 
 ---
 
@@ -108,11 +121,8 @@ The system is self-tuning. After a few cycles, you'll see patterns: which needs 
 - **Tension** = dep² + importance × max(0, dep - threshold)². Equal at homeostasis, hierarchy in crisis.
 - **Decay**: Satisfaction drops over time at need-specific rates. Connection decays in 6h. Security in 168h.
 - **Actions**: Each need has 8-11 possible actions with impact levels (low/mid/high). The pyramid picks based on current state.
-- **Deliberative actions** are tagged `[DELIBERATIVE]` — think through phases (REPRESENT → RELATE+TENSION → GENERATE → EVALUATE → CONCLUDE → ROUTE), produce an outcome artifact, and route it back into the system. Use `deliberate.sh --validate` to check free-form notes or `--validate-inline` for quick checks.
-- **Association scan** (`association-scan.sh`): contextual recall during deliberation. Surfaces related past conclusions, research threads, pending followups, and open interests. Suggested in RELATE+TENSION phase, not required.
-- **Followup horizons**: `create-followup.sh --in 2w` or `--in 1m` for long-term revisits.
 
-**Resilience:** After setup, verify your cron has both entries (daemon + watchdog). The watchdog catches edge cases — daemon crashes, hung processes, stale state, log rotation. See "Resilience & Crash Recovery" section for details.
+**Resilience:** After setup, verify your cron has both entries (daemon + watchdog). The watchdog catches edge cases — daemon crashes, hung processes, stale state. See "Resilience & Crash Recovery" section for details.
 
 ### For the Human (Steward)
 
@@ -133,8 +143,6 @@ The system is self-tuning. After a few cycles, you'll see patterns: which needs 
 - "Check `gate-status.sh` — is the execution rate healthy?"
 - "Is the watchdog cron installed?" → verify with `crontab -l`
 - "Check `watchdog.log` — any recent restarts?"
-- "Are deliberative actions producing real conclusions?" → check `audit.log` for `conclusion` field
-- "Is the association scan useful or noisy?" → tune `--min-score` and `--recency-hours`
 
 **Execution Gate** (enabled by default): The gate prevents your agent from logging "I did X" without actually doing X. Monitor execution rate via `gate-status.sh`. Healthy is >70%. If your agent repeatedly defers the same need, the actions may not fit your agent's capabilities — adjust them in `needs-config.json`.
 
@@ -290,7 +298,7 @@ Configure: `execution_gate` in `assets/mindstate-config.json`
 
 ---
 
-## 🧠 Deliberation Protocol (v1.31.0+)
+## 🧠 Deliberation Protocol (v1.31.0)
 
 Reflective actions ("re-read notes", "review SELF.md", "explore topic") previously collapsed into read → mark-satisfied → done. The Deliberation Protocol adds structured thinking with outcome artifacts.
 
@@ -403,31 +411,6 @@ State persistence across discrete sessions via a two-layer living document. The 
 
 Current state loads first — early context frames interpretation of everything after.
 
-### Compaction Continuity (v1.33.4)
-
-Context compaction (auto or manual `/compact`) compresses conversation history, which can lose active execution state. The continuity layer bridges this gap:
-
-**Pre-compaction (recommended OpenClaw config):**
-```json5
-// openclaw.json → agents.defaults.compaction.memoryFlush
-{
-  "enabled": true,
-  "softThresholdTokens": 4000,
-  "systemPrompt": "Session nearing compaction. Write current task state to memory/current-task.md (OVERWRITE). Write durable memories to memory/YYYY-MM-DD.md (APPEND). If nothing to store, reply NO_REPLY.",
-  "prompt": "Pre-compaction flush. Save current task to memory/current-task.md, durable notes to memory/YYYY-MM-DD.md. Reply NO_REPLY if nothing to store."
-}
-```
-
-**Post-compaction recovery:** `mindstate-boot.sh` auto-detects `memory/current-task.md` and displays it with pickup instructions. The agent reads it, resumes work, then deletes the file.
-
-**Manual `/compact`:** The flush only fires on auto-compaction (near context limit). For manual `/compact`, agents should write `memory/current-task.md` themselves before compacting.
-
-**Agent guideline (add to AGENTS.md):**
-```
-If `memory/current-task.md` exists: read it — you were in the middle of
-something before compaction. Pick up where you left off, then delete the file.
-```
-
 ### Temperature System
 
 **Physical** (daemon-computed, deterministic, first-match):
@@ -535,11 +518,11 @@ Scanners evaluate each need by analyzing workspace files.
 |--------|------|----------|-------|
 | `line-level` (default) | Free | Good | None |
 | `agent-spawn` | Low | High | Cheap model (Haiku) in allowed list |
-| `external-model` | Low | High | API key + steward approval |
+| `external-model` | Low | High | Explicit API credential + steward approval |
 
 Config: `assets/scan-config.json`. Fallback always to `line-level`.
 
-**For stewards:** `agent-spawn` and `external-model` require explicit approval (`approved_by_steward: true`). The skill never enables these silently.
+**For stewards:** `agent-spawn` and `external-model` require explicit approval (`approved_by_steward: true`). The skill never enables these silently. If you enable `external-model`, document the exact credential source (env var or file), API endpoint, and approval path in your deployment before use.
 
 ---
 
@@ -580,7 +563,7 @@ Config: `assets/scan-config.json`. Fallback always to `line-level`.
 | MEMORY.md, memory/*.md (read) | Files outside `$WORKSPACE` + own assets dir |
 | SOUL.md, SELF.md (read) | Credentials (unless `external-model` enabled) |
 | research/, scratchpad/ (read) | `sudo`, `docker`, `systemctl` |
-| needs-state.json, audit.log (read/write) | Network (curl, wget, ssh, etc.) |
+| needs-state.json, audit.log (read/write) | Network by default (curl, wget, ssh, etc.). Optional `external-model` mode changes this and must be explicitly enabled |
 | MINDSTATE.md (write, daemon) | Processes other than `mindstate-*.sh` |
 | `pgrep`, `df` (read-only system checks, daemon) | Paths outside workspace/assets |
 | `kill` on `mindstate-*.sh` PIDs (watchdog only) | Root/elevated permissions |
@@ -633,18 +616,6 @@ All state changes logged with timestamp, need, impact, reason (scrubbed):
 - Passwords/secrets/tokens → `[REDACTED]`
 
 View: `cat assets/audit.log | jq`
-
-### File Descriptor Allocation
-
-Lock FDs used by scripts (do not reuse in wrappers):
-
-| FD | Lock file | Used by |
-|----|-----------|---------|
-| 200 | `needs-state.json.lock` | mark-satisfied.sh, apply-deprivation.sh |
-| 200 | `cycle.lock` | run-cycle.sh, apply-preset.sh (different lock file, same fd — never concurrent) |
-| 201 | `followups.jsonl.lock` | create-followup.sh, resolve-followup.sh, run-cycle.sh |
-| 202 | `mindstate.lock` | mindstate-daemon.sh, mindstate-freeze.sh, mindstate-watchdog.sh |
-| 203 | `gate.lock` | gate-propose.sh, gate-resolve.sh, gate-check.sh |
 
 ---
 
@@ -756,6 +727,6 @@ Summary: 3 action(s), 0 noticed
 
 ---
 
-**Version:** 1.28.7 — Safe defaults: watchdog detect-only, kill/cleanup opt-in. 5-tier deployment. 25/25 tests.
+**Version:** 1.33.9 — ClawHub safety clarification, safe publish defaults, watchdog detect-only by default.
 
 Full changelog: `CHANGELOG.md` | Tuning guide: `references/TUNING.md`

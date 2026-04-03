@@ -95,7 +95,9 @@ The agent rotates through different types of work based on what's been neglected
 ./scripts/create-followup.sh --what "review PR CI" --in 2h --need competence --source steward
 ```
 
-**Requires:** `bash`, `jq`, `bc`, `grep`, `find` + `WORKSPACE` env var set.
+**Requires:** `bash`, `jq`, `bc`, `grep`, `find`, `flock`, `pgrep`, `df`, `kill`, `gzip` + `WORKSPACE` env var set.
+
+**Safety note:** The skill writes its own state/audit files inside `WORKSPACE` and can optionally enable continuity/watchdog cron scripts. `allow_kill`, `allow_cleanup`, and `external-model` scanning are opt-in features that should be reviewed before enabling.
 
 ---
 
@@ -150,6 +152,8 @@ outputs suggestion text      →   uses its own tools and permissions
 Stable agents (most needs satisfied) use fewer tokens. First few days are higher as the system stabilizes.
 
 ---
+
+⚠️ **Workspace isolation:** Never point `WORKSPACE` at `$HOME`, `/root`, or any directory containing credentials or private material. Use an isolated workspace directory.
 
 ## Deployment Tiers
 

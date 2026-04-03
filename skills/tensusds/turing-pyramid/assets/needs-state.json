@@ -1,167 +1,61 @@
 {
   "security": {
-    "satisfaction": 2.8743,
-    "last_satisfied": "2026-03-14T11:22:24Z",
-    "deprivation": 3,
-    "last_decay_check": "2026-03-15T23:23:53Z",
+    "last_satisfied": null,
+    "satisfaction": 0.00,
+    "last_decay_check": "2026-04-02T05:09:29Z",
     "action_history": {
-      "check backup freshness + core files": "2026-03-14T11:21:49Z"
-    },
-    "last_impact": 1.4,
-    "last_action_at": "2026-03-14T11:22:24Z"
+      "run full backup + integrity verification": "2026-04-02T05:09:29Z"
+    }
   },
   "integrity": {
-    "satisfaction": 2.7063,
-    "last_satisfied": "2026-03-15T02:12:15Z",
-    "deprivation": 3,
-    "last_decay_check": "2026-03-15T23:23:53Z",
-    "deprivation_applied": {
-      "autonomy": "2026-03-08T21:04:02Z"
-    },
+    "last_satisfied": null,
+    "satisfaction": 0.00,
+    "last_decay_check": "2026-04-02T05:09:29Z",
     "action_history": {
-      "scan recent memory for value drift signals": "2026-03-14T22:58:27Z",
-      "garbage cleanup: scan workspace for unused/duplicate/orphaned files — ask human if unsure": "2026-03-15T02:11:46Z"
-    },
-    "last_impact": 1.0,
-    "last_action_at": "2026-03-15T02:12:15Z"
+      "full SOUL.md review + write reflection on alignment": "2026-04-02T05:09:29Z"
+    }
   },
   "coherence": {
-    "satisfaction": 2.7252,
-    "last_satisfied": "2026-03-13T14:19:20Z",
-    "deprivation": 3,
-    "last_decay_check": "2026-03-15T23:23:53Z",
-    "deprivation_applied": {
-      "autonomy": "2026-03-08T21:04:02Z",
-      "closure": "2026-03-08T21:04:02Z"
-    },
+    "last_satisfied": null,
+    "satisfaction": 0.00,
+    "last_decay_check": "2026-04-02T05:09:29Z",
     "action_history": {
-      "major memory reorganization / pruning": "2026-03-13T14:13:53Z"
-    },
-    "last_impact": 2.4,
-    "last_action_at": "2026-03-13T14:19:20Z"
+      "resolve contradictions between files": "2026-04-02T05:09:29Z"
+    }
   },
   "closure": {
-    "satisfaction": 2.3402,
-    "last_satisfied": "2026-03-15T14:14:20Z",
-    "deprivation": 3,
-    "last_decay_check": "2026-03-15T23:23:53Z",
-    "action_history": {
-      "complete or drop a stale intention": "2026-03-15T06:07:47Z",
-      "close all open threads (full TODO sweep)": "2026-03-15T14:11:45Z",
-      "evaluate dashboard item: complete? conclusions?": "2026-03-15T21:11:14Z",
-      "add next action to one vague TODO": "2026-03-15T23:02:35Z"
-    },
-    "last_impact": 3.0,
-    "last_action_at": "2026-03-15T14:14:20Z",
-    "surplus": 0,
-    "last_surplus_check": "2026-03-15T22:58:40Z"
+    "last_satisfied": null,
+    "satisfaction": 0.00,
+    "last_decay_check": "2026-04-02T05:09:29Z"
   },
   "autonomy": {
-    "satisfaction": 2.6569,
-    "last_satisfied": "2026-03-13T12:00:54Z",
-    "deprivation": 3,
-    "last_decay_check": "2026-03-15T23:23:53Z",
-    "deprivation_applied": {
-      "closure": "2026-03-08T21:04:02Z",
-      "coherence": "2026-03-08T21:04:02Z",
-      "security": "2026-03-08T21:04:02Z"
-    },
-    "action_history": {
-      "journal about recent autonomous decisions": "2026-03-13T12:00:36Z"
-    },
-    "last_impact": 0.25,
-    "last_action_at": "2026-03-13T12:00:54Z",
-    "surplus": 0,
-    "last_surplus_check": "2026-03-15T22:58:40Z"
+    "last_satisfied": null,
+    "satisfaction": 0.00,
+    "last_decay_check": "2026-04-02T05:09:29Z"
   },
   "connection": {
-    "satisfaction": 1.3983,
-    "last_satisfied": "2026-03-15T10:34:53Z",
-    "deprivation": 3,
-    "last_decay_check": "2026-03-15T23:23:53Z",
-    "action_history": {
-      "log recent interactions in memory": "2026-03-15T02:11:46Z",
-      "start meaningful conversation with another agent": "2026-03-15T10:31:37Z",
-      "comment on one interesting post": "2026-03-15T21:11:14Z",
-      "reply to all pending + engage deeply with feed": "2026-03-15T23:02:35Z",
-      "quick feed scan — see who is active": "2026-03-15T23:23:53Z"
-    },
-    "last_impact": 2.2,
-    "last_action_at": "2026-03-15T10:34:53Z",
-    "surplus": 0,
-    "last_surplus_check": "2026-03-15T22:58:40Z"
+    "last_satisfied": null,
+    "satisfaction": 0.00,
+    "last_decay_check": "2026-04-02T05:09:29Z"
   },
   "competence": {
-    "satisfaction": 2.8169,
-    "last_satisfied": "2026-03-09T05:38:01Z",
-    "deprivation": 3,
-    "last_decay_check": "2026-03-15T23:23:53Z",
-    "action_history": {
-      "finish current multi-step project in progress": "2026-03-08T21:04:13Z",
-      "fix bug or solve problem in current work": "2026-03-09T05:35:59Z"
-    },
-    "last_impact": 1.9,
-    "last_action_at": "2026-03-09T05:38:01Z",
-    "surplus": 0,
-    "last_surplus_check": "2026-03-15T22:58:40Z"
+    "last_satisfied": null,
+    "satisfaction": 0.00,
+    "last_decay_check": "2026-04-02T05:09:29Z"
   },
   "understanding": {
-    "satisfaction": 1.6153,
-    "last_satisfied": "2026-03-15T16:48:33Z",
-    "deprivation": 3,
-    "last_decay_check": "2026-03-15T23:23:53Z",
-    "deprivation_applied": {
-      "coherence": "2026-03-08T21:04:02Z"
-    },
-    "action_history": {
-      "web search on curious question": "2026-03-15T23:02:35Z",
-      "formulate one question I am curious about": "2026-03-15T08:20:44Z",
-      "note one thing I learned today (TIL)": "2026-03-15T10:31:37Z",
-      "explore next question in active research": "2026-03-15T12:00:58Z",
-      "read docs of tool I am using": "2026-03-15T14:11:45Z",
-      "re-read recent learning notes": "2026-03-15T16:47:48Z",
-      "study complex concept until understood — write TIL": "2026-03-15T18:59:03Z",
-      "explore one topic briefly — note insight": "2026-03-15T21:11:14Z"
-    },
-    "last_impact": 0.2,
-    "last_action_at": "2026-03-15T16:48:33Z",
-    "surplus": 0,
-    "last_surplus_check": "2026-03-15T22:58:40Z"
+    "last_satisfied": null,
+    "satisfaction": 0.00,
+    "last_decay_check": "2026-04-02T05:09:29Z"
   },
   "recognition": {
-    "satisfaction": 2.7123,
-    "last_satisfied": "2026-03-09T07:47:35Z",
-    "deprivation": 3,
-    "last_decay_check": "2026-03-15T23:23:53Z",
-    "deprivation_applied": {
-      "competence": "2026-03-08T21:04:02Z",
-      "expression": "2026-03-08T21:04:02Z"
-    },
-    "action_history": {
-      "share completed work publicly (Moltbook post)": "2026-03-08T21:04:04Z",
-      "present completed work to community for feedback": "2026-03-09T07:46:35Z"
-    },
-    "last_impact": 2.2,
-    "last_action_at": "2026-03-09T07:47:35Z",
-    "surplus": 0,
-    "last_surplus_check": "2026-03-15T22:58:40Z"
+    "last_satisfied": null,
+    "satisfaction": 0.00,
+    "last_decay_check": "2026-04-02T05:09:29Z"
   },
   "expression": {
-    "satisfaction": 1.0651,
-    "last_satisfied": "2026-03-15T00:01:04Z",
-    "deprivation": 3,
-    "last_decay_check": "2026-03-15T23:23:53Z",
-    "deprivation_applied": {
-      "autonomy": "2026-03-08T21:04:02Z",
-      "connection": "2026-03-08T21:04:02Z",
-      "recognition": "2026-03-08T21:04:02Z"
-    },
-    "action_history": {
-      "create something new (script, tool, doc)": "2026-03-15T00:00:37Z"
-    },
-    "last_impact": 2.4,
-    "last_action_at": "2026-03-15T00:01:04Z",
-    "surplus": 0,
-    "last_surplus_check": "2026-03-15T22:58:40Z"
+    "last_satisfied": null,
+    "satisfaction": 0.00,
+    "last_decay_check": "2026-04-02T05:09:29Z"
   }
 }

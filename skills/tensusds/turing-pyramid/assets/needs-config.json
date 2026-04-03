@@ -1,11 +1,11 @@
 {
   "_meta": {
     "name": "Turing Pyramid — Agent Needs Configuration",
-    "version": "1.33.5",
+    "version": "1.33.9",
     "author": "turing-pyramid contributors",
     "created": "2026-02-22",
     "updated": "2026-03-23",
-    "note": "v1.33.3: fd docs, SKILL.md version fix, log rotation, race fix, test coverage TODO",
+    "note": "v1.33.0: Continuation Phase 2 — boot recall + freeze residuals",
     "active_preset": "default",
     "preset_version": "1.0.0"
   },
@@ -821,7 +821,7 @@
         "echo_duration_hours": 24
       }
     },
-    "version": "1.33.5",
+    "version": "1.33.9",
     "tension_formula": {
       "mode": "turing_exp",
       "crisis_threshold": 1.0,

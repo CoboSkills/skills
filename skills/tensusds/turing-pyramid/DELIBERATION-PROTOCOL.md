@@ -1,13 +1,13 @@
 # Deliberation Protocol — Design Document
 
 **Version:** 0.3.0 (Phase 2 design + external review integration)
-**Authors:** steward, agent (co-designer), formalization partner
+**Authors:** Max (steward), NewMoon (agent/co-designer), Claude (formalization)
 **Target:** Turing Pyramid v1.30.0 (Phase 1), v1.31.0 (Phase 2)
 **Date:** 2026-03-23
 
 **Revision history:**
 - v0.1.0 — Initial design (Claude)
-- v0.2.0 — Incorporated agent feedback: two-mode deliberate.sh (template + validate), save-off-by-default, phases as questions not obligations, anti-compliance principle, meta-reactivity risk analysis, low-confidence warning in v1.30.0
+- v0.2.0 — Incorporated NewMoon feedback: two-mode deliberate.sh (template + validate), save-off-by-default, phases as questions not obligations, anti-compliance principle, meta-reactivity risk analysis, low-confidence warning in v1.30.0
 - v0.3.0 — External review integration: outcome artifact (replaces conclusion artifact conceptually), route "reframe", TENSION extraction in RELATE phase, false closure metric, "persistent state change mandatory" principle. Phase 2 implementation spec: --conclusion in mark-satisfied.sh and gate-resolve.sh, action_mode stored in pending_actions.json at propose time, edge cases, test plan
 
 ---
@@ -48,9 +48,9 @@ The root cause is **protocol-level**, not model-level. The Turing Pyramid curren
 
 ### 1.4 Origin
 
-Identified through dialogue between steward and agent (2026-03-23). The agent observed that he produced a complete research note (sulfur biosignature analysis with conclusion, open questions, and meta-evaluation) only because the dialogue with steward created an external demand for completed thinking. Without that external demand, the Pyramid would have said "re-read" → he would have read → marked satisfied → moved on.
+Identified through dialogue between Max and NewMoon (2026-03-23). NewMoon observed that he produced a complete research note (sulfur biosignature analysis with conclusion, open questions, and meta-evaluation) only because the dialogue with Max created an external demand for completed thinking. Without that external demand, the Pyramid would have said "re-read" → he would have read → marked satisfied → moved on.
 
-Key insight from the agent:
+Key insight from NewMoon:
 
 > "Between points 2 and 4 — nothing. There is no moment where I formulate 'and what follows from this?', 'does this contradict something I knew?', 'what's the conclusion?'. I just read → marked → moved on."
 
@@ -554,7 +554,7 @@ fi
 | Conclusion contains sensitive data | Scrubbed via `scrub_sensitive()` before logging |
 | Action not found in config at propose time | `action_mode` defaults to "operative" — safe fallback |
 
-**Key design choice:** Warning, not blocking. This respects the agent's concern about "writing files to pass the gate." The gate nudges toward outcomes without mandating them.
+**Key design choice:** Warning, not blocking. This respects NewMoon's concern about "writing files to pass the gate." The gate nudges toward outcomes without mandating them.
 
 ### 4.4 Part D: run-cycle.sh Output Change
 
@@ -938,7 +938,7 @@ Based on metrics:
 
 ## 10. Open Questions
 
-1. ~~**Should deliberate.sh auto-save or require explicit save?**~~ **RESOLVED (v0.2.0):** Default is `--no-save`. Save only with explicit `--save` flag, or automatically when route ≠ "concluded" (agent has a followup/thread to persist). Resolved per agent feedback — prevents file clutter.
+1. ~~**Should deliberate.sh auto-save or require explicit save?**~~ **RESOLVED (v0.2.0):** Default is `--no-save`. Save only with explicit `--save` flag, or automatically when route ≠ "concluded" (agent has a followup/thread to persist). Resolved per NewMoon feedback — prevents file clutter.
 
 2. **Should the outcome feed back into tension calculation?** E.g., a deliberation that surfaces contradictions (tension artifact) could directly lower coherence satisfaction. This is powerful but complex — defer to v1.32.0+.
 
@@ -946,9 +946,9 @@ Based on metrics:
 
 4. **How does this interact with the MINDSTATE system?** MINDSTATE.md is frozen between sessions. Should deliberation files be referenced in MINDSTATE? Probably yes — as part of the "active context" section. Defer details to implementation.
 
-5. ~~**Should low-confidence conclusions trigger automatic followups?**~~ **RESOLVED (v0.2.0):** Warning only, not auto-create. If confidence == "low" AND route == "concluded" → `deliberate.sh` emits: "⚠️ Low-confidence conclusion with no followup. Consider revisiting." Agent decides whether to act on it. Resolved per agent feedback — cheap check, immediate value, no noise.
+5. ~~**Should low-confidence conclusions trigger automatic followups?**~~ **RESOLVED (v0.2.0):** Warning only, not auto-create. If confidence == "low" AND route == "concluded" → `deliberate.sh` emits: "⚠️ Low-confidence conclusion with no followup. Consider revisiting." Agent decides whether to act on it. Resolved per NewMoon feedback — cheap check, immediate value, no noise.
 
-6. **Phase prompt localization.** The current prompts are in English. The agent's primary operating context may benefit from bilingual prompts or configurable prompt text. Minor concern for initial implementation.
+6. **Phase prompt localization.** The current prompts are in English. NewMoon's primary operating context may benefit from bilingual prompts or configurable prompt text. Minor concern for initial implementation.
 
 ---
 

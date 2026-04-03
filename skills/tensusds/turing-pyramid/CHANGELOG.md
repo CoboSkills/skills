@@ -1,34 +1,12 @@
 # Changelog
 
-## v1.33.5 (2026-03-24) — Compaction continuity + test fixes (27/27 green)
-- **Compaction continuity**: `memory/current-task.md` recovery in `mindstate-boot.sh`, init.sh config recommendation, SKILL.md docs
-- **BUG fix**: `mindstate-freeze.sh` — `grep -oP` crash under `set -e` when audit entries lack `conclusion` field
-- **Test fixes**: gate isolation in test_tension.sh + test_followups.sh, test_research_threads.sh checks action existence not external file
-- **All 27 tests green** (was 23/27)
-
-## v1.33.4 (2026-03-24) — Compaction continuity
-- **current-task.md recovery** in `mindstate-boot.sh`: auto-detects and displays active task saved pre-compaction
-- **Pre-compaction flush config** recommendation in `init.sh`: guides stewards to configure OpenClaw memoryFlush for task state persistence
-- **SKILL.md**: new "Compaction Continuity" section documenting the full chain (flush → save → boot → pickup → delete)
-- **AGENTS.md template**: step 6 — read current-task.md if exists, pick up where you left off
-
-## v1.33.3 (2026-03-24) — Docs, fd allocation, version consistency
-- **FD allocation table** in SKILL.md Security section — documents fd 200-203 usage across all scripts
-- **SKILL.md version header** fixed: `Deliberation Protocol (v1.31.0)` → `(v1.31.0+)`
-- **Test coverage gaps documented** — TODO for v1.34.0+: apply-deprivation tests, concurrent race test, context-scan edge cases
-- **27/28 tests green** (1 pre-existing freeze test isolation issue, not a regression)
-
-## v1.33.2 (2026-03-24) — Long-run stability + concurrency fix
-- **audit.log rotation**: watchdog rotates at 5000 lines → keeps 3000, archives old entries (gzip at >1MB). Nothing lost.
-- **followups.jsonl compaction**: watchdog removes resolved/expired entries older than 30 days at >100 lines
-- **boot.log rotation**: watchdog trims at 500 lines → keeps 300 (~1.5 years)
-- **RACE-1 fix**: apply-deprivation.sh now acquires flock on state file + uses PID-suffixed tmp files. Prevents clobber with concurrent mark-satisfied.sh
-
-## v1.33.1 (2026-03-24) — PII scrub + 3 bugfixes
-- **PII cleanup**: removed all personal names/nicknames from design docs, CHANGELOG, tests. Public files use "steward"/"agent"/"formalization partner"
-- **BUG-1 fix** (High): `SESSION_START` → `SESSION_START_EPOCH` in mindstate-freeze.sh — deliberation residuals were never extracted (dead code)
-- **BUG-2 fix** (Medium): removed `--exclude-source mindstate_residuals` (nonexistent source type) from boot scan. Feedback loop prevented by keyword source design instead
-- **BUG-3 fix** (Low): Test 12 now verifies actual residual content, not just section header presence
+## v1.33.9 (2026-04-02) — ClawHub safety clarification + safe publish defaults
+- **Publish defaults confirmed safe**: `watchdog.allow_kill=false`, `watchdog.allow_cleanup=false` in publish bundle
+- **Metadata expanded**: added undeclared runtime binaries (`flock`, `pgrep`, `df`, `kill`, `gzip`) to skill metadata
+- **Instruction scope clarified**: skill explicitly described as stateful (writes `needs-state.json`, `audit.log`, `followups.jsonl`, `MINDSTATE.md`, watchdog logs)
+- **Workspace boundary clarified**: stronger warning that `WORKSPACE` must be isolated and never point at home/system/credential directories
+- **Optional risky paths clarified**: `external-model` scanning and watchdog kill/cleanup documented as explicit opt-in features requiring steward review
+- **Deployment wording tightened**: removed wording that implied persistent watchdog deployment was safe without review
 
 ## v1.33.0 (2026-03-24) — Continuation Phase 2: Boot Recall + Freeze Residuals
 - **mindstate-boot.sh**: contextual recall at session start — association scan with keywords from open threads + trajectory
@@ -81,7 +59,7 @@
 - **Routing options**: followup, research_thread, interest, steward_question, priority_flag, reframe, chain, concluded
 - **Design principles**: scaffolding not bureaucracy, phases as questions not obligations, anti-compliance by design, persistent state change mandatory
 - **16 tests** (Tests 1-16): tagging, template generation, compression, validation, Russian support, run-cycle output
-- **Design document**: `DELIBERATION-PROTOCOL.md` (v0.3.0, 3 contributors)
+- **Design document**: `DELIBERATION-PROTOCOL.md` (v0.3.0, 3 authors: Max, NewMoon, Claude)
 
 ## v1.29.0 (2026-03-20) — Preset Architecture
 

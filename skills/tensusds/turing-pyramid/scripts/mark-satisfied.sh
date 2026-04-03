@@ -147,7 +147,7 @@ jq --arg need "$NEED" --arg now "$NOW_ISO" --argjson impact "$IMPACT" --argjson 
   .[$need].last_decay_check = $now |
   .[$need].last_impact = $impact |
   .[$need].last_action_at = $now
-' "$STATE_FILE" > "$STATE_FILE.tmp.$$" && mv "$STATE_FILE.tmp.$$" "$STATE_FILE"
+' "$STATE_FILE" > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"
 
 echo "✅ $NEED marked as satisfied (impact: $IMPACT)"
 echo "   satisfaction: $CURRENT_SAT → $NEW_SAT"
@@ -165,7 +165,7 @@ HIGH_THRESHOLD="${HIGH_THRESHOLD:-2.0}"
 if (( $(echo "$IMPACT >= $HIGH_THRESHOLD" | bc -l) )); then
     jq --arg need "$NEED" --arg now "$NOW_ISO" \
        '.[$need].last_high_action_at = $now' \
-       "$STATE_FILE" > "$STATE_FILE.tmp.$$" && mv "$STATE_FILE.tmp.$$" "$STATE_FILE"
+       "$STATE_FILE" > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"
     echo "   📊 High-impact action recorded (boredom noise reset)"
 fi
 
@@ -222,7 +222,7 @@ if [[ -f "$CROSS_IMPACT_FILE" ]]; then
             # Update target satisfaction (root level)
             jq --arg t "$TARGET" --argjson sat "$NEW_TARGET" '
                 .[$t].satisfaction = $sat
-            ' "$STATE_FILE" > "$STATE_FILE.tmp.$$" && mv "$STATE_FILE.tmp.$$" "$STATE_FILE"
+            ' "$STATE_FILE" > "$STATE_FILE.tmp" && mv "$STATE_FILE.tmp" "$STATE_FILE"
             
             if (( $(echo "$DELTA > 0" | bc -l) )); then
                 echo "   → $TARGET: +$DELTA (now: $NEW_TARGET)"

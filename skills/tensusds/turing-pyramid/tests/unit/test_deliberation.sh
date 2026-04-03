@@ -396,7 +396,7 @@ cleanup_gate
 # ─── Test 23: mark-satisfied --conclusion with sensitive data → scrubbed ───
 echo "Test 23: Conclusion with sensitive data is scrubbed"
 AUDIT_LINES_BEFORE=$(wc -l < "$AUDIT_LOG" 2>/dev/null || echo 0)
-bash "$SCRIPTS/mark-satisfied.sh" security 0.3 --reason "test scrub" --conclusion "found open port on 192.168.1.100 at /home/testuser/.ssh/key" >/dev/null 2>&1 || true
+bash "$SCRIPTS/mark-satisfied.sh" security 0.3 --reason "test scrub" --conclusion "found open port on 192.168.1.100 at /home/max/.ssh/key" >/dev/null 2>&1 || true
 NEW_ENTRY=$(tail -n +$((AUDIT_LINES_BEFORE + 1)) "$AUDIT_LOG" | grep "test scrub" | tail -1)
 if echo "$NEW_ENTRY" | grep -q "192.168.1.100"; then
     echo "  FAIL: IP address should be scrubbed"

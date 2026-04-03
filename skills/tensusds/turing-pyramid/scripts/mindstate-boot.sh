@@ -195,16 +195,6 @@ if (( ${#confirmations[@]} > 0 || ${#prediction_errors[@]} > 0 )); then
     echo ""
 fi
 
-# ─── 5a. Current task recovery (post-compaction continuity) ───
-CURRENT_TASK_FILE="${WORKSPACE:-}/memory/current-task.md"
-if [[ -f "$CURRENT_TASK_FILE" ]]; then
-    echo "⚡ ACTIVE TASK (saved pre-compaction):"
-    cat "$CURRENT_TASK_FILE" | head -20
-    echo ""
-    echo "  → Pick up where you left off, then delete memory/current-task.md"
-    echo ""
-fi
-
 # Open threads (from cognition)
 echo "Open threads:"
 in_threads=false
@@ -252,11 +242,8 @@ if [[ -x "$ASSOC_SCRIPT" ]]; then
 
     if [[ -n "$boot_keywords" ]]; then
         echo "Contextual recall:"
-        # Note: no --exclude-source needed — boot keywords come from open_threads
-        # and trajectory only, not from deliberation_residuals section.
-        # Residuals are already shown in MINDSTATE cognition block above.
         bash "$ASSOC_SCRIPT" --keywords "$boot_keywords" --max-results 5 \
-            --recency-hours 336 2>/dev/null || true
+            --recency-hours 336 --exclude-source mindstate_residuals 2>/dev/null || true
         echo ""
     fi
 fi

@@ -259,19 +259,19 @@ fi
 # Scan recent audit conclusions for action language (implicit next steps)
 DELIB_RESIDUALS=()
 AUDIT_LOG="$(_ms_assets)/audit.log"
-if [[ -f "$AUDIT_LOG" && -n "${SESSION_START_EPOCH:-}" ]]; then
+if [[ -f "$AUDIT_LOG" && -n "${SESSION_START:-}" ]]; then
     while IFS= read -r line; do
         [[ -z "$line" ]] && continue
-        ts=$(echo "$line" | grep -oP '"timestamp":"[^"]*"' | cut -d'"' -f4 || true)
+        ts=$(echo "$line" | grep -oP '"timestamp":"[^"]*"' | cut -d'"' -f4)
         [[ -z "$ts" ]] && continue
         ts_epoch=$(iso_to_epoch "$ts" 2>/dev/null || echo 0)
-        (( ts_epoch < ${SESSION_START_EPOCH:-0} )) && continue
+        (( ts_epoch < ${SESSION_START:-0} )) && continue
 
-        conclusion=$(echo "$line" | grep -oP '"conclusion":"[^"]*"' | cut -d'"' -f4 || true)
+        conclusion=$(echo "$line" | grep -oP '"conclusion":"[^"]*"' | cut -d'"' -f4)
         [[ -z "$conclusion" || "$conclusion" == "null" ]] && continue
 
         if echo "$conclusion" | grep -qiE '(should|need to|update|revisit|demote|create|check|consider|fix|might want)'; then
-            audit_need=$(echo "$line" | grep -oP '"need":"[^"]*"' | cut -d'"' -f4 || true)
+            audit_need=$(echo "$line" | grep -oP '"need":"[^"]*"' | cut -d'"' -f4)
             DELIB_RESIDUALS+=("[$audit_need] $conclusion")
         fi
         (( ${#DELIB_RESIDUALS[@]} >= 5 )) && break

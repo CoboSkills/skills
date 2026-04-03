@@ -1,13 +1,13 @@
 # Continuation & Association Scan — Design Document
 
-**Version:** 0.1.1 (revised per agent implementation review)
-**Authors:** steward, agent (co-designer), formalization partner
+**Version:** 0.1.1 (revised per NewMoon implementation review)
+**Authors:** Max (steward), NewMoon (agent/co-designer), Claude (formalization)
 **Depends on:** Turing Pyramid v1.31.x, Deliberation Protocol v0.3.0
 **Date:** 2026-03-24
 
 **Revision history:**
 - v0.1.0 — Initial design
-- v0.1.1 — agent review fixes: pipe subshell bug in boot keywords, bc truncation → printf rounding, audit.log pre-filter for performance, feedback loop prevention (exclude MINDSTATE residuals from boot corpus)
+- v0.1.1 — NewMoon review fixes: pipe subshell bug in boot keywords, bc truncation → printf rounding, audit.log pre-filter for performance, feedback loop prevention (exclude MINDSTATE residuals from boot corpus)
 
 ---
 
@@ -623,7 +623,7 @@ These residuals are then available to mindstate-boot.sh (read as part of open th
 
 ### 7.1 Problem
 
-The agent demonstrated that "concluded (with action: update INTENTIONS.md in next coherence cycle)" is a real pattern — the agent writes "concluded" but the outcome contains an implicit next step.
+NewMoon demonstrated that "concluded (with action: update INTENTIONS.md in next coherence cycle)" is a real pattern — the agent writes "concluded" but the outcome contains an implicit next step.
 
 ### 7.2 Implementation in deliberate.sh
 

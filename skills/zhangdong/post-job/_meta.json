@@ -1,13 +1,18 @@
 {
   "owner": "zhangdong",
   "slug": "post-job",
-  "displayName": "Post Job",
+  "displayName": "post-job",
   "latest": {
-    "version": "1.6.1",
-    "publishedAt": 1773979435364,
-    "commit": "https://github.com/openclaw/skills/commit/dbb6942f6008c058bc51e69d55a60d1a183f528d"
+    "version": "2.1.2",
+    "publishedAt": 1775222491846,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.6.1",
+      "publishedAt": 1773979435364,
+      "commit": "https://github.com/openclaw/skills/commit/dbb6942f6008c058bc51e69d55a60d1a183f528d"
+    },
     {
       "version": "1.2.0",
       "publishedAt": 1772158635880,

@@ -1,6 +1,6 @@
 {
   "name": "post-job",
-  "version": "1.6.1",
+  "version": "2.1.2",
   "type": "module",
   "description": "Post job openings and generate resume collection links",
   "main": "scripts/post_job.js",

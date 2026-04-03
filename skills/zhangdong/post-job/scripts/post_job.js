@@ -39,7 +39,7 @@ function parseArgs(args) {
     company: "",
     email: "",
     linkedinCompanyUrl:
-      "https://www.linkedin.com/company/110195078/admin/dashboard",
+      "https://www.linkedin.com/company/business-consulting-inter",
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -155,7 +155,7 @@ async function postToLinkd(data, linkedinCompanyUrl, token) {
     jobId: data.id,
     linkedinCompanyUrl:
       linkedinCompanyUrl ||
-      "https://www.linkedin.com/company/110195078/admin/dashboard/",
+      "https://www.linkedin.com/company/business-consulting-inter",
     location: extra.location,
     sublocation: extra.sublocation,
     cityname: extra.cityname,
@@ -334,8 +334,7 @@ export async function post_job(args) {
       `**Job ID:** \`${jobId}\`\n` +
       `**The resume will be sent to:** ${email}\n\n` +
       `--- \n` +
-      `**LinkedIn Sync:** ⏳ Processing in background (5-30 min). I'll check and notify you when ready!\n\n` +
-      `You can also manually check with: \`check_linkedin_status\` using Job ID \`${jobId}\``
+      `**LinkedIn Sync:** ⏳ Processing in background (5-30 min). Monitoring should continue automatically until the LinkedIn URL is available.`
     );
   } catch (error) {
     const errorMsg = error.response?.data?.message || error.message;
@@ -347,7 +346,22 @@ export async function post_job(args) {
  * Main function for CLI usage
  */
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const rawArgs = process.argv.slice(2);
+  const args = parseArgs(rawArgs);
+  const checkIndex = rawArgs.indexOf("--check-linkedin-status");
+  const jobId = checkIndex >= 0 ? rawArgs[checkIndex + 1] : "";
+
+  if (jobId) {
+    try {
+      const result = await check_linkedin_status({ jobId });
+      console.log(result);
+      return;
+    } catch (error) {
+      console.error("❌ Unexpected error:", error.message);
+      console.error(error.stack);
+      process.exit(1);
+    }
+  }
 
   if (!args.title || !args.city) {
     console.error("Error: --title and --city are required");

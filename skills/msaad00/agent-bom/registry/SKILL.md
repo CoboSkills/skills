@@ -6,7 +6,7 @@ description: >-
   fleet risk scoring, assess skill file trust, and run SAST code scans. Use when
   the user mentions MCP server trust, registry lookup, marketplace check, or
   skill trust assessment.
-version: 0.75.10
+version: 0.75.13
 license: Apache-2.0
 compatibility: >-
   Requires Python 3.11+. Install via pipx or pip. Optional: Semgrep for SAST
@@ -69,13 +69,15 @@ agent-bom registry-lookup brave-search
 agent-bom marketplace-check @anthropic/server-filesystem
 ```
 
-## Tools (5)
+## Tools (7)
 
 | Tool | Description |
 |------|-------------|
 | `registry_lookup` | Look up MCP server in 427+ server security metadata registry |
 | `marketplace_check` | Pre-install trust check with registry cross-reference |
 | `fleet_scan` | Batch registry lookup + risk scoring for MCP server inventories |
+| `skill_scan` | Scan instruction files for package refs, trust, and findings |
+| `skill_verify` | Verify Sigstore provenance for instruction files |
 | `skill_trust` | Assess skill file trust level (5-category analysis) |
 | `code_scan` | SAST scanning via Semgrep with CWE-based compliance mapping |
 
@@ -88,8 +90,9 @@ registry_lookup(server_name="brave-search")
 # Pre-install trust check
 marketplace_check(package="@modelcontextprotocol/server-filesystem")
 
-# Assess trust of a skill file
-skill_trust(skill_content="<paste SKILL.md content>")
+# Scan instruction files and then assess a specific skill file
+skill_scan(path=".")
+skill_trust(skill_path="./SKILL.md")
 
 # Batch risk scoring
 fleet_scan(servers=["brave-search", "github", "slack"])

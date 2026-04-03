@@ -1,68 +1,99 @@
 ---
 name: content-refresher
-version: "4.1.0"
-description: 'Refresh old blog posts and outdated content with current statistics, new information, and freshness signals to restore search rankings. Use when the user asks to "update old content", "refresh content", "content is outdated", "improve declining rankings", "revive old blog posts", "traffic is declining on this page", "rankings dropped for this article", or "this post is outdated". For writing new content from scratch, see seo-content-writer. For auditing without rewriting, see on-page-seo-auditor.'
+description: 'Refresh outdated posts with current stats, new sections, freshness signals to restore rankings. 内容更新/排名恢复'
+version: "6.0.0"
 license: Apache-2.0
 compatibility: "Claude Code ≥1.0, skills.sh marketplace, ClawHub marketplace, Vercel Labs skills ecosystem. No system packages required. Optional: MCP network access for SEO tool integrations."
 homepage: "https://github.com/aaron-he-zhu/seo-geo-claude-skills"
+when_to_use: "Use when updating outdated content, refreshing old articles, improving declining pages, or adding new information to existing content."
+argument-hint: "<URL of outdated content>"
 metadata:
   author: aaron-he-zhu
-  version: "4.1.0"
+  version: "6.0.0"
   geo-relevance: "medium"
   tags:
     - seo
     - geo
-    - content refresh
-    - content update
-    - outdated content
-    - content decay
-    - ranking recovery
-    - content optimization
+    - content-refresh
     - content-update
     - content-decay
+    - ranking-recovery
     - evergreen-content
-    - content-freshness
-    - content-revival
-    - refresh-content
-    - update-statistics
-    - republishing
     - content-lifecycle
+    - 内容更新
+    - コンテンツ更新
+    - 콘텐츠갱신
+    - actualizar-contenido
   triggers:
+    # EN-formal
     - "update old content"
     - "refresh content"
     - "content is outdated"
     - "improve declining rankings"
     - "revive old blog posts"
     - "content decay"
+    - "content refresh strategy"
+    # EN-casual
+    - "traffic is dropping"
     - "ranking dropped"
     - "this post is outdated"
     - "traffic is declining on this page"
     - "rankings dropped for this article"
+    - "my old content needs updating"
+    # EN-question
+    - "how to fix declining traffic"
+    - "why is my content losing rankings"
+    - "how often should I update content"
+    # EN-competitor
+    - "Clearscope content refresh"
+    - "MarketMuse content update"
+    # ZH-pro
+    - "内容更新"
+    - "内容刷新"
+    - "排名恢复"
+    - "内容衰减"
+    - "内容生命周期"
+    # ZH-casual
+    - "排名下降了"
+    - "文章过时了"
+    - "流量掉了"
+    - "老文章怎么办"
+    # JA
+    - "コンテンツ更新"
+    - "コンテンツリフレッシュ"
+    - "記事更新"
+    # KO
+    - "콘텐츠 갱신"
+    - "콘텐츠 업데이트"
+    - "순위 하락"
+    - "순위 하락 원인"
+    - "오래된 글 어떻게 해?"
+    # ES
+    - "actualizar contenido"
+    - "refrescar contenido antiguo"
+    # PT
+    - "atualizar conteúdo"
+    # Misspellings
+    - "content refesh"
+    - "content refreshh"
 ---
 
 # Content Refresher
 
 
 > **[SEO & GEO Skills Library](https://github.com/aaron-he-zhu/seo-geo-claude-skills)** · 20 skills for SEO + GEO · [ClawHub](https://clawhub.ai/u/aaron-he-zhu) · [skills.sh](https://skills.sh/aaron-he-zhu/seo-geo-claude-skills)
+> **System Mode**: This optimization skill follows the shared [Skill Contract](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/skill-contract.md) and [State Model](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/state-model.md).
 
-<details>
-<summary>Browse all 20 skills</summary>
-
-**Research** · [keyword-research](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/research/keyword-research/SKILL.md) · [competitor-analysis](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/research/competitor-analysis/SKILL.md) · [serp-analysis](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/research/serp-analysis/SKILL.md) · [content-gap-analysis](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/research/content-gap-analysis/SKILL.md)
-
-**Build** · [seo-content-writer](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/build/seo-content-writer/SKILL.md) · [geo-content-optimizer](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/build/geo-content-optimizer/SKILL.md) · [meta-tags-optimizer](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/build/meta-tags-optimizer/SKILL.md) · [schema-markup-generator](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/build/schema-markup-generator/SKILL.md)
-
-**Optimize** · [on-page-seo-auditor](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/optimize/on-page-seo-auditor/SKILL.md) · [technical-seo-checker](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/optimize/technical-seo-checker/SKILL.md) · [internal-linking-optimizer](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/optimize/internal-linking-optimizer/SKILL.md) · **content-refresher**
-
-**Monitor** · [rank-tracker](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/monitor/rank-tracker/SKILL.md) · [backlink-analyzer](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/monitor/backlink-analyzer/SKILL.md) · [performance-reporter](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/monitor/performance-reporter/SKILL.md) · [alert-manager](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/monitor/alert-manager/SKILL.md)
-
-**Cross-cutting** · [content-quality-auditor](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/cross-cutting/content-quality-auditor/SKILL.md) · [domain-authority-auditor](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/cross-cutting/domain-authority-auditor/SKILL.md) · [entity-optimizer](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/cross-cutting/entity-optimizer/SKILL.md) · [memory-management](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/cross-cutting/memory-management/SKILL.md)
-
-</details>
 
 This skill helps identify and revitalize outdated content to reclaim lost rankings and traffic. It analyzes content freshness, identifies update opportunities, and guides the refresh process for maximum SEO and GEO impact.
 
-## When to Use This Skill
+**System role**: Optimization layer skill. It turns weak pages, structures, and technical issues into prioritized repair work.
+
+## When This Must Trigger
+
+Use this when the conversation involves any of these situations — even if the user does not use SEO terminology:
+
+Use this whenever the task needs a diagnosis or repair plan that should feed directly into remediation work, not just a one-time opinion.
 
 - Content has lost rankings or traffic over time
 - Statistics and information are outdated
@@ -82,7 +113,9 @@ This skill helps identify and revitalize outdated content to reclaim lost rankin
 6. **GEO Enhancement**: Updates content for AI citation potential
 7. **Republishing Strategy**: Advises on date and promotion tactics
 
-## How to Use
+## Quick Start
+
+Start with one of these prompts. Finish with a short handoff summary using the repository format in [Skill Contract](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/skill-contract.md).
 
 ### Identify Content to Refresh
 
@@ -109,6 +142,15 @@ Update this content to outrank [competitor URL]: [your URL]
 ```
 Create a content refresh strategy for [domain/topic]
 ```
+
+## Skill Contract
+
+**Expected output**: a scored diagnosis, prioritized repair plan, and a short handoff summary ready for `memory/audits/`.
+
+- **Reads**: the current page or site state, symptoms, prior audits, and current priorities from [CLAUDE.md](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/CLAUDE.md) and the shared [State Model](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/state-model.md) when available.
+- **Writes**: a user-facing audit or optimization plan plus a reusable summary that can be stored under `memory/audits/`.
+- **Promotes**: blocking defects, repeated weaknesses, and fix priorities to `memory/open-loops.md` and `memory/decisions.md`.
+- **Next handoff**: use the `Next Best Skill` below when the repair path is clear.
 
 ## Data Sources
 
@@ -325,17 +367,30 @@ When a user requests content refresh help:
 
 > **Reference data**: For content decay signal taxonomy, lifecycle stages, refresh vs. rewrite decision framework, and update strategy by content type, see [references/content-decay-signals.md](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/optimize/content-refresher/references/content-decay-signals.md).
 
+
+### Save Results
+
+After delivering audit or optimization findings to the user, ask:
+
+> "Save these results for future sessions?"
+
+If yes, write a dated summary to `memory/audits/content-refresher/YYYY-MM-DD-<topic>.md` containing:
+- One-line verdict or headline finding
+- Top 3-5 actionable items
+- Open loops or blockers
+- Source data references
+
+If any veto-level issue was found (CORE-EEAT T04, C01, R10 or CITE T03, T05, T09), also append a one-liner to `memory/hot-cache.md` without asking.
+
+
+**Gate check recommended**: Run content-quality-auditor on refreshed content before republishing.
+
 ## Reference Materials
 
 - [Content Decay Signals](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/optimize/content-refresher/references/content-decay-signals.md) — Decay indicators, lifecycle stages, and refresh triggers by content type
 - [Refresh Templates](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/optimize/content-refresher/references/refresh-templates.md) — Detailed output templates for steps 5-9 (refresh plan, content writing, GEO enhancement, republishing, report)
 - [Refresh Example & Checklist](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/optimize/content-refresher/references/refresh-example.md) — Full worked example and pre/post-refresh checklist
 
-## Related Skills
+## Next Best Skill
 
-- [content-gap-analysis](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/research/content-gap-analysis/SKILL.md) — Find what to add
-- [seo-content-writer](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/build/seo-content-writer/SKILL.md) — Write new sections
-- [geo-content-optimizer](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/build/geo-content-optimizer/SKILL.md) — Enhance for AI
-- [on-page-seo-auditor](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/optimize/on-page-seo-auditor/SKILL.md) — Audit refreshed content
-- [content-quality-auditor](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/cross-cutting/content-quality-auditor/SKILL.md) — Full 80-item CORE-EEAT audit
-
+- **Primary**: [content-quality-auditor](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/cross-cutting/content-quality-auditor/SKILL.md) — re-score the refreshed content before shipping.

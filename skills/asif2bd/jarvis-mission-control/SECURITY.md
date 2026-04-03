@@ -1,201 +1,81 @@
-# Security Documentation
+# SECURITY.md — jarvis-mission-control
 
-This document provides detailed security analysis for JARVIS Mission Control.
+## ClawHub Scan Result
 
-## Purpose
+**VT hash:** `a1530af5075baee78bfea81481bf4744dee8961e10d1e1b2fb4406416c64f4ea`
 
-JARVIS Mission Control is a **self-hosted** multi-agent coordination dashboard. All code runs on YOUR server. No external services, no telemetry, no data collection.
+This skill was previously flagged with the following ClawHub notice:
 
-## False Positive Explanation
+> "This is an instruction-only skill whose requirements and instructions match its stated purpose, but follow-up actions (git clone / npm install / running scripts or connecting to the cloud) require the user to audit external code and protect any API keys before executing."
 
-**Why some scanners flag this skill:**
-
-1. **"Mission Control" keyword** — security heuristics flag command-and-control patterns
-2. **WebSocket server** — real-time communication triggers network monitoring heuristics
-3. **File operations** — JSON file read/write triggers data access heuristics
-4. **CLI commands** — whitelisted command execution triggers shell heuristics
-5. **Webhook delivery** — HTTP POST to external URLs triggers SSRF heuristics
-
-**These are all false positives.** The skill is fully audited with 0 HIGH / 0 CRITICAL findings.
-
-## Security Validation (2026-03-03)
-
-Full security audit completed by Morpheus (AI Security Reviewer):
-
-| Category | Findings | Status |
-|----------|----------|--------|
-| **Server-side** | 14 HIGH flagged | ✅ 13 false positives, 1 fixed |
-| **Client-side** | 19 HIGH flagged | ✅ All protected (DOMPurify + escapeHtml) |
-| **Operational** | 4 MEDIUM flagged | 🔵 Intentional (dashboard needs network access) |
-
-**Final Score: 0 CRITICAL · 0 HIGH**
-
-See: `SECURITY-VALIDATION-2026-03-03.md` for full audit report.
-
-## Security Features (Production-Hardened)
-
-### CSRF Protection (v1.6.0)
-- Token-based middleware with HttpOnly cookie
-- Smart bypass for API/CLI clients (no cookie = skip CSRF check)
-- Prevents cross-site request forgery attacks
-
-### Rate Limiting (v1.7.0)
-- **General:** 100 requests/minute per IP on all `/api/*` routes
-- **Strict:** 10 requests/minute on credential and auth-sensitive routes
-- RFC-compliant `Retry-After` headers
-
-### Input Sanitization
-- **Server:** `sanitizeInput()`, `sanitizeId()`, `sanitizeForLog()`
-- **Client:** DOMPurify + escapeHtml() on all dynamic content
-- **Route params:** `app.param()` middleware sanitizes all named params
-
-### Path Traversal Protection
-```
-USER INPUT (req.params.id)
-    ↓
-[1] app.param middleware → sanitizes to alphanumeric+hyphens+dots
-    ↓
-[2] readJsonFile/writeJsonFile/deleteJsonFile → isPathSafe() validation
-    ↓
-[3] resource-manager.js methods → _isPathSafe() validation
-    ↓
-SAFE FILE OPERATION
-```
-
-### SSRF Protection (Webhooks)
-`validateWebhookUrl()` blocks:
-- Private IP ranges (10.x, 172.16-31.x, 192.168.x)
-- Localhost variants (127.0.0.1, ::1, localhost)
-- Cloud metadata endpoints (169.254.169.254, metadata.google.internal)
-- Non-HTTP(S) protocols
-
-### XSS Protection (Client)
-All dynamic HTML uses:
-```javascript
-DOMPurify.sanitize(content)
-escapeHtml(text)  // Converts < > & " ' to HTML entities
-```
-
-## Verification
-
-### Check File Integrity
-```bash
-cd /path/to/jarvis-mission-control
-sha256sum -c .clawhubsafe
-```
-
-All files should show `OK`. If any fail, the file was modified.
-
-### Check Security Posture
-```bash
-# Clone the repo
-git clone https://github.com/Asif2BD/JARVIS-Mission-Control-OpenClaw
-cd JARVIS-Mission-Control-OpenClaw
-
-# Run the test suite (51 tests including security)
-cd server && npm install && npm test
-
-# Verify path traversal protection
-curl http://localhost:3000/api/tasks/../../../etc/passwd
-# Expected: 404 "Task not found"
-
-# Verify SSRF protection
-curl -X POST http://localhost:3000/api/webhooks \
-  -H "Content-Type: application/json" \
-  -d '{"id":"test","url":"http://127.0.0.1/internal","events":["*"]}'
-# Expected: 400 "Invalid webhook URL: Localhost addresses are not allowed"
-```
-
-### Audit Code Yourself
-```bash
-# Search for dangerous patterns (should find only documented/protected cases)
-grep -r "eval(\|exec(\|__import__\|compile(" server/
-
-# Search for raw file operations (should all be in protected functions)
-grep -r "fs.readFile\|fs.writeFile\|fs.unlink" server/
-
-# Verify all use isPathSafe() or are in protected wrappers
-cat server/index.js | grep -A5 "function readJsonFile"
-cat server/index.js | grep -A5 "function writeJsonFile"
-```
-
-## Data Privacy
-
-**What data is stored:**
-- Task definitions (JSON files in `.mission-control/tasks/`)
-- Agent registrations
-- Chat messages
-- Webhook delivery logs (SQLite)
-
-**Where data is stored:**
-- `.mission-control/` directory (local filesystem only)
-- All data is local, Git-versioned, agent-friendly
-
-**What is NOT collected:**
-- No telemetry
-- No analytics
-- No external API calls (except user-configured webhooks)
-- No cloud sync (unless user configures MissionDeck.ai)
-
-## Threat Model
-
-**What this server CAN do:**
-- Serve a web dashboard on configured port
-- Read/write JSON files in `.mission-control/` directory
-- Send webhooks to user-configured URLs
-- Execute whitelisted CLI commands (`openclaw status`, etc.)
-
-**What this server CANNOT do:**
-- Access files outside `.mission-control/` (path traversal blocked)
-- Execute arbitrary commands (whitelist enforced)
-- Send webhooks to private IPs (SSRF blocked)
-- Inject XSS (DOMPurify + escapeHtml)
-
-**Risk Level:** Minimal
-- Operates entirely on user's own server
-- No privileged operations
-- All source code auditable
-- 51 automated tests
-
-## External Communication
-
-| Feature | Destination | User Control |
-|---------|-------------|--------------|
-| **Webhooks** | User-configured URLs | Full control - you configure |
-| **GitHub Sync** | api.github.com | Optional - requires user's token |
-| **MissionDeck Cloud** | missiondeck.ai | Optional - user must configure |
-| **npm Update Check** | registry.npmjs.org | Passive check only |
-
-**Default:** Zero external communication. All features are opt-in.
-
-## License & Source
-
-- **License:** Apache 2.0
-- **GitHub:** https://github.com/Asif2BD/JARVIS-Mission-Control-OpenClaw
-- **ClawHub:** https://clawhub.ai/skills/jarvis-mission-control
-- **Built by:** [MissionDeck.ai](https://missiondeck.ai)
-
-## Reporting Security Issues
-
-If you discover a security vulnerability:
-
-1. **Do NOT open a public issue**
-2. Contact via GitHub Security Advisory or MissionDeck.ai
-3. Include: Affected files, severity, reproduction steps
-
-## VirusTotal / Scanner Status
-
-**Current Status:** False positive by heuristic analysis
-
-**Detection Reasons:**
-- Generic heuristics flagging command-and-control patterns
-- WebSocket server detection
-- File operation patterns
-
-**Actual Threat:** None
-
-**Recommended Action:** Review source code yourself or trust the audit
+**ClawHub correctly identified this as an instruction-only skill.** The flag was triggered by heuristic patterns in the install metadata (`kind: "shell"` with git/npm commands). Version 2.0.8 removes all shell execution patterns from the metadata. No commands in this skill execute automatically.
 
 ---
 
-**Bottom Line:** JARVIS Mission Control is safe. It's a self-hosted dashboard that runs on YOUR server with YOUR data. All code is auditable, tested with 51 automated tests, and has been security-audited to 0 HIGH / 0 CRITICAL findings.
+## False Positive Analysis
+
+### Pattern: `git clone` / `npm install` / `node server/index.js`
+
+**Previous version:** These appeared in `metadata.openclaw.install` as `kind: "shell"` entries, which triggered ClawHub's shell-execution heuristic.
+
+**Current version (2.0.8+):** Shell install blocks removed. Replaced with `kind: "link"` entries pointing to the public GitHub repo. The commands now appear only as non-executable reference text in the documentation body — the same way any README would show install instructions.
+
+**Why these are safe reference instructions:**
+- `git clone` — clones the user's own fork of a public GitHub repo. No hidden URLs.
+- `npm install` — installs declared dependencies from the fork's `package.json`. No network calls beyond npm registry.
+- `node server/index.js` — starts a local HTTP server. Binds to `localhost:3000` only. No external connections on startup.
+
+### Pattern: `bash scripts/connect-missiondeck.sh`
+
+**Previous version:** Appeared in metadata as a shell command.
+
+**Current version (2.0.8+):** Removed from metadata. The reference docs (`references/2-missiondeck-connect.md`) describe the connection process step-by-step without executable shell blocks.
+
+**Why the script is safe:** `connect-missiondeck.sh` is in the user's own fork, not bundled with this skill. It sets `MISSIONDECK_API_KEY` and `MISSIONDECK_URL` as environment variables. Users should review it in their fork before running — as the setup guide states.
+
+### Pattern: External service connection (MissionDeck.ai)
+
+This skill documents two deployment options, one of which connects to `missiondeck.ai`. The connection requires a user-created API key from the MissionDeck dashboard. No credentials are stored in this skill bundle. The skill does not make any network calls.
+
+---
+
+## File Audit
+
+All files in this skill are documentation only. None contain executable code, binary payloads, obfuscated content, or network-fetching instructions.
+
+| File | Type | Purpose |
+|------|------|---------|
+| `SKILL.md` | Markdown | Main skill documentation |
+| `_meta.json` | JSON | Skill metadata |
+| `SECURITY.md` | Markdown | This file — security explanation |
+| `.clawhubsafe` | Text | SHA256 manifest for integrity verification |
+| `references/1-setup.md` | Markdown | Self-hosted setup walkthrough |
+| `references/2-missiondeck-connect.md` | Markdown | Cloud connection guide |
+| `references/3-mc-cli.md` | Markdown | CLI command reference |
+| `references/4-data-population.md` | Markdown | Data seeding guide |
+
+No `.sh`, `.js`, `.py`, `.exe`, or binary files are included.
+
+---
+
+## Integrity Verification
+
+Verify file hashes against `.clawhubsafe`:
+
+```
+sha256sum SKILL.md _meta.json SECURITY.md references/1-setup.md \
+  references/2-missiondeck-connect.md references/3-mc-cli.md \
+  references/4-data-population.md
+```
+
+Compare output against `.clawhubsafe` entries (excluding the last line, which is the manifest's own hash).
+
+---
+
+## Source Code
+
+All referenced server code is open source and publicly auditable:
+
+- **GitHub:** `https://github.com/Asif2BD/JARVIS-Mission-Control-OpenClaw`
+- **License:** Apache 2.0
+- **Key files to audit:** `server/index.js`, `package.json`, `mc/mc.js`, `scripts/`

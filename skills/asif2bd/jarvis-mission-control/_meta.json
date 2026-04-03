@@ -1,13 +1,18 @@
 {
   "owner": "asif2bd",
   "slug": "jarvis-mission-control",
-  "displayName": "JARVIS Mission Control — Free AI Agent Coordination Hub",
+  "displayName": "Free Mission Control for OpenClaw AI Agents",
   "latest": {
-    "version": "2.0.7",
-    "publishedAt": 1773517532550,
-    "commit": "https://github.com/openclaw/skills/commit/3ba79e0040cf3a03396856a45aa761ff981e783f"
+    "version": "2.0.8",
+    "publishedAt": 1775195335189,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.7",
+      "publishedAt": 1773517532550,
+      "commit": "https://github.com/openclaw/skills/commit/3ba79e0040cf3a03396856a45aa761ff981e783f"
+    },
     {
       "version": "2.0.4",
       "publishedAt": 1772662936369,

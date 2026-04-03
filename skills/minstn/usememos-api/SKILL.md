@@ -1,7 +1,7 @@
 ---
 name: usememos-api
-version: "1.0.2"
-description: Interact with UseMemos — a lightweight, self-hosted memo hub. Create, search, list memos and upload attachments.
+version: "1.0.3"
+description: Interact with UseMemos instance — a lightweight, self-hosted memo hub. Create, search, list memos and upload attachments.
 tags: ["memos", "notes", "self-hosted", "knowledge-base", "attachments"]
 homepage: https://github.com/minstn/usememos
 source: https://github.com/minstn/usememos
@@ -20,9 +20,15 @@ metadata:
 
 ## Setup
 
-Requires environment variables in `.env`:
-- `USEMEMOS_URL` — Instance URL (e.g., `http://localhost:5230`)
-- `USEMEMOS_TOKEN` — Access token from Settings > My Account
+Create a `.env` file in the skill directory (`skills/usememos/.env`):
+```
+USEMEMOS_URL=http://192.168.0.157:5230
+USEMEMOS_TOKEN=your_access_token_here
+```
+
+Get your ```USEMEMOS_TOKEN``` from UseMemos instance, login and go to: **Settings > My Account > Access Tokens**, create one there, do not forget to assign expiration (i use **Never** to avoid troubles, but hey there are also arguments against that)
+
+**Note:** All scripts automatically load the `.env` file from the skill directory. No need to export variables manually.
 
 ## Scripts
 
@@ -71,7 +77,7 @@ python3 scripts/memo_comments.py delete <comment_id>
 
 - Memo IDs are short IDs like `3UZ7uBbHsLEAwdYE5HKhjd` (not `memos/3UZ7uBbHsLEAwdYE5HKhjd`)
 - Tags use `#tag` syntax inline in memo content
-- Default MIME type for attachments is `image/jpeg`; pass the type explicitly for other files
+- Default MIME type for attachments is `image/jpeg`; pass the type explicitly for other files. Normally this will be done automatically by openclaw, but sometimes will require some tweaking/
 
 ## API Reference
 

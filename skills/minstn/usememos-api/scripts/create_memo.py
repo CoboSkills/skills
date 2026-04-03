@@ -6,6 +6,9 @@ import json
 import urllib.request
 import urllib.error
 
+# Auto-load .env from skill directory
+import load_env
+
 def main():
     base_url = os.environ.get('USEMEMOS_URL', '').rstrip('/')
     token = os.environ.get('USEMEMOS_TOKEN', '')

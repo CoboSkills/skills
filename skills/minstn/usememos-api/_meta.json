@@ -3,11 +3,16 @@
   "slug": "usememos-api",
   "displayName": "UseMemos",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1772830887917,
-    "commit": "https://github.com/openclaw/skills/commit/f28b81746972d4c08509b997b531d086e5492514"
+    "version": "1.0.3",
+    "publishedAt": 1775209773525,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1772830887917,
+      "commit": "https://github.com/openclaw/skills/commit/f28b81746972d4c08509b997b531d086e5492514"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1772719756063,

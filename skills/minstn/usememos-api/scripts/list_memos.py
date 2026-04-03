@@ -7,6 +7,9 @@ import urllib.request
 import urllib.error
 import urllib.parse
 
+# Auto-load .env from skill directory
+import load_env
+
 def main():
     base_url = os.environ.get('USEMEMOS_URL', '').rstrip('/')
     token = os.environ.get('USEMEMOS_TOKEN', '')
@@ -23,8 +26,6 @@ def main():
         sys.exit(1)
 
     params = {'pageSize': limit}
-    if tag:
-        params['filter'] = f'tag_search("{tag}")'
 
     url = f"{base_url}/api/v1/memos?{urllib.parse.urlencode(params)}"
 
@@ -43,6 +44,15 @@ def main():
             if not memos:
                 print("No memos found")
                 return
+            
+            # Filter by tag if specified (client-side filtering)
+            if tag:
+                memos = [m for m in memos if tag in m.get('tags', [])]
+            
+            if not memos:
+                print(f"No memos found with tag '{tag}'")
+                return
+                
             for m in memos:
                 memo_id = m['name'].split('/')[-1]
                 snippet = m['content'][:80].replace('\n', ' ')

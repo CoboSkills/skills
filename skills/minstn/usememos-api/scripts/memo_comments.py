@@ -13,6 +13,9 @@ import urllib.request
 import urllib.error
 import urllib.parse
 
+# Auto-load .env from skill directory
+import load_env
+
 
 def strip_memo_prefix(memo_id):
     """Strip 'memos/' prefix if the full resource name was passed."""

@@ -1,13 +1,18 @@
 {
   "owner": "evolinkai",
   "slug": "seedance-2-video-gen",
-  "displayName": "Seedance 2 Video Generation",
+  "displayName": "seedance-2-video-gen",
   "latest": {
-    "version": "1.4.1",
-    "publishedAt": 1771869729524,
-    "commit": "https://github.com/openclaw/skills/commit/bfdeb66120077e9afbe0d4b50e1ba455295b8382"
+    "version": "2.1.0",
+    "publishedAt": 1775210112950,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.1",
+      "publishedAt": 1771869729524,
+      "commit": "https://github.com/openclaw/skills/commit/bfdeb66120077e9afbe0d4b50e1ba455295b8382"
+    },
     {
       "version": "1.2.0",
       "publishedAt": 1771866367640,

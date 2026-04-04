@@ -3,9 +3,15 @@
   "slug": "permanent-memory",
   "displayName": "Auto Memory",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773267051208,
-    "commit": "https://github.com/openclaw/skills/commit/774d49fbfcb7f3e5cda01236e0edee327a745b73"
+    "version": "1.0.0",
+    "publishedAt": 1775133242396,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773267051208,
+      "commit": "https://github.com/openclaw/skills/commit/774d49fbfcb7f3e5cda01236e0edee327a745b73"
+    }
+  ]
 }

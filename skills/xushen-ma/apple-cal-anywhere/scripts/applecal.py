@@ -33,6 +33,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote, urljoin, urlparse
+from zoneinfo import ZoneInfo
 
 try:
     import requests
@@ -43,7 +44,7 @@ except ImportError:
     print(json.dumps({"error": "Missing dependency: requests. Run 'pip3 install requests'"}))
     sys.exit(1)
 
-__version__ = "1.1.1"
+__version__ = "1.3.1"
 PRODID = "-//OpenClaw//AppleCalPro 1.1.1//EN"
 UID_SAFE_RE = re.compile(r"^[A-Za-z0-9._@:+-]{1,255}$")
 MANAGED_ID_SAFE_RE = re.compile(r"^[A-Za-z0-9._:+-]{1,255}$")
@@ -317,12 +318,32 @@ def iso_to_caldav(iso_str):
         raise ValueError(f"Invalid datetime format: {iso_str}")
     return dt.strftime("%Y%m%dT%H%M%SZ")
 
-def caldav_to_iso(cal_str):
-    """Convert CalDAV UTC format YYYYMMDDTHHMMSSZ to ISO 8601."""
-    if not cal_str: return None
-    clean = re.sub(r'[^0-9T]', '', cal_str)
+def caldav_to_iso(cal_str, tzid: Optional[str] = None):
+    """Convert CalDAV datetime/date values to ISO 8601.
+
+    Supports:
+    - UTC values ending in Z
+    - floating/local values paired with TZID (e.g. DTSTART;TZID=Australia/Melbourne:...)
+    - floating values without TZID, treated as UTC as a conservative fallback
+    """
+    if not cal_str:
+        return None
+
+    value = cal_str.strip()
     try:
+        if value.endswith("Z"):
+            clean = re.sub(r'[^0-9T]', '', value)
+            dt = datetime.strptime(clean, "%Y%m%dT%H%M%S")
+            return dt.replace(tzinfo=timezone.utc).isoformat()
+
+        clean = re.sub(r'[^0-9T]', '', value)
         dt = datetime.strptime(clean, "%Y%m%dT%H%M%S")
+        if tzid:
+            try:
+                dt = dt.replace(tzinfo=ZoneInfo(tzid))
+                return dt.astimezone(timezone.utc).isoformat()
+            except Exception:
+                pass
         return dt.replace(tzinfo=timezone.utc).isoformat()
     except Exception:
         return cal_str
@@ -387,6 +408,8 @@ def parse_ics_event(ics_text):
     end_raw = None
     start_is_all_day = False
     end_is_all_day = False
+    start_tzid = None
+    end_tzid = None
 
     in_event = False
     for line in lines:
@@ -405,10 +428,16 @@ def parse_ics_event(ics_text):
             start_raw = val
             if "VALUE=DATE" in key_upper:
                 start_is_all_day = True
+            match = re.search(r'TZID=([^;:]+)', key_part, flags=re.IGNORECASE)
+            if match:
+                start_tzid = match.group(1)
         elif key_upper.startswith("DTEND"):
             end_raw = val
             if "VALUE=DATE" in key_upper:
                 end_is_all_day = True
+            match = re.search(r'TZID=([^;:]+)', key_part, flags=re.IGNORECASE)
+            if match:
+                end_tzid = match.group(1)
 
     start_val = start_raw if start_raw is not None else parsed.get("DTSTART")
     end_val = end_raw if end_raw is not None else parsed.get("DTEND")
@@ -418,8 +447,8 @@ def parse_ics_event(ics_text):
         start_iso = caldav_date_to_iso(start_val)
         end_iso = caldav_date_to_iso(end_val)
     else:
-        start_iso = caldav_to_iso(start_val)
-        end_iso = caldav_to_iso(end_val)
+        start_iso = caldav_to_iso(start_val, tzid=start_tzid)
+        end_iso = caldav_to_iso(end_val, tzid=end_tzid or start_tzid)
 
     return {
         "uid": parsed.get("UID"),
@@ -587,11 +616,17 @@ class AppleCalClient:
         start = iso_to_caldav(start_iso)
         end = iso_to_caldav(end_iso)
 
+        # Ask CalDAV to expand recurring events into concrete instances within the
+        # requested window. Without <c:expand>, iCloud may return the recurring
+        # master VEVENT, whose DTSTART is the original series start date, which
+        # makes future recurring instances appear to be wildly out-of-range.
         body = f'''<?xml version="1.0" encoding="utf-8" ?>
 <c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">
     <d:prop>
         <d:getetag />
-        <c:calendar-data />
+        <c:calendar-data>
+            <c:expand start="{start}" end="{end}"/>
+        </c:calendar-data>
     </d:prop>
     <c:filter>
         <c:comp-filter name="VCALENDAR">

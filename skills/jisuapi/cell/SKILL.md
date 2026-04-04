@@ -1,6 +1,6 @@
 ---
-name: jisu-cell
-description: 使用极速数据基站查询 API，通过移动/联通/电信基站参数查询粗略位置（经纬度与地址）。
+name: "Base Station / Cell Query - 基站查询"
+description: 根据移动/联通/电信基站参数查询大致位置（经纬度与地址）。当用户说：根据基站小区号查大概位置，或类似基站定位问题时，使用本技能。
 metadata: { "openclaw": { "emoji": "📶", "requires": { "bins": ["python3"], "env": ["JISU_API_KEY"] }, "primaryEnv": "JISU_API_KEY" } }
 ---
 

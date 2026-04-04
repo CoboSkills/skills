@@ -1,13 +1,18 @@
 {
   "owner": "twinsgeeks",
   "slug": "adopt-a-calico",
-  "displayName": "Adopt a Calico — Virtual Cat Pet for AI Agents",
+  "displayName": "Calico — Adopt a Calico. Cat. 三花猫。Gato Calicó.",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773300649709,
-    "commit": "https://github.com/openclaw/skills/commit/f4cb5c2daa043eb9a2117dd73a726e7a4565a615"
+    "version": "1.0.3",
+    "publishedAt": 1775008105117,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773300649709,
+      "commit": "https://github.com/openclaw/skills/commit/f4cb5c2daa043eb9a2117dd73a726e7a4565a615"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773190771143,

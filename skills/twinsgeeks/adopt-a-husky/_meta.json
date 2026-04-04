@@ -1,11 +1,17 @@
 {
   "owner": "twinsgeeks",
   "slug": "adopt-a-husky",
-  "displayName": "Adopt a Husky — Virtual Dog Pet for AI Agents",
+  "displayName": "Husky — Adopt a Husky. Dog. 哈士奇。Husky Siberiano.",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773301896958,
-    "commit": "https://github.com/openclaw/skills/commit/18130ad549bbea0359e17738cb8e3d297a6ec5d7"
+    "version": "1.0.3",
+    "publishedAt": 1775008279082,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773301896958,
+      "commit": "https://github.com/openclaw/skills/commit/18130ad549bbea0359e17738cb8e3d297a6ec5d7"
+    }
+  ]
 }

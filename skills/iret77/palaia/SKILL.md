@@ -1,6 +1,6 @@
 ---
 name: palaia
-version: "2.4"
+version: "2.6"
 description: >
   Local, crash-safe persistent memory for OpenClaw agents.
   SQLite-backed by default. Semantic search, projects, scopes, auto-capture.
@@ -15,26 +15,28 @@ metadata:
         kind: pip
         package: "palaia[fastembed]"
         bins: ["palaia"]
-        label: "Install Palaia with semantic search (pip)"
+        label: "Install palaia with semantic search (pip)"
     postInstall:
       - command: "palaia init"
-        label: "Initialize Palaia store"
+        label: "Initialize palaia store"
       - command: "npm install -g @byte5ai/palaia@latest"
         label: "Install OpenClaw plugin (npm)"
     postUpdate:
       - command: "python3 -m pip install --upgrade 'palaia[fastembed]' && (npm install -g @byte5ai/palaia@latest 2>/dev/null || true) && palaia doctor --fix && palaia warmup"
-        label: "Upgrade Palaia with semantic search (pip + npm plugin) and run health checks"
+        label: "Upgrade palaia with semantic search (pip + npm plugin) and run health checks"
     postUpdateMessage: >
-      Palaia has been updated to v2.4. New: session continuity (automatic briefings and
-      summaries), privacy markers, recency boost, progressive disclosure. Run `palaia doctor --fix` to upgrade.
+      palaia has been updated to v2.6. New: usage-data-driven optimization (task-as-post-it,
+      manual entry boost), auto-capture workspace fix for sub-agents, capture health check,
+      CLI/plugin version mismatch detection, process safety in curate.
+      Run `palaia doctor --fix` to upgrade.
     plugin:
       slot: memory
       package: "@byte5ai/palaia"
 ---
 
-# Palaia v2.4 — Agent Memory Skill
+# palaia v2.6 — Agent Memory Skill
 
-Palaia is the memory system for OpenClaw agents. It gives you persistent, searchable, crash-safe memory across sessions. You don't need to understand how it works — just use the commands below.
+palaia is the memory system for OpenClaw agents. It gives you persistent, searchable, crash-safe memory across sessions. You don't need to understand how it works — just use the commands below.
 
 <!-- begin:install -->
 ## First-Time Setup
@@ -106,7 +108,7 @@ Single-agent systems work with the default name. For multi-agent setups:
 palaia init --agent YOUR_AGENT_NAME
 ```
 
-## Updating Palaia
+## Updating palaia
 
 When the user asks to update, or when `palaia status` shows a version mismatch:
 
@@ -141,14 +143,19 @@ After the manual update, `palaia upgrade` will be available for future updates.
 
 ## Auto-Check (run every time this skill is loaded)
 
-Before doing anything else with Palaia, run `palaia doctor` silently. If it reports ANY warnings, address them immediately by following `palaia doctor --fix` recommendations. Do not proceed with other Palaia tasks until doctor reports no issues.
+Before doing anything else with palaia, run `palaia doctor` silently. If it reports ANY warnings, address them immediately by following `palaia doctor --fix` recommendations. Do not proceed with other palaia tasks until doctor reports no issues.
 
 ---
 
 ## Core Concepts
 
-### Auto-Capture
-Conversations are automatically captured when the OpenClaw plugin is active. You do NOT need to manually write things from conversations — Palaia handles it. Manual `palaia write` is only for structured knowledge: processes, tasks, and knowledge from external sources.
+### Auto-Capture vs. Manual Write
+Conversations are automatically captured when the OpenClaw plugin is active. Auto-capture handles routine knowledge extraction from conversations.
+
+**Manual writes (`palaia write`) are higher value.** When you or the user identify something as especially important — a key decision, a reusable workflow, a critical fact from an external source — write it manually. Manually written entries are ranked higher than auto-captured ones in recall results, so they surface more prominently in future sessions. Use manual writes for:
+- Important facts, decisions, or context from external sources
+- Reusable processes and workflows (team runbooks)
+- Sticky notes / reminders for future sessions (tasks)
 
 ### Three Tiers
 - **HOT** — Active memories (< 7 days or frequently accessed). Always searched.
@@ -162,8 +169,8 @@ Conversations are automatically captured when the OpenClaw plugin is active. You
 
 ### Entry Types
 - **memory** — Facts, decisions, learnings (default)
-- **process** — Workflows, checklists, SOPs
-- **task** — Action items with status, priority, assignee, due date
+- **process** — Workflows, checklists, SOPs (team runbooks)
+- **task** — Sticky notes / reminders for future sessions. Tasks are ephemeral: when marked done, they are automatically deleted. Never auto-captured — only created by explicit `palaia write --type task`.
 
 ---
 
@@ -184,7 +191,7 @@ palaia config set database_url postgresql://user:pass@host/db
 
 ### Semantic Vector Search
 
-Palaia uses **hybrid search**: BM25 keyword matching (always active) combined with semantic vector embeddings (when a provider is configured). This finds memories by meaning, not just keywords.
+palaia uses **hybrid search**: BM25 keyword matching (always active) combined with semantic vector embeddings (when a provider is configured). This finds memories by meaning, not just keywords.
 
 **Embedding providers** (checked in chain order, first available wins):
 
@@ -215,7 +222,7 @@ The OpenClaw plugin starts the embed-server automatically. For CLI-only usage, i
 
 ### MCP Server (Claude Desktop, Cursor, any MCP host)
 
-Palaia works as a standalone MCP memory server — **no OpenClaw required**. Any AI tool that supports MCP can use palaia as persistent local memory.
+palaia works as a standalone MCP memory server — **no OpenClaw required**. Any AI tool that supports MCP can use palaia as persistent local memory.
 
 ```bash
 pip install 'palaia[mcp]'
@@ -265,21 +272,27 @@ palaia-mcp --read-only                  # No writes (untrusted hosts)
 
 ### `palaia write` — Save structured knowledge
 
-Only use for explicit process/task entries, or knowledge from external sources. Conversation knowledge is auto-captured.
+Use for important facts, reusable processes, sticky-note tasks, and knowledge from external sources. Manually written entries rank higher than auto-captured ones in recall.
 
 ```bash
-# Save a fact from outside the conversation
+# Save an important fact (ranks higher than auto-capture)
 palaia write "API rate limit is 100 req/min" --type memory --tags api,limits
 
-# Record a step-by-step process
-palaia write "1. Build 2. Test 3. Deploy" --type process --project myapp
+# Record a reusable team workflow (use specific, unique titles!)
+palaia write "Backend: Deploy to staging via Docker" --type process --project myapp --scope team
 
-# Create a task with structured fields
-palaia write "fix login bug" --type task --priority high --assignee Elliot --due-date 2026-04-01
+# Create a sticky note for a future session (deleted when done)
+palaia write "verify backup works after schema migration" --type task
 
 # Save to a specific project with scope
 palaia write "Use JWT for auth" --project backend --scope team --tags decision
 ```
+
+**Process naming convention:** Use the format `[Domain]: [What it does]` for process titles. Specific titles prevent duplicates and make processes findable.
+- Good: `"Release: PyPI publish + ClawHub sync"`, `"Backend: Deploy to staging via Docker"`
+- Bad: `"Deploy steps"`, `"Release process"` (too generic, will collide with other similar processes)
+
+Before writing a new process, search for existing ones: `palaia query "deploy" --type process`. If a similar process exists, update it with `palaia edit <id>` instead of creating a new one.
 
 ### `palaia query` — Semantic search
 
@@ -486,9 +499,12 @@ palaia project locks                      # List all active locks
 ### `palaia edit` — Modify existing entries
 
 ```bash
-palaia edit <id> --status done
+palaia edit <id> --status done         # For tasks: this DELETES the entry (sticky note completed)
+palaia edit <id> --status wontfix      # For tasks: also deletes (cancelled reminder)
 palaia edit <id> "updated content" --tags new,tags --priority high
 ```
+
+**Task lifecycle:** Tasks are sticky notes. When you mark a task as `done` or `wontfix`, it is automatically deleted — not archived. This is intentional: completed reminders have no long-term value. If the outcome of the task should be remembered, write a separate memory entry before marking the task done.
 
 ### Other commands
 
@@ -508,7 +524,7 @@ All commands support `--json` for machine-readable output.
 
 ## Smart Nudging
 
-Palaia's CLI output contains contextual hints prefixed with `[palaia]`. These are important guidance.
+palaia's CLI output contains contextual hints prefixed with `[palaia]`. These are important guidance.
 
 **As an agent, you should:**
 - Read and act on nudge messages in CLI output
@@ -583,29 +599,90 @@ Distinguish sessions of the same agent:
 palaia instance set Claw-Main
 ```
 
+### Agent Isolation Mode
+
+For focused agents (Sonnet/Codex) that should only see their own memories:
+
+**1. Configure in `priorities.json`:**
+```json
+{
+  "agents": {
+    "dev-worker": {
+      "scopeVisibility": ["private"],
+      "captureScope": "private",
+      "maxInjectedChars": 2000,
+      "recallMinScore": 0.85
+    }
+  }
+}
+```
+Or via CLI:
+```bash
+palaia priorities set scopeVisibility private --agent dev-worker
+palaia priorities set captureScope private --agent dev-worker
+palaia priorities set maxInjectedChars 2000 --agent dev-worker
+palaia priorities set recallMinScore 0.85 --agent dev-worker
+```
+
+**2. Set agent identity:**
+```bash
+export PALAIA_AGENT=dev-worker
+```
+
+**3. Auto-capture stays on** (crash safety net). Cleanup happens after the work package.
+
+**4. After accepting work:**
+```bash
+palaia prune --agent dev-worker --tags auto-capture --protect-type process
+```
+This removes session noise while preserving learned SOPs.
+
+#### Pre-configured Agent Profiles
+
+| Profile | scopeVisibility | captureScope | maxInjectedChars | recallMinScore | autoCapture |
+|---------|----------------|--------------|-----------------|----------------|-------------|
+| **Isolated Worker** | `["private"]` | `private` | 2000 | 0.85 | true |
+| **Orchestrator** | `["private","team","public"]` | `team` | 4000 | 0.7 | true |
+| **Lean Worker** | `["private"]` | `private` | 1000 | 0.9 | false |
+
+#### Orchestrator Lifecycle (process template)
+
+Save this as a process entry for the orchestrator to recall:
+```bash
+palaia write "## Dev-Agent Lifecycle
+1. Create agent identity: export PALAIA_AGENT=dev-worker-{task-id}
+2. Configure isolation: palaia priorities set scopeVisibility private --agent dev-worker-{task-id}
+3. Configure capture: palaia priorities set captureScope private --agent dev-worker-{task-id}
+4. Assign work package via prompt
+5. After acceptance: palaia prune --agent dev-worker-{task-id} --tags auto-capture --protect-type process
+6. Verify: palaia list --agent dev-worker-{task-id} --type process
+7. Process knowledge persists for future tasks" --type process --tags workflow,orchestration --scope private
+```
+
 ---
 
 ## When to Use What
 
 | Situation | Command |
 |-----------|---------|
-| Remember a fact (not from conversation) | `palaia write "..." --type memory` |
-| Record a process/SOP | `palaia write "steps..." --type process` |
-| Create a task | `palaia write "fix bug" --type task --priority high` |
-| Mark task done | `palaia edit <id> --status done` |
+| Save an important fact or decision | `palaia write "..." --type memory` (ranks higher than auto-capture) |
+| Document a reusable workflow | `palaia write "Domain: Steps..." --type process --scope team` |
+| Leave a reminder for future sessions | `palaia write "check X after Y" --type task` (auto-deleted when done) |
+| Mark a reminder as done | `palaia edit <id> --status done` (deletes the task) |
 | Find something | `palaia query "..."` |
-| Find open tasks | `palaia list --type task --status open` |
+| Find open reminders | `palaia list --type task --status open` |
 | Check system health | `palaia status` |
 | Something is wrong | `palaia doctor --fix` |
 | Clean up old entries | `palaia gc` |
+| Clean up agent session noise | `palaia prune --agent NAME --tags auto-capture --protect-type process` |
 | Review accumulated knowledge | `palaia curate analyze` |
 | Share knowledge | `palaia sync export` or `palaia package export` |
 | Check for messages | `palaia memo inbox` |
-| Start of session | Session briefing is now automatic. Just run `palaia doctor` and check `palaia memo inbox`. |
+| Start of session | Session briefing is automatic. Just run `palaia doctor` and check `palaia memo inbox`. |
 
-**Do NOT manually write:** facts, decisions, or preferences that came up in the current conversation. Auto-Capture handles these.
+**Auto-capture** handles routine conversation knowledge. **Manual writes rank higher** in recall — use them when something is especially important, reusable, or comes from an external source.
 
-**DO manually write:** processes, tasks with structured fields, knowledge from external sources, project setup.
+**DO manually write:** key decisions, reusable processes (team runbooks), sticky-note reminders (tasks), important facts from external sources.
 
 ---
 
@@ -645,10 +722,10 @@ palaia init --capture-level <off|minimal|normal|aggressive>
 Session continuity gives agents automatic context restoration across sessions. These features work out of the box with the OpenClaw plugin -- no manual setup needed.
 
 ### Session Briefings
-On session start, Palaia automatically injects a briefing with the last session summary and any open tasks. This means agents resume work without needing to manually search for context.
+Session briefings are injected automatically at session start. They contain your last session summary and any open tasks (sticky notes). Read the briefing carefully — it is your primary context for continuing previous work. Do not ask the user "where did we leave off?" when a briefing is present. Instead, acknowledge the context and continue seamlessly.
 
 ### Session Summaries
-When a session ends or resets, Palaia auto-saves a summary of what happened. These are stored as entries with the `session-summary` tag and can be queried:
+When a session ends or resets, palaia auto-saves a summary of what happened. These are stored as entries with the `session-summary` tag and can be queried:
 ```bash
 palaia query "session-summary" --tags session-summary
 ```
@@ -660,7 +737,7 @@ Wrap sensitive content in `<private>...</private>` blocks to exclude it from aut
 Fresh memories are ranked higher in recall results. The boost factor is configurable via `recallRecencyBoost` (default `0.3`, set to `0` to disable).
 
 ### Progressive Disclosure
-When result sets exceed 100 entries, Palaia uses compact mode to keep context manageable. Use `--limit` to control result size explicitly:
+When result sets exceed 100 entries, palaia uses compact mode to keep context manageable. Use `--limit` to control result size explicitly:
 ```bash
 palaia list --type task --status open --limit 5
 ```
@@ -689,6 +766,7 @@ Set in `openclaw.json` under `plugins.entries.palaia.config`:
 | `sessionBriefingMaxChars` | `1500` | Max chars for session briefing injection |
 | `captureToolObservations` | `true` | Track tool usage as session context |
 | `recallRecencyBoost` | `0.3` | Boost factor for fresh memories (0=off) |
+| `manualEntryBoost` | `1.3` | Boost factor for manually written entries vs auto-captured (1.0=off) |
 
 ---
 

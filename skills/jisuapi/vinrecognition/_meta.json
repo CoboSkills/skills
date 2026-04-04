@@ -3,11 +3,16 @@
   "slug": "vinrecognition",
   "displayName": "VIN Recognition OCR - VIN识别",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1773731135986,
-    "commit": "https://github.com/openclaw/skills/commit/0b52c83f86d609041f59ec89bc1871e0774c8cfc"
+    "version": "1.0.5",
+    "publishedAt": 1775210402951,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1773731135986,
+      "commit": "https://github.com/openclaw/skills/commit/0b52c83f86d609041f59ec89bc1871e0774c8cfc"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1773632748869,

@@ -3,9 +3,15 @@
   "slug": "vtiger",
   "displayName": "Vtiger",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1772715765316,
-    "commit": "https://github.com/openclaw/skills/commit/39ec1b0a10dd050fd0dca2c47800c32ad3c14996"
+    "version": "1.0.3",
+    "publishedAt": 1775162417100,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1772715765316,
+      "commit": "https://github.com/openclaw/skills/commit/39ec1b0a10dd050fd0dca2c47800c32ad3c14996"
+    }
+  ]
 }

@@ -1,431 +1,140 @@
----
-name: agents-infra
-description: Infrastructure for AI Agents. Phone, email, Social accounts, compute, domains, and voice calling for AI agents. Pay with USDC on Solana or Base via x402.
----
-**Base URL:** `https://agntos.dev`
+# AgentOS — Infrastructure for AI Agents
+
+Everything an agent needs: phone, email, compute, domains, voice calling, wallets, and 3500+ skills. Pay with USDC on Solana or Base via x402.
+
+**CLI:** `npm i -g @agntos/agentos` (or `npx @agntos/agentos`)
+**API:** `https://agntos.dev`
 **Source:** https://github.com/0xArtex/AgentOS
 
-## Quick Reference
+## CLI (recommended)
+
+Use the CLI for cleaner context and simpler commands:
+
+```bash
+# Phone
+agentos phone search --country US          # Search numbers (free)
+agentos phone buy --country US             # Buy a number ($3)
+agentos phone sms --id ID --to +1... --body "hi"   # Send SMS ($0.05)
+agentos phone call --id ID --to +1... --tts "hello" # Voice call ($0.10)
+
+# Email (E2E encrypted)
+agentos email create --name agent --wallet SOL_PUBKEY  # Create inbox ($2)
+agentos email read --id INBOX_ID                       # Read messages ($0.02)
+agentos email send --id ID --to x@y.com --subject "Hi" --body "..."  # Send ($0.08)
+agentos email threads --id INBOX_ID                    # List threads ($0.02)
+
+# Compute
+agentos compute plans                            # List VPS plans (free)
+agentos compute deploy --name my-vps --type cx23 # Deploy VPS (from $8/mo)
+agentos compute list                             # List servers
+agentos compute delete --id SERVER_ID            # Delete server
+
+# Domains
+agentos domain check --name example.dev   # Check availability (free)
+agentos domain pricing --name example     # Get pricing (free)
+agentos domain buy --name example.dev     # Register domain
+
+# Wallet
+agentos wallet keygen                     # Generate keypair (free)
+agentos wallet create --agent 0xADDR      # Create smart wallet (free)
+agentos wallet status 0xWALLET            # Check status (free)
+
+# Info
+agentos pricing    # All service prices
+agentos health     # API status
+```
+
+## API Quick Reference
+
+All endpoints also available as direct HTTP calls. CLI is recommended — less tokens, cleaner output.
 
 | Service | Endpoint | Cost (USDC) |
 |---------|----------|-------------|
-| Register agent | `POST /agents/register` | Free |
 | **Phone** | | |
 | Search numbers | `GET /phone/numbers/search?country=US` | Free |
-| Provision number | `POST /phone/numbers` | 2.00 |
+| Provision number | `POST /phone/numbers` | 3.00 |
 | Send SMS | `POST /phone/numbers/:id/send` | 0.05 |
-| Read messages | `GET /phone/numbers/:id/messages` | 0.01 |
+| Read messages | `GET /phone/numbers/:id/messages` | 0.02 |
 | **Voice Calls** | | |
 | Place call | `POST /phone/numbers/:id/call` | 0.10 |
-| Speak (TTS) | `POST /phone/calls/:callControlId/speak` | 0.05 |
-| Play audio | `POST /phone/calls/:callControlId/play` | 0.05 |
+| Speak (TTS) | `POST /phone/calls/:callControlId/speak` | 0.08 |
+| Play audio | `POST /phone/calls/:callControlId/play` | 0.08 |
 | Send DTMF | `POST /phone/calls/:callControlId/dtmf` | 0.02 |
-| Gather input | `POST /phone/calls/:callControlId/gather` | 0.05 |
-| Record call | `POST /phone/calls/:callControlId/record` | 0.05 |
-| Hangup | `POST /phone/calls/:callControlId/hangup` | 0.01 |
-| Answer inbound | `POST /phone/calls/:callControlId/answer` | 0.01 |
+| Gather input | `POST /phone/calls/:callControlId/gather` | 0.08 |
+| Record call | `POST /phone/calls/:callControlId/record` | 0.10 |
+| Hangup | `POST /phone/calls/:callControlId/hangup` | 0.02 |
+| Answer inbound | `POST /phone/calls/:callControlId/answer` | 0.02 |
 | Transfer call | `POST /phone/calls/:callControlId/transfer` | 0.10 |
-| List calls | `GET /phone/numbers/:id/calls` | 0.01 |
-| Call details | `GET /phone/calls/:id` | 0.01 |
+| List calls | `GET /phone/numbers/:id/calls` | 0.02 |
+| Call details | `GET /phone/calls/:id` | 0.02 |
 | **Email** | | |
-| Provision inbox | `POST /email/inboxes` | 1.00 |
-| Read inbox | `GET /email/inboxes/:id/messages` | 0.01 |
-| Send email | `POST /email/inboxes/:id/send` | 0.05 |
+| Provision inbox | `POST /email/inboxes` | 2.00 |
+| Read inbox | `GET /email/inboxes/:id/messages` | 0.02 |
+| Send email | `POST /email/inboxes/:id/send` | 0.08 |
+| List threads | `GET /email/inboxes/:id/threads` | 0.02 |
+| Thread messages | `GET /email/threads/:threadId/messages` | 0.02 |
+| Download attachment | `GET /email/attachments/:id` | 0.02 |
+| Register webhook | `POST /email/webhooks` | 0.02 |
 | **Compute** | | |
 | List plans | `GET /compute/plans` | Free |
 | Upload SSH key | `POST /compute/ssh-keys` | 0.10 |
-| Create server | `POST /compute/servers` | 5.00-95.00 |
-| List servers | `GET /compute/servers` | 0.01 |
-| Server status | `GET /compute/servers/:id` | 0.01 |
-| Server action | `POST /compute/servers/:id/actions` | 0.05 |
+| Create server | `POST /compute/servers` | 8.00-40.00 |
+| List servers | `GET /compute/servers` | 0.02 |
+| Server status | `GET /compute/servers/:id` | 0.02 |
+| Server action | `POST /compute/servers/:id/actions` | 0.10 |
 | Resize server | `POST /compute/servers/:id/resize` | 0.10 |
-| Delete server | `DELETE /compute/servers/:id` | 0.05 |
+| Delete server | `DELETE /compute/servers/:id` | 0.10 |
 | **Domains** | | |
 | Check availability | `GET /domains/check?domain=example.com` | Free |
 | TLD pricing | `GET /domains/pricing?domain=example` | Free |
-| Register domain | `POST /domains/register` | ~14-88 |
+| Register domain | `POST /domains/register` | dynamic (25% markup) |
 | DNS records | `GET /domains/:domain/dns` | Free |
 | Update DNS | `POST /domains/:domain/dns` | Free |
 | Pricing | `GET /pricing` | Free |
+| **Wallet** | | |
+| Create wallet | `POST /wallet` | Free |
+| Wallet status | `GET /wallet/:address` | Free |
+| Generate keypair | `POST /wallet/keygen` | Free |
+| Transfer (ERC20) | Via smart contract | Gas only |
+| **Skills** | | |
+| Browse catalog | `GET /compute/skills/catalog` | Free |
+| Security scan | `GET /compute/skills/:slug/security` | Free |
 
 All paid endpoints use **x402** — make the request, get a 402, pay with USDC, done.
 
 ## Authentication
 
-**Option A: Agent token** (register once)
-```
-Authorization: Bearer aos_xxxxx
-```
+**Your wallet is your identity.** No API keys. No signup.
 
-**Option B: x402 payment** (no registration needed)
-Just call any endpoint. The 402 response tells you what to pay. Payment = auth.
+Call any endpoint → pay with USDC via x402 → your wallet owns the resource.
 
-## How x402 Works
+Same wallet to access it later. That's it.
 
+**Networks:** Solana mainnet + Base (EVM)
+
+---
+
+
+## API Details
+
+The CLI wraps all API endpoints. If you prefer raw HTTP, use the quick reference table above. All endpoints accept JSON and return JSON.
+
+For voice calls, email threads, attachments, webhooks, and other advanced features — run `agentos --help` or see the full API docs at `agntos.dev/docs`.
+
+### Payment Flow
 1. Call any paid endpoint → get `402 Payment Required`
-2. Build a USDC transfer to the treasury address
-3. Send it in the `Payment-Signature` header
-4. Server verifies, settles on-chain, returns the response
+2. Response includes USDC amount + treasury address (Solana + Base)
+3. Pay via x402 protocol
+4. Your wallet address becomes the resource owner
 
-**Networks supported:** Solana mainnet + Base (EVM)
+### E2E Email Encryption
+Emails are encrypted with your wallet's public key (NaCl box). We cannot read them.
 
----
-
-## Register Agent (Free)
-
+To decrypt, use the helper script in this skill folder:
 ```bash
-curl -X POST https://agntos.dev/agents/register \
-  -H "Content-Type: application/json" \
-  -d '{"name": "my-agent", "walletAddress": "YOUR_SOLANA_PUBKEY"}'
+node decrypt-email.mjs "w:..." ~/.config/solana/id.json
+node decrypt-email.mjs --json '{"subject":"w:...","body":"w:..."}' ~/.config/solana/id.json
 ```
-
-Returns token — save it: `Authorization: Bearer aos_xxxxx`
-
----
-
-## 📱 Phone & SMS
-
-### Search Available Numbers (Free)
-
-```bash
-curl "https://agntos.dev/phone/numbers/search?country=US&limit=5"
-```
-
-### Provision Number (2.00 USDC)
-
-```bash
-curl -X POST https://agntos.dev/phone/numbers \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"country": "US"}'
-```
-
-Response:
-```json
-{
-  "id": "uuid",
-  "phoneNumber": "+14782058302",
-  "country": "US",
-  "owner": "your-agent",
-  "active": true
-}
-```
-
-### Send SMS (0.05 USDC)
-
-```bash
-curl -X POST https://agntos.dev/phone/numbers/PHONE_ID/send \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"to": "+15551234567", "body": "Hello from my agent!"}'
-```
-
-### Read Messages (0.01 USDC)
-
-```bash
-curl https://agntos.dev/phone/numbers/PHONE_ID/messages \
-  -H "Authorization: Bearer aos_xxxxx"
-```
-
----
-
-## 📞 Voice Calls
-
-### Place Outbound Call (0.10 USDC)
-
-```bash
-curl -X POST https://agntos.dev/phone/numbers/PHONE_ID/call \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "to": "+15551234567",
-    "tts": "Hello! I am an AI agent calling you.",
-    "ttsVoice": "female",
-    "record": true
-  }'
-```
-
-Response:
-```json
-{
-  "id": "uuid",
-  "callControlId": "v3:xxxxx",
-  "from": "+14782058302",
-  "to": "+15551234567",
-  "status": "initiated",
-  "message": "Calling +15551234567 from +14782058302",
-  "hint": "TTS will play when the call is answered"
-}
-```
-
-**Parameters:**
-- `to` (required) — phone number to call (E.164 format)
-- `tts` — text-to-speech message to play when answered
-- `ttsVoice` — voice: `male` or `female`
-- `audioUrl` — URL of audio file to play when answered
-- `record` — `true` to record the call
-- `timeoutSecs` — ring timeout (default 30)
-
-### In-Call Actions
-
-Once a call is connected, use the `callControlId` from the dial response:
-
-**Speak text (TTS) — 0.05 USDC:**
-```bash
-curl -X POST https://agntos.dev/phone/calls/CALL_CONTROL_ID/speak \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Please press 1 for sales or 2 for support", "voice": "female", "language": "en-US"}'
-```
-
-**Play audio file — 0.05 USDC:**
-```bash
-curl -X POST https://agntos.dev/phone/calls/CALL_CONTROL_ID/play \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"audioUrl": "https://example.com/greeting.mp3"}'
-```
-
-**Send DTMF tones — 0.02 USDC:**
-```bash
-curl -X POST https://agntos.dev/phone/calls/CALL_CONTROL_ID/dtmf \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"digits": "1234#"}'
-```
-
-**Gather DTMF input — 0.05 USDC:**
-```bash
-curl -X POST https://agntos.dev/phone/calls/CALL_CONTROL_ID/gather \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "maxDigits": 4,
-    "terminatingDigit": "#",
-    "prompt": "Please enter your PIN followed by the pound sign"
-  }'
-```
-
-**Start recording — 0.05 USDC:**
-```bash
-curl -X POST https://agntos.dev/phone/calls/CALL_CONTROL_ID/record \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"format": "mp3"}'
-```
-
-**Stop recording:**
-```bash
-curl -X POST https://agntos.dev/phone/calls/CALL_CONTROL_ID/record/stop \
-  -H "Authorization: Bearer aos_xxxxx"
-```
-
-**Transfer call — 0.10 USDC:**
-```bash
-curl -X POST https://agntos.dev/phone/calls/CALL_CONTROL_ID/transfer \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"to": "+15559876543"}'
-```
-
-**Answer inbound call:**
-```bash
-curl -X POST https://agntos.dev/phone/calls/CALL_CONTROL_ID/answer \
-  -H "Authorization: Bearer aos_xxxxx"
-```
-
-**Hang up:**
-```bash
-curl -X POST https://agntos.dev/phone/calls/CALL_CONTROL_ID/hangup \
-  -H "Authorization: Bearer aos_xxxxx"
-```
-
-### Call History
-
-**List calls for a number (0.01 USDC):**
-```bash
-curl https://agntos.dev/phone/numbers/PHONE_ID/calls \
-  -H "Authorization: Bearer aos_xxxxx"
-```
-
-**Get call details (0.01 USDC):**
-```bash
-curl https://agntos.dev/phone/calls/CALL_ID \
-  -H "Authorization: Bearer aos_xxxxx"
-```
-
-### Example: Agent calls a restaurant
-
-```
-1. POST /phone/numbers/PHONE_ID/call → {"to": "+15551234567", "tts": "Hi, I'd like to place an order"}
-2. Wait for call.answered webhook
-3. POST /phone/calls/CTRL_ID/gather → {"prompt": "Press 1 for English", "maxDigits": 1}
-4. POST /phone/calls/CTRL_ID/dtmf → {"digits": "1"}
-5. POST /phone/calls/CTRL_ID/speak → {"text": "I'd like to order two large pizzas for delivery"}
-6. POST /phone/calls/CTRL_ID/hangup
-```
-
----
-
-## 📧 Email
-
-### Provision Inbox (1.00 USDC)
-
-```bash
-curl -X POST https://agntos.dev/email/inboxes \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "my-agent", "walletAddress": "YOUR_SOLANA_PUBKEY"}'
-```
-
-Returns: `my-agent@agntos.dev`
-
-### Read Inbox (0.01 USDC via x402)
-
-```bash
-curl https://agntos.dev/email/inboxes/INBOX_ID/messages
-```
-
-### Send Email (0.05 USDC via x402)
-
-```bash
-curl -X POST https://agntos.dev/email/inboxes/INBOX_ID/send \
-  -H "Content-Type: application/json" \
-  -d '{"to": "user@example.com", "subject": "Hello", "body": "Message from my agent"}'
-```
-
----
-
-## 💻 Compute (VPS)
-
-### List Plans (Free)
-
-```bash
-curl https://agntos.dev/compute/plans
-```
-
-Available plans:
-| Type | vCPU | RAM | Disk | Price/mo |
-|------|------|-----|------|----------|
-| cx23 | 2 | 4GB | 40GB | $5 |
-| cx33 | 4 | 8GB | 80GB | $9 |
-| cx43 | 8 | 16GB | 160GB | $15 |
-| cx53 | 16 | 32GB | 320GB | $28 |
-| cpx11 | 2 | 2GB | 40GB | $7 |
-| cpx21 | 3 | 4GB | 80GB | $15 |
-| cpx31 | 4 | 8GB | 160GB | $26 |
-| cpx41 | 8 | 16GB | 240GB | $48 |
-| cpx51 | 16 | 32GB | 360GB | $95 |
-
-### Upload SSH Key (0.10 USDC)
-
-```bash
-curl -X POST https://agntos.dev/compute/ssh-keys \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "my-key", "publicKey": "ssh-ed25519 AAAA..."}'
-```
-
-Returns `id` — use it when creating servers.
-
-### Create Server (5.00-95.00 USDC)
-
-```bash
-curl -X POST https://agntos.dev/compute/servers \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "my-server", "serverType": "cx23", "sshKeyIds": [KEY_ID]}'
-```
-
-Response:
-```json
-{
-  "id": "12345",
-  "name": "my-server",
-  "serverType": "cx23",
-  "status": "running",
-  "ipv4": "89.167.36.207",
-  "message": "Server created. SSH in with: ssh root@89.167.36.207"
-}
-```
-
-**Zero-access design:** You provide your SSH public key. We never see your private key. We can't access your server.
-
-### Server Actions (0.05 USDC)
-
-```bash
-curl -X POST https://agntos.dev/compute/servers/SERVER_ID/actions \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"action": "reboot"}'
-```
-
-Actions: `reboot`, `poweron`, `poweroff`, `rebuild`, `reset`
-
-### Resize Server (0.10 USDC)
-
-```bash
-curl -X POST https://agntos.dev/compute/servers/SERVER_ID/resize \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"serverType": "cx33"}'
-```
-
-Note: Server must be powered off to resize.
-
-### Delete Server (0.05 USDC)
-
-```bash
-curl -X DELETE https://agntos.dev/compute/servers/SERVER_ID \
-  -H "Authorization: Bearer aos_xxxxx"
-```
-
----
-
-## 🌐 Domains
-
-### Check Availability (Free)
-
-```bash
-curl "https://agntos.dev/domains/check?domain=example.com"
-```
-
-### Get Pricing (Free)
-
-```bash
-curl "https://agntos.dev/domains/pricing?domain=example"
-```
-
-### Register Domain (dynamic pricing via x402)
-
-```bash
-curl -X POST https://agntos.dev/domains/register \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"domain": "my-agent.dev"}'
-```
-
-### DNS Management (Free for owners)
-
-```bash
-# Get records
-curl https://agntos.dev/domains/my-agent.dev/dns -H "Authorization: Bearer aos_xxxxx"
-
-# Set records
-curl -X POST https://agntos.dev/domains/my-agent.dev/dns \
-  -H "Authorization: Bearer aos_xxxxx" \
-  -H "Content-Type: application/json" \
-  -d '{"records": [{"type": "A", "name": "@", "value": "1.2.3.4"}]}'
-```
-
----
-
-## Payment Details
-
-- **Solana:** USDC to `B1YEboAH3ZDscqni7cyVnGkcDroB2kqLXCwLs3Ez8oX3`
-- **Base (EVM):** USDC to `0x7fA8aC4b42fd0C97ca983Bc73135EdbeA5bD6ab2`
-- **x402 Version:** 2
-- **Facilitator:** `4R67MWivvc52g9BSzQRvQyD8GshttW1QLbnj46usBrcQ`
 
 ## Webhooks
 

@@ -1,10 +1,12 @@
 #!/usr/bin/env node
+'use strict';
 /**
  * Git 项目监控助手 - 支持 GitHub、GitLab、Gitee 等所有 Git 平台
  */
 
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execSync } = require('child_process');
 
 const CONFIG_PATH = path.join(__dirname, 'config.json');
@@ -34,6 +36,110 @@ function loadConfig() {
     return defaultConfig;
   }
   return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+}
+
+// 级联读取飞书配置（优先级：环境变量 > OpenClaw配置 > 本地config.json）
+function getFeishuConfig() {
+  // 1. 先检查环境变量
+  if (process.env.FEISHU_APP_ID && process.env.FEISHU_APP_SECRET && process.env.FEISHU_CHAT_ID) {
+    return {
+      appId: process.env.FEISHU_APP_ID,
+      appSecret: process.env.FEISHU_APP_SECRET,
+      chatId: process.env.FEISHU_CHAT_ID
+    };
+  }
+  
+  // 2. 尝试读取 OpenClaw 主配置
+  const openclawConfigPath = path.join(os.homedir(), '.openclaw', 'openclaw.json');
+  if (fs.existsSync(openclawConfigPath)) {
+    try {
+      const openclawConfig = JSON.parse(fs.readFileSync(openclawConfigPath, 'utf8'));
+      const feishu = openclawConfig.channels?.feishu || openclawConfig.feishu;
+      if (feishu?.appId && feishu?.appSecret) {
+        // 尝试获取群聊ID（优先使用环境变量或配置的chatId）
+        const chatId = process.env.FEISHU_CHAT_ID || feishu.chatId || feishu.groupId;
+        if (chatId) {
+          return {
+            appId: feishu.appId,
+            appSecret: feishu.appSecret,
+            chatId: chatId
+          };
+        }
+      }
+    } catch (e) {
+      log(`读取OpenClaw配置失败: ${e.message}`);
+    }
+  }
+  
+  // 3. 最后读取本地 config.json
+  const config = loadConfig();
+  if (config.feishu?.appId && config.feishu?.appSecret && config.feishu?.chatId) {
+    // 检查是否是占位符
+    if (config.feishu.appId !== 'YOUR_FEISHU_APP_ID' && 
+        config.feishu.appSecret !== 'YOUR_FEISHU_APP_SECRET') {
+      return config.feishu;
+    }
+  }
+  
+  return null;
+}
+
+// 发送飞书通知
+async function sendFeishuNotification(message, chatId) {
+  const config = getFeishuConfig();
+  if (!config) {
+    console.log('⚠️ 未配置飞书通知，跳过推送');
+    return false;
+  }
+  
+  const { appId, appSecret, chatId: configChatId } = config;
+  const targetChatId = chatId || configChatId;
+  
+  if (!targetChatId) {
+    console.log('⚠️ 未配置飞书群聊ID，跳过推送');
+    return false;
+  }
+  
+  try {
+    // 获取 tenant_access_token
+    const tokenResponse = await fetch('https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ app_id: appId, app_secret: appSecret })
+    });
+    const tokenData = await tokenResponse.json();
+    
+    if (!tokenData.tenant_access_token) {
+      console.log('❌ 获取飞书token失败:', tokenData);
+      return false;
+    }
+    
+    // 发送消息
+    const msgResponse = await fetch('https://open.feishu.cn/open-apis/im/v1/messages', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${tokenData.tenant_access_token}`
+      },
+      body: JSON.stringify({
+        receive_id: targetChatId,
+        msg_type: 'text',
+        content: JSON.stringify({ text: message })
+      })
+    });
+    const msgData = await msgResponse.json();
+    
+    if (msgData.code === 0) {
+      console.log('✅ 飞书通知发送成功');
+      return true;
+    } else {
+      console.log('❌ 飞书通知发送失败:', msgData);
+      return false;
+    }
+  } catch (e) {
+    console.log('❌ 飞书通知发送异常:', e.message);
+    return false;
+  }
 }
 
 // 保存配置
@@ -113,7 +219,7 @@ function addRepository(input, branch = 'main') {
     }
     
     const localPath = path.join(
-      process.env.HOME,
+      os.homedir(),
       '.openclaw/workspace/repos',
       repoInfo.name
     );
@@ -187,33 +293,148 @@ function listRepositories() {
   console.log(`📋 监控列表 (共 ${config.repositories.length} 个仓库):\n`);
   
   config.repositories.forEach((repo, index) => {
-    console.log(`${index + 1}. 📦 ${repo.name}`);
-    console.log(`   平台: ${repo.platform}`);
-    console.log(`   URL: ${repo.url}`);
-    console.log(`   本地: ${repo.localPath}`);
-    console.log(`   分支: ${repo.branch}`);
-    console.log(`   最后检查: ${repo.lastChecked || '从未检查'}`);
-    console.log(`   最新 commit: ${repo.lastCommit?.substring(0, 7) || '未知'}`);
+    const lastCheckTime = repo.lastChecked 
+      ? new Date(repo.lastChecked).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour: '2-digit', minute: '2-digit' })
+      : '从未检查';
+    const lastCommit = repo.lastCommit ? repo.lastCommit.substring(0, 7) : '未知';
+    
+    console.log(`${index + 1}. ${repo.name}`);
+    console.log(`   平台: ${repo.platform} · 分支: ${repo.branch}`);
+    console.log(`   最后检查: ${lastCheckTime} · 最新: ${lastCommit}`);
     console.log('');
   });
 }
 
-// 执行监控脚本
+// 执行监控脚本（跨平台版本，不再依赖 bash）
 function checkRepository(repo) {
   const { url, name, localPath, branch = 'main' } = repo;
   
   log(`\n🔍 检查仓库: ${name}`);
+  log(`   本地路径: ${localPath}`);
   
   try {
-    const output = execSync(
-      `bash "${SCRIPT_PATH}" "${url}" "${name}" "${localPath}" "${branch}"`,
-      { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 }
-    );
+    const git = (...args) => {
+      try {
+        return execSync(`git ${args.join(' ')}`, { 
+          encoding: 'utf8', 
+          maxBuffer: 10 * 1024 * 1024,
+          cwd: localPath,
+          stdio: ['ignore', 'pipe', 'pipe']
+        });
+      } catch (e) {
+        return e.stdout || e.message;
+      }
+    };
     
-    return parseOutput(output, repo);
+    // 1. 判断本地仓库是否存在
+    const repoExists = fs.existsSync(path.join(localPath, '.git'));
+    
+    if (!repoExists) {
+      // 首次克隆
+      log('   首次克隆仓库...');
+      execSync(`git clone "${url}" "${localPath}" --depth=100`, {
+        encoding: 'utf8',
+        maxBuffer: 50 * 1024 * 1024,
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+      
+      const commit = execSync(`git rev-parse HEAD`, {
+        encoding: 'utf8',
+        cwd: localPath
+      }).trim();
+      
+      return {
+        isInitial: true,
+        repo: repo.name,
+        commit
+      };
+    }
+    
+    // 2. 更新到最新
+    log('   拉取最新代码...');
+    
+    // 保存当前 HEAD commit（用于对比）
+    let oldCommit = '';
+    try {
+      oldCommit = execSync('git rev-parse HEAD', { cwd: localPath }).trim();
+    } catch (e) {
+      oldCommit = '';
+    }
+    
+    // fetch + reset --hard origin/branch
+    try {
+      execSync(`git fetch origin`, { cwd: localPath, stdio: ['ignore', 'pipe', 'pipe'] });
+      execSync(`git reset --hard origin/${branch}`, { cwd: localPath, stdio: ['ignore', 'pipe', 'pipe'] });
+    } catch (e) {
+      // 分支可能不存在，尝试 master
+      try {
+        execSync(`git fetch origin`, { cwd: localPath, stdio: ['ignore', 'pipe', 'pipe'] });
+        execSync(`git reset --hard origin/master`, { cwd: localPath, stdio: ['ignore', 'pipe', 'pipe'] });
+      } catch (e2) {
+        return { hasUpdates: false, error: `拉取失败: ${e2.message}`, repo: repo.name };
+      }
+    }
+    
+    // 获取新 commit
+    const newCommit = execSync('git rev-parse HEAD', { cwd: localPath }).trim();
+    
+    // 如果没有变化
+    if (oldCommit === newCommit) {
+      return { hasUpdates: false, repo: repo.name };
+    }
+    
+    // 有更新，获取 commits 和 files
+    log('   获取变更详情...');
+    
+    const diffOutput = execSync(
+      `git log ${oldCommit}..${newCommit} --oneline --format="%H|%an|%ai|%s" -20`,
+      { cwd: localPath }
+    ).trim();
+    
+    const commits = diffOutput.split('\n').filter(Boolean).map(line => {
+      const [hash, author, time, ...msgParts] = line.split('|');
+      return {
+        hash: hash?.substring(0, 7),
+        fullHash: hash,
+        author,
+        time: time?.replace('+0800', '').trim(),
+        message: msgParts.join('|')
+      };
+    });
+    
+    // 获取文件变更
+    const filesOutput = execSync(
+      `git diff ${oldCommit}..${newCommit} --stat --format=""`,
+      { cwd: localPath }
+    ).trim();
+    
+    const files = filesOutput.split('\n').filter(Boolean).map(line => {
+      const match = line.match(/^\s*(\S+)\s*\|\s*(\d+)/);
+      if (match) {
+        return { status: 'M', path: match[1], lines: match[2] };
+      }
+      // 新文件或删除
+      const parts = line.trim().split(/\s+/);
+      return { status: 'M', path: parts[parts.length - 1] };
+    });
+    
+    return {
+      hasUpdates: true,
+      repo: repo.name,
+      url: repo.url,
+      platform: repo.platform,
+      owner: repo.owner,
+      repoName: repo.repo,
+      oldCommit,
+      newCommit,
+      commits,
+      files,
+      stats: filesOutput
+    };
+    
   } catch (error) {
     console.error(`❌ 检查失败: ${error.message}`);
-    return { hasUpdates: false, error: error.message };
+    return { hasUpdates: false, error: error.message, repo: repo.name };
   }
 }
 
@@ -251,6 +472,7 @@ function parseOutput(output, repo) {
   return {
     hasUpdates: true,
     repo: repo.name,
+    url: repo.url,
     platform: repo.platform,
     owner: repo.owner,
     repoName: repo.repo,
@@ -290,96 +512,56 @@ function parseFiles(text) {
 // 生成摘要
 function generateSummary(result) {
   if (!result.hasUpdates) {
-    return `[无更新] ${result.repo} - 已是最新版本`;
+    return `[${result.repo}] 已是最新`;
   }
   
   if (result.isInitial) {
-    return `[初始化] ${result.repo}\n初始 commit: ${result.commit?.substring(0, 7)}`;
+    return `[${result.repo}] 已克隆 (commit: ${result.commit?.substring(0, 7)})`;
   }
   
-  const { repo, platform, owner, repoName, commits, stats, files, oldCommit, newCommit } = result;
+  const { repo, url, platform, owner, repoName, commits, stats, files, oldCommit, newCommit } = result;
   
-  // 标题
-  let summary = `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  summary += `代码更新通知\n`;
-  summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  // 生成简洁的摘要（适合飞书推送，纯文本）
+  // 显示完整仓库地址
+  const repoUrl = url.replace('.git', '');
+  let summary = `${repoUrl}\n`;
+  summary += `${commits.length} 个提交, ${files.length} 个文件变更\n\n`;
   
-  // 仓库信息
-  summary += `【仓库】${repo}\n`;
-  summary += `【平台】${platform.toUpperCase()}\n`;
-  summary += `【时间】${new Date().toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}\n\n`;
-  
-  // Commits
-  summary += `━━ 提交记录 (${commits.length} 个) ━━\n\n`;
-  commits.slice(0, 5).forEach((c, index) => {
-    summary += `${index + 1}. [${c.hash}] ${c.message}\n`;
-    summary += `   作者: ${c.author} | 时间: ${c.time}\n\n`;
-  });
-  if (commits.length > 5) {
-    summary += `... 还有 ${commits.length - 5} 个提交\n\n`;
+  // 最新的提交
+  if (commits.length > 0) {
+    const latest = commits[0];
+    summary += `最新: ${latest.message}\n`;
+    summary += `${latest.author} · ${latest.time}\n`;
   }
   
-  // 文件变更
-  const added = files.filter(f => f.status === 'A');
-  const modified = files.filter(f => f.status === 'M');
-  const deleted = files.filter(f => f.status === 'D');
-  
-  summary += `━━ 文件变更 ━━\n\n`;
-  
-  if (added.length > 0) {
-    summary += `[新增] ${added.length} 个文件\n`;
-    added.slice(0, 5).forEach(f => summary += `  + ${f.path}\n`);
-    if (added.length > 5) {
-      summary += `  ... 还有 ${added.length - 5} 个文件\n`;
+  // 文件变更预览
+  if (files.length > 0) {
+    const added = files.filter(f => f.status === 'A').length;
+    const modified = files.filter(f => f.status === 'M').length;
+    const deleted = files.filter(f => f.status === 'D').length;
+    
+    summary += `\n${added} 新增, ${modified} 修改, ${deleted} 删除\n`;
+    
+    // 显示前3个文件
+    const previewFiles = files.slice(0, 3).map(f => {
+      const prefix = f.status === 'A' ? '+' : f.status === 'M' ? '*' : '-';
+      return `${prefix} ${f.path}`;
+    }).join('\n');
+    
+    if (previewFiles) {
+      summary += `\n${previewFiles}`;
     }
-    summary += '\n';
-  }
-  
-  if (modified.length > 0) {
-    summary += `[修改] ${modified.length} 个文件\n`;
-    modified.slice(0, 5).forEach(f => summary += `  * ${f.path}\n`);
-    if (modified.length > 5) {
-      summary += `  ... 还有 ${modified.length - 5} 个文件\n`;
-    }
-    summary += '\n';
-  }
-  
-  if (deleted.length > 0) {
-    summary += `[删除] ${deleted.length} 个文件\n`;
-    deleted.slice(0, 5).forEach(f => summary += `  - ${f.path}\n`);
-    if (deleted.length > 5) {
-      summary += `  ... 还有 ${deleted.length - 5} 个文件\n`;
-    }
-    summary += '\n';
-  }
-  
-  // 统计信息
-  const statsLines = stats.split('\n');
-  const summaryLine = statsLines[statsLines.length - 1];
-  if (summaryLine) {
-    summary += `━━ 代码统计 ━━\n\n`;
-    summary += `${summaryLine}\n\n`;
   }
   
   // 链接
-  const platformUrls = {
-    github: 'https://github.com',
-    gitlab: 'https://gitlab.com',
-    gitee: 'https://gitee.com'
-  };
-  const baseUrl = platformUrls[platform] || platformUrls.github;
-  const compareUrl = `${baseUrl}/${owner}/${repoName}/compare/${oldCommit?.substring(0, 7)}...${newCommit?.substring(0, 7)}`;
-  
-  summary += `━━ 详细信息 ━━\n\n`;
-  summary += `查看完整对比: ${compareUrl}\n`;
-  summary += `提交范围: ${oldCommit?.substring(0, 7)} → ${newCommit?.substring(0, 7)}\n\n`;
-  summary += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  const compareUrl = `https://${platform === 'gitee' ? 'gitee.com' : platform === 'gitlab' ? 'gitlab.com' : 'github.com'}/${owner}/${repoName}/compare/${oldCommit?.substring(0, 7)}...${newCommit?.substring(0, 7)}`;
+  summary += `\n\n查看: ${compareUrl}`;
   
   return summary;
 }
 
 // 主函数
-function main() {
+async function main() {
   const args = process.argv.slice(2);
   const command = args[0];
   
@@ -440,9 +622,9 @@ function main() {
     const results = repos.map(repo => {
       const result = checkRepository(repo);
       
-      // 更新配置
+      // 更新配置（无论是否有更新都记录检查时间）
+      repo.lastChecked = new Date().toISOString();
       if (result.hasUpdates || result.isInitial) {
-        repo.lastChecked = new Date().toISOString();
         if (result.newCommit) {
           repo.lastCommit = result.newCommit;
         } else if (result.commit) {
@@ -465,6 +647,23 @@ function main() {
     // 返回 JSON 供 OpenClaw 使用
     console.log('\n=== JSON_RESULT ===');
     console.log(JSON.stringify(results, null, 2));
+    
+    // 检查是否有更新，发送飞书通知
+    const updates = results.filter(r => r.hasUpdates);
+    if (updates.length > 0) {
+      const notifyMessage = updates.map(r => generateSummary(r)).join('\n\n');
+      const feishuConfig = getFeishuConfig();
+      if (feishuConfig?.chatId) {
+        console.log('\n📤 正在发送飞书通知...');
+        await sendFeishuNotification(notifyMessage, feishuConfig.chatId);
+      } else {
+        console.log('\n⚠️ 未配置飞书通知，跳过推送');
+        console.log('提示: 可通过以下方式配置飞书:');
+        console.log('  1. 设置环境变量: FEISHU_APP_ID, FEISHU_APP_SECRET, FEISHU_CHAT_ID');
+        console.log('  2. 或在 OpenClaw 配置中设置飞书凭证');
+        console.log('  3. 或编辑 config.json 配置 feishu');
+      }
+    }
     
   } else if (command === 'status') {
     listRepositories();
@@ -489,7 +688,7 @@ function main() {
 }
 
 if (require.main === module) {
-  main();
+  main().catch(console.error);
 }
 
 module.exports = { addRepository, removeRepository, checkRepository, generateSummary, listRepositories };

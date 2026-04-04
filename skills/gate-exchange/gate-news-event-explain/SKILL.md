@@ -1,17 +1,65 @@
 ---
 name: gate-news-eventexplain
-version: "2026.3.12-1"
-updated: "2026-03-12"
-description: "Event attribution and explanation. Use this skill whenever the user asks for the reason behind a price move. Trigger phrases include: why did X crash, what just happened, why is it pumping, what caused. MCP tools: news_events_get_latest_events, info_marketsnapshot_get_market_snapshot, news_events_get_event_detail, info_onchain_get_token_onchain, news_feed_search_news."
+version: "2026.4.1-2"
+updated: "2026-04-01"
+description: "Event attribution and explanation. Use this skill ONLY when the user's query is exclusively about the reason behind a price move with no other analysis dimensions. Trigger phrases: why did X crash, what just happened, why is it pumping, what caused. If the query ALSO mentions fundamentals, risk check, technicals, or any other analysis dimension, use gate-info-research instead — it handles multi-dimension queries in a single unified report."
+required_credentials: []
+required_env_vars: []
+required_permissions: []
 ---
 
 # gate-news-eventexplain
+
+## General Rules
+
+⚠️ STOP — You MUST read and strictly follow the shared runtime rules before proceeding.
+Do NOT select or call any tool until all rules are read. These rules have the highest priority.
+→ Read [gate-runtime-rules.md](https://github.com/gate/gate-skills/blob/master/skills/gate-runtime-rules.md)
+→ Also read [info-news-runtime-rules.md](https://github.com/gate/gate-skills/blob/master/skills/info-news-runtime-rules.md) for **gate-info** / **gate-news**-specific rules (tool degradation, report standards, security, routing degradation, and per-skill version checks when `scripts/` is present).
+- **Only call MCP tools explicitly listed in this skill.** Tools not documented here must NOT be called, even if they
+  exist in the MCP server.
 
 > The "Why is it pumping/dumping?" Skill. When the market experiences abnormal volatility and the user asks why, the system traces the event source through multi-step calls, cross-references market data to verify impact magnitude, and delivers a complete "Event → Impact Chain → Market Reaction" analysis report.
 
 **Trigger Scenarios**: User expresses curiosity about a market anomaly, e.g., "why did BTC crash", "what just happened", "why did ETH suddenly spike".
 
+**Per-skill updates:** This skill may include `scripts/update-skill.sh` and, in full source trees, `scripts/update-skill.ps1` for optional maintenance checks against the official Gate Skills repository. The shared policy is defined in [info-news-runtime-rules.md](https://github.com/gate/gate-skills/blob/master/skills/info-news-runtime-rules.md).
+
+**Maintenance flow:**
+- Use `check` only when you need to compare the installed skill with the official repo.
+- In interactive sessions, `check` never rewrites files.
+- If `update_available`, ask the user before `apply`.
+- If update scripts are unavailable or the version check cannot run, continue with the current installed version.
+- `apply` rewrites only this skill's local directory under the active skills root.
+- Do not download replacement updater scripts during the session; use the official repo for manual repair when needed.
+
 ---
+
+## MCP Dependencies
+
+### Required MCP Servers
+| MCP Server | Status |
+|------------|--------|
+| Gate-News | ✅ Required |
+| Gate-Info | ✅ Required |
+
+### MCP Tools Used
+
+**Query Operations (Read-only)**
+
+- info_marketsnapshot_get_market_snapshot
+- info_onchain_get_token_onchain
+- news_events_get_event_detail
+- news_events_get_latest_events
+- news_feed_search_news
+
+### Authentication
+- API Key Required: No
+- Credentials Source: None; this skill uses read-only Gate Info / Gate News MCP access only.
+
+### Installation Check
+- Required: Gate-News, Gate-Info (for `info_marketsnapshot_get_market_snapshot` and `info_onchain_get_token_onchain` in this skill)
+- Install: `gate-mcp-installer` — `bash skills/gate-mcp-installer/scripts/install.sh` (use `--platform` if multiple dev environments exist)
 
 ## Routing Rules
 
@@ -26,6 +74,13 @@ description: "Event attribution and explanation. Use this skill whenever the use
 ---
 
 ## Execution Workflow
+
+### Step 0: Multi-Dimension Intent Check
+
+Before executing this Skill, check if the user's query involves multiple analysis dimensions:
+
+- If the query is exclusively about the reason behind a price move, proceed with this Skill.
+- If the query **also** mentions fundamentals, risk check, technicals, comparison, or any other analysis dimension beyond event attribution, route to `gate-info-research` — it handles multi-dimension queries with unified tool deduplication and coherent report aggregation.
 
 ### Step 1: Intent Recognition & Parameter Extraction
 

@@ -1,11 +1,17 @@
 {
   "owner": "gate-exchange",
   "slug": "gate-news-event-explain",
-  "displayName": "Gate News Event Explain",
+  "displayName": "gate-news-eventexplain",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773364383339,
-    "commit": "https://github.com/openclaw/skills/commit/0f7f42ded0a5c26e7164df591ac7d4cdcee3c713"
+    "version": "1.0.3",
+    "publishedAt": 1775184894713,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773364383339,
+      "commit": "https://github.com/openclaw/skills/commit/0f7f42ded0a5c26e7164df591ac7d4cdcee3c713"
+    }
+  ]
 }

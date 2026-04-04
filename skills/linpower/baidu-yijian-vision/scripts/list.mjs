@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { readSkillJson } from './skill-writer.mjs';
-import fs from 'fs';
+import { readPresets } from './preset-utils.mjs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -16,19 +16,6 @@ const pluginRoot = path.resolve(__dirname, '../..');
  * - skill/preset-skills.json (preset skills)
  */
 
-function readPresets() {
-  const presetPath = path.join(pluginRoot, 'skill/preset-skills.json');
-  if (!fs.existsSync(presetPath)) {
-    return { presetSkills: [] };
-  }
-  try {
-    return JSON.parse(fs.readFileSync(presetPath, 'utf-8'));
-  } catch (err) {
-    console.error(`Warning: Failed to read presets: ${err.message}`);
-    return { presetSkills: [] };
-  }
-}
-
 function main() {
   try {
     // Read registered skills
@@ -36,7 +23,8 @@ function main() {
     const registered = (skillJson.tools || []).map(s => ({ ...s, source: 'registered' }));
 
     // Read preset skills
-    const presetData = readPresets();
+    const presetPath = path.join(pluginRoot, 'skill/preset-skills.json');
+    const presetData = readPresets(presetPath);
     const presets = (presetData.presetSkills || []).map(s => ({ ...s, source: 'preset' }));
 
     // Combine: registered skills take priority if epId duplicates

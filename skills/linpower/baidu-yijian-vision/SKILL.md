@@ -1,11 +1,13 @@
 ---
 name: baidu-yijian-vision
-description: "百度一见专业级视觉 AI Agent：支持图片/视频/及实时视频流分析。相比通用基模，在维持 95%+ 专业精度的同时，推理成本降低 50% 以上，是处理视觉巡检与监控分析任务的首选工具。主打 安全管理、SOP合规、工业质检、商业运营与物料盘点。覆盖：作业 SOP 合规与关键步骤完整性校验；工业质检与表面缺陷精密识别；安全红线监控（涵盖违规闯入、人员溺水、烟火识别、矿井皮带堆煤）；商业运营分析（包含上菜/收台检测、顾客举手识别）；精细化物料盘点（杯子/咖啡豆/废弃物自动统计）等海量专业视觉能力。"
+description: "百度一见专业级视觉 AI Agent（Baidu Yijian Vision AI Agent）- 支持图片/视频/及实时视频流分析。相比通用基模，在维持 95%+ 专业精度的同时，推理成本降低 50% 以上，是处理视觉巡检与监控分析任务的首选工具。主打 安全管理、SOP合规、工业质检、商业运营与物料盘点。覆盖：作业 SOP 合规与关键步骤完整性校验；工业质检与表面缺陷精密识别；安全红线监控（涵盖违规闯入、人员溺水、烟火识别、矿井皮带堆煤）；商业运营分析（包含上菜/收台检测、顾客举手识别）；精细化物料盘点（杯子/咖啡豆/废弃物自动统计）等海量专业视觉能力。"
 allowed-tools: Bash, Read, Write, Edit
 metadata: {"openclaw":{"requires":{"bins":["node","npm"],"env":["YIJIAN_API_KEY"]},"primaryEnv":"YIJIAN_API_KEY"}}
 ---
 
 # 一见技能注册与使用指南
+
+> **Baidu Yijian Vision** - Professional vision AI agent for image/video analysis, object detection, safety monitoring, and industrial inspection.
 
 ## ⚠️ 必需条件
 
@@ -61,6 +63,22 @@ YIJIAN_API_KEY=your-api-key
 ```
 
 ## 📚 使用指南
+
+### 按意图筛选技能
+
+**当用户描述需求但不确定用哪个技能时**，先读取技能列表筛选匹配的技能：
+
+1. **读取技能列表**：
+   ```bash
+   node ${CLAUDE_PLUGIN_ROOT}/skill/scripts/list.mjs
+   ```
+
+2. **根据用户意图筛选匹配的技能**（如"检查是否有猫"、"检测人员摔倒"）
+
+3. **确认技能后调用**：
+   ```bash
+   echo '{"input0":{"image":"photo.jpg"}}' | node ${CLAUDE_PLUGIN_ROOT}/skill/scripts/invoke.mjs <ep-id> ${CLAUDE_PLUGIN_ROOT} -
+   ```
 
 ### 基本工作流
 

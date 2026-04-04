@@ -2,7 +2,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { hasVisualization, isInputVisualizableType, isBasicType, getSkillMdHints } from './types.mjs';
+import { hasVisualization, isInputVisualizableType, getSkillMdHints } from './types.mjs';
 
 const SKILL_JSON = 'skill/skill.json';
 const SKILL_MD = 'skill/SKILL.md';
@@ -56,39 +56,13 @@ export function tryAutoMigrate(pluginRoot, skillJson) {
 
   for (const epId of epIds) {
     const old = skills[epId];
-    const inputs = [];
-    for (const inp of old.inputs || []) {
-      for (const field of inp.schema || []) {
-        inputs.push({
-          name: field.name,
-          type: field.type,
-          description: field.description || field.displayName || field.name,
-          required: !field.optional,
-        });
-      }
-    }
-    const outputs = [];
-    for (const out of old.outputs || []) {
-      for (const field of out.schema || []) {
-        outputs.push({
-          name: field.name,
-          type: field.type,
-          description: field.description || field.displayName || field.name,
-        });
-      }
-    }
     skillJson.tools.push({
       epId,
       name: old.displayName || old.name || epId,
       description: old.description || '',
-      scope: '',
       version: old.version || '1.0',
       runUrl: old.runUrl,
-      inputs,
-      outputs,
-      rawInputs: old.inputs || [],
-      rawOutputs: old.outputs || [],
-      registeredAt: old.registeredAt || new Date().toISOString(),
+      inputs: old.inputs || [],
     });
   }
 
@@ -106,54 +80,23 @@ export function tryAutoMigrate(pluginRoot, skillJson) {
 // ---------------------------------------------------------------------------
 
 /**
- * Build a simplified + raw tool entry from the metadata returned by the
- * Yijian `/metadata` API.
+ * Build a tool entry from the metadata returned by the Yijian `/metadata` API.
+ * Only keeps essential fields: epId, name, runUrl, inputs, version
+ * description is kept for index generation
  *
  * @param {string} epId
  * @param {object} metadata  - parsed `result` from the metadata response
  * @param {string} mRunUrl   - the run URL for the skill
- * @param {object} [opts]    - optional overrides
- * @param {string} [opts.scope] - human-readable scope description (e.g. "用于人体检测")
  * @returns {object} tool entry for skill.json
  */
-export function buildToolEntry(epId, metadata, mRunUrl, opts = {}) {
-  // Simplified inputs — one entry per schema field inside each DataSet input
-  const inputs = [];
-  for (const inp of metadata.inputs || []) {
-    for (const field of inp.schema || []) {
-      inputs.push({
-        name: field.name,
-        type: field.type,
-        description: field.description || field.displayName || field.name,
-        required: !field.optional,
-      });
-    }
-  }
-
-  // Simplified outputs
-  const outputs = [];
-  for (const out of metadata.outputs || []) {
-    for (const field of out.schema || []) {
-      outputs.push({
-        name: field.name,
-        type: field.type,
-        description: field.description || field.displayName || field.name,
-      });
-    }
-  }
-
+export function buildToolEntry(epId, metadata, mRunUrl) {
   return {
     epId,
     name: metadata.displayName || metadata.name || epId,
     description: metadata.description || '',
-    scope: opts.scope || '',
     version: metadata.version || '1.0',
     runUrl: mRunUrl,
-    inputs,
-    outputs,
-    rawInputs: metadata.inputs || [],
-    rawOutputs: metadata.outputs || [],
-    registeredAt: new Date().toISOString(),
+    inputs: metadata.inputs || [],
   };
 }
 
@@ -366,6 +309,26 @@ node \${CLAUDE_PLUGIN_ROOT}/skill/scripts/visualize.mjs <input-image> '<detectio
 `;
 
 /**
+ * Extract input fields from tool.inputs (raw API structure)
+ * @param {Array} inputs - raw inputs from API
+ * @returns {Array} flattened input fields
+ */
+function extractInputFields(inputs) {
+  const fields = [];
+  for (const inp of inputs || []) {
+    for (const field of inp.schema || []) {
+      fields.push({
+        name: field.name,
+        type: field.type,
+        description: field.description || field.displayName || field.name,
+        required: !field.optional,
+      });
+    }
+  }
+  return fields;
+}
+
+/**
  * Generate the dynamic "Registered Tools" section for SKILL.md.
  */
 function generateToolsSections(tools) {
@@ -381,28 +344,21 @@ function generateToolsSections(tools) {
   ];
 
   for (const tool of tools) {
+    const inputFields = extractInputFields(tool.inputs);
+
     lines.push(`### ${tool.epId}: ${tool.name}`);
     lines.push('');
 
-    const outputTypes = tool.outputs.map(o => o.type);
-
-    // Trigger condition — use scope if provided, otherwise infer from name + outputs
-    if (tool.scope) {
-      lines.push(`**Trigger**: ${tool.scope}`);
-    } else {
-      const triggerHints = [tool.name];
-      if (tool.description) triggerHints.push(tool.description);
-      if (outputTypes.some(t => hasVisualization(t))) {
-        triggerHints.push('object detection', 'bounding box visualization');
-      }
-      lines.push(`**Trigger**: When user requests: ${triggerHints.join(', ')}.`);
-    }
+    // Trigger condition
+    const triggerHints = [tool.name];
+    if (tool.description) triggerHints.push(tool.description);
+    lines.push(`**Trigger**: When user requests: ${triggerHints.join(', ')}.`);
     lines.push('');
 
     // Inputs
-    if (tool.inputs.length > 0) {
+    if (inputFields.length > 0) {
       lines.push('**Inputs**:');
-      for (const inp of tool.inputs) {
+      for (const inp of inputFields) {
         const req = inp.required ? '(required)' : '(optional)';
         lines.push(`- \`${inp.name}\` — ${inp.type} ${req}: ${inp.description}`);
       }
@@ -412,12 +368,12 @@ function generateToolsSections(tools) {
     // Invoke command
     lines.push('**Invoke**:');
     lines.push('```bash');
-    lines.push(`echo '{"input0":{${tool.inputs.map(i => `"${i.name}":"<value>"`).join(',')}}}' | node \${CLAUDE_PLUGIN_ROOT}/skill/scripts/invoke.mjs ${tool.epId} \${CLAUDE_PLUGIN_ROOT} -`);
+    lines.push(`echo '{"input0":{${inputFields.map(i => `"${i.name}":"<value>"`).join(',')}}}' | node \${CLAUDE_PLUGIN_ROOT}/skill/scripts/invoke.mjs ${tool.epId} \${CLAUDE_PLUGIN_ROOT} -`);
     lines.push('```');
     lines.push('');
 
     // Input notes
-    for (const inp of tool.inputs) {
+    for (const inp of inputFields) {
       const hints = getSkillMdHints(inp.type);
       if (hints.inputNote) {
         lines.push(`> For \`${inp.name}\`: ${hints.inputNote}`);
@@ -425,50 +381,13 @@ function generateToolsSections(tools) {
     }
     lines.push('');
 
-    // Result handling
-    lines.push('**Result handling**:');
-    for (const out of tool.outputs) {
-      const outHints = getSkillMdHints(out.type);
-      if (outHints.hasVisualization && outHints.visualizationCmd) {
-        lines.push(`- \`${out.name}\` (${out.type}): ${out.description}. Can be visualized with ${outHints.visualizationCmd.replace('.mjs', '')}.`);
-      } else if (outHints.hasVisualization) {
-        lines.push(`- \`${out.name}\` (${out.type}): ${out.description}. Supports visualization.`);
-      } else {
-        lines.push(`- \`${out.name}\` (${out.type}): ${out.description}`);
-      }
-    }
-    lines.push('');
+    // Check for visualizable inputs
+    const hasVizInput = inputFields.some(i => isInputVisualizableType(i.type));
 
-    // Visualization hint — show for visualizable outputs OR visualizable inputs
-    const vizOutput = tool.outputs.find(o => {
-      const h = getSkillMdHints(o.type);
-      return h.hasVisualization && h.visualizationCmd;
-    });
-    const hasVizInput = tool.inputs.some(i => isInputVisualizableType(i.type));
-    const hasVizOutput = !!vizOutput;
-    const hasBasicOutput = tool.outputs.some(o => isBasicType(o.type));
-
-    if (hasVizOutput || hasVizInput) {
+    if (hasVizInput) {
       lines.push('**Visualization**:');
       lines.push('```bash');
-
-      // Build the command parts
-      const cmdParts = [`node \${CLAUDE_PLUGIN_ROOT}/skill/scripts/visualize.mjs <image>`];
-
-      if (hasVizOutput) {
-        cmdParts.push(`'<parsedValue-json>'`);
-      } else {
-        cmdParts.push(`'[]'`);
-      }
-
-      if (hasVizInput) {
-        cmdParts.push(`--overlays '<overlays-json>'`);
-      }
-      if (!hasVizOutput && hasBasicOutput) {
-        cmdParts.push(`--text '<text-lines-json>'`);
-      }
-
-      lines.push(cmdParts.join(' '));
+      lines.push(`node \${CLAUDE_PLUGIN_ROOT}/skill/scripts/visualize.mjs <image> '[]' --overlays '<overlays-json>'`);
       lines.push('```');
       lines.push('');
     }

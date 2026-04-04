@@ -132,8 +132,8 @@ async function main() {
     }
   }
 
-  // Build the run request body using rawInputs schema as template
-  const inputs = buildRunInputs(tool.rawInputs || [], userInputs);
+  // Build the run request body using inputs schema as template
+  const inputs = buildRunInputs(tool.inputs || [], userInputs);
   const requestBody = JSON.stringify({ inputs });
 
   // Call the skill

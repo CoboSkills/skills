@@ -3,9 +3,15 @@
   "slug": "lightspeed-r-series",
   "displayName": "Lightspeed R Series",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772848936580,
-    "commit": "https://github.com/openclaw/skills/commit/140be8b87ea7821b58189e12689c047aa277782d"
+    "version": "1.0.2",
+    "publishedAt": 1775162589334,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772848936580,
+      "commit": "https://github.com/openclaw/skills/commit/140be8b87ea7821b58189e12689c047aa277782d"
+    }
+  ]
 }

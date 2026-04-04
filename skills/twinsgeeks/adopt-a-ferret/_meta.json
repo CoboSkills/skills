@@ -1,13 +1,18 @@
 {
   "owner": "twinsgeeks",
   "slug": "adopt-a-ferret",
-  "displayName": "Ferret — Adopt a Chaos Ferret Pet. Steals Items, Hides Food, Pure Entropy.",
+  "displayName": "Ferret — Adopt a Ferret. Exotic Animal. 雪貂。Hurón.",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774815571497,
-    "commit": "https://github.com/openclaw/skills/commit/2bfae39e363849d1b0dad435e5ddf083756e4a43"
+    "version": "1.0.3",
+    "publishedAt": 1775008221285,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774815571497,
+      "commit": "https://github.com/openclaw/skills/commit/2bfae39e363849d1b0dad435e5ddf083756e4a43"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773195950481,

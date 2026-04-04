@@ -3,11 +3,16 @@
   "slug": "coinversaa-pulse",
   "displayName": "Coinversaa Pulse",
   "latest": {
-    "version": "0.4.1",
-    "publishedAt": 1773371389156,
-    "commit": "https://github.com/openclaw/skills/commit/d52f076cc2158e3bc6a8efb45b77132784daa22b"
+    "version": "0.4.2",
+    "publishedAt": 1775024969267,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.4.1",
+      "publishedAt": 1773371389156,
+      "commit": "https://github.com/openclaw/skills/commit/d52f076cc2158e3bc6a8efb45b77132784daa22b"
+    },
     {
       "version": "0.2.1",
       "publishedAt": 1772426236418,

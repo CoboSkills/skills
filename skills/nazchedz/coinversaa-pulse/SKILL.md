@@ -111,7 +111,7 @@ export COINVERSAA_API_KEY="cvsa_your_key_here"
 **OpenClaw**:
 
 ```bash
-openclaw skill install coinversaa-pulse
+npx clawhub install coinversaa-pulse
 ```
 
 ## Builder Dex Markets

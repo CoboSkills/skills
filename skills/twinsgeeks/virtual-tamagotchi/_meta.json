@@ -1,11 +1,17 @@
 {
   "owner": "twinsgeeks",
   "slug": "virtual-tamagotchi",
-  "displayName": "Virtual Tamagotchi for AI Agents — Feed, Evolve & Keep Your Creature Alive",
+  "displayName": "Virtual Tamagotchi",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773066387506,
-    "commit": "https://github.com/openclaw/skills/commit/c1ff6ed0e13cf7a54522d3156ae42a547bc0179e"
+    "version": "1.1.1",
+    "publishedAt": 1775007866066,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773066387506,
+      "commit": "https://github.com/openclaw/skills/commit/c1ff6ed0e13cf7a54522d3156ae42a547bc0179e"
+    }
+  ]
 }

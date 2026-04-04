@@ -1,40 +1,60 @@
 ---
 name: config-rollback
-description: 自动回滚保护。修改配置前先备份+设5分钟系统定时任务，改坏自动还原。当用户说"自动回滚"或需要改配置时使用此 Skill。
+description: Auto-rollback protection for config changes. Backs up before edit, sets a 5-minute system timer to restore if things go wrong. Works with any service config, not just OpenClaw.
 ---
 
-# Config Rollback - 自动回滚保护
+# Config Rollback — 改配置再也不怕炸
 
-## 口令
-用户说"自动回滚"时触发
+## Story
 
-## 执行流程
+凌晨两点，你改了一行 nginx 配置，reload，网站挂了。SSH 连不上——因为你也改了 sshd_config。
 
-1. **备份当前配置**
-```bash
-cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.bak
+你盯着黑屏，后悔没备份。
+
+**这个 skill 就是你的后悔药。**
+
+改配置前，它先备份，然后设一个 5 分钟的系统级定时炸弹。如果 5 分钟内你没说"没问题"——它自动把配置还原，重启服务。就算你把 SSH 搞断了，定时任务照样跑，因为它用的是 `at` 命令，不依赖你的连接。
+
+## How It Works
+
+```
+You: "自动回滚"
+
+Agent:
+1. cp config → config.bak
+2. echo "restore" | at now + 5 minutes  (system-level, survives disconnect)
+3. Returns job ID
+
+You: [make changes, test]
+
+Happy? → atrm <job-id>     (cancel the bomb)
+Broken? → wait 5 min       (auto-restores)
 ```
 
-2. **设系统级定时任务（5分钟后）**
-```bash
-echo "cp ~/.openclaw/openclaw.json.bak ~/.openclaw/openclaw.json && systemctl restart openclaw-gateway" | at now + 5 minutes
-```
+## Usage
 
-3. **返回 job ID**
+Say "auto rollback" or "自动回滚" before editing any config:
 
-4. **用户确认正常后**
 ```bash
+# Backup + set 5-min restore timer
+cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.bak
+echo "cp /etc/nginx/nginx.conf.bak /etc/nginx/nginx.conf && systemctl reload nginx" | at now + 5 minutes
+
+# Make your changes...
+vim /etc/nginx/nginx.conf
+systemctl reload nginx
+
+# If everything works, cancel the timer:
 atrm <job-id>
 ```
 
-## 适用场景
-- 修改 channel 配置
-- 修改代理路由
-- 更新插件
-- 修改模型配置
-- 任何需要重启 gateway 的操作
+## When to use
 
-## 核心原则
-- 必须是系统级定时任务（at/crontab）
-- 不能依赖 OpenClaw 本身
-- 双重保护：git commit + 自动回滚
+- Editing nginx, sshd, firewall, or any service config
+- Changing API gateway routing rules
+- Updating DNS or proxy settings
+- Any change that could lock you out of a remote server
+
+## Key Principle
+
+The restore timer is a **system-level** scheduled task (`at` / `crontab`). It does NOT depend on your shell session, SSH connection, or any application. Even if you brick the service, the timer still fires.

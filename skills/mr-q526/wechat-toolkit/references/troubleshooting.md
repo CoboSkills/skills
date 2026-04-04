@@ -33,18 +33,18 @@ Error: ip not in whitelist
 ## 2. ❌ wenyan-cli 未安装
 
 **错误信息：**
-```
-wenyan: command not found
+```bash
+未找到可用的 wenyan-cli。请确认 skill 内置 vendor/wenyan-cli-main 存在，并先执行 `node scripts/bootstrap/install_wenyan.js`
 ```
 
 **解决方法：**
 ```bash
-npm install -g @wenyan-md/cli
+node scripts/bootstrap/install_wenyan.js
 ```
 
 **验证安装：**
 ```bash
-wenyan --help
+node vendor/wenyan-cli-main/dist/cli.js --help
 ```
 
 ---

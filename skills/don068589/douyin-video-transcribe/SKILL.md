@@ -1,149 +1,273 @@
 ---
 name: douyin-transcribe
-description: Extract audio from Douyin (抖音/TikTok China) videos and transcribe to text using Whisper. Trigger when user sends a Douyin link (v.douyin.com or www.douyin.com/video/) and asks for transcription, extract text, analyze video content, or summarize.
+description: Douyin video transcription suite. Extract audio from Douyin/TikTok China videos, transcribe with Whisper, and analyze content. Supports video links, local files, and image notes. Trigger when user sends a Douyin link and asks for transcription, summary, or analysis.
 ---
 
-# Douyin Video Transcribe
+# Douyin Transcribe - Video Transcription Suite
 
-Extract speech from Douyin videos and convert to text. Supports Chinese/English, cross-platform (Windows/macOS/Linux).
+A complete solution for transcribing Douyin (抖音/TikTok China) videos. Extracts audio, transcribes speech to text, and generates structured summaries.
 
-## Core Principle
+## Version History
 
-Douyin has strict anti-scraping. Must:
-1. Load page in browser, wait for video stream
-2. Extract real CDN URL from DOM or network requests
-3. Download with `Referer: https://www.douyin.com/` header (403 without it)
-4. Convert audio to 16kHz mono WAV for Whisper
+| Version | Changes |
+|---------|---------|
+| 2.0.0 | Modular architecture, improved workflow, browser DOM extraction |
+| 1.0.0 | Initial release, basic transcription |
+
+## Architecture
+
+\\\
+User Input (Douyin Link/File)
+         │
+         ▼
+┌─────────────────────────────────────────┐
+│           Workflow Orchestrator          │
+├─────────────────────────────────────────┤
+│  Step 1: Fetcher    → Get video file    │
+│  Step 2: Transcriber → Extract & convert│
+│  Step 3: Analyzer    → Structure output │
+│  Step 4: Output      → Save results     │
+└─────────────────────────────────────────┘
+\\\
+
+## Core Features
+
+- **Video Fetching**: Browser-based DOM extraction for CDN URLs
+- **Audio Extraction**: ffmpeg-powered audio conversion
+- **Speech-to-Text**: Whisper ASR with multiple model options
+- **Content Analysis**: Auto-structured transcripts with key points
+- **Multi-format Support**: Video links, local files, image notes
 
 ## Prerequisites
 
 | Tool | Purpose | Install |
 |------|---------|---------|
-| ffmpeg | Audio extraction | `brew install ffmpeg` / `winget install ffmpeg` / `apt install ffmpeg` |
-| whisper | Speech-to-text | `pip install openai-whisper` |
-| curl | Download video | Built-in (Windows: `curl.exe`) |
+| curl | Download files | Built-in (Windows: \curl.exe\) |
+| ffmpeg | Audio extraction/merge | \winget install Gyan.FFmpeg\ |
+| Whisper | Transcription | \pip install openai-whisper\ or Docker |
+| Browser | Video extraction | OpenClaw profile required |
+
+**Docker Whisper (Recommended):**
+\\\ash
+docker run -d -p 9000:9000 --name whisper-asr onerahmet/openai-whisper-asr-webservice:latest
+\\\
 
 ## Workflow
 
-### 1. Resolve Short URL
+### Step 0: Input Classification
 
-Douyin share links are usually `v.douyin.com/xxx`, resolve to full URL:
+| Input Type | Detection | Action |
+|------------|-----------|--------|
+| Video link (\/video/\) | URL pattern | Full workflow |
+| Image note (\/note/\) | URL pattern | Snapshot only |
+| Local video file | File path | Start from Step 2 |
+| Text input | Plain text | Start from Step 3 |
 
-```bash
-# macOS/Linux
-curl -sL -o /dev/null -w '%{url_effective}' "https://v.douyin.com/xxx/"
+### Step 1: Fetch Video
 
+#### 1.1 Resolve Short URL
+
+\\\ash
 # Windows PowerShell
 curl.exe -sL -o NUL -w "%{url_effective}" "https://v.douyin.com/xxx/"
-```
 
-Output: `https://www.douyin.com/video/7616020798351871284`
-
-Video ID is the 19-digit number in URL.
-
-### 2. Get Video URL
-
-Open video page in browser, wait 3-5 seconds, execute JS:
-
-```javascript
-(() => {
-  const videos = document.querySelectorAll('video');
-  for (const v of videos) {
-    const src = v.currentSrc || v.src;
-    if (src && src.startsWith('http') && !src.includes('uuu_265')) {
-      return src;
-    }
-  }
-  return null;
-})()
-```
-
-**Key points:**
-- Returns `null`: Page not loaded, retry after waiting
-- Contains `uuu_265`: Placeholder video, retry after waiting
-- Starts with `blob:`: Streaming, wait for real URL
-- CDN URLs expire (~2 hours), re-fetch if needed
-
-### 3. Download Video
-
-```bash
 # macOS/Linux
-curl -L -H "Referer: https://www.douyin.com/" -o video.mp4 "<CDN_URL>"
+curl -sL -o /dev/null -w '%{url_effective}' "https://v.douyin.com/xxx/"
+\\\
 
-# Windows
+Output: \https://www.douyin.com/video/7616020798351871284\
+
+#### 1.2 Open Video Page
+
+\\\
+browser(action='open', profile='openclaw', url='https://www.douyin.com/video/{VIDEO_ID}')
+\\\
+
+Wait 10-15 seconds for page to load completely.
+
+#### 1.3 Extract Video URL (Browser DOM Method)
+
+\\\javascript
+browser(action='act', targetId='PAGE_ID', request={
+  "kind": "evaluate", 
+  "fn": "(() => {
+    const entries = performance.getEntriesByType('resource');
+    const videoEntries = entries.filter(e => {
+      const name = e.name.toLowerCase();
+      return name.includes('douyinvod') && 
+             (name.includes('.mp4') || name.includes('video'));
+    });
+    if (videoEntries.length > 0) {
+      const video = videoEntries[videoEntries.length - 1];
+      return {
+        url: video.name,
+        type: video.name.includes('.mp4') ? 'mp4' : 'dash'
+      };
+    }
+    return null;
+  })()"
+})
+\\\
+
+**Important Notes:**
+- \ct\ action requires nested \equest\ object with \kind\ and \n\
+- Wrong: \rowser(action='act', fn='...')\
+- Correct: \rowser(action='act', request={"kind": "evaluate", "fn": "..."})\
+
+#### 1.4 Download Video
+
+\\\ash
 curl.exe -L -H "Referer: https://www.douyin.com/" -o video.mp4 "<CDN_URL>"
-```
+\\\
 
 **Referer header is required, otherwise 403.**
 
-### 4. Extract Audio
+### Step 2: Transcribe Audio
 
-```bash
+#### 2.1 Extract Audio
+
+\\\ash
+# For MP4 videos
 ffmpeg -i video.mp4 -ar 16000 -ac 1 -c:a pcm_s16le audio.wav -y
-```
+
+# For DASH videos (need merge)
+ffmpeg -i video.mp4 -i audio.mp4 -c copy merged.mp4 -y
+ffmpeg -i merged.mp4 -ar 16000 -ac 1 -c:a pcm_s16le audio.wav -y
+\\\
 
 Parameters:
-- `-ar 16000`: 16kHz sample rate (Whisper requirement)
-- `-ac 1`: Mono channel
-- `-c:a pcm_s16le`: 16-bit PCM
+- \-ar 16000\: 16kHz sample rate (Whisper requirement)
+- \-ac 1\: Mono channel
+- \-c:a pcm_s16le\: 16-bit PCM
 
-### 5. Transcribe
+#### 2.2 Transcribe with Docker Whisper
 
-```bash
+\\\ash
+curl.exe -X POST "http://localhost:PORT/asr" -F "audio_file=@audio.wav"
+\\\
+
+#### 2.3 Alternative: Local Whisper
+
+\\\ash
 python -m whisper audio.wav --model small --language zh
-```
+\\\
 
-**Model selection:**
+**Model Selection:**
 
-| Model | Size | 5-min video (CPU) | Accuracy | Use case |
+| Model | Size | 5-min Video (CPU) | Accuracy | Use Case |
 |-------|------|-------------------|----------|----------|
 | tiny | 75MB | ~30s | Fair | Quick preview |
 | base | 142MB | ~1min | Good | Daily use |
 | small | 466MB | ~3min | Better | **Recommended** |
 | medium | 1.5GB | ~8min | Best | High accuracy |
 
-**Language:**
-- Chinese: `--language zh`
-- English: `--language en`
-- Auto-detect: omit flag (slower)
+### Step 3: Analyze Content
 
-Output files in current directory: `audio.txt`, `audio.srt`, `audio.json`
+Agent processes transcript and generates:
+
+1. **Fix transcription errors**
+   - Correct homophones
+   - Fix speaker names
+   - Remove filler words
+
+2. **Structure content**
+   - Add paragraph breaks
+   - Create sections
+
+3. **Extract key points**
+   - Main ideas
+   - Important quotes
+
+4. **Generate tags**
+   - 3-5 topic tags
+
+### Step 4: Save Output
+
+#### Transcript Format
+
+\\\markdown
+# {Title}
+
+**作者**: {Author}
+**来源**: 抖音
+**日期**: {Date}
+**转录时间**: {Transcription Date}
+
+---
+
+## 摘要
+
+{Summary}
+
+---
+
+## 正文
+
+{Transcript content with paragraphs}
+
+---
+
+## 要点
+
+- {Key point 1}
+- {Key point 2}
+- {Key point 3}
+
+---
+
+## 标签
+
+#{tag1} #{tag2} #{tag3}
+\\\
+
+#### File Naming Convention
+
+\\\
+{VIDEO_ID}-抖音转录.md
+\\\
 
 ## Troubleshooting
 
-| Issue | Detection | Solution |
-|-------|-----------|----------|
-| Short URL fails | Returns non-douyin.com | Check link completeness, remove share text noise |
-| Video URL not found | JS returns null | Wait 3-5s and retry, max 3 times |
-| Placeholder video | URL contains `uuu_265` | Page not loaded, wait and retry |
-| Download 403 | curl returns 403 | Check Referer header; URL may be expired |
-| Whisper hangs | No output for long time | First run downloads model (~460MB for small) |
-| Garbled output | Terminal shows gibberish | Normal, read .txt file directly |
-| Out of memory | Process killed | Use smaller model (base/tiny) |
+| Stage | Issue | Solution |
+|-------|-------|----------|
+| Step 1 | Short URL fails | Check link completeness, remove share text |
+| Step 1 | JS returns null | Wait 15-20s and retry, increase timeout |
+| Step 1 | Download 403 | URL expired, re-fetch from browser |
+| Step 1 | DASH no audio | Merge with \fmpeg -i video -i audio -c copy\ |
+| Step 2 | ffmpeg not installed | \winget install Gyan.FFmpeg\ |
+| Step 2 | Whisper service down | \docker start whisper-asr\ |
+| Step 2 | Transcription slow | 10-min video takes 15-20 min on CPU |
+| Step 2 | Poor quality | Use larger model (medium) |
 
-## Output Convention
+## Image Note Handling
 
-Name files by video ID, save to user-specified directory:
+Image notes (\/note/\) don't need transcription:
 
-```
-output/
-├── 7616020798351871284.mp4   # Original video (optional)
-├── 7616020798351871284.wav   # Audio (delete after)
-├── 7616020798351871284.txt   # Transcript
-└── 7616020798351871284.srt   # Subtitles (optional)
-```
+\\\
+1. browser(action='open', profile='openclaw', url='IMAGE_NOTE_URL')
+2. browser(action='snapshot')
+3. Extract content from snapshot
+4. Save to output directory
+\\\
 
-## Scripts (Optional)
+## Edge Cases
 
-Helper scripts in skill directory:
+- **Article links** (\/article/\): Use browser snapshot, no transcription
+- **Douyin AI summary**: Extract from page as supplement
+- **Other platforms**: Use yt-dlp for YouTube/Bilibili
+- **Live streams**: Not supported
 
-- `scripts/get_video_url.js`: Browser-side video URL extraction with multiple methods
-- `scripts/transcribe.py`: CLI one-click transcription (requires video URL)
+## Related Modules
 
-Scripts are accelerators, not required. Implement yourself after understanding the workflow.
+This skill can be extended with standalone modules:
 
-## Notes
+| Module | Purpose |
+|--------|---------|
+| douyin-fetcher | Video fetching only |
+| douyin-transcriber | Audio transcription only |
+| douyin-analyzer | Content analysis only |
+| douyin-orchestrator | Workflow coordination |
 
-- **Article links** (/article/): Use browser snapshot directly, no transcription needed
-- **Douyin AI summary**: Some video pages have AI-generated chapter summaries, extract from snapshot as supplement
-- **Other platforms**: This skill is for Douyin only. Use yt-dlp for YouTube/Bilibili
+## License
+
+MIT-0 License - Free to use, modify, and redistribute.

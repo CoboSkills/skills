@@ -3,9 +3,15 @@
   "slug": "freshsales-integration",
   "displayName": "Freshsales",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772622141280,
-    "commit": "https://github.com/openclaw/skills/commit/4a17365052cc244a9b1e8c4086cabeeb3c4916ba"
+    "version": "1.0.2",
+    "publishedAt": 1775162320198,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772622141280,
+      "commit": "https://github.com/openclaw/skills/commit/4a17365052cc244a9b1e8c4086cabeeb3c4916ba"
+    }
+  ]
 }

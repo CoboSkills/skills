@@ -3,9 +3,15 @@
   "slug": "zephyr-squad-legacy",
   "displayName": "Zephyr Squad Legacy",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772866932313,
-    "commit": "https://github.com/openclaw/skills/commit/37005c2826860bda25c6ef980e707e8bbd306cb4"
+    "version": "1.0.2",
+    "publishedAt": 1775162610938,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772866932313,
+      "commit": "https://github.com/openclaw/skills/commit/37005c2826860bda25c6ef980e707e8bbd306cb4"
+    }
+  ]
 }

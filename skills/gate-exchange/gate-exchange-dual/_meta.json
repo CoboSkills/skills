@@ -1,13 +1,18 @@
 {
   "owner": "gate-exchange",
   "slug": "gate-exchange-dual",
-  "displayName": "Gate Exchange Dual",
+  "displayName": "Gate Exchange Dual Investment",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774617468224,
-    "commit": "https://github.com/openclaw/skills/commit/24da65364250d10fda654f976f5b3337976cfee4"
+    "version": "1.0.3",
+    "publishedAt": 1775184607202,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774617468224,
+      "commit": "https://github.com/openclaw/skills/commit/24da65364250d10fda654f976f5b3337976cfee4"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773403906785,

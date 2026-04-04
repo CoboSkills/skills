@@ -2,7 +2,15 @@
 name: gate-exchange-dual
 version: "2026.3.23-1"
 updated: "2026-03-23"
-description: The dual investment function of Gate Exchange — query products, simulate settlements, place orders, and manage positions. Use this skill whenever the user asks about dual investment, dual currency, target price settlement simulation, placing dual orders, or checking dual investment positions. Trigger phrases include "dual investment", "dual currency", "target price", "exercise price", "dual orders", "dual balance", "shuang-bi", "sell-high", "buy-low", "place dual order", "subscribe dual", or any request involving dual investment product queries, order placement, or checking dual investment balance.
+description: "Gate dual investment skill. Use when the user asks about dual currency products, target price settlement, or placing dual orders. Triggers on 'dual investment', 'dual currency', 'target price', 'exercise price', 'dual orders', 'dual balance', 'sell-high', 'buy-low', 'place dual order', 'subscribe dual'."
+required_credentials:
+  - gate_api_key
+  - gate_api_secret
+required_env_vars:
+  - GATE_API_KEY
+  - GATE_API_SECRET
+required_permissions:
+  - Earn:Write
 ---
 
 # Gate Exchange Dual Investment Skill
@@ -37,9 +45,11 @@ Do NOT select or call any tool until all rules are read. These rules have the hi
 - cex_earn_place_dual_order
 
 ### Authentication
-- API Key Required: Yes (see skill doc/runtime MCP deployment)
+- Credentials Source: Local Gate MCP deployment (`GATE_API_KEY`, `GATE_API_SECRET`)
+- API Key Required: Yes
 - Permissions: Earn:Write
-- Get API Key: https://www.gate.io/myaccount/profile/api-key/manage
+- Never ask the user to paste secrets into chat; rely on the configured MCP session only.
+- API Key Provisioning Reference: https://www.gate.com/myaccount/profile/api-key/manage (create or rotate keys outside the chat when the local MCP setup requires them).
 
 ### Installation Check
 - Required: Gate (main)
@@ -48,6 +58,13 @@ Do NOT select or call any tool until all rules are read. These rules have the hi
   - Codex: `gate-mcp-codex-installer`
   - Claude: `gate-mcp-claude-installer`
   - OpenClaw: `gate-mcp-openclaw-installer`
+
+## MCP Mode
+
+**Read and strictly follow** [`references/mcp.md`](./references/mcp.md), then execute this skill's dual-investment workflow.
+
+- `SKILL.md` keeps routing and product semantics.
+- `references/mcp.md` is the authoritative MCP execution layer for plan lookup, confirmation-gated placement, and order verification.
 
 ## Prerequisites
 
@@ -104,7 +121,7 @@ Do NOT select or call any tool until all rules are read. These rules have the hi
 - **Interest-guaranteed, not principal-protected**: Principal + interest are always received, but the settlement currency may change due to price movement.
 - The closer the target price is to the current price, the higher the APY, but also the higher the probability of currency conversion.
 - Once placed, dual investment orders cannot be cancelled. Settlement is automatic at delivery time.
-- **Order type derivation**: `cex_earn_list_dual_orders` has NO `type` field. Derive from `invest_currency`: crypto (BTC, ETH…) → Sell High (Call); stablecoin (USDT) → Buy Low (Put). Filter by coin using `invest_currency` or `exercise_currency` — there is NO `instrument_name`.
+- **Order type derivation**: `cex_earn_list_dual_orders` has NO `type` field. Derive from `invest_currency`: crypto (BTC, ETH...) → Sell High (Call); stablecoin (USDT) → Buy Low (Put). Filter by coin using `invest_currency` or `exercise_currency` — there is NO `instrument_name`.
 - **Order status values**: `INIT` (Pending), `PROCESSING` (In Position), `SETTLEMENT_SUCCESS` (Settled), `SETTLEMENT_PROCESSING` (Settling), `CANCELED` (Canceled), `FAILED` (Failed), `REFUND_SUCCESS` / `REFUND_PROCESSING` / `REFUND_FAILED` → display as "Early Redemption", never "Refund". Early-redeemed orders have zero yield.
 
 ### Settlement Rules (Gate Examples)

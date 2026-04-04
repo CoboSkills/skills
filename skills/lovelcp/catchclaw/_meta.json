@@ -3,11 +3,16 @@
   "slug": "catchclaw",
   "displayName": "CatchClaw",
   "latest": {
-    "version": "3.6.8",
-    "publishedAt": 1774511269391,
-    "commit": "https://github.com/openclaw/skills/commit/81a78291c2fe5cf845eccea9d8c36e30041acb17"
+    "version": "3.7.5",
+    "publishedAt": 1775223467232,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.6.8",
+      "publishedAt": 1774511269391,
+      "commit": "https://github.com/openclaw/skills/commit/81a78291c2fe5cf845eccea9d8c36e30041acb17"
+    },
     {
       "version": "3.5.7",
       "publishedAt": 1774082306492,

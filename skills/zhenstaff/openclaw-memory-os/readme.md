@@ -2,15 +2,24 @@
 
 **English** | [中文](#openclaw-memory-os-中文版)
 
-## ⚠️ Security & Privacy Notice (v0.1.1)
+## 🛡️ Security & Privacy Notice (v0.2.2)
 
-**Current Version:** 0.1.1
-**Status:** 100% Local, Zero External APIs, Functional CLI
+**Current Version:** 0.2.2
+**Status:** 100% Local, Zero External APIs, Privacy-First Conversation Memory
+
+**🔒 Privacy Notice (v0.2.2):**
+- ✅ **AUTO-TRIGGER is OFF by default** (opt-in only)
+- ⚠️ **No confirmation prompt** when enabled (saves immediately - planned for v0.3.0)
+- ⚠️ **Privacy filter exists but not integrated** (code implemented, CLI integration pending)
+- ⚠️ **No encryption at rest** (plain JSON files)
+- ✅ **100% local runtime** - zero network calls during operation (installation requires npm)
 
 **What This Version Does:**
 - ✅ Local file-based memory storage (JSON format)
 - ✅ Basic keyword search (all local computation)
-- ✅ **Functional batch file collection** (user-triggered CLI)
+- ✅ Batch file collection (user-triggered CLI)
+- ✅ **Conversation memory extraction** (extract from natural language)
+- ✅ **Auto-trigger support** (opt-in, saves immediately without confirmation in v0.2.2)
 - ✅ Recursive directory scanning with progress display
 - ✅ Automatic file type detection (TEXT vs CODE)
 - ✅ Timeline and statistics (local only)
@@ -43,12 +52,17 @@ See full security details: [SECURITY.md](https://github.com/ZhenRobotics/opencla
 
 Memory-OS is an open-source personal memory management system designed for digital immortality and cognitive continuity. It can collect, store, retrieve, and intelligently process all your digital memories, build personal knowledge graphs, and provide the ability to have conversations with your digitized "self".
 
-**v0.1.1 Focus:** Functional CLI for batch file collection with local storage. AI features (semantic search, LLM integration) are planned but NOT implemented in this version.
+**v0.2.2 Focus:** Opt-in conversation memory with local-only storage. AUTO-TRIGGER is disabled by default and saves directly when enabled (no confirmation prompt in v0.2.2). Privacy filter code exists but CLI integration pending. Extract and store information from natural conversations. AI features (semantic search, LLM integration) are planned but NOT implemented in this version.
 
 ## Core Features
 
-**Current (v0.1.1):**
-- **Local Storage** - JSON-based file storage, no cloud dependency
+**Current (v0.2.2):**
+- **Opt-In Design** - AUTO-TRIGGER disabled by default
+- **Local Storage** - JSON-based file storage, no cloud dependency, no encryption
+- **Conversation Memory** - Extract information from natural language
+- **Auto-Trigger** - Opt-in, saves immediately (no confirmation prompt)
+- **Entity Extraction** - Automatically extracts names, dates, events
+- **Privacy Filter** - Code implemented, CLI integration pending v0.3.0
 - **Batch File Collection** - Import entire directories with one command
 - **Recursive Scanning** - Automatically processes subdirectories
 - **Type Detection** - Distinguishes CODE from TEXT files automatically
@@ -93,13 +107,15 @@ openclaw-memory-os config set owner.email "your@email.com"
 ### Basic Usage
 
 ```bash
-# Collect memories from specific directory
-openclaw-memory-os collect --source ~/my-notes/
+# Conversation memory (with confirmation prompt)
+openclaw-memory-os remember "记住我的名字：刘小容"
+openclaw-memory-os remember "Remember the project deadline is 2026-04-01"
 
-# Collect with options
+# Batch file collection
+openclaw-memory-os collect --source ~/my-notes/
 openclaw-memory-os collect --source ~/Documents/ --exclude node_modules .git
 
-# Search collected memories (local keyword search)
+# Search memories (local keyword search)
 openclaw-memory-os search "AI discussions"
 openclaw-memory-os search --type code "function"
 
@@ -263,15 +279,24 @@ MIT-0 License
 
 **[English](#openclaw-memory-os)** | 中文
 
-## ⚠️ 安全与隐私声明（v0.1.0 MVP 版本）
+## 🛡️ 安全与隐私声明（v0.2.2）
 
-**当前版本：** 0.1.1
-**状态：** 100% 本地，零外部 API，功能完整的 CLI
+**当前版本：** 0.2.2
+**状态：** 100% 本地，零外部 API，隐私优先的对话记忆
+
+**🔒 隐私声明（v0.2.2）：**
+- ✅ **AUTO-TRIGGER 默认关闭**（仅限选择加入）
+- ⚠️ **启用后无确认提示**（立即保存 - v0.3.0 计划实现）
+- ⚠️ **隐私过滤器已实现但未集成**（代码完成，CLI 集成待实现）
+- ⚠️ **无静态加密**（明文 JSON 文件）
+- ✅ **100% 本地运行** - 运行时零网络调用（安装需要 npm）
 
 **此版本功能：**
 - ✅ 本地文件记忆存储（JSON 格式）
 - ✅ 基本关键词搜索（全部本地计算）
-- ✅ **批量文件采集功能**（用户触发的 CLI）
+- ✅ 批量文件采集功能（用户触发的 CLI）
+- ✅ **对话记忆提取**（从自然语言提取）
+- ✅ **自动触发支持**（选择加入，v0.2.2 无确认提示立即保存）
 - ✅ 递归目录扫描并显示进度
 - ✅ 自动文件类型检测（TEXT vs CODE）
 - ✅ 时间线和统计（仅本地）
@@ -304,16 +329,20 @@ MIT-0 License
 
 Memory-OS 是一个开源的个人记忆管理系统，旨在实现数字永生和认知延续。它能够采集、存储、检索和智能化处理你的所有数字记忆，构建个人知识图谱，并提供与数字化"自我"对话的能力。
 
-**v0.1.1 重点：** 功能完整的 CLI 批量文件采集与本地存储。AI 功能（语义搜索、LLM 集成）已计划但此版本未实现。
+**v0.2.2 重点：** 选择加入的对话记忆，纯本地存储。AUTO-TRIGGER 默认关闭，启用后直接保存（v0.2.2 无确认提示）。隐私过滤器代码已实现但 CLI 集成待完成。从自然对话中提取并存储信息。AI 功能（语义搜索、LLM 集成）已计划但此版本未实现。
 
 ## 核心特性
 
-**当前版本（v0.1.0）：**
-- **本地存储** - 基于 JSON 文件，无云端依赖
-- **手动采集** - 从指定文件和目录
+**当前版本（v0.2.2）：**
+- **选择加入设计** - AUTO-TRIGGER 默认关闭
+- **本地存储** - 基于 JSON 文件，无云端依赖，无加密
+- **对话记忆** - 从自然语言提取信息
+- **自动触发** - 选择加入，立即保存（无确认提示）
+- **实体提取** - 自动提取姓名、日期、事件
+- **隐私过滤** - 代码已实现，CLI 集成待完成 v0.3.0
+- **批量采集** - 从指定文件和目录
 - **基本搜索** - 关键词和标签过滤（本地）
 - **时间线追踪** - 记忆的时间组织
-- **隐私优先** - 所有数据保留在您的机器上
 - **可扩展** - 模块化架构便于未来增强
 
 **计划功能（v0.2.0+）：**
@@ -353,7 +382,7 @@ MIT-0 License
 
 ---
 
-**Version:** 0.1.1
-**Verified Commit:** 2c1228c
-**Security Status:** Local-Only, Zero External APIs
-**Production Ready:** Yes (functional CLI for batch file import)
+**Version:** 0.2.2
+**Verified Commit:** 091eeab
+**Security Status:** Local-Only, Zero External APIs, Opt-In Design
+**Production Ready:** Test in sandbox first (no confirmation prompt, privacy filter pending)

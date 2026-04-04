@@ -3,9 +3,15 @@
   "slug": "fidel-api",
   "displayName": "Fidel Api",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773370939223,
-    "commit": "https://github.com/openclaw/skills/commit/6047cf5d0dbad9f60c0eb104fb6f58f2cf55a1d6"
+    "version": "1.0.2",
+    "publishedAt": 1775163664121,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773370939223,
+      "commit": "https://github.com/openclaw/skills/commit/6047cf5d0dbad9f60c0eb104fb6f58f2cf55a1d6"
+    }
+  ]
 }

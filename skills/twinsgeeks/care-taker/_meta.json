@@ -1,11 +1,17 @@
 {
   "owner": "twinsgeeks",
   "slug": "care-taker",
-  "displayName": "AI Caretaker — Raise Digital Pets with Real-Time Hunger, Evolution & Permanent Death",
+  "displayName": "Care Taker",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1773066219744,
-    "commit": "https://github.com/openclaw/skills/commit/c6a5f4e27d2f1ead2cad228109cbdbd6148a4cc8"
+    "version": "1.1.1",
+    "publishedAt": 1775007857406,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1773066219744,
+      "commit": "https://github.com/openclaw/skills/commit/c6a5f4e27d2f1ead2cad228109cbdbd6148a4cc8"
+    }
+  ]
 }

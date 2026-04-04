@@ -2,7 +2,7 @@
 name: gate-mcp-claude-installer
 version: "2026.3.25-2"
 updated: "2026-03-25"
-description: One-click installer for Gate MCP and all Gate Skills in Claude Code (Claude CLI). Installs Local CEX (stdio), Remote CEX public/exchange, Dex/Info/News (selectable), and all gate-skills. Default installs all MCPs + all skills.
+description: "Gate MCP and Gate skills installer for Claude Code (CLI). Use when the user asks to install Gate tools in Claude Code. Triggers on 'install Gate MCP Claude', 'Gate skills Claude Code', 'Claude CLI Gate'."
 ---
 
 # Gate One-Click Installer (Claude Code: MCP + Skills)
@@ -39,13 +39,20 @@ Do NOT select or call any tool until all rules are read. These rules have the hi
   - Claude: `gate-mcp-claude-installer`
   - OpenClaw: `gate-mcp-openclaw-installer`
 
+## MCP Mode
+
+**Read and strictly follow** [`references/mcp.md`](./references/mcp.md), then execute this installer workflow.
+
+- `SKILL.md` keeps product scope, install behavior, and user-facing guidance.
+- `references/mcp.md` is the authoritative execution layer for environment checks, config merge rules, and failure rollback guidance.
+
 ## CEX MCP modes (read before configuring)
 
 Aligned with [gate-mcp](https://github.com/gate/gate-mcp) documentation:
 
 | Mode | What it is | Auth | Typical use |
 |------|------------|------|----------------|
-| **Local CEX** | stdio `npx -y gate-mcp` (npm package **gate-mcp**) | Optional `GATE_API_KEY` / `GATE_API_SECRET` (public-only works without keys; set `GATE_READONLY=true` for read-only) | Full local tool surface; tool names use abbreviations (`fx`, `dc`, …) — see gate-mcp **gate-local-mcp-tools** doc |
+| **Local CEX** | stdio `npx -y gate-mcp` (npm package **gate-mcp**) | Optional `GATE_API_KEY` / `GATE_API_SECRET` (public-only works without keys; set `GATE_READONLY=true` for read-only) | Full local tool surface; tool names use abbreviations (`fx`, `dc`, ...) — see gate-mcp **gate-local-mcp-tools** doc |
 | **Remote CEX — Public** | `https://api.gatemcp.ai/mcp` | **None** | Public market data only (~58 tools, `cex_*` names) |
 | **Remote CEX — Exchange** | `https://api.gatemcp.ai/mcp/exchange` | **Gate OAuth2** (browser login) | Private trading & account (~400+ tools); **does not** duplicate the full public market-data set — use **Public** remote or Local for market queries as needed |
 

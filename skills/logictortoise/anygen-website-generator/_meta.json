@@ -3,11 +3,16 @@
   "slug": "anygen-website-generator",
   "displayName": "Website Generator",
   "latest": {
-    "version": "1.4.4",
-    "publishedAt": 1773249981062,
-    "commit": "https://github.com/openclaw/skills/commit/5fd0d20f559101ef8b79b85c0cce068c86151f97"
+    "version": "3.0.0",
+    "publishedAt": 1774865694546,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.4",
+      "publishedAt": 1773249981062,
+      "commit": "https://github.com/openclaw/skills/commit/5fd0d20f559101ef8b79b85c0cce068c86151f97"
+    },
     {
       "version": "1.4.2",
       "publishedAt": 1773168020373,

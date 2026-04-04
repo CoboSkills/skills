@@ -1,5 +1,7 @@
 # Memory Writing Templates v2.0
 
+> **⚠️ Legacy Reference** — These templates are from v2.0. The current version is v2.2 with additional templates for Memory-Knowledge layering, active consolidation, and metacognitive training. See [SKILL.md](../SKILL.md) for the current workflow.
+
 Quick reference templates for writing to memory files.
 
 ## v2.0 Quick Reference

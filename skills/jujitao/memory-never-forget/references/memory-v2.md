@@ -1,5 +1,7 @@
 # Memory System v2.0 - Detailed Design
 
+> **⚠️ Legacy Reference** — This document describes the v2.0 design. The current version is v2.2 with Memory-Knowledge layering + Scientific memory loop (Encode→Consolidate→Retrieve) + Metacognitive training. See [SKILL.md](../SKILL.md) for the current design.
+
 Based on Atkinson-Shiffrin three-stage memory model (1968) + Community Optimizations (2026)
 
 ## Theory Background

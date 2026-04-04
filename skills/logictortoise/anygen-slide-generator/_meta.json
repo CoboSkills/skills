@@ -3,11 +3,16 @@
   "slug": "anygen-slide-generator",
   "displayName": "Slide Generator",
   "latest": {
-    "version": "1.5.7",
-    "publishedAt": 1773249969493,
-    "commit": "https://github.com/openclaw/skills/commit/ec9113ce350e8926ee0dbaea871bdccc7c4467f4"
+    "version": "3.0.0",
+    "publishedAt": 1774865686739,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.7",
+      "publishedAt": 1773249969493,
+      "commit": "https://github.com/openclaw/skills/commit/ec9113ce350e8926ee0dbaea871bdccc7c4467f4"
+    },
     {
       "version": "1.4.1",
       "publishedAt": 1772770412860,

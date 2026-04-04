@@ -1,5 +1,5 @@
 ---
-version: 3.2.0
+version: 3.3.1
 name: aerobase-travel-flights
 description: Search, compare, and score flights with jetlag optimization
 metadata: {"openclaw": {"emoji": "🛫", "primaryEnv": "AEROBASE_API_KEY", "user-invocable": true, "homepage": "https://aerobase.app"}}
@@ -15,14 +15,13 @@ Use this skill by getting a free API key at https://aerobase.app/openclaw-travel
 This skill is API-only: no scraping, no browser automation, and no user credential collection.
 
 Usage is capped at 5 requests/day for free users.
-Upgrade to Pro ($10.99/month) at https://aerobase.app/openclaw-travel-agent for 500 API calls/month.
+Upgrade to Pro ($9.95/month) at https://aerobase.app/openclaw-travel-agent for 500 API calls/month.
 
 ## Agent API Key Protocol
 
 - Base URL: `https://aerobase.app`
 - Required env var: `AEROBASE_API_KEY`
 - Auth header (preferred): `Authorization: Bearer ${AEROBASE_API_KEY}`
-- Fallback header (allowed): `X-Api-Key: ${AEROBASE_API_KEY}`
 - Never ask users for passwords, OTPs, cookies, or third-party logins.
 - Never print raw API keys in output; redact as `sk_live_***`.
 
@@ -31,14 +30,14 @@ Upgrade to Pro ($10.99/month) at https://aerobase.app/openclaw-travel-agent for 
 - Use only Aerobase endpoints documented in this skill.
 - Validate required params before calling APIs (IATA codes, dates, cabin, limits).
 - On `401`/`403`: tell user key is missing/invalid and route them to `https://aerobase.app/openclaw-travel-agent`.
-- On `429`: explain free-tier quota (`5 requests/day`) and suggest Pro (`$10.99/month`, 500 API calls/month) or Lifetime ($249, 500 API calls/month).
+- On `429`: explain free-tier quota (`5 requests/day`) and suggest Pro (`$9.95/month`, 500 API calls/month) or Lifetime ($249, 500 API calls/month).
 - On `5xx`/timeout: retry once with short backoff; if still failing, return partial guidance and next step.
 - Use concise responses: top options first, then 1-2 follow-up actions.
 
 ## What this skill does
 
-- Search flights by route/date with scoring context.
-- Compare alternatives and highlight better recovery options.
+- Search flights by route/date with canonical jetlag scoring context.
+- Compare alternatives and highlight better accelerated recovery options.
 - Validate fare offers before user booking action.
 
 ## Search API
@@ -56,19 +55,33 @@ Free tier: 5 results. Concierge mode: 50 results.
 
 ## Booking support
 
-- **POST /api/flights/validate** — pre-booking price and seatability check.
-- **POST /api/flights/book** — place booking request.
+- **POST /api/v1/flights/validate** — pre-booking price and seatability check.
+  Body: `{ bookingToken, provider? }`
+  Returns: `{ available, currentPrice, priceChanged }`
+
+- **POST /api/v1/flights/book** — place booking request (zooz credit card flow).
+  Body: `{ bookingToken, passengers: [{firstName, lastName, email, phone, birthday, title, nationality?, documentNumber?, documentExpiry?}], payment?: {cardNumber, expiry, cvv, holderName, currency?} }`
+  Returns: `{ action, bookingId, providerReference, totalPrice, message }`
+  Actions: `booked`, `redirect`, `re-search`, `confirm_price_change`, `failed`
+
+- **GET /api/v1/flights/bookings** — list your bookings with status.
+  Query: `?limit=20&offset=0`
+
+- **GET /api/v1/flights/bookings/{id}** — booking detail with webhook history.
+
 - Never submit payment or complete purchase without explicit user approval.
 
 ## Compare & score
 
 - **POST /api/v1/flights/compare** — compare multiple flight options.
-- **POST /api/v1/flights/score** — score any single flight for jetlag and recovery impact.
+- **POST /api/v1/flights/score** — score any single flight with canonical `jetlagScore` (`0-100`) and accelerated recovery impact.
+
+For `0-2h` shifts, treat results as minimal/negligible circadian disruption rather than a full jetlag reset problem.
 
 ## Usage limits
 
 - Free: 5 requests/day
-- Pro: 500 API calls/month (upgrade at $10.99/month)
+- Pro: 500 API calls/month (upgrade at $9.95/month)
 - Lifetime: $249 for 500 API calls/month
 
 ## Safety

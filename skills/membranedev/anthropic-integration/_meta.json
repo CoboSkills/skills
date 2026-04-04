@@ -3,9 +3,15 @@
   "slug": "anthropic-integration",
   "displayName": "Anthropic",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772935344424,
-    "commit": "https://github.com/openclaw/skills/commit/56d6c81a1247e5938f686e98e032b42b427a24c9"
+    "version": "1.0.2",
+    "publishedAt": 1775162750293,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772935344424,
+      "commit": "https://github.com/openclaw/skills/commit/56d6c81a1247e5938f686e98e032b42b427a24c9"
+    }
+  ]
 }

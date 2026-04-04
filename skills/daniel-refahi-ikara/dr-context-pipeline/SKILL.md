@@ -23,6 +23,7 @@ git -C "$WORKSPACE" diff -U20 AGENTS.md | cat
 python3 ./skills/dr-context-pipeline/scripts/validate_pipeline.py --context-root "$WORKSPACE/context_pipeline"
 python3 ./skills/dr-context-pipeline/scripts/memory_watchdog.py --freshness-minutes 240 --min-bytes 200
 git -C "$WORKSPACE" status -sb context_pipeline AGENTS.md
+echo "CONTEXT PIPELINE APPLY COMPLETE"
 ```
 Paste every command’s output. If any step fails or the watchdog reports a gap, stop and reply `NOT EXECUTED: <reason>`.
 
@@ -36,6 +37,7 @@ All commands assume you’ve set `WORKSPACE=${WORKSPACE:-~/.openclaw/workspace}`
 4. **Validate** — run `python3 ./skills/dr-context-pipeline/scripts/validate_pipeline.py --context-root context_pipeline` and paste the PASS/FAIL summary. If it fails, stop and report `NOT EXECUTED` with the error.
 5. **Run the memory watchdog** — `python3 ./skills/dr-context-pipeline/scripts/memory_watchdog.py --freshness-minutes 240 --min-bytes 200` (tune as needed). Paste the JSON output; if status ≠ OK, stop and reply `NOT EXECUTED: memory gap` after quoting the issues.
 6. **Final state** — show `git status -sb context_pipeline AGENTS.md` (or `git status -sb` if cleaner) so the user can see what changed.
+7. **Success banner** — `echo "CONTEXT PIPELINE APPLY COMPLETE"` so the transcript clearly shows the run finished cleanly.
 
 This apply flow must be idempotent: if the files already match and `AGENTS.md` already contains the section, the diff should be empty but you still run the installer + validator and show their outputs.
 

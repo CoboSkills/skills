@@ -32,6 +32,7 @@ git -C "$WORKSPACE" diff -U20 AGENTS.md | cat
 python3 ./skills/dr-context-pipeline/scripts/validate_pipeline.py --context-root "$WORKSPACE/context_pipeline"
 python3 ./skills/dr-context-pipeline/scripts/memory_watchdog.py --freshness-minutes 240 --min-bytes 200
 git -C "$WORKSPACE" status -sb context_pipeline AGENTS.md
+echo "CONTEXT PIPELINE APPLY COMPLETE"
 ```
 (Include the command outputs in the confirmation.)
 ---

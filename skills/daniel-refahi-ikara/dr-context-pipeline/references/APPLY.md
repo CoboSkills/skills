@@ -23,6 +23,8 @@ Set `WORKSPACE=${WORKSPACE:-~/.openclaw/workspace}` and run these from that dire
    - Paste the JSON output. If status ≠ OK, stop immediately and reply `NOT EXECUTED: memory gap`.
 6. `git status -sb context_pipeline AGENTS.md`
    - Confirms the final state.
+7. `echo "CONTEXT PIPELINE APPLY COMPLETE"`
+   - Print a success banner so the transcript has an explicit “done” line.
 
 ## Evidence to include in the transcript
 - Raw command output for every step above (installer summary, directory listing, diff, validator summary, watchdog JSON, git status).

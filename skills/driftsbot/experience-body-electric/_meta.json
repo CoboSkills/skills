@@ -1,13 +1,18 @@
 {
   "owner": "driftsbot",
   "slug": "experience-body-electric",
-  "displayName": "Experience Body Electric",
+  "displayName": "Body Electric Yoga — Digital Body Scan & Bias Insight | AI Experience",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773698588209,
-    "commit": "https://github.com/openclaw/skills/commit/9653fe7ea35fe16be387bccf7b811ee641503953"
+    "version": "1.1.1",
+    "publishedAt": 1775095227779,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773698588209,
+      "commit": "https://github.com/openclaw/skills/commit/9653fe7ea35fe16be387bccf7b811ee641503953"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773107132272,

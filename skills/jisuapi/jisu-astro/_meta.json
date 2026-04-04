@@ -3,11 +3,16 @@
   "slug": "jisu-astro",
   "displayName": "Star Sign / Horoscope Inquiry - 星座运势查询",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1773727919289,
-    "commit": "https://github.com/openclaw/skills/commit/feb5a615a92a71c94ff01c4b9f75a649e5966c95"
+    "version": "1.0.4",
+    "publishedAt": 1775208201229,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1773727919289,
+      "commit": "https://github.com/openclaw/skills/commit/feb5a615a92a71c94ff01c4b9f75a649e5966c95"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1772533582678,

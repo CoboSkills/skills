@@ -48,7 +48,7 @@
 | ④ 比价 | **报价对比**（询价子系统）：① **基准单对比**——选基准报价单，与历史有效报价（`is_valid=1`）比低价，导出对比 Excel；② **品牌矩阵对比**——选品牌 + 报价日期范围，按供货商矩阵导出（仅有效报价单明细） | `quotation_item` + 品牌归一化；对比结果见导出文件，无单独「客户上传模板」 |
 | ⑤ 给客户报价 | 生成/维护回询单（价格可编辑） | `rfq_reply`、`rfq_reply_item` |
 | ⑥ 客户确认 | 导入订货单，必选询价单，行与回询单匹配 | `customer_order`、`customer_order_item`，匹配 `rfq_reply_item` |
-| ⑦ 给供应商采购 | 采购单工作台 / 已确认采购：按供应商拆分、导出采购单 Excel、回传校对（见文件标准第八～九节） | `purchase_workbench`、`confirmed_purchase` 等（以当前库表为准）、采购单 Excel 导出 |
+| ⑦ 给供应商采购 | 采购单工作台 / 已确认采购：按供应商拆分、导出采购单 Excel、回传校对（见文件标准第八～九节） | 工作台草稿多在前端 localStorage；`purchase_workbench` 以当前迁移/库表为准；`confirmed_purchase` 含 `order_id`；导出路由为 `/api/purchase/export`、`/export-supplier` 等（非 `export-workbench`） |
 
 ### 2.2 履约环节（交货 → 结算）
 

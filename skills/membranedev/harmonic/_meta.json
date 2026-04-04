@@ -3,9 +3,15 @@
   "slug": "harmonic",
   "displayName": "Harmonic",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773183747931,
-    "commit": "https://github.com/openclaw/skills/commit/b5f4a19f48ac8aafe70b0f3995ed76b02ee8de36"
+    "version": "1.0.2",
+    "publishedAt": 1775163221951,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773183747931,
+      "commit": "https://github.com/openclaw/skills/commit/b5f4a19f48ac8aafe70b0f3995ed76b02ee8de36"
+    }
+  ]
 }

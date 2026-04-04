@@ -1,6 +1,6 @@
 ---
-name: jisu-isbn
-description: 使用极速数据 ISBN 图书书号查询 API，通过 ISBN 查询图书详细信息，并支持按书名关键字搜索图书列表。
+name: "ISBN Book Number Query - ISBN图书书号查询"
+description: 用 ISBN 查图书详情，或按书名关键字搜书。当用户说：9787 开头这本书是什么？帮我搜书名里带 Python 的书，或类似图书 ISBN 问题时，使用本技能。
 metadata: { "openclaw": { "emoji": "📚", "requires": { "bins": ["python3"], "env": ["JISU_API_KEY"] }, "primaryEnv": "JISU_API_KEY" } }
 ---
 
@@ -14,7 +14,7 @@ metadata: { "openclaw": { "emoji": "📚", "requires": { "bins": ["python3"], "e
 ## 前置配置：获取 API Key
 
 1. 前往 [极速数据官网](https://www.jisuapi.com/) 注册账号
-2. 进入 [对应接口页面](https://www.jisuapi.com/api/isbn/) 页面，点击「申请数据」
+2. 进入 [ISBN 图书书号查询 API](https://www.jisuapi.com/api/isbn/) 页面，点击「申请数据」
 3. 在会员中心获取 **AppKey**
 4. 配置 Key：
 

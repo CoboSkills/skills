@@ -30,38 +30,76 @@ class ProblemItem:
 class ConfidenceExplain:
     """置信度解释"""
     
-    def __init__(self):
+    def __init__(self, weights: Optional[Dict[str, float]] = None):
         self.dimension_scores = {
             "来源匹配度": 0.0,
             "逻辑一致性": 0.0,
             "常识符合度": 0.0,
             "信息明确性": 0.0
         }
+        # 默认权重，可用户配置
+        self.default_weights = {
+            "来源匹配度": 0.4,
+            "逻辑一致性": 0.25,
+            "常识符合度": 0.25,
+            "信息明确性": 0.1
+        }
+        self.weights = weights if weights is not None else self.default_weights
+        # 移除未启用的维度（用户配置可关闭某些维度
+        for dim in list(self.weights.keys()):
+            if dim not in self.dimension_scores:
+                del self.weights[dim]
         self.overall_explanation = ""
+        # 元认知：对本次结果的自我置信度（0-100%
+        self.meta_confidence = 0.0
     
     def set_score(self, dimension: str, score: float):
         """设置维度得分，0-10分"""
         if dimension in self.dimension_scores:
             self.dimension_scores[dimension] = max(0, min(10, score))
     
+    def calculate_meta_confidence(self):
+        """计算元认知置信度：基于得分分布和问题数量计算"""
+        # 元认知置信度计算逻辑：
+        # 1. 维度得分越分散，置信度越低；越集中，置信度越高
+        # 2. 问题越多，置信度适当降低
+        # 3. 来源匹配度越高，置信度越高
+        if "来源匹配度" not in self.weights:
+            # 关闭了来源匹配，置信度降低
+            base = 50.0
+        else:
+            base = self.dimension_scores["来源匹配度"] * 8  # 来源匹配占比大
+        
+        # 计算得分方差
+        scores = [s for s in self.dimension_scores.values() if s > 0]
+        if len(scores) < 2:
+            var = 0
+        else:
+            mean = sum(scores) / len(scores)
+            var = sum((s - mean)**2 for s in scores) / len(scores)
+        
+        # 方差越大，置信度越低
+        var_penalty = min(20, var * 5)
+        self.meta_confidence = max(0, min(100, base - var_penalty))
+        self.meta_confidence = round(self.meta_confidence, 1)
+    
     def get_overall_score(self) -> float:
         """计算加权总分"""
-        weights = {
-            "来源匹配度": 0.4,
-            "逻辑一致性": 0.25,
-            "常识符合度": 0.25,
-            "信息明确性": 0.1
-        }
         total = 0.0
         weight_sum = 0.0
-        for dim, score in self.dimension_scores.items():
-            total += score * weights[dim]
-            weight_sum += weights[dim]
+        for dim, weight in self.weights.items():
+            if dim in self.dimension_scores:
+                total += self.dimension_scores[dim] * weight
+                weight_sum += weight
+        if weight_sum == 0:
+            return 5.0
         return round(total / weight_sum, 1)
     
     def to_dict(self) -> Dict:
         return {
             "dimension_scores": self.dimension_scores,
+            "weights": self.weights,
+            "meta_confidence": self.meta_confidence,
             "overall_explanation": self.overall_explanation
         }
 
@@ -69,13 +107,15 @@ class ConfidenceExplain:
 class CheckResult:
     """核查结果"""
     
-    def __init__(self, text: str, sentences: List[str]):
+    def __init__(self, text: str, sentences: List[str], weights: Optional[Dict[str, float]] = None):
         self.text_length = len(text)
         self.credibility_score = 0.0
         self.problematic_sentences: List[ProblemItem] = []
         self.suggestions: List[str] = []
-        self.confidence_explanation = ConfidenceExplain()
+        self.confidence_explanation = ConfidenceExplain(weights)
         self.conclusion = ""
+        # 元认知：模型对本次结论自我置信度（0-100%
+        self.meta_confidence = 0.0
     
     def add_problem(self, sentence: str, position: int, reason: str, score: float):
         """添加问题句子"""
@@ -93,6 +133,9 @@ class CheckResult:
             penalty = len(self.problematic_sentences) * 0.5
             self.credibility_score = max(0, self.credibility_score - penalty)
         self.credibility_score = round(self.credibility_score, 1)
+        # 计算元认知置信度
+        self.confidence_explanation.calculate_meta_confidence()
+        self.meta_confidence = self.confidence_explanation.meta_confidence
     
     def generate_conclusion(self):
         """生成总体结论"""
@@ -105,6 +148,13 @@ class CheckResult:
             self.conclusion = "整体可信度较低，存在多处可能不实内容，建议交叉验证"
         else:
             self.conclusion = "整体可信度低，存在严重不实嫌疑，不建议采信"
+        # 添加元认知置信度说明
+        if self.meta_confidence >= 80:
+            self.conclusion += f"（模型对该结论置信度高：{self.meta_confidence}%）"
+        elif self.meta_confidence >= 50:
+            self.conclusion += f"（模型对该结论置信度中等：{self.meta_confidence}%）"
+        else:
+            self.conclusion += f"（模型对该结论置信度较低：{self.meta_confidence}%，建议更多交叉验证）"
     
     def to_dict(self) -> Dict:
         return {
@@ -113,6 +163,7 @@ class CheckResult:
             "problematic_sentences": [p.to_dict() for p in self.problematic_sentences],
             "suggestions": self.suggestions,
             "confidence_explanation": self.confidence_explanation.to_dict(),
+            "meta_confidence": self.meta_confidence,
             "conclusion": self.conclusion
         }
 
@@ -123,9 +174,9 @@ class FactChecker:
     def __init__(self, datasource: DataSourceManager):
         self.datasource = datasource
     
-    def check(self, text: str, sentences: List[str]) -> CheckResult:
-        """执行事实核查"""
-        result = CheckResult(text, sentences)
+    def check(self, text: str, sentences: List[str], weights: Optional[Dict[str, float]] = None) -> CheckResult:
+        """执行事实核查，支持自定义维度权重"""
+        result = CheckResult(text, sentences, weights)
         explain = result.confidence_explanation
         
         # 初始化维度得分默认5分
@@ -223,5 +274,6 @@ class FactChecker:
         for dim, score in dims.items():
             text += f"{dim} {score:.1f}分，"
         text += f"最终加权得分为{result.credibility_score:.1f}分。"
+        text += f"模型对本次核查结论的元认知置信度为{result.meta_confidence:.1f}%。"
         text += f"共发现{len(result.problematic_sentences)}处可能存在问题的内容。"
         explain.overall_explanation = text

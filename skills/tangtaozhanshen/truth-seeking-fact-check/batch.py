@@ -18,26 +18,26 @@ class BatchProcessor:
         self.checker = checker
         self.max_concurrency = max_concurrency  # 适配2核2G，不超过CPU核心数
     
-    def process_single(self, text: str) -> CheckResult:
-        """处理单个文本"""
+    def process_single(self, text: str, weights = None) -> CheckResult:
+        """处理单个文本，支持自定义权重"""
         if text.startswith("【违规内容已拦截】"):
             # 已被合规拦截，直接返回错误结果
             from preprocess import TextPreprocessor
-            result = CheckResult(text, [])
+            result = CheckResult(text, [], weights)
             result.credibility_score = 0.0
             result.conclusion = text
             return result
         
         sentences = TextPreprocessor().split_sentences(text)
-        return self.checker.check(text, sentences)
+        return self.checker.check(text, sentences, weights)
     
-    def process_batch(self, texts: List[str]) -> List[CheckResult]:
-        """批量处理，控制并发"""
+    def process_batch(self, texts: List[str], weights = None) -> List[CheckResult]:
+        """批量处理，控制并发，支持自定义权重"""
         results = []
         
         # 并发不超过最大限制，适配2核2G
         with concurrent.futures.ThreadPoolExecutor(max_workers=self.max_concurrency) as executor:
-            futures = [executor.submit(self.process_single, text) for text in texts]
+            futures = [executor.submit(self.process_single, text, weights) for text in texts]
             for future in concurrent.futures.as_completed(futures):
                 try:
                     result = future.result()
@@ -45,7 +45,7 @@ class BatchProcessor:
                 except Exception as e:
                     # 处理异常，返回错误结果
                     from checker import CheckResult
-                    result = CheckResult("", [])
+                    result = CheckResult("", [], weights)
                     result.credibility_score = 0.0
                     result.conclusion = f"处理异常: {str(e)}"
                     results.append(result)

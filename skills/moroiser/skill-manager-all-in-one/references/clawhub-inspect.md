@@ -57,8 +57,8 @@ clawhub inspect <slug> --json
 
 ## Local directory vs CLI list | 本地目录与 CLI list 的区别
 
-A skill copied manually into `~/.openclaw/skills/` may exist locally but still not appear in `clawhub list`.  
-手工复制进 `~/.openclaw/skills/` 的技能，可能本地存在，但仍不会出现在 `clawhub list` 中。
+A skill copied manually into `~/.openclaw/workspace/skills/` may exist locally but still not appear in `clawhub list`.  
+手工复制进 `~/.openclaw/workspace/skills/` 的技能，可能本地存在，但仍不会出现在 `clawhub list` 中。
 
 `clawhub list` reports installed skills from the CLI lockfile view, not every folder that happens to exist under the skills directory.  
 `clawhub list` 展示的是 CLI lockfile 视角下的已安装技能，而不是简单扫描技能目录里的所有文件夹。

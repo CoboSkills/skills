@@ -1,13 +1,18 @@
 {
   "owner": "twinsgeeks",
   "slug": "adopt-a-chameleon",
-  "displayName": "Adopt a Chameleon — Virtual Exotic Pet for AI Agents",
+  "displayName": "Chameleon — Adopt a Chameleon. Exotic Animal. 变色龙。Camaleón.",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773300958094,
-    "commit": "https://github.com/openclaw/skills/commit/78db977c43aeafa8180c6cc7542886410e868946"
+    "version": "1.0.3",
+    "publishedAt": 1775008133245,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773300958094,
+      "commit": "https://github.com/openclaw/skills/commit/78db977c43aeafa8180c6cc7542886410e868946"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773194692339,

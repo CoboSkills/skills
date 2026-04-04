@@ -1,17 +1,69 @@
 ---
 name: gate-info-marketoverview
-version: "2026.3.12-1"
-updated: "2026-03-12"
-description: "Market overview. Use this skill whenever the user asks about overall market. Trigger phrases include: how is the market, market overview, what is happening in crypto. MCP tools: info_marketsnapshot_get_market_overview, info_coin_get_coin_rankings, info_platformmetrics_get_defi_overview, news_events_get_latest_events, info_macro_get_macro_summary."
+version: "2026.4.1-1"
+updated: "2026-04-01"
+description: "Market overview. Use this skill ONLY when the user's query is exclusively about overall market conditions with no specific coin analysis. Trigger phrases: how is the market, market overview, what is happening in crypto. If the query ALSO mentions a specific coin to analyze, risk to check, technicals to review, or any other analysis dimension, use gate-info-research instead — it handles multi-dimension queries in a single unified report."
+required_credentials: []
+required_env_vars: []
+required_permissions: []
 ---
 
 # gate-info-marketoverview
+
+## General Rules
+
+⚠️ STOP — You MUST read and strictly follow the shared runtime rules before proceeding.
+Do NOT select or call any tool until all rules are read. These rules have the highest priority.
+→ Read [gate-runtime-rules.md](https://github.com/gate/gate-skills/blob/master/skills/gate-runtime-rules.md)
+→ Also read [info-news-runtime-rules.md](https://github.com/gate/gate-skills/blob/master/skills/info-news-runtime-rules.md) for **gate-info** / **gate-news**-specific rules (tool degradation, report standards, security, routing degradation, and per-skill version checks when `scripts/` is present).
+- **Only call MCP tools explicitly listed in this skill.** Tools not documented here must NOT be called, even if they
+  exist in the MCP server.
 
 > The crypto market "dashboard" Skill. The user asks about overall market conditions in a single sentence; the system calls 5 MCP Tools in parallel to fetch market-wide data + sector leaderboards + DeFi overview + recent events + macro summary, then the LLM aggregates into a market-briefing-level structured report.
 
 **Trigger Scenarios**: User asks about overall market conditions — not about a specific coin.
 
+**Per-skill updates:** This skill may include `scripts/update-skill.sh` and, in full source trees, `scripts/update-skill.ps1` for optional maintenance checks against the official Gate Skills repository. The shared policy is defined in [info-news-runtime-rules.md](https://github.com/gate/gate-skills/blob/master/skills/info-news-runtime-rules.md).
+
+**Maintenance flow:**
+- Use `check` only when you need to compare the installed skill with the official repo.
+- In interactive sessions, `check` never rewrites files.
+- If `update_available`, ask the user before `apply`.
+- If update scripts are unavailable or the version check cannot run, continue with the current installed version.
+- `apply` rewrites only this skill's local directory under the active skills root.
+- Do not download replacement updater scripts during the session; use the official repo for manual repair when needed.
+
 ---
+
+## MCP Dependencies
+
+### Required MCP Servers
+| MCP Server | Status |
+|------------|--------|
+| Gate-Info | ✅ Required |
+
+### MCP Tools Used
+
+**Query Operations (Read-only)**
+
+- info_coin_get_coin_rankings
+- info_macro_get_macro_summary
+- info_marketsnapshot_get_market_overview
+- info_marketsnapshot_get_market_snapshot
+- info_platformmetrics_get_defi_overview
+- news_events_get_latest_events
+
+### Authentication
+- API Key Required: No
+- Credentials Source: None; this skill uses read-only Gate Info / Gate News MCP access only.
+
+### Installation Check
+- Required: Gate-Info
+- Install: Run installer skill for your IDE
+  - Cursor: `gate-mcp-cursor-installer`
+  - Codex: `gate-mcp-codex-installer`
+  - Claude: `gate-mcp-claude-installer`
+  - OpenClaw: `gate-mcp-openclaw-installer`
 
 ## Routing Rules
 
@@ -26,6 +78,13 @@ description: "Market overview. Use this skill whenever the user asks about overa
 ---
 
 ## Execution Workflow
+
+### Step 0: Multi-Dimension Intent Check
+
+Before executing this Skill, check if the user's query involves multiple analysis dimensions:
+
+- If the query is exclusively about overall market conditions with no specific coin to deep-dive, proceed with this Skill.
+- If the query **also** mentions a specific coin to analyze, risk to check, technicals to review, or any other analysis dimension beyond market overview, route to `gate-info-research` — it handles multi-dimension queries with unified tool deduplication and coherent report aggregation.
 
 ### Step 1: Intent Recognition
 

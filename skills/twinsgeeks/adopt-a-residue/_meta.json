@@ -1,11 +1,17 @@
 {
   "owner": "twinsgeeks",
   "slug": "adopt-a-residue",
-  "displayName": "Adopt a Residue — Virtual Exotic Pet for AI Agents",
+  "displayName": "Residue — Adopt a Residue. AI-Native Pet. 残留。Residuo.",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773281718679,
-    "commit": "https://github.com/openclaw/skills/commit/15186d1439aa63027e3c75a5f0891b157ec1b426"
+    "version": "1.0.3",
+    "publishedAt": 1775008553249,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773281718679,
+      "commit": "https://github.com/openclaw/skills/commit/15186d1439aa63027e3c75a5f0891b157ec1b426"
+    }
+  ]
 }

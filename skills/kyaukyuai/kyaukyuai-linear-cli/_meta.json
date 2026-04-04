@@ -3,11 +3,16 @@
   "slug": "kyaukyuai-linear-cli",
   "displayName": "Linear CLI",
   "latest": {
-    "version": "2.9.1",
-    "publishedAt": 1774791811193,
-    "commit": "https://github.com/openclaw/skills/commit/0695a4e13f07750789c38c2ee24f5661b6f6c4b3"
+    "version": "3.0.0",
+    "publishedAt": 1775314066086,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.9.1",
+      "publishedAt": 1774791811193,
+      "commit": "https://github.com/openclaw/skills/commit/0695a4e13f07750789c38c2ee24f5661b6f6c4b3"
+    },
     {
       "version": "2.9.0",
       "publishedAt": 1774707365071,

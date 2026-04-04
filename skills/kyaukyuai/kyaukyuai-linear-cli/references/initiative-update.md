@@ -13,8 +13,9 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
 
 Commands:
 
@@ -37,12 +38,13 @@ Description:
 
 Options:
 
-  -h, --help                   - Show this help.                            
-  -w, --workspace    <slug>    - Target workspace (uses credentials)        
-  --body             <body>    - Update content (markdown)                  
-  --body-file        <path>    - Read content from file                     
-  --health           <health>  - Health status (onTrack, atRisk, offTrack)  
-  -i, --interactive            - Interactive mode with prompts
+  -h, --help                    - Show this help.                                                      
+  -w, --workspace    <slug>     - Target workspace (uses credentials)                                  
+  --profile          <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  --body             <body>     - Update content (markdown)                                            
+  --body-file        <path>     - Read content from file                                               
+  --health           <health>   - Health status (onTrack, atRisk, offTrack)                            
+  -i, --interactive             - Interactive mode with prompts
 ```
 
 ### list
@@ -58,9 +60,14 @@ Description:
 
 Options:
 
-  -h, --help                - Show this help.                                        
-  -w, --workspace  <slug>   - Target workspace (uses credentials)                    
-  -j, --json                - Output as JSON                                         
-  --limit          <limit>  - Limit results                             (Default: 10)
-  --no-pager                - Disable automatic paging for long output
+  -h, --help                  - Show this help.                                                                   
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                               
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)               
+  -j, --json                  - Output as JSON                                                                    
+  --limit          <limit>    - Limit results                                                        (Default: 10)
+  --no-pager                  - Disable automatic paging for long output                                          
+
+Examples:
+
+  List initiative updates as JSON linear initiative-update list initiative-slug --json
 ```

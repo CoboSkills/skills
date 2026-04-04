@@ -13,8 +13,9 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
 
 Commands:
 
@@ -40,11 +41,12 @@ Description:
 
 Options:
 
-  -h, --help                    - Show this help.                                     
-  -w, --workspace  <slug>       - Target workspace (uses credentials)                 
-  --project        <projectId>  - Project ID                                (required)
-  -j, --json                    - Output as JSON                                      
-  --no-pager                    - Disable automatic paging for long output            
+  -h, --help                    - Show this help.                                                                
+  -w, --workspace  <slug>       - Target workspace (uses credentials)                                            
+  --profile        <profile>    - Execution profile override (agent-safe default, human-debug opt-in)            
+  --project        <projectId>  - Project ID                                                           (required)
+  -j, --json                    - Output as JSON                                                                 
+  --no-pager                    - Disable automatic paging for long output                                       
 
 Examples:
 
@@ -65,9 +67,10 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -j, --json               - Output as JSON                       
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  -j, --json                  - Output as JSON                                                       
 
 Examples:
 
@@ -88,13 +91,14 @@ Description:
 
 Options:
 
-  -h, --help                      - Show this help.                                      
-  -w, --workspace  <slug>         - Target workspace (uses credentials)                  
-  --project        <projectId>    - Project ID                                 (required)
-  --name           <name>         - Milestone name                             (required)
-  --description    <description>  - Milestone description                                
-  --target-date    <date>         - Target date (YYYY-MM-DD)                             
-  --dry-run                       - Preview the milestone without creating it            
+  -h, --help                      - Show this help.                                                                
+  -w, --workspace  <slug>         - Target workspace (uses credentials)                                            
+  --profile        <profile>      - Execution profile override (agent-safe default, human-debug opt-in)            
+  --project        <projectId>    - Project ID                                                           (required)
+  --name           <name>         - Milestone name                                                       (required)
+  --description    <description>  - Milestone description                                                          
+  --target-date    <date>         - Target date (YYYY-MM-DD)                                                       
+  --dry-run                       - Preview the milestone without creating it                                      
 
 Examples:
 
@@ -115,14 +119,15 @@ Description:
 
 Options:
 
-  -h, --help                      - Show this help.                                    
-  -w, --workspace  <slug>         - Target workspace (uses credentials)                
-  --name           <name>         - Milestone name                                     
-  --description    <description>  - Milestone description                              
-  --target-date    <date>         - Target date (YYYY-MM-DD)                           
-  --sort-order     <value>        - Sort order relative to other milestones            
-  --project        <projectId>    - Move to a different project                        
-  --dry-run                       - Preview the update without mutating the milestone  
+  -h, --help                      - Show this help.                                                      
+  -w, --workspace  <slug>         - Target workspace (uses credentials)                                  
+  --profile        <profile>      - Execution profile override (agent-safe default, human-debug opt-in)  
+  --name           <name>         - Milestone name                                                       
+  --description    <description>  - Milestone description                                                
+  --target-date    <date>         - Target date (YYYY-MM-DD)                                             
+  --sort-order     <value>        - Sort order relative to other milestones                              
+  --project        <projectId>    - Move to a different project                                          
+  --dry-run                       - Preview the update without mutating the milestone                    
 
 Examples:
 
@@ -143,11 +148,13 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)                  
-  -y, --yes                - Skip confirmation prompt                             
-  -f, --force              - Deprecated alias for --yes                           
-  --dry-run                - Preview the deletion without mutating the milestone  
+  -h, --help                    - Show this help.                                                      
+  -w, --workspace    <slug>     - Target workspace (uses credentials)                                  
+  --profile          <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  -i, --interactive             - Enable interactive confirmation                                      
+  -y, --yes                     - Skip confirmation prompt                                             
+  -f, --force                   - Deprecated alias for --yes                                           
+  --dry-run                     - Preview the deletion without mutating the milestone                  
 
 Examples:
 

@@ -13,8 +13,9 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
 
 Commands:
 
@@ -37,11 +38,16 @@ Description:
 
 Options:
 
-  -h, --help                  - Show this help.                           
-  -w, --workspace  <slug>     - Target workspace (uses credentials)       
-  --team           <teamKey>  - Team key (defaults to current team)       
-  -j, --json                  - Output as JSON                            
-  --no-pager                  - Disable automatic paging for long output
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  --team           <teamKey>  - Team key (defaults to current team)                                  
+  -j, --json                  - Output as JSON                                                       
+  --no-pager                  - Disable automatic paging for long output                             
+
+Examples:
+
+  List workflow states as JSON linear workflow-state list --team ENG --json
 ```
 
 ### view
@@ -57,7 +63,12 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -j, --json               - Output as JSON
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  -j, --json                  - Output as JSON                                                       
+
+Examples:
+
+  View a workflow state as JSON linear workflow-state view state-123 --json
 ```

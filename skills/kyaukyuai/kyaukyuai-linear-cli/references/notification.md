@@ -13,8 +13,9 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
 
 Commands:
 
@@ -39,13 +40,20 @@ Description:
 
 Options:
 
-  -h, --help                   - Show this help.                                        
-  -w, --workspace     <slug>   - Target workspace (uses credentials)                    
-  -n, --limit         <limit>  - Maximum number of notifications           (Default: 20)
-  --include-archived           - Include archived notifications                         
-  --unread                     - Show only unread notifications                         
-  -j, --json                   - Output as JSON                                         
-  --no-pager                   - Disable automatic paging for long output
+  -h, --help                     - Show this help.                                                                   
+  -w, --workspace     <slug>     - Target workspace (uses credentials)                                               
+  --profile           <profile>  - Execution profile override (agent-safe default, human-debug opt-in)               
+  -n, --limit         <limit>    - Maximum number of notifications                                      (Default: 20)
+  --include-archived             - Include archived notifications                                                    
+  --unread                       - Show only unread notifications                                                    
+  -j, --json                     - Force machine-readable JSON output                                                
+  --text                         - Output human-readable text                                                        
+  --no-pager                     - Disable automatic paging for long output                                          
+
+Examples:
+
+  List notifications as JSON         linear notification list       
+  List notifications in the terminal linear notification list --text
 ```
 
 ### count
@@ -61,9 +69,10 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -j, --json               - Output as JSON
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  -j, --json                  - Output as JSON
 ```
 
 ### read
@@ -79,9 +88,11 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -j, --json               - Output as JSON
+  -h, --help                    - Show this help.                                                      
+  -w, --workspace  <slug>       - Target workspace (uses credentials)                                  
+  --profile        <profile>    - Execution profile override (agent-safe default, human-debug opt-in)  
+  -j, --json                    - Output as JSON                                                       
+  --timeout-ms     <timeoutMs>  - Timeout for write confirmation in milliseconds
 ```
 
 ### archive
@@ -97,7 +108,9 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -j, --json               - Output as JSON
+  -h, --help                    - Show this help.                                                      
+  -w, --workspace  <slug>       - Target workspace (uses credentials)                                  
+  --profile        <profile>    - Execution profile override (agent-safe default, human-debug opt-in)  
+  -j, --json                    - Output as JSON                                                       
+  --timeout-ms     <timeoutMs>  - Timeout for write confirmation in milliseconds
 ```

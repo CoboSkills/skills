@@ -13,8 +13,9 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
 
 Commands:
 
@@ -37,12 +38,17 @@ Description:
 
 Options:
 
-  -h, --help                - Show this help.                                        
-  -w, --workspace  <slug>   - Target workspace (uses credentials)                    
-  -n, --limit      <limit>  - Maximum number of users                   (Default: 50)
-  -a, --all                 - Include disabled users                                 
-  -j, --json                - Output as JSON                                         
-  --no-pager                - Disable automatic paging for long output
+  -h, --help                  - Show this help.                                                                   
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                               
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)               
+  -n, --limit      <limit>    - Maximum number of users                                              (Default: 50)
+  -a, --all                   - Include disabled users                                                            
+  -j, --json                  - Output as JSON                                                                    
+  --no-pager                  - Disable automatic paging for long output                                          
+
+Examples:
+
+  List users as JSON linear user list --json
 ```
 
 ### view
@@ -58,7 +64,12 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -j, --json               - Output as JSON
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  -j, --json                  - Output as JSON                                                       
+
+Examples:
+
+  View a user as JSON linear user view user-123 --json
 ```

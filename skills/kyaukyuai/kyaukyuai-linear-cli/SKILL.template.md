@@ -1,12 +1,32 @@
 ---
 name: linear-cli
-description: Manage Linear issues from the command line using the linear cli. This skill allows automating linear management.
+description: Use the linear-cli agent-native runtime to read and mutate Linear from Claude Code, Codex, or other agents. Use when the runtime needs default JSON output, startup discovery, dry-run previews, operation receipts, workflow-safe automation, or direct CLI control over Linear issues, projects, cycles, documents, notifications, webhooks, or related resources.
 allowed-tools: Bash(linear:*), Bash(curl:*)
 ---
 
 # Linear CLI
 
-A CLI to manage Linear issues from the command line, with git and jj integration.
+An agent-native Linear runtime for the `v3.0.0` execution model, with stable JSON contracts, startup discovery, dry-run previews, timeout-aware write semantics, and git/jj workflow integration.
+
+## Recommended Agent Loop
+
+When using this CLI from an agent runtime, prefer this order:
+
+1. Discover command traits with `linear capabilities`; use `--compat v1` only when an older consumer still expects the trimmed legacy shape
+2. Read Linear state with default-JSON core surfaces or `--json`
+3. Preview writes with `--dry-run --json` when available
+4. Apply writes on the default machine-readable surface, then inspect `operation`, `receipt`, and `error.details`
+5. Inspect exit codes and `error.details` instead of parsing styled terminal text
+
+Prompt-driven human/debug flows are secondary and explicit. When a command supports prompts or editor entry, pass `--profile human-debug --interactive`; otherwise missing required inputs fail fast.
+
+Agent-safe execution semantics are now the default runtime behavior. `--text` and `--profile human-debug` are the explicit human/debug escape hatches for maintainers, and `--profile agent-safe` remains accepted for compatibility with older automation.
+
+Recommended supporting docs:
+
+- [../../docs/agent-first.md](../../docs/agent-first.md)
+- [../../docs/json-contracts.md](../../docs/json-contracts.md)
+- [../../docs/stdin-policy.md](../../docs/stdin-policy.md)
 
 ## Prerequisites
 
@@ -83,6 +103,13 @@ linear issue create --help
 ```
 
 Each command has detailed help output describing all available flags and options.
+
+For machine-readable discovery, prefer:
+
+```bash
+linear capabilities
+linear capabilities --compat v1
+```
 
 ## Using the Linear GraphQL API Directly
 

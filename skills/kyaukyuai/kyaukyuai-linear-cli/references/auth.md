@@ -13,8 +13,9 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
 
 Commands:
 
@@ -42,10 +43,12 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                                              
-  -w, --workspace  <slug>  - Target workspace (uses credentials)                          
-  -k, --key        <key>   - API key (prompted if not provided)                           
-  --plaintext              - Store API key in credentials file instead of system keyring
+  -h, --help                    - Show this help.                                                      
+  -w, --workspace    <slug>     - Target workspace (uses credentials)                                  
+  --profile          <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  -k, --key          <key>      - API key (prompted if not provided)                                   
+  -i, --interactive             - Enable interactive prompts                                           
+  --plaintext                   - Store API key in credentials file instead of system keyring
 ```
 
 ### logout
@@ -61,10 +64,12 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  -y, --yes                - Skip confirmation prompt             
-  -f, --force              - Deprecated alias for --yes
+  -h, --help                    - Show this help.                                                      
+  -w, --workspace    <slug>     - Target workspace (uses credentials)                                  
+  --profile          <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  -i, --interactive             - Enable interactive selection and confirmation                        
+  -y, --yes                     - Skip confirmation prompt                                             
+  -f, --force                   - Deprecated alias for --yes
 ```
 
 ### list
@@ -80,9 +85,10 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                           
-  -w, --workspace  <slug>  - Target workspace (uses credentials)       
-  --no-pager               - Disable automatic paging for long output
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  --no-pager                  - Disable automatic paging for long output
 ```
 
 ### default
@@ -98,8 +104,10 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)
+  -h, --help                    - Show this help.                                                      
+  -w, --workspace    <slug>     - Target workspace (uses credentials)                                  
+  --profile          <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  -i, --interactive             - Enable interactive workspace selection
 ```
 
 ### token
@@ -115,8 +123,9 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)
 ```
 
 ### whoami
@@ -132,8 +141,9 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)
 ```
 
 ### migrate
@@ -149,6 +159,7 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)
 ```

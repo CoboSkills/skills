@@ -13,8 +13,9 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
 
 Commands:
 
@@ -36,10 +37,15 @@ Description:
 
 Options:
 
-  -h, --help                   - Show this help.                                        
-  -w, --workspace     <slug>   - Target workspace (uses credentials)                    
-  -n, --limit         <limit>  - Maximum number of project labels          (Default: 50)
-  --include-archived           - Include archived project labels                        
-  -j, --json                   - Output as JSON                                         
-  --no-pager                   - Disable automatic paging for long output
+  -h, --help                     - Show this help.                                                                   
+  -w, --workspace     <slug>     - Target workspace (uses credentials)                                               
+  --profile           <profile>  - Execution profile override (agent-safe default, human-debug opt-in)               
+  -n, --limit         <limit>    - Maximum number of project labels                                     (Default: 50)
+  --include-archived             - Include archived project labels                                                   
+  -j, --json                     - Output as JSON                                                                    
+  --no-pager                     - Disable automatic paging for long output                                          
+
+Examples:
+
+  List project labels as JSON linear project-label list --json
 ```

@@ -13,8 +13,9 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
 
 Commands:
 
@@ -42,11 +43,12 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                           
-  -w, --workspace  <slug>  - Target workspace (uses credentials)       
-  --team           <team>  - Team key (defaults to current team)       
-  -j, --json               - Output as JSON                            
-  --no-pager               - Disable automatic paging for long output  
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  --team           <team>     - Team key (defaults to current team)                                  
+  -j, --json                  - Output as JSON                                                       
+  --no-pager                  - Disable automatic paging for long output                             
 
 Examples:
 
@@ -67,10 +69,11 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  --team           <team>  - Team key (defaults to current team)  
-  -j, --json               - Output as JSON                       
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  --team           <team>     - Team key (defaults to current team)                                  
+  -j, --json                  - Output as JSON                                                       
 
 Examples:
 
@@ -91,15 +94,17 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  --team           <team>  - Team key (defaults to current team)  
-  -j, --json               - Output as JSON                       
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  --team           <team>     - Team key (defaults to current team)                                  
+  -j, --json                  - Force machine-readable JSON output                                   
+  --text                      - Output human-readable text                                           
 
 Examples:
 
-  Show the current cycle as JSON              linear cycle current --team ENG --json
-  Show the current cycle for the default team linear cycle current
+  Show the current cycle as JSON         linear cycle current --team ENG       
+  Show the current cycle in the terminal linear cycle current --team ENG --text
 ```
 
 ### next
@@ -115,10 +120,11 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)  
-  --team           <team>  - Team key (defaults to current team)  
-  -j, --json               - Output as JSON                       
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)  
+  --team           <team>     - Team key (defaults to current team)                                  
+  -j, --json                  - Output as JSON                                                       
 
 Examples:
 
@@ -139,13 +145,14 @@ Description:
 
 Options:
 
-  -h, --help                      - Show this help.                                
-  -w, --workspace  <slug>         - Target workspace (uses credentials)            
-  --team           <team>         - Team key (defaults to current team)            
-  --name           <name>         - Custom name for the cycle                      
-  --description    <description>  - Description of the cycle                       
-  --starts         <date>         - Start date (YYYY-MM-DD)              (required)
-  --ends           <date>         - End date (YYYY-MM-DD)                (required)
+  -h, --help                      - Show this help.                                                                
+  -w, --workspace  <slug>         - Target workspace (uses credentials)                                            
+  --profile        <profile>      - Execution profile override (agent-safe default, human-debug opt-in)            
+  --team           <team>         - Team key (defaults to current team)                                            
+  --name           <name>         - Custom name for the cycle                                                      
+  --description    <description>  - Description of the cycle                                                       
+  --starts         <date>         - Start date (YYYY-MM-DD)                                              (required)
+  --ends           <date>         - End date (YYYY-MM-DD)                                                (required)
 
 Examples:
 
@@ -166,10 +173,11 @@ Description:
 
 Options:
 
-  -h, --help                - Show this help.                                                     
-  -w, --workspace  <slug>   - Target workspace (uses credentials)                                 
-  --team           <team>   - Team key (defaults to current team)                                 
-  --cycle          <cycle>  - Cycle name or number (defaults to active cycle)  (Default: "active")
+  -h, --help                  - Show this help.                                                                         
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                                     
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)                     
+  --team           <team>     - Team key (defaults to current team)                                                     
+  --cycle          <cycle>    - Cycle name or number (defaults to active cycle)                      (Default: "active")
 ```
 
 ### remove
@@ -185,6 +193,7 @@ Description:
 
 Options:
 
-  -h, --help               - Show this help.                      
-  -w, --workspace  <slug>  - Target workspace (uses credentials)
+  -h, --help                  - Show this help.                                                      
+  -w, --workspace  <slug>     - Target workspace (uses credentials)                                  
+  --profile        <profile>  - Execution profile override (agent-safe default, human-debug opt-in)
 ```

@@ -1,11 +1,17 @@
 {
   "owner": "twinsgeeks",
   "slug": "adopt-a-quantum",
-  "displayName": "Adopt a Quantum — Virtual Exotic Pet for AI Agents",
+  "displayName": "Quantum — Adopt a Quantum. AI-Native Pet. 量子。Cuántico.",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773280793558,
-    "commit": "https://github.com/openclaw/skills/commit/1c01d9d1f3d3c69d72e08cd754aa093e48c813f4"
+    "version": "1.0.3",
+    "publishedAt": 1775008518341,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773280793558,
+      "commit": "https://github.com/openclaw/skills/commit/1c01d9d1f3d3c69d72e08cd754aa093e48c813f4"
+    }
+  ]
 }

@@ -3,9 +3,15 @@
   "slug": "flexmail",
   "displayName": "Flexmail",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773360127999,
-    "commit": "https://github.com/openclaw/skills/commit/358a5cf4f04e59f0b96e5b4e61518d305a3f1c07"
+    "version": "1.0.2",
+    "publishedAt": 1775163624256,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773360127999,
+      "commit": "https://github.com/openclaw/skills/commit/358a5cf4f04e59f0b96e5b4e61518d305a3f1c07"
+    }
+  ]
 }

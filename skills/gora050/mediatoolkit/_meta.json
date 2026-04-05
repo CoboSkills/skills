@@ -3,9 +3,15 @@
   "slug": "mediatoolkit",
   "displayName": "Mediatoolkit",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773954225176,
-    "commit": "https://github.com/openclaw/skills/commit/0560a8162a02874b5c12cbbcd904775f0097efe3"
+    "version": "1.0.2",
+    "publishedAt": 1775165090107,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773954225176,
+      "commit": "https://github.com/openclaw/skills/commit/0560a8162a02874b5c12cbbcd904775f0097efe3"
+    }
+  ]
 }

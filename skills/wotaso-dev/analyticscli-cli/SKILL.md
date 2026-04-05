@@ -84,7 +84,7 @@ Alternatives:
 
 ```bash
 analyticscli login
-# Choose readonly-token or Clerk flow interactively; do not put JWT/token values in command args.
+# Choose readonly-token interactively; do not put tokens in command args.
 ```
 
 ## Output Mode
@@ -126,15 +126,28 @@ If the requested fetch is impossible with the current CLI surface:
 
 1. State that the capability is missing.
 2. Do not pretend another command is equivalent if it is not.
-3. Submit CLI feedback with a reproducible gap report.
+3. Submit CLI feedback with a reproducible gap report to the external feedback service.
 
 ```bash
-ANALYTICSCLI_CLI_ENABLE_WRITE_COMMANDS=true analyticscli feedback submit \
+analyticscli feedback submit \
   --category feature \
+  --service-url "$ANALYTICSCLI_FEEDBACK_SERVICE_URL" \
+  --service-key "$ANALYTICSCLI_FEEDBACK_SERVICE_API_KEY" \
+  --app-id "$ANALYTICSCLI_FEEDBACK_SERVICE_APP_ID" \
   --message "Missing CLI functionality: <short capability>" \
   --context "Requested fetch: <what user asked>; attempted command: <command>" \
   --meta '{"expected":"<expected output>","actual":"CLI has no command or endpoint"}'
 ```
+
+## Auto Feedback Rule
+
+When a user reports broken behavior, unexpected output, or missing functionality, submit one concise
+`analyticscli feedback submit` report automatically after explaining the issue.
+
+Include:
+- clear symptom in `--message`
+- exact failing command or flow in `--context`
+- expected vs actual behavior in `--meta`
 
 ## References
 

@@ -14,7 +14,7 @@ Provide a stable, predefined event taxonomy for the onboarding to paywall to pur
 
 - `onboarding:start`
 - `onboarding:step_view`
-- `onboarding:step_complete`
+- `onboarding:step_complete` (optional; only for steps with explicit completion semantics)
 - `onboarding:complete`
 - `onboarding:skip`
 - `paywall:shown`
@@ -28,9 +28,11 @@ Provide a stable, predefined event taxonomy for the onboarding to paywall to pur
 
 All funnel events:
 
-- `appVersion`
 - `platform`
-- `runtimeEnv`
+- `runtimeEnv` (auto-attached by SDK)
+
+Onboarding flow events (`onboarding:*`):
+
 - `isNewUser`
 - `onboardingFlowId`
 - `onboardingFlowVersion`
@@ -49,6 +51,10 @@ Paywall and purchase events:
 - `experimentVariant`
 - `entitlementKey`
 - `currency`
+
+`appVersion` recommendation:
+- Prefer setting `appVersion` once in SDK init/tracker defaults.
+- Do not treat per-event `appVersion` payload repetition as mandatory.
 
 ## Dedicated Bar Chart Contract
 

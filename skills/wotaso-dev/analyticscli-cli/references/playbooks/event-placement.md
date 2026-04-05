@@ -18,13 +18,12 @@ Track only high-leverage product moments so analytics stays actionable and stabl
 - `paywall:shown`
 - `purchase:success`
 - `review_prompt:shown`
-- `feedback_submitted`
 
 ## Dedicated Events: Onboarding to Paywall to Subscription
 
 - `onboarding:start`
 - `onboarding:step_view`
-- `onboarding:step_complete`
+- `onboarding:step_complete` (optional; only for steps with explicit completion semantics)
 - `onboarding:complete`
 - `onboarding:skip`
 - `paywall:shown`
@@ -38,6 +37,8 @@ Track only high-leverage product moments so analytics stays actionable and stabl
 
 - Track at intent boundaries, not every UI tap.
 - Emit one event per semantic action.
+- Use `onboarding:step_view` as the default step signal; add `onboarding:step_complete` only when there is a true completion boundary.
+- For survey steps, `onboarding:step_view` + `onboarding:survey_response` is usually enough.
 - Use stable names and avoid silent renames.
 - Attach compact, query-relevant properties only.
 - Avoid direct PII fields.
@@ -45,9 +46,8 @@ Track only high-leverage product moments so analytics stays actionable and stabl
 ## Required Properties For Funnel Stability
 
 - `fromScreen`
-- `appVersion`
 - `platform`
-- `runtimeEnv`
+- `runtimeEnv` (auto-attached by SDK)
 - `isNewUser`
 - `onboardingFlowId`
 - `onboardingFlowVersion`
@@ -65,6 +65,10 @@ Paywall and purchase properties:
 - `plan`
 - `productId`
 - `currency`
+
+`appVersion` recommendation:
+- Prefer setting `appVersion` once in SDK init/tracker defaults.
+- Do not require repeating `appVersion` in every event payload.
 
 ## Dashboard Rules For Dedicated Bar Chart
 

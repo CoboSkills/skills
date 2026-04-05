@@ -87,6 +87,12 @@ analyticscli timeseries --metric unique_users --interval 1d --last 30d --trend -
 Onboarding funnel dropoff:
 
 ```bash
+analyticscli funnel --steps onboarding:start,onboarding:step_view,onboarding:complete --within user --last 30d
+```
+
+If your flow emits meaningful `onboarding:step_complete` milestones, compare both views:
+
+```bash
 analyticscli funnel --steps onboarding:start,onboarding:step_complete,onboarding:complete --within user --last 30d
 ```
 

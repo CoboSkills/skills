@@ -1,13 +1,18 @@
 {
   "owner": "gate-exchange",
   "slug": "gate-exchange-vip-fee",
-  "displayName": "Gate Exchange VIP Fee",
+  "displayName": "Gate VIP & Fee Query Skill",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774608062478,
-    "commit": "https://github.com/openclaw/skills/commit/3461a8c877b85e0245ca53a3b77258cff1fdbe08"
+    "version": "1.0.2",
+    "publishedAt": 1775115427896,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774608062478,
+      "commit": "https://github.com/openclaw/skills/commit/3461a8c877b85e0245ca53a3b77258cff1fdbe08"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773490944206,

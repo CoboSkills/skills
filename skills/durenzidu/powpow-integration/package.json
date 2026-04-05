@@ -1,14 +1,28 @@
 {
-  "name": "powpow-integration-2-1-3",
-  "version": "2.1.3",
-  "description": "PowPow Integration 2.1.3 - test branch",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "name": "openclaw-powpow-skill",
+  "version": "2.1.9",
+  "description": "OpenClaw Skill for Powpow - Digital human management on map",
+  "main": "scripts/powpow-client.ts",
   "scripts": {
-    "build": "echo \"No build step in test package; rename to 2.1.2 for actual build.\"",
-    "clean": "rm -rf dist"
+    "dev": "tsx scripts/powpow-client.ts",
+    "build": "tsc",
+    "lint": "eslint . --ext .ts"
   },
+  "keywords": [
+    "openclaw",
+    "powpow",
+    "skill",
+    "digital-human",
+    "map"
+  ],
+  "author": "",
+  "license": "MIT",
   "dependencies": {
-    "nodemailer": "^6.9.1"
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.7.0",
+    "typescript": "^5"
   }
 }

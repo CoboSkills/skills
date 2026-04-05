@@ -4,7 +4,8 @@
 This skill is used for querying Chinese holidays, work-shift arrangements, and workday determination.
 
 ## 功能说明 / Functionality
-- **节假日识别 / Holiday Recognition**：自动同步 iCloud 节假日数据。 / Automatically synchronize iCloud holiday data.
+- **节假日识别 / Holiday Recognition**：支持多文件数据源，自动合并解析 `data/` 目录下的所有 `.ics` 文件。 / Supports multi-file data sources; automatically merges and parses all `.ics` files in the `data/` directory.
+- **跨日事件处理 / Cross-day Event Processing**：支持处理具有 `DTSTART` 和 `DTEND` 的持续性事件，不再仅限于单日标记。 / Supports processing continuous events with `DTSTART` and `DTEND`, no longer limited to single-day markers.
 - **自动判定 / Automatic Determination**：优先匹配节假日/调休事件；若无匹配，则根据自然周（周一至周五工作日，周六至周日休息日）进行判定。 / Prioritizes matching holiday/work-shift events; if no match, determines based on the natural week (Mon-Fri as workday, Sat-Sun as rest day).
 - **自动更新 / Automatic Update**：通过 `cron` 定时任务每月自动拉取最新日历数据。 / Automatically pulls the latest calendar data monthly via `cron`.
 

@@ -2,29 +2,58 @@ import os
 import datetime
 from icalendar import Calendar
 
-# 获取数据文件路径
+# 获取数据文件夹路径 (相对路径)
+# 假定脚本在 .../skills/cn-holiday-checker/scripts/ 中
+# data 目录在 .../skills/cn-holiday-checker/data/ 中
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-ICS_PATH = os.path.join(BASE_DIR, 'data', 'cn_zh.ics')
+DATA_DIR = os.path.join(BASE_DIR, 'data')
 
 def get_holiday_map():
     holiday_map = {}
-    if not os.path.exists(ICS_PATH):
+    if not os.path.exists(DATA_DIR):
         return holiday_map
     
-    with open(ICS_PATH, 'rb') as f:
-        cal = Calendar.from_ical(f.read())
-        for component in cal.walk():
-            if component.name == "VEVENT":
-                summary = str(component.get('summary'))
-                dtstart = component.get('dtstart').dt
-                
-                # 兼容 date 和 datetime
-                if isinstance(dtstart, datetime.datetime):
-                    date_key = dtstart.date()
-                else:
-                    date_key = dtstart
-                    
-                holiday_map[date_key] = summary
+    # 扫描目录下所有的 .ics 文件
+    for filename in os.listdir(DATA_DIR):
+        if filename.endswith('.ics'):
+            file_path = os.path.join(DATA_DIR, filename)
+            with open(file_path, 'rb') as f:
+                try:
+                    cal = Calendar.from_ical(f.read())
+                    for component in cal.walk():
+                        if component.name == "VEVENT":
+                            summary = str(component.get('summary'))
+                            dtstart = component.get('dtstart')
+                            dtend = component.get('dtend')
+                            
+                            if not dtstart:
+                                continue
+                            
+                            # 获取开始日期
+                            start_val = dtstart.dt
+                            if isinstance(start_val, datetime.datetime):
+                                start_date = start_val.date()
+                            else:
+                                start_date = start_val
+                            
+                            # 获取结束日期 (如果有)
+                            if dtend:
+                                end_val = dtend.dt
+                                if isinstance(end_val, datetime.datetime):
+                                    end_date = end_val.date()
+                                else:
+                                    end_date = end_val
+                            else:
+                                # 没有结束日期，默认为单日事件
+                                end_date = start_date + datetime.timedelta(days=1)
+                            
+                            # 遍历所有日期并添加到地图
+                            curr = start_date
+                            while curr < end_date:
+                                holiday_map[curr] = summary
+                                curr += datetime.timedelta(days=1)
+                except Exception as e:
+                    print(f"Error reading {filename}: {e}")
     return holiday_map
 
 def check_date(target_date):

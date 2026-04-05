@@ -1,7 +1,7 @@
 ---
 name: investoday-finance-data
-version: 1.4.0
-description: 今日投资数据市场金融数据接口，覆盖A股/港股/基金/指数/宏观经济 180+ 个接口。当需要查询股票行情、财务报表、公司公告、研报评级、基金净值、行业分析、宏观经济指标时使用；或需要实体识别（股票代码与名称互转）、构建量化分析、生成投研报告等金融数据场景。
+version: 1.5.0
+description: 通过 InvestToday API 获取中国市场金融数据，覆盖 A股、港股、基金、指数、财务、公告、研报和宏观经济等 180+ 接口。适用于用户需要查询行情、财报、公告、研报评级、宏观指标、证券代码与名称映射，或直接获取结构化 JSON / 原始数据时。需要 INVESTODAY_API_KEY 环境变量，或在 skill 根目录 .env 中配置同名键。
 homepage: https://github.com/investoday-data/investoday-api-skills.git
 tags:
   # 资产类别
@@ -63,7 +63,7 @@ requirements:
   node: 18+
   environment_variables:
     - name: INVESTODAY_API_KEY
-      required: true
+      required: false
       sensitive: true
   network_access: true
 ---
@@ -72,15 +72,23 @@ requirements:
 > 国际用户请查看英文版：[SKILL_EN.md](./SKILL_EN.md)
 > For international users, see: [SKILL_EN.md](./SKILL_EN.md)
 
-今日投资数据市场提供 A 股、港股、基金、指数、宏观经济等 180+ 个金融数据接口。
+通过 InvestToday API 获取中国市场金融数据，适合在需要查询行情、财报、公告、研报评级、宏观指标、证券代码与名称映射，或直接获取结构化 JSON / 原始数据时使用。
 
 ## API Key
 
 - [注册获取 API Key](https://data-api.investoday.net/login)
-- 通过环境变量配置（注意不要在终端历史中留下明文 Key）：
+- 支持两种配置方式，优先读取环境变量：
+
+- 环境变量（推荐，优先）：
 
 ```bash
 export INVESTODAY_API_KEY=<your_key>
+```
+
+- `.env` 文件（位于 skill 根目录，不要提交到版本库）：
+
+```dotenv
+INVESTODAY_API_KEY=<your_key>
 ```
 
 - 大模型执行时，直接调用脚本即可，不需要在每次执行前额外检查 `INVESTODAY_API_KEY` 是否已配置

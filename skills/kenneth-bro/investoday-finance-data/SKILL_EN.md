@@ -1,17 +1,25 @@
 # InvestToday Financial Data
 
-InvestToday provides 180+ financial data APIs covering China A-shares, Hong Kong stocks, funds, indices, macro data, and research-oriented datasets.
+Fetch Chinese-market financial data via InvestToday API, covering A-shares, Hong Kong stocks, funds, indices, financials, announcements, research, and macro data. Use it when the user needs quotes, financial statements, announcements, rating data, code/name mapping, or structured JSON/raw data.
 
 > 中文版说明请见：[SKILL.md](./SKILL.md)
 
 ## API Key
 
 - [Get an API Key](https://data-api.investoday.net/login)
-- Configure it via an environment variable. Avoid leaving the plaintext key in shell history:
+- Two configuration methods are supported. The environment variable takes precedence:
+- Environment variable (recommended, higher priority):
 
 ```bash
 export INVESTODAY_API_KEY=<your_key>
 ```
+
+- `.env` file in the skill root (local use only; do not commit it):
+
+```dotenv
+INVESTODAY_API_KEY=<your_key>
+```
+
 - Call the script directly; there is no need to pre-check whether `INVESTODAY_API_KEY` is configured before each invocation
 - **Do not** expose the API Key in terminal output, logs, chat messages, command-line arguments, or error output
 - Detailed setup and safety rules: [API Key Setup](./docs/api-key-setup.en.md)
@@ -49,7 +57,7 @@ node scripts/call_api.js fund/daily-quotes --method POST fundCode=000001 beginDa
 
 ## Trust & Data Handling
 
-- See [Security & Privacy](./docs/security-privacy.en.md)
+- See [Security &amp; Privacy](./docs/security-privacy.en.md)
 
 ## Related Links
 

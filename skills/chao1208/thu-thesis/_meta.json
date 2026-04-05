@@ -1,13 +1,18 @@
 {
   "owner": "chao1208",
   "slug": "thu-thesis",
-  "displayName": "Thu Thesis",
+  "displayName": "thu-thesis",
   "latest": {
-    "version": "1.5.5",
-    "publishedAt": 1773988018058,
-    "commit": "https://github.com/openclaw/skills/commit/c50d160ebd286cdbfa35a99565bc5b1b60da5132"
+    "version": "1.5.6",
+    "publishedAt": 1774851748118,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.5",
+      "publishedAt": 1773988018058,
+      "commit": "https://github.com/openclaw/skills/commit/c50d160ebd286cdbfa35a99565bc5b1b60da5132"
+    },
     {
       "version": "1.5.3",
       "publishedAt": 1773914654575,

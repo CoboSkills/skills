@@ -211,6 +211,61 @@ python3 "$SKILL_DIR/scripts/convert.py" build \
 
 **评级标准**：总分/满分 → 优秀≥90% / 良好≥75% / 合格≥60% / 不合格<60%
 
+### ⚠️ 手工修复 / 手写章节内容时的强制检查（血泪教训）
+
+> **根本原因：写章节正文时没有先读原文，凭框架猜写，导致原文中有数据的表格完全丢失。**
+
+每次需要手工修改或重写某章 `.tex` 内容时，**必须**按以下顺序操作，不得跳步：
+
+#### Step A：列出该章所有表格/图片标题清单
+
+```bash
+# 用 grep 从纯文本提取所有表格标题（如已有 /tmp/thesis_content.txt）
+grep -n "^表[0-9一二三四五六七八九十]\|^表 [0-9]" /tmp/thesis_content.txt
+
+# 列出所有图片标题
+grep -n "^图[0-9一二三四五六七八九十]\|^图 [0-9]" /tmp/thesis_content.txt
+```
+
+或直接从 `raw_xxx.json` 检查：
+
+```python
+import json
+raw = json.load(open('output/raw_xxx.json'))
+# 表格 caption
+for t in raw['tables']:
+    print(f"表格idx={t['idx']}, before_para={t['before_para']}, caption={t.get('caption','')}")
+# 图片 caption
+for f in raw['figures']:
+    print(f"图片 {f['filename']}, para_idx={f['para_idx']}, caption={f.get('caption','')}")
+```
+
+#### Step B：逐章核对
+
+修改某章之前，先从原文对应章节范围**完整阅读**该章内容（不只看标题结构），确认：
+
+- 原文该章有哪些表（表N-M）→ `.tex` 里必须一一对应
+- 原文该章有哪些图（图N-M）→ `.tex` 里必须一一对应
+- 每张表的**数据行**（具体数字/文字）都从原文提取，**不猜写、不省略**
+
+#### Step C：写完后逐项 diff 核查
+
+```bash
+# 统计 .tex 文件中表格标题出现次数
+grep -c "\\\\caption{" data/chap0X.tex
+
+# 列出所有 caption，与 Step A 清单对照
+grep "\\\\caption{" data/chap0X.tex
+```
+
+**如发现 .tex 中表格数量 < 原文该章表格数量 → 必须补写，不得跳过。**
+
+#### 根本原则
+
+> 转换任务的核心是**完整传递原文信息**，不是生成结构框架。宁可表格内容写得不够精美，也不能缺少原文中存在的表格。
+
+---
+
 ### 可自动修复 vs 不可修复
 
 | 可自动修复（直接改文件重编译） | 不可自动修复（报告中标注） |

@@ -1,13 +1,18 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-sports-live-trader",
-  "displayName": "Sports & Championships Trader",
+  "displayName": "Polymarket Sports Live Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773781611528,
-    "commit": "https://github.com/openclaw/skills/commit/9a421544dbb07d56601f0e2851062b7a2892c39d"
+    "version": "1.0.2",
+    "publishedAt": 1775317350301,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773781611528,
+      "commit": "https://github.com/openclaw/skills/commit/9a421544dbb07d56601f0e2851062b7a2892c39d"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773466328008,

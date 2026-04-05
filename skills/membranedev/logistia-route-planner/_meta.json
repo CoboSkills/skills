@@ -3,9 +3,15 @@
   "slug": "logistia-route-planner",
   "displayName": "Logistia Route Planner",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774137765600,
-    "commit": "https://github.com/openclaw/skills/commit/7781e95565a7fa0220a567b77214faebe47ed482"
+    "version": "1.0.2",
+    "publishedAt": 1775166005015,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774137765600,
+      "commit": "https://github.com/openclaw/skills/commit/7781e95565a7fa0220a567b77214faebe47ed482"
+    }
+  ]
 }

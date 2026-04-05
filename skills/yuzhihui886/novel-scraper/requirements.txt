@@ -1,4 +1,5 @@
 # Novel Scraper - Python Dependencies
 # Install: pip3 install -r requirements.txt --user
 
-psutil>=5.9.0
+beautifulsoup4>=4.12.0
+bs4>=0.0.1

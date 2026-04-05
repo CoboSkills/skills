@@ -37,26 +37,33 @@ Security guidance:
 
 ## Declared Permissions
 
-The root skill currently declares:
+The root skill is a routing-only skill and declares minimal permissions:
 
-- `file_read`: `~/.meitu/credentials.json`, `~/.openclaw/workspace/visual/`, `./`
-- `file_write`: `~/.openclaw/workspace/visual/`, `./`
+- `file_read`: `~/.meitu/credentials.json`
 - `exec`: `meitu`
 
-### File Read Scope
+Scene skills declare their own permissions based on their workflows:
+
+- `file_read`: `~/.meitu/credentials.json`, `~/.openclaw/workspace/visual/`
+- `file_write`: `~/.openclaw/workspace/visual/`
+- `exec`: `meitu` (and `node` for `meitu-tools`)
+
+### Root Skill Permission Scope
 
 | Path | Access | Purpose |
 |------|--------|---------|
 | `~/.meitu/credentials.json` | Read | Load API credentials |
-| `~/.openclaw/workspace/visual/` | Read | Read shared visual memory, rules, references, and outputs |
-| `./` | Read | Read project files such as `openclaw.yaml`, `DESIGN.md`, local assets, and output artifacts |
 
-### File Write Scope
+The root skill does not write files or read project directories. It only routes to scene skills.
+
+### Scene Skill Permission Scope
 
 | Path | Access | Purpose |
 |------|--------|---------|
-| `~/.openclaw/workspace/visual/` | Write | Update shared memory, observation staging, reusable references, and one-off outputs |
-| `./` | Write | Create or update project files such as `openclaw.yaml`, `DESIGN.md`, `./output/`, and `./drafts/` |
+| `~/.meitu/credentials.json` | Read | Load API credentials |
+| `~/.openclaw/workspace/visual/` | Read/Write | Read/write shared visual memory, rules, references, and outputs |
+
+Scene skills may also read/write project-local files (`./`) when operating in project mode (detected by presence of `openclaw.yaml`), but this is not declared in skill metadata—permissions are granted at runtime by the agent based on user context.
 
 Examples of expected writes in scene workflows:
 
@@ -72,11 +79,12 @@ This skill pack writes outputs to `~/.openclaw/workspace/visual/` or project-loc
 | Command | Purpose | When Used |
 |---------|---------|-----------|
 | `meitu` | Execute Meitu CLI commands | Tool execution and generation/edit pipelines |
+| `node` | Execute internal runner script | `meitu-tools/scripts/run_command.js` for CLI command dispatch |
 | `npm install -g meitu-cli@latest` | Manual runtime install or upgrade | Only when the operator explicitly asks for repair or upgrade |
 
 Notes:
 
-- `meitu-tools` itself relies on `meitu` and does not need `node` for its main runner path.
+- `meitu-tools` executes `scripts/run_command.js` via `node` to dispatch CLI commands.
 - Scene skills call `meitu` CLI directly and do not need `node`.
 - Scene skills use inline path resolution logic (no external helper scripts).
 

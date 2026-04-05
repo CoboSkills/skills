@@ -3,11 +3,16 @@
   "slug": "meitu-skills",
   "displayName": "Meitu Skills",
   "latest": {
-    "version": "1.0.9",
-    "publishedAt": 1774490253016,
-    "commit": "https://github.com/openclaw/skills/commit/02749e25122f9c5c55c01b384a68200fe7407bb5"
+    "version": "1.0.20",
+    "publishedAt": 1775127936307,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.9",
+      "publishedAt": 1774490253016,
+      "commit": "https://github.com/openclaw/skills/commit/02749e25122f9c5c55c01b384a68200fe7407bb5"
+    },
     {
       "version": "1.0.8",
       "publishedAt": 1774453565094,

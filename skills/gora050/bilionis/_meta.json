@@ -3,9 +3,15 @@
   "slug": "bilionis",
   "displayName": "Bilionis",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774015412682,
-    "commit": "https://github.com/openclaw/skills/commit/c071b0759e04e8387b9dcd2a5aaef7925d1257b5"
+    "version": "1.0.2",
+    "publishedAt": 1775165349524,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774015412682,
+      "commit": "https://github.com/openclaw/skills/commit/c071b0759e04e8387b9dcd2a5aaef7925d1257b5"
+    }
+  ]
 }

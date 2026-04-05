@@ -1,13 +1,18 @@
 {
   "owner": "whbzju",
   "slug": "aurashot-character-skill",
-  "displayName": "Skill",
+  "displayName": "AI role play character image generation",
   "latest": {
-    "version": "0.0.7",
-    "publishedAt": 1773907394428,
-    "commit": "https://github.com/openclaw/skills/commit/f4ead13b1bed67bd0c64ef07f1d0b520b2f1e5b8"
+    "version": "1.0.1",
+    "publishedAt": 1775187548515,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.0.7",
+      "publishedAt": 1773907394428,
+      "commit": "https://github.com/openclaw/skills/commit/f4ead13b1bed67bd0c64ef07f1d0b520b2f1e5b8"
+    },
     {
       "version": "0.0.6",
       "publishedAt": 1773886143005,

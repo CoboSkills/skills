@@ -64,7 +64,7 @@ Generate a 4-in-1 character ID photo (front, left profile, right profile, white-
   "taskType": "id-photo",
   "status": "success",
   "outputs": [{ "url": "https://..." }],
-  "pipeline": { "nb2": "success", "refiner": "skipped" },
+  "pipeline": { "provider": "qwen-image-edit", "status": "success" },
   "tokenUsage": { "inputTokens": 0, "outputTokens": 1234 },
   "createdAt": "2026-03-16T..."
 }
@@ -133,7 +133,7 @@ Edit an existing image using natural language. Optionally pass a face reference 
 | `taskType`         | `id-photo`, `generate`, or `edit`                        |
 | `status`           | `success` or `failed`                                    |
 | `outputs`          | Array of `{ url }` objects with generated image URLs     |
-| `pipeline.status`  | Generation pipeline status                               |
+| `pipeline.status`  | Generation pipeline status (provider: qwen-image-edit)   |
 | `tokenUsage`       | Token consumption stats                                  |
 | `createdAt`        | ISO 8601 timestamp                                       |
 
@@ -148,7 +148,7 @@ Edit an existing image using natural language. Optionally pass a face reference 
 
 The following endpoints are from the previous e-commerce photography version and are kept for backward compatibility:
 
-- `POST /api/aesthetic/generate` — Virtual Try-On / Pose Change
-- `POST /api/aesthetic/query` — Poll job status
+- `POST /api/aesthetic/generate` — Virtual Try-On / Pose Change (legacy)
+- `POST /api/aesthetic/query` — Poll job status (legacy)
 
 New integrations should use the `/v1/character/*` endpoints above.

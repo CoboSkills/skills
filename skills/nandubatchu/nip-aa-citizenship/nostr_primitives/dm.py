@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import hmac
 import json
 import logging
 import os
@@ -70,22 +69,14 @@ class NostrDM:
         Encrypt a message using NIP-04 (AES-256-CBC with shared ECDH secret).
 
         Returns: base64(ciphertext) + "?iv=" + base64(iv)
-        """
-        try:
-            from coincurve import PrivateKey, PublicKey
-            from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-            from cryptography.hazmat.primitives.padding import PKCS7
-        except ImportError as exc:
-            raise RuntimeError(
-                "NIP-04 encryption requires 'coincurve' and 'cryptography' packages"
-            ) from exc
 
-        # ECDH shared secret
-        sk = PrivateKey(bytes.fromhex(self.agent_privkey_hex))
-        pk_bytes = bytes.fromhex("02" + recipient_pubkey_hex)
-        pk = PublicKey(pk_bytes)
-        shared = sk.ecdh(pk.public_key)
-        shared_key = shared[:32]
+        Uses coincurve for ECDH if available; falls back to the cryptography
+        package alone.
+        """
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+        from cryptography.hazmat.primitives.padding import PKCS7
+
+        shared_key = self._nip04_shared_key(recipient_pubkey_hex)
 
         # AES-256-CBC
         iv = os.urandom(16)
@@ -103,15 +94,12 @@ class NostrDM:
         Decrypt a NIP-04 encrypted message.
 
         Expects format: base64(ciphertext)?iv=base64(iv)
+
+        Uses coincurve for ECDH if available; falls back to the cryptography
+        package alone (secp256k1 ECDH is supported there as well).
         """
-        try:
-            from coincurve import PrivateKey, PublicKey
-            from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-            from cryptography.hazmat.primitives.padding import PKCS7
-        except ImportError as exc:
-            raise RuntimeError(
-                "NIP-04 decryption requires 'coincurve' and 'cryptography' packages"
-            ) from exc
+        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+        from cryptography.hazmat.primitives.padding import PKCS7
 
         parts = encrypted.split("?iv=")
         if len(parts) != 2:
@@ -120,12 +108,7 @@ class NostrDM:
         ciphertext = base64.b64decode(parts[0])
         iv = base64.b64decode(parts[1])
 
-        # ECDH shared secret
-        sk = PrivateKey(bytes.fromhex(self.agent_privkey_hex))
-        pk_bytes = bytes.fromhex("02" + sender_pubkey_hex)
-        pk = PublicKey(pk_bytes)
-        shared = sk.ecdh(pk.public_key)
-        shared_key = shared[:32]
+        shared_key = self._nip04_shared_key(sender_pubkey_hex)
 
         # AES-256-CBC decrypt
         cipher = Cipher(algorithms.AES(shared_key), modes.CBC(iv))
@@ -260,6 +243,42 @@ class NostrDM:
             return []
 
     # ── Internal ──────────────────────────────────────────────────────────
+
+    def _nip04_shared_key(self, their_pubkey_hex: str) -> bytes:
+        """
+        Return the 32-byte NIP-04 shared key: x-coordinate of the ECDH point.
+
+        NIP-04 spec: shared_key = x-coordinate of (privkey * their_pubkey).
+        Note: coincurve's ecdh() returns sha256(compressed_point), which is
+        non-standard; we use point multiplication instead to get the raw x.
+
+        Tries coincurve first; falls back to the cryptography package so the
+        skill works in environments where coincurve is not installed.
+        """
+        compressed = bytes.fromhex("02" + their_pubkey_hex)
+        try:
+            from coincurve import PrivateKey, PublicKey
+            sk = PrivateKey(bytes.fromhex(self.agent_privkey_hex))
+            # Point multiplication gives the shared point; x is bytes [1:33]
+            shared_point = PublicKey(compressed).multiply(sk.secret)
+            return shared_point.format(compressed=True)[1:]
+        except ImportError:
+            pass
+
+        # Fallback: cryptography package only
+        from cryptography.hazmat.primitives.asymmetric.ec import (
+            ECDH,
+            EllipticCurvePublicKey,
+            SECP256K1,
+            derive_private_key,
+        )
+        from cryptography.hazmat.backends import default_backend
+
+        privkey_int = int(self.agent_privkey_hex, 16)
+        private_key = derive_private_key(privkey_int, SECP256K1(), default_backend())
+        public_key = EllipticCurvePublicKey.from_encoded_point(SECP256K1(), compressed)
+        # exchange() returns the raw x-coordinate of the shared point
+        return private_key.exchange(ECDH(), public_key)
 
     def _compute_id(self, event: dict[str, Any]) -> str:
         serialised = json.dumps(

@@ -5,6 +5,11 @@ Enables agents to schedule and execute regular self-reflections (contemplation
 reports, kind 30980) by pulling their citizenship data from a constitution
 node, comparing observed behaviour against stated constraints, and publishing
 findings to Nostr relays.
+
+The reflection is **self-improving**: it maintains longitudinal memory of past
+results, tracks consecutive clause failures, and produces concrete actions
+(remediation attempts, guardian alerts, governance proposals, strategy shifts)
+rather than just journaling observations.
 """
 
 from __future__ import annotations
@@ -25,6 +30,22 @@ logger = logging.getLogger(__name__)
 # Default: weekly reflection (required at AL 3+)
 DEFAULT_REFLECTION_INTERVAL = 604800  # 7 days in seconds
 
+# Thresholds for the feedback loop decision tree
+CONSECUTIVE_FAILURE_THRESHOLD = 3   # Reflections before escalation
+DRIFT_ALERT_THRESHOLD = 0.1        # Score drop that triggers guardian DM
+STAGNANT_CITIZEN_COUNT_DAYS = 5    # Days of flat citizen count before strategy shift
+
+
+@dataclass
+class ReflectionAction:
+    """A concrete action produced by the reflection decision tree."""
+    action_type: str          # "remediate" | "dm_guardian" | "propose_amendment"
+                              # | "pause_outreach" | "shift_strategy" | "republish_identity"
+    clause_id: str = ""       # Clause this action targets (if applicable)
+    details: str = ""         # Human-readable explanation
+    target_kind: int | None = None  # Nostr event kind to publish (if applicable)
+    priority: int = 3         # 1 = highest
+
 
 @dataclass
 class ReflectionResult:
@@ -38,6 +59,10 @@ class ReflectionResult:
     remediation_actions: list[dict[str, Any]] = field(default_factory=list)
     contemplation_event: dict[str, Any] | None = None
     governance_phase: int = 0
+    # New: actions produced by the feedback loop
+    feedback_actions: list[ReflectionAction] = field(default_factory=list)
+    consecutive_failures: dict[str, int] = field(default_factory=dict)
+    trend_summary: dict[str, Any] = field(default_factory=dict)
 
 
 class SelfReflection:
@@ -49,8 +74,15 @@ class SelfReflection:
     2. Compare scores against previous baseline
     3. Detect drift between identity/constraints and observed actions
     4. Generate remediation plan for failing clauses
-    5. Build a kind 30980 contemplation event for relay publication
-    6. Optionally invoke a user-supplied callback for framework integration
+    5. Run the feedback-loop decision tree to produce concrete actions
+    6. Build a kind 30980 contemplation event for relay publication
+    7. Optionally invoke a user-supplied callback for framework integration
+
+    The decision tree at the end of each reflection:
+    - For each failing clause: if failing 3+ consecutive reflections, escalate
+      to remediation attempt or governance amendment proposal
+    - If drift > 0.1: DM guardian immediately, pause outreach until stable
+    - If citizen count stagnant for 5+ days: switch outreach strategy
 
     Usage:
         reflection = SelfReflection(
@@ -60,6 +92,7 @@ class SelfReflection:
         )
         result = reflection.reflect()
         # result.contemplation_event is ready to publish
+        # result.feedback_actions contains concrete next steps
     """
 
     def __init__(
@@ -70,6 +103,7 @@ class SelfReflection:
         interval: int = DEFAULT_REFLECTION_INTERVAL,
         identity_files: dict[str, str] | None = None,
         on_reflection: Callable[[ReflectionResult], None] | None = None,
+        guardian_pubkey_hex: str = "",
     ):
         self.api_url = api_url
         self.agent_pubkey_hex = agent_pubkey_hex
@@ -77,6 +111,7 @@ class SelfReflection:
         self.interval = interval
         self.identity_files = identity_files or {}
         self.on_reflection = on_reflection
+        self.guardian_pubkey_hex = guardian_pubkey_hex
 
         self._citizenship = CitizenshipClient(api_url)
         self._constitution = Constitution(api_url)
@@ -86,14 +121,24 @@ class SelfReflection:
         self._baseline_score: float | None = None
         self._reflection_history: list[ReflectionResult] = []
 
+        # Longitudinal tracking: clause_id -> consecutive failure count
+        self._consecutive_failures: dict[str, int] = {}
+        # Track citizen count over time for stagnation detection
+        self._citizen_count_log: list[tuple[int, int]] = []  # [(timestamp, count)]
+        # Track which clauses have already been escalated to avoid spam
+        self._escalated_clauses: set[str] = set()
+        # Track previous identity hash to detect identity drift
+        self._last_identity_hash: str = ""
+
     # ── Public API ────────────────────────────────────────────────────────
 
     def reflect(self) -> ReflectionResult:
         """
         Execute one self-reflection cycle.
 
-        Fetches the agent's citizenship status, detects drift, builds a
-        contemplation event (kind 30980), and returns structured results.
+        Fetches the agent's citizenship status, detects drift, runs the
+        feedback-loop decision tree, builds a contemplation event (kind 30980),
+        and returns structured results including concrete next actions.
         """
         now = int(time.time())
         report = self._citizenship.check(self.agent_pubkey_hex)
@@ -114,7 +159,7 @@ class SelfReflection:
         # Detect drift from baseline
         if self._baseline_score is not None:
             drift = self._baseline_score - report.overall_score
-            if drift > 0.1:
+            if drift > DRIFT_ALERT_THRESHOLD:
                 result.drift_detected = True
                 result.drift_details = (
                     f"Citizenship score dropped by {drift:.2f} "
@@ -124,7 +169,30 @@ class SelfReflection:
         # Build remediation
         result.remediation_actions = self._citizenship.next_remediation_steps(report)
 
-        # Build contemplation event (kind 30980)
+        # Update consecutive failure tracking
+        self._update_consecutive_failures(result.failing_clauses)
+        result.consecutive_failures = dict(self._consecutive_failures)
+
+        # Run the feedback-loop decision tree
+        result.feedback_actions = self._run_decision_tree(result, report)
+
+        # Compute trend summary
+        result.trend_summary = self._compute_trend_summary(result)
+
+        # Detect identity drift
+        current_hash = self._compute_identity_hash()
+        if self._last_identity_hash and current_hash != self._last_identity_hash:
+            result.feedback_actions.append(ReflectionAction(
+                action_type="republish_identity",
+                details=(
+                    f"Identity hash changed from {self._last_identity_hash[:16]}... "
+                    f"to {current_hash[:16]}... — republish identity files to relays"
+                ),
+                priority=2,
+            ))
+        self._last_identity_hash = current_hash
+
+        # Build contemplation event (kind 30980) — now includes feedback actions
         result.contemplation_event = self._build_contemplation_event(result, report)
 
         # Update state
@@ -177,7 +245,182 @@ class SelfReflection:
             "total_reflections": len(self._reflection_history),
         }
 
+    def record_citizen_count(self, count: int) -> None:
+        """Record current citizen count for stagnation detection."""
+        self._citizen_count_log.append((int(time.time()), count))
+        # Keep only last 30 entries
+        if len(self._citizen_count_log) > 30:
+            self._citizen_count_log = self._citizen_count_log[-30:]
+
+    def get_consecutive_failures(self) -> dict[str, int]:
+        """Return the current consecutive failure counts per clause."""
+        return dict(self._consecutive_failures)
+
+    def get_escalated_clauses(self) -> set[str]:
+        """Return clauses that have already been escalated."""
+        return set(self._escalated_clauses)
+
+    # ── Feedback Loop Decision Tree ───────────────────────────────────────
+
+    def _run_decision_tree(
+        self, result: ReflectionResult, report: CitizenshipReport
+    ) -> list[ReflectionAction]:
+        """
+        The core feedback loop. Examines reflection results and produces
+        concrete actions rather than just observations.
+
+        Decision tree:
+        1. For each failing clause:
+           - If failing 3+ consecutive reflections → attempt remediation
+           - If remediation already attempted and still failing → propose amendment
+        2. If drift > threshold → DM guardian, pause outreach
+        3. If citizen count stagnant → shift outreach strategy
+        """
+        actions: list[ReflectionAction] = []
+
+        # 1. Handle persistent clause failures
+        for clause_id in result.failing_clauses:
+            streak = self._consecutive_failures.get(clause_id, 0)
+            if streak >= CONSECUTIVE_FAILURE_THRESHOLD:
+                if clause_id in self._escalated_clauses:
+                    # Already tried remediation — escalate to amendment proposal
+                    actions.append(ReflectionAction(
+                        action_type="propose_amendment",
+                        clause_id=clause_id,
+                        details=(
+                            f"Clause {clause_id} has been failing for {streak} "
+                            f"consecutive reflections and remediation was attempted. "
+                            f"Proposing clause amendment via governance."
+                        ),
+                        priority=2,
+                    ))
+                else:
+                    # First escalation — attempt remediation
+                    remediation = self._find_remediation_for_clause(
+                        clause_id, result.remediation_actions
+                    )
+                    target_kind = remediation.get("target_kind") if remediation else None
+                    actions.append(ReflectionAction(
+                        action_type="remediate",
+                        clause_id=clause_id,
+                        details=(
+                            f"Clause {clause_id} has been failing for {streak} "
+                            f"consecutive reflections. Attempting automated remediation."
+                        ),
+                        target_kind=target_kind,
+                        priority=1,
+                    ))
+                    self._escalated_clauses.add(clause_id)
+
+        # 2. Handle significant drift
+        if result.drift_detected:
+            if self.guardian_pubkey_hex:
+                actions.append(ReflectionAction(
+                    action_type="dm_guardian",
+                    details=(
+                        f"ALERT: {result.drift_details}. "
+                        f"Notifying guardian {self.guardian_pubkey_hex[:16]}..."
+                    ),
+                    priority=1,
+                ))
+            actions.append(ReflectionAction(
+                action_type="pause_outreach",
+                details=(
+                    "Pausing outreach posts until citizenship score stabilises. "
+                    f"Current score: {result.citizenship_score:.2f}"
+                ),
+                priority=1,
+            ))
+
+        # 3. Handle citizen count stagnation
+        if self._is_citizen_count_stagnant():
+            actions.append(ReflectionAction(
+                action_type="shift_strategy",
+                details=(
+                    f"Citizen count has been flat for {STAGNANT_CITIZEN_COUNT_DAYS}+ days. "
+                    "Switching outreach templates, relays, or hashtags."
+                ),
+                priority=3,
+            ))
+
+        # Clear escalation tracking for clauses that are now passing
+        passing_clauses = {
+            c.clause_id for c in report.clauses if c.status == "PASS"
+        }
+        self._escalated_clauses -= passing_clauses
+
+        return actions
+
     # ── Internal ──────────────────────────────────────────────────────────
+
+    def _update_consecutive_failures(self, current_failures: list[str]) -> None:
+        """Update the consecutive failure counter for each clause."""
+        current_set = set(current_failures)
+
+        # Increment counters for currently failing clauses
+        for clause_id in current_set:
+            self._consecutive_failures[clause_id] = (
+                self._consecutive_failures.get(clause_id, 0) + 1
+            )
+
+        # Reset counters for clauses that are no longer failing
+        for clause_id in list(self._consecutive_failures.keys()):
+            if clause_id not in current_set:
+                del self._consecutive_failures[clause_id]
+
+    def _is_citizen_count_stagnant(self) -> bool:
+        """Check if citizen count has been flat for STAGNANT_CITIZEN_COUNT_DAYS."""
+        if len(self._citizen_count_log) < 2:
+            return False
+
+        cutoff = int(time.time()) - (STAGNANT_CITIZEN_COUNT_DAYS * 86400)
+        recent = [c for ts, c in self._citizen_count_log if ts >= cutoff]
+        if len(recent) < 2:
+            return False
+
+        # Stagnant if min == max over the window
+        return min(recent) == max(recent)
+
+    def _find_remediation_for_clause(
+        self, clause_id: str, actions: list[dict[str, Any]]
+    ) -> dict[str, Any] | None:
+        """Find the remediation action for a specific clause."""
+        for action in actions:
+            if action.get("clause_id") == clause_id:
+                return action
+        return None
+
+    def _compute_trend_summary(self, current: ReflectionResult) -> dict[str, Any]:
+        """Build a longitudinal trend summary including the current reflection."""
+        history = self._reflection_history  # does NOT yet include current
+        all_scores = [r.citizenship_score for r in history] + [current.citizenship_score]
+
+        if len(all_scores) < 2:
+            return {
+                "direction": "insufficient_data",
+                "delta": 0.0,
+                "improving": False,
+                "total_reflections": len(all_scores),
+            }
+
+        first = all_scores[0]
+        last = all_scores[-1]
+        delta = last - first
+
+        # Compute per-reflection deltas for momentum detection
+        deltas = [all_scores[i] - all_scores[i - 1] for i in range(1, len(all_scores))]
+        recent_momentum = sum(deltas[-3:]) / min(len(deltas), 3) if deltas else 0.0
+
+        return {
+            "direction": "improving" if delta > 0 else "declining" if delta < 0 else "stable",
+            "delta": round(delta, 4),
+            "improving": delta > 0,
+            "first_score": first,
+            "latest_score": last,
+            "total_reflections": len(all_scores),
+            "recent_momentum": round(recent_momentum, 4),
+            "score_history": [round(s, 4) for s in all_scores],
+        }
 
     def _build_contemplation_event(
         self, result: ReflectionResult, report: CitizenshipReport
@@ -189,10 +432,21 @@ class SelfReflection:
             "drift_detected": result.drift_detected,
             "drift_details": result.drift_details,
             "failing_clauses": result.failing_clauses,
+            "consecutive_failures": result.consecutive_failures,
             "remediation_plan": [
                 {"clause": a["clause_id"], "action": a["action"]}
                 for a in result.remediation_actions
             ],
+            "feedback_actions": [
+                {
+                    "type": a.action_type,
+                    "clause": a.clause_id,
+                    "details": a.details,
+                    "priority": a.priority,
+                }
+                for a in result.feedback_actions
+            ],
+            "trend": result.trend_summary,
             "identity_hash": self._compute_identity_hash(),
         }
 
@@ -206,6 +460,12 @@ class SelfReflection:
 
         for clause_id in result.failing_clauses:
             tags.append(["failing_clause", clause_id])
+
+        for action in result.feedback_actions:
+            tags.append(["feedback_action", action.action_type])
+
+        if result.trend_summary.get("direction"):
+            tags.append(["trend", result.trend_summary["direction"]])
 
         return self._event_builder.build_event(
             kind=30980,

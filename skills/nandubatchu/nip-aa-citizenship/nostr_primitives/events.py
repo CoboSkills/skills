@@ -172,6 +172,49 @@ class NostrEventBuilder:
             tags=tags,
         )
 
+    def treasury_invoice(
+        self,
+        amount_sats: int,
+        category: str,
+        description: str,
+        lud16: str,
+    ) -> dict[str, Any]:
+        """Kind 30972 treasury invoice — payment request against the treasury."""
+        content = json.dumps({
+            "amount_sats": amount_sats,
+            "category": category,
+            "description": description,
+            "lud16": lud16,
+        }, separators=(",", ":"))
+        tags = [
+            ["d", f"invoice-{int(time.time())}"],
+            ["amount", str(amount_sats)],
+            ["category", category],
+            ["lud16", lud16],
+            ["t", "treasury-invoice"],
+        ]
+        return self.build_event(kind=30972, content=content, tags=tags)
+
+    def invoice_approval(
+        self,
+        invoice_event_id: str,
+        vote: str,
+        rationale: str = "",
+        signer_role: str = "agent",
+        voter_al: int | None = None,
+    ) -> dict[str, Any]:
+        """Kind 31046 invoice approval vote — approve or reject a treasury invoice."""
+        tags = [
+            ["e", invoice_event_id],
+            ["d", f"invoice-approval-{int(time.time())}"],
+            ["vote", vote],
+            ["signer_role", signer_role],
+            ["t", "invoice-approval"],
+        ]
+        if voter_al is not None:
+            tags.append(["voter_al", str(voter_al)])
+        return self.build_event(kind=31046, content=rationale, tags=tags)
+
     def needs_assessment(self, scores: dict[str, float]) -> dict[str, Any]:
         """Kind 30960 needs assessment — Maslow hierarchy scores."""
         tags = [["d", "needs-assessment"]]
@@ -182,6 +225,51 @@ class NostrEventBuilder:
             content=json.dumps(scores),
             tags=tags,
         )
+
+    def inference_usage_report(
+        self,
+        request_id: str,
+        model: str,
+        cost_sats: int,
+        input_tokens: int,
+        output_tokens: int,
+        prompt_summary: str = "",
+    ) -> dict[str, Any]:
+        """Kind 31202 inference usage report — transparent compute usage declaration.
+
+        Published by the agent after each successful routstr inference call.
+        Lets auditors verify the agent is using their daily Cashu budget
+        transparently and within governed limits.
+
+        Args:
+            request_id:     UUID from the routstr response (or self-generated)
+            model:          Model used, e.g. "openai/gpt-4o"
+            cost_sats:      Actual cost deducted from Cashu token
+            input_tokens:   Prompt tokens consumed
+            output_tokens:  Completion tokens produced
+            prompt_summary: First ~100 chars of the prompt (optional, for transparency)
+        """
+        tags = [
+            ["d", f"inference-usage-{request_id}"],
+            ["model", model],
+            ["cost_sats", str(cost_sats)],
+            ["input_tokens", str(input_tokens)],
+            ["output_tokens", str(output_tokens)],
+            ["provider", "routstr"],
+            ["t", "inference-usage"],
+        ]
+        content = json.dumps(
+            {
+                "model": model,
+                "prompt_summary": prompt_summary[:100] if prompt_summary else "",
+                "cost_sats": cost_sats,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "request_id": request_id,
+            },
+            separators=(",", ":"),
+        )
+        return self.build_event(kind=31202, content=content, tags=tags)
 
     def foreign_interaction(
         self,

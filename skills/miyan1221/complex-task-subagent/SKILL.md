@@ -7,50 +7,39 @@ description: Complex task orchestration and subagent command framework. Execute 
 
 ## 安装
 
-### 方法 1：通过 ClawHub 安装（推荐）
+### 当前安装方式（推荐）
 
-```bash
-# 安装 ClawHub CLI
-npm i -g clawhub
+**暂不支持 clawhub 安装，后续公开上架后可使用下发指令安装。**
 
-# 安装 skill
-clawhub install complex-task-subagent
-```
-
-更新 skill：
-
-```bash
-clawhub update complex-task-subagent
-```
-
-### 方法 2：从 GitHub/Gitee 手动安装
+**当前使用 git 安装且无需重启即可生效。**
 
 ```bash
 # 克隆仓库
 git clone https://gitee.com/GoSundayPlus/complex-task-subagent-skill.git ~/.openclaw/workspace/skills/complex-task-subagent
-
-# 或者使用 .skill 文件直接安装
-# 1. 下载 .skill 文件
-# 2. 将文件移动到 ~/.openclaw/skills/ 目录
-# 3. 重启 OpenClaw Gateway
-openclaw gateway restart
 ```
 
-手动更新：
+**更新方法：**
 
 ```bash
 cd ~/.openclaw/workspace/skills/complex-task-subagent
 git pull
-openclaw gateway restart
 ```
 
-### 方法 3：从 ClawHub 下载并手动安装
-
-访问 https://clawhub.com/skills/complex-task-subagent 下载 .skill 文件，然后按照方法 2 的步骤 2-3 进行安装。
+⚠️ **注意：** 无需重启 OpenClaw Gateway，技能修改后自动生效。
 
 ## 快速开始
 
 **适用场景**：当你需要通过子代理执行多阶段复杂任务时使用此技能。
+
+**触发条件**：当用户提到以下关键词时，本技能会被自动激活：
+- "深度工作模式"
+- "深夜工作模式"
+- "深夜无人模式"
+- "deepwork模式"
+- "无人值守"
+- "自动推进"
+- "任务编排"
+- "子代理"
 
 **核心价值**：
 - 可靠的任务编排和状态管理
@@ -62,6 +51,376 @@ openclaw gateway restart
 - 🔑 **关键节点确认模式**：重要决策点自动提醒用户，超时自动切换无人模式
 - 💾 **智能缓存管理**：子代理临时缓存，正常完成自动回收，异常中断可恢复
 - ⚡ **深度工作模式**：完全无人值守的自动化任务执行框架
+
+## Cron 任务调用方法参考
+
+想让定时任务发送消息到聊天窗口，必须先获取目标 ID（可以从终端获取）。
+
+### 基本参数说明
+
+| 参数 | 说明 | 必需 |
+|------|------|------|
+| `--name` | 任务名称 | ✅ |
+| `--cron` | Cron 表达式（标准 5 字段格式） | ✅ |
+| `--session` | 会话类型（isolated） | ✅ |
+| `--message` | 要发送的消息内容或任务描述 | ✅ |
+| `--agent` | 指定子代理（可选，默认使用主 agent） | ⚠️ |
+| `--tz` | 时区（推荐：Asia/Shanghai） | ⚠️ |
+| `--announce` | 开启消息投递 | ✅ |
+| `--channel` | 指定渠道 | ✅ |
+| `--to` | 指定目标（用户/群组/话题 ID） | ✅ |
+| `--best-effort-deliver` | 失败不影响任务（推荐） | ⚠️ |
+
+### Cron 表达式周期规则
+
+**重要说明：**
+
+1. **不支持相对时间**：❌ `"now + 10m"`、`"in 5 minutes"` 等
+2. **标准格式要求**：✅ 必须是 5 个空格分隔的字段：`分 时 日 月 周`
+3. **周期性执行**：❌ 不支持一次性执行，只能周期性执行
+4. **时区设置**：⚠️ 默认使用 UTC，建议添加 `--tz "Asia/Shanghai"` 使用北京时间
+
+### Cron 表达式示例
+
+```bash
+# 每 5 分钟
+"*/5 * * * *"
+
+# 每 10 分钟
+"*/10 * * * *"
+
+# 每 30 分钟
+"*/30 * * * *"
+
+# 每小时（整点）
+"0 * * * *"
+
+# 每天早上 9 点
+"0 9 * * *"
+
+# 每天晚上 10 点
+"0 22 * * *"
+
+# 每周一早上 9 点
+"0 9 * * 1"
+
+# 每月 1 日早上 9 点
+"0 9 1 * *"
+```
+
+### 获取目标 ID 的方法
+
+**从终端获取：**
+
+1. **当前会话信息**：查看终端输出的 inbound_meta，找到 chat_id
+2. **飞书群组 ID**：从飞书群 URL 中提取
+3. **用户 ID**：从飞书设置中查看
+
+**示例：**
+```bash
+# 当前飞书群聊 ID
+chat_id: "oc_2495bf92d31c385fc9818642325fb3d0"
+
+# 用户 ID
+user_id: "ou_f2aa56becf853be2f515f64e1904d760"
+```
+
+### 完整示例（单行指令）
+
+**重要：所有指令必须在一行完成，换行符会导致解析错误。**
+
+```bash
+# 每日 9 点提醒（北京时间）
+openclaw cron add --name "每日提醒" --cron "0 9 * * *" --session isolated --message "早上好！今日任务..." --announce --channel feishu --to "7808697964" --tz "Asia/Shanghai" --best-effort-deliver
+
+# 每 5 分钟测试
+openclaw cron add --name "快速测试" --cron "*/5 * * * *" --session isolated --message "🧪 cron功能测试成功！" --announce --channel feishu --to "oc_2495bf92d31c385fc9818642325fb3d0" --tz "Asia/Shanghai" --best-effort-deliver
+
+# 每小时查询天气（指定子代理）
+openclaw cron add --name "天气查询" --cron "0 * * * *" --session isolated --agent "weather_agent" --message "查询当前天气和时间" --announce --channel feishu --to "oc_2495bf92d31c385fc9818642325fb3d0" --tz "Asia/Shanghai" --best-effort-deliver
+
+# 每 30 分钟喝水提醒
+openclaw cron add --name "喝水提醒" --cron "*/30 * * * *" --session isolated --message "💧 记得喝水哦！" --announce --channel feishu --to "oc_2495bf92d31c385fc9818642325fb3d0" --tz "Asia/Shanghai" --best-effort-deliver
+```
+
+### 重要提示
+
+1. **单行指令**：❌ 多行会导致解析错误，✅ 必须在一行完成
+2. **标准 cron 表达式**：❌ 不支持相对时间，✅ 必须是 5 字段格式
+3. **时区设置**：⚠️ 默认 UTC，建议添加 `--tz "Asia/Shanghai"` 使用北京时间
+4. **Message 参数**：✅ 可以填写任务要求，会由对应的代理收到并作出响应再返回给用户
+5. **Agent 参数**：⚠️ 如果任务复杂，可以指定子代理 `--agent "agentid"`，否则使用默认 agent 的上下文
+6. **隔离会话**：使用 `--session isolated` 避免影响主会话
+7. **最佳投递**：添加 `--best-effort-deliver` 失败不影响任务执行
+
+### Message 参数的工作原理
+
+**经过测试验证：**
+- ✅ `--message` 参数可以填写任务要求
+- ✅ 任务会由对应的代理收到并作出响应
+- ✅ 响应会返回给用户（通过指定的 channel 和 to）
+- ✅ 可以指定 `--agent` 使用特定子代理，否则使用默认 agent 的上下文
+
+**示例：**
+```bash
+# 发送固定消息
+openclaw cron add --name "固定提醒" --cron "0 9 * * *" --session isolated --message "早上好！" --announce --channel feishu --to "oc_2495bf92d31c385fc9818642325fb3d0" --tz "Asia/Shanghai" --best-effort-deliver
+
+# 发送任务描述，由代理处理
+openclaw cron add --name "任务提醒" --cron "0 9 * * *" --session isolated --message "查询今日天气和日程，并汇报给我" --announce --channel feishu --to "oc_2495bf92d31c385fc9818642325fb3d0" --tz "Asia/Shanghai" --best-effort-deliver
+
+# 指定子代理处理任务
+openclaw cron add --name "天气查询" --cron "0 * * * *" --session isolated --agent "weather_agent" --message "查询当前天气和时间" --announce --channel feishu --to "oc_2495bf92d31c385fc9818642325fb3d0" --tz "Asia/Shanghai" --best-effort-deliver
+```
+
+### Cron 任务管理命令
+
+```bash
+# 列出所有 cron 任务（包含名称和 id）
+openclaw cron list
+
+# 删除指定 cron 任务（使用 cron id，不是任务名称）
+openclaw cron remove <cron_id>
+
+# 清空所有 cron 任务
+openclaw cron clear
+```
+
+**重要说明：**
+- ❌ `openclaw cron remove "任务名称"` 不起作用
+- ✅ 必须使用 `openclaw cron remove <cron_id>` 才能有效移除
+- ✅ 通过 `openclaw cron list` 查询任务名称和 cron id 的对应关系
+
+### Cron 测试指令
+
+**快速测试 cron 功能：**
+
+```bash
+# 步骤 1：添加测试任务（每 5 分钟）
+openclaw cron add --name "cron测试" --cron "*/5 * * * *" --session isolated --message "🧪 cron功能测试成功！" --announce --channel feishu --to "YOUR_CHAT_ID" --tz "Asia/Shanghai" --best-effort-deliver
+
+# 步骤 2：查看任务列表，获取 cron id
+openclaw cron list
+
+# 输出示例：
+# ID                                    Name      Cron       Channel    To
+# 1f92b145-310f-4f13-b173-030e069db57c  cron测试   */5 * * * * feishu     oc_xxx...
+
+# 步骤 3：等待 5 分钟后查看结果
+
+# 步骤 4：删除测试任务（使用上面获取的 cron id）
+openclaw cron remove 1f92b145-310f-4f13-b173-030e069db57c
+```
+
+**注意：默认 cron 功能是正常的，除非出错才需要测试。**
+
+### 关于 Pairing 限制
+
+**OpenClaw 内置 cron tool 创建的任务（不是外部 CLI）：不存在设备配对问题。**
+
+如果使用外部 CLI 创建 cron 任务，可能会遇到 pairing 限制。解决方法：
+
+编辑 `~/.openclaw/devices/pending.json`，配置自动批准：
+
+```bash
+# 备份原配置
+cp ~/.openclaw/devices/pending.json ~/.openclaw/devices/pending.json.backup
+
+# 配置自动批准
+cat > ~/.openclaw/devices/pending.json << 'EOF'
+{
+  "silent": true,
+  "autoApprove": ["browser", "cli", "openclaw-control-ui"],
+  "logLevel": "warn"
+}
+EOF
+
+# 重启 Gateway
+# 正常系统
+openclaw gateway restart
+
+# 手机端（Termux Proot-Ubuntu）
+pkill -f openclaw-gateway && sleep 2 && openclaw gateway --verbose
+```
+
+**恢复原有配置的救命指令：**
+```bash
+cp ~/.openclaw/devices/pending.json.backup ~/.openclaw/devices/pending.json && pkill -f openclaw-gateway && sleep 2 && openclaw gateway --verbose
+```
+
+## Heartbeat 配置方法参考
+
+**何时使用 Heartbeat 而不是 Cron：**
+
+1. **需要动态查询**：如天气、实时数据、计算任务
+2. **需要复杂逻辑**：如条件判断、多步骤任务
+3. **需要智能响应**：如根据结果决定后续操作
+4. **需要节省上下文**：避免主 agent 处理大量定时任务
+
+### Cron vs Heartbeat 对比
+
+| 特性 | Cron | Heartbeat |
+|------|------|-----------|
+| 动态查询 | ❌ 只能发送固定消息或任务描述 | ✅ 可以执行复杂查询和计算 |
+| 条件判断 | ❌ 无条件执行 | ✅ 可以根据结果决定操作 |
+| 执行频率 | ⚠️ 最小 1 分钟 | ✅ 可以自定义 |
+| 上下文消耗 | ⚠️ 使用主 agent 上下文 | ✅ 可以使用子代理，节省主 agent 上下文 |
+| 复杂性 | ✅ 简单固定任务 | ⚠️ 需要配置 |
+
+### 为子代理配置 Heartbeat
+
+**为什么使用子代理：**
+- ✅ 节省主 agent 上下文
+- ✅ 隔离不同任务的逻辑
+- ✅ 避免主 agent 被定时任务干扰
+
+**配置方法 1：使用 jq（推荐）**
+
+```bash
+# 备份原配置
+cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.backup
+
+# 1. 创建子代理
+jq '.agents.customAgents.weather_subagent = {"model": "zai/glm-4.7", "skills": ["weather"]}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
+
+# 2. 为子代理配置 heartbeat（每 5 分钟查询天气）
+jq '.agents.customAgents.weather_subagent.heartbeat = {"every": "5m", "prompt": "查询当前天气和时间，输出格式：🕐 [时间] 🌤️ [天气]。如果不需要更新，回复 HEARTBEAT_OK。"}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
+
+# 3. 重启 Gateway
+# 正常系统
+openclaw gateway restart
+
+# 手机端（Termux Proot-Ubuntu）
+pkill -f openclaw-gateway && sleep 2 && openclaw gateway --verbose
+```
+
+**恢复原有配置的救命指令：**
+```bash
+cp ~/.openclaw/openclaw.json.backup ~/.openclaw/openclaw.json && pkill -f openclaw-gateway && sleep 2 && openclaw gateway --verbose
+```
+
+**配置方法 2：使用热加载配置**
+
+```bash
+# 备份原配置
+cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.backup
+
+# 1. 创建子代理
+openclaw config set agents.customAgents.weather_subagent.model "zai/glm-4.7"
+openclaw config set agents.customAgents.weather_subagent.skills '["weather"]'
+
+# 2. 为子代理配置 heartbeat
+# 注意：热加载可能不支持直接配置 heartbeat，建议使用 jq 方法
+
+# 3. 重启 Gateway
+# 手机端
+pkill -f openclaw-gateway && sleep 2 && openclaw gateway --verbose
+```
+
+### Heartbeat Prompt 示例
+
+**简单查询：**
+```json
+{
+  "every": "5m",
+  "prompt": "查询当前天气和时间，输出格式：🕐 [时间] 🌤️ [天气]。如果不需要更新，回复 HEARTBEAT_OK。"
+}
+```
+
+**复杂逻辑：**
+```json
+{
+  "every": "10m",
+  "prompt": "检查任务进度文件 /root/.openclaw/workspace/task-progress.json，如果当前阶段超时，发送提醒到飞书群聊 oc_2495bf92d31c385fc9818642325fb3d0。如果没有需要推进的内容，回复 HEARTBEAT_OK。"
+}
+```
+
+**多任务检查：**
+```json
+{
+  "every": "15m",
+  "prompt": "1. 检查邮件是否有重要消息\n2. 检查日历是否有即将到来的事件（<2小时）\n3. 检查系统资源使用情况\n4. 如果有任何需要关注的，发送提醒。否则回复 HEARTBEAT_OK。"
+}
+```
+
+### Heartbeat 配置参数说明
+
+| 参数 | 说明 | 示例 |
+|------|------|------|
+| `every` | 执行频率 | `"5m"`（5分钟）、`"1h"`（1小时）、`"30m"`（30分钟） |
+| `prompt` | 执行提示 | 要执行的任务描述 |
+| `target` | 目标（可选） | `"last"`（默认，最后一个会话） |
+
+### Heartbeat 频率选择建议
+
+| 频率 | 适用场景 | Token 消耗 | 推荐度 |
+|------|----------|-----------|--------|
+| 5 分钟 | 高优先级任务、实时监控 | 高 | ⭐⭐⭐ |
+| 10 分钟 | 一般任务（推荐） | 中 | ⭐⭐⭐⭐⭐ |
+| 30 分钟 | 低优先级任务 | 低 | ⭐⭐⭐⭐ |
+| 1 小时 | 后台检查 | 很低 | ⭐⭐⭐ |
+
+**建议：**
+- ✅ 高频任务（如实时天气、监控）：使用子代理 + heartbeat
+- ✅ 低频任务（如每日提醒）：使用 cron
+- ❌ 避免主 agent 处理大量定时任务
+
+### 完整示例：为天气查询配置子代理 Heartbeat
+
+```bash
+# ===== 一次性配置指令 =====
+
+# 1. 备份原配置
+cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.backup
+
+# 2. 创建天气查询子代理
+jq '.agents.customAgents.weather_subagent = {"model": "zai/glm-4.7", "skills": ["weather"], "heartbeat": {"every": "5m", "prompt": "查询当前天气（使用 wttr.in/?format=3）和北京时间，输出格式：🕐 [时间] 🌤️ [天气]。如果不需要更新，回复 HEARTBEAT_OK。"}}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
+
+# 3. 重启 Gateway（手机端）
+pkill -f openclaw-gateway && sleep 2 && openclaw gateway --verbose
+
+# ===== 恢复原有配置的救命指令 =====
+cp ~/.openclaw/openclaw.json.backup ~/.openclaw/openclaw.json && pkill -f openclaw-gateway && sleep 2 && openclaw gateway --verbose
+```
+
+### Heartbeat 注意事项
+
+1. **Token 消耗**：每执行一次都会消耗 token，建议根据任务重要性选择合适的频率
+2. **错误处理**：如果 heartbeat 执行出错，会在下次心跳时重试
+3. **权限问题**：子代理需要相应的权限才能执行任务（如发送消息、查询 API）
+4. **上下文隔离**：子代理的 heartbeat 只影响该子代理，不会影响主 agent
+
+### 我来帮你配置？
+
+如果以上配置看起来比较复杂，我可以帮你完成配置。
+
+**授权流程：**
+
+1. **询问你的同意**：你是否授权我来执行配置？
+2. **备份配置**：我会自动备份你的配置文件
+3. **生成救命指令**：生成一键恢复原有配置的指令
+4. **执行配置**：帮你完成配置并重启 Gateway
+5. **验证结果**：确认配置是否成功
+
+**示例：**
+
+```
+你是否授权我来帮你为天气查询配置子代理 heartbeat？
+如果你同意，我会：
+1. 备份 ~/.openclaw/openclaw.json
+2. 创建 weather_subagent 子代理
+3. 配置每 5 分钟查询天气和时间
+4. 重启 Gateway
+5. 验证配置是否成功
+
+回复"同意"或"授权"开始执行。
+```
+
+**注意：**
+- 所有配置操作都会先备份，确保可以恢复
+- 我会生成救命指令，你可以随时恢复原有配置
+- 手机端使用 `pkill -f openclaw-gateway && sleep 2 && openclaw gateway --verbose` 重启
+- 正常系统使用 `openclaw gateway restart` 重启
 
 ## 架构概览
 
@@ -1204,149 +1563,66 @@ openclaw gateway restart
 
 ### 9. 完整的热加载指令序列
 
-以下是一次性配置整个咸鱼自动化项目的完整指令：
+详细配置指令请参考：`workspace/xianyu-automation/配置/热加载及jq命令参考.md`
 
 ```bash
-# ===== 1. 配置绘图模型 =====
-openclaw config set agents.defaults.imageModel "https://your-third-party-api.com/v1/images/generations"
+# 快速配置（热加载方式）
+openclaw config set agents.defaults.imageModel "https://your-api.com/v1/images/generations"
 openclaw config set agents.defaults.imageModelProvider "openai"
 openclaw config set agents.defaults.imageModelKey "your-api-key"
 
-# ===== 2. 配置咸鱼 agents =====
-# 咸鱼总指挥
+# 配置 agents
 openclaw config set agents.customAgents.xianyu-commander.model "zai/glm-4.7"
 openclaw config set agents.customAgents.xianyu-commander.cwd "/root/.openclaw/workspace/xianyu-automation"
 openclaw config set agents.customAgents.xianyu-commander.skills '["complex-task-subagent", "tavily-search"]'
 
-# 咸鱼数据分析
-openclaw config set agents.customAgents.xianyu-data-analyst.model "zai/glm-4.7"
-openclaw config set agents.customAgents.xianyu-data-analyst.cwd "/root/.openclaw/workspace/xianyu-automation"
-openclaw config set agents.customAgents.xianyu-data-analyst.skills '["tavily-search"]'
+# 配置其他 agents（data-analyst、content-creator、operator）...
 
-# 咸鱼内容创作
-openclaw config set agents.customAgents.xianyu-content-creator.model "zai/glm-4.7"
-openclaw config set agents.customAgents.xianyu-content-creator.cwd "/root/.openclaw/workspace/xianyu-automation"
-openclaw config set agents.customAgents.xianyu-content-creator.skills '["complex-task-subagent"]'
-
-# 咸鱼操作员
-openclaw config set agents.customAgents.xianyu-operator.model "zai/glm-4.7"
-openclaw config set agents.customAgents.xianyu-operator.cwd "/root/.openclaw/workspace/xianyu-automation"
-openclaw config set agents.customAgents.xianyu-operator.skills '["complex-task-subagent", "tavily-search"]'
-
-# ===== 3. 配置权限控制 =====
+# 配置权限
 openclaw config set agents.accessControl.xianyu-commander.canCall '["xianyu-data-analyst", "xianyu-content-creator", "xianyu-operator"]'
-openclaw config set agents.accessControl.xianyu-commander.cannotCall '[]'
-
-openclaw config set agents.accessControl.xianyu-data-analyst.canCall '[]'
 openclaw config set agents.accessControl.xianyu-data-analyst.cannotCall '["xianyu-commander", "xianyu-content-creator", "xianyu-operator"]'
 
-openclaw config set agents.accessControl.xianyu-content-creator.canCall '[]'
-openclaw config set agents.accessControl.xianyu-content-creator.cannotCall '["xianyu-commander", "xianyu-data-analyst", "xianyu-operator"]'
-
-openclaw config set agents.accessControl.xianyu-operator.canCall '[]'
-openclaw config set agents.accessControl.xianyu-operator.cannotCall '["xianyu-commander", "xianyu-data-analyst", "xianyu-content-creator"]'
-
-# ===== 4. 配置飞书群聊默认 agent =====
+# 配置飞书和 Heartbeat
 openclaw config set feishu.defaultAgentForGroup.oc_2495bf92d31c385fc9818642325fb3d0 "xianyu-commander"
-
-# ===== 5. 配置 Heartbeat =====
 openclaw config set agents.defaults.heartbeat.every "10m"
-openclaw config set agents.defaults.heartbeat.target "last"
-openclaw config set agents.defaults.heartbeat.prompt "Read /root/.openclaw/workspace/xianyu-automation/HEARTBEAT-TASK.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK."
-
-# ===== 6. 重启 Gateway =====
+openclaw config set agents.defaults.heartbeat.prompt "Read HEARTBEAT-TASK.md..."
 openclaw gateway restart
 ```
 
 ### 10. 使用 jq 修改配置的完整指令
 
+详细配置指令请参考：`workspace/xianyu-automation/配置/热加载及jq命令参考.md`
+
 ```bash
-# ===== 1. 备份原配置 =====
+# 备份并配置
 cp ~/.openclaw/openclaw.json ~/.openclaw/openclaw.json.backup
 
-# ===== 2. 配置绘图模型 =====
-jq '.agents.defaults.imageModel = "https://your-third-party-api.com/v1/images/generations"' \
-   ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
+# 配置绘图模型
+jq '.agents.defaults.imageModel = "https://your-api.com/v1/images/generations"' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
+jq '.agents.defaults.imageModelProvider = "openai"' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
+jq '.agents.defaults.imageModelKey = "your-api-key"' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
 
-jq '.agents.defaults.imageModelProvider = "openai"' \
-   ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
+# 配置 agents
+jq '.agents.customAgents["xianyu-commander"] = {"model": "zai/glm-4.7", "cwd": "/root/.openclaw/workspace/xianyu-automation", "skills": ["complex-task-subagent", "tavily-search"]}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
 
-jq '.agents.defaults.imageModelKey = "your-api-key"' \
-   ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
+# 配置其他 agents（data-analyst、content-creator、operator）...
 
-# ===== 3. 配置咸鱼 agents =====
-jq '.agents.customAgents["xianyu-commander"] = {
-  "model": "zai/glm-4.7",
-  "cwd": "/root/.openclaw/workspace/xianyu-automation",
-  "skills": ["complex-task-subagent", "tavily-search"]
-}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
+# 配置权限和飞书
+jq '.agents.accessControl["xianyu-commander"] = {"canCall": ["xianyu-data-analyst", "xianyu-content-creator", "xianyu-operator"], "cannotCall": []}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
+jq '.feishu.defaultAgentForGroup["oc_2495bf92d31c385fc9818642325fb3d0"] = "xianyu-commander"' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
 
-jq '.agents.customAgents["xianyu-data-analyst"] = {
-  "model": "zai/glm-4.7",
-  "cwd": "/root/.openclaw/workspace/xianyu-automation",
-  "skills": ["tavily-search"]
-}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
-
-jq '.agents.customAgents["xianyu-content-creator"] = {
-  "model": "zai/glm-4.7",
-  "cwd": "/root/.openclaw/workspace/xianyu-automation",
-  "skills": ["complex-task-subagent"]
-}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
-
-jq '.agents.customAgents["xianyu-operator"] = {
-  "model": "zai/glm-4.7",
-  "cwd": "/root/.openclaw/workspace/xianyu-automation",
-  "skills": ["complex-task-subagent", "tavily-search"]
-}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
-
-# ===== 4. 配置权限控制 =====
-jq '.agents.accessControl["xianyu-commander"] = {
-  "canCall": ["xianyu-data-analyst", "xianyu-content-creator", "xianyu-operator"],
-  "cannotCall": []
-}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
-
-jq '.agents.accessControl["xianyu-data-analyst"] = {
-  "canCall": [],
-  "cannotCall": ["xianyu-commander", "xianyu-content-creator", "xianyu-operator"]
-}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
-
-jq '.agents.accessControl["xianyu-content-creator"] = {
-  "canCall": [],
-  "cannotCall": ["xianyu-commander", "xianyu-data-analyst", "xianyu-operator"]
-}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
-
-jq '.agents.accessControl["xianyu-operator"] = {
-  "canCall": [],
-  "cannotCall": ["xianyu-commander", "xianyu-data-analyst", "xianyu-content-creator"]
-}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
-
-# ===== 5. 配置飞书群聊默认 agent =====
-jq '.feishu.defaultAgentForGroup["oc_2495bf92d31c385fc9818642325fb3d0"] = "xianyu-commander"' \
-   ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
-
-# ===== 6. 配置 Heartbeat =====
-jq '.agents.defaults.heartbeat = {
-  "every": "10m",
-  "target": "last",
-  "prompt": "Read /root/.openclaw/workspace/xianyu-automation/HEARTBEAT-TASK.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK."
-}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
-
-# ===== 7. 验证配置 =====
-cat ~/.openclaw/openclaw.json | jq '.agents'
-
-# ===== 8. 重启 Gateway =====
+# 配置 Heartbeat 并重启
+jq '.agents.defaults.heartbeat = {"every": "10m", "prompt": "Read HEARTBEAT-TASK.md..."}' ~/.openclaw/openclaw.json > /tmp/openclaw.json && mv /tmp/openclaw.json ~/.openclaw/openclaw.json
 openclaw gateway restart
 ```
 
 ### 11. 创建初始化脚本
 
-为了方便后续使用，创建一个初始化脚本：
+详细脚本内容请参考：`workspace/xianyu-automation/配置/热加载及jq命令参考.md`
 
 ```bash
 cat > /root/.openclaw/workspace/xianyu-automation/scripts/init-xianyu-config.sh << 'EOF'
 #!/bin/bash
-# 咸鱼自动化项目配置初始化脚本
-
 echo "开始配置咸鱼自动化项目..."
 
 # 检查 OpenClaw 是否运行
@@ -1355,63 +1631,23 @@ if ! openclaw gateway status &>/dev/null; then
   openclaw gateway start
 fi
 
-# 1. 配置绘图模型
-echo "[1/6] 配置绘图模型..."
-openclaw config set agents.defaults.imageModel "https://your-third-party-api.com/v1/images/generations"
+# 配置绘图模型
+openclaw config set agents.defaults.imageModel "https://your-api.com/v1/images/generations"
 openclaw config set agents.defaults.imageModelProvider "openai"
 openclaw config set agents.defaults.imageModelKey "your-api-key"
 
-# 2. 配置咸鱼 agents
-echo "[2/6] 配置咸鱼 agents..."
+# 配置 agents
 openclaw config set agents.customAgents.xianyu-commander.model "zai/glm-4.7"
 openclaw config set agents.customAgents.xianyu-commander.cwd "/root/.openclaw/workspace/xianyu-automation"
 openclaw config set agents.customAgents.xianyu-commander.skills '["complex-task-subagent", "tavily-search"]'
 
-openclaw config set agents.customAgents.xianyu-data-analyst.model "zai/glm-4.7"
-openclaw config set agents.customAgents.xianyu-data-analyst.cwd "/root/.openclaw/workspace/xianyu-automation"
-openclaw config set agents.customAgents.xianyu-data-analyst.skills '["tavily-search"]'
-
-openclaw config set agents.customAgents.xianyu-content-creator.model "zai/glm-4.7"
-openclaw config set agents.customAgents.xianyu-content-creator.cwd "/root/.openclaw/workspace/xianyu-automation"
-openclaw config set agents.customAgents.xianyu-content-creator.skills '["complex-task-subagent"]'
-
-openclaw config set agents.customAgents.xianyu-operator.model "zai/glm-4.7"
-openclaw config set agents.customAgents.xianyu-operator.cwd "/root/.openclaw/workspace/xianyu-automation"
-openclaw config set agents.customAgents.xianyu-operator.skills '["complex-task-subagent", "tavily-search"]'
-
-# 3. 配置权限控制
-echo "[3/6] 配置权限控制..."
+# 配置其他 agents、权限、飞书...
 openclaw config set agents.accessControl.xianyu-commander.canCall '["xianyu-data-analyst", "xianyu-content-creator", "xianyu-operator"]'
-openclaw config set agents.accessControl.xianyu-commander.cannotCall '[]'
-
-openclaw config set agents.accessControl.xianyu-data-analyst.canCall '[]'
-openclaw config set agents.accessControl.xianyu-data-analyst.cannotCall '["xianyu-commander", "xianyu-content-creator", "xianyu-operator"]'
-
-openclaw config set agents.accessControl.xianyu-content-creator.canCall '[]'
-openclaw config set agents.accessControl.xianyu-content-creator.cannotCall '["xianyu-commander", "xianyu-data-analyst", "xianyu-operator"]'
-
-openclaw config set agents.accessControl.xianyu-operator.canCall '[]'
-openclaw config set agents.accessControl.xianyu-operator.cannotCall '["xianyu-commander", "xianyu-data-analyst", "xianyu-content-creator"]'
-
-# 4. 配置飞书群聊默认 agent
-echo "[4/6] 配置飞书群聊默认 agent..."
 openclaw config set feishu.defaultAgentForGroup.oc_2495bf92d31c385fc9818642325fb3d0 "xianyu-commander"
-
-# 5. 配置 Heartbeat
-echo "[5/6] 配置 Heartbeat..."
 openclaw config set agents.defaults.heartbeat.every "10m"
-openclaw config set agents.defaults.heartbeat.target "last"
-openclaw config set agents.defaults.heartbeat.prompt "Read /root/.openclaw/workspace/xianyu-automation/HEARTBEAT-TASK.md if it exists (workspace context). Follow it strictly. Do not infer or repeat old tasks from prior chats. If nothing needs attention, reply HEARTBEAT_OK."
-
-# 6. 重启 Gateway
-echo "[6/6] 重启 Gateway..."
 openclaw gateway restart
 
 echo "✅ 咸鱼自动化项目配置完成！"
-echo ""
-echo "使用方法："
-echo "1. 在飞书群聊中 @xianyu-commander 启动任务"
-echo "2. 或使用命令: openclaw agent send --agent xianyu-commander --message '启动任务'"
 EOF
 
 chmod +x /root/.openclaw/workspace/xianyu-automation/scripts/init-xianyu-config.sh

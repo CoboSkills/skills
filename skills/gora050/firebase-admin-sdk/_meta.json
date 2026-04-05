@@ -3,9 +3,15 @@
   "slug": "firebase-admin-sdk",
   "displayName": "Firebase Admin Sdk",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774245815160,
-    "commit": "https://github.com/openclaw/skills/commit/d290409f1eaaa7318d1838be69e6a658608cea81"
+    "version": "1.0.2",
+    "publishedAt": 1775166581995,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774245815160,
+      "commit": "https://github.com/openclaw/skills/commit/d290409f1eaaa7318d1838be69e6a658608cea81"
+    }
+  ]
 }

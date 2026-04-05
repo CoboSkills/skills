@@ -3,11 +3,16 @@
   "slug": "klingai",
   "displayName": "Kling AI",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1774515667795,
-    "commit": "https://github.com/openclaw/skills/commit/684df3cc336949083252705d05bdb91b9c146b8f"
+    "version": "1.0.6",
+    "publishedAt": 1775137462346,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1774515667795,
+      "commit": "https://github.com/openclaw/skills/commit/684df3cc336949083252705d05bdb91b9c146b8f"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1774018417721,

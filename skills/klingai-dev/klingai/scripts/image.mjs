@@ -11,12 +11,110 @@ import { parseArgs, getTokenOrExit, readMediaAsValue, resolveAllowedOutputDir } 
 const API_GEN = '/v1/images/generations';
 const API_OMNI = '/v1/images/omni-image';
 
+function normalizeModelName(v) {
+  return String(v || '').trim();
+}
+
+function normalizeAliasKey(v) {
+  return String(v || '').trim().toLowerCase().replace(/[\s_]+/g, '-');
+}
+
+function getImageModelAliasTarget(v) {
+  const key = normalizeAliasKey(v);
+  const aliasMap = new Map([
+    ['omni3', 'kling-v3-omni'],
+    ['omni-3', 'kling-v3-omni'],
+    ['omni-v3', 'kling-v3-omni'],
+    ['v3-omni', 'kling-v3-omni'],
+    ['o3', 'kling-v3-omni'],
+    ['O3', 'kling-v3-omni'],
+    ['kling-image-o3', 'kling-v3-omni'],
+    ['kling-o3', 'kling-v3-omni'],
+    ['omni1', 'kling-image-o1'],
+    ['omni-1', 'kling-image-o1'],
+    ['o1', 'kling-image-o1'],
+    ['kling-o1', 'kling-image-o1'],
+  ]);
+  return aliasMap.get(key) || '';
+}
+
+function validateModelAliasInput(rawModel) {
+  if (!rawModel) return;
+  const model = normalizeModelName(rawModel).toLowerCase();
+  const target = getImageModelAliasTarget(rawModel);
+  if (!target || model === target) return;
+  throw new Error(
+    `Invalid --model alias / --model 使用了别名: ${rawModel}\n`
+    + `Use canonical name / 请改用标准名: ${target}\n`
+    + 'Alias mapping / 别名映射: omni3 | omni v3 | o3 -> kling-v3-omni; image o1/omni1 -> kling-image-o1',
+  );
+}
+
+function validateModelForRoute(apiPath, args) {
+  validateModelAliasInput(args.model);
+  const model = normalizeModelName(args.model);
+  if (!model) return;
+
+  // We only validate what we can be sure about from public enums.
+  // - omni-image: only kling-v3-omni / kling-image-o1
+  // - generations: must not use omni-only models
+  if (apiPath === API_OMNI) {
+    const allowed = new Set(['kling-v3-omni', 'kling-image-o1']);
+    if (!allowed.has(model)) {
+      throw new Error(
+        `Invalid --model for omni-image / omni-image 不支持该模型: ${model}\n`
+        + `Allowed / 允许: kling-v3-omni, kling-image-o1`,
+      );
+    }
+  } else {
+    const forbidden = new Set(['kling-v3-omni', 'kling-image-o1', 'kling-video-o1']);
+    if (forbidden.has(model)) {
+      throw new Error(
+        `Invalid --model for generations / generations 不支持该模型: ${model}\n`
+        + `Hint / 提示: remove --model or use kling-v3`,
+      );
+    }
+  }
+}
+
+function parseImageInputs(rawImageArg) {
+  if (!rawImageArg) return [];
+  const parts = String(rawImageArg).split(',').map(s => s.trim());
+  if (parts.some(p => !p)) {
+    throw new Error(
+      'Invalid --image list / --image 列表中存在空值；请移除空项并确保每个 image 非空。',
+    );
+  }
+  return parts;
+}
+
+function parseElementIds(rawElementIdsArg) {
+  if (!rawElementIdsArg) return [];
+  const parts = String(rawElementIdsArg).split(',').map(s => s.trim());
+  if (parts.some(p => !p)) {
+    throw new Error(
+      'Invalid --element_ids list / --element_ids 列表中存在空值；请移除空项并确保每个 element_id 非空。',
+    );
+  }
+  return parts;
+}
+
+function validateOmniRefCount(imageInputs, elementIds) {
+  const totalRefs = imageInputs.length + elementIds.length;
+  if (totalRefs > 10) {
+    throw new Error(
+      `Too many refs for omni-image / omni-image 参考图与主体总数超限: max 10 (current ${totalRefs})`,
+    );
+  }
+}
+
 function printHelp() {
   console.log(`Kling AI image generation
 
 Usage:
   node kling.mjs image --prompt <text> [options]           # Text/image-to-image
   node kling.mjs image --prompt "..." [--resolution 4k]     # 4K / series / subject → Omni
+  node kling.mjs image --model kling-v3-omni --prompt "..."  # explicit Omni model → omni-image (t2i / i2i)
   node kling.mjs image --task_id <id> [--download]         # Query/download
 
 Submit (common):
@@ -38,6 +136,7 @@ Omni (4K/series/subject):
   --series_amount   Series count 2-9 (when result_type=series)
   --image           Reference image path or URL, comma-separated for multiple
   --element_ids     Subject IDs, comma-separated
+  (omni refs)       image count + element count <= 10
 
 Query/download:
   --task_id         Task ID
@@ -45,12 +144,14 @@ Query/download:
 
 Env:
   KLING_TOKEN       Bearer Token (recommended)
-  KLING_API_KEY     accessKey|secretKey (alternative)
   KLING_MEDIA_ROOTS Comma-separated extra dirs for --image / --output_dir (default: cwd only)
   KLING_ALLOW_ABSOLUTE_PATHS=1  Allow any local path (e.g. WSL downloads)`);
 }
 
 function useOmniApi(args) {
+  // Match video.mjs chooseApiPath: explicit Omni image models → omni-image (incl. plain text-to-image).
+  const m = normalizeModelName(args.model).toLowerCase();
+  if (m === 'kling-v3-omni' || m === 'kling-image-o1') return true;
   if (args.element_ids) return true;
   if (args.result_type === 'series') return true;
   if ((args.resolution || '').toLowerCase() === '4k') return true;
@@ -103,6 +204,7 @@ async function pollAndDownloadImages(apiPath, taskId, outputDir, opts = {}) {
 export async function main() {
   const args = parseArgs(process.argv);
   if (args.help) { printHelp(); return; }
+  validateModelAliasInput(args.model);
 
   const token = await getTokenOrExit();
   const outputDir = resolveAllowedOutputDir(args.output_dir || './output');
@@ -140,8 +242,12 @@ export async function main() {
   }
 
   const apiPath = useOmniApi(args) ? API_OMNI : API_GEN;
+  const imageInputs = parseImageInputs(args.image);
+  const elementIds = parseElementIds(args.element_ids);
 
   try {
+    validateModelForRoute(apiPath, args);
+
     if (apiPath === API_GEN) {
       const payload = {
         model_name: args.model || 'kling-v3',
@@ -152,8 +258,8 @@ export async function main() {
         resolution: args.resolution || '1k',
         callback_url: '',
       };
-      if (args.image) {
-        payload.image = await readMediaAsValue(args.image.trim().split(',')[0].trim());
+      if (imageInputs.length > 0) {
+        payload.image = await readMediaAsValue(imageInputs[0]);
       }
       const result = await submitTask(API_GEN, payload, token);
       console.log(`\nTask ID / 任务 ID: ${result.taskId}`);
@@ -176,19 +282,24 @@ export async function main() {
       callback_url: '',
     };
     if (payload.result_type === 'series') {
+      if (imageInputs.length === 0) {
+        throw new Error(
+          'Invalid --result_type series without --image / 组图仅支持 i2i，请提供 --image（t2i 不支持 series）。',
+        );
+      }
       payload.series_amount = parseInt(args.series_amount || '4', 10);
     } else {
       payload.n = parseInt(args.n || '1', 10);
     }
-    if (args.image) {
-      const images = args.image.split(',');
+    validateOmniRefCount(imageInputs, elementIds);
+    if (imageInputs.length > 0) {
       payload.image_list = [];
-      for (const img of images) {
-        payload.image_list.push({ image: await readMediaAsValue(img.trim()) });
+      for (const img of imageInputs) {
+        payload.image_list.push({ image: await readMediaAsValue(img) });
       }
     }
-    if (args.element_ids) {
-      payload.element_list = args.element_ids.split(',').map(id => ({ element_id: id.trim() }));
+    if (elementIds.length > 0) {
+      payload.element_list = elementIds.map(id => ({ element_id: id }));
     }
 
     const result = await submitTask(API_OMNI, payload, token);

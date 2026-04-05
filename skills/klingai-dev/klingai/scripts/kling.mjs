@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Kling AI — video generation, image generation, subject management
- * Usage: node kling.mjs <video|image|element> [options]
+ * Usage: node kling.mjs <video|image|element|account> [options]
  * Node.js 18+, zero external deps
  */
 import { readFileSync } from 'node:fs';
@@ -27,8 +27,9 @@ const vidx = argvRest.indexOf('--skill-version');
 if (vidx === -1 || argvRest[vidx + 1] == null || String(argvRest[vidx + 1]).startsWith('--')) {
   argvRest = [argvRest[0], '--skill-version', getVersionFromSkillMd() || '1.0', ...argvRest.slice(1)];
 }
+process.argv = [process.argv[0], process.argv[1], ...argvRest];
 
-const SUBCOMMANDS = new Set(['video', 'image', 'element']);
+const SUBCOMMANDS = new Set(['video', 'image', 'element', 'account']);
 
 function printHelp() {
   console.log(`Kling AI
@@ -40,17 +41,19 @@ Subcommands:
   video    Video generation (text-to-video, image-to-video, Omni, multi-shot)
   image    Image generation (text-to-image, image-to-image, 4K, series, subject)
   element  Subject management (create, query, list, delete)
+  account  Quota, import/configure credentials
 
 Examples:
   node kling.mjs video --prompt "A cat running on the grass" --output_dir ./out
   node kling.mjs image --prompt "Sunset over mountains" --resolution 4k
   node kling.mjs element --action list
+  node kling.mjs account
 
   node kling.mjs video --help
   node kling.mjs image --help
   node kling.mjs element --help
 
-Env: KLING_TOKEN (recommended) or KLING_API_KEY (accessKey|secretKey)
+Env: credentials under ~/.config/kling/.credentials (or KLING_STORAGE_ROOT/.credentials) first; fallback KLING_TOKEN (env first, then kling.env); KLING_API_BASE
   --skill-version: version for skill (default from SKILL.md)`);
 }
 
@@ -61,7 +64,7 @@ if (!sub || sub === '--help' || sub === '-h') {
 }
 
 if (!SUBCOMMANDS.has(sub)) {
-  console.error(`Error / 错误: unknown subcommand "${sub}". Use: video | image | element`);
+  console.error(`Error / 错误: unknown subcommand "${sub}". Use: video | image | element | account`);
   process.exit(1);
 }
 

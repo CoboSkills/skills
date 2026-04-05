@@ -13,6 +13,10 @@ const API_PATH = '/v1/general/advanced-custom-elements';
 const API_PATH_PRESETS = '/v1/general/advanced-presets-elements';
 const API_PATH_DELETE = '/v1/general/delete-elements';
 
+function getElementType(el) {
+  return el?.reference_type || el?.element_type || el?.ref_type || 'unknown';
+}
+
 function printHelp() {
   console.log(`Kling AI subject management (create/query/list/delete)
 
@@ -52,8 +56,7 @@ Delete:
   --element_id        Subject ID to delete
 
 Env:
-  KLING_TOKEN         Bearer Token (recommended)
-  KLING_API_KEY       accessKey|secretKey (alternative)`);
+  KLING_TOKEN         Bearer Token (recommended)`);
 }
 
 async function actionCreate(args, token) {
@@ -116,7 +119,7 @@ async function actionCreate(args, token) {
         console.log(`  Element ID / 主体 ID: ${el.element_id}`);
         console.log(`  Name / 名称: ${el.element_name}`);
         console.log(`  Description / 描述: ${el.element_description}`);
-        console.log(`  Type / 类型: ${el.reference_type}`);
+        console.log(`  Type / 类型: ${getElementType(el)}`);
       }
     }
   }
@@ -133,7 +136,7 @@ async function actionQuery(args, token) {
     console.log(`\nElement ID / 主体 ID: ${el.element_id}`);
     console.log(`  Name / 名称: ${el.element_name}`);
     console.log(`  Description / 描述: ${el.element_description}`);
-    console.log(`  Type / 类型: ${el.reference_type}`);
+    console.log(`  Type / 类型: ${getElementType(el)}`);
     if (el.element_voice_info?.voice_id) {
       console.log(`  Voice / 音色: ${el.element_voice_info.voice_name} (${el.element_voice_info.voice_id})`);
     }
@@ -157,7 +160,7 @@ async function actionList(args, token, presets) {
       continue;
     }
     for (const el of elements) {
-      console.log(`  [${el.element_id}] ${el.element_name} — ${el.element_description} (${el.reference_type})`);
+      console.log(`  [${el.element_id}] ${el.element_name} — ${el.element_description} (${getElementType(el)})`);
     }
   }
 }

@@ -5,7 +5,12 @@
 import { readFile } from 'node:fs/promises';
 import { resolve, relative, sep } from 'node:path';
 import { platform } from 'node:process';
-import { getBearerToken, promptAndSaveCredentials, setSkillVersion } from './auth.mjs';
+import { fileURLToPath } from 'node:url';
+import {
+  getBearerToken,
+  CredentialsMissingError,
+  setSkillVersion,
+} from './auth.mjs';
 
 /** 是否允许读取/写入 cwd 与 KLING_MEDIA_ROOTS 以外的本地路径（默认关闭） */
 function allowAbsolutePaths() {
@@ -126,23 +131,30 @@ export function parseArgs(argv, booleanFlags = []) {
   return args;
 }
 
-/**
- * 获取 Bearer Token：环境变量/kling.env → 交互式输入 → 失败退出
- * @returns {Promise<string>} token
- */
+/** 获取 Bearer：优先 credentials 中 AK/SK → JWT；否则 KLING_TOKEN（先环境变量，后 kling.env）。 */
 export async function getTokenOrExit() {
   try {
     return getBearerToken();
-  } catch {
-    try {
-      return await promptAndSaveCredentials();
-    } catch (e) {
+  } catch (e) {
+    const missing = e instanceof CredentialsMissingError || e?.name === 'CredentialsMissingError';
+    if (!missing) {
       console.error(`Auth error / 鉴权错误: ${e.message}`);
-      console.error('Set / 设置: export KLING_TOKEN="your-token"');
-      console.error('Or / 或: export KLING_API_KEY="accessKey|secretKey"');
-      console.error('Get keys / 获取密钥: https://app.klingai.com/cn/dev/console/application');
       process.exit(1);
     }
+    console.error(`Auth error / 鉴权错误: ${e.message}`);
+    console.error('Set AK/SK in credentials first, or set KLING_TOKEN (env first, then kling.env) / 请优先配置 credentials 中的 AK/SK，或设置 KLING_TOKEN（先环境变量，后 kling.env）');
+    console.error('Get keys / 获取密钥: https://app.klingai.com/cn/dev/console/application (Global / 国际站: https://app.klingai.com/global/dev/console/application)');
+    const defaultCliPath = resolve(fileURLToPath(new URL('../kling.mjs', import.meta.url)));
+    const invokedCliPath = process.argv[1] ? resolve(process.argv[1]) : defaultCliPath;
+    const cliForCopy = `node "${invokedCliPath}"`;
+    const cliDir = resolve(invokedCliPath, '..');
+    console.error('Examples / 示例:');
+    console.error(`  ${cliForCopy} account --configure`);
+    console.error(`  ${cliForCopy} account --import-env`);
+    console.error(`  ${cliForCopy} account --import-credentials --access_key_id <AK> --secret_access_key <SK>`);
+    console.error(`CLI path / 当前入口脚本: ${invokedCliPath}`);
+    console.error(`Code dir / 代码目录: ${cliDir}`);
+    process.exit(1);
   }
 }
 
@@ -154,7 +166,12 @@ export async function getTokenOrExit() {
 export async function readMediaAsValue(pathOrUrl) {
   if (!pathOrUrl) return undefined;
   const s = pathOrUrl.trim();
-  if (s.startsWith('http://') || s.startsWith('https://')) return s;
+  try {
+    const u = new URL(s);
+    if (u.protocol === 'http:' || u.protocol === 'https:') return s;
+  } catch {
+    // Not a URL: treat as local path below.
+  }
   const abs = resolveAllowedReadPath(s);
   const buf = await readFile(abs);
   return buf.toString('base64');
@@ -168,7 +185,12 @@ export async function readMediaAsValue(pathOrUrl) {
 export function readOmniVideoRefUrl(pathOrUrl) {
   if (!pathOrUrl) return undefined;
   const s = pathOrUrl.trim();
-  if (s.startsWith('http://') || s.startsWith('https://')) return s;
+  try {
+    const u = new URL(s);
+    if (u.protocol === 'http:' || u.protocol === 'https:') return s;
+  } catch {
+    // Fallthrough to unified error below.
+  }
   throw new Error(
     'Omni --video must be a public http(s) URL / Omni --video 须为公网 http(s) 链接（不接受本地路径或 Base64）。\n'
     + 'Upload the file and pass the URL / 请先上传视频再传入 URL。',

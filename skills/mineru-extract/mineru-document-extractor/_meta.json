@@ -3,11 +3,16 @@
   "slug": "mineru-document-extractor",
   "displayName": "MinerU Document Extractor",
   "latest": {
-    "version": "1.0.8",
-    "publishedAt": 1774854147465,
-    "commit": "https://github.com/openclaw/skills/commit/07378bc0c970dac90e923ba694735a06e8c92dd9"
+    "version": "1.0.9",
+    "publishedAt": 1775026530062,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.8",
+      "publishedAt": 1774854147465,
+      "commit": "https://github.com/openclaw/skills/commit/07378bc0c970dac90e923ba694735a06e8c92dd9"
+    },
     {
       "version": "1.0.7",
       "publishedAt": 1774355207989,

@@ -3,11 +3,16 @@
   "slug": "cl-lp-rebalancer",
   "displayName": "Cl Lp Rebalancer",
   "latest": {
-    "version": "3.9.1",
-    "publishedAt": 1774668542591,
-    "commit": "https://github.com/openclaw/skills/commit/c37e3e771e05de17bf74bc60f4f652f0191f2399"
+    "version": "3.9.2",
+    "publishedAt": 1775057642698,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.9.1",
+      "publishedAt": 1774668542591,
+      "commit": "https://github.com/openclaw/skills/commit/c37e3e771e05de17bf74bc60f4f652f0191f2399"
+    },
     {
       "version": "3.0.4",
       "publishedAt": 1774487503033,

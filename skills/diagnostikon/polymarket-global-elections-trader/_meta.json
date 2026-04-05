@@ -1,13 +1,18 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-global-elections-trader",
-  "displayName": "Global Elections & Democracy Trader",
+  "displayName": "Polymarket Global Elections Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773859794001,
-    "commit": "https://github.com/openclaw/skills/commit/964295dfa8fcdf0be968b11ffb79bf26f8b8b3bc"
+    "version": "1.0.2",
+    "publishedAt": 1775317182912,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773859794001,
+      "commit": "https://github.com/openclaw/skills/commit/964295dfa8fcdf0be968b11ffb79bf26f8b8b3bc"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773568641385,

@@ -40,6 +40,25 @@ def get_proxy() -> str | None:
     return os.environ.get("HTTPS_PROXY") or os.environ.get("HTTP_PROXY") or None
 
 
+def parse_playwright_proxy(proxy_url: str | None) -> dict | None:
+    """将带认证信息的代理 URL 转成 Playwright 需要的 proxy 配置。"""
+    if not proxy_url:
+        return None
+
+    from urllib.parse import urlparse, unquote
+
+    parsed = urlparse(proxy_url)
+    if not parsed.scheme or not parsed.hostname or not parsed.port:
+        return {"server": proxy_url}
+
+    proxy = {"server": f"{parsed.scheme}://{parsed.hostname}:{parsed.port}"}
+    if parsed.username:
+        proxy["username"] = unquote(parsed.username)
+    if parsed.password:
+        proxy["password"] = unquote(parsed.password)
+    return proxy
+
+
 def resolve_tco(tco_url: str, proxy: str | None = None) -> str | None:
     """解析 t.co 短链到真实 URL。"""
     try:
@@ -115,8 +134,9 @@ def scrape_x_article(article_url: str, proxy: str | None = None) -> str:
     try:
         with sync_playwright() as p:
             launch_opts = {"headless": True}
-            if proxy:
-                launch_opts["proxy"] = {"server": proxy}
+            pw_proxy = parse_playwright_proxy(proxy)
+            if pw_proxy:
+                launch_opts["proxy"] = pw_proxy
 
             browser = p.chromium.launch(**launch_opts)
             context = browser.new_context()
@@ -128,8 +148,10 @@ def scrape_x_article(article_url: str, proxy: str | None = None) -> str:
             ])
 
             page = context.new_page()
-            page.goto(article_url, timeout=30000, wait_until="domcontentloaded")
-            page.wait_for_timeout(5000)
+            # X Article 在代理环境下经常迟迟到不了 domcontentloaded，
+            # 先拿到首包(commit)再多等一段时间，成功率更高。
+            page.goto(article_url, timeout=120000, wait_until="commit")
+            page.wait_for_timeout(12000)
 
             content = ""
             for selector in ["main", "article", "[role='article']"]:
@@ -347,32 +369,37 @@ def extract_x_url(url: str, proxy: str | None = None) -> dict:
 # ── 入库 ─────────────────────────────────────────────────────────
 
 def ingest_to_content_factory(result: dict) -> str | None:
-    """将提取结果写入内容工厂素材库。"""
-    cf_root = Path.home() / ".openclaw/workspace/projects/content-factory-solution"
-    if not cf_root.exists():
-        logger.warning("内容工厂项目不存在")
+    """将提取结果写入内容工厂素材库（通过 bitable_ops.py）。"""
+    bitable_script = Path.home() / ".openclaw/workspace/skills/content-factory/scripts/bitable_ops.py"
+    if not bitable_script.exists():
+        logger.warning("内容工厂 bitable_ops.py 不存在")
         return None
 
-    sys.path.insert(0, str(cf_root))
+    import json, subprocess
+
+    fields = {
+        "title": result.get("title", "")[:50],
+        "source_platform": "video_x",
+        "source_type": "link",
+        "source_url": result.get("url", ""),
+        "raw_content": result.get("description", ""),
+        "author": result.get("author", ""),
+        "status": "待处理",
+    }
 
     try:
-        from src.obsidian_adapter import ObsidianAdapter
-        adapter = ObsidianAdapter()
+        proc = subprocess.run(
+            ["python3", str(bitable_script), "create",
+             "--table", "MaterialInbox",
+             "--fields", json.dumps(fields, ensure_ascii=False)],
+            capture_output=True, text=True, timeout=30,
+        )
+        if proc.returncode != 0:
+            logger.warning("入库失败: %s", proc.stderr.strip())
+            return None
 
-        record_id = adapter.create_record("MaterialInbox", {
-            "title": result.get("title", "")[:50],
-            "source_platform": f"video_x",
-            "source_type": "link",
-            "source_url": result.get("url", ""),
-            "raw_content": result.get("description", ""),
-            "author": result.get("author", ""),
-            "status": "待处理",
-            "version": 1,
-            "retry_count": 0,
-        })
-
-        logger.info("已入库: %s", record_id)
-        return record_id
+        logger.info("已入库: %s", proc.stdout.strip())
+        return proc.stdout.strip()
     except Exception as e:
         logger.warning("入库失败: %s", e)
         return None

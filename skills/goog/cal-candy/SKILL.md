@@ -6,7 +6,7 @@ author: googcheng@qq.com
 
 # Cal-Candy - Markdown Calendar
 
-基于本地 Markdown 文件的日历系统，事件存储在 `~/.openclaw/workspace/calendar/` 目录。
+基于本地 Markdown 文件的日历系统，事件默认存储在 `~/.openclaw/workspace/calendar/` 目录, user can set the location by env MDCAL_DIR。
 
 ## 快速开始
 
@@ -25,7 +25,7 @@ python scripts/mdcal.py add <date> <time> <title> [desc] [-r minutes]
 **示例:**
 ```bash
 python scripts/mdcal.py add today 14:00 团队会议 :: 讨论项目进度 -r 15
-python scripts/mdcal.py add 2026-04-01 10:00 清明节踏青
+python scripts/mdcal.py add 2026-04-01 10:00 "openclaw meeting"
 ```
 
 ### 查看事件

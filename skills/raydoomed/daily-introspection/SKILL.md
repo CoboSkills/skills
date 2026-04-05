@@ -73,24 +73,30 @@ Add these two cron entries via OpenClaw CLI:
 
 ```bash
 # Daily introspection at 22:00
-openclaw cron add --name "Daily Self-Introspection" --cron "0 22 * * *" --exact --tz "Asia/Shanghai" --session main --system-event "daily-introspection: Run daily self-introspection for today. Execute scripts/daily-introspect.py to collect all sources (daily log + .learnings + proactive check), perform LLM introspection analysis following these rules:
-- For errors in .learnings/ERRORS.md: if only recorded with corrective action, mark as '✅ Recorded, Rule Added'; only mark as '✅ Corrected' when verified no recurrence for >1 week
-- Do not automatically assume recorded = corrected; reflect actual status accurately
-Execute scripts/daily-introspect.py to collect all sources, then perform LLM introspection analysis following these rules:
-- For errors in .learnings/ERRORS.md: if only recorded with corrective action, mark as '✅ Recorded, Rule Added'; only mark as '✅ Corrected' when verified no recurrence for >1 week
-- Do not automatically assume recorded = corrected; reflect actual status accurately
-Write the final result to the output directory defined by the script."
+openclaw cron add --name "Daily Self-Introspection" --cron "0 22 * * *" --exact --tz "Asia/Shanghai" --session main --system-event "daily-introspection: Daily self-introspection is triggered. Follow the daily-introspection skill process:
+1. Run the script $OPENCLAW_WORKSPACE/skills/daily-introspection/scripts/daily-introspect.py to collect all sources
+2. Read the collected sources from the script output
+3. Perform LLM introspection analysis following these rules:
+   - For errors in .learnings/ERRORS.md: if only recorded with corrective action, mark as '✅ Recorded, Rule Added'; only mark as '✅ Corrected' when verified no recurrence for >1 week
+   - Do not automatically assume recorded = corrected; reflect actual status accurately
+   - Identify any new errors from today's activities, add them to .learnings/ERRORS.md with corrective rules
+   - Write the final introspection result to ~/.openclaw/workspace/.daily-introspection/introspection-YYYY-MM-DD.md
+4. Report completion status in this session when done"
 
 # Weekly promotion at 20:00 every Sunday
-openclaw cron add --name "Weekly Introspection Promotion" --cron "0 20 * * 0" --exact --tz "Asia/Shanghai" --session main --system-event "daily-introspection: Run weekly promotion. Execute scripts/weekly-promote.py to collect all daily introspections from this week, then identify repeated patterns that have not recurred for >1 week, promote mature lessons to AGENTS.md/MEMORY.md/TOOLS.md following these rules:
+openclaw cron add --name "Weekly Introspection Promotion" --cron "0 20 * * 0" --exact --tz "Asia/Shanghai" --session main --system-event "daily-introspection: Weekly promotion is triggered. Follow the weekly-promotion process:
+1. Execute scripts/weekly-promote.py to collect all daily introspections from this week
+2. Identify repeated patterns that have not recurred for >1 week
+3. **MANDATORY EXECUTION ORDER**:
+   - FIRST: Perform all rule promotions one by one → write each mature rule to its target file (AGENTS.md/MEMORY.md/TOOLS.md)
+   - AFTER each write: Read the target file back to verify the rule is actually written successfully
+   - ONLY after ALL promotions are done and verified: Write the weekly evolution report to ~/.openclaw/workspace/.daily-introspection/evolution-YYWW.md
+   - Never reverse this order - do not write the report before promotions are complete
+4. Report completion status in this session when done
+Rules:
 - Only promote rules that have been verified and no recurrence for 1+ week
 - Keep new recorded errors/learnings in .learnings/ for further verification
 - Do not promote immature rules prematurely
-Execute scripts/weekly-promote.py to collect all daily introspections from this week, then identify repeated patterns that have not recurred for >1 week, promote mature lessons to AGENTS.md/MEMORY.md/TOOLS.md following these rules:
-- Only promote rules that have been verified and no recurrence for 1+ week
-- Keep new recorded errors/learnings in .learnings/ for further verification
-- Do not promote immature rules prematurely
-**IMPORTANT ORDER**: First promote all mature rules to AGENTS.md/MEMORY.md/TOOLS.md **before** writing the weekly evolution report. After each promotion, read the target file to verify the rule is actually written. Only after all promotions are done and verified, write the weekly evolution report to the output directory defined by the script."
 ```
 
 ### Configuration Notes

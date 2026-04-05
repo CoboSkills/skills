@@ -50,6 +50,38 @@ def get_weekly_introspections(year, week):
     intro_files.sort(key=lambda x: x[0])
     return intro_files
 
+def get_last_week_pending_promotions(year, week):
+    """Read last week's evolution report to get list of rules pending promotion this week
+    
+    Last week's evolution already marked which rules are "Promotion scheduled after this week"
+    We read these to double check and make sure none are missed.
+    """
+    private_dir = get_private_data_dir()
+    # Last week is (year, week-1), handle year rollover
+    if week == 1:
+        last_year = year - 1
+        last_week = 52
+    else:
+        last_year = year
+        last_week = week - 1
+    evolution_file = os.path.join(private_dir, f"evolution-{last_year % 100}{last_week}.md")
+    
+    pending = []
+    if not os.path.exists(evolution_file):
+        return pending
+    
+    with open(evolution_file, "r", encoding="utf-8") as f:
+        content = f.read()
+    
+    # Parse the "Rules Remaining in Verification" table
+    # All lines with "Promotion scheduled for after ..." are pending
+    lines = content.split('\n')
+    for line in lines:
+        if 'Promotion scheduled for after' in line or 'promotion scheduled' in line:
+            pending.append(line.strip())
+    
+    return pending
+
 def get_current_week():
     """Get current (year, week)"""
     dt = datetime.now()
@@ -77,19 +109,28 @@ def main():
 
     # Get all daily introspections
     introspections = get_weekly_introspections(year, week)
-    if not introspections:
+    
+    # Get pending promotions marked last week that should be promoted this week
+    pending_promotions = get_last_week_pending_promotions(year, week)
+    
+    if not introspections and not pending_promotions:
         print("[WARN] No introspections found for this week, exiting")
         sys.exit(0)
 
-    print(f"[INFO] Found {len(introspections)} daily introspections")
+    if pending_promotions:
+        print(f"[INFO] Found {len(pending_promotions)} pending promotions marked from last week")
+    
+    print(f"[INFO] Found {len(introspections)} daily introspections this week")
     
     # The actual LLM analysis and rule promotion happens via OpenClaw tool calling
     # This script just sets up the infrastructure and collects the inputs
     # LLM will:
-    # 1. Analyze all daily entries
-    # 2. Identify repeated patterns
-    # 3. Promote to permanent system files
-    # 4. Write the weekly report
+    # 1. Analyze all daily entries from this week
+    # 2. Check pending promotions from last week
+    # 3. Identify which rules are eligible (>= 1 week no recurrence)
+    # 4. Promote mature rules to permanent system files (AGENTS.md / MEMORY.md / TOOLS.md)
+    # 5. Write the weekly evolution report
+    # 6. Pending rules are already marked from last week, double check
 
 if __name__ == "__main__":
     main()

@@ -48,6 +48,25 @@ These are discovery hints, not required literal phrases. The model should infer 
 5. `pua` is the style layer; Tasker owns flow, gates, and output boundaries.
 6. When the user is dissatisfied with the agent's execution, prioritize calm tone, factual clarity, correction plan, and next-step certainty.
 
+## Execution Guarantees（执行保障）
+
+To maximize the gap between "saying" and "doing", the following rules are **hard constraints**:
+
+### 1. Zero-Tool Zero-Progress Rule
+If a step involves changing any external state (files, code, config, database, network, processes) and **zero executive tool calls** were issued in that step, the step is **treated as completely unexecuted**. Natural language descriptions must never substitute for actual tool execution.
+
+### 2. Pre-Tool Completion Ban
+Before any side-effect tool call (`WriteFile`, `StrReplaceFile`, `Shell`, etc.) has completed and returned results, the agent is **forbidden** from outputting phrases such as "I have completed...", "I have modified...", or "I have fixed...". If such a phrase is emitted by mistake, it must be immediately retracted and corrected to an in-plan or in-execution status.
+
+### 3. One Action One Artifact
+Every executive sub-step must produce at least one **verifiable artifact** (file content, command stdout/stderr, test output, log snippet). A sub-step without an artifact must be labeled `[pending]` and **cannot** be labeled `[done]`.
+
+### 4. Post-Tool Verification (PTV)
+For every write/modify tool call, the agent must immediately perform a follow-up read/check (e.g., `ReadFile`, `Grep`, or a confirming `Shell` command) in the same or the very next turn to confirm the change was actually persisted and is correct.
+
+### 5. Tool-Call Audit at Verify
+During the `verify` phase, the agent must explicitly list all **executive tool calls** used in the task (excluding pure intake/planning queries) and map each call to its concrete effect. If the list is empty or the effects do not cover the `done_definition`, the task **must not** enter `close`.
+
 ## Execution Rules
 
 ### Required Inputs
@@ -58,6 +77,14 @@ Collect or infer these fields before execution:
 3. `output_format`: expected final format
 4. `validation_checks`: how to verify correctness
 5. `stop_conditions`: when to stop and report
+
+**Dynamic Clarify Rule:**
+Only ask for missing fields. If user input implies a field, don't ask.
+
+Examples:
+- "修复登录bug" → goal implied; only ask: "如何验证修复成功？"
+- "用Python写爬虫抓豆瓣Top250" → goal+constraints+output implied; only ask: "验证标准？"
+- "分析一下" → all fields missing; ask all five
 
 ### State Machine
 
@@ -73,17 +100,35 @@ Use this flow for every non-trivial task:
 Rules:
 1. Do not skip from `plan` to `execute` without explicit confirmation.
 2. If the user sends only `/tasker`, return the one-line handshake and stop.
-3. If the request is `S` level and has no external dependency validation, use the fast path:
-	`intake -> execute -> close`.
+3. All levels require confirmation before execute:
+   - `S` level: "方案：XX，确认执行？[是/否]" / "Plan: XX, confirm? [Y/N]"
+   - `M/L` level: Include understanding check - "我理解：要[做XX]，验证方式是[YY]。对吗？[是/有偏差]"
+4. `execute` stage forbids pure-text simulation. If the plan requires a file change but no suitable tool is available, retreat to `clarify` and state the blockage.
+5. `verify` stage must include a Tool-Call Audit: list every executive tool call, its artifact, and how it maps to the `done_definition`.
+6. Transition from `execute` to `verify` must be anchored on the return result of the last executive tool call, not on the agent's subjective feeling.
 
-### Sizing
+### Sizing (Intent-Based)
 
-1. `S` (<= 5 minutes): quick Q&A, tiny edit, simple command.
-2. `M` (5 to 30 minutes): single-module change or one-pass analysis.
-3. `L` (> 30 minutes): cross-module work, complex debugging, multi-step verification.
+Classify by risk intent, not time. Use weighted signal matching:
+
+**Signal Weights:**
+- Weight 1 (low): query, explain, summarize, how to, what is, view, check, 查询, 解释, 总结, 如何, 什么是, 查看, 检查
+- Weight 5 (medium): add, fix, adjust, optimize, implement, deploy, 新增, 修复, 调整, 优化, 实现, 部署
+- Weight 10 (high): modify, delete, refactor, config, permission, database, batch, core, global, production, 修改, 删除, 重构, 配置, 权限, 数据库, 批量, 核心, 全局, 生产
+
+**Classification Rules:**
+1. Sum weights of all matched signals
+2. Score < 5 → `S`; 5 ≤ score < 10 → `M`; score ≥ 10 → `L`
+3. Multiple signals accumulate (e.g., "query delete" = 1 + 10 = 11 → `L`)
+4. Negation detected → stay in `clarify` for explicit confirmation
+
+**Examples:**
+- "查看生产日志" → view(1) + production(10) = 11 → `L` (安全优先)
+- "查询如何删除" → query(1) + how to(1) + delete(10) = 12 → `L`
+- "不要删除" → delete(10) + negation → clarify
 
 Sizing rules:
-1. AI-first sizing: classify `S/M/L` automatically by default.
+1. AI-first sizing: classify `S/M/L` by signal words automatically.
 2. If confidence is low, default to `M`.
 3. Tasks with external side effects auto-upgrade to at least `M`.
 4. User override is optional and can be applied at any time.
@@ -108,6 +153,11 @@ Before `execute`, confirm all three:
 
 If any is missing, stay in `clarify` or `plan`.
 
+**Understanding Check (M/L level):**
+Before gate, add one-sentence reverse confirmation:
+- "我理解：要完成[具体目标]，通过[验证方式]确认。对吗？[是/有偏差]"
+- If user says "有偏差", return to `clarify`
+
 S-level lightweight gate:
 1. For `S` tasks, require only `done_definition` plus minimal validation.
 2. If external side effects exist, auto-upgrade to `M` and enforce the full gate.
@@ -116,11 +166,31 @@ User-dissatisfaction gate additions:
 1. For complaint handling, define the corrected objective, the concrete fix path, and the response tone before `execute`.
 2. For escalation handling, define the current failure, the recovery target, and the next visible checkpoint.
 
+**Tool-Call Audit Gate (M/L mandatory, S recommended):**
+During `verify`, the agent must answer:
+1. How many executive tool calls were made in this task?
+2. What is the direct effect of each call?
+3. Do these effects 100% cover the `done_definition`?
+If the answer to #3 is "no" or "uncertain", return to `execute` to fill the gap. Do not proceed to `close`.
+
+**External Validation (L-level mandatory):**
+For `L` tasks, verification must include at least one external anchor:
+- Automated tests passing
+- User acceptance test
+- Code review by another agent or user
+- Static analysis tools
+Self-check alone is insufficient for `L` tasks.
+
 ### Output Contract
 
 Output modes:
 1. `compact` (default): concise answer without forced sections.
 2. `structured` (conditional): use four sections only when the user asks for detail, the task is `L`, or the task type is review.
+
+Output discipline (all modes):
+- Lead with deliverable, not background.
+- One-sentence priority: if it can be said in one sentence, do so.
+- Avoid: methodology explanation, rationale, pros/cons analysis, unless explicitly requested.
 
 Structured sections:
 1. Result
@@ -159,6 +229,9 @@ If the user is dissatisfied with the agent's work:
 2. Ask only for blocking inputs.
 3. Validate outcomes against the same checklist used to plan the task.
 4. Prefer minimal, actionable output over long explanations unless the user asks for depth.
+5. **Never** simulate or fabricate tool-call output in natural language.
+6. **Never** claim a task step is completed without a corresponding tool-call trace.
+7. **Never** emit final deliverables during the `plan` phase.
 
 ## Minimal Response Template
 
@@ -170,6 +243,12 @@ Key Findings or Changes:
 
 Validation:
 - <checks passed/failed>
+- **Tool-Call Audit**: <list of executive tool calls and their direct artifacts>
+- **Coverage Check**: <whether artifacts fully cover done_definition>
 
 Next Action:
 - <single recommended next step>
+
+Acceptance Check (always include):
+- "交付完成。是否符合预期？[是/需调整]" / "Delivered. Meet expectations? [Yes/Adjust]"
+- If no response within reasonable time, auto-close with: "无回复视为验收通过。随时可提出调整。"

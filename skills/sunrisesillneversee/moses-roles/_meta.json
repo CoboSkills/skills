@@ -3,9 +3,15 @@
   "slug": "moses-roles",
   "displayName": "Moses Roles",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773666868808,
-    "commit": "https://github.com/openclaw/skills/commit/2a8e39f55b741918f6a304687f0a460e12451f84"
+    "version": "1.0.3",
+    "publishedAt": 1775116542877,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773666868808,
+      "commit": "https://github.com/openclaw/skills/commit/2a8e39f55b741918f6a304687f0a460e12451f84"
+    }
+  ]
 }

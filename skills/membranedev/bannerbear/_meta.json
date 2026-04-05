@@ -3,9 +3,15 @@
   "slug": "bannerbear",
   "displayName": "Bannerbear",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773885742720,
-    "commit": "https://github.com/openclaw/skills/commit/f2ecc563dcafb50bfbde20ca6c2381ea3392a7ab"
+    "version": "1.0.2",
+    "publishedAt": 1775164762544,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773885742720,
+      "commit": "https://github.com/openclaw/skills/commit/f2ecc563dcafb50bfbde20ca6c2381ea3392a7ab"
+    }
+  ]
 }

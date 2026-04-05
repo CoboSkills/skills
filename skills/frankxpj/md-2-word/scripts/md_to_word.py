@@ -158,8 +158,13 @@ def convert_md_to_word(input_path, output_path=None):
     while i < len(lines):
         line = lines[i].rstrip()
         
-        # Handle table accumulation
-        if in_table and not (line.startswith('|') and not line.startswith('|---')):
+        # Table separator, skip but keep in_table state
+        if line.startswith('|---') or line.startswith('| ---'):
+            i += 1
+            continue
+        
+        # Handle table accumulation - end table when non-table line encountered
+        if in_table and not line.startswith('|'):
             if table_data:
                 add_table(doc, table_data)
                 table_data = []
@@ -196,16 +201,12 @@ def convert_md_to_word(input_path, output_path=None):
             i += 1
             continue
         
-        # Tables
-        if '|' in line and not line.startswith('|---'):
+        # Tables - parse table rows (excluding separator lines)
+        if line.startswith('|') and '|---' not in line:
             cells = [c.strip() for c in line.split('|')[1:-1]]
-            table_data.append(cells)
-            in_table = True
-            i += 1
-            continue
-        
-        # Table separator, skip
-        if line.startswith('|---'):
+            if cells:  # Only add if there are actual cells
+                table_data.append(cells)
+                in_table = True
             i += 1
             continue
         

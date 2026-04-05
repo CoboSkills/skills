@@ -63,10 +63,10 @@ Requires: Accessibility + Screen Recording permissions granted to Terminal/OpenC
 
 ## Windows
 
-### Setup (PowerShell as Admin)
+### Setup
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/setup/setup-win.ps1
+```
+python3 scripts/setup/setup-win.py
 ```
 
 ### Tools (Python/pyautogui)

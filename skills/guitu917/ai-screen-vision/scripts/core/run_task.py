@@ -245,7 +245,13 @@ def main():
     config = load_config()
     if args.config:
         with open(args.config) as f:
-            config = deep_merge(config, json.load(f))
+            import json as _json
+            _override = _json.load(f)
+            for k, v in _override.items():
+                if k in config and isinstance(config[k], dict) and isinstance(v, dict):
+                    config[k].update(v)
+                else:
+                    config[k] = v
     if args.api_key:
         config["vision"]["apiKey"] = args.api_key
     if args.display:

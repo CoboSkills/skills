@@ -129,7 +129,7 @@ def call_vision_api(image_path, task, history="", resolution="1024x768",
         error_body = e.read().decode()[:500]
         return {"error": f"API Error {e.code}: {error_body}"}
     except Exception as e:
-        return {"error": f"Request failed: {str(e)}}
+        return {"error": f"Request failed: {str(e)}"}
 
 
 def parse_action(content):

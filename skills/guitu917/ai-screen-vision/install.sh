@@ -75,7 +75,7 @@ case "$PLATFORM" in
         bash "$TARGET_DIR/scripts/setup/setup-mac.sh"
         ;;
     windows)
-        powershell -ExecutionPolicy Bypass -File "$TARGET_DIR/scripts/setup/setup-win.ps1"
+        python3 "$TARGET_DIR/scripts/setup/setup-win.py"
         ;;
 esac
 

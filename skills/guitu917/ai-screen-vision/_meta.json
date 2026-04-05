@@ -3,9 +3,15 @@
   "slug": "ai-screen-vision",
   "displayName": "AI Screen Vision",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775396845780,
-    "commit": "https://github.com/openclaw/skills/commit/5e7534185322fb0b227693ff614343ad85bf7062"
+    "version": "1.0.4",
+    "publishedAt": 1775401765332,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775396845780,
+      "commit": "https://github.com/openclaw/skills/commit/5e7534185322fb0b227693ff614343ad85bf7062"
+    }
+  ]
 }

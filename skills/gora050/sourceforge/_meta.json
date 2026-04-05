@@ -3,9 +3,15 @@
   "slug": "sourceforge",
   "displayName": "Sourceforge",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774130688751,
-    "commit": "https://github.com/openclaw/skills/commit/c462bd336ff542cceca182bccad693493ba49daa"
+    "version": "1.0.2",
+    "publishedAt": 1775165977241,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774130688751,
+      "commit": "https://github.com/openclaw/skills/commit/c462bd336ff542cceca182bccad693493ba49daa"
+    }
+  ]
 }

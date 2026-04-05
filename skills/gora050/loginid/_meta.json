@@ -3,9 +3,15 @@
   "slug": "loginid",
   "displayName": "Loginid",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774260254412,
-    "commit": "https://github.com/openclaw/skills/commit/95252fbeda564d46a2765b4a05d8776981f4382a"
+    "version": "1.0.2",
+    "publishedAt": 1775166628552,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774260254412,
+      "commit": "https://github.com/openclaw/skills/commit/95252fbeda564d46a2765b4a05d8776981f4382a"
+    }
+  ]
 }

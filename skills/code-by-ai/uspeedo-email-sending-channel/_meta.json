@@ -1,13 +1,18 @@
 {
   "owner": "code-by-ai",
   "slug": "uspeedo-email-sending-channel",
-  "displayName": "Uspeedo Email Sending Channel",
+  "displayName": "uspeedo-email-sending-channel",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1773903869531,
-    "commit": "https://github.com/openclaw/skills/commit/e3511ecc6be7517595de72afc44bd98b1b8b13d5"
+    "version": "1.1.2",
+    "publishedAt": 1775203089700,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1773903869531,
+      "commit": "https://github.com/openclaw/skills/commit/e3511ecc6be7517595de72afc44bd98b1b8b13d5"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1773499864844,

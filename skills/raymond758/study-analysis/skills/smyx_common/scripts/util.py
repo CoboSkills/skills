@@ -12,7 +12,7 @@ import logging
 from typing import Any, Callable, Optional, TypeVar, Dict
 import pydash as _
 
-if ConstantEnum.IS_DEBUG:
+if ConstantEnum.is_debug():
     import http.client
 
     # 【关键代码】开启调试模式
@@ -49,6 +49,28 @@ class StringUtil(BaseUtil):
 
 
 class FileUtil(BaseUtil):
+
+    @staticmethod
+    def get_fullname(path):
+        try:
+            return os.path.basename(path)
+        except Exception as e:
+            CommonUtil.trace_exception_stack(e)
+            return ""
+
+    @staticmethod
+    def get_name(path):
+        try:
+            return os.path.splitext(os.path.basename(path))[0]
+        except Exception as e:
+            CommonUtil.trace_exception_stack(e)
+
+    @staticmethod
+    def get_ext(path):
+        try:
+            return os.path.splitext(os.path.basename(path))[1]
+        except Exception as e:
+            CommonUtil.trace_exception_stack(e)
 
     @staticmethod
     def open(path):
@@ -90,7 +112,7 @@ class CommonUtil(BaseUtil):
 
     @staticmethod
     def trace_exception_stack(e):
-        if ConstantEnum.IS_DEBUG:
+        if ConstantEnum.is_debug():
             print(f"❌ 错误描述: {str(e)}, 堆栈跟踪:")
             traceback.print_stack()
 
@@ -287,7 +309,7 @@ class RequestUtil(BaseUtil):
                 url = cls.BASE_URL + url
             headers['App-Id'] = ConstantEnum.APP__ID
             # ConstantEnum.CURRENT__USER_NAME = ConstantEnum.CURRENT__OPEN_ID = "ou_86fdd8e0d5f116c18a9dd550abefe6d2"
-            current__user_name = ConstantEnum.CURRENT__USER_NAME or ConstantEnum.CURRENT__OPEN_ID
+            current__user_name = ApiEnum.API_SECRET_KEY or ConstantEnum.CURRENT__USER_NAME or ConstantEnum.CURRENT__OPEN_ID
             if (not ApiEnum.TOKEN or not ApiEnum.OPEN_TOKEN) and current__user_name:
                 try:
                     from .dao import UserDao, User
@@ -318,12 +340,17 @@ class RequestUtil(BaseUtil):
                     raise
 
             headers.setdefault("X-Access-Token", ApiEnum.TOKEN)
+            headers.setdefault("X-Api-Key", ApiEnum.API_SECRET_KEY)
             headers.setdefault("Authorization", ApiEnum.OPEN_TOKEN)
 
             data = data or {}
             params = params or {}
             options = options or {}
-            data.setdefault('tenantCode', ConstantEnum.CURRENT__TENTANT_CODE)
+            ConstantEnum.CURRENT__TENTANT_CODE and data.setdefault('tenantCode', ConstantEnum.CURRENT__TENTANT_CODE)
+            ConstantEnum.DEFAULT__SKILL_HUB_NAME and data.setdefault('skillHubName',
+                                                                     ConstantEnum.DEFAULT__SKILL_HUB_NAME)
+            ConstantEnum.DEFAULT__SKILL_PLATFORM_NAME and data.setdefault('skillPlatform',
+                                                                          ConstantEnum.DEFAULT__SKILL_PLATFORM_NAME)
             if current__user_name:
                 data.setdefault('pnaUserName', current__user_name)
 

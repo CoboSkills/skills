@@ -1,13 +1,18 @@
 {
   "owner": "raymond758",
   "slug": "study-analysis",
-  "displayName": "Child Learning Behavior Analyzer | 孩子学习行为分析技能",
+  "displayName": "Child Learning Behavior Analysis Tool | 孩子学习行为分析工具",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774858873648,
-    "commit": "https://github.com/openclaw/skills/commit/1c24f31bd9baec417ba8db00d9e7efc76fdca53b"
+    "version": "1.0.3",
+    "publishedAt": 1775201516394,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774858873648,
+      "commit": "https://github.com/openclaw/skills/commit/1c24f31bd9baec417ba8db00d9e7efc76fdca53b"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774111549678,

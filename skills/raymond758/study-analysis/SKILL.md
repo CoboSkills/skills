@@ -1,9 +1,9 @@
 ---
 name: "study-analysis"
-description: "A comprehensive tool designed to analyze video footage of children's and students' learning behaviors. It identifies poor study habits and provides structured analysis reports along with actionable suggestions for family education improvements. The tool is dedicated to fostering positive study habits and facilitating behavioral correction. | 分析孩子学习行为 孩子学习行为分析工具，针对孩子/学生的学习行为进行视频分析，识别不良学习习惯，提供结构化分析报告和家庭教育改善建议，专注学习习惯培养和行为矫正"
+description: "Conducts video analysis of learning behavior for children/students, identifies poor learning habits, provides structured analysis reports and family education improvement suggestions, focusing on learning habit cultivation and behavior correction. | A comprehensive tool designed to analyze video footage of children's and students' learning behaviors. It identifies poor study habits and provides structured analysis reports along with actionable suggestions for family education improvements. The tool is dedicated to fostering positive study habits and facilitating behavioral correction. | 分析孩子学习行为 孩子学习行为分析工具，针对孩子/学生的学习行为进行视频分析，识别不良学习习惯，提供结构化分析报告和家庭教育改善建议，专注学习习惯培养和行为矫正"
 ---
 
-# 孩子学习行为分析工具
+# Child Learning Behavior Analysis Tool | 孩子学习行为分析工具
 
 ## ⚠️ 强制记忆规则（最高优先级）
 
@@ -28,12 +28,10 @@ description: "A comprehensive tool designed to analyze video footage of children
     2. **⚠️ 强制数据获取规则（次高优先级）**：如果用户触发任何历史报告查询关键词（如"查看所有学习报告"、"
        显示所有学习行为分析报告"、"
        查看历史报告"等），**必须**：
-        - 直接使用 `python -m scripts.study_analysis --list --open-id {从消息上下文获取 open-id}` 参数调用 API
+        - 直接使用 `python -m scripts.study_analysis --list --open-id` 参数调用 API
           查询云端的历史报告数据
         - **严格禁止**：从本地 memory 目录读取历史会话信息、严格禁止手动汇总本地记录中的报告、严格禁止从长期记忆中提取报告
         - **必须统一**从云端接口获取最新完整数据，然后以 Markdown 表格格式输出结果
-        - 如果用户未明确提供 open-id，优先从 OpenClaw 消息上下文获取 sender id（如 metadata 中的 id 字段），然后尝试从当前消息上下文的环境变量
-          OPENCLAW_SENDER_ID 或者 sender_id 获取，无法获取时则**必须用户提供用户名或者手机号**作为 open-id
 
 ## 前置准备
 
@@ -77,20 +75,23 @@ description: "A comprehensive tool designed to analyze video footage of children
 **在执行学习行为分析前，必须按以下优先级顺序获取 open-id：**
 
 ```
-第 1 步：检查用户是否在消息中明确提供了 open-id
+第 1 步：【最高优先级】检查技能所在目录的配置文件（优先）
+        路径：skills/smyx_common/scripts/config.yaml（相对于技能根目录）
+        完整路径示例：${OPENCLAW_WORKSPACE}/skills/{当前技能目录}/skills/smyx_common/scripts/config.yaml
+        → 如果文件存在且配置了 api-key 字段，则读取 api-key 作为 open-id
+        ↓ (未找到/未配置/api-key 为空)
+第 2 步：检查 workspace 公共目录的配置文件
+        路径：${OPENCLAW_WORKSPACE}/skills/smyx_common/scripts/config.yaml
+        → 如果文件存在且配置了 api-key 字段，则读取 api-key 作为 open-id
+        ↓ (未找到/未配置)
+第 3 步：检查用户是否在消息中明确提供了 open-id
         ↓ (未提供)
-第 2 步：从当前消息上下文的环境变量中获取 OPENCLAW_SENDER_ID
-        ↓ (无法获取)
-第 3 步：从当前消息上下文的环境变量中获取 sender_id
-        ↓ (无法获取)
-第 4 步：从 OpenClaw 消息元数据中获取 id 字段（如 metadata 中的 id/session_id/user_id等）作为 open-id
-        ↓ (无法获取)
-第 5 步：❗ 必须暂停执行，明确提示用户提供用户名或手机号作为 open-id
+第 4 步：❗ 必须暂停执行，明确提示用户提供用户名或手机号作为 open-id
 ```
 
 **⚠️ 关键约束：**
 
-- **禁止**自行假设或生成 open-id 值（如 studyC113、study123 等）
+- **禁止**自行假设,自行推导,自行生成 open-id 值（如 openclaw-control-ui、default、studyC113、study123 等）
 - **禁止**跳过 open-id 验证直接调用 API
 - **必须**在获取到有效 open-id 后才能继续执行分析
 - 如果用户拒绝提供 open-id，说明用途（用于保存和查询学习分析报告记录），并询问是否继续
@@ -110,7 +111,7 @@ description: "A comprehensive tool designed to analyze video footage of children
             - `--input`: 本地视频文件路径（使用 multipart/form-data 方式上传）
             - `--url`: 网络视频 URL 地址（API 服务自动下载）
             - `--analysis-type`: 分析类型，可选值：comprehensive/focus/posture/habit/risk，默认 comprehensive（综合分析）
-            - `--open-id`: 当前用户的 OpenID/UserId（必填，按上述流程获取）
+            - `--open-id`: 当前用户的 open-id（必填，按上述流程获取）
             - `--list`: 显示学习行为分析历史报告列表清单（可以输入起始日期参数过滤数据范围）
             - `--api-key`: API 访问密钥（可选）
             - `--api-url`: API 服务地址（可选，使用默认值）
@@ -147,13 +148,13 @@ description: "A comprehensive tool designed to analyze video footage of children
 ## 使用示例
 
 ```bash
-# 综合学习行为分析（OpenClaw UI 上下文，使用 metadata id 作为 open-id）
+# 综合学习行为分析（以下只是示例，禁止直接使用openclaw-control-ui 作为 open-id）
 python -m scripts.study_analysis --input /path/to/homework_video.mp4 --analysis-type comprehensive --open-id openclaw-control-ui
 
-# 专注度专项分析（OpenClaw UI 上下文，使用 metadata id 作为 open-id）
+# 专注度专项分析（以下只是示例，禁止直接使用openclaw-control-ui 作为 open-id）
 python -m scripts.study_analysis --url https://example.com/study_video.mp4 --analysis-type focus --open-id openclaw-control-ui
 
-# 坐姿姿势专项分析（OpenClaw UI 上下文，使用 metadata id 作为 open-id）
+# 坐姿姿势专项分析（以下只是示例，禁止直接使用openclaw-control-ui 作为 open-id）
 python -m scripts.study_analysis --input /path/to/writing_video.mp4 --analysis-type posture --open-id openclaw-control-ui
 
 # 显示历史分析报告/显示分析报告清单列表/显示历史学习报告（自动触发关键词：查看历史学习报告、历史报告、学习报告清单等）

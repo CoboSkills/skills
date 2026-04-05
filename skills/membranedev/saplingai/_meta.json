@@ -3,9 +3,15 @@
   "slug": "saplingai",
   "displayName": "Saplingai",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773630140409,
-    "commit": "https://github.com/openclaw/skills/commit/fa8489e35c7bd59f706cdf7444daa5ba42f186ef"
+    "version": "1.0.2",
+    "publishedAt": 1775164210664,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773630140409,
+      "commit": "https://github.com/openclaw/skills/commit/fa8489e35c7bd59f706cdf7444daa5ba42f186ef"
+    }
+  ]
 }

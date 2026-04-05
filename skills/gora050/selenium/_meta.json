@@ -3,9 +3,15 @@
   "slug": "selenium",
   "displayName": "Selenium",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774231450318,
-    "commit": "https://github.com/openclaw/skills/commit/00e4f3b276215150cee849d5990e7f729c1832e9"
+    "version": "1.0.2",
+    "publishedAt": 1775166512548,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774231450318,
+      "commit": "https://github.com/openclaw/skills/commit/00e4f3b276215150cee849d5990e7f729c1832e9"
+    }
+  ]
 }

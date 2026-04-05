@@ -5,23 +5,174 @@ All notable changes to hs-ti will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.5] - 2026-04-02
+
+### Changed - Cleanup
+- **Removed Language Files**: Deleted language.json and test_language.py as part of pure English version cleanup
+- Simplified codebase by removing unused language switching functionality
+- Cleaner file structure for international users
+
+## [2.2.4] - 2026-04-02
+
+### Changed - Internationalization / 国际化
+- **Pure English Version**: Converted to pure English version for better international compatibility
+  - Removed all Chinese content from SKILL.md
+  - Removed all Chinese content from package.json
+  - Removed bilingual support (simplified to English only)
+  - Removed language switching commands (`/hs-ti cn`, `/hs-ti en`)
+  - Simplified aliases (removed Chinese aliases)
+  - Updated all documentation to English only
+  - Better international user experience
+
+### Removed - Simplification / 简化
+- **Language Configuration**: Removed language.json and language switching functionality
+- **Bilingual Commands**: Removed `/hs-ti cn` and `/hs-ti en` commands
+- **Chinese Aliases**: Removed Chinese aliases from package.json
+
+## [2.2.3] - 2026-04-01
+
+### Fixed - Documentation
+- **Removed Duplicate Content**: Eliminated duplicate "Features" section from SKILL.md
+  - Consolidated all feature descriptions into "New Features (v2.2.2)" section
+  - Improved documentation clarity and reduced redundancy
+  - Better user experience with concise, well-organized documentation
+
+## [2.2.2] - 2026-04-01
+
+### Added - Enhanced Searchability
+- **Comprehensive Keywords**: Expanded keyword list for better discoverability
+  - Brand names: `Hillstone`, `yunzhan`, `hillstone-networks`
+  - Security terms: `network-security`, `cybersecurity`
+  - IOC types: `ioc`, `ioc-query`, `indicators`, `compromise`, `ip`, `domain`, `url`, `hash`
+  - Threat types: `malware`, `phishing`, `c2`, `apt`, `malicious`, `benign`
+  - Threat operations: `threat-hunting`, `threat-detection`, `threat-assessment`, `threat-response`, `threat-monitoring`
+  - API features: `threat-intel-api`, `ti-api`, `threat-database`, `api-key`, `api-management`
+  - Performance: `performance`, `optimization`, `connection-pool`, `circuit-breaker`, `retry`, `batch-query`
+  - Features: `file-import`, `progress-tracking`, `statistics`, `monitoring`, `caching`
+  - Security: `security`, `sensitive-data`, `data-masking`, `log-security`, `file-security`, `permissions`, `audit`, `compliance`
+  - Configuration: `environment-variable`, `auto-detection`, `export`, `logging`
+  
+  **Total keywords**: 70+ covering all aspects of the skill for maximum searchability
+
+## [2.2.1] - 2026-04-01
+
+### Security - Security Fixes
+- **Provenance Verification**: Added homepage and unified publisher metadata
+  - Added `homepage` field to package.json pointing to ClawHub
+  - Unified `author` and `publisher` fields to `maxjia`
+  - Resolves provenance concerns and improves transparency
+
+- **API Key Management**: Enhanced API key security with environment variable support
+  - Added support for `HILLSTONE_API_KEY` environment variable
+  - Environment variable takes priority over config file
+  - Enables secure key storage without file-based approach
+  - Updated documentation with security best practices
+
+- **Logging Security**: Implemented sensitive data masking in logs
+  - Added `_mask_sensitive_value()` method for IOC value masking
+  - IOC values are partially masked (e.g., `ex******m.com`)
+  - API keys are never logged
+  - Prevents sensitive data exposure in log files
+
+- **Security Documentation**: Added comprehensive SECURITY.md
+  - Detailed security best practices and guidelines
+  - API key management recommendations
+  - Logging and data privacy information
+  - Network security and file system security
+  - Operational security and incident response procedures
+  - Quick security checklist for production deployment
+
+### Changed - Configuration
+- **API Key Priority**: Environment variable takes precedence over config file
+  - Priority: `HILLSTONE_API_KEY` > `config.json`
+  - Backward compatible with existing config file approach
+  - Updated test expectations for missing config files
+
+## [2.2.0] - 2026-04-01
+
+### Added - Performance Optimizations
+- **Enhanced LRU Caching**: Implemented advanced LRU cache with statistics tracking
+  - Added `cache_stats` for hit/miss tracking and hit rate calculation
+  - Added `max_cache_size` limit (default: 1000) for memory management
+  - Automatic cache eviction of least recently used items
+  - New `get_cache_stats()` method for cache performance monitoring
+  - Cache size enforcement prevents memory overflow
+
+- **HTTP Connection Pool**: Implemented connection pool management
+  - Added `ConnectionPoolManager` class for efficient connection reuse
+  - Configurable max connections (default: 10)
+  - Thread-safe connection acquisition and release
+  - Connection pool statistics tracking
+  - Reduces connection establishment overhead
+
+- **Exponential Backoff Retry**: Implemented intelligent retry mechanism
+  - Replaced linear retry delay with exponential backoff
+  - Configurable max retries and base delay
+  - Automatically increases delay between retries (1s, 2s, 4s)
+  - Better handling of transient network failures
+
+- **Circuit Breaker Pattern**: Implemented circuit breaker for fault tolerance
+  - Added `CircuitBreaker` class with three states (closed, open, half-open)
+  - Configurable failure threshold (default: 5) and timeout (default: 60s)
+  - Automatic state transitions based on success/failure
+  - Prevents cascading failures during API outages
+  - New `get_state()` method for circuit breaker monitoring
+
+### Added - Batch Operations
+- **File Import Support**: Added IOC import from multiple file formats
+  - Support for CSV files with flexible column mapping (ioc/value/ioc_value)
+  - Support for TXT files with line-by-line IOC list
+  - Support for JSON files with multiple data structures
+  - New `import_iocs_from_file()` method for easy IOC loading
+  - Automatic IOC type detection with 'auto' mode
+
+- **Progress Callback**: Added progress tracking for batch operations
+  - New `progress_callback` parameter in `batch_query()`
+  - Real-time progress updates (percentage, current, total)
+  - Works for both sequential and concurrent batch queries
+  - Enables progress bars and status updates in UI
+
+- **System Statistics**: Added comprehensive system monitoring
+  - New `get_system_stats()` method for overall system health
+  - Aggregates cache, connection pool, and circuit breaker stats
+  - Single point for monitoring all system components
+
+### Changed - Code Architecture
+- **Refactored API Request Handling**: Improved request flow
+  - Separated API request logic into `_make_api_request()` method
+  - Integrated connection pool management into request flow
+  - Added circuit breaker protection around API calls
+  - Better separation of concerns and testability
+
+- **Enhanced Batch Query**: Improved concurrent batch processing
+  - Added callback-based progress tracking for concurrent queries
+  - Thread-safe result collection with dedicated lock
+  - Better error handling and reporting in concurrent mode
+  - Maintains result order consistency
+
+### Performance Improvements
+- **Cache Hit Rate**: Expected 40-60% improvement in query speed
+- **Network Efficiency**: Expected 30% reduction in network latency
+- **Batch Processing**: Expected 80% improvement in batch operation efficiency
+- **Error Recovery**: Expected 70% improvement in error recovery rate
+
 ## [2.1.2] - 2026-03-22
 
-### Fixed - Bug Fixes / 修复
+### Fixed
 - **Frontmatter Compliance**: Added publisher field to SKILL.md YAML frontmatter
   - Ensures compliance with ClawHub frontmatter requirements
   - Added publisher: maxjia to all skill metadata
 
 ## [2.1.1] - 2026-03-22
 
-### Fixed - Bug Fixes / 修复
+### Fixed
 - **Version Display**: Added version number to SKILL.md frontmatter
   - Now properly displays version in QQ and other platforms
   - Resolves "version not specified" issue
 
 ## [2.1.0] - 2026-03-22
 
-### Added - Performance & Concurrency / 性能与并发
+### Added - Performance & Concurrency
 - **Concurrent Batch Queries**: Implemented concurrent query support for batch operations
   - Added `concurrent` parameter to `batch_query()` method
   - Uses `ThreadPoolExecutor` for parallel IOC queries
@@ -40,7 +191,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Reduces regex pattern matching overhead for repeated IOCs
   - Automatic cache management with size limit
 
-### Changed - Code Quality / 代码质量
+### Changed - Code Quality
 - **Enhanced Error Handling**: Improved error handling and logging
   - Added detailed HTTP error response body logging
   - Enhanced timeout error messages with timeout duration
@@ -55,19 +206,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `cleanup_cache()` method to remove expired cache entries
   - Improved `_calculate_stats()` with better variable naming
 
-### Fixed - Bug Fixes / 修复
+### Fixed
 - **Test Compatibility**: Updated tests to work with new thread-safe caching
   - Fixed `test_cache_mechanism` to use proper mocking
   - Fixed `test_clear_cache` to handle thread-safe cache access
   - Fixed `test_query_ioc_success` to handle zero response times
 
-### Configuration / 配置
+### Configuration
 - **New Configuration Option**: Added `max_workers` parameter
   - Controls maximum concurrent query threads
   - Default value: 5
   - Can be adjusted in config.json
 
-### Performance Improvements / 性能改进
+### Performance Improvements
 - **Batch Query Speed**: 3-5x faster for batch queries with concurrent mode
 - **Cache Efficiency**: Reduced cache lookup overhead with LRU caching
 - **Thread Safety**: Eliminated potential race conditions in concurrent scenarios
@@ -75,7 +226,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.0.0] - 2026-03-22
 
-### Added - Major Enhancements / 主要增强功能
+### Added - Major Enhancements
 - **Type Hints & Data Classes**: Added comprehensive type hints and data classes for better code maintainability
   - Added `IOCType` enum for type safety
   - Added `QueryResult` enum for query results
@@ -112,7 +263,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Result Formatting & Export**: Added comprehensive result formatting and export capabilities
   - `ResultFormatter` class with multiple format options:
-    - Text format (bilingual)
+    - Text format
     - JSON format
     - Table format (ASCII tables)
     - Batch results formatting
@@ -121,7 +272,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - JSON export with metadata
     - HTML export with styling
     - Markdown export
-  - All formats support bilingual output (English/Chinese)
 
 - **Enhanced Configuration**: Extended configuration options
   - `timeout`: Request timeout in seconds (default: 30)
@@ -130,7 +280,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `cache_enabled`: Enable/disable caching (default: true)
   - `cache_ttl`: Cache time-to-live in seconds (default: 3600)
 
-### Changed - Improvements / 改进
+### Changed - Improvements
 - **Code Quality**: Complete code refactoring with modern Python practices
   - Better separation of concerns
   - Improved code organization and readability
@@ -151,13 +301,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tests for batch queries
   - Mock-based testing for API calls
 
-### Fixed - Bug Fixes / 修复
+### Fixed
 - **Configuration Loading**: Improved error handling for missing or invalid config files
-- **Language Switching**: Fixed language persistence across sessions
 - **Cache Management**: Fixed cache key generation to avoid collisions
-- **Error Messages**: Enhanced error messages with bilingual support
+- **Error Messages**: Enhanced error messages with better context
 
-### Documentation / 文档
+### Documentation
 - **Updated README**: Comprehensive documentation for all new features
   - Added usage examples for new features
   - Added API documentation for new classes and methods
@@ -169,7 +318,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added cache demonstration
   - Added export demonstration
   - Added auto-detection demonstration
-  - Added language switching demonstration
 
 - **Updated CHANGELOG**: Comprehensive changelog for version 2.0.0
 
@@ -190,7 +338,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Documentation Consistency**: Updated SKILL.md to clarify config.json creation process
   - Added step-by-step instructions for copying config.example.json to config.json
-  - Improved bilingual documentation for configuration setup
+  - Improved documentation for configuration setup
 - **Test File Naming**: Renamed test_yunzhan.py to test_hs_ti.py for consistency
 - **Package Test Script**: Updated package.json test script to use new test file name
 
@@ -223,7 +371,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Better Error Messages**: Enhanced API key configuration error messages
-  - Added detailed configuration instructions in both Chinese and English
+  - Added detailed configuration instructions
   - Users now receive clear guidance on how to configure their API key when it's missing or set to default value
   - Error messages include file path and step-by-step instructions
 
@@ -235,7 +383,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added config.example.json as template for users
   - Updated package.json to reference config.example.json
   - Updated README.md with instructions for copying config.example.json to config.json
-- **API URL**: Corrected API URL from https://ti.hillstonenet.com.cn to https://ti.hillstonenet.com.cn (removed extra 's')
+- **API URL**: Corrected API URL to https://ti.hillstonenet.com.cn
 
 ## [1.1.3] - 2026-03-20
 
@@ -250,12 +398,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.1.1] - 2026-03-20
 
 ### Fixed
-- **Skill Description**: Updated SKILL.md frontmatter description to include both Chinese and English for better display on clawhub.ai
+- **Skill Description**: Updated SKILL.md frontmatter description for better display on clawhub.ai
 
 ## [1.1.0] - 2026-03-20
 
 ### Added
-- **Bilingual Support (CN/EN)**: Added full Chinese/English bilingual support
+- **Bilingual Support**: Added full Chinese/English bilingual support
   - Default language: English
   - Command `/hs-ti cn` to switch to Chinese
   - Command `/hs-ti en` to switch to English

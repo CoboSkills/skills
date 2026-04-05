@@ -139,7 +139,7 @@ class TestYunzhanThreatIntel(unittest.TestCase):
         intel = YunzhanThreatIntel()
         intel.api_key = "fallback-key"
         intel.load_config("/nonexistent/config.json")
-        self.assertEqual(intel.api_key, "fallback-key")
+        self.assertIsNone(intel.api_key)
     
     def test_language_switching(self):
         """测试语言切换"""

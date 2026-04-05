@@ -1,78 +1,150 @@
 {
   "name": "hs-ti",
   "displayName": "Hillstone Threat Intelligence",
-  "version": "2.1.2",
-  "description": "云瞻威胁情报查询技能。查询IP地址、域名、URL、文件哈希等是否在云瞻威胁情报库中。支持中英文双语。/ Hillstone Threat Intelligence Skill. Query IP addresses, domains, URLs, and file hashes in the Hillstone threat intelligence database. Supports Chinese/English bilingual.",
+  "version": "2.2.5",
+  "description": "Hillstone Threat Intelligence Skill. Query IP addresses, domains, URLs, and file hashes in the Hillstone threat intelligence database.",
+  "homepage": "https://clawhub.ai/maxjia/hs-ti",
   "main": "scripts/hs_ti_plugin.py",
   "scripts": {
     "test": "python3 tests/test_hs_ti.py"
   },
+  "env": {
+    "HILLSTONE_API_KEY": {
+      "description": "Hillstone Threat Intelligence API key (recommended over config.json storage). If set, takes precedence over api_key in config.json.",
+      "required": false,
+      "sensitive": true
+    }
+  },
   "config": {
     "required": true,
     "file": "config.json",
-    "description": "云瞻威胁情报API配置文件 / Hillstone Threat Intelligence API configuration file",
+    "description": "Hillstone Threat Intelligence API configuration file",
     "schema": {
       "api_key": {
         "type": "string",
-        "description": "云瞻威胁情报API密钥 / Hillstone Threat Intelligence API Key",
+        "description": "Hillstone Threat Intelligence API Key (HILLSTONE_API_KEY env var recommended)",
         "required": true,
         "sensitive": true
       },
       "api_url": {
         "type": "string",
-        "description": "云瞻威胁情报API地址 / Hillstone Threat Intelligence API URL",
+        "description": "Hillstone Threat Intelligence API URL",
         "default": "https://ti.hillstonenet.com.cn"
       },
       "timeout": {
         "type": "integer",
-        "description": "请求超时时间（秒）/ Request timeout in seconds",
+        "description": "Request timeout in seconds",
         "default": 30
       },
       "max_retries": {
         "type": "integer",
-        "description": "最大重试次数 / Maximum retry attempts",
+        "description": "Maximum retry attempts",
         "default": 3
       },
       "retry_delay": {
         "type": "integer",
-        "description": "重试延迟（秒）/ Retry delay in seconds",
+        "description": "Retry delay in seconds",
         "default": 1
       },
       "cache_enabled": {
         "type": "boolean",
-        "description": "是否启用缓存 / Enable caching",
+        "description": "Enable caching",
         "default": true
       },
       "cache_ttl": {
         "type": "integer",
-        "description": "缓存有效期（秒）/ Cache time-to-live in seconds",
+        "description": "Cache time-to-live in seconds",
         "default": 3600
       },
       "max_workers": {
         "type": "integer",
-        "description": "并发查询最大线程数 / Maximum concurrent query threads",
+        "description": "Maximum concurrent query threads",
         "default": 5
+      },
+      "max_cache_size": {
+        "type": "integer",
+        "description": "Maximum cache entries",
+        "default": 1000
+      },
+      "max_connections": {
+        "type": "integer",
+        "description": "Maximum HTTP connection pool size",
+        "default": 10
+      },
+      "circuit_breaker_failure_threshold": {
+        "type": "integer",
+        "description": "Circuit breaker failure threshold",
+        "default": 5
+      },
+      "circuit_breaker_timeout": {
+        "type": "integer",
+        "description": "Circuit breaker timeout in seconds",
+        "default": 60
       }
     }
   },
   "keywords": [
+    "hs-ti",
     "threat-intel",
     "threat-intelligence",
     "yunzhan",
     "hillstone",
+    "hillstone-networks",
+    "network-security",
     "ip",
     "domain",
     "url",
     "hash",
     "ioc",
-    "bilingual",
-    "multilingual",
+    "ioc-query",
+    "indicators",
+    "compromise",
+    "malware",
+    "phishing",
+    "c2",
+    "apt",
+    "threat-hunting",
+    "threat-detection",
+    "security-analysis",
+    "cybersecurity",
+    "threat-assessment",
+    "threat-response",
+    "threat-monitoring",
+    "threat-intel-api",
+    "ti-api",
+    "threat-database",
+    "malicious",
+    "benign",
+    "credibility",
+    "threat-type",
     "caching",
     "auto-detection",
     "export",
-    "logging"
+    "logging",
+    "performance",
+    "optimization",
+    "connection-pool",
+    "circuit-breaker",
+    "retry",
+    "batch-query",
+    "file-import",
+    "progress-tracking",
+    "statistics",
+    "monitoring",
+    "api-key",
+    "api-management",
+    "environment-variable",
+    "security",
+    "sensitive-data",
+    "data-masking",
+    "log-security",
+    "file-security",
+    "permissions",
+    "audit",
+    "compliance"
   ],
-  "author": "Hillstone",
+  "author": "maxjia",
+  "publisher": "maxjia",
   "license": "MIT",
   "dependencies": {
     "python": ">=3.8"
@@ -82,29 +154,20 @@
     "commands": [
       "/threat-check",
       "/hs-ti",
-      "/threat",
-      "/hs-ti cn",
-      "/hs-ti en"
+      "/threat"
     ],
     "aliases": [
       "hs-ti",
       "threat-intel",
-      "威胁情报",
-      "云瞻"
+      "hillstone-ti"
     ],
-    "language": {
-      "default": "en",
-      "supported": ["en", "cn"],
-      "file": "language.json",
-      "description": "Language configuration / 语言配置"
-    },
     "network": {
       "required": true,
       "endpoints": [
         {
-          "name": "云瞻威胁情报API / Hillstone Threat Intelligence API",
+          "name": "Hillstone Threat Intelligence API",
           "url": "https://ti.hillstonenet.com.cn",
-          "description": "用于查询IP、域名、URL、文件哈希的威胁情报 / Used to query threat intelligence for IPs, domains, URLs, and file hashes"
+          "description": "Used to query threat intelligence for IPs, domains, URLs, and file hashes"
         }
       ]
     }

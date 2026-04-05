@@ -3,11 +3,16 @@
   "slug": "hs-ti",
   "displayName": "Hs Ti",
   "latest": {
-    "version": "2.1.2",
-    "publishedAt": 1774523197454,
-    "commit": "https://github.com/openclaw/skills/commit/43e5c6f15ded7c0c87cf6a47e80b0c8f59066cb1"
+    "version": "2.2.5",
+    "publishedAt": 1775064354938,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.2",
+      "publishedAt": 1774523197454,
+      "commit": "https://github.com/openclaw/skills/commit/43e5c6f15ded7c0c87cf6a47e80b0c8f59066cb1"
+    },
     {
       "version": "2.1.1",
       "publishedAt": 1774194412590,

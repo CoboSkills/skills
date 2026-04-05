@@ -15,6 +15,7 @@ from functools import wraps, lru_cache
 from enum import Enum
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
+from collections import OrderedDict
 
 
 class IOCType(Enum):
@@ -147,9 +148,108 @@ class IOCTypeDetector:
         return IOCType.UNKNOWN.value
 
 
-def retry_on_failure(max_retries: int = 3, delay: int = 1, 
-                    exceptions: tuple = (urllib.error.URLError,)) -> Callable:
-    """重试装饰器"""
+class ConnectionPoolManager:
+    """HTTP连接池管理器"""
+    
+    def __init__(self, max_connections: int = 10):
+        self.max_connections = max_connections
+        self.active_connections = 0
+        self._connection_lock = Lock()
+        self.logger = logging.getLogger('hs-ti-connection-pool')
+    
+    def acquire_connection(self) -> bool:
+        """获取连接"""
+        with self._connection_lock:
+            if self.active_connections < self.max_connections:
+                self.active_connections += 1
+                self.logger.debug(f"获取连接成功，当前活跃连接: {self.active_connections}")
+                return True
+            self.logger.warning(f"连接池已满，当前活跃连接: {self.active_connections}")
+            return False
+    
+    def release_connection(self) -> None:
+        """释放连接"""
+        with self._connection_lock:
+            if self.active_connections > 0:
+                self.active_connections -= 1
+                self.logger.debug(f"释放连接成功，当前活跃连接: {self.active_connections}")
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """获取连接池统计信息"""
+        return {
+            'active_connections': self.active_connections,
+            'max_connections': self.max_connections,
+            'available_connections': self.max_connections - self.active_connections
+        }
+
+
+class CircuitBreaker:
+    """断路器模式实现"""
+    
+    def __init__(self, failure_threshold: int = 5, timeout: int = 60):
+        self.failure_threshold = failure_threshold
+        self.timeout = timeout
+        self.failure_count = 0
+        self.last_failure_time = None
+        self.state = 'closed'
+        self._lock = Lock()
+        self.logger = logging.getLogger('hs-ti-circuit-breaker')
+    
+    def call(self, func: Callable, *args, **kwargs) -> Any:
+        """通过断路器调用函数"""
+        with self._lock:
+            if self.state == 'open':
+                if self._should_attempt_reset():
+                    self.state = 'half-open'
+                    self.logger.info("断路器状态从open切换到half-open")
+                else:
+                    raise Exception("断路器已打开，请求被拒绝")
+        
+        try:
+            result = func(*args, **kwargs)
+            self._on_success()
+            return result
+        except Exception as e:
+            self._on_failure()
+            raise
+    
+    def _should_attempt_reset(self) -> bool:
+        """检查是否应该尝试重置断路器"""
+        if self.last_failure_time is None:
+            return True
+        return time.time() - self.last_failure_time >= self.timeout
+    
+    def _on_success(self) -> None:
+        """成功回调"""
+        with self._lock:
+            self.failure_count = 0
+            if self.state == 'half-open':
+                self.state = 'closed'
+                self.logger.info("断路器状态从half-open切换到closed")
+    
+    def _on_failure(self) -> None:
+        """失败回调"""
+        with self._lock:
+            self.failure_count += 1
+            self.last_failure_time = time.time()
+            
+            if self.failure_count >= self.failure_threshold:
+                self.state = 'open'
+                self.logger.warning(f"断路器已打开，失败次数: {self.failure_count}")
+    
+    def get_state(self) -> Dict[str, Any]:
+        """获取断路器状态"""
+        return {
+            'state': self.state,
+            'failure_count': self.failure_count,
+            'failure_threshold': self.failure_threshold,
+            'last_failure_time': self.last_failure_time
+        }
+
+
+def exponential_backoff_retry(max_retries: int = 3, base_delay: int = 1, 
+                            exceptions: tuple = (urllib.error.URLError,)) -> Callable:
+    """指数退避重试装饰器"""
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -160,7 +260,8 @@ def retry_on_failure(max_retries: int = 3, delay: int = 1,
                 except exceptions as e:
                     last_exception = e
                     if attempt < max_retries - 1:
-                        time.sleep(delay * (attempt + 1))
+                        delay = base_delay * (2 ** attempt)
+                        time.sleep(delay)
             raise last_exception
         return wrapper
     return decorator
@@ -177,13 +278,17 @@ class YunzhanThreatIntel:
         self.lang_config_path: Optional[str] = None
         self.cache_enabled: bool = True
         self.cache_ttl: int = 3600
-        self.cache: Dict[str, Dict] = {}
+        self.cache: OrderedDict = OrderedDict()
         self._cache_lock: Lock = Lock()
         self._response_times_lock: Lock = Lock()
         self.max_retries: int = 3
         self.retry_delay: int = 1
         self.timeout: int = 30
         self.max_workers: int = 5
+        self.cache_stats = {'hits': 0, 'misses': 0}
+        self.max_cache_size: int = 1000
+        self.connection_pool = ConnectionPoolManager(max_connections=10)
+        self.circuit_breaker = CircuitBreaker(failure_threshold=5, timeout=60)
         self.logger: logging.Logger = self._setup_logger()
         
         self.load_config(config_path)
@@ -219,7 +324,7 @@ class YunzhanThreatIntel:
             try:
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
-                    self.api_key = config.get('api_key')
+                    self.api_key = config.get('api_key') or os.environ.get('HILLSTONE_API_KEY')
                     if 'api_url' in config:
                         self.api_url = config['api_url'].rstrip('/')
                     if 'timeout' in config:
@@ -234,11 +339,24 @@ class YunzhanThreatIntel:
                         self.cache_ttl = config['cache_ttl']
                     if 'max_workers' in config:
                         self.max_workers = config['max_workers']
+                    if 'max_cache_size' in config:
+                        self.max_cache_size = config['max_cache_size']
+                    if 'max_connections' in config:
+                        self.connection_pool = ConnectionPoolManager(max_connections=config['max_connections'])
+                    if 'circuit_breaker_failure_threshold' in config:
+                        self.circuit_breaker = CircuitBreaker(
+                            failure_threshold=config['circuit_breaker_failure_threshold'],
+                            timeout=config.get('circuit_breaker_timeout', 60)
+                        )
                 self.logger.info(f"配置文件加载成功: {config_path}")
             except Exception as e:
                 self.logger.error(f"加载配置文件失败: {e}")
         else:
-            self.logger.warning(f"配置文件不存在: {config_path}")
+            self.api_key = os.environ.get('HILLSTONE_API_KEY')
+            if self.api_key:
+                self.logger.info("从环境变量加载API密钥")
+            else:
+                self.logger.warning(f"配置文件不存在: {config_path}")
     
     def load_language_config(self) -> None:
         """加载语言配置"""
@@ -283,19 +401,59 @@ class YunzhanThreatIntel:
         return time.time() - cache_entry['timestamp'] < self.cache_ttl
     
     def _get_from_cache(self, cache_key: str) -> Optional[Dict]:
-        """从缓存获取数据（线程安全）"""
+        """从缓存获取数据（线程安全+LRU）"""
         with self._cache_lock:
-            if cache_key in self.cache and self._is_cache_valid(self.cache[cache_key]):
-                return self.cache[cache_key]['data']
+            if cache_key in self.cache:
+                cache_entry = self.cache[cache_key]
+                if self._is_cache_valid(cache_entry):
+                    self.cache_stats['hits'] += 1
+                    self._update_lru_order(cache_key)
+                    return cache_entry['data']
+                else:
+                    del self.cache[cache_key]
+            self.cache_stats['misses'] += 1
         return None
     
     def _save_to_cache(self, cache_key: str, data: Dict) -> None:
-        """保存数据到缓存（线程安全）"""
+        """保存数据到缓存（线程安全+LRU）"""
         with self._cache_lock:
             self.cache[cache_key] = {
                 'data': data,
                 'timestamp': time.time()
             }
+            self._update_lru_order(cache_key)
+            self._enforce_cache_size_limit()
+    
+    def _update_lru_order(self, cache_key: str) -> None:
+        """更新LRU顺序"""
+        if cache_key in self.cache:
+            cache_entry = self.cache[cache_key]
+            del self.cache[cache_key]
+            self.cache[cache_key] = cache_entry
+    
+    def _enforce_cache_size_limit(self) -> None:
+        """强制执行缓存大小限制"""
+        while len(self.cache) > self.max_cache_size:
+            oldest_key = next(iter(self.cache))
+            del self.cache[oldest_key]
+            self.logger.debug(f"缓存已满，移除最旧的条目: {oldest_key}")
+    
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """获取缓存统计信息"""
+        total_requests = self.cache_stats['hits'] + self.cache_stats['misses']
+        hit_rate = 0
+        if total_requests > 0:
+            hit_rate = (self.cache_stats['hits'] / total_requests) * 100
+        
+        return {
+            'total_entries': len(self.cache),
+            'max_size': self.max_cache_size,
+            'hits': self.cache_stats['hits'],
+            'misses': self.cache_stats['misses'],
+            'total_requests': total_requests,
+            'hit_rate': f"{hit_rate:.2f}%",
+            'cache_enabled': self.cache_enabled
+        }
     
     def _add_response_time(self, response_time: int) -> None:
         """添加响应时间（线程安全）"""
@@ -400,6 +558,40 @@ class YunzhanThreatIntel:
         }
         return texts.get(self.language, texts['en']).get(key, key)
     
+    @exponential_backoff_retry(max_retries=3, base_delay=1, exceptions=(urllib.error.URLError,))
+    def _make_api_request(self, url: str, headers: Dict[str, str], ioc_value: str) -> Dict[str, Any]:
+        """执行API请求（带重试）"""
+        start_time = time.time()
+        
+        if not self.connection_pool.acquire_connection():
+            raise Exception("连接池已满，无法获取连接")
+        
+        try:
+            url_with_params = f"{url}?key={urllib.parse.quote(ioc_value)}"
+            request = urllib.request.Request(url_with_params, headers=headers)
+            
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                response_time_ms = int((time.time() - start_time) * 1000)
+                self._add_response_time(response_time_ms)
+                
+                data = response.read().decode('utf-8')
+                result = json.loads(data)
+                result['response_time_ms'] = response_time_ms
+                
+                masked_ioc = self._mask_sensitive_value(ioc_value)
+                self.logger.info(f"查询成功: {masked_ioc}, 耗时: {response_time_ms}ms")
+                return result
+        finally:
+            self.connection_pool.release_connection()
+    
+    def _mask_sensitive_value(self, value: str) -> str:
+        """遮蔽敏感值，用于日志记录"""
+        if not value:
+            return ""
+        if len(value) <= 4:
+            return "*" * len(value)
+        return value[:2] + "*" * (len(value) - 4) + value[-2:]
+    
     def query_ioc(self, ioc_value: str, ioc_type: str = "domain", 
                   advanced: bool = False, use_cache: bool = True) -> Dict[str, Any]:
         """
@@ -424,10 +616,12 @@ class YunzhanThreatIntel:
             cache_key = self._get_cache_key(ioc_value, ioc_type, advanced)
             cached_data = self._get_from_cache(cache_key)
             if cached_data:
-                self.logger.info(f"使用缓存结果: {ioc_value}")
+                masked_ioc = self._mask_sensitive_value(ioc_value)
+                self.logger.info(f"使用缓存结果: {masked_ioc}")
                 return cached_data
         
-        self.logger.info(f"查询IOC: {ioc_value} (类型: {ioc_type}, 高级: {advanced})")
+        masked_ioc = self._mask_sensitive_value(ioc_value)
+        self.logger.info(f"查询IOC: {masked_ioc} (类型: {ioc_type}, 高级: {advanced})")
         
         headers = {
             "X-Auth-Token": self.api_key,
@@ -456,24 +650,15 @@ class YunzhanThreatIntel:
         start_time = time.time()
         
         try:
-            url_with_params = f"{url}?key={urllib.parse.quote(ioc_value)}"
-            request = urllib.request.Request(url_with_params, headers=headers)
+            result = self.circuit_breaker.call(
+                self._make_api_request, url, headers, ioc_value
+            )
             
-            with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                response_time_ms = int((time.time() - start_time) * 1000)
-                self._add_response_time(response_time_ms)
-                
-                data = response.read().decode('utf-8')
-                result = json.loads(data)
-                result['response_time_ms'] = response_time_ms
-                
-                self.logger.info(f"查询成功: {ioc_value}, 耗时: {response_time_ms}ms")
-                
-                if use_cache and self.cache_enabled:
-                    cache_key = self._get_cache_key(ioc_value, ioc_type, advanced)
-                    self._save_to_cache(cache_key, result)
-                
-                return result
+            if use_cache and self.cache_enabled:
+                cache_key = self._get_cache_key(ioc_value, ioc_type, advanced)
+                self._save_to_cache(cache_key, result)
+            
+            return result
             
         except urllib.error.HTTPError as e:
             response_time_ms = int((time.time() - start_time) * 1000)
@@ -531,7 +716,8 @@ class YunzhanThreatIntel:
         return self.query_ioc(ioc_value, detected_type, advanced, use_cache)
     
     def batch_query(self, iocs: List[Dict[str, str]], 
-                    use_cache: bool = True, concurrent: bool = True) -> Dict[str, Any]:
+                    use_cache: bool = True, concurrent: bool = True,
+                    progress_callback: Optional[Callable[[float, int, int], None]] = None) -> Dict[str, Any]:
         """
         批量查询威胁情报
         
@@ -539,6 +725,7 @@ class YunzhanThreatIntel:
             iocs: IOC列表，每个元素为 {"value": "ioc_value", "type": "ioc_type"}
             use_cache: 是否使用缓存
             concurrent: 是否使用并发查询（默认True）
+            progress_callback: 进度回调函数，参数为 (progress_percentage, current, total)
         
         Returns:
             包含结果和统计信息的字典
@@ -549,9 +736,9 @@ class YunzhanThreatIntel:
         batch_times: List[int] = []
         
         if concurrent and len(iocs) > 1:
-            results = self._batch_query_concurrent(iocs, use_cache)
+            results = self._batch_query_concurrent(iocs, use_cache, progress_callback)
         else:
-            results = self._batch_query_sequential(iocs, use_cache)
+            results = self._batch_query_sequential(iocs, use_cache, progress_callback)
         
         batch_times = [r.response_time_ms for r in results]
         batch_stats = self._calculate_stats(batch_times)
@@ -568,11 +755,13 @@ class YunzhanThreatIntel:
         }
     
     def _batch_query_sequential(self, iocs: List[Dict[str, str]], 
-                               use_cache: bool) -> List[IOCQueryResult]:
+                               use_cache: bool,
+                               progress_callback: Optional[Callable[[float, int, int], None]] = None) -> List[IOCQueryResult]:
         """顺序批量查询"""
         results: List[IOCQueryResult] = []
+        total = len(iocs)
         
-        for ioc in iocs:
+        for i, ioc in enumerate(iocs):
             ioc_value = ioc["value"]
             ioc_type = ioc.get("type", IOCTypeDetector.detect(ioc_value) or "domain")
             
@@ -588,13 +777,21 @@ class YunzhanThreatIntel:
                 error=result.get('error') if 'error' in result else None
             )
             results.append(query_result)
+            
+            if progress_callback:
+                progress = (i + 1) / total * 100
+                progress_callback(progress, i + 1, total)
         
         return results
     
     def _batch_query_concurrent(self, iocs: List[Dict[str, str]], 
-                                use_cache: bool) -> List[IOCQueryResult]:
+                                use_cache: bool,
+                                progress_callback: Optional[Callable[[float, int, int], None]] = None) -> List[IOCQueryResult]:
         """并发批量查询"""
         results: List[IOCQueryResult] = []
+        completed_count = 0
+        total = len(iocs)
+        _results_lock = Lock()
         
         def query_single(ioc: Dict[str, str]) -> IOCQueryResult:
             ioc_value = ioc["value"]
@@ -612,17 +809,18 @@ class YunzhanThreatIntel:
                 error=result.get('error') if 'error' in result else None
             )
         
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            future_to_ioc = {
-                executor.submit(query_single, ioc): ioc 
-                for ioc in iocs
-            }
-            
-            for future in as_completed(future_to_ioc):
-                try:
-                    result = future.result()
+        def on_complete(future):
+            nonlocal completed_count
+            try:
+                result = future.result()
+                with _results_lock:
                     results.append(result)
-                except Exception as e:
+                    completed_count += 1
+                    if progress_callback:
+                        progress = completed_count / total * 100
+                        progress_callback(progress, completed_count, total)
+            except Exception as e:
+                with _results_lock:
                     ioc = future_to_ioc[future]
                     self.logger.error(f"查询异常: {ioc['value']}, 错误: {str(e)}")
                     results.append(IOCQueryResult(
@@ -633,6 +831,19 @@ class YunzhanThreatIntel:
                         success=False,
                         error=str(e)
                     ))
+                    completed_count += 1
+                    if progress_callback:
+                        progress = completed_count / total * 100
+                        progress_callback(progress, completed_count, total)
+        
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            future_to_ioc = {
+                executor.submit(query_single, ioc): ioc 
+                for ioc in iocs
+            }
+            
+            for future in future_to_ioc:
+                future.add_done_callback(on_complete)
         
         return results
     
@@ -650,6 +861,134 @@ class YunzhanThreatIntel:
         
         return PerformanceStats(avg_ms=avg_ms, max_ms=max_ms, min_ms=min_ms, 
                               median_ms=median_ms, total_calls=total_calls)
+    
+    def import_iocs_from_file(self, file_path: str) -> List[Dict[str, str]]:
+        """
+        从文件导入IOC列表
+        
+        Args:
+            file_path: 文件路径，支持CSV、TXT、JSON格式
+        
+        Returns:
+            IOC列表，每个元素为 {"value": "ioc_value", "type": "ioc_type"}
+        
+        Raises:
+            ValueError: 不支持的文件格式
+            FileNotFoundError: 文件不存在
+        """
+        file_path_obj = Path(file_path)
+        
+        if not file_path_obj.exists():
+            raise FileNotFoundError(f"文件不存在: {file_path}")
+        
+        file_ext = file_path_obj.suffix.lower()
+        
+        if file_ext == '.csv':
+            return self._import_from_csv(file_path)
+        elif file_ext == '.txt':
+            return self._import_from_txt(file_path)
+        elif file_ext == '.json':
+            return self._import_from_json(file_path)
+        else:
+            raise ValueError(f"不支持的文件格式: {file_ext}，仅支持CSV、TXT、JSON")
+    
+    def _import_from_csv(self, file_path: str) -> List[Dict[str, str]]:
+        """从CSV文件导入IOC"""
+        import csv
+        
+        iocs = []
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    ioc_value = row.get('ioc') or row.get('value') or row.get('ioc_value', '')
+                    ioc_type = row.get('type', 'auto')
+                    
+                    if ioc_value:
+                        iocs.append({
+                            'value': ioc_value.strip(),
+                            'type': ioc_type.strip() if ioc_type != 'auto' else 'auto'
+                        })
+        except Exception as e:
+            self.logger.error(f"CSV文件导入失败: {e}")
+            raise
+        
+        self.logger.info(f"从CSV文件导入了 {len(iocs)} 个IOC")
+        return iocs
+    
+    def _import_from_txt(self, file_path: str) -> List[Dict[str, str]]:
+        """从TXT文件导入IOC"""
+        iocs = []
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#'):
+                        iocs.append({
+                            'value': line,
+                            'type': 'auto'
+                        })
+        except Exception as e:
+            self.logger.error(f"TXT文件导入失败: {e}")
+            raise
+        
+        self.logger.info(f"从TXT文件导入了 {len(iocs)} 个IOC")
+        return iocs
+    
+    def _import_from_json(self, file_path: str) -> List[Dict[str, str]]:
+        """从JSON文件导入IOC"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            iocs = []
+            if isinstance(data, list):
+                for item in data:
+                    if isinstance(item, dict):
+                        ioc_value = item.get('ioc') or item.get('value') or item.get('ioc_value', '')
+                        ioc_type = item.get('type', 'auto')
+                        
+                        if ioc_value:
+                            iocs.append({
+                                'value': str(ioc_value).strip(),
+                                'type': ioc_type.strip() if ioc_type != 'auto' else 'auto'
+                            })
+                    elif isinstance(item, str):
+                        iocs.append({
+                            'value': item.strip(),
+                            'type': 'auto'
+                        })
+            elif isinstance(data, dict):
+                if 'iocs' in data:
+                    for item in data['iocs']:
+                        if isinstance(item, dict):
+                            ioc_value = item.get('ioc') or item.get('value') or item.get('ioc_value', '')
+                            ioc_type = item.get('type', 'auto')
+                            
+                            if ioc_value:
+                                iocs.append({
+                                    'value': str(ioc_value).strip(),
+                                    'type': ioc_type.strip() if ioc_type != 'auto' else 'auto'
+                                })
+                        elif isinstance(item, str):
+                            iocs.append({
+                                'value': item.strip(),
+                                'type': 'auto'
+                            })
+            
+            self.logger.info(f"从JSON文件导入了 {len(iocs)} 个IOC")
+            return iocs
+        except Exception as e:
+            self.logger.error(f"JSON文件导入失败: {e}")
+            raise
+    
+    def get_system_stats(self) -> Dict[str, Any]:
+        """获取系统统计信息"""
+        return {
+            'cache_stats': self.get_cache_stats(),
+            'connection_pool_stats': self.connection_pool.get_stats(),
+            'circuit_breaker_stats': self.circuit_breaker.get_state()
+        }
     
     def validate_api_key(self) -> bool:
         """验证API密钥是否有效配置"""

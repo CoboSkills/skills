@@ -1,80 +1,38 @@
-# 🧠 Memory Workflow 记忆工作流
+# Memory Workflow
 
-> 虾宝智能记忆工作流 —— 开箱即用，数据与代码分离，支持轻量降级。
+你的记忆工作流助手。零外部依赖开箱即用。
 
-## ✨ 特性
-
-- **无外部数据库依赖** —— 文件系统存储，更新 skill 不丢数据
-- **两阶段混合检索** —— 向量 + BM25 + RRF + Rerank 精排
-- **Query Expansion** —— HyDE 假设文档 + Query Rewriting 多查询变体
-- **自动降级** —— Ollama / Rerank / MiniMax 任意不可用时，自动降级到可用模式
-- **后台自动存储** —— Daemon 线程每 10 分钟自动检查并存储，无需 cron
-- **长对话分块** —— 自动分块存储（重叠 50 tokens），避免截断
-
-## 📦 安装
+## 快速开始
 
 ```bash
-# 轻量模式（只需 Python）
-pip install scikit-learn
-
-# 完整模式（推荐）
-curl -fsSL https://ollama.com/install.sh | sh
-ollama pull bge-m3:latest
-ollama pull qwen3.5:latest
-
-# Rerank 服务（推荐）
-docker run -d -p 18778:8000 \
-  --gpus all \
-  -e MODEL_NAME=BAAI/bge-reranker-v2-m3 \
-  ghcr.io/chgaowei/rerank_openai:latest
-
-# 安装 skill
-claw use memory-workflow
-```
-
-## 🚀 快速开始
-
-```bash
-# 检查状态
-python3 memory_ops.py check
+# 搜索记忆
+python memory_ops.py search --query "发哥 项目"
 
 # 存储记忆
-python3 memory_ops.py store --content "今天和用户讨论了龙虾平台 v2.0" --topic "lobster-platform"
+python memory_ops.py store --content "发哥在思特奇工作" --tag work
 
-# 搜索记忆
-python3 memory_ops.py search --query "龙虾平台" --limit 5
+# /save 存储 session
+python scripts/save_session.py '{"messages": [...]}'
+
+# 去重 / 清理
+python memory_ops.py dedup
+python memory_ops.py prune --days 30
 ```
 
-## 🔧 配置
+## 三层存储
 
-```bash
-export OLLAMA_URL=http://localhost:11434
-export RERANK_SERVICE_URL=http://localhost:18778
-export MEMORY_WORKFLOW_DATA=~/.openclaw/memory-workflow-data
-```
+| 层 | 说明 |
+|----|------|
+| 文件 | `memory-workflow-data/memories/*.md` |
+| FTS5 | SQLite 全文索引，零依赖 |
+| KG | 三元组知识图谱（Ollama LLM 提取，规则降级） |
+| Milvus | 向量检索（可选，需要 18779 embedding 服务） |
 
-详细配置见 [SKILL.md](SKILL.md)。
+## 工具（可注册到 Agent）
 
-## 📁 数据目录
-
-```
-~/.openclaw/memory-workflow-data/
-├── memories/            # 记忆文件（JSON）
-├── memory_state.json    # 状态
-└── hot_sessions.json   # 热 session
-```
-
-> 更新 skill 时此目录不会被覆盖。
-
-## ⚠️ 局限性
-
-| 限制 | 说明 |
-|------|------|
-| 向量检索依赖 Ollama | 不用 Ollama 则降级为 BM25 |
-| 单节点文件存储 | 不支持多实例共享 |
-| RAGAs 评估脚本 | `ragas_eval.py` 仍在开发中 |
-
-## 📄 文档
-
-- [SKILL.md](SKILL.md) —— 完整文档（推荐）
-- [CHANGELOG.md](CHANGELOG.md) —— 更新日志
+- `MemorySearch` — 语义搜索
+- `MemoryStore` — 存储记忆
+- `MemoryDedup` — 去重
+- `MemoryPrune` — 清理旧记忆
+- `MemoryConsolidate` — 合并相似记忆
+- `MemoryList` — 列出记忆文件

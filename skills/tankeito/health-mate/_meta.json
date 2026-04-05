@@ -3,11 +3,16 @@
   "slug": "health-mate",
   "displayName": "Health Mate",
   "latest": {
-    "version": "1.5.3",
-    "publishedAt": 1774748990762,
-    "commit": "https://github.com/openclaw/skills/commit/0037a78eb6fa5e8291f329779d89a8e0b4d35862"
+    "version": "1.5.4",
+    "publishedAt": 1775048958924,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.3",
+      "publishedAt": 1774748990762,
+      "commit": "https://github.com/openclaw/skills/commit/0037a78eb6fa5e8291f329779d89a8e0b4d35862"
+    },
     {
       "version": "1.5.0",
       "publishedAt": 1774235888105,

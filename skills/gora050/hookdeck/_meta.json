@@ -3,9 +3,15 @@
   "slug": "hookdeck",
   "displayName": "Hookdeck",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773547372496,
-    "commit": "https://github.com/openclaw/skills/commit/1c62ca06390232ae4bdc4f98346f9b2724fa2368"
+    "version": "1.0.2",
+    "publishedAt": 1775164054834,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773547372496,
+      "commit": "https://github.com/openclaw/skills/commit/1c62ca06390232ae4bdc4f98346f9b2724fa2368"
+    }
+  ]
 }

@@ -35,6 +35,11 @@ curl -sS \
   "https://getsocialclaw.com/v1/keys/validate"
 ```
 
+An API key alone is not enough for execution. The workspace must also have an active trial or paid plan. If requests fail with `plan_required` or `subscription_*`, direct the user to:
+
+- `https://getsocialclaw.com/pricing`
+- `https://getsocialclaw.com/dashboard`
+
 ### Start account connection
 
 ```bash
@@ -54,6 +59,19 @@ curl -sS \
   "https://getsocialclaw.com/v1/connections/<connection-id>"
 ```
 
+### Start Pinterest connection
+
+```bash
+curl -sS \
+  -X POST \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"pinterest"}' \
+  "https://getsocialclaw.com/v1/connections/start"
+```
+
+Pinterest uses the standard hosted OAuth flow. Its main publish target is board-centric.
+
 ### Connect Telegram manually
 
 ```bash
@@ -66,6 +84,17 @@ curl -sS \
 ```
 
 Use a numeric `chatId` for groups/supergroups when you do not have a stable `@channelusername`.
+
+### Connect Discord manually
+
+```bash
+curl -sS \
+  -X POST \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"provider":"discord","webhookUrl":"<discord-webhook-url>"}' \
+  "https://getsocialclaw.com/v1/connections/start"
+```
 
 ### List accounts
 
@@ -82,6 +111,23 @@ curl -sS \
   -H "Authorization: Bearer $SC_API_KEY" \
   "https://getsocialclaw.com/v1/accounts/<account-id>/capabilities"
 ```
+
+### Inspect account discovery actions
+
+```bash
+curl -sS \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  "https://getsocialclaw.com/v1/accounts/<account-id>/actions"
+
+curl -sS \
+  -X POST \
+  -H "Authorization: Bearer $SC_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}' \
+  "https://getsocialclaw.com/v1/accounts/<account-id>/actions/<action-id>"
+```
+
+For Pinterest, use discovery actions to create boards, inspect sections, and discover catalogs. Product, collection, and idea surfaces should be treated as capability-gated or beta until the connected account advertises them.
 
 ### Upload media
 
@@ -190,12 +236,39 @@ curl -sS \
 }
 ```
 
+### Board-centric Pinterest pin
+
+```json
+{
+  "posts": [
+    {
+      "account": "pinterest:board:123",
+      "provider": "pinterest",
+      "name": "Spring launch pin",
+      "description": "Board-centric pin scheduled through SocialClaw.",
+      "status": "scheduled",
+      "publishAt": "2026-03-22T14:00:00.000Z",
+      "assets": [
+        {
+          "url": "https://getsocialclaw.com/media/asset-id/token/image-1.jpg"
+        },
+        {
+          "url": "https://getsocialclaw.com/media/asset-id/token/image-2.jpg"
+        }
+      ]
+    }
+  ]
+}
+```
+
+Use one image asset for a standard pin, one video asset for a video pin, or multiple image assets for a multi-image pin.
+
 ## When to stop and tell the user something is unsupported
 
 - Facebook personal profile publishing
 - Personal Instagram accounts
 - TikTok image posts
 - Telegram OAuth browser auth
+- Pinterest product, collection, or idea publishing when the connected account does not advertise those capabilities
 - Reddit native media/gallery upload
-- LinkedIn video posts
 - YouTube community posts or Shorts-specific flows

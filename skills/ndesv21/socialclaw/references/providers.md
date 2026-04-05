@@ -27,14 +27,24 @@
 ## LinkedIn Profile
 
 - Use `linkedin` for member profiles.
-- Supports text and native image upload.
-- Multi-image posts are supported.
+- Supports text and native image/video upload.
+- Supports one video or up to twenty images per post.
 
 ## LinkedIn Page
 
 - Use `linkedin_page` for organization/page targets.
 - Separate from member profile connections.
-- Supports text and native image upload.
+- Supports text and native image/video upload.
+- Supports one video or up to twenty images per post.
+
+## Pinterest
+
+- Use `pinterest` for Pinterest's official OAuth provider flow.
+- The primary publish target is board-centric.
+- Supports standard pins, video pins, and multi-image pins.
+- Use discovery actions to create boards, inspect board sections, and discover connected catalogs.
+- Pin analytics and account analytics are supported through the standard SocialClaw analytics commands.
+- Product, collection, and idea surfaces are capability-gated or beta. Check account capabilities/actions before promising them.
 
 ## TikTok
 
@@ -49,6 +59,14 @@
 - One optional image or one optional video is supported per Telegram post.
 - Channels require the bot to be an administrator or creator.
 - Provider-native analytics, replies, and threaded interactions are not implemented.
+
+## Discord
+
+- Use `discord` for channel posting through a Discord webhook URL.
+- Discord is not connected through OAuth; it is connected manually with a channel webhook URL.
+- One optional image or one optional video is supported per Discord post.
+- SocialClaw fetches the media URL and uploads the file to the webhook before sending the message.
+- Thread targeting, embeds, and provider-native analytics are not implemented.
 
 ## YouTube
 

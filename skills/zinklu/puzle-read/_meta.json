@@ -3,9 +3,15 @@
   "slug": "puzle-read",
   "displayName": "puzle-read",
   "latest": {
-    "version": "0.0.1",
-    "publishedAt": 1773732242293,
-    "commit": "https://github.com/openclaw/skills/commit/182f000b471b3947db6e526dabaadda99fd80465"
+    "version": "0.1.5",
+    "publishedAt": 1775111618613,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.0.1",
+      "publishedAt": 1773732242293,
+      "commit": "https://github.com/openclaw/skills/commit/182f000b471b3947db6e526dabaadda99fd80465"
+    }
+  ]
 }

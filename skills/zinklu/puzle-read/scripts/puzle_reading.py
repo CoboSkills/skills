@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Puzle Reading Client SDK
 
 Provides a Python interface to Puzle's reading analysis platform.
@@ -9,11 +10,12 @@ Requirements: requests (pip install requests)
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
-import os
+import sys
 import time
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
@@ -22,18 +24,20 @@ import requests
 # Token storage location: ~/.config/puzle/config.json
 CONFIG_DIR = Path.home() / ".config" / "puzle"
 CONFIG_FILE = CONFIG_DIR / "config.json"
-ENV_TOKEN_KEY = "PUZLE_TOKEN"
-ENV_BASE_URL_KEY = "PUZLE_BASE_URL"
-DEFAULT_BASE_URL = "https://read-web-test.puzle.com.cn/api/v1"
+BASE_URL = "https://read-web.puzle.com.cn/api/v1"
 
 
 class PuzleAPIError(Exception):
-    """API call returned a non-2xx response."""
+    """API returned a non-200 application code.
 
-    def __init__(self, code: int, message: str) -> None:
+    Note: The Puzle backend always returns HTTP 200. Errors are indicated
+    by the ``code`` field in the JSON body (e.g. 401_002 for invalid token).
+    """
+
+    def __init__(self, code: int, msg: str) -> None:
         self.code = code
-        self.message = message
-        super().__init__(f"PuzleAPIError({code}): {message}")
+        self.msg = msg
+        super().__init__(f"PuzleAPIError({code}): {msg}")
 
 
 class PuzleTimeoutError(Exception):
@@ -55,36 +59,26 @@ class ReadingResult:
 class PuzleReadingClient:
     """Client for the Puzle Reading API.
 
-    Token resolution order:
-    1. Explicit ``token`` argument
-    2. Environment variable ``PUZLE_TOKEN``
-    3. Config file ``~/.config/puzle/config.json``
+    Token is loaded exclusively from ``~/.config/puzle/config.json``.
+    Use ``exchange_device_code(code)`` to authorize — the token is never
+    exposed to callers or stored in environment variables.
 
     If no token is found, raises ``ValueError``.
     """
 
-    def __init__(
-        self,
-        token: str | None = None,
-        base_url: str | None = None,
-    ) -> None:
-        resolved_token = token or self.load_token()
-        if not resolved_token:
+    def __init__(self) -> None:
+        token = self._load_token()
+        if not token:
             raise ValueError(
-                "No Puzle token found. Provide token= argument, "
-                f"set {ENV_TOKEN_KEY} environment variable, "
-                "or run PuzleReadingClient.save_token('your-token')."
+                "No Puzle token found. "
+                "Run PuzleReadingClient.exchange_device_code(code) to authorize."
             )
-        resolved_base_url = (
-            base_url or os.environ.get(ENV_BASE_URL_KEY) or self._load_config().get("base_url") or DEFAULT_BASE_URL
-        )
-        self._base_url = resolved_base_url.rstrip("/")
-        # Derive web host from API base URL: "https://host/api/v1" → "https://host"
+        self._base_url = BASE_URL
         self._web_host = self._base_url.split("/api/")[0]
         self._session = requests.Session()
         self._session.headers.update(
             {
-                "Authorization": f"Bearer {resolved_token}",
+                "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
             }
         )
@@ -94,11 +88,8 @@ class PuzleReadingClient:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def save_token(token: str, base_url: str | None = None) -> Path:
-        """Save token to ~/.config/puzle/config.json for future use.
-
-        Returns the path to the config file.
-        """
+    def _save_token(token: str) -> Path:
+        """Save token to ~/.config/puzle/config.json. Internal use only."""
         CONFIG_DIR.mkdir(parents=True, exist_ok=True)
         config: dict[str, str] = {}
         if CONFIG_FILE.exists():
@@ -107,23 +98,13 @@ class PuzleReadingClient:
             except (json.JSONDecodeError, OSError):
                 config = {}
         config["token"] = token
-        if base_url is not None:
-            config["base_url"] = base_url
         CONFIG_FILE.write_text(json.dumps(config, indent=2))
         CONFIG_FILE.chmod(0o600)  # owner-only read/write
         return CONFIG_FILE
 
     @staticmethod
-    def load_token() -> str | None:
-        """Load token from environment variable or config file.
-
-        Resolution order:
-        1. PUZLE_TOKEN environment variable
-        2. ~/.config/puzle/config.json → "token" field
-        """
-        env_token = os.environ.get(ENV_TOKEN_KEY)
-        if env_token:
-            return env_token
+    def _load_token() -> str | None:
+        """Load token from config file. Internal use only."""
         config = PuzleReadingClient._load_config()
         return config.get("token")
 
@@ -138,27 +119,53 @@ class PuzleReadingClient:
 
     @staticmethod
     def token_is_configured() -> bool:
-        """Check whether a token is available (env var or config file)."""
-        return PuzleReadingClient.load_token() is not None
+        """Check whether a token is available in the config file."""
+        return PuzleReadingClient._load_token() is not None
+
+    @staticmethod
+    def exchange_device_code(code: str) -> None:
+        """Exchange a device authorization code for a token and save it.
+
+        The user obtains the code from https://read-web.puzle.com.cn/device-auth.
+        This method exchanges it for a token via the server and saves it to the
+        config file. The token is never returned or exposed to callers.
+
+        Args:
+            code: The device authorization code from the user.
+
+        Raises:
+            PuzleAPIError: If the exchange request fails.
+        """
+        url = f"{BASE_URL}/auth/device/token"
+        resp = requests.post(url, json={"code": code})
+        if not resp.ok:
+            raise PuzleAPIError(code=resp.status_code, msg=resp.text)
+        body: dict[str, Any] = resp.json()
+        if body.get("code", 200) != 200:
+            raise PuzleAPIError(code=body["code"], msg=body.get("msg", "Unknown error"))
+        token: str = body["data"]["access_token"]
+        PuzleReadingClient._save_token(token)
 
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
     def _request(self, method: str, path: str, **kwargs: Any) -> dict[str, Any]:
-        """Send an HTTP request and return parsed JSON. Raises PuzleAPIError on failure."""
+        """Send an HTTP request and return parsed JSON. Raises PuzleAPIError on failure.
+
+        The Puzle backend always returns HTTP 200. Errors are indicated by
+        the ``code`` field in the response body (200 = success, anything else
+        is an error). The error message is in the ``msg`` field.
+        """
         url = f"{self._base_url}{path}"
         resp = self._session.request(method, url, **kwargs)
         if not resp.ok:
-            try:
-                body = resp.json()
-                code = body.get("code", resp.status_code)
-                message = body.get("message", resp.text)
-            except Exception:
-                code = resp.status_code
-                message = resp.text
-            raise PuzleAPIError(code=code, message=message)
-        return resp.json()
+            # Network / reverse-proxy level error (not from Puzle backend)
+            raise PuzleAPIError(code=resp.status_code, msg=resp.text)
+        body: dict[str, Any] = resp.json()
+        if body.get("code", 200) != 200:
+            raise PuzleAPIError(code=body["code"], msg=body.get("msg", "Unknown error"))
+        return body
 
     def _to_reading_result(self, item: dict[str, Any]) -> ReadingResult:
         reading_id = item["id"]
@@ -270,7 +277,7 @@ class PuzleReadingClient:
         if not put_resp.ok:
             raise PuzleAPIError(
                 code=put_resp.status_code,
-                message=f"S3 upload failed: {put_resp.text}",
+                msg=f"S3 upload failed: {put_resp.text}",
             )
 
         # Step 3: create reading from uploaded file
@@ -326,7 +333,7 @@ class PuzleReadingClient:
             if status == "fail":
                 raise PuzleAPIError(
                     code=500,
-                    message=f"Reading {reading_id} processing failed",
+                    msg=f"Reading {reading_id} processing failed",
                 )
             elapsed = time.monotonic() - start
             if elapsed > timeout:
@@ -367,3 +374,189 @@ class PuzleReadingClient:
         if reading_ids is not None:
             payload["reading_ids"] = reading_ids
         return self._request("POST", "/reading/search", json=payload)
+
+
+# ======================================================================
+# CLI
+# ======================================================================
+
+
+def _print_json(data: dict[str, Any] | list[Any]) -> None:
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+
+
+def _print_reading_result(result: ReadingResult) -> None:
+    _print_json(asdict(result))
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="puzle_reading",
+        description="Puzle Reading CLI — save articles, upload files, and search your reading library.",
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    # auth ---------------------------------------------------------------
+    p_auth = sub.add_parser(
+        "auth",
+        help="Authorize via device code (open https://read-web.puzle.com.cn/device-auth to get a code)",
+    )
+    p_auth.add_argument("code", help="Device authorization code from the web page")
+
+    # status -------------------------------------------------------------
+    sub.add_parser("status", help="Check whether a valid token is configured")
+
+    # save-url -----------------------------------------------------------
+    p_url = sub.add_parser("save-url", help="Create a reading from a URL")
+    p_url.add_argument("url", help="Web article URL to save")
+
+    # save-file ----------------------------------------------------------
+    p_file = sub.add_parser(
+        "save-file",
+        help="Create a reading from a local file (PDF, TXT, MD, CSV, JPG, PNG, WebP, GIF, MP3, WAV)",
+    )
+    p_file.add_argument("path", help="Path to the local file")
+
+    # save-html ----------------------------------------------------------
+    p_html = sub.add_parser(
+        "save-html",
+        help="Create a reading from pre-fetched HTML content (skips server-side fetching)",
+    )
+    p_html.add_argument("--url", required=True, help="Original URL of the article")
+    p_html.add_argument("--title", required=True, help="Article title")
+    p_html.add_argument(
+        "--content",
+        required=True,
+        help='Body HTML string, or "@path" to read from a file',
+    )
+    p_html.add_argument(
+        "--text-content",
+        required=True,
+        help='Plain text version, or "@path" to read from a file',
+    )
+    p_html.add_argument("--excerpt", help="Short excerpt (optional)")
+    p_html.add_argument("--byline", help="Author name (optional)")
+    p_html.add_argument("--site-name", help="Site name (optional)")
+    p_html.add_argument("--published-time", help="Published time ISO string (optional)")
+
+    # list ---------------------------------------------------------------
+    p_list = sub.add_parser("list", help="List readings in your library")
+    p_list.add_argument("--page", type=int, default=1, help="Page number (default: 1)")
+    p_list.add_argument("--page-size", type=int, default=10, help="Items per page (default: 10, max: 100)")
+
+    # detail -------------------------------------------------------------
+    p_detail = sub.add_parser("detail", help="Get full detail of a reading")
+    p_detail.add_argument("reading_id", type=int, help="Reading ID")
+    p_detail.add_argument("resource_type", choices=["link", "file"], help="Resource type")
+
+    # wait ---------------------------------------------------------------
+    p_wait = sub.add_parser("wait", help="Wait for a reading to finish processing, then print detail")
+    p_wait.add_argument("reading_id", type=int, help="Reading ID")
+    p_wait.add_argument("resource_type", choices=["link", "file"], help="Resource type")
+    p_wait.add_argument("--timeout", type=float, default=120.0, help="Max seconds to wait (default: 120)")
+    p_wait.add_argument("--interval", type=float, default=3.0, help="Poll interval in seconds (default: 3)")
+
+    # search -------------------------------------------------------------
+    p_search = sub.add_parser("search", help="Semantic search across your readings")
+    p_search.add_argument("query", help="Natural language search query")
+    p_search.add_argument("--top-k", type=int, default=5, help="Max results to return (default: 5)")
+    p_search.add_argument("--reading-ids", help="Comma-separated reading IDs to restrict scope (optional)")
+
+    return parser
+
+
+def _resolve_file_arg(value: str) -> str:
+    """If value starts with '@', read content from that file path; otherwise return as-is."""
+    if value.startswith("@"):
+        return Path(value[1:]).expanduser().read_text()
+    return value
+
+
+def _cmd_auth(args: argparse.Namespace) -> None:
+    PuzleReadingClient.exchange_device_code(args.code)
+    print("Authorized successfully. Token saved to ~/.config/puzle/config.json")  # noqa: T201
+
+
+def _cmd_status(_args: argparse.Namespace) -> None:
+    if PuzleReadingClient.token_is_configured():
+        print("Token is configured.")  # noqa: T201
+    else:
+        print("No token found. Run: puzle_reading auth <code>")  # noqa: T201
+        sys.exit(1)
+
+
+def _cmd_save_url(args: argparse.Namespace) -> None:
+    _print_reading_result(PuzleReadingClient().create_reading_from_url(args.url))
+
+
+def _cmd_save_file(args: argparse.Namespace) -> None:
+    _print_reading_result(PuzleReadingClient().create_reading_from_file(args.path))
+
+
+def _cmd_save_html(args: argparse.Namespace) -> None:
+    result = PuzleReadingClient().create_reading_from_html(
+        url=args.url,
+        title=args.title,
+        content=_resolve_file_arg(args.content),
+        text_content=_resolve_file_arg(args.text_content),
+        excerpt=args.excerpt,
+        byline=args.byline,
+        site_name=args.site_name,
+        published_time=args.published_time,
+    )
+    _print_reading_result(result)
+
+
+def _cmd_list(args: argparse.Namespace) -> None:
+    _print_json(PuzleReadingClient().list_readings(page=args.page, page_size=args.page_size))
+
+
+def _cmd_detail(args: argparse.Namespace) -> None:
+    _print_json(PuzleReadingClient().get_reading_detail(args.reading_id, args.resource_type))
+
+
+def _cmd_wait(args: argparse.Namespace) -> None:
+    data = PuzleReadingClient().wait_for_reading(
+        args.reading_id, args.resource_type, poll_interval=args.interval, timeout=args.timeout,
+    )
+    _print_json(data)
+
+
+def _cmd_search(args: argparse.Namespace) -> None:
+    reading_ids: list[int] | None = None
+    if args.reading_ids:
+        reading_ids = [int(x.strip()) for x in args.reading_ids.split(",")]
+    _print_json(PuzleReadingClient().search(args.query, reading_ids=reading_ids, top_k=args.top_k))
+
+
+_COMMANDS: dict[str, Any] = {
+    "auth": _cmd_auth,
+    "status": _cmd_status,
+    "save-url": _cmd_save_url,
+    "save-file": _cmd_save_file,
+    "save-html": _cmd_save_html,
+    "list": _cmd_list,
+    "detail": _cmd_detail,
+    "wait": _cmd_wait,
+    "search": _cmd_search,
+}
+
+
+def main() -> None:
+    parser = _build_parser()
+    args = parser.parse_args()
+    try:
+        _COMMANDS[args.command](args)
+    except PuzleAPIError as e:
+        print(f"Error: {e}", file=sys.stderr)  # noqa: T201
+        sys.exit(1)
+    except PuzleTimeoutError as e:
+        print(f"Timeout: {e}", file=sys.stderr)  # noqa: T201
+        sys.exit(1)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)  # noqa: T201
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

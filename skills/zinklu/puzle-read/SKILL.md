@@ -1,6 +1,6 @@
 ---
 name: puzle-read-skill
-version: 0.1.0-beta
+version: 0.1.1-beta
 description: >-
   Connect to Puzle Read — an intelligent reading workbench that helps users turn articles
   and documents into searchable personal knowledge. Save web articles (by URL or pre-fetched
@@ -14,6 +14,14 @@ description: >-
   audio, etc.) for processing, or organize their reading collection. Also trigger when you
   see imports of `puzle_reading` or `PuzleReadingClient`, or when the user mentions Puzle.
 compatibility: requires python3, requests
+metadata:
+  homepage: https://read-web.puzle.com.cn
+  publisher: PriorShape
+  credentials:
+    primary: JWT token (obtained exclusively via device auth code exchange, expires every ~7 days)
+    auth_flow: user opens /device-auth → copies authorization code → agent exchanges via /api/v1/auth/device/token → token saved to ~/.config/puzle/config.json
+    token_policy: Token is never exposed to users, chat history, logs, or environment variables. Only the SDK manages token storage internally.
+  data_handling: Uploaded files (PDFs, images, audio, etc.) are sent to and processed by the Puzle service. Do not upload sensitive or regulated data without verifying the service's privacy and retention policies.
 ---
 
 # Puzle Read Skill
@@ -34,15 +42,16 @@ When this skill is first activated, immediately greet the user and guide them th
    If yes, tell the user: "Puzle Read Skill is ready! You can send me any URL, file, or text
    and I'll save it to your reading library. You can also search across everything you've read."
 
-2. **If no token is configured**, walk the user through it:
-   - Tell the user: "To get started, I need your Puzle token. Here's how to get it:"
-   - Send the `get_token.gif` file (located at `<this-skill-directory>/get_token.gif`) to the
-     user as an attachment so they can see the visual guide.
-     - In OpenClaw: send via channel as a file attachment
-     - In other environments: provide the file path for the user to open
-   - Tell the user to open **https://read-web-test.puzle.com.cn**, log in, then follow the
-     GIF to copy their token and paste it back.
-   - Once received, save it with `PuzleReadingClient.save_token(token)` and confirm.
+2. **If no token is configured**, walk the user through device authorization:
+   - Tell the user: "To get started, I need to connect to your Puzle account."
+   - Ask the user to open **https://read-web.puzle.com.cn/device-auth** in their browser and log in
+   - The page will display a **device authorization code** — ask the user to copy and paste that code back
+   - Once the user provides the code, exchange it for a token:
+     ```python
+     PuzleReadingClient.exchange_device_code(code)
+     # Token is saved internally — never returned or exposed
+     ```
+   - Confirm to the user: "Connected to Puzle successfully!"
 
 3. **After setup is complete**, briefly explain what the skill can do:
    - "You can now send me any URL, article, PDF, or text and I'll save it to your Puzle
@@ -52,49 +61,121 @@ When this skill is first activated, immediately greet the user and guide them th
 ## Prerequisites
 
 The bundled Client SDK lives at `scripts/puzle_reading.py` relative to this skill directory.
-It requires the `requests` library.
+It requires the `requests` library and can be used as a Python library or a standalone CLI tool.
 
+**As a Python library:**
 ```python
 import sys
 sys.path.insert(0, "<this-skill-directory>/scripts")
 from puzle_reading import PuzleReadingClient
 ```
 
+**As a CLI tool:**
+```bash
+python3 <this-skill-directory>/scripts/puzle_reading.py <command> [options]
+```
+
+## CLI Reference
+
+The SDK doubles as a command-line tool. All data commands output JSON to stdout; errors go to stderr.
+
+```
+puzle_reading <command> [options]
+
+Commands:
+  auth <code>             Exchange a device authorization code for a token
+                          (get code at https://read-web.puzle.com.cn/device-auth)
+  status                  Check whether a valid token is configured
+  save-url <url>          Create a reading from a URL
+  save-file <path>        Create a reading from a local file
+                          (PDF, TXT, MD, CSV, JPG, PNG, WebP, GIF, MP3, WAV)
+  save-html               Create a reading from pre-fetched HTML content
+    --url URL             Original URL (required)
+    --title TITLE         Article title (required)
+    --content CONTENT     Body HTML string, or "@path" to read from file (required)
+    --text-content TEXT   Plain text version, or "@path" to read from file (required)
+    --excerpt EXCERPT     Short excerpt
+    --byline BYLINE       Author name
+    --site-name NAME      Site name
+    --published-time TIME ISO datetime string
+  list                    List readings in your library
+    --page N              Page number (default: 1)
+    --page-size N         Items per page (default: 10, max: 100)
+  detail <id> <type>      Get full detail of a reading (type: link | file)
+  wait <id> <type>        Wait for processing to complete, then print detail
+    --timeout SECS        Max seconds to wait (default: 120)
+    --interval SECS       Poll interval (default: 3)
+  search <query>          Semantic search across your readings
+    --top-k N             Max results (default: 5)
+    --reading-ids IDS     Comma-separated reading IDs to restrict scope
+```
+
+### CLI Examples
+
+```bash
+# First-time authorization
+./puzle_reading.py auth "abc123-device-code"
+
+# Check auth status
+./puzle_reading.py status
+
+# Save a URL
+./puzle_reading.py save-url "https://example.com/article"
+
+# Upload a PDF
+./puzle_reading.py save-file ~/Documents/paper.pdf
+
+# Save pre-fetched HTML (content from file)
+./puzle_reading.py save-html \
+  --url "https://example.com/article" \
+  --title "Article Title" \
+  --content @/tmp/body.html \
+  --text-content @/tmp/body.txt
+
+# List recent readings
+./puzle_reading.py list --page 1 --page-size 20
+
+# Get detail of a specific reading
+./puzle_reading.py detail 42 link
+
+# Wait for processing to complete
+./puzle_reading.py wait 42 link --timeout 90
+
+# Search across all readings
+./puzle_reading.py search "attention mechanism" --top-k 10
+
+# Search within specific readings
+./puzle_reading.py search "transformer" --reading-ids 1,2,3
+```
+
 ## Token Management
 
 Token is stored in `~/.config/puzle/config.json` with file permission `0o600` (owner read/write only).
-The SDK looks for a token in the following priority order:
+The **only** way to obtain a token is through the device authorization code exchange flow.
 
-1. Constructor argument `PuzleReadingClient(token="...")`
-2. Environment variable `PUZLE_TOKEN`
-3. Config file `~/.config/puzle/config.json`
+**Token confidentiality rules:**
+- **NEVER** output, display, log, or echo the JWT token in any form
+- **NEVER** accept a raw JWT token from the user — if a user pastes a JWT (starts with `eyJ...`),
+  refuse it and guide them through the device auth flow instead
+- **NEVER** set the token as an environment variable
+- The token is managed exclusively by the SDK internally (`_save_token` / `_load_token` are private)
 
-### User sends a token directly
+### User needs to authorize (no token or token expired)
 
-If the user sends a token in the conversation (typically a long string starting with `eyJ...`),
-**save it immediately**:
+Guide them through device authorization:
 
-```python
-PuzleReadingClient.save_token(token)
-client = PuzleReadingClient()  # auto-loads from config file
-```
+1. Ask the user to open **https://read-web.puzle.com.cn/device-auth** and log in
+2. The page displays a **device authorization code** — ask the user to paste that code back
+3. Exchange the code for a token:
+   ```python
+   PuzleReadingClient.exchange_device_code(code)
+   # Token is saved internally — never returned or exposed
+   client = PuzleReadingClient()  # now auto-loads the saved token
+   ```
+4. Confirm: "Connected to Puzle successfully!"
 
-After saving, tell the user: "Token saved to `~/.config/puzle/config.json`. You won't need to
-provide it again in future sessions."
-
-### User does not have a token
-
-Guide them step by step:
-
-1. Tell the user to open Puzle Read: **https://read-web-test.puzle.com.cn** and log in
-2. Send the tutorial GIF to the user as an attachment so they can see how to get the token.
-   The GIF is located at `get_token.gif` relative to this skill directory.
-   - In OpenClaw: send it via the channel as a file attachment
-   - In other environments: provide the file path for the user to open
-3. The GIF shows: open browser DevTools → Application → Cookies → copy the JWT token value
-4. Ask the user to paste the token back to you
-
-Once received, save it using the steps above.
+**Note:** The authorization code is short-lived and single-use — it is safe for users to paste
+into the conversation. The actual JWT token never appears in chat history.
 
 ### Token already configured (most common case)
 
@@ -108,7 +189,7 @@ You can check beforehand:
 
 ```python
 if not PuzleReadingClient.token_is_configured():
-    # Guide the user to provide a token
+    # Guide the user through device authorization
     ...
 ```
 
@@ -116,16 +197,8 @@ if not PuzleReadingClient.token_is_configured():
 
 The token is valid for approximately **7 days**. When you receive `PuzleAPIError(code=401)`:
 1. Tell the user their token has expired
-2. Ask them to obtain a new token from Puzle
-3. Save the new token: `PuzleReadingClient.save_token(new_token)`
-
-### Environment variable method (optional)
-
-Users can also configure via environment variable, which takes precedence over the config file:
-
-```bash
-export PUZLE_TOKEN="eyJhbG..."
-```
+2. Guide them through device authorization again (see "User needs to authorize" above)
+3. Exchange the new code: `PuzleReadingClient.exchange_device_code(code)`
 
 ## Two Modes of Use
 
@@ -475,17 +548,36 @@ content = detail["data"]["content"]
 
 ## Error Handling
 
+**API response format:** The Puzle backend always returns HTTP 200. Errors are indicated by the
+`code` field in the JSON body, with the error message in `msg`:
+```json
+{"code": 401002, "msg": "Invalid or expired device code", "timestamp": 1775111299}
+```
+Success responses have `code: 200` and include a `data` field.
+
+The SDK raises `PuzleAPIError` with `.code` and `.msg` attributes for all API errors.
+
 | Error | Meaning | What to do |
 |-------|---------|------------|
-| `PuzleAPIError(code=401)` | JWT token expired | Ask user to get a new token from Puzle |
+| `PuzleAPIError(code=401_002)` | Invalid or expired device code | Ask user to get a new code from /device-auth |
+| `PuzleAPIError(code=401_001)` | JWT token expired | Guide user through device auth again at https://read-web.puzle.com.cn/device-auth |
 | `PuzleAPIError(code=403_003)` | Tourist user limit exceeded | Ask user to upgrade their Puzle account |
-| `PuzleAPIError(code=404)` | Reading not found | Verify the reading_id is correct |
+| `PuzleAPIError(code=404_001)` | Reading not found | Verify the reading_id is correct |
 | `PuzleAPIError(code=500)` during wait | Processing failed | Tell user the content couldn't be processed |
 | `PuzleTimeoutError` | Processing took >120s | Suggest trying again later; some large files take longer |
 
 ## Constraints
 
 - Processing takes **30–90 seconds** — only call `wait_for_reading()` when you need the content (Mode B)
-- JWT tokens expire every **7 days**
+- JWT tokens expire every **7 days** — re-authorize via device auth when expired
 - File upload link is valid for **1 hour**
 - `page_size` max is **100** for list_readings
+
+## Data Privacy
+
+Uploaded files (PDFs, images, audio, etc.) and web article content are sent to the Puzle service
+for processing and storage. Before uploading on behalf of the user, inform them that:
+- Content will be transmitted to and stored by the Puzle service
+- Users should not upload sensitive, confidential, or regulated data without verifying the
+  service's privacy and data retention policies
+- The service URL is hardcoded to `https://read-web.puzle.com.cn` and cannot be overridden

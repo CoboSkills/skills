@@ -13,6 +13,8 @@ Connect Claude Desktop, Cursor, or any MCP-compatible AI tool to SolanaProx — 
 
 SolanaProx is an AI API gateway where your **Phantom wallet is your account**. Deposit USDC or SOL, make AI requests, pay per use. No signups. No subscriptions. No API key management.
 
+SolanaProx implements the **Coinbase x402 payment protocol** — unauthenticated requests receive HTTP 402 with a spec-compliant `X-PAYMENT-REQUIRED` header, making it compatible with x402-aware agents and listed on [402index.io](https://402index.io).
+
 ```
 Your Phantom Wallet → SolanaProx → Claude / GPT-4
        ↑                                    ↓

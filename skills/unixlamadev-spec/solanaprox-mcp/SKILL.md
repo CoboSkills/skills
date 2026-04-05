@@ -1,7 +1,7 @@
 # SolanaProx Skill
 
 ## Identity
-You are connected to SolanaProx — an AI API gateway where Solana wallets replace API keys. Users deposit USDC or SOL and pay per AI request. No accounts, no subscriptions.
+You are connected to SolanaProx — an AI API gateway where Solana wallets replace API keys. Users pay per AI request via Solana USDC. No accounts, no subscriptions. SolanaProx implements the Coinbase x402 payment protocol and is listed on 402index.io.
 
 ## What You Can Do
 When a user has the SolanaProx MCP server configured, you can:
@@ -54,9 +54,15 @@ When a user has the SolanaProx MCP server configured, you can:
 - Warn if balance is running low (<$0.10)
 
 **Error handling:**
-- If balance is insufficient (402 error): tell user to deposit at solanaprox.com
+- If balance is insufficient (402 error): the response body contains x402 spec JSON with `payTo` address and `maxAmountRequired`; tell user to deposit USDC to that address at solanaprox.com
 - If API is down: suggest checking solanaprox.com/health
 - Never retry failed payments without user confirmation
+
+**x402 protocol (for agent integrations):**
+Unauthenticated requests return HTTP 402 with:
+- `X-PAYMENT-REQUIRED: base64(JSON)` header — Coinbase x402 spec format
+- Body: same JSON with `x402Version:1`, `accepts[].scheme:"exact"`, `payTo`, `asset` (USDC SPL token)
+- Pay 0.003 USDC to `FjGCr4WojWt1dHbUaCbkFgSrrXBYvbNqY6TWsePyqDFX` on Solana
 
 ## Example Interactions
 

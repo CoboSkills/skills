@@ -3,9 +3,15 @@
   "slug": "kizeo-forms",
   "displayName": "Kizeo Forms",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773907405586,
-    "commit": "https://github.com/openclaw/skills/commit/70a16238ab59b7578f4af8e5f26bcd4559c34a4e"
+    "version": "1.0.2",
+    "publishedAt": 1775164864826,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773907405586,
+      "commit": "https://github.com/openclaw/skills/commit/70a16238ab59b7578f4af8e5f26bcd4559c34a4e"
+    }
+  ]
 }

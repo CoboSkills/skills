@@ -3,9 +3,15 @@
   "slug": "typecast",
   "displayName": "Cast",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773618908725,
-    "commit": "https://github.com/openclaw/skills/commit/214caa770978022ae4d8d065768e1fcd58ccef95"
+    "version": "1.0.2",
+    "publishedAt": 1775196867098,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773618908725,
+      "commit": "https://github.com/openclaw/skills/commit/214caa770978022ae4d8d065768e1fcd58ccef95"
+    }
+  ]
 }

@@ -3,9 +3,15 @@
   "slug": "ragic",
   "displayName": "Ragic",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774674332543,
-    "commit": "https://github.com/openclaw/skills/commit/91fcf43082c5f35861d1a66b94881b8e32051fcb"
+    "version": "1.0.2",
+    "publishedAt": 1775168693425,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774674332543,
+      "commit": "https://github.com/openclaw/skills/commit/91fcf43082c5f35861d1a66b94881b8e32051fcb"
+    }
+  ]
 }

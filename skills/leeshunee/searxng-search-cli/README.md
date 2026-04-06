@@ -1,99 +1,80 @@
----
-name: searxng-search
-description: |
-  使用自托管 SearXNG 搜索引擎进行搜索。SearXNG 是一个免费的元搜索引擎，
-  聚合 200+ 搜索引擎（Google, Bing, Brave, GitHub 等），完全免费且可自托管。
-  触发条件：用户需要搜索查询、调研信息、查找资源等。
----
+# SearXNG Search CLI
 
-# SearXNG Search - 搜索工具
+> **ClawHub**: https://clawhub.ai/leeshunee/searxng-search-cli | `clawhub install searxng-search-cli`
+
 
 使用 SearXNG 自托管搜索 API 进行快速、准确的搜索。
 
-## 前置条件
-
-### 安装 SearXNG
+## 安装
 
 ```bash
-# 1. 安装 uv
-curl -LsSf https://astral.sh/uv/install.sh | sh
-export PATH="$HOME/.local/bin:$PATH"
+# 1. 克隆仓库
+git clone https://github.com/KinemaClawWorkspace/searxng-search-cli.git
+cd searxng-search-cli
 
-# 2. 克隆 SearXNG
-git clone --depth 1 https://github.com/searxng/searxng.git ~/projects/searxng
-
-# 3. 创建虚拟环境
-cd ~/projects/searxng
-uv venv .venv
-uv pip install -r requirements.txt
-
-# 4. 启用 JSON API
-sed -i 's/  formats:/  formats:\n    - json/' searx/settings.yml
-
-# 5. 启动服务
-SEARXNG_SECRET=mysecretkey .venv/bin/python -m searx.webapp --host 127.0.0.1 --port 8888 &
+# 2. 安装依赖（脚本使用 Python 标准库，无需额外依赖）
 ```
 
-### 启动/停止
+## 配置
 
 ```bash
-# 启动
-cd ~/projects/searxng
-SEARXNG_SECRET=mysecretkey .venv/bin/python -m searx.webapp --host 127.0.0.1 --port 8888 &
-
-# 停止
-pkill -f searx.webapp
-
-# 检查状态
-curl "http://127.0.0.1:8888/search?q=test&format=json"
+# 环境变量（可选，有默认值）
+export SEARXNG_HOST="127.0.0.1"   # 绑定地址 (默认 127.0.0.1)
+export SEARXNG_PORT="8888"          # 端口 (默认 8888)
+export SEARXNG_SECRET="your-secret" # 认证密钥 (install 时自动生成)
 ```
 
-## 使用方法
-
-### API 调用
+## 一键安装 SearXNG
 
 ```bash
-# 基本搜索
-curl "http://127.0.0.1:8888/search?q=llm&format=json"
-
-# 指定引擎和语言
-curl "http://127.0.0.1:8888/search?q=python&format=json&engines=github&lang=en"
-
-# 分页
-curl "http://127.0.0.1:8888/search?q=AI&format=json&page=2"
-
-# 时间过滤
-curl "http://127.0.0.1:8888/search?q=llm&format=json&time_range=month"
+python scripts/searxng_cli.py install
 ```
 
-### 参数说明
+自动完成：安装 uv → 克隆 SearXNG → 创建虚拟环境 → 安装依赖 → 启用 JSON API → 启动服务
+
+## 使用
+
+```bash
+# 搜索
+python scripts/searxng_cli.py search "Python Tutorial"
+python scripts/searxng_cli.py search "git clone" --engine github
+
+# 服务管理
+python scripts/searxng_cli.py start
+python scripts/searxng_cli.py stop
+python scripts/searxng_cli.py status
+```
+
+## 命令列表
+
+| Command | Description |
+|---------|-------------|
+| install | 一键安装 SearXNG |
+| start / stop / restart | 服务管理 |
+| status | 查看状态 |
+| search \<query\> | 搜索 |
+| enable / disable | 开机自启 |
+
+## 参数说明
 
 | 参数 | 说明 | 示例 |
 |------|------|------|
-| q | 搜索关键词 | llm agent |
-| format | 输出格式 | json |
-| engines | 指定引擎 | google,brave,github |
-| lang | 语言 | zh, en, auto |
-| page | 页码 | 1, 2, 3 |
-| time_range | 时间范围 | day, week, month, year |
-| safesearch | 安全搜索 | 0, 1, 2 |
+| --engine, -e | 指定引擎 | github, google |
+| --lang, -l | 语言 | zh, en |
+| --page, -p | 分页 | 1, 2 |
+| --time-range, -t | 时间过滤 | day, week, month |
 
-## 可用引擎
+## 项目结构
 
-通用搜索：google, bing, brave, duckduckgo, yandex, startpage, qwant
-代码/开发：github, gitlab, stackoverflow, npm, pypi
-学术：arxiv, pubmed, wikipedia, google-scholar
-视频/图片：youtube, vimeo, pexels, pixabay
+```
+searxng-search-cli/
+├── README.md
+├── SKILL.md
+├── LICENSE
+└── scripts/
+    └── searxng_cli.py
+```
 
-## 错误处理
+## 许可证
 
-| 错误 | 原因 | 解决方案 |
-|------|------|---------|
-| connection refused | 服务未运行 | 启动 SearXNG |
-| 403 Forbidden | JSON 未启用 | 编辑 settings.yml |
-| timeout | 引擎被封 | 换引擎 |
-
-## 相关文档
-
-- SearXNG 官方文档: https://docs.searxng.org
-- GitHub: https://github.com/searxng/searxng
+CC BY 4.0

@@ -3,7 +3,7 @@
 ## Base URL
 
 ```
-${LEAP_API_BASE_URL:-https://platform.daofeiai.com}
+https://platform.daofeiai.com
 ```
 
 ## Authentication
@@ -50,9 +50,24 @@ Authorization: Bearer $LEAP_API_KEY
 
 | Parameter | Type | Required | Description |
 |---|---|---|---|
-| `file_id` | string | ✅ (or file_ids) | 单个文件ID |
-| `file_ids` | string[] | ✅ (or file_id) | 多个文件ID |
 | `output` | string | ✅ | 固定值 `"classify_fast"` |
+| `params.files` | array | ✅ | 文件列表 |
+| `params.files[].file_id` | string | ✅ | 文件ID |
+| `force_reprocess` | boolean | ❌ | 是否强制重新处理（忽略缓存），默认 `false` |
+
+**Request Example:**
+```json
+{
+  "params": {
+    "files": [
+      { "file_id": "<id_1>" },
+      { "file_id": "<id_2>" }
+    ]
+  },
+  "output": "classify_fast",
+  "force_reprocess": true
+}
+```
 
 #### 2b. Customs Declaration
 
@@ -63,15 +78,52 @@ Authorization: Bearer $LEAP_API_KEY
 | `params.files[].file_id` | string | ✅ | 文件ID |
 | `params.files[].file_name` | string | ❌ | 原始文件名 |
 | `params.files[].segments` | array | ✅ | 分类结果中的 segments |
+| `params.files[].metadata` | object | ❌ | 文件元信息（total_segments, file_format 等） |
+| `force_reprocess` | boolean | ❌ | 是否强制重新处理（忽略缓存），默认 `false` |
+
+**Request Example:**
+```json
+{
+  "params": {
+    "files": [
+      {
+        "file_id": "<id>",
+        "file_name": "invoice.pdf",
+        "segments": [
+          {
+            "type": "page",
+            "file_type": "invoice",
+            "confidence": 0.95,
+            "pages": [1, 2, 3]
+          }
+        ],
+        "metadata": {
+          "total_segments": 1,
+          "file_format": "pdf"
+        }
+      }
+    ]
+  },
+  "output": "customs",
+  "force_reprocess": true
+}
+```
+
+#### 2c. Shared Response (classify_fast / customs)
 
 **Response:**
 ```json
 {
   "result_id": "string (UUID)",
   "file_id": "string",
+  "file_ids": "string[] | null",
+  "document_type": "string (e.g. \"universal\")",
   "status": "pending | processing | completed | failed",
   "message": "string",
-  "task_id": "string",
+  "cache_hit": "boolean",
+  "task_id": "string (UUID)",
+  "processing_time": "integer (ms) | null",
+  "download_url": "string | null",
   "created_at": "string (ISO 8601)"
 }
 ```

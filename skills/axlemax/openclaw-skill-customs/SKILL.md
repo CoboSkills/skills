@@ -1,5 +1,5 @@
 ---
-name: customs-declaration
+name: openclaw-skill-customs
 description: "海关报关智能助手。上传报关单据（发票/装箱单/提单等）、智能分类识别文件类型、提交报关数据提取、轮询任务状态、下载报关 Excel 结果。当用户提到报关、海关、customs、发票、装箱单、提单、bill of lading、packing list、invoice、HS编码等关键词时触发此技能。前置条件：需配置 LEAP_API_KEY 环境变量。"
 homepage: https://platform.daofeiai.com
 metadata: {"openclaw":{"homepage":"https://platform.daofeiai.com","requires":{"env":["LEAP_API_KEY"]},"primaryEnv":"LEAP_API_KEY"}}
@@ -33,7 +33,7 @@ metadata: {"openclaw":{"homepage":"https://platform.daofeiai.com","requires":{"e
 {
   "skills": {
     "entries": {
-      "customs-declaration": {
+      "openclaw-skill-customs": {
         "enabled": true,
         "env": {
           "LEAP_API_KEY": "your_api_key_here"
@@ -49,13 +49,6 @@ metadata: {"openclaw":{"homepage":"https://platform.daofeiai.com","requires":{"e
 - **Shell（永久）**：写入 `~/.bashrc` 或 `~/.zshrc`
 
 > ⚠️ **请勿将 API Key 直接粘贴到对话框中。** 请通过平台 env 设置安全配置。
-
-### 方式2：备用脚本（无法使用平台 UI 时）
-
-```bash
-python scripts/setup.py
-```
-向导以对话形式安全输入 Key（不回显），保存至 `~/.config/openclaw/credentials`（权限 600）。
 
 ### 验证配置
 
@@ -73,22 +66,21 @@ python scripts/check_config.py
 
 macOS / Linux:
 ```bash
-curl -X POST "${LEAP_API_BASE_URL:-https://platform.daofeiai.com}/api/v1/files/upload" \
+curl -X POST "https://platform.daofeiai.com/api/v1/files/upload" \
   -H "Authorization: Bearer $LEAP_API_KEY" \
   -F "file=@<文件路径>"
 ```
 
 Windows (PowerShell):
 ```powershell
-$BaseUrl = if ($env:LEAP_API_BASE_URL) { $env:LEAP_API_BASE_URL } else { "https://platform.daofeiai.com" }
-curl.exe -X POST "$BaseUrl/api/v1/files/upload" `
+curl.exe -X POST "https://platform.daofeiai.com/api/v1/files/upload" `
   -H "Authorization: Bearer $env:LEAP_API_KEY" `
   -F "file=@<文件路径>"
 ```
 
 Windows (cmd.exe):
 ```cmd
-curl -X POST "%LEAP_API_BASE_URL%/api/v1/files/upload" ^
+curl -X POST "https://platform.daofeiai.com/api/v1/files/upload" ^
   -H "Authorization: Bearer %LEAP_API_KEY%" ^
   -F "file=@<文件路径>"
 ```
@@ -155,7 +147,7 @@ python scripts/submit_and_poll.py --mode customs \
 ```bash
 curl -o customs_result.xlsx \
   -H "Authorization: Bearer $LEAP_API_KEY" \
-  "${LEAP_API_BASE_URL:-https://platform.daofeiai.com}/api/v1/results/<result_id>/files/<filename>"
+  "https://platform.daofeiai.com/api/v1/results/<result_id>/files/<filename>"
 ```
 
 展示完结果后，**主动询问用户**：
@@ -258,15 +250,15 @@ wb.close()
 python scripts/submit_and_poll.py --mode poll --result-id <result_id>
 
 # 查找历史任务（如遗忘了 result_id）
-curl -s "${LEAP_API_BASE_URL:-https://platform.daofeiai.com}/api/v1/process/tasks?limit=10" \
+curl -s "https://platform.daofeiai.com/api/v1/process/tasks?limit=10" \
   -H "Authorization: Bearer $LEAP_API_KEY"
 
 # 取消任务
-curl -X DELETE "${LEAP_API_BASE_URL:-https://platform.daofeiai.com}/api/v1/process/tasks/<result_id>" \
+curl -X DELETE "https://platform.daofeiai.com/api/v1/process/tasks/<result_id>" \
   -H "Authorization: Bearer $LEAP_API_KEY"
 
 # 重试失败任务
-curl -X POST "${LEAP_API_BASE_URL:-https://platform.daofeiai.com}/api/v1/process/tasks/<result_id>/retry" \
+curl -X POST "https://platform.daofeiai.com/api/v1/process/tasks/<result_id>/retry" \
   -H "Authorization: Bearer $LEAP_API_KEY"
 ```
 

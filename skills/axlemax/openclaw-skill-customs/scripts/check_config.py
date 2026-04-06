@@ -8,31 +8,16 @@
 import json
 import os
 import sys
-import stat
 import urllib.request
 import urllib.error
-from pathlib import Path
 
-CREDENTIALS_PATH = Path.home() / ".config" / "openclaw" / "credentials"
 DEFAULT_BASE_URL = "https://platform.daofeiai.com"
-
-
-def load_credentials():
-    """自动从 credentials 文件加载配置（不覆盖已有环境变量）"""
-    if not CREDENTIALS_PATH.exists():
-        return
-    for line in CREDENTIALS_PATH.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip())
 
 
 def check_config():
     """检查 API Key 和 Base URL 配置"""
-    load_credentials()
     api_key = os.environ.get("LEAP_API_KEY", "")
-    base_url = os.environ.get("LEAP_API_BASE_URL", DEFAULT_BASE_URL)
+    base_url = DEFAULT_BASE_URL
 
     results = {
         "api_key_set": bool(api_key),
@@ -45,8 +30,7 @@ def check_config():
     if not api_key:
         results["errors"].append(
             "LEAP_API_KEY 未配置。\n"
-            "  方式1（推荐）：在 OpenClaw skill 设置界面配置 LEAP_API_KEY 环境变量\n"
-            "  方式2（备用）：运行 python scripts/setup.py"
+            "  请在 OpenClaw skill 设置界面配置 LEAP_API_KEY 环境变量。"
         )
         print(json.dumps(results, ensure_ascii=False, indent=2))
         return False

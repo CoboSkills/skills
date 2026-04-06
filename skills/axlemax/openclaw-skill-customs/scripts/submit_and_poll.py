@@ -24,20 +24,8 @@ import time
 import argparse
 import urllib.request
 import urllib.error
-from pathlib import Path
 
-CREDENTIALS_PATH = Path.home() / ".config" / "openclaw" / "credentials"
 DEFAULT_BASE_URL = "https://platform.daofeiai.com"
-
-
-def load_credentials():
-    if not CREDENTIALS_PATH.exists():
-        return
-    for line in CREDENTIALS_PATH.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line and not line.startswith("#") and "=" in line:
-            k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip())
 
 
 def _request(method: str, url: str, api_key: str, json_body=None, timeout: int = 30) -> dict:
@@ -137,17 +125,15 @@ def main():
     parser.add_argument("--max-wait", type=int, default=300, help="最长等待秒数")
     args = parser.parse_args()
 
-    load_credentials()
     api_key = os.environ.get("LEAP_API_KEY", "")
-    base_url = os.environ.get("LEAP_API_BASE_URL", DEFAULT_BASE_URL)
+    base_url = DEFAULT_BASE_URL
 
     if not api_key:
         print(json.dumps({
             "status": "error",
             "error_message": (
                 "LEAP_API_KEY 未配置。\n"
-                "方式1（推荐）：在 OpenClaw skill 设置界面配置 LEAP_API_KEY 环境变量\n"
-                "方式2（备用）：运行 python scripts/setup.py"
+                "请在 OpenClaw skill 设置界面配置 LEAP_API_KEY 环境变量。"
             )
         }, ensure_ascii=False, indent=2))
         sys.exit(1)
@@ -167,10 +153,10 @@ def main():
             print("错误: 分类模式必须提供至少一个 --file-id", file=sys.stderr)
             sys.exit(1)
         payload["output"] = "classify_fast"
-        if len(args.file_id) == 1:
-            payload["file_id"] = args.file_id[0]
-        else:
-            payload["file_ids"] = args.file_id
+        payload["params"] = {
+            "files": [{"file_id": fid} for fid in args.file_id]
+        }
+        payload["force_reprocess"] = True
     elif args.mode == "customs":
         if not args.json_data:
             print("错误: 报关模式必须提供 --json-data", file=sys.stderr)
@@ -187,6 +173,7 @@ def main():
             payload["params"] = params_data
         else:
             payload["params"] = {"files": params_data}
+        payload["force_reprocess"] = True
 
     # 提交任务
     submit_url = f"{base_url}/api/v1/process"

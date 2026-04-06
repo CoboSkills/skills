@@ -3,9 +3,15 @@
   "slug": "trackingtime",
   "displayName": "Trackingtime",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774922680673,
-    "commit": "https://github.com/openclaw/skills/commit/8030fdb9b428916bfc2ce106c5744f57d88f663b"
+    "version": "1.0.2",
+    "publishedAt": 1775169888778,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774922680673,
+      "commit": "https://github.com/openclaw/skills/commit/8030fdb9b428916bfc2ce106c5744f57d88f663b"
+    }
+  ]
 }

@@ -1,8 +1,8 @@
 ---
 name: jobautopilot-search
-description: "Reads your resume pool to build a candidate profile, then searches LinkedIn, Indeed, Glassdoor, ZipRecruiter, Google Jobs, and company career pages for matching roles. Filters by role, location, salary, and recency. On request, finds hiring managers via LinkedIn, Twitter/X, or email. Writes results to a structured tracker. Requires a browser tool (profile: search) and local config via environment variables. Part of the Job Autopilot pipeline."
+description: "Reads your resume pool to build a candidate profile, then searches LinkedIn, Indeed, Glassdoor, ZipRecruiter, Google Jobs, and company career pages for matching roles. Filters by role, location, salary, and recency. Writes results to a structured tracker. Requires a browser tool (profile: search) and local config via environment variables. Part of the Job Autopilot pipeline."
 author: jerronl
-version: "1.2.6"
+version: "1.3.0"
 homepage: https://github.com/jerronl/jobautopilot
 tags:
   - job-search
@@ -19,6 +19,8 @@ requires:
     - JOB_SEARCH_TRACKER
     - JOB_SEARCH_HANDOFF
     - RESUME_DIR
+    - JOB_SEARCH_MIN_SALARY    # optional — filter by minimum salary
+    - JOB_SEARCH_MAX_AGE_DAYS  # optional — filter by listing age
 metadata:
   clawdbot:
     emoji: "🔍"
@@ -29,6 +31,8 @@ metadata:
         - JOB_SEARCH_TRACKER
         - JOB_SEARCH_HANDOFF
         - RESUME_DIR
+        - JOB_SEARCH_MIN_SALARY
+        - JOB_SEARCH_MAX_AGE_DAYS
       bins: []  # browser tool and clawhub CLI only
     files: []
     browser: true
@@ -41,7 +45,7 @@ Searches LinkedIn (and optionally company career pages) for roles matching your 
 
 ## Setup
 
-Before first use, create a config file at `~/.openclaw/workspace/job_search/config.sh`:
+All env vars below are set by `setup.sh` (from `jobautopilot-bundle`). If you install standalone, add to `~/.openclaw/users/<you>/config.sh`:
 
 ```bash
 export JOB_SEARCH_KEYWORDS="quant risk python c++ developer"
@@ -130,15 +134,16 @@ After each search session, update `$JOB_SEARCH_HANDOFF` with:
 - Any platforms or companies worth revisiting
 - Anything unusual encountered
 
-## Optional: Find hiring managers
+## Optional: Find hiring managers (user-initiated only)
 
-If the user explicitly asks (e.g. "find the hiring manager", "who should I contact at X", "find their email"), use the browser tool to look up the relevant person via:
+This step is **only performed when the user explicitly asks** (e.g. "find the hiring manager", "who should I contact at X"). It is never run automatically.
 
-- **LinkedIn** — search `site:linkedin.com/in "<company>" recruiter OR "talent acquisition" OR "engineering manager"`
-- **Twitter/X** — search for the company's tech leads or recruiters by handle or bio keyword
-- **Email** — look for patterns on the company's site (e.g. careers page footer, team page) or use tools like Hunter.io if available
+When requested, use the browser tool to look up the relevant person via:
 
-Record any found contacts in the tracker's Notes column. This step is **only performed on explicit user request** — do not run it by default.
+- **LinkedIn** — search for recruiters or engineering managers at the company
+- **Company website** — check the careers page or team page for contact information
+
+Record any found contacts in the tracker's Notes column.
 
 ## Scope
 

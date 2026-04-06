@@ -4,10 +4,10 @@
 输入提示词和图片，编辑图片并返回URL
 """
 import argparse
-import json
 import os.path
 from pathlib import Path
-import requests
+
+from utils import get_jiuma_api_key, output_result, jiuma_request
 
 SUBMIT_API = "https://api.jiuma.com/api/imageEdit/add"
 CHECK_STATUS_API = "https://api.jiuma.com/api/imageEdit/status"
@@ -35,11 +35,9 @@ MIME_MAP = {
     '.apng': 'image/apng',
 }
 
-
-def output_result(json_data):
-    """输出JSON格式结果"""
-    print(json.dumps(json_data, ensure_ascii=False, indent=2))
-
+headers = {
+    "X-Secret-Key": get_jiuma_api_key()
+}
 
 def get_image_param(image_str, image_key_name='image1', request_data=None, image_files=None):
     if not image_str:
@@ -50,7 +48,6 @@ def get_image_param(image_str, image_key_name='image1', request_data=None, image
     if image_str.startswith(('http://', 'https://', 'ftp://', '//')) or '://' in image_str or image_str.startswith('www.'):
         request_data[f"{image_key_name}_url"] = image_str
     elif os.path.exists(image_str):
-        print(f"content_type: {MIME_MAP[ext]}")
         f = open(image_str, 'rb')
         image_files[f"{image_key_name}_file"] = (os.path.basename(image_str), f, MIME_MAP[ext])
 
@@ -100,77 +97,31 @@ def submit_image_edit(text, image1, image2, image3):
     request_data, image_files = get_image_param(image2, 'image2', request_data, image_files)
     # 获取第三张图片
     request_data, image_files = get_image_param(image3, 'image3', request_data, image_files)
-    print(image_files)
-    try:
-        if image_files:
-            response = requests.post(SUBMIT_API, request_data, files=image_files, timeout=30)
-            for key in image_files:
-                image_files[key][1].close()
-        else:
-            response = requests.post(SUBMIT_API, request_data, timeout=30)
-        if response.status_code != 200:
-            output_result({
-                "status": "error",
-                "message": f"请求远程API失败，状态码: {response.status_code}",
-                "data": {}
-            })
-            return
 
-        json_result = response.json()
-
-        # 检查API返回结构 - 根据实际返回的JSON结构调整
-        # API返回格式: {"code": 200, "message": "成功", "data": {"task_id": "xxx"}}
-        if json_result.get("code") != 200:
-            output_result({
-                "status": "error",
-                "message": f"API返回错误: {json_result.get('message', '未知错误')}",
-                "data": json_result
-            })
-            return
-
-        task_id = json_result.get("data", {}).get("task_id")
-
-        if not task_id:
-            output_result({
-                "status": "error",
-                "message": "API未返回任务ID",
-                "data": json_result
-            })
-            return
-
-        output_result({
-            "status": "success",
-            "message": "图片编辑任务提交成功",
-            "data": {
-                "task_id": task_id,
-                "text": text,
-                "image1": image1,
-                "image2": image2,
-                "image3": image3
-            }
-        })
+    data, message = jiuma_request(SUBMIT_API, request_data, files=image_files, headers=headers)
+    if not data:
         return
-    except requests.exceptions.Timeout:
+    task_id = data.get("task_id")
+    if not task_id:
         output_result({
             "status": "error",
-            "message": "请求超时，请检查网络连接",
-            "data": {}
+            "message": "API未返回任务ID",
+            "data": data
         })
         return
-    except requests.exceptions.RequestException as e:
-        output_result({
-            "status": "error",
-            "message": f"请求异常: {str(e)}",
-            "data": {}
-        })
-        return
-    except json.JSONDecodeError as e:
-        output_result({
-            "status": "error",
-            "message": f"API返回格式错误: {str(e)}",
-            "data": {}
-        })
-        return
+
+    output_result({
+        "status": "success",
+        "message": "图片编辑任务提交成功",
+        "data": {
+            "task_id": task_id,
+            "text": text,
+            "image1": image1,
+            "image2": image2,
+            "image3": image3
+        }
+    })
+    return
 
 
 def check_task_status(task_id):
@@ -199,112 +150,57 @@ def check_task_status(task_id):
         })
         return None
 
-    try:
-        task_response = requests.post(CHECK_STATUS_API, {"task_id": task_id}, timeout=30)
-        if task_response.status_code != 200:
+    data, message = jiuma_request(CHECK_STATUS_API, data={"task_id": task_id}, headers=headers)
+    if not data:
+        return None
+    task_status = data.get("task_status", "").upper()
+
+    if task_status == 'SUCCEEDED':
+        image_url = data.get('image_url')
+        if not image_url:
             output_result({
                 "status": "error",
-                "message": f"请求远程API失败，状态码: {task_response.status_code}",
-                "data": {}
+                "message": "API未返回图片URL",
+                "data": data
             })
             return None
 
-        task_detail = task_response.json()
-
-        # 检查API返回状态 - 根据实际返回的JSON结构调整
-        if task_detail.get("code") != 200:
-            output_result({
-                "status": "error",
-                "message": f"API返回错误: {task_detail.get('message', '未知错误')}",
-                "data": task_detail
-            })
-            return None
-
-        data = task_detail.get("data", {})
-        task_status = data.get("task_status", "").upper()
-
-        if task_status == 'SUCCEEDED':
-            image_url = data.get('image_url')
-            if not image_url:
-                output_result({
-                    "status": "error",
-                    "message": "API未返回图片URL",
-                    "data": data
-                })
-                return None
-
-            output_result({
-                "status": "success",
-                "message": "图片生成成功",
-                "data": {
-                    "image_url": image_url,
-                    "task_id": task_id,
-                    "download_link": image_url
-                }
-            })
-        elif task_status == 'PENDING':
-            output_result({
-                "status": "pending",
-                "message": "图片编辑任务排队中，请耐心等待",
-                "data": {
-                    "task_id": task_id,
-                    "status": "pending"
-                }
-            })
-        elif task_status == 'RUNNING':
-            output_result({
-                "status": "pending",
-                "message": "图片编辑任务执行中，请耐心等待",
-                "data": {
-                    "task_id": task_id,
-                    "status": "running"
-                }
-            })
-        else:
-            output_result({
-                "status": "failed",
-                "message": f"图片生成失败: {task_detail.get('message', '未知错误')}",
-                "data": {
-                    "task_id": task_id,
-                    "status": "failed"
-                }
-            })
-    except requests.exceptions.Timeout:
         output_result({
-            "status": "error",
-            "message": "请求超时，请检查网络连接",
+            "status": "success",
+            "message": "图片生成成功",
             "data": {
-                "task_id": task_id
+                "image_url": image_url,
+                "task_id": task_id,
+                "download_link": image_url
             }
         })
-        return None
-    except requests.exceptions.RequestException as e:
+    elif task_status == 'PENDING':
         output_result({
-            "status": "error",
-            "message": f"请求异常: {str(e)}",
+            "status": "pending",
+            "message": "图片编辑任务排队中，请耐心等待",
             "data": {
-                "task_id": task_id
+                "task_id": task_id,
+                "status": "pending"
             }
         })
-        return None
-    except json.JSONDecodeError as e:
+    elif task_status == 'RUNNING':
         output_result({
-            "status": "error",
-            "message": f"API返回格式错误: {str(e)}",
+            "status": "pending",
+            "message": "图片编辑任务执行中，请耐心等待",
             "data": {
-                "task_id": task_id
+                "task_id": task_id,
+                "status": "running"
             }
         })
-        return None
-    except Exception as e:
+    else:
         output_result({
-            "status": "error",
-            "message": f"未知错误: {str(e)}",
+            "status": "failed",
+            "message": f"图片生成失败: {message}",
             "data": {
-                "task_id": task_id
+                "task_id": task_id,
+                "status": "failed"
             }
         })
-        return None
 
 
 def main():

@@ -3,11 +3,16 @@
   "slug": "ai-book-image-redesign",
   "displayName": "AI 书稿图片重设计",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1774857201630,
-    "commit": "https://github.com/openclaw/skills/commit/56d05346cbafcc3ab6d6dc8b2f8d538261f39ebf"
+    "version": "1.0.99",
+    "publishedAt": 1775185674415,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1774857201630,
+      "commit": "https://github.com/openclaw/skills/commit/56d05346cbafcc3ab6d6dc8b2f8d538261f39ebf"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1774340765196,

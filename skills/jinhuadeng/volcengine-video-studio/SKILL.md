@@ -1,11 +1,26 @@
 ---
 name: volcengine-video-studio
-description: Generate and inspect Volcengine/ARK videos with real task inputs. Use when users want text-to-video, image-to-video, draft-video refinement, task polling, downloadable outputs, or direct inspection of Seedance video generation jobs. Best for hands-on execution instead of only drafting prompts.
+description: Production-ready Volcengine/ARK video generation for prompt-to-video, image-to-video, and draft-video refinement. Use when users want a hands-on skill that can submit jobs, poll status, inspect task payloads, and download finished outputs with Seedance-compatible models. 中文：适合火山引擎 / ARK 兼容接口的视频生成实战工作流；支持文生视频、图生视频、草稿视频优化、任务提交与轮询、结果检查和成片下载。
 ---
 
 # volcengine-video-studio
 
 Use this skill to actually submit, poll, inspect, and download Volcengine / ARK video generation jobs instead of only drafting prompts.
+
+## 中文说明
+
+这是一个面向 **火山引擎 / ARK 兼容视频生成接口** 的生产可用型 skill，重点不是只写视频提示词，而是把整条生成链路真正跑通，从提交任务、轮询状态，到拿回结果、下载成片，都能一把做完。
+
+它特别适合下面这些对外场景：
+
+- 文生视频
+- 图生视频
+- 草稿视频二次优化
+- 提交生成任务并持续轮询状态
+- 检查任务返回内容与原始 payload
+- 将生成好的视频自动下载到本地
+
+如果你想要的是一个**能真实发起任务、能追踪任务进度、能拿到最终视频文件、适合实战交付**的火山视频 skill，这个版本就是为这种需求准备的。
 
 Treat the prompt and optional reference media as runtime input for each task. Do not reuse documentation example prompts or example media in a real generation request unless the user explicitly asks for that exact example.
 
@@ -157,6 +172,18 @@ This makes local reference media usable without manual upload steps.
 - Missing key → set `VOLCENGINE_API_KEY`
 - Missing or wrong model → set `VOLCENGINE_VIDEO_MODEL`
 - If a video run accidentally picks an image model (for example `doubao-seedream-4-5`) → explicitly set `VOLCENGINE_VIDEO_MODEL` instead of reusing `VOLCENGINE_MODEL`
+- Missing endpoint → set `VOLCENGINE_VIDEO_ENDPOINT`
+- 401/403 → key invalid or missing permission
+- 404 → endpoint wrong or region mismatch
+- 400 → unsupported model/parameter combination
+- Task remains queued too long → check quota, rate limit, or model availability
+- No obvious video URL in response → inspect `raw`
+
+## References
+
+- `references/sources.md`
+- `references/api-notes.md`
+ing `VOLCENGINE_MODEL`
 - Missing endpoint → set `VOLCENGINE_VIDEO_ENDPOINT`
 - 401/403 → key invalid or missing permission
 - 404 → endpoint wrong or region mismatch

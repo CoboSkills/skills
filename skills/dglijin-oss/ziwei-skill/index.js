@@ -1,8 +1,9 @@
 /**
- * 紫微斗数 Skill - 核心算法（第一版简化）
+ * 紫微斗数 Skill - 核心算法
  * 作者：天工长老
- * 版本：v1.0
+ * 版本：v1.1
  * 创建：2026 年 3 月 29 日
+ * 更新：2026 年 3 月 30 日 - 添加辅星、流年功能
  */
 
 // 十四主星
@@ -146,11 +147,60 @@ function ziWeiDouShu(year, month, day, hour, gender) {
   };
 }
 
+// ========== v1.1 新增：辅星系统 ==========
+
+// 六吉星
+const LIU_JI_XING = ['左辅', '右弼', '文昌', '文曲', '天魁', '天钺'];
+
+// 六煞星
+const LIU_SHA_XING = ['擎羊', '陀罗', '火星', '铃星', '地空', '地劫'];
+
+// 四化星（简化版）
+const SI_HUA = {
+  甲：['廉贞化禄', '破军化权', '武曲化科', '太阳化忌'],
+  乙：['天机化禄', '天梁化权', '紫微化科', '太阴化忌'],
+  丙：['天同化禄', '天机化权', '文昌化科', '廉贞化忌'],
+  丁：['太阴化禄', '天同化权', '天机化科', '巨门化忌'],
+  戊：['贪狼化禄', '太阴化权', '右弼化科', '天机化忌'],
+  己：['武曲化禄', '贪狼化权', '天梁化科', '文曲化忌'],
+  庚：['太阳化禄', '武曲化权', '太阴化科', '天同化忌'],
+  辛：['巨门化禄', '太阳化权', '文曲化科', '文昌化忌'],
+  壬：['天梁化禄', '紫微化权', '左辅化科', '武曲化忌'],
+  癸：['破军化禄', '巨门化权', '太阴化科', '贪狼化忌']
+};
+
+// 计算四化
+function getSiHua(year) {
+  const ganIndex = (year - 4) % 10;
+  const gan = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'][ganIndex];
+  return { 年干：gan, 四化：SI_HUA[gan] };
+}
+
+// 流年排盘（简化版）
+function getLiuNian(year, basePan) {
+  const liuNianGong = (year - 1900) % 12;
+  const liuNianGongName = GONG_WEI[liuNianGong];
+  
+  return {
+    流年宫位：liuNianGongName,
+    流年天干：getSiHua(year).年干，
+    流年四化：getSiHua(year).四化，
+    流年运势：'需结合本命盘详细分析'
+  };
+}
+
 // 导出
 module.exports = {
   ziWeiDouShu,
   paiPan,
   jianPi,
+  // v1.1 新增
+  getSiHua,
+  getLiuNian,
+  LIU_JI_XING,
+  LIU_SHA_XING,
+  SI_HUA,
+  // 原有
   XING_YAO_HAN_YI,
   GONG_WEI,
   ZHU_XING

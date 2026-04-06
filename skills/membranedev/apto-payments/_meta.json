@@ -3,9 +3,15 @@
   "slug": "apto-payments",
   "displayName": "Apto Payments",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775016167149,
-    "commit": "https://github.com/openclaw/skills/commit/8301fd7f9c22b293834dbc0c7135b82209ea7abf"
+    "version": "1.0.2",
+    "publishedAt": 1775170383915,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775016167149,
+      "commit": "https://github.com/openclaw/skills/commit/8301fd7f9c22b293834dbc0c7135b82209ea7abf"
+    }
+  ]
 }

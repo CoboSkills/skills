@@ -3,9 +3,15 @@
   "slug": "phonecom",
   "displayName": "Phonecom",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774325065685,
-    "commit": "https://github.com/openclaw/skills/commit/5669b68749a978186526377456775c8c83420003"
+    "version": "1.0.2",
+    "publishedAt": 1775166936715,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774325065685,
+      "commit": "https://github.com/openclaw/skills/commit/5669b68749a978186526377456775c8c83420003"
+    }
+  ]
 }

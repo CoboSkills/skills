@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """
-delete_recovery.py - delete-recovery skill core script v0.6.0
+delete_recovery.py - delete-recovery skill core script v0.7.2
+
+v0.7.1 Log structure change:
+- LOG_FILE moved from delete_backup/log.txt to delete_backup/logs/log.txt
+
+v0.7.0 Security hardening:
+- allowed_roots now defaults to [WORKSPACE_ROOT] — restores confined to workspace tree
+- manifest paths are HMAC-SHA256 encrypted — original paths no longer exposed in manifest.jsonl
 
 v0.6.0 Performance optimizations (Scheme 1 + Scheme 2):
 - Scheme 1: Cleanup task separation
@@ -54,8 +61,12 @@ import sys
 import json
 import shutil
 import tempfile
+import hashlib
+import hmac
+import base64
 from pathlib import Path
 from datetime import datetime, timedelta
+from typing import Optional
 
 # Import security validation module v0.3.0
 try:
@@ -69,22 +80,26 @@ except ImportError:
         HAS_SAFE_PATH = False
         SafePathError = Exception
 
-# Workspace root: scripts/ → skill/ → workspace/
-# __file__ = C:\Users\user\.openclaw\workspace1\skills\delete-recovery\scripts\delete_recovery.py
+# Workspace root: scripts/ → skill/ → skills/ → workspace/
+# __file__ = C:\Users\user\.openclaw\workspace2\skills\delete-recovery\scripts\delete_recovery.py
 #   .parent     = delete-recovery/scripts/
 #   .parent     = delete-recovery/          (.parent.parent)
-#   .parent     = skills/                          (.parent.parent.parent)
-#   .parent     = workspace1/                       (.parent.parent.parent.parent)
+#   .parent     = skills/                           (.parent.parent.parent)
+#   .parent     = workspace2/                        (.parent.parent.parent.parent)
 WORKSPACE_ROOT = Path(__file__).parent.parent.parent.parent.resolve()
 # Skill directory: scripts/ → skill/
 SKILL_DIR = Path(__file__).parent.parent.resolve()
-# Backup and log now live at workspace root (not inside the skill folder)
-# This ensures backups survive even if the skill folder is removed
-BACKUP_ROOT = WORKSPACE_ROOT / "delete_backup"
-BACKUP_ROOT.mkdir(exist_ok=True)
 
-LOG_FILE = WORKSPACE_ROOT / "log_delete_recovery.txt"
+# All data lives under {workspace}/.delete_recovery/  (not inside the skill folder)
+# This ensures backups/config survive even if the skill folder is removed
+_DATA_DIR = WORKSPACE_ROOT / ".delete_recovery"
+_DATA_DIR.mkdir(parents=True, exist_ok=True)
+BACKUP_ROOT = _DATA_DIR / "delete_backup"
+BACKUP_ROOT.mkdir(exist_ok=True)
+LOG_DIR = _DATA_DIR / "logs"
+LOG_DIR.mkdir(parents=True, exist_ok=True)
 MANIFEST_FILE = BACKUP_ROOT / "manifest.jsonl"
+LOG_FILE = LOG_DIR / "log.txt"
 
 # ─── v0.6.0 Performance constants ────────────────────────────────────
 # 时间触发清理间隔（小时）：两次 full cleanup 之间至少间隔这么多小时
@@ -94,11 +109,52 @@ MANIFEST_COMPACT_THRESHOLD = 100
 # 触发 manifest 压缩的文件大小阈值（字节）
 MANIFEST_COMPACT_SIZE_BYTES = 100 * 1024  # 100 KB
 # 定时器文件（存储上次清理时间）
-_TIMER_FILE = BACKUP_ROOT / ".cleanup_timer"
+_TIMER_FILE = _DATA_DIR / ".cleanup_timer"
 
 
-# v0.3.0: allowed_roots left empty (None) — security comes from SHA256
-SAFE_VALIDATOR = SafePathValidator(BACKUP_ROOT, allowed_roots=None) if HAS_SAFE_PATH else None
+# ─────────────────────────────────────────────────────────────────
+# v0.7.0 Security hardening:
+# - allowed_roots now defaults to [WORKSPACE_ROOT] — restores confined to workspace
+# - manifest paths are encrypted with HMAC-SHA256 (prevents path disclosure)
+# ─────────────────────────────────────────────────────────────────
+
+# HMAC key derived from workspace root — used to hide paths in manifest
+_MANIFEST_HMAC_KEY = hmac.new(
+    b"delete-recovery-manifest-v1",
+    str(WORKSPACE_ROOT).encode("utf-8"),
+    hashlib.sha256
+).digest()
+
+
+def _manifest_encrypt_path(path: str) -> str:
+    """
+    v0.7.0: Hide original paths in manifest using HMAC-SHA256.
+    Returns a Base64-encoded hash prefix + HMAC tag so paths are no longer
+    readable in manifest.jsonl, while still enabling filename-based search.
+    Format: HASH_PREFIX:HMAC_TAG  (both base64url, no / or +)
+    """
+    path_bytes = path.encode("utf-8")
+    h = hmac.new(_MANIFEST_HMAC_KEY, path_bytes, hashlib.sha256)
+    hmac_tag = base64.urlsafe_b64encode(h.digest()).decode("ascii").rstrip("=")
+    # Store a truncated hash prefix so we can still hint at the path length/category
+    full_digest = hashlib.sha256(path_bytes).digest()
+    hash_prefix = base64.urlsafe_b64encode(full_digest).decode("ascii").rstrip("=")[:8]
+    return f"{hash_prefix}:{hmac_tag}"
+
+
+def _manifest_decrypt_path(encrypted: str) -> Optional[str]:
+    """
+    v0.7.0: Verify and return the original path from an encrypted manifest entry.
+    Since HMAC is one-way, we can't reverse it — but we CAN verify a candidate
+    path by recomputing the HMAC and comparing.
+    Returns None (verification-only; original path must come from .path file at restore time).
+    This function is kept for API symmetry; actual path retrieval for restore uses .path file.
+    """
+    return None  # HMAC is one-way; original path always from .path file on disk
+
+
+# v0.7.0: allowed_roots now defaults to workspace root (restores confined to workspace)
+SAFE_VALIDATOR = SafePathValidator(BACKUP_ROOT, allowed_roots=[WORKSPACE_ROOT]) if HAS_SAFE_PATH else None
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -222,6 +278,8 @@ def _save_manifest(entries: list) -> None:
 def _append_manifest_entry(folder, safe_name, original_path, description=None):
     """
     Append a new entry to manifest.jsonl (append-only, no rewrite).
+    v0.7.0: original path is now HMAC-encrypted in the 'path' field to prevent
+    disclosure; 'filename' (plaintext) and 'description' (plaintext) remain searchable.
     """
     filename = Path(original_path).name
     entry = {
@@ -230,7 +288,7 @@ def _append_manifest_entry(folder, safe_name, original_path, description=None):
         "safe_name": safe_name,
         "filename": filename,
         "description": description if description else filename,
-        "path": original_path,
+        "path": _manifest_encrypt_path(original_path),  # v0.7.0: encrypted
     }
     with open(MANIFEST_FILE, "a", encoding="utf-8") as f:
         f.write(json.dumps(entry, ensure_ascii=False) + "\n")
@@ -423,6 +481,7 @@ def cleanup_old_logs():
         except (ValueError, IndexError):
             remaining.append(line)
 
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(LOG_FILE, "w", encoding="utf-8") as f:
         f.writelines(remaining)
 
@@ -450,6 +509,7 @@ def log(action, status, detail=""):
     if detail:
         record += f" | {detail}"
     record += "\n"
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(record)
 

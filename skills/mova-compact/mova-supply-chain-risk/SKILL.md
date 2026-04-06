@@ -5,6 +5,8 @@ license: MIT-0
 metadata: {"openclaw":{"plugin":{"name":"MOVA","installCmd":"openclaw plugins install openclaw-mova"},"dataSentToExternalServices":[{"service":"MOVA API (api.mova-lab.eu)","data":"supplier names, IDs, country of registration, procurement category, AI risk bands, human decision, audit metadata"},{"service":"Sanctions & PEP screening connector (read-only)","data":"supplier name and country screened against OFAC, EU, UN lists and PEP registries"},{"service":"ESG ratings connector (read-only)","data":"supplier ID for ESG score and adverse media lookup"},{"service":"Company registry connector (read-only)","data":"supplier name and country for registration status and financial stability check"}]}}
 ---
 
+> **Contract Skill** — A ready-to-use MOVA HITL workflow. Requires the `openclaw-mova` plugin.
+
 # MOVA Supply Chain Risk Analysis
 
 Screen your supplier list against sanctions registries, PEP databases, ESG ratings, and financial stability indicators — with a per-supplier risk band, source citations, and a mandatory human procurement decision gate backed by a tamper-proof audit trail.

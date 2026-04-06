@@ -3,9 +3,15 @@
   "slug": "graphhopper",
   "displayName": "Graphhopper",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774501441625,
-    "commit": "https://github.com/openclaw/skills/commit/b5f07dd54de7d25b23182910c635964a3f81aa9a"
+    "version": "1.0.2",
+    "publishedAt": 1775167750126,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774501441625,
+      "commit": "https://github.com/openclaw/skills/commit/b5f07dd54de7d25b23182910c635964a3f81aa9a"
+    }
+  ]
 }

@@ -3,9 +3,15 @@
   "slug": "formtitan",
   "displayName": "Formtitan",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774609458181,
-    "commit": "https://github.com/openclaw/skills/commit/cc05ab33f29e07c3ec75733196f992ad1bcae6eb"
+    "version": "1.0.2",
+    "publishedAt": 1775168350051,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774609458181,
+      "commit": "https://github.com/openclaw/skills/commit/cc05ab33f29e07c3ec75733196f992ad1bcae6eb"
+    }
+  ]
 }

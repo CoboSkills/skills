@@ -1,5 +1,23 @@
 # Hui Yi Changelog
 
+## 1.0.3 — Remove legacy shell helpers
+
+**Shell helper removal.** Removed legacy `.sh` helper scripts from the published `scripts/` directory:
+- `cool.sh`
+- `decay.sh`
+- `rebuild-index.sh`
+- `search.sh`
+
+**Python-only helpers.** The published release now keeps only the cross-platform Python helpers:
+- `search.py`
+- `rebuild.py`
+- `decay.py`
+- `cool.py`
+
+**Publishing cleanup.** This release aligns the packaged artifact with the current skill source so the release contents match the documented cross-platform workflow.
+
+---
+
 ## 1.0.2 — Cross-platform update and release alignment
 
 **Cross-platform helpers.** Replaced bash-first operational guidance with Python helper scripts intended to work on Linux, macOS, and Windows using a standard `python` command.

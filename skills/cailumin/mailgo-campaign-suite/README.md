@@ -9,26 +9,44 @@ Complete cold email campaign skill for Mailgo. One skill handles the entire outr
 5. **Manage** campaign lifecycle (activate, pause, delete, list)
 6. **Report** campaign statistics (overview, per-round, daily progress)
 
+## Publisher
+
+This skill is published by **LeadsNavi**, the company behind the Mailgo cold email platform.
+
+- Product: [https://app.mailgo.ai](https://app.mailgo.ai)
+- Publisher website: [https://www.leadsnavi.com](https://www.leadsnavi.com)
+
 ## Requirements
 
 - Python 3.7+
-- `LEADSNAVI_API_KEY` environment variable (JWT from Mailgo)
+- `MAILGO_API_KEY` environment variable (OpenAPI Key from Mailgo)
 - No third-party dependencies (stdlib only: `urllib`, `json`, `csv`, `ssl`)
 - Optional: `openpyxl` for .xlsx file support (`pip install openpyxl`)
 
 ## Security & Credentials
 
-This skill requires a **Mailgo session JWT** (`LEADSNAVI_API_KEY`) to operate. Please read before using:
+This skill requires a **Mailgo OpenAPI Key** (`MAILGO_API_KEY`) to operate. Please read before using:
 
 | Concern | Detail |
 |---------|--------|
 | **What the token can do** | Claim mailboxes, create/activate/pause/delete campaigns, verify emails, read campaign reports — all actions on your Mailgo account. |
-| **How to obtain it** | Extract from browser cookie `MAILGO_TOKEN` at `https://app.mailgo.ai` via DevTools (Application → Cookies). See SKILL.md Step 0 for details. |
-| **How it is used** | Sent as `Authorization: Bearer {token}` header to `api.leadsnavi.com` — the official Mailgo backend (LeadsNavi is the parent brand behind Mailgo; see [app.mailgo.ai](https://app.mailgo.ai) and the Mailgo website for details). |
+| **How to obtain it** | Log in to [https://app.mailgo.ai](https://app.mailgo.ai) → Click your avatar in the bottom-left corner → Personal Tokens → Create Token → Copy the token. See SKILL.md Step 0 for step-by-step instructions. |
+| **How it is used** | Sent as `X-API-Key: {token}` header to `api.leadsnavi.com` — the official Mailgo backend (LeadsNavi is the parent brand behind Mailgo; see [app.mailgo.ai](https://app.mailgo.ai) and the Mailgo website for details). |
 | **How to stay safe** | Set as a local environment variable only — **never paste into chat**. |
+| **How to revoke** | Go to [https://app.mailgo.ai](https://app.mailgo.ai) → Personal Tokens → Delete the token. |
 | **API endpoints called** | All calls go to `https://api.leadsnavi.com` (Mailgo's official API) — email verification, mailbox claiming, campaign CRUD, and reporting. Review the bundled Python scripts for exact endpoints. |
 
-> `LEADSNAVI_API_KEY` is your Mailgo account credential. If you prefer not to extract a session cookie, contact Mailgo/LeadsNavi support to request a dedicated API key flow.
+> `MAILGO_API_KEY` is your Mailgo account credential. Keep it secure and never share it publicly.
+
+## Compliance
+
+This skill sends emails to recipient lists you provide. You are responsible for ensuring your campaigns comply with applicable laws and platform terms, including:
+
+- **CAN-SPAM Act** (US) — include a physical address and honor opt-out requests
+- **GDPR** (EU) — ensure you have a lawful basis for contacting recipients
+- **Mailgo Terms of Service** — [https://app.mailgo.ai](https://app.mailgo.ai)
+
+The skill's built-in email optimizer adds a soft opt-out line to every email by default.
 
 ## Directory Structure
 
@@ -51,7 +69,7 @@ mailgo-campaign-suite/
 
 ```bash
 # 1. Set up authentication
-export LEADSNAVI_API_KEY="your-jwt-token"
+export MAILGO_API_KEY="your-api-key"
 
 # 2. Verify emails
 python3 scripts/verify_emails.py alice@example.com bob@gmail.com

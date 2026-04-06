@@ -42,7 +42,7 @@ Optional flags:
     --dry-run                           Stop after creating campaign (do not activate)
 
 Requires:
-    LEADSNAVI_API_KEY environment variable
+    MAILGO_API_KEY environment variable
     openpyxl (only if reading .xlsx files: pip install openpyxl)
 
 Output:
@@ -68,7 +68,7 @@ BASE = "https://api.leadsnavi.com"
 
 def make_headers(api_key):
     return {
-        "Authorization": f"Bearer {api_key}",
+        "X-API-Key": api_key,
         "Content-Type": "application/json",
         "User-Agent": "mailgo-mcp-server/1.0 (https://github.com/netease-im/leadsnavi-mcp-server)",
     }
@@ -341,9 +341,9 @@ def main():
         print("Error: provide either --body or --body-file", file=sys.stderr)
         sys.exit(1)
 
-    api_key = os.environ.get("LEADSNAVI_API_KEY")
+    api_key = os.environ.get("MAILGO_API_KEY")
     if not api_key:
-        print("Error: LEADSNAVI_API_KEY environment variable not set", file=sys.stderr)
+        print("Error: MAILGO_API_KEY environment variable not set", file=sys.stderr)
         sys.exit(1)
 
     if args.recipients_file:

@@ -9,7 +9,7 @@ Usage:
     python3 verify_emails.py --file leads.csv --email-column "Email Address"
 
 Requires:
-    LEADSNAVI_API_KEY environment variable
+    MAILGO_API_KEY environment variable
 
 Output:
     JSON summary with categorized results on stdout.
@@ -41,7 +41,7 @@ _EMAIL_COL_NAMES = {
 
 def _headers(api_key):
     return {
-        "Authorization": f"Bearer {api_key}",
+        "X-API-Key": api_key,
         "Content-Type": "application/json",
         "Accept": "application/json",
         "User-Agent": "mailgo-mcp-server/1.0 (https://github.com/netease-im/leadsnavi-mcp-server)",
@@ -343,10 +343,10 @@ def main():
         )
 
     # API key
-    api_key = os.environ.get("LEADSNAVI_API_KEY")
+    api_key = os.environ.get("MAILGO_API_KEY")
     if not api_key:
         print(
-            "Error: LEADSNAVI_API_KEY environment variable not set",
+            "Error: MAILGO_API_KEY environment variable not set",
             file=sys.stderr,
         )
         sys.exit(1)

@@ -2,13 +2,13 @@
 name: mailgo-campaign-suite
 description: Complete cold email campaign suite for Mailgo — verify recipients, claim free mailbox, generate & optimize content, create campaigns, manage lifecycle, and view reports. All-in-one skill that handles the full outreach pipeline end-to-end. Use when a user wants to send cold emails, launch outreach campaigns, or manage existing campaigns.
 env:
-  LEADSNAVI_API_KEY:
+  MAILGO_API_KEY:
     required: true
     description: >
-      Mailgo session JWT (starts with "eyJ"). Obtain from browser cookie
-      MAILGO_TOKEN at https://app.mailgo.ai via DevTools → Application →
-      Cookies. Used as Bearer token for all Mailgo API calls
-      (api.leadsnavi.com). Never paste into chat — set as local env var only.
+      Mailgo OpenAPI Key. Obtain from https://app.mailgo.ai → Click avatar
+      in bottom-left corner → Personal Tokens → Create Token. Used as
+      X-API-Key header for all Mailgo API calls (api.leadsnavi.com).
+      Never paste into chat — set as local env var only.
 dependencies:
   python: ">=3.7"
   optional:
@@ -23,53 +23,48 @@ One skill, complete cold email pipeline. From recipient verification to campaign
 
 ## Step 0 — Authentication Setup
 
-**Required:** `LEADSNAVI_API_KEY` environment variable must be set before any other step.
+**Required:** `MAILGO_API_KEY` environment variable must be set before any other step.
 
 ### Quick check
 
 ```bash
-# Print only the first 5 characters — confirms the variable is set without exposing the full token
-echo "${LEADSNAVI_API_KEY:0:5}"
+# Confirm the variable is set (shows first 5 characters only)
+echo "${MAILGO_API_KEY:0:5}"
 ```
 
-If output is `eyJ..` (5 chars, non-empty) → proceed to Step 1. If empty → follow the setup flow below.
+If output is non-empty → proceed to Step 1. If empty → follow the setup flow below.
 
 ### Setup Flow
 
-**Sub-step 0.1 — Open Mailgo**
+**Sub-step 0.1 — Register or Log In**
 
-If Chrome DevTools MCP is available:
-```
-navigate to https://app.mailgo.ai
-```
-Detect login state from page content:
-- Logged in → go to Sub-step 0.2
-- Not logged in → ask user to log in, then confirm "done" before continuing
+New users:
+1. Go to [https://app.mailgo.ai](https://app.mailgo.ai)
+2. Click "Sign Up" and complete registration
 
-If Chrome DevTools MCP is unavailable:
-Tell the user: "Please open https://app.mailgo.ai in your browser and log in."
+Existing users:
+1. Go to [https://app.mailgo.ai](https://app.mailgo.ai)
+2. Log in with your credentials
 
-**Sub-step 0.2 — Extract the API Key**
+**Sub-step 0.2 — Create Personal Token**
 
-Instruct the user:
-```
-1. Press F12 (Mac: Option+Command+I) to open DevTools
-2. Click the "Application" tab (Firefox: "Storage" tab)
-3. In the left panel: Cookies → https://app.mailgo.ai
-4. Find the row with Name = "MAILGO_TOKEN"
-5. Copy the full Value (starts with "eyJ")
-```
+Once logged in:
+1. Click your **avatar** in the bottom-left corner
+2. Select **Personal Tokens** from the menu
+3. Click **Create Token**
+4. Give your token a descriptive name (e.g., "Claude Code")
+5. Copy the generated token
 
-> **SECURITY:** Never ask the user to paste the token into the conversation. It must only be set as a local environment variable.
+> **SECURITY:** Never paste the token into chat. It must only be set as a local environment variable.
 
 **Sub-step 0.3 — Set Environment Variable**
 
 ```bash
 # macOS / Linux (permanent)
-echo 'export LEADSNAVI_API_KEY="YOUR_TOKEN"' >> ~/.zshrc && source ~/.zshrc
+echo 'export MAILGO_API_KEY="YOUR_TOKEN"' >> ~/.zshrc && source ~/.zshrc
 
 # Windows PowerShell (permanent)
-[System.Environment]::SetEnvironmentVariable('LEADSNAVI_API_KEY', 'YOUR_TOKEN', 'User')
+[System.Environment]::SetEnvironmentVariable('MAILGO_API_KEY', 'YOUR_TOKEN', 'User')
 ```
 
 Replace `YOUR_TOKEN` with the copied value.
@@ -77,32 +72,32 @@ Replace `YOUR_TOKEN` with the copied value.
 **Sub-step 0.4 — Verify**
 
 ```bash
-# macOS / Linux — shows only the first 5 characters to confirm without exposing the token
-echo "${LEADSNAVI_API_KEY:0:5}"
+# macOS / Linux — shows first 5 characters to confirm without exposing the token
+echo "${MAILGO_API_KEY:0:5}"
 
 # Windows PowerShell
-$k = $env:LEADSNAVI_API_KEY; if ($k) { $k.Substring(0, [Math]::Min(5, $k.Length)) } else { "" }
+$k = $env:MAILGO_API_KEY; if ($k) { $k.Substring(0, [Math]::Min(5, $k.Length)) } else { "" }
 ```
 
-Output should be `eyJ..` (5 chars). If empty, run `source ~/.zshrc` or open a new terminal.
+If output is non-empty, you're ready. If empty, run `source ~/.zshrc` or open a new terminal.
 
 ### Key Facts
 
 | Item | Value |
 |------|-------|
-| Storage location | Browser Cookie, name = `MAILGO_TOKEN` |
-| Token format | JWT starting with `eyJ` |
-| Env variable name | `LEADSNAVI_API_KEY` |
-| API header | `Authorization: Bearer {LEADSNAVI_API_KEY}` |
+| Token source | app.mailgo.ai → Avatar → Personal Tokens |
+| Env variable name | `MAILGO_API_KEY` |
+| API header | `X-API-Key: {MAILGO_API_KEY}` |
+| Token scope | Your Mailgo account (mailboxes, campaigns, reports) |
+| Revoke token | app.mailgo.ai → Avatar → Personal Tokens → Delete |
 
 ### Auth Error Handling
 
 | Issue | Fix |
 |-------|-----|
 | Empty after `source ~/.zshrc` | Open a new terminal window |
-| Token not starting with `eyJ` | Re-check the correct cookie name `MAILGO_TOKEN` |
-| Token expires / 401 returns | Repeat Sub-steps 0.2–0.4 to get a fresh token |
-| No "Application" tab in DevTools | Try "Storage" tab (Firefox) or enable Develop menu (Safari) |
+| 401 Unauthorized | Token may be invalid or deleted — create a new one in Personal Tokens |
+| 403 Forbidden | Ensure `User-Agent` header is set (scripts handle this automatically) |
 
 ---
 
@@ -310,7 +305,7 @@ python3 scripts/run_campaign.py --sender "$SENDER" ...
 
 ### API Details (edge cases only)
 - **Endpoint:** `POST /api/biz/benefits/assign-prewarm`
-- **Auth:** Both `Cookie: token={key}` and `Authorization: Bearer {key}`
+- **Auth:** `X-API-Key: {key}`
 - **Response:** `{"code": 0, "data": "email@domain.com"}`
 - `data: null` = pool empty, contact support
 
@@ -801,5 +796,5 @@ Leads: 500 total | 250 completed | 30 in progress | 200 not yet | 20 failed
 2. **Verify before send:** Always run Step 1 for campaigns with >10 recipients.
 3. **Optimize before send:** Always run Step 3 before sending, even if not explicitly asked. Report "0 issues" if clean.
 4. **Confirm destructive actions:** Always confirm before delete. Campaign deletion is irreversible via API.
-5. **Security:** Never read tokens automatically. User must manually copy from browser LocalStorage.
+5. **Security:** Never handle API keys in chat. User must create token in Personal Tokens and set as environment variable.
 6. **Zero dependencies:** All scripts use Python stdlib only (`urllib`, `json`, `csv`, `ssl`). No `pip install` required (except optional `openpyxl` for .xlsx files).

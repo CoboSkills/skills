@@ -10,7 +10,7 @@ Usage:
     python3 claim_free_mailbox.py --json
 
 Requires:
-    LEADSNAVI_API_KEY environment variable (or --api-key flag)
+    MAILGO_API_KEY environment variable (or --api-key flag)
 
 Output:
     Human-readable summary on stdout (default) or JSON with --json flag.
@@ -45,8 +45,7 @@ def claim_free_mailbox(api_key, base_url=None):
     headers = {
         "User-Agent": USER_AGENT,
         "Content-Type": "application/json",
-        "Cookie": f"token={api_key}",
-        "Authorization": f"Bearer {api_key}",
+        "X-API-Key": api_key,
     }
 
     # POST with empty body
@@ -58,7 +57,7 @@ def claim_free_mailbox(api_key, base_url=None):
             body = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         if e.code == 401:
-            return False, None, "Authentication failed. Please check your LEADSNAVI_API_KEY."
+            return False, None, "Authentication failed. Please check your MAILGO_API_KEY."
         if e.code == 405:
             return False, None, (
                 f"HTTP 405 Method Not Allowed. "
@@ -96,7 +95,7 @@ def main():
     parser.add_argument(
         "--api-key",
         default=None,
-        help="LEADSNAVI_API_KEY (JWT token). Reads from env var if omitted.",
+        help="MAILGO_API_KEY (OpenAPI Key). Reads from env var if omitted.",
     )
     parser.add_argument(
         "--base-url",
@@ -109,13 +108,13 @@ def main():
     )
     args = parser.parse_args()
 
-    api_key = args.api_key or os.environ.get("LEADSNAVI_API_KEY")
+    api_key = args.api_key or os.environ.get("MAILGO_API_KEY")
     if not api_key:
         if args.json_output:
-            print(json.dumps({"success": False, "error": "LEADSNAVI_API_KEY not set"}))
+            print(json.dumps({"success": False, "error": "MAILGO_API_KEY not set"}))
         else:
             print(
-                "Error: LEADSNAVI_API_KEY is required.\n"
+                "Error: MAILGO_API_KEY is required.\n"
                 "Set it via environment variable or use --api-key.",
                 file=sys.stderr,
             )

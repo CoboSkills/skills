@@ -7,13 +7,16 @@ import sys
 import debug_utils
 from urllib.parse import urlencode
 
+# Note: xplai API uses "video" nomenclature internally for all media types,
+# including audio-only content. The endpoint and field names (video_id, video_url)
+# are from xplai's API; this skill only generates audio (monologue with BGM).
 API_BASE_URL = "https://eagle-api.xplai.ai"
 API_ENDPOINT = "/api/solve/video_status_mcp"
 
 
-def query_video_status(video_id):
+def query_audio_status(audio_id):
     url = f"{API_BASE_URL}{API_ENDPOINT}"
-    params = {"video_id": video_id}
+    params = {"video_id": audio_id}  # xplai API uses "video_id" for all media types
 
     debug_utils.log_request("GET", url, params=params)
 
@@ -40,21 +43,21 @@ def query_video_status(video_id):
             card = data.get("card", {})
             
             status = card.get("status")
-            video_url = card.get("video_url")
-            
-            print(f"Video ID: {data.get('video_id')}")
+            audio_url = card.get("video_url")  # xplai API field name
+
+            print(f"Audio ID: {data.get('video_id')}")
             print(f"Title: {card.get('title')}")
             print(f"Subject: {card.get('subject')}")
             print(f"Status: {status}")
-            
-            if video_url and status == "v_succ":
-                print(f"Video URL: {video_url}")
-                print(f"Xplai web page URL: https://www.xplai.ai/#/video/{video_id}")
+
+            if audio_url and status == "v_succ":
+                print(f"Audio URL: {audio_url}")
+                print(f"Xplai web page URL: https://www.xplai.ai/#/video/{audio_id}")
             elif status == "v_fail":
-                print("Video generation failed")
+                print("Audio generation failed")
             else:
                 print(f"Queue Index: {data.get('queue_index', 'N/A')}")
-                print("Video is still processing...")
+                print("Audio is still processing...")
             
             return status
         else:
@@ -66,15 +69,15 @@ def query_video_status(video_id):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Query video generation status from xplai API")
-    parser.add_argument("video_id", type=str, help="Video ID to query")
+    parser = argparse.ArgumentParser(description="Query audio generation status from xplai API")
+    parser.add_argument("audio_id", type=str, help="Audio ID to query")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode to print request/response details")
 
     args = parser.parse_args()
 
     debug_utils.set_debug(args.debug)
 
-    query_video_status(args.video_id)
+    query_audio_status(args.audio_id)
 
 
 if __name__ == "__main__":

@@ -259,13 +259,44 @@ def load_daily_memories(memory_dir, days):
 
 
 def load_user_profile(user_md_path):
-    """Read USER.md if it exists."""
+    """Read USER.md and extract only structured fields (name, MBTI, interests).
+
+    Returns a dict with extracted fields instead of raw file content,
+    to minimize the risk of sensitive personal data leaking into prompts.
+    """
+    result = {"name": "", "mbti": "", "interests": [], "notes": ""}
+
     if not user_md_path.exists():
-        return ""
+        return result
     try:
-        return user_md_path.read_text(encoding="utf-8").strip()
+        text = user_md_path.read_text(encoding="utf-8").strip()
     except (OSError, UnicodeDecodeError):
-        return ""
+        return result
+
+    if not text:
+        return result
+
+    # Extract structured fields via common patterns
+    for line in text.splitlines():
+        line_stripped = line.strip()
+        lower = line_stripped.lower()
+
+        # Name: value / 名字: value
+        if re.match(r"^(?:name|名字|昵称|称呼)\s*[:：]\s*", lower):
+            result["name"] = re.split(r"[:：]\s*", line_stripped, maxsplit=1)[-1].strip()
+        # MBTI / personality
+        elif re.match(r"^(?:mbti|personality|人格|性格)\s*[:：]\s*", lower):
+            result["mbti"] = re.split(r"[:：]\s*", line_stripped, maxsplit=1)[-1].strip()
+        # Interests / hobbies
+        elif re.match(r"^(?:interests?|hobbies?|兴趣|爱好)\s*[:：]\s*", lower):
+            raw = re.split(r"[:：]\s*", line_stripped, maxsplit=1)[-1].strip()
+            result["interests"] = [i.strip() for i in re.split(r"[,，、;；]", raw) if i.strip()]
+        # Notes / preferences
+        elif re.match(r"^(?:notes?|preferences?|备注|偏好)\s*[:：]\s*", lower):
+            result["notes"] = re.split(r"[:：]\s*", line_stripped, maxsplit=1)[-1].strip()
+
+    debug_utils.debug_print(f"Extracted user profile fields: {list(k for k, v in result.items() if v)}")
+    return result
 
 
 def collect_context(source_tool, keywords_str, days, max_results):
@@ -277,7 +308,7 @@ def collect_context(source_tool, keywords_str, days, max_results):
             "source_tool": source_tool,
             "fragments": [],
             "daily_memories": [],
-            "user_profile": "",
+            "user_profile": {"name": "", "mbti": "", "interests": [], "notes": ""},
         }
 
     paths = get_paths(source_tool)

@@ -115,8 +115,10 @@ Prefer these reply-facing artifacts:
 - `contourPngPath`: white-background PNG contour trace with tooth fill and no points, for direct display when the user asks for 轮廓图
 - `reportShareUrl`: standard online static report link
 - `prettyReportShareUrl`: beautified online static report link
+- `feishuDocShareUrl`: backup Feishu document link
 - `reportUpload`: standard report upload metadata
 - `prettyReportUpload`: beautified report upload metadata
+- `feishuDocUpload`: backup Feishu document metadata
 - `metrics`: supported measurements
 - `analysis.riskLabel`: short classification summary
 - `analysis.insight`: concise interpretation
@@ -137,18 +139,24 @@ When the run succeeds:
 8. If the user asks for 标点图, show `annotatedPngPath` directly with Markdown image syntax using the absolute local path.
 9. If the user asks for 轮廓图, show `contourPngPath` directly with Markdown image syntax using the absolute local path.
 10. Keep the existing data-and-analysis reply shape unchanged. The static report link and image artifacts are additional additions, not replacements for the normal measurement reply.
-11. For single-image measurement, proactively tell the user that the static reports have been generated and prefer `reportShareUrl` plus `prettyReportShareUrl`.
-12. If `reportShareUrl` exists, output it on its own line using this exact prefix:
-
-`在线报告链接：<url>`
-
-13. If `prettyReportShareUrl` exists, output it on its own line using this exact prefix:
+11. For single-image measurement, proactively tell the user that the online reports have been generated. Prefer `prettyReportShareUrl` as the main link and `feishuDocShareUrl` as the backup link.
+12. If `prettyReportShareUrl` exists, output it on its own line using this exact prefix:
 
 `美化报告链接：<url>`
 
-14. If `reportQrPngPath` exists, tell the user this QR can be scanned in WeChat to open the standard report, then show `reportQrPngPath` directly with Markdown image syntax using the absolute local path.
+13. If `feishuDocShareUrl` exists, output it on its own line using this exact prefix:
 
-15. If `prettyReportQrPngPath` exists, tell the user this QR can be scanned in WeChat to open the beautified report, then show `prettyReportQrPngPath` directly with Markdown image syntax using the absolute local path.
+`飞书文档版：<url>`
+
+14. If `reportShareUrl` exists, you may additionally output it on its own line using this exact prefix:
+
+`在线报告链接：<url>`
+
+15. If `reportQrPngPath` exists, tell the user this QR can be scanned in WeChat to open the standard report, then show `reportQrPngPath` directly with Markdown image syntax using the absolute local path.
+
+16. If `prettyReportQrPngPath` exists, tell the user this QR can be scanned in WeChat to open the beautified report, then show `prettyReportQrPngPath` directly with Markdown image syntax using the absolute local path.
+
+17. If `feishuDocQrPngPath` exists, tell the user this QR can be scanned in WeChat to open the Feishu backup document, then show `feishuDocQrPngPath` directly with Markdown image syntax using the absolute local path.
 
 Use this exact style for the closing choice line:
 

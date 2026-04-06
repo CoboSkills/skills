@@ -628,8 +628,11 @@ async function main() {
     reportUpload: result.report || null,
     prettyReportShareUrl: result.prettyReport?.ok ? result.prettyReport.reportShareUrl || null : null,
     prettyReportUpload: result.prettyReport || null,
+    feishuDocShareUrl: result.feishuDoc?.ok ? result.feishuDoc.docUrl || null : null,
+    feishuDocUpload: result.feishuDoc || null,
     reportQrPngPath: null,
     prettyReportQrPngPath: null,
+    feishuDocQrPngPath: null,
     annotatedPngPath: resolvedPngPath,
     annotatedSvgPath: resolvedSvgPath,
     contourPngPath: resolvedContourPngPath,
@@ -657,6 +660,17 @@ async function main() {
       output.prettyReportQrPngPath = resolvedPrettyReportQrPngPath;
     } catch {
       output.prettyReportQrPngPath = null;
+    }
+  }
+
+  if (output.feishuDocShareUrl) {
+    try {
+      output.feishuDocQrPngPath = await generateQrPng(
+        output.feishuDocShareUrl,
+        path.join(outputDir, `${baseName}.feishu-doc-qr.svg`),
+      );
+    } catch {
+      output.feishuDocQrPngPath = null;
     }
   }
 
@@ -702,6 +716,9 @@ async function main() {
     prettyReportUpload: output.prettyReportUpload || null,
     prettyReportShareUrl: output.prettyReportShareUrl || null,
     prettyReportQrPngPath: output.prettyReportQrPngPath || null,
+    feishuDocUpload: output.feishuDocUpload || null,
+    feishuDocShareUrl: output.feishuDocShareUrl || null,
+    feishuDocQrPngPath: output.feishuDocQrPngPath || null,
     pdfReportPath,
     pdfUpload,
     pdfShareUrl: output.pdfShareUrl || null,
@@ -722,6 +739,9 @@ async function main() {
     prettyReportUpload: output.prettyReportUpload || null,
     prettyReportShareUrl: output.prettyReportShareUrl || null,
     prettyReportQrPngPath: output.prettyReportQrPngPath || null,
+    feishuDocUpload: output.feishuDocUpload || null,
+    feishuDocShareUrl: output.feishuDocShareUrl || null,
+    feishuDocQrPngPath: output.feishuDocQrPngPath || null,
     pdfReportPath,
     pdfUpload,
     pdfShareUrl: output.pdfShareUrl || null,

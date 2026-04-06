@@ -1,52 +1,75 @@
 **English** | [简体中文](./README.zh-CN.md) | [日本語](./README.ja.md)
 
-# AllyClaw OpenClaw Skills (Attribuly) for DTC Ecommerce
+# 🛍️ Attribuly OpenClaw Skills: AI Marketing Analytics for Shopify & WooCommerce
 
-Your specialized AI Marketing Partner for DTC ecommerce; powered by Attribuly first-party data, easy to install, and supports full cloud deployment for autonomous analysis.
+[!\[Deploy to Attribuly Cloud\](https://img.shields.io/badge/Deploy%20to-Attribuly%20Cloud-blue?style=for-the-badge null)](https://app.attribuly.com/cherry/#/ally-claw)
+
+[Watch the video](https://youtu.be/JDat6bls5Wk?si=jgZtnRZnl39VqFj3)
+
+> **The Problem:** Meta says you made $10,000. Google claims another $8,000. But your Shopify dashboard only shows $12,000 total. They are both taking credit for the same sales, leaving you blind to your true ROAS and actual profit margins.
+>
+> **The Solution:** Meet your new "AI Marketing Analyst"—free, open-source, and tireless. It plugs directly into your first-party backend data, cuts through the ad platform noise, and tells you exactly where your budget is bleeding.
+>
+> **Take Action:** Developer teams can clone the repo and run it locally for free. Want it running in 60 seconds with zero configuration? Try our fully-managed Cloud Version with a 50% discount on your first month.
+
+Your specialized **AI Marketing Partner for DTC Ecommerce (Shopify, WooCommerce, and more)**. Powered by Attribuly's first-party data, these OpenClaw skills provide autonomous marketing analysis, true ROAS tracking, and profit-first optimization for your online store.
+
+## 🚀 Get Started / 快速开始 / はじめに
+
+**Get started:** Sign up and get your API key at <https://attribuly.com> (14-day free trial available).\
+**快速开始:** 请前往 <https://attribuly.com> 注册获取 API Key（提供 14 天免费试用）。\
+**はじめに:** <https://attribuly.com> でサインアップして API Key を取得してください（14日間の無料トライアルあり）。
+
+### Why for Shopify & WooCommerce?
+
+Traditional ad platforms (Meta, Google) often misattribute sales. For Shopify and WooCommerce merchants, these skills use your store's real backend data to reveal your **true profit margin, customer acquisition cost (CAC), and lifetime value (LTV)**, ensuring your marketing decisions are driven by actual revenue.
 
 ### Core Capabilities:
-- **True ROI Focus** — Powered by Attribuly first-party attribution concepts (true ROAS, ncROAS, profit, margin, LTV, MER) to reduce platform over-attribution.
+
+<div align="center">
+  <img src="./assets/weekly-report-workflow.jpeg" width="600" alt="Skill Workflow" />
+</div>
+
+- **True ROI & ROAS Focus** — Powered by Attribuly first-party attribution concepts (true ROAS, ncROAS, profit, margin, LTV, MER) to reduce Meta/Google over-attribution.
 - **Under Your Control** — Deploy locally or in the cloud. Memory and strategy remain within your secure environment.
 - **Extensible Skills** — Built-in automated triggers. Autonomously analyze funnels, pacing, creatives, and discrepancies. No lock-in.
 
 ### What you can do:
+
 - **Diagnostic:** Autonomously detect funnel bottlenecks and landing page friction.
 - **Performance:** Generate 30-second daily pacing scans or deep-dive weekly executive summaries.
 - **Creative:** Evaluate Google/Meta creatives against true profitability and identify fatigue.
 - **Optimization:** Get profit-first budget reallocation and audience tuning recommendations.
 
----
+## 💬 Common Prompts / 常见触发词 / よくあるトリガー
 
-## News & Changelog
+Try asking the agent any of the following to trigger specific skills:
 
-**[2026-03-22] We released v1.1.0!** 
+**English:**
 
-### [v1.1.0] Added
-- **Diagnostic Skills Suite**: 
-  - `funnel-analysis`: New skill to analyze end-to-end customer conversion funnels and identify specific drop-off bottlenecks by channel or landing page.
-  - `landing-page-analysis`: New skill to diagnose landing-page conversion loss by analyzing stage progression, engagement quality, and traffic-source fit.
-  - `attribution-discrepancy`: New skill to identify and diagnose reporting discrepancies between ad platform metrics (Meta/Google), Attribuly's unified attribution, and backend store data.
-- **Creative Analysis Skills**:
-  - `google-creative-analysis`: New skill to extract, process, and analyze creative performance data for Google Ads. Includes integration with Quality Score, PMax asset data, and standardized A/B testing protocols.
+- "How did we do last week? Generate a weekly report."
+- "How's Google Ads doing?"
+- "Where are users dropping off in the funnel?"
+- "Where should I shift my spend? Optimize budget."
+- "Analyze Google creatives and check for CTR issues."
 
-### [v1.1.0] Changed
-- **Skill Registry Updates**: Updated `SKILL_REGISTRY.md` to mark `funnel-analysis`, `landing-page-analysis`, `attribution-discrepancy`, and `google-creative-analysis` statuses from `🔜 Planned` to `✅ Ready`.
-- **Attribution Discrepancy Flow Enhancements**: 
-  - Integrated Server-Side Tracking validation (`api/get/connection/destination`) to detect CAPI/pixel issues.
-  - Upgraded logic to use the Full Impact Attribution model for Enterprise users to capture Meta view-through conversions.
-  - Consolidated platform metric extraction to rely directly on Attribuly's unified `/api/all-attribution/get-list`.
-- **Google Creative Analysis Consolidation**: Merged the standalone creative analysis framework (evaluation rubrics, DTC best practices, dashboard architecture) directly into the `google-creative-analysis` skill.
+**中文 (Chinese):**
 
-### [v1.1.0] Removed
-- Removed the outdated "Under-tracking" scenario from the `attribution-discrepancy` root cause analysis logic.
-- Deleted the redundant standalone `creative_analysis_framework.md` file.
+- "上周表现如何？生成每周报告。"
+- "Google广告表现如何？"
+- "用户在转化漏斗的哪里流失了？"
+- "我应该把预算转移到哪里？优化一下预算。"
+- "分析Google素材并检查点击率问题。"
 
-**[Initial Release] v1.0.0**
-- Initial creation of the `SKILL_REGISTRY.md` to map user intents to agent skills.
-- Implemented core Performance Analysis Skills (`weekly_marketing_performance`, `daily_marketing_pulse`, `google_ads_performance`, `meta_ads_performance`).
-- Implemented core Optimization Skills (`budget_optimization`, `audience_optimization`, `bid_strategy_optimization`).
+**日本語 (Japanese):**
 
----
+- "先週のパフォーマンスはどうだった？週次レポートを作成して。"
+- "Google広告の調子はどう？"
+- "ユーザーはファネルのどこで離脱している？"
+- "どこに予算を移すべき？予算を最適化して。"
+- "Googleクリエイティブを分析してCTRの課題を確認して。"
+
+***
 
 ## Table of Contents
 
@@ -55,7 +78,7 @@ Your specialized AI Marketing Partner for DTC ecommerce; powered by Attribuly fi
 - [Managed Cloud Hosting (Deployment)](#managed-cloud-hosting-deployment)
 - [Post-Installation](#post-installation)
 
----
+***
 
 ## Available Skills
 
@@ -82,11 +105,20 @@ Your specialized AI Marketing Partner for DTC ecommerce; powered by Attribuly fi
 - `customer-journey-analysis`
 - `ltv-analysis`
 
-See [SKILL\_REGISTRY.md](SKILL_REGISTRY.md) for detailed triggers and usage mapping.
+See the Technical Reference section below for detailed triggers and usage mapping.
 
----
+\---\*\*\*
 
 ## Installation Guide
+
+### 🚀 No-Code Setup for Shopify & WooCommerce Users
+
+Not a developer? No problem! You can run these AI skills without writing any code:
+
+1. Connect your Shopify or WooCommerce store to [Attribuly](https://attribuly.com).
+2. Grab your API Key from the Attribuly dashboard.
+3. Paste the key into your Agent Settings
+4. Ask the AI: *"Analyze my Shopify funnel drop-off for the last 7 days."*
 
 ### Step 1: Obtain Your Attribuly API Key
 
@@ -94,13 +126,9 @@ Before installing the skills, you need an Attribuly API key. These skills rely h
 
 - **Paid Feature:** The API key is exclusively available to paid-plan users. You must upgrade your workspace before you can generate the key.
 - **Free Trial:** If you are new, you can start a [14-day free trial](https://attribuly.com/pricing/) to test the platform.
-- **Where to put it:** Once acquired, you must securely configure it in your OpenClaw environment. **Do not paste the API Key in the chat.**
-  1. Open your OpenClaw **Agent Settings**.
-  2. Navigate to the **Environment Variables** or **Secrets** section.
-  3. Add a new variable named `ATTRIBULY_API_KEY`.
-  4. Paste your API key as the value and save. The agent will automatically and securely read this variable when calling APIs.
+- **How to configure:** Please configure your API key securely through the **Agent Settings UI (Environment Variables/Secrets)**. Do not paste your API key directly into the chat to prevent exposure in chat histories.
 
----
+***
 
 There are two primary ways to install these Attribuly skills into your own OpenClaw environment. Choose the method that best fits your workflow.
 
@@ -108,58 +136,94 @@ There are two primary ways to install these Attribuly skills into your own OpenC
 
 Copy the prompt below into your OpenClaw interface, and the agent will install it for you:
 
-> Install these skills from https\://github.com/Alexchulee/Attribuly-DTC-skills-openclaw\.git
+> Install these skills from <https://github.com/Attribuly-US/ecommerce-dtc-skills>
 
-### Step 2: Git Submodule (Recommended for Easy Updates)
+# Managed Cloud Hosting (Deployment)
 
-If you want to keep your skills up-to-date with the latest improvements from this repository, adding it as a Git submodule is the best approach.
+| Feature               | Local Deployment (Open Source)                            | Cloud Version (Attribuly Managed)                                                |
+| :-------------------- | :-------------------------------------------------------- | :------------------------------------------------------------------------------- |
+| **Best For**          | Geek teams, Developers                                    | DTC Merchants, Marketers, Non-technical teams                                    |
+| **Cost**              | Free                                                      | $20/month (50% off first month)                                                  |
+| **Setup**             | Requires self-hosting, API config & environment tinkering | 1-minute out-of-the-box, Zero code required                                      |
+| **Maintenance**       | Manual updates, Self-maintained                           | Auto-updates, Zero maintenance                                                   |
+| **Core Advantage**    | Basic LLM invocation                                      | Intelligent multi-LLM orchestration, Operational management, Enterprise security |
+| **Advanced Features** | None                                                      | Organizational Long-term Memory (Coming soon)                                    |
 
-1. Navigate to the root of your OpenClaw instance in your terminal.
-2. Add this repository as a submodule:
-   ```bash
-   git submodule add https://github.com/Alexchulee/Attribuly.git vendor/attribuly
-   ```
-3. Create the skills directory if it doesn't already exist:
-   ```bash
-   mkdir -p ./openclaw-config/skills
-   ```
-4. Sync the skill bundle into your active configuration:
-   ```bash
-   rsync -av --exclude=".*" --exclude="LICENSE" vendor/attribuly/ ./openclaw-config/skills/attribuly-dtc-analyst/
-   ```
-
-**How to pull future updates:**
-To ensure you always have the latest skill logic, you can easily pull updates and re-sync them:
-
-```bash
-git submodule update --remote --merge
-rsync -av --exclude=".*" --exclude="LICENSE" vendor/attribuly/ ./openclaw-config/skills/attribuly-dtc-analyst/
-```
-
-### Step 3: Initialize Agent Role (Rule & Soul)
-
-To ensure the agent behaves as an expert DTC Growth Partner, you need to configure its core identity. OpenClaw automatically injects workspace bootstrap files into its system prompt. 
-
-**Automated Method (Recommended):**
-Copy the role prompt directly into your agent's workspace as `SOUL.md` (or append to it if it exists):
-```bash
-cp vendor/attribuly/role_prompt.md ./openclaw-config/SOUL.md
-```
-*(If you are using a specific multi-agent setup, copy it to `~/.openclaw/agents/<your-agent-name>/agent.md`)*
-
-**Manual Method (Chat Interface):**
-1. Open the [`role_prompt.md`](role_prompt.md) file in this repository.
-2. Copy the entire content of the file.
-3. Paste it into your OpenClaw chat/dialog box to initialize the agent's rules, soul, and persona.
-
----
-
-## Managed Cloud Hosting (Deployment)
-
-If you do not want to run OpenClaw locally and prefer an always-on, fully managed environment to run your Attribuly skills and LLMs, we recommend using **ModelScope Cloud Hosting** or **AWS Bedrock / SageMaker**. 
-
-> **Important**: Access to the fully managed cloud environment is currently rolling out in phases. Please complete the [Join AllyClaw Waitlist form](https://attribuly.sg.larksuite.com/share/base/form/shrlgSK0KaktsDwbTJqPkjDczCd) to request priority access. 
+If you want to eliminate technical hassles and focus entirely on your marketing data, we highly recommend clicking the **Deploy to Attribuly Cloud** button at the top to start your cloud trial.
 
 ## Post-Installation
 
-Once the skill bundle is successfully placed in your `openclaw-config/skills/` directory (locally or in the cloud), check the [SKILL\_REGISTRY.md](SKILL_REGISTRY.md) for details on the specific triggers and required contexts to use each capability effectively.
+Once the skill bundle is successfully placed in your `openclaw-config/skills/` directory (locally or in the cloud), refer to the **Technical Reference** section below for details on specific triggers, skill chaining logic, and global API parameters.
+
+***
+
+## Technical Reference
+
+### Skill Trigger Matrix
+
+#### Automatic Triggers
+
+| Condition              | Triggered Skill                                     | Priority |
+| :--------------------- | :-------------------------------------------------- | :------- |
+| Monday 09:00 AM        | `weekly-marketing-performance`                      | High     |
+| Daily 09:00 AM         | `daily-marketing-pulse`                             | Medium   |
+| ROAS drops >20%        | `weekly-marketing-performance` + channel drill-down | Critical |
+| CPA increases >20%     | Channel-specific performance skill                  | High     |
+| CTR drops >15%         | `creative-fatigue-detector`                         | Medium   |
+| CVR drops >15%         | `funnel-analysis`                                   | High     |
+| Spend >30% over budget | `budget-optimization`                               | Critical |
+
+### Skill Chaining Logic
+
+When one skill detects an issue, it can trigger related skills:
+
+```text
+weekly-marketing-performance
+├── IF Google Ads issue detected → google-ads-performance
+│   └── IF CTR issue → google-creative-analysis
+├── IF Meta Ads issue detected → meta-ads-performance
+│   └── IF frequency high → meta-creative-analysis
+├── IF CVR issue detected → funnel-analysis
+│   └── IF landing page issue → landing-page-analysis
+└── IF budget inefficiency → budget-optimization
+```
+
+### Global API Parameters
+
+These defaults apply to ALL skills unless overridden:
+
+| Parameter   | Default Value | Notes                                                          |
+| :---------- | :------------ | :------------------------------------------------------------- |
+| `model`     | `linear`      | Linear attribution                                             |
+| `goal`      | `purchase`    | Purchase conversions (use dynamic goal code from Settings API) |
+| `version`   | `v2-4-2`      | API version                                                    |
+| `page_size` | `100`         | Max records per page                                           |
+
+**Base URL:** `https://data.api.attribuly.com`
+**Authentication:** `ApiKey` header (Read from `ATTRIBULY_API_KEY` Environment Variable / Secret Manager. NEVER ask the user for this in chat.)
+
+### Decision Framework: Compare Platform vs. Attribuly Metrics
+
+| Scenario       | Platform ROAS | Attribuly ROAS | Diagnosis                                            | Action                                                    |
+| :------------- | :------------ | :------------- | :--------------------------------------------------- | :-------------------------------------------------------- |
+| Hidden Gem     | Low (<1.5)    | High (>2.5)    | Top-of-funnel driver undervalued by platform         | **DO NOT PAUSE.** Tag as "TOFU Driver." Consider scaling. |
+| Hollow Victory | High (>3.0)   | Low (<1.5)     | Platform over-attributing (likely brand/retargeting) | **CAP BUDGET.** Investigate incrementality.               |
+| True Winner    | High (>2.5)   | High (>2.5)    | Genuine high performer                               | **SCALE.** Increase budget 20% every 3-5 days.            |
+| True Loser     | Low (<1.0)    | Low (<1.0)     | Inefficient spend                                    | **PAUSE or REDUCE.** Refresh creative or audience.        |
+
+### Key Metrics Glossary
+
+| Metric         | Formula                                          | Description                          |
+| :------------- | :----------------------------------------------- | :----------------------------------- |
+| **ROAS**       | `conversion_value / spend`                       | Attribuly-tracked Return on Ad Spend |
+| **ncROAS**     | `ncPurchase / spend`                             | New Customer ROAS                    |
+| **MER**        | `total_revenue / total_spend`                    | Marketing Efficiency Ratio           |
+| **CPA**        | `spend / conversions`                            | Cost Per Acquisition                 |
+| **CPC**        | `spend / clicks`                                 | Cost Per Click                       |
+| **CPM**        | `(spend / impressions) * 1000`                   | Cost Per 1000 Impressions            |
+| **CTR**        | `(clicks / impressions) * 100%`                  | Click-Through Rate                   |
+| **CVR**        | `(conversions / clicks) * 100%`                  | Conversion Rate                      |
+| **LTV**        | `total_sales / unique_customers`                 | Lifetime Value                       |
+| **Net Profit** | `sales - shipping - spend - COGS - taxes - fees` | True Profit                          |
+| **Net Margin** | `net_profit / sales * 100%`                      | Profit Margin                        |
+

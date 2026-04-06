@@ -1,11 +1,22 @@
 [English](./README.md) | **简体中文** | [日本語](./README.ja.md)
 
-# AllyClaw OpenClaw 技能库 (Attribuly) - 专为 DTC 电商打造
+# 🛍️ Attribuly OpenClaw 技能库：专为 Shopify 与 WooCommerce 打造的 AI 营销分析助手
 
-您的 DTC 电商专属 AI 营销助手；由 Attribuly 第一方数据驱动，易于安装，并支持全托管云部署以实现自动化分析。
+您的 **DTC 电商专属 AI 营销合作伙伴 (支持 Shopify, WooCommerce 等独立站平台)**。由 Attribuly 第一方数据驱动，这些 OpenClaw 技能为您提供自动化的营销诊断、真实 ROAS 追踪以及利润优先的广告优化建议。
+
+> **全自动营销诊断工作流展示：**
+> 
+> 下面的动画展示了我们的 AI 技能是如何自动串联、逐步深挖性能问题的。例如，当每周报告检测到 Google Ads ROAS 下降时，它会自动触发深度诊断，检查点击率（CTR）问题，并在必要时进一步下钻到具体创意素材层级进行分析。
+> 
+> <div align="center">
+>   <img src="./assets/workflow.gif" width="600" alt="全自动营销诊断工作流" />
+> </div>
+
+### 为什么适合 Shopify & WooCommerce 商家？
+传统的广告平台（如 Meta、Google）经常存在数据归因偏差。对于 Shopify 和 WooCommerce 卖家，这些 AI 技能会直接打通您的店铺后台真实订单数据，为您揭示**真实的利润率、客户获取成本 (CAC) 以及用户生命周期价值 (LTV)**，让营销决策有据可依。
 
 ### 核心能力：
-- **聚焦真实 ROI** — 基于 Attribuly 第一方归因概念（真实 ROAS、新客 ROAS、利润、利润率、LTV、MER），减少广告平台的过度归因。
+- **聚焦真实 ROI 与 ROAS** — 基于 Attribuly 第一方归因概念（真实 ROAS、新客 ROAS、利润、利润率、LTV、MER），减少 Meta/Google 广告平台的过度归因。
 - **完全可控** — 支持本地或云端部署。您的记忆和策略数据始终保留在安全的专属环境中。
 - **可扩展的技能** — 内置自动化触发器。自主分析转化漏斗、预算消耗节奏、创意素材表现及数据差异。无平台绑定。
 
@@ -14,36 +25,6 @@
 - **业绩追踪:** 生成 30 秒每日消耗扫描报告或深度的每周高管摘要。
 - **创意优化:** 基于真实利润评估 Google/Meta 创意素材，并识别素材疲劳。
 - **预算调优:** 获取以利润为先的预算重分配和受众调整建议。
-
----
-
-## 最新动态与更新日志
-
-**[2026-03-22] v1.1.0 版本正式发布！** 
-
-### [v1.1.0] 新增
-- **诊断分析技能套件**: 
-  - `funnel-analysis`: 全链路客户转化漏斗分析，精确定位各渠道或落地页的流失瓶颈。
-  - `landing-page-analysis`: 诊断落地页转化流失，区分流量质量问题与用户体验摩擦。
-  - `attribution-discrepancy`: 识别并诊断广告平台指标（Meta/Google）、Attribuly 统一归因和后端商店数据之间的报告差异。
-- **创意分析技能**:
-  - `google-creative-analysis`: 提取、处理并分析 Google Ads 的创意表现数据，集成了质量得分、PMax 资产数据及标准化的 A/B 测试评估协议。
-
-### [v1.1.0] 变更
-- **技能注册表更新**: 更新了 `SKILL_REGISTRY.md`，将 `funnel-analysis`, `landing-page-analysis`, `attribution-discrepancy`, 和 `google-creative-analysis` 的状态从 `🔜 Planned` 修改为 `✅ Ready`。
-- **Google Ads Performance**: 增强了深度的根本原因细分逻辑，当检测到 CTR 问题时，可直接映射触发新的 `google-creative-analysis` 技能。
-- **Weekly Marketing Performance**: 整合了漏斗健康检查，并添加了在 CVR 下降时调用新 `funnel-analysis` 技能的触发条件。
-- **Meta Ads Performance**: 更新了数据获取的 schema，以包含与新归因管道兼容的标准化参数。
-- **Google Creative Analysis 整合**: 将独立的创意分析框架（评估标准、DTC 最佳实践、仪表板架构）直接合并到 `google-creative-analysis` 技能中。
-
-### [v1.1.0] 移除
-- 从 `attribution-discrepancy` 的根本原因分析逻辑中删除了过时的“跟踪不足 (Under-tracking)”场景。
-- 删除了冗余的独立文件 `creative_analysis_framework.md`。
-
-**[首次发布] v1.0.0**
-- 首次创建 `SKILL_REGISTRY.md` 以映射用户意图与 Agent 技能。
-- 实现核心业绩分析技能 (`weekly_marketing_performance`, `daily_marketing_pulse`, `google_ads_performance`, `meta_ads_performance`)。
-- 实现核心优化技能 (`budget_optimization`, `audience_optimization`, `bid_strategy_optimization`)。
 
 ---
 
@@ -81,11 +62,18 @@
 - `customer-journey-analysis`
 - `ltv-analysis`
 
-有关触发条件和使用映射的详细信息，请参阅 [SKILL\_REGISTRY.md](SKILL_REGISTRY.md)。
+有关触发条件和使用映射的详细信息，请参阅底部的 **技术参考 (Technical Reference)** 章节。
 
 ---
 
 ## 安装指南
+
+### 🚀 Shopify & WooCommerce 用户免代码快速配置指南
+不懂代码？完全没问题！您可以通过以下免代码方式运行这些 AI 技能：
+1. 将您的 Shopify 或 WooCommerce 店铺连接到 [Attribuly](https://attribuly.com)。
+2. 从 Attribuly 后台获取您的 API 密钥 (API Key)。
+3. 在您的 OpenClaw Agent 设置中，将该密钥粘贴到 `ATTRIBULY_API_KEY` 环境变量下。
+4. 直接向 AI 提问：*"帮我分析一下过去 7 天我 Shopify 店铺的漏斗流失情况。"*
 
 ### 步骤 0：获取您的 Attribuly API 密钥
 
@@ -93,11 +81,7 @@
 
 - **付费专属功能：** API 密钥仅对付费计划用户开放。您必须升级您的工作空间才能生成密钥。
 - **免费试用：** 如果您是新用户，可以开启 [14天免费试用](https://attribuly.com/pricing/) 来体验平台功能。
-- **如何配置：** 获取密钥后，必须将其安全地配置到您的 OpenClaw 环境中。**请勿在聊天对话中直接发送 API Key。**
-  1. 打开 OpenClaw 的 **Agent 设置 (Agent Settings)**。
-  2. 找到 **环境变量 (Environment Variables)** 或 **密钥管理 (Secrets)** 部分。
-  3. 添加一个新的环境变量，命名为 `ATTRIBULY_API_KEY`。
-  4. 将您的 API 密钥粘贴为该变量的值并保存。Agent 在调用数据时会自动且安全地读取该变量。
+- **如何配置：** 为了获得最高的安全性，请务必通过 OpenClaw 的 **Agent Settings UI (环境变量/Secrets)** 来配置 API 密钥。为防止密钥在聊天记录中泄露，请不要直接在聊天对话框中粘贴 API Key。
 
 ---
 
@@ -107,7 +91,7 @@
 
 将以下提示词复制到您的 OpenClaw 对话框中，Agent 将自动为您安装：
 
-> Install these skills from https\://github.com/Alexchulee/Attribuly-DTC-skills-openclaw\.git
+> Install these skills from https\://github.com/Attribuly-US/ecommerce-dtc-skills.git
 
 ### 方法 2：Git Submodule (推荐，便于更新)
 
@@ -116,7 +100,7 @@
 1. 在终端中导航到您的 OpenClaw 实例根目录。
 2. 将此仓库添加为子模块：
    ```bash
-   git submodule add https://github.com/Alexchulee/Attribuly.git vendor/attribuly
+   git submodule add https://github.com/Attribuly-US/ecommerce-dtc-skills.git vendor/attribuly
    ```
 3. 如果 `skills` 目录不存在，请先创建：
    ```bash
@@ -135,22 +119,6 @@ git submodule update --remote --merge
 rsync -av --exclude=".*" --exclude="LICENSE" vendor/attribuly/ ./openclaw-config/skills/attribuly-dtc-analyst/
 ```
 
-### 步骤 3：初始化 Agent 角色 (Rule & Soul)
-
-为了确保 Agent 表现得像一个专业的 DTC 增长伙伴，您需要配置其核心身份。OpenClaw 会自动将工作区引导文件（bootstrap files）注入到其系统提示词中。
-
-**自动化方法（推荐）：**
-直接将角色提示词复制到您的 Agent 工作区并命名为 `SOUL.md`（如果文件已存在则追加）：
-```bash
-cp vendor/attribuly/role_prompt.md ./openclaw-config/SOUL.md
-```
-*(如果您使用的是特定的多智能体设置，请将其复制到 `~/.openclaw/agents/<您的agent名称>/agent.md`)*
-
-**手动方法（通过对话框）：**
-1. 打开此仓库中的 [`role_prompt.md`](role_prompt.md) 文件。
-2. 复制文件的全部内容。
-3. 将其粘贴到您的 OpenClaw 聊天/对话框中，以初始化 Agent 的规则、灵魂和角色。
-
 ---
 
 ## 全托管云部署
@@ -163,4 +131,76 @@ cp vendor/attribuly/role_prompt.md ./openclaw-config/SOUL.md
 
 ## 安装后配置
 
-一旦技能包成功放置在您的 `openclaw-config/skills/` 目录中（本地或云端），请查阅 [SKILL\_REGISTRY.md](SKILL_REGISTRY.md) 以获取有关特定触发器和有效使用每个技能所需上下文的详细信息。
+一旦技能包成功放置在您的 `openclaw-config/skills/` 目录中（本地或云端），请参阅下方的 **技术参考 (Technical Reference)** 以获取有关特定触发器、技能链逻辑和全局 API 参数的详细信息。
+
+---
+
+## 技术参考 (Technical Reference)
+
+### 技能触发矩阵 (Skill Trigger Matrix)
+
+#### 自动触发条件 (Automatic Triggers)
+
+| 条件 (Condition) | 触发的技能 (Triggered Skill) | 优先级 (Priority) |
+| :--- | :--- | :--- |
+| 每周一 09:00 AM | `weekly-marketing-performance` | 高 (High) |
+| 每日 09:00 AM | `daily-marketing-pulse` | 中 (Medium) |
+| ROAS 下降 >20% | `weekly-marketing-performance` + 渠道下钻 | 极高 (Critical) |
+| CPA 上升 >20% | 渠道专属业绩技能 | 高 (High) |
+| CTR 下降 >15% | `creative-fatigue-detector` | 中 (Medium) |
+| CVR 下降 >15% | `funnel-analysis` | 高 (High) |
+| 消耗超出预算 >30% | `budget-optimization` | 极高 (Critical) |
+
+### 技能链逻辑 (Skill Chaining Logic)
+
+当一个技能检测到问题时，它可以触发相关的下级技能：
+
+```text
+weekly-marketing-performance
+├── IF Google Ads issue detected → google-ads-performance
+│   └── IF CTR issue → google-creative-analysis
+├── IF Meta Ads issue detected → meta-ads-performance
+│   └── IF frequency high → meta-creative-analysis
+├── IF CVR issue detected → funnel-analysis
+│   └── IF landing page issue → landing-page-analysis
+└── IF budget inefficiency → budget-optimization
+```
+
+### 全局 API 参数 (Global API Parameters)
+
+这些默认值适用于所有技能（除非在特定技能中被覆盖）：
+
+| 参数 | 默认值 | 备注 |
+| :--- | :--- | :--- |
+| `model` | `linear` | 线性归因 (Linear attribution) |
+| `goal` | `purchase` | 购买转化 (使用 Settings API 获取的动态目标代码) |
+| `version` | `v2-4-2` | API 版本 |
+| `page_size` | `100` | 每页最大记录数 |
+
+**Base URL:** `https://data.api.attribuly.com`
+**Authentication:** `ApiKey` 请求头 (从 `ATTRIBULY_API_KEY` 环境变量读取。**绝对不要在聊天中向用户索要此密钥。**)
+
+### AI 决策框架：平台数据与 Attribuly 真实数据对比
+
+| 场景 | 平台 ROAS (Platform) | Attribuly ROAS | 诊断结论 | 推荐行动 |
+| :--- | :--- | :--- | :--- | :--- |
+| **被隐藏的宝石 (Hidden Gem)** | 低 (<1.5) | 高 (>2.5) | 漏斗顶部的驱动力被平台低估 | **不要暂停。** 标记为“TOFU Driver”，考虑增加预算。 |
+| **虚假的繁荣 (Hollow Victory)** | 高 (>3.0) | 低 (<1.5) | 平台过度归因（通常是品牌词或重定向） | **限制预算。** 调查其增量价值 (Incrementality)。 |
+| **真正的赢家 (True Winner)** | 高 (>2.5) | 高 (>2.5) | 真正的高绩效计划 | **扩量。** 每 3-5 天增加 20% 预算。 |
+| **真正的输家 (True Loser)** | 低 (<1.0) | 低 (<1.0) | 无效的支出 | **暂停或缩减。** 刷新素材或受众。 |
+
+### 核心指标字典 (Key Metrics Glossary)
+
+| 指标 | 计算公式 | 描述说明 |
+| :--- | :--- | :--- |
+| **ROAS** | `conversion_value / spend` | Attribuly 追踪的真实广告支出回报率 |
+| **ncROAS** | `ncPurchase / spend` | 新客 ROAS (New Customer ROAS) |
+| **MER** | `total_revenue / total_spend` | 营销效率比 (Marketing Efficiency Ratio) |
+| **CPA** | `spend / conversions` | 单次获客成本 (Cost Per Acquisition) |
+| **CPC** | `spend / clicks` | 单次点击成本 (Cost Per Click) |
+| **CPM** | `(spend / impressions) * 1000` | 千次曝光成本 (Cost Per 1000 Impressions) |
+| **CTR** | `(clicks / impressions) * 100%` | 点击率 (Click-Through Rate) |
+| **CVR** | `(conversions / clicks) * 100%` | 转化率 (Conversion Rate) |
+| **LTV** | `total_sales / unique_customers` | 用户生命周期价值 (Lifetime Value) |
+| **Net Profit** | `sales - shipping - spend - COGS - taxes - fees` | 真实净利润 (True Profit) |
+| **Net Margin** | `net_profit / sales * 100%` | 净利润率 (Profit Margin) |

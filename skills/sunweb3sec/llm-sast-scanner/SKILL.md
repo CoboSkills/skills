@@ -6,7 +6,7 @@ description: >
   "do a SAST scan", "check for [vulnerability type] in code", "audit source code", or requests a security
   code review of any language or framework. Covers 34 vulnerability classes across web, API, auth, mobile, and logic layers.
 metadata:
-  version: "1.3"
+  version: "1.3.1"
   domain: application-security
   references: 34 vulnerability knowledge bases
 ---
@@ -215,6 +215,8 @@ Judge Verdict:  CONFIRMED / LIKELY / NEEDS CONTEXT / FALSE POSITIVE
 | **Medium** | Reflected XSS, CSRF, path traversal, insecure deserialization |
 | **Low** | Information disclosure, open redirect, weak crypto, insecure cookie |
 | **Info** | Missing security headers, verbose errors, defense-in-depth gaps |
+
+**Severity Downgrade Rule:** When exploitation requires authentication, specific non-default configuration, chained prerequisites, or is only reachable through an internal/admin-only path, downgrade severity by one level from the class default; LIKELY-verdict findings whose exploitability is marked UNCERTAIN must be capped at one level below the class default regardless of vulnerability type.
 
 #### Finding Format
 

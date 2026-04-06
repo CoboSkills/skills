@@ -3,11 +3,16 @@
   "slug": "listclean",
   "displayName": "Listclean",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775168056828,
-    "commit": "https://github.com/openclaw/skills/commit/7a8340d1d1e8dd09fc2cfeb4a24ff4b2b34eaba3"
+    "version": "1.0.2",
+    "publishedAt": 1775168058428,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775168056828,
+      "commit": "https://github.com/openclaw/skills/commit/7a8340d1d1e8dd09fc2cfeb4a24ff4b2b34eaba3"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774566228746,

@@ -1,7 +1,5 @@
 # Vertex First-Setup Checklist
 
-Use this checklist when configuring Vertex AI for a fresh OpenClaw setup.
-
 ## Phase 1: Confirm scope
 
 - target project ID is known
@@ -48,8 +46,6 @@ Avoid:
 - Gemini API direct routes
 - mixing provider styles in one “fresh setup” pass
 
-If the user wants the smallest possible starter config, hand off `minimal-vertex-reference-config.md` first and expand only if needed.
-
 ## Phase 5: Verification
 
 Run one tiny request only.
@@ -69,10 +65,3 @@ Tell the user to verify:
 - the line item is under `Vertex AI`
 - the correct project is charged
 - credits / trial balance applied as expected
-
-## Safe completion rule
-
-Do not call the setup “complete” until:
-
-1. the tiny request succeeds
-2. the user has clear billing verification steps

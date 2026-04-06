@@ -3,9 +3,15 @@
   "slug": "openclaw-vertex-credit-safe-setup",
   "displayName": "OpenClaw Vertex Credit-Safe Setup",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775022657846,
-    "commit": "https://github.com/openclaw/skills/commit/941082ff8d0f8df8c1eaa05fccb7a39da5d0e130"
+    "version": "1.0.3",
+    "publishedAt": 1775364320284,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775022657846,
+      "commit": "https://github.com/openclaw/skills/commit/941082ff8d0f8df8c1eaa05fccb7a39da5d0e130"
+    }
+  ]
 }

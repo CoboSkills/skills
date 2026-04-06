@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-ladder-social-posts-trader",
-  "displayName": "Ladder Social Posts Distribution Trader",
+  "displayName": "Polymarket Ladder Social Posts Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774713397328,
-    "commit": "https://github.com/openclaw/skills/commit/11537548713e814b43585ba7ff72ba9e7d7f7aef"
+    "version": "1.0.1",
+    "publishedAt": 1775317214162,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774713397328,
+      "commit": "https://github.com/openclaw/skills/commit/11537548713e814b43585ba7ff72ba9e7d7f7aef"
+    }
+  ]
 }

@@ -1,59 +1,52 @@
 ---
 name: ford
-description: "Ford vehicles, F-150, Mustang, Bronco, electric models, pricing, specs, and dealership info."
-metadata:
-  { "openclaw": { "emoji": "🚙", "version": "0.1.0", "author": "hanxueyuan", "tags": ["automotive","ford","american-cars"] } }
+description: 福特汽车公司介绍和车型指南
+version: 1.0.0
+tags: [automotive, ford, cars, usa, brand]
 ---
 
-# Ford
+# Ford (福特汽车)
 
-Your guide to Ford Motor Company — America's iconic automaker since 1903.
+美国著名汽车制造商，现代汽车工业的先驱。
 
-## Model Lineup
+## 公司介绍
 
-### Trucks & SUVs
-- **F-150** — America's best-selling vehicle for 40+ years
-- **F-150 Lightning** — All-electric F-150
-- **Bronco** — Off-road SUV legend, returned 2021
-- **Bronco Sport** — Compact adventure SUV
-- **Explorer** — Midsize family SUV
-- **Expedition** — Full-size 3-row SUV
-- **Ranger** — Midsize pickup truck
-- **Super Duty** — Heavy-duty F-250/F-350/F-450
+**福特汽车公司**由亨利·福特于 1903 年创立，是世界上第一家使用流水线生产的汽车公司。
 
-### Cars & Performance
-- **Mustang** — Iconic American muscle car (6th gen S650)
-- **Mustang Mach-E** — Electric crossover SUV
-- **Maverick** — Compact hybrid pickup (from $23K)
-- **GT** — Mid-engine supercar (limited production)
+### 基本信息
 
-### Commercial
-- **Transit** — Full-size commercial van
-- **E-Transit** — All-electric commercial van
-- **Transit Connect** — Compact commercial van
+| 项目 | 详情 |
+|------|------|
+| **成立时间** | 1903 年 6 月 16 日 |
+| **创始人** | 亨利·福特 (Henry Ford) |
+| **总部** | 美国密歇根州迪尔伯恩 |
+| **品牌口号** | Built Ford Tough |
 
-### Ford Pro
-- Fleet management and commercial vehicle solutions
-- Telematics and charging infrastructure for businesses
+### 热门车型
 
-## Company Facts
-- **Stock**: F (NYSE)
-- **Headquarters**: Dearborn, Michigan, USA
-- **Founded**: 1903 by Henry Ford
-- **CEO**: Jim Farley
-- **Revenue**: ~$176 billion (2024)
-- **Employees**: ~177,000
+| 车型 | 类型 | 特点 |
+|------|------|------|
+| **F-150** | 皮卡 | 美国销量冠军 |
+| **Mustang** | 跑车 | 经典美式肌肉车 |
+| **Explorer** | SUV | 七座家庭 SUV |
+| **Focus** | 轿车 | 紧凑型家用车 |
+| **Bronco** | 越野车 | 硬派越野 |
 
-## What You Can Ask
-- "2025 Ford F-150 price and specs"
-- "Ford Mustang vs Chevrolet Camaro"
-- "Ford Bronco off-road capabilities"
-- "Ford stock price and dividend"
-- "F-150 Lightning range and charging"
+### 电动车系列
 
-## Data Sources
-- Official: https://www.ford.com
-- Ford Media Center, NHTSA, automotive reviews
+- **Mustang Mach-E** - 纯电 SUV
+- **F-150 Lightning** - 电动皮卡
+- **E-Transit** - 电动商用车
 
-## Author
-Created by hanxueyuan | License: MIT
+## 官方网站
+
+- **中国官网**: https://www.ford.com.cn
+- **美国官网**: https://www.ford.com
+
+## 参考链接
+
+- [福特中国官网](https://www.ford.com.cn)
+- [福特全球官网](https://www.ford.com)
+
+---
+**版本**: 1.0.0

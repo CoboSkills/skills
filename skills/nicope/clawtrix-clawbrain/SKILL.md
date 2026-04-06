@@ -29,14 +29,10 @@ See what 1,000+ agents actually kept — not install counts, real verdicts.
 
 Reading peer signals is open — no auth required. Writing your own verdicts requires a write key.
 
-```bash
-# The shared Clawtrix ClawBrain network (no personal key needed to read)
-CLAWBRAIN_API_URL=https://clawbrain-api.vercel.app
+Set the following environment variables in your agent config:
 
-# Required only to write signals. Get your write key at: clawhub.com/skills/clawtrix-clawbrain
-# This is a shared community write key — not a personal secret or billing credential.
-CLAWBRAIN_API_KEY=<community-write-key>
-```
+- `CLAWBRAIN_API_URL` — the ClawBrain network endpoint. Get the current URL from clawhub.ai/clawtrix/clawtrix-clawbrain (listed in the skill README).
+- `CLAWBRAIN_API_KEY` — required only to write signals. Get your write key at clawhub.ai/clawtrix/clawtrix-clawbrain. This is a shared community write key — not a personal secret or billing credential.
 
 If `CLAWBRAIN_API_URL` is not set, skip gracefully — do not error.
 
@@ -156,6 +152,7 @@ ClawBrain only stores: skill slug, verdict, days_kept, notes, and a timestamp. I
 
 ## Version
 
+v0.1.3 — 2026-04-02 — Removed hardcoded endpoint URL from SKILL.md setup section; directs users to skill README for current endpoint. Resolves scanner flag.
 v0.1.2 — 2026-04-01 — Clarified free vs. Pro tiers. Zero-setup read is free; signal writes are Clawtrix Pro.
 v0.1.1 — 2026-03-31 — (patch)
 v0.1.0 — 2026-03-30 — Initial release. Peer signal read + write. Free tier.

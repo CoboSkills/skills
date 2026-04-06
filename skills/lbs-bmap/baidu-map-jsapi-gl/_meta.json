@@ -1,11 +1,17 @@
 {
   "owner": "lbs-bmap",
   "slug": "baidu-map-jsapi-gl",
-  "displayName": "Baidu Map JSAPI GL",
+  "displayName": "Baidu Map JSAPI GL（百度地图官方 WebGL SKills）",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774924000511,
-    "commit": "https://github.com/openclaw/skills/commit/4d406dfc9348a411be9a1215e2f1de6d3fc34bce"
+    "version": "1.0.1",
+    "publishedAt": 1775212569915,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774924000511,
+      "commit": "https://github.com/openclaw/skills/commit/4d406dfc9348a411be9a1215e2f1de6d3fc34bce"
+    }
+  ]
 }

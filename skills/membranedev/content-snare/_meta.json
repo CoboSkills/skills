@@ -3,9 +3,15 @@
   "slug": "content-snare",
   "displayName": "Content Snare",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774504963052,
-    "commit": "https://github.com/openclaw/skills/commit/9d3ed042d46871166e2b2780a71d48c0b7352bec"
+    "version": "1.0.2",
+    "publishedAt": 1775167797369,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774504963052,
+      "commit": "https://github.com/openclaw/skills/commit/9d3ed042d46871166e2b2780a71d48c0b7352bec"
+    }
+  ]
 }

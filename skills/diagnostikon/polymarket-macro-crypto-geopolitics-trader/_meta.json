@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-macro-crypto-geopolitics-trader",
-  "displayName": "Crypto-Geopolitics Lag Trader",
+  "displayName": "Polymarket Macro Crypto Geopolitics Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774892638084,
-    "commit": "https://github.com/openclaw/skills/commit/9373911873f72a6d9fdff12d6e03a91fcdaa5462"
+    "version": "1.0.1",
+    "publishedAt": 1775317247194,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774892638084,
+      "commit": "https://github.com/openclaw/skills/commit/9373911873f72a6d9fdff12d6e03a91fcdaa5462"
+    }
+  ]
 }

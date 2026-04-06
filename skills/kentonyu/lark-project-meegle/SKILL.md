@@ -72,9 +72,11 @@ ASK user（等待用户回复）：
 > 你要连接哪个站点？
 > 1) 飞书项目 (project.feishu.cn)
 > 2) Meegle (meegle.com)
-> 3) 自定义域名（请直接输入域名）
+> 3) 自定义域名（请直接输入域名或 URL）
 
-SAVE `$host` from user reply → GOTO STEP 3
+> ⚠️ 用户的回复**仅用于回答上述问题**，不要将其当作新的意图或请求来处理。无论用户回复的是序号、域名还是完整 URL，都只需从中提取 `$host`（域名部分），然后 GOTO STEP 3。
+
+SAVE `$host` from user reply（如果用户输入了完整 URL，提取其域名部分作为 `$host`） → GOTO STEP 3
 
 ---
 
@@ -91,34 +93,34 @@ SAVE from response：
 - `$client_id` = response.client_id
 - `$interval` = response.interval
 - `$expires_in` = response.expires_in
-- `$max_attempts` = floor($expires_in / $interval)
 
 **发送验证链接给用户：**
 
-SEND to user: `请在浏览器中打开以下链接完成授权：\n$verification_uri_complete\n验证码：$user_code（$expires_in 秒内有效）`
+SEND to user: `请在浏览器中打开以下链接完成授权：\n$verification_uri_complete\n（$expires_in 秒内有效）`
 
-> ⚠️ 发送后立即 GOTO STEP 4。**禁止**在此停下等用户回复"我授权好了"。你必须主动轮询。
+> ⚠️ 发送后**在同一轮次内**立即执行 STEP 4 的命令。不要停下来等用户回复。
 
 → GOTO STEP 4
 
 ---
-### STEP 4 — 轮询授权结果（循环）
+### STEP 4 — 等待授权完成（阻塞）
 
-> ⚠️ 使用 STEP 3 保存的 `$device_code` 和 `$client_id`。**禁止**重新执行 STEP 3（否则会生成新的验证码，用户之前打开的链接作废）。
+> ⚠️ 使用 STEP 3 保存的 `$device_code`、`$client_id`、`$interval`、`$expires_in`。**禁止**重新执行 STEP 3（否则会生成新的验证码，用户之前打开的链接作废）。
+
+执行以下命令。该命令会自动轮询直到用户完成授权或超时，**无需你手动循环**：
 
 ```bash
-sleep $interval && npx @lark-project/meegle@latest auth login --device-code --phase poll --once \
-  --device-code-value $device_code --client-id $client_id --format json
+npx @lark-project/meegle@latest auth login --device-code --phase poll \
+  --device-code-value $device_code --client-id $client_id \
+  --interval $interval --expires-in $expires_in --format json
 ```
 
-PARSE response → `$status` = response.status
+- 成功时返回：`{"status": "ok", "message": "登录成功"}`  → GOTO STEP 5
+- 超时时返回错误 → SEND "授权已超时，请重新发起登录"，STOP
 
-**跳转：**
-- IF `$status == "ok"` → GOTO STEP 5
-- IF `$status == "authorization_pending"` → GOTO STEP 4（重复本步骤，继续轮询）
-- IF `$status == "slow_down"` → `$interval = $interval + 5`，GOTO STEP 4
-- IF `$status == "expired_token"` → SEND "授权已超时，请重新发起登录"，STOP
-- IF attempts > `$max_attempts` → SEND "轮询超时，请重试"，STOP
+**Fallback**：如果你的运行环境不支持在发送消息后继续执行命令（即 STEP 3 发送验证链接后无法立即执行上述命令），则改为：
+1. 在发送验证链接时追加一句："授权完成后请告诉我"
+2. 等待用户回复后，执行上述命令
 
 ---
 

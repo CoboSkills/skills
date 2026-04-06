@@ -1,20 +1,15 @@
 #!/usr/bin/env python3
 """
-MiniMax Image Generation (image-01 / image-01-live) wrapper.
+MiniMax Image Generation (image-01) wrapper.
 
 Usage:
   python3 generate.py --prompt "描述" [--aspect-ratio 16:9] [--n 1] \
-      [--model auto] [--region CN] [--api-key KEY] [--base-url URL] \
+      [--api-key KEY] [--base-url URL] \
       [--prompt-optimizer] [--output /path/to/output.png] \
       [--response-format base64|url]
 
 Rules:
-  - model: auto (默认，根据 prompt 自动判断), image-01, image-01-live
-  - region: CN (默认) 或 global
-    - CN: api.minimaxi.com，支持 image-01 和 image-01-live
-    - global: api.minimaxi.io，仅支持 image-01
-  - 自动判断模型：prompt 含艺术风格词(手绘/油画/卡通等) → image-01-live
-  - 自动判断模型：prompt 含写实词(写实/照片/摄影等) → image-01
+  - model: 固定使用 image-01
   - prompt_optimizer: 默认自动判断（短描述 <40 字符自动优化，长描述关闭）
   - aigc_watermark: 默认 false，检测到水印/版权关键词时自动开启
   - aspect_ratio: default 16:9
@@ -35,7 +30,6 @@ from datetime import date
 # TODO: 初始化时填入实际值
 API_KEY = "YOUR_API_KEY_HERE"
 BASE_URL = "https://api.minimaxi.com"  # CN: api.minimaxi.com, global: api.minimaxi.io
-REGION = "CN"  # CN 或 global
 # ----------------------------------------------------------------
 
 URL = f"{BASE_URL}/v1/image_generation"
@@ -44,65 +38,11 @@ DEFAULT_N = 1
 DEFAULT_PROMPT_OPTIMIZER = True
 OUTPUT_DIR = os.path.expanduser("~/.openclaw/media/minimax/")
 
-# ------------------ 模型自动判断 ------------------
-# 艺术风格关键词 → image-01-live
-LIVE_STYLE_KEYWORDS = [
-    # 中文
-    "手绘", "卡通", "漫画", "动漫", "动画", "油画", "蜡笔", "素描", "彩铅",
-    "水彩", "水墨", "国画", "工笔", "写意", "涂鸦", "拼贴", "浮世绘",
-    "和风", "韩风", "欧美风", "插画", "原画", "概念画", "游戏原画",
-    "像素画", "点绘", "线稿", "粉笔画", "胶带画", "马赛克",
-    # 英文
-    "cartoon", "anime", "manga", "illustration", "sketch", "oil painting",
-    "crayon", "watercolor", "watercolour", "ink wash", "gouache",
-    "coloring book", "comic", "comic style", "manga style", "anime style",
-    "hand-drawn", "hand drawn", "digital art", "vector art", "flat art",
-    "art style", "painterly", "pastel", "charcoal", "pencil drawing",
-]
-
 # 水印关键词 → 启用 aigc_watermark
 WATERMARK_KEYWORDS = [
     "水印", "版权", "标识", "商标", "logo", "watermark", "copyright",
     "署名", "签名", "credit", "品牌标识", "trademark",
 ]
-
-# 写实风格关键词 → image-01
-REALISTIC_KEYWORDS = [
-    # 中文
-    "写实", "真实", "逼真", "照片", "摄影", "高清", "8k", "16k", "超高清",
-    "细节丰富", "真实感", "现实主义", "实物拍摄", "人物摄影", "风光摄影",
-    "纪实", "静物", "人像", "写真",
-    # 英文
-    "realistic", "photorealistic", "photo", "photography", "ultra detailed",
-    "high resolution", "8k", "16k", "4k", "hd", "hyperrealistic",
-    "dslr", "professional photo", "stock photo", "nature photography",
-]
-
-
-def detect_model(prompt: str, region: str, explicit_model: str = None) -> str:
-    """根据 prompt 内容和 region 自动判断使用哪个模型。"""
-    if explicit_model and explicit_model != "auto":
-        return explicit_model
-
-    prompt_lower = prompt.lower()
-
-    # Global region 只能用 image-01
-    if region.lower() == "global":
-        return "image-01"
-
-    # CN region: 检查风格关键词
-    # 先检查艺术风格
-    for kw in LIVE_STYLE_KEYWORDS:
-        if kw.lower() in prompt_lower:
-            return "image-01-live"
-
-    # 再检查写实风格
-    for kw in REALISTIC_KEYWORDS:
-        if kw.lower() in prompt_lower:
-            return "image-01"
-
-    # 默认用 image-01（偏向写实）
-    return "image-01"
 
 
 def make_slug(prompt: str) -> str:
@@ -130,15 +70,13 @@ def generate(
     n: int = DEFAULT_N,
     prompt_optimizer: bool = DEFAULT_PROMPT_OPTIMIZER,
     image_url: str = None,
-    model: str = "auto",
-    region: str = REGION,
     api_key: str = API_KEY,
     base_url: str = BASE_URL,
     response_format: str = "base64",
 ):
-    # 自动判断使用哪个模型
-    selected_model = detect_model(prompt, region, model)
-    print(f"[INFO] 使用模型: {selected_model} (region={region})", file=sys.stderr)
+    # 固定使用 image-01
+    selected_model = "image-01"
+    print(f"[INFO] 使用模型: {selected_model}", file=sys.stderr)
 
     # 自动判断 prompt_optimizer（None 表示用户没有显式指定）
     # 短描述（< 40字符）→ 开启优化；长描述 → 关闭优化保留原意
@@ -322,16 +260,6 @@ if __name__ == "__main__":
         help="参考图片 URL（传入则启用图生图模式，保持参考图主体特征）"
     )
     parser.add_argument(
-        "--model", "-m", default="auto",
-        choices=["auto", "image-01", "image-01-live"],
-        help="指定模型：auto 根据 prompt 自动判断，image-01 写实，image-01-live 艺术风格（仅 CN）"
-    )
-    parser.add_argument(
-        "--region", default=REGION,
-        choices=["CN", "global"],
-        help=f"区域：CN（api.minimaxi.com）或 global（api.minimaxi.io），默认 {REGION}"
-    )
-    parser.add_argument(
         "--api-key", default=None,
         help=f"API Key（默认使用文件顶部配置）"
     )
@@ -357,8 +285,6 @@ if __name__ == "__main__":
         n=args.n,
         prompt_optimizer=args.prompt_optimizer,
         image_url=args.image_url,
-        model=args.model,
-        region=args.region,
         api_key=final_api_key,
         base_url=final_base_url,
         response_format=args.response_format,

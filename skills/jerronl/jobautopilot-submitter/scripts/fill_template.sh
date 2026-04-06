@@ -38,7 +38,7 @@
 # Based on snapshot: <timestamp>, targetId: <TARGET_ID>
 # Fields to fill this run (from check_required_fields unfilled): <fields_list>
 
-PROFILE="apply"
+PROFILE="${OPENCLAW_PROFILE:-apply}"
 TARGET_ID="<TARGET_ID>"
 ERRORS=()
 

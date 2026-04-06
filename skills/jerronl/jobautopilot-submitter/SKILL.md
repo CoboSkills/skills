@@ -2,7 +2,7 @@
 name: jobautopilot-submitter
 description: "Automatically fills and submits job applications. Opens the application page, fills multi-step forms (work history, education, EEOC, dropdowns), uploads your tailored resume and cover letter, and confirms successful submission. Picks up resume_ready jobs from jobautopilot-tailor and marks them applied in the tracker."
 author: jerronl
-version: "1.2.9"
+version: "1.3.3"
 homepage: https://github.com/jerronl/jobautopilot
 tags:
   - job-search
@@ -53,7 +53,7 @@ This skill automates browser form-filling — an inherently sensitive operation.
 
 ### Data flow — all local
 
-**All personal data stays local.** This skill reads name, email, phone, and LinkedIn from your local config file (`~/.openclaw/users/<you>/config.sh`) and types those values into job application forms — the same way you would manually. No data is sent to any server controlled by this skill. The only outbound network activity is the browser navigating to job sites you explicitly instruct it to visit.
+**All personal data stays local.** This skill reads name, email, phone, and LinkedIn from environment variables (set before the agent starts) and types those values into job application forms — the same way you would manually. No data is sent to any server controlled by this skill. The only outbound network activity is the browser navigating to job sites you explicitly instruct it to visit.
 
 **No passwords are stored or read by this skill.** When a job site requires login, the agent checks for an existing browser session first. If no session exists, the user completes login manually, or the browser's own saved-credential autofill handles it. This skill never reads, stores, or transmits any password.
 
@@ -107,11 +107,13 @@ The helper scripts (`check_required_fields.js`, `fill_template.sh`, `match_varia
 
 ## Setup
 
-The required env vars listed in the manifest above are all set by sourcing a single config file at session start. This file is created by `setup.sh` (from `jobautopilot-bundle`). If you install standalone, create `~/.openclaw/users/<you>/config.sh` with these exports:
+This skill reads personal data exclusively from the environment variables listed in the manifest above. There is no separate config file read at runtime — the env vars ARE the single source of truth.
+
+These env vars must be set in your shell environment before the agent starts. Example values:
 
 ```bash
 export OPENCLAW_USER="yourusername"
-export OPENCLAW_PROFILE="apply"           # browser profile for applications
+export OPENCLAW_PROFILE="apply"
 export USER_FIRST_NAME="Your"
 export USER_LAST_NAME="Name"
 export USER_EMAIL="your@email.com"
@@ -120,7 +122,6 @@ export USER_LINKEDIN="https://linkedin.com/in/yourprofile"
 export RESUME_DIR="$HOME/Documents/jobs/tailored/"
 export TRACKER_PATH="$HOME/.openclaw/workspace/job_search/job_application_tracker.md"
 
-# EEOC defaults — stored locally, used only on US job forms you approve
 export USER_GENDER="Male"
 export USER_RACE="Asian"
 export USER_HISPANIC="No"
@@ -134,7 +135,7 @@ export USER_NEED_SPONSOR="No"
 
 ## Session start checklist
 
-1. `source "$HOME/.openclaw/users/${OPENCLAW_USER}/config.sh"`
+1. Verify env vars are set (e.g. `$USER_FIRST_NAME`, `$TRACKER_PATH` are non-empty)
 2. Read `$TRACKER_PATH` — find all `resume_ready` entries
 
 ## Browser operation rules
@@ -156,11 +157,18 @@ Any action that changes page state:
 ## Per-job flow
 
 ### 1. Read resume and JD
+
+The agent uses python-docx to extract text from the tailored `.docx` resume at runtime. This code is not bundled as a separate `.py` file — the agent writes and executes it inline via the `exec` tool:
+
 ```python
+# Executed by the agent at runtime via exec tool — not a bundled script
 from docx import Document
 doc = Document(f'{RESUME_DIR}/<resume>.docx')
 text = '\n'.join([p.text for p in doc.paragraphs if p.text.strip()])
 ```
+
+This is why `python3` and `python-docx` are listed as requirements even though no `.py` file is included in the bundle. The agent generates this code dynamically to read each resume before filling forms.
+
 Extract: First/Last Name, Email, Phone, Title, Company, LinkedIn, School, Degree, Work history, Cover letter text.
 
 If resume does not match JD → mark tracker `error`, skip.
@@ -294,7 +302,7 @@ Always fill cover letter text fields, even when marked optional. Read content fr
 3. Script comments use `#` only — no em-dashes or special chars
 4. Single exit point: find ref → on failure write to ERRORS → on success execute
 5. Unique-label check before acting: `count_label "No"` etc. must return 1
-6. Config paths use variable: `source "$HOME/.openclaw/users/${OPENCLAW_USER}/config.sh"`
+6. All personal data comes from environment variables (not from reading files at runtime)
 7. File copy with error capture: `if ! cp "$SRC" "$DST"; then ERRORS+=("copy failed"); fi`
 8. Dynamic components: click parent to trigger render → sleep 0.3 → re-snapshot → extract ref
 

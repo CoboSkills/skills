@@ -1,9 +1,17 @@
 ---
 name: industry_stock_tracker
 description: >
-  生成行业或个股跟踪报告。当用户明确要求“报告/研报/跟踪分析/周报/月报/日报”，
-  或提到具体行业、板块、指数、股票名称/代码并希望系统输出结构化跟踪内容时触发。
-  典型表达包括“写一份XX行业报告”“跟踪XX股票”“生成XX研报”“看看XX最近怎么样并出报告”。
+  依托东方财富数据库，面向行业或个股，产出跟踪类报告（含日报/周报/月报、研报及结构化跟踪解读）。
+  满足以下任一条件即触发：（1）用户明确索要「报告」「研报」「跟踪分析」或定期跟踪类文稿；（2）用户点名的行业、板块、指数、个股（名称或代码），并期望系统化、可成文的近况跟踪或梳理。
+  典型说法如「写一份 XX 行业报告」「跟踪 XX 股票」「生成 XX 日报」「看看 XX 最近怎么样并出报告」等。
+metadata:
+  {
+    "openclaw": {
+      "requires": {
+        "env":["EM_API_KEY"]
+      }
+    }
+  }
 ---
 
 # 行业/个股跟踪报告生成 Skill
@@ -13,11 +21,29 @@ description: >
 本 skill 用于将用户自然语言问题交给脚本 `scripts/generate_industry_stock_tracker_report.py`，
 由脚本调用远程报告服务并返回统一 JSON 结果。输出包含标题、总结内容与附件本地保存路径（DOCX/PDF）。
 
+## 环境变量
+
+| 变量名 | 说明 | 默认 |
+|---|---|---|
+| `EM_API_KEY` | 接口鉴权密钥（必填） | 无 |
+
+### 配置 `EM_API_KEY`
+
+```bash
+# macOS / Linux
+export EM_API_KEY="your_api_key_here"
+```
+
+```powershell
+# Windows PowerShell
+$env:EM_API_KEY="your_api_key_here"
+```
+
 ## 核心工作流
 
-1) 将用户原始问题原样作为 `query` 传入脚本。  
-2) 脚本调用接口生成报告并获取“总结”章节。  
-3) 若接口返回 `wordBase64/pdfBase64`，脚本会落地为本地附件文件并返回路径。  
+1) 将用户原始问题原样作为 `query` 传入脚本。
+2) 脚本调用接口生成报告并获取“总结”章节。
+3) 若接口返回 `wordBase64/pdfBase64`，脚本会落地为本地附件文件并返回路径。
 4) 将脚本标准输出（JSON）直接作为 skill 输出依据，不做与脚本冲突的二次改写。
 
 命令行参数调用方式：
@@ -75,14 +101,14 @@ python3 {baseDir}/scripts/generate_industry_stock_tracker_report.py --query "{{q
 
 ## 使用约束与建议
 
-- 不要在 skill 层重写脚本已生成的 `content` 主体结构，避免与脚本逻辑漂移。  
-- 除附件路径展示外，不在 skill 层追加二次总结，正文以脚本 `content` 结果为准。  
-- 若脚本返回 `ok=false`，优先透传 `message`；不要自行编造错误原因。  
+- 不要在 skill 层重写脚本已生成的 `content` 主体结构，避免与脚本逻辑漂移。
+- 除附件路径展示外，不在 skill 层追加二次总结，正文以脚本 `content` 结果为准。
+- 若脚本返回 `ok=false`，优先透传 `message`；不要自行编造错误原因。
 - 该 skill 目标是“生成并返回结果”，不是在 skill 内追加长篇二次分析。
 
 ## 常见错误处理：
-- 缺少 query：`BAD_REQUEST`，message 为“缺少 query 参数”。  
-- 不支持实体：`ERROR_ENTITY`，message 为“目前暂不支持此类实体体进行分析。”  
+- 缺少 query：`BAD_REQUEST`，message 为“缺少 query 参数”。
+- 不支持实体：`ERROR_ENTITY`，message 为“目前暂不支持此类实体体进行分析。”
 - 网络/超时/服务异常：`TIMEOUT` / `NETWORK_ERROR` / `HTTP_ERROR` / `UNEXPECTED_ERROR`，对用户统一提示“报告生成服务暂时不可用，请稍后重试。”。
 
 错误输出强约束：

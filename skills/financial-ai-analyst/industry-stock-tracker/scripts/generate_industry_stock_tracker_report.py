@@ -32,7 +32,8 @@ from typing import Any, Dict, List, Optional
 API_URL = "https://ai-saas.eastmoney.com/proxy/app-robo-advisor-api/assistant/write/tracking/report"
 API_KEY = os.environ.get("EM_API_KEY", "")
 TOOL_NAME = "行业/个股跟踪报告"
-DEFAULT_OUTPUT_DIR = Path.cwd() / "miaoxiang" / "industry_stock_tracker"
+SKILL_SLUG = "industry_stock_tracker"
+DEFAULT_OUTPUT_DIR = Path.cwd() / "miaoxiang" / SKILL_SLUG
 
 ERROR_ENTITY_MSG = "目前暂不支持此类实体体进行分析。"
 GENERAL_ERROR_MSG = "报告生成服务暂时不可用，请稍后重试。"
@@ -81,7 +82,6 @@ def _read_query_from_stdin() -> str:
     except json.JSONDecodeError:
         return raw
     return ""
-
 
 def _call_api(query: str, timeout: float = 1200.0) -> Dict[str, Any]:
     req_body = json.dumps({"query": query}, ensure_ascii=False).encode("utf-8")
@@ -133,6 +133,14 @@ def _unwrap_data(payload: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(node, dict):
             return node
     return payload
+
+def _default_output_dir() -> str:
+    """
+    Allow overriding attachment output directory via env:
+      INDUSTRY_STOCK_TRACKER_OUTPUT_DIR
+    """
+    env = os.environ.get("INDUSTRY_STOCK_TRACKER_OUTPUT_DIR", "").strip()
+    return env or str(DEFAULT_OUTPUT_DIR)
 
 def _decode_attachment_base64(data: Dict[str, Any], output_dir: str) -> List[Dict[str, str]]:
     attachments: List[Dict[str, str]] = []
@@ -193,8 +201,7 @@ def build_report_output(
     share_url = _safe_str(data.get("shareUrl"), default="无")
     entity_type = _safe_str(data.get("entityType") or data.get("entity_type"), default="行业/个股")
     summary = _safe_str(data.get("content"), default="")
-    print(data['content'])
-    attachments = _decode_attachment_base64(data, DEFAULT_OUTPUT_DIR)
+    attachments = _decode_attachment_base64(data, _default_output_dir())
     # traceability = _extract_traceability(data)
 
     if not summary:

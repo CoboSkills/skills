@@ -3,9 +3,15 @@
   "slug": "paychex",
   "displayName": "Paychex",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775012583017,
-    "commit": "https://github.com/openclaw/skills/commit/b72dd2323c31a2c212330165d19b000dec1374e4"
+    "version": "1.0.2",
+    "publishedAt": 1775170335305,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775012583017,
+      "commit": "https://github.com/openclaw/skills/commit/b72dd2323c31a2c212330165d19b000dec1374e4"
+    }
+  ]
 }

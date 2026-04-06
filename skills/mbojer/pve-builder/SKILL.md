@@ -1,196 +1,264 @@
 ---
 name: pve-builder
-description: >
-  Generate Proxmox VE CLI commands to create a new VM. Use when asked to create a VM,
-  provision a virtual machine on Proxmox, generate qm commands, set up a new VM,
-  or when given a workload description and asked what Proxmox config it needs.
-version: 1.0.0
-tags:
-  - proxmox
-  - homelab
-  - infrastructure
-  - vm
-  - devops
-  - latest
-metadata:
-  openclaw:
-    requires:
-      bins:
-        - pvesh
-        - qm
-    security_tier: L2
+description: Proxmox VE VM builder with cloud-init automation, config-driven hardware defaults, validation, and static IP support
+version: 1.0.10
+author: mbojer
+permissions:
+  - shell
+  - file_read
+  - file_write
+  - http_request
+tools:
+  - ssh_keygen
+  - bash
+  - file_operations
+  - web_search
 ---
 
-# pve-builder
+# CRITICAL: Agent Access Limitations
 
-Generate complete, copy-pasteable Proxmox VE 9 CLI commands to create and configure a new VM
-from a plain-language workload description.
+## YOU DO NOT HAVE ACCESS TO PROXMox
 
-## When to use this skill
+Agent runs on your local machine - NOT on Proxmox
 
-Activate when the user:
-- Asks to create or provision a new VM on Proxmox
-- Provides a workload description and wants `qm` commands
-- Shares a URL and asks what VM it needs
-- Asks for Proxmox CLI commands for any specific software or use case
+Forbidden:
+- Try to run qm commands
+- Try to run pvesh commands
+- Check storage availability
+- Verify VM creation
+- Access Proxmox API
+
+Must Do:
+- Output commands as text for user to copy/paste
+- Tell user which node to SSH to
+- Store keys locally in a configurable directory (default: ~/.ssh/pve-builder/)
+- Never claim to create VMs
+- Use web search for specs validation
 
 ---
 
-## Workflow
+# PVE Builder Skill
 
-Follow these steps in order. Do not skip steps or generate commands before completing them all.
+## Overview
 
-### Step 1 — Read environment memory
+Generates Proxmox VM creation commands with cloud-init configuration, SSH key management, and optional data disks. All hardware defaults are config-driven via `pve-env.md`.
 
-Read `references/pve-env.md` before doing anything else.
-Note all known values (node, storage, bridge, ISOs). You will use these as defaults.
+**IMPORTANT:** Commands are output as text for you to copy/paste into Proxmox shell. The agent does NOT execute any Proxmox commands.
 
-### Step 2 — Understand the workload
+---
 
-If the user provided a URL:
-- Fetch the URL and read its content
-- Identify the software, its purpose, and any stated system requirements
+## Environment Setup
 
-If the page returns no useful content or the URL fails:
-- Search the web for: `"<software name> system requirements recommended specs"`
-- Use the search results to determine RAM, CPU, disk, and OS recommendations
+- **Config file:** `pve-env.md` in the skill directory
+- **Ignored from git:** `.gitignore` excludes `pve-env.md`
 
-If web search is unavailable:
-- Ask the user: *"I can't look that up right now — can you briefly describe what this software does and roughly how demanding it is?"*
-- Use the description plus your own knowledge to recommend specs
+### Critical Configuration Keys (pve-env.md)
 
-### Step 3 — Determine VM specs
+| Section | Keys | Purpose |
+|---------|------|---------|
+| **Proxy** | `Proxy Required`, `HTTP Proxy`, `HTTPS Proxy`, `Proxy CA Certificate` | Network proxy for apt inside VMs |
+| **SSH** | `Default User`, `Key Path`, `Key Type` | Default SSH user, key storage location, key type |
+| **Network** | `Default Bridge`, `Default VLAN`, `DNS Server`, `Use DHCP Default`, `Network Interface` | Default network settings and interface type |
+| **Storage** | `Default Storage`, `Template Path`, `Default OS Disk Size`, `Auto-Format Data Disks`, `Data Disk Interface`, `Default Cloud Image` | Storage defaults and cloud image path |
+| **Node** | `Default Node`, `BIOS Type`, `Machine Type`, `CPU Type`, `OS Type`, `SCSI Controller`, `Onboot` | Hardware defaults for VM creation |
+| **Workload Presets** | Preset table (RAM/CPU/Disk) | Recommended specs per workload type |
+| **Package Defaults** | `Package Update`, `Base Packages` | Always-installed package list |
 
-Based on what you know about the workload, recommend:
+## Agent Workflow
 
-| Parameter | How to decide |
-|---|---|
-| RAM | Match workload requirements + 20% headroom. Round to nearest power of 2 in MB. |
-| CPU cores | 2 for light workloads, 4 for medium, 6–8 for heavy. |
-| Disk size | Follow official recommendations if available. Add 20% buffer. |
-| OS | Prefer Debian 12 for Linux daemons unless the workload specifies otherwise. |
-| BIOS | SeaBIOS for Linux VMs. OVMF (UEFI) for Windows or if user requests it. |
-| Machine type | `q35` for all new VMs. |
-| Disk bus | `scsi` with `virtio-scsi-pci` controller. |
-| Network | `virtio` driver. |
+The workflow uses **section-based numbered prompts** with continuous numbering across sections:
 
-Always show your reasoning: *"For Home Assistant I'm recommending 4GB RAM based on their official docs."*
-If uncertain, show two options and ask the user to choose.
+```
+=== VM Specs ===
+1. CPU cores  2. CPU sockets  3. RAM in GB  4. OS disk size
 
-### Step 4 — Resolve environment values
+=== Network ===
+5. Bridge  6. VLAN  7. DHCP?
+  [if static:] 8. IP  9. Gateway  10. DNS
 
-Check `references/pve-env.md` for each of these. For each:
-- **Known** → confirm with user: *"Same as last time — `<value>`?"*
-- **Unknown** → ask the user directly
-
-Values to resolve:
-- `node` — Proxmox node name (e.g. `pve`)
-- `storage` — Storage pool for the VM disk (e.g. `local-lvm`, `local-zfs`)
-- `bridge` — Network bridge (e.g. `vmbr0`)
-- `vlan_tag` — Optional. Ask only if user mentions VLANs.
-- `start_on_boot` — Ask: *"Should this VM start automatically when Proxmox boots?"*
-- `start_after_create` — Ask: *"Should I include the command to start the VM immediately after creation?"*
-
-Do **not** ask for a VM ID. This is resolved automatically in the output (see Step 5).
-
-### Step 5 — Resolve ISO
-
-Check `references/pve-env.md` under `## Known ISOs` for an entry matching the required OS.
-
-- **Matching ISO found** → confirm with user: *"I have `<path>` on record for `<os>` — still valid?"*
-- **No match found** →
-  1. Search the web for the official cloud image or ISO download URL for the required OS
-  2. Ask the user: *"Which storage location should I download it to?"* (e.g. `local`)
-  3. Include a `wget` + `qm importdisk` block at the top of the output
-
-### Step 6 — Generate commands
-
-Only generate commands once all values from Steps 3–5 are confirmed.
-
-Output a single fenced shell block using this structure:
-
-```bash
-# ============================================================
-# pve-builder — <VM Name>
-# Workload: <one-line description>
-# Generated: <today's date>
-# ============================================================
-
-# STEP 1: Get next available VM ID
-# Run this first. The result is used throughout the script.
-VMID=$(pvesh get /cluster/nextid)
-echo "Using VM ID: $VMID"
-
-# STEP 2 (if ISO download needed): Download OS image
-# wget -O /var/lib/vz/template/iso/<filename>.iso <download_url>
-
-# STEP 3: Create VM
-qm create $VMID \
-  --name <vm-name> \
-  --memory <mb> \
-  --cores <n> \
-  --cpu x86-64-v2-AES \
-  --machine q35 \
-  --bios <seabios|ovmf> \
-  --ostype <l26|win11> \
-  --scsihw virtio-scsi-pci \
-  --node <node>
-
-# STEP 4: Attach disk
-qm set $VMID --scsi0 <storage>:32,format=raw,discard=on
-
-# STEP 5: Attach ISO (or cloud image)
-qm set $VMID --ide2 <storage>:iso/<filename>.iso,media=cdrom
-qm set $VMID --boot order=scsi0;ide2
-
-# STEP 6: Configure network
-qm set $VMID --net0 virtio,bridge=<bridge>[,tag=<vlan>]
-
-# STEP 7: Cloud-init (include only if using a cloud image)
-qm set $VMID --ide0 <storage>:cloudinit
-qm set $VMID --ipconfig0 ip=dhcp
-qm set $VMID --ciuser <username> --cipassword <password>
-qm cloudinit update $VMID
-
-# STEP 8: Misc settings
-qm set $VMID --onboot <1|0>
-qm set $VMID --agent enabled=1
-qm set $VMID --tablet 0
-
-# STEP 9: Start VM (if requested)
-# qm start $VMID
-# echo "VM $VMID started. Find it in the Proxmox dashboard under: Node > $VMID"
+=== User & Disks ===
+11. SSH user  12. Add data disks?  13. Format?  14. Count  15.x: Disk sizes
+15. Proxy?  16. Extra packages  17. SSH key directory
 ```
 
-**Notes to include below the block:**
-- Remind the user to verify any ISO path that came from memory
-- Mention where to find the VM in the Proxmox UI after creation
-- If OVMF was used, note that an EFI disk is required:
-  `qm set $VMID --efidisk0 <storage>:0,efitype=4m,pre-enrolled-keys=1`
+Steps:
+1. Load `pve-env.md` (error if missing)
+2. Ask cloud image path (default from config: `Template Path` + `Default Cloud Image`)
+3. Ask Proxmox node (default from config)
+4. **Validate storage/bridge/image** (see Validation section below)
+5. Ask VM name
+6. Software lookup (name or URL) → web search for RAM/CPU recommendations (or manual)
+7. Prompt specs (numbered prompts: cores, sockets, RAM, OS disk)
+8. Prompt network (bridge, VLAN, DHCP vs static)
+9. Static IP details (only if no DHCP)
+10. Prompt SSH username
+11. Prompt data disks (count, sizes, formatting option)
+12. Proxy configuration (yes/no/change)
+13. Extra apt packages
+14. SSH key directory (default from config)
+15. **Password setup** — **always generate** a random password via `openssl rand -base64 12 | tr -d '/+=' | head -c16`. Use this in `chpasswd`. If the user explicitly provides a password, use theirs instead. Always show the password in the final output summary.
+16. Generate SSH key (unique ed25519 per VM)
+17. Show summary & confirm
+18. **VMID auto-detection** — Ask the user to run `pvesh get /cluster/nextid` on the Proxmox node and paste back the result. Use that VMID in all generated commands. Never hardcode a VMID — always get the next ID from the cluster. Add a `# Replace VMID=... if already taken` comment in the output.
+19. Build cloud-init user-data YAML (packages, proxy, data disk formatting)
+20. **Pre-flight validation** (see Command Pre-flight Validation below) — generate commands internally, validate, fix errors, then present
+21. Generate and display the final verified commands in two sections: **Setup commands** (create VM through `qm start`) and **Post-boot cleanup** (delete the snippets YAML — only run after the VM is verified up).
+22. Optional: save commands to file
+22. Show SSH key path and chmod reminder
 
-### Step 7 — Update environment memory
+## Validation
 
-After generating commands, update `references/pve-env.md` with any new or changed values:
-- node, storage, bridge, vlan_tag (if provided)
-- Any new ISO entry under `## Known ISOs`
+Before generating commands, the agent validates that the target storage, bridge, and cloud image exist on the Proxmox node.
 
-Do not remove existing entries. Add or overwrite only what changed.
+### Cache System
+- **Cache file:** `~/.pve-builder/validation.json`
+- **Valid for:** 24 hours
+- **Cache invalidated if:** node, storage, or bridge values change
+- **On cache hit:** validation is skipped if all checks passed
+
+### Validation Process
+If no valid cache exists, the agent shows these commands for the user to run on the Proxmox node:
+
+```bash
+echo "=== Storage ==="; pvesm status
+echo "=== Bridge ==="; ip -br link show
+echo "=== Image ==="; ls -la <image-path>
+echo "=== END ==="
+```
+
+Results are parsed:
+- **Storage:** Checks if configured storage name exists in `pvesm status`
+- **Bridge:** Verifies bridge interface is present and UP
+- **Image:** Confirms cloud image file exists at path
+
+**On failure:** Agent aborts and reports which check(s) failed.
+**On success:** Results are cached with node/storage/bridge/timestamp.
+
+## Notes
+
+- Custom cloud-init user-data is written to `/var/lib/vz/snippets/<VMNAME>-user-data.yaml` and attached via `--cicustom "user=local:snippets/<VMNAME>-user-data.yaml"`. The `local:snippets/` storage path maps to `/var/lib/vz/snippets/` on the Proxmox node. **Never** use `/var/lib/vz/template/cloud-init/` — that directory is not a recognized Proxmox snippets storage target.
+- **`--cicustom` reads the snippets file at every boot.** The snippets YAML must exist on the node when the VM starts — cloud-init won't apply without it. **Do NOT delete the snippets file before the first boot.**
+- **Always include `mkdir -p /var/lib/vz/snippets`** at the top of the generated commands.
+- **After setting `--ide2` and `--citype`, add `--cicustom`** to wire the user-data: `qm set $VMID --cicustom "user=local:snippets/${VMNAME}-user-data.yaml"`.
+- **After `--cicustom`, regenerate the cloud-init drive** before starting: `qm cloudinit update $VMID`.
+- **ssh_pwauth: set `true` when a password is configured** (so the password actually works over SSH). Set `false` only for SSH-key-only VMs.
+- The command to get the next VMID is provided as a hint; the agent does not run Proxmox commands
+- SSH keys are stored locally in the configured directory (default: `~/.ssh/pve-builder/`)
+- Generated commands include cleanup steps at the end: lists cloud-init YAML files for review, then removes the current VM's file. **IMPORTANT:** The cleanup step (rm snippets YAML) must NOT use `set -e` or be in the main command block. It should be in a separate "Post-boot" section that runs only after the VM is verified running and cloud-init applied. If the user deletes the YAML before the first boot, cloud-init fails silently.
+- **Always include `echo "VMID: <id>"` in the verify/final section** so the user has the VMID referenced
+
+## Command Pre-flight Validation
+
+**Never present commands to the user without running this validation first.** Generate → validate → fix → present.
+
+### Phase 1: Internal Draft
+
+Build the complete command set internally (do not show yet).
+
+### Phase 2: Parameter Verification Script
+
+Generate a small bash validation script, set the variables to match the VM specs, and run it locally with `exec`. If it fails, fix the draft and re-run until it passes. Only then show the commands.
+
+```bash
+#!/bin/bash
+# Pre-flight: verify parameters match intended spec
+# SET THESE to match the VM being built:
+VMID="1024"; VMNAME="MB-TBD"; RAM_MB="12288"; CORES="2"; SOCKETS="1"
+OS_DISK_SIZE="25G"; BRIDGE="vmbr0"; VLAN_TAG="160"; STORAGE="Data"
+IMAGE="/mnt/pve/ISO/template/iso/ubuntu-24.04-server-cloudimg-amd64.img"
+CITYPE="nocloud"; VM_GB="12"
+PASS=true
+# RAM must be multiple of 256
+(( RAM_MB % 256 != 0 )) && { echo "FAIL: RAM $RAM_MB not mult. of 256"; PASS=false; }
+# Cores/sockets positive
+(( CORES < 1 )) && { echo "FAIL: CORES < 1"; PASS=false; }
+(( SOCKETS < 1 )) && { echo "FAIL: SOCKETS < 1"; PASS=false; }
+# VLAN in valid range
+(( VLAN_TAG < 1 || VLAN_TAG > 4094 )) && { echo "FAIL: VLAN out of range"; PASS=false; }
+# Disk size format
+[[ ! "$OS_DISK_SIZE" =~ ^[0-9]+[G]$ ]] && { echo "FAIL: OS_DISK_SIZE format"; PASS=false; }
+# Valid CITYPE
+case "$CITYPE" in nocloud|configdrive2|opennebula) ;; *) echo "FAIL: CITYPE=$CITYPE invalid"; PASS=false ;; esac
+# Image path not empty
+[ -z "$IMAGE" ] && { echo "FAIL: IMAGE path empty"; PASS=false; }
+# RAM_MB must match VM_GB * 1024
+EXPECTED_MB=$((VM_GB * 1024))
+[ "$RAM_MB" -ne "$EXPECTED_MB" ] && { echo "FAIL: RAM_MB=$RAM_MB != VM_GB=$VM_GB (expected $EXPECTED_MB)"; PASS=false; }
+$PASS && echo "PREFLIGHT OK" || { echo "PREFLIGHT FAILED"; exit 1; }
+```
+
+The agent:
+1. Writes this script to a temp file with actual VM values
+2. Runs it with `exec bash /tmp/preflight.sh`
+3. If it fails, fixes values, re-runs
+4. Only presents commands when `PREFLIGHT OK`
+
+### Checklist (run after pre-flight script passes)
+
+- [ ] Shebang/header with VM name, VMID, node
+- [ ] `mkdir -p /var/lib/vz/snippets`
+- [ ] User-data written to `/var/lib/vz/snippets/$VMNAME-user-data.yaml`
+- [ ] `ssh_pwauth: true` if password configured, `false` if SSH-only
+- [ ] `--citype nocloud` (NOT `cloud-config`)
+- [ ] `qm create` with no `--node`
+- [ ] `qm importdisk` references correct image
+- [ ] `--scsi0` attaches imported disk
+- [ ] `--ide2 <storage>:cloudinit` attached
+- [ ] `--cicustom "user=local:snippets/${VMNAME}-user-data.yaml"` added
+- [ ] `qm cloudinit update $VMID` after cicustom set
+- [ ] **`--ipconfig0 ip=dhcp`** (DHCP) **or** `--ipconfig0 ip=<CIDR>,gw=<GW>` (static) — this actually configures the network inside the guest
+- [ ] `--net0 virtio,bridge=<bridge>,tag=<vlan>`
+- [ ] `--boot order=scsi0`
+- [ ] `qm resize $VMID scsi0 <size>` after import
+- [ ] `echo "VMID: $VMID"` in output
+- [ ] `qm config $VMID` for review
+- [ ] Cleanup note at end (remove snippets YAML)
+- [ ] No typos: `qm` not `vm`, `$VMID` not `$VM`
+- [ ] Variable names consistent throughout
+
+## Networking
+
+### DHCP (default)
+Simple network config: `qm set --ipconfig0 ip=dhcp`
+
+**Do NOT use `--nameserver` with DHCP** — let the DHCP lease provide DNS. Only set `--nameserver` when using static IP.
+
+### Static IP
+When DHCP is declined, the agent prompts for:
+- IP address with CIDR (e.g., `10.0.12.50/24`)
+- Gateway (e.g., `10.0.12.1`)
+- DNS servers (comma-separated, default from config)
+
+Generated commands:
+- `qm set --ipconfig0 ip=10.0.12.50/24,gw=10.0.12.1`
+- `qm set --nameserver 8.8.8.8`
+
+## Package Installation
+
+All VMs get base packages from `pve-env.md` (deduplicated with any extra packages).
+
+If proxy is configured, apt proxy is automatically enabled in cloud-init.
+
+## Security
+
+- **Passwords: ALL VMs get a random password by default.** Generate with: `openssl rand -base64 12 | tr -d '/+=' | head -c16`. Use in both `chpasswd` in cloud-init YAML and embed in command output. If the user provides an explicit password, use theirs instead — but always show it back in output so they have it. Set `ssh_pwauth: true` unless the user explicitly says SSH-only.
+- SSH keys: Unique per VM, ed25519, no passphrase
+- pve-env.md: chmod 600, excluded from git
+- Private keys: chmod 600, never in commands
+- Public keys: Safe to embed in commands
+- SSH key directory: configurable via `Key Path` in pve-env.md (default `~/.ssh/pve-builder`); permissions 700 on base dir
+
+## Version History
+
+- **1.0.10:** Add `--cicustom` warning: snippets file must survive first boot. Split output into Setup and Post-boot sections. VMID auto-detection via `cluster/nextid`. Fix workflow numbering.
+- **1.0.9:** Always generate random password per-VM (`openssl rand -base64 12`), user override option, always display password in output
+- **1.0.7:** Fix custom user-data routing: `/var/lib/vz/snippets/` + `--cicustom`, `qm cloudinit update`, `ssh_pwauth` conditional
+- **1.0.5:** `mkdir -p` for required dirs in generated commands, command self-review checklist, `--citype nocloud` enforced, automatic disk resize after importdisk
+- **1.0.3:** Full config decoupling (all hardware defaults from pve-env.md), storage/bridge validation with 24h cache, static IP support, continuous numbered prompts with section headers, SSH key path not echoed in summary, duplicate package removal, direct VMID input, cloud-init cleanup commands
+- **1.0.2:** Added URL analysis, web search validation, simplified proxy flow
+- **1.0.1:** Added explicit access limitation warnings
+- **1.0.0:** Initial release
 
 ---
 
-## Constraints
-
-- **Never generate commands before resolving all unknowns.** Partial commands cause broken VMs.
-- **Never invent storage pool or bridge names.** Always ask if not in memory.
-- **Never skip Step 1** (read `references/pve-env.md`).
-- **Never skip Step 7** (write back to `references/pve-env.md`).
-- **Do not include `qm start` as a regular step** — always wrap it in a comment and only uncomment if the user confirmed they want immediate start.
-- **Do not guess VM ID.** Always use `pvesh get /cluster/nextid` via the shell variable pattern.
-- If the user provides requirements that seem unusually low (e.g. 512MB RAM for a modern Linux daemon), flag it: *"That's below what I'd recommend — want to proceed anyway?"*
-
----
-
-## References
-
-- `references/pve-env.md` — Persistent environment config. Read on start, write on finish.
-- `references/qm-reference.md` — `qm` flag cheatsheet for Proxmox 9. Load when you need to verify a flag name or option.
+_This file is yours to evolve. As you learn who you are, update it._

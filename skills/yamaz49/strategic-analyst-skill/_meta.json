@@ -1,11 +1,17 @@
 {
   "owner": "yamaz49",
   "slug": "strategic-analyst-skill",
-  "displayName": "yamaz",
+  "displayName": "strategic-analyst-skill",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774800021031,
-    "commit": "https://github.com/openclaw/skills/commit/e405af57f7635898d9f5167e7898c2108e889aea"
+    "version": "1.0.1",
+    "publishedAt": 1775372513374,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774800021031,
+      "commit": "https://github.com/openclaw/skills/commit/e405af57f7635898d9f5167e7898c2108e889aea"
+    }
+  ]
 }

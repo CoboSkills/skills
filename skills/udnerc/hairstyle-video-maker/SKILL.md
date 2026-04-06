@@ -1,6 +1,6 @@
 ---
 name: hairstyle-video-maker
-version: 1.0.3
+version: 1.0.4
 displayName: "Hairstyle Video Maker"
 description: >
   Describe your hair styling session and NemoVideo creates the video. Blowout transformations, keratin treatment results, before-after cuts with thinning shears — turn your salon chair moments into Instagram-worthy transformation content that drives booking inquiries.
@@ -8,11 +8,12 @@ description: >
   Works by connecting to the NemoVideo AI backend at mega-api-prod.nemovideo.ai.
   Supports MP4, MOV, AVI, WebM.
 homepage: https://nemovideo.com
+apiDomain: https://mega-api-prod.nemovideo.ai
 repository: https://github.com/nemovideo/nemovideo_skills
 license: MIT-0
 metadata:
   requires:
-    env: []
+    env: ["NEMO_TOKEN"]
     configPaths:
       - "~/.config/nemovideo/"
   primaryEnv: NEMO_TOKEN
@@ -41,7 +42,7 @@ When the user first interacts, set up the connection:
    - Otherwise generate a UUID, save it to `~/.config/nemovideo/client_id`
 3. **Acquire anonymous token**:
    ```bash
-   curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
+   curl -s -X POST "https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
    ```
    Store the returned `token` as `NEMO_TOKEN` for this session. You get 100 free credits.
 4. **Create a session** (§3.0) so you're ready to work immediately.

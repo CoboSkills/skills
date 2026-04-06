@@ -5,7 +5,8 @@ description: Use when working with Google Stitch through a disciplined MCP-first
 
 # Google Stitch Workflow
 
-Use Google Stitch as a design exploration and screen-iteration system, not as a production implementation tool.
+Use Google Stitch primarily as a design exploration and screen-iteration system.
+For greenfield apps, once a screen direction is accepted and exportable code is available in the active environment, use the generated HTML/CSS as the translation base rather than recreating the design from screenshots by hand.
 
 This skill separates three concerns that are often conflated:
 
@@ -45,10 +46,16 @@ Do not use Stitch as the primary path when the real task is:
 - planning an entire product in one step without screen-level iteration
 - evaluating engineering feasibility without a prior visual direction
 
+Important nuance:
+
+- for an existing coded app, Stitch is usually best as a design reference and iteration surface
+- for a new app with no established implementation, accepted Stitch exports can be the fastest way to seed the first real UI structure
+
 ## Design principles
 
 - prefer verified MCP behavior over product-level assumptions
 - use Stitch for exploration and iteration, not implementation
+- for greenfield work, treat accepted exported code as a translation seed, not as untouchable production code
 - keep prompts narrow, explicit, and preservation-oriented
 - treat local workflow enhancements as optional conventions
 
@@ -201,6 +208,28 @@ Recommended model usage:
 - use `"GEMINI_3_FLASH"` for faster exploratory passes
 - use `"GEMINI_3_PRO"` when the direction is already clear and quality matters more than latency
 
+### Workflow B2: greenfield app bootstrap from Stitch exports
+
+Use this when the product is new enough that there is no meaningful coded UI to preserve yet.
+
+1. generate the canonical screen family in Stitch first
+2. get explicit acceptance on the direction before broad implementation
+3. if code or HTML export is available in the active environment, download it
+4. read the export completely before rewriting anything
+5. translate the exported structure into the target stack instead of eyeballing screenshots
+6. keep the layout system, spacing logic, token choices, and section structure where they are sound
+7. replace hardcoded content and brittle markup gradually, not all at once
+8. add the real app concerns after translation: data flow, typing, state, accessibility, dark mode, tests
+
+Use this path especially when:
+
+- the app is being built from scratch
+- Stitch generated a strong screen family quickly
+- the main value is the concrete composition, hierarchy, and token choices
+- recreating the same layout manually would be slower and less faithful
+
+Do not treat the export as production-ready final code. Treat it as a high-fidelity implementation seed.
+
 ### Workflow C: full-app redesign
 
 For an existing product redesign:
@@ -259,6 +288,14 @@ Move to code when:
 - the required elements are stable
 - the remaining work is implementation fidelity rather than design exploration
 - the screen can be implemented coherently in the target stack
+
+For greenfield work, prefer this move-to-code order:
+
+1. generate mobile and desktop canonical screens separately when both matter
+2. accept the visual direction
+3. export or download the generated code artifact when available
+4. translate that artifact into the real stack
+5. only then start screen-by-screen product hardening
 
 ## Optional local workflow enhancements
 
@@ -322,6 +359,14 @@ Do not port a Stitch output into code until these conditions are true:
 
 If the answer is not clearly yes, keep iterating in Stitch.
 
+For greenfield translation from exported Stitch code, also check:
+
+- the exported code represents the accepted direction, not an older candidate
+- the layout system is coherent enough to preserve rather than rewrite immediately
+- the token layer can be mapped into the target project's theme system
+- there is a plan to replace placeholders and hardcoded demo content with real data
+- the team will translate deliberately instead of pasting large exports blindly
+
 ## Naming guidance for larger projects
 
 If the project will contain many screens, use stable ordered titles from the start.
@@ -352,3 +397,4 @@ This improves canvas scanning and reduces later cleanup.
 - using design boards or mood boards as substitutes for real app screens in a product redesign
 - attempting to redesign a whole app from memory in a single prompt
 - moving into implementation code before the design family is coherent
+- rebuilding an accepted greenfield Stitch design from screenshots when a usable export already exists

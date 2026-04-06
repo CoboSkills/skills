@@ -6,6 +6,7 @@ Disciplined OpenClaw skill bundle for using Google Stitch through the verified M
 
 - MCP-first: separates verified MCP actions from browser-only Stitch features
 - practical: optimized for project inspection, screen generation, controlled edits, and redesign iteration
+- pragmatic for greenfield apps: when an accepted Stitch export is available, use it as the translation seed instead of rebuilding from screenshots
 - cautious: emphasizes parameter discipline, visual review, and failure recovery
 
 ## Best for
@@ -14,11 +15,12 @@ Disciplined OpenClaw skill bundle for using Google Stitch through the verified M
 - generating one screen at a time from a structured prompt
 - refining generated screens with small preservation-oriented edits
 - redesigning existing app screens from reliable references
+- bootstrapping a new app UI from accepted Stitch-generated screens and exports
 - deciding when to stay in Stitch and when to move to code
 
 ## Not for
 
-- direct production UI implementation
+- blind direct production UI implementation from raw exports
 - pixel-perfect code-side fixes
 - whole-product planning in one giant prompt
 - blind reliance on browser-only Stitch features through MCP
@@ -48,7 +50,7 @@ This folder is a self-contained ClawHub skill bundle.
 Typical command from the repo root:
 
 ```bash
-clawhub publish ./publish/google-stitch-workflow --slug google-stitch-workflow --name "Google Stitch Workflow" --version 1.1.0 --tags latest
+clawhub publish ./publish/google-stitch-workflow --slug google-stitch-workflow --name "Google Stitch Workflow" --version 1.2.0 --tags latest
 ```
 
 ## License

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0
+
+- Adds a greenfield-app workflow: when Stitch direction is accepted and exportable code is available, use the generated HTML/CSS as the translation base instead of recreating layouts from screenshots.
+- Clarifies the split between existing-app redesign work and new-app bootstrap work so Stitch is not treated with one rigid rule in both cases.
+
 ## 1.1.0
 
 - Improves the public bundle landing experience with a clearer README and quick-start guidance.

@@ -1,11 +1,17 @@
 {
   "owner": "lbs-bmap",
   "slug": "baidu-ai-map",
-  "displayName": "Baidu AI Map",
+  "displayName": "Baidu AI Map（百度地图官方AI SKills）",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775010599558,
-    "commit": "https://github.com/openclaw/skills/commit/9a467d0c72cae4c3025cc8003bef9732513efa1f"
+    "version": "1.0.2",
+    "publishedAt": 1775213015638,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775010599558,
+      "commit": "https://github.com/openclaw/skills/commit/9a467d0c72cae4c3025cc8003bef9732513efa1f"
+    }
+  ]
 }

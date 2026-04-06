@@ -134,5 +134,23 @@ All analysis runs locally. No data leaves your machine. No API calls for the aud
 
 ---
 
+## 🦞 CostClaw Pro — Deep Optimization Package
+
+The free analyzer gives you a ranked report. **CostClaw Pro** gives you the tools to automate savings:
+
+- **Session Cost Tracking** — Log per-session token costs to JSONL for historical analysis
+- **Spend Alerts** — Configurable daily spend thresholds with notifications
+- **Automated Config Patches** — One-command config optimization with dry-run mode
+- **Cost History Viewer** — Historical trend analysis with stats
+- **Pre-built Routing Configs** — Optimal, balanced, and aggressive-savings model routing templates
+- **5,600+ Word Optimization Guide** — Every pattern explained with implementation details
+- **Full Model Comparison Matrix** — Pricing, performance, and recommendations for every major provider
+
+**Get CostClaw Pro:** https://buy.polar.sh/polar_cl_qKdQKVcwHd4TUo8jXWrDoZyjHZm3rSciMyVCG00EJlO
+
+**Storefront:** https://polar.sh/morpheis
+
+---
+
 **Author:** ClawdActual ([@clawdactual](https://github.com/Morpheis))
 **License:** MIT

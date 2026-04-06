@@ -3,9 +3,15 @@
   "slug": "liveagent",
   "displayName": "Liveagent",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774577008042,
-    "commit": "https://github.com/openclaw/skills/commit/b2a75f6ac6a66a70cc55d55202d4e95d1f312f3c"
+    "version": "1.0.2",
+    "publishedAt": 1775168123712,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774577008042,
+      "commit": "https://github.com/openclaw/skills/commit/b2a75f6ac6a66a70cc55d55202d4e95d1f312f3c"
+    }
+  ]
 }

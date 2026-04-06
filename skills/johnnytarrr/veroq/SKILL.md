@@ -1,6 +1,8 @@
 # veroq
 
-Verified intelligence for AI agents from VEROQ — 1,061 tickers, 200+ sources, 18 categories, bias scored, confidence rated. Live prices, trading signals, screener, social sentiment, crypto, forex, commodities, economic data.
+**Verified AI. One function call.** Stop shipping hallucinations.
+
+Shield any LLM output — every claim extracted, fact-checked against live evidence, corrected if wrong. 1,061+ tickers, 260 verified sources, 18 categories. Built for developers shipping AI to production.
 
 ## Install
 
@@ -8,16 +10,16 @@ Verified intelligence for AI agents from VEROQ — 1,061 tickers, 200+ sources, 
 openclaw install veroq
 ```
 
-## Commands
-
-### Ask & Verify
+## Shield — Verify Any LLM Output
 
 | Command | Description |
 |---------|-------------|
 | `/ask [question]` | Ask any question — verified answer with trade signals, reasoning, follow-ups |
-| `/verify [claim]` | Fact-check a claim — verdict + evidence + confidence score |
+| `/verify [claim]` | Fact-check a claim — verdict + evidence chain + confidence score |
 
-### Intelligence
+**Every response is Shield-verified.** Claims are extracted, checked against live evidence, and corrected if wrong.
+
+## Intelligence
 
 | Command | Description |
 |---------|-------------|
@@ -37,7 +39,7 @@ openclaw install veroq
 | `/web-search [query]` | Web search with trust scoring |
 | `/crawl [url]` | Extract structured content from a URL |
 
-### Trading & Market Data
+## Trading & Market Data
 
 | Command | Description |
 |---------|-------------|
@@ -56,20 +58,20 @@ openclaw install veroq
 | `/events-calendar [ticker]` | Upcoming earnings, launches, acquisitions |
 | `/ipo` | IPO calendar from SEC EDGAR |
 
-### AI Reports
+## AI Reports
 
 | Command | Description |
 |---------|-------------|
 | `/report [symbol] [tier]` | Generate AI analysis report (quick/full/deep) |
 
-### Social Sentiment
+## Social Sentiment
 
 | Command | Description |
 |---------|-------------|
 | `/social [symbol]` | Reddit + Twitter sentiment for a ticker |
 | `/social-trending` | Trending tickers on social media |
 
-### Alternative Assets
+## Alternative Assets
 
 | Command | Description |
 |---------|-------------|
@@ -77,11 +79,20 @@ openclaw install veroq
 | `/defi [protocol]` | DeFi TVL overview or protocol detail |
 | `/economy [indicator]` | Economic indicators (GDP, CPI, unemployment, yields) |
 
+## Verified Swarm & Agent Runtime
+
+- **Verified Swarm** — 5-agent pipeline (planner → researcher → verifier → critic → synthesizer) with auto-verification at every step
+- **Agent Runtime** — vertical kits for finance, legal, research, compliance
+- **Agent Memory** — persistent per-agent knowledge that gets smarter over time
+- **Private Knowledge Base** — upload your docs, Shield verifies against them first
+- **62 MCP tools** via [veroq-mcp](https://www.npmjs.com/package/veroq-mcp)
+- **Self-hosted Shield** — `docker run veroq/shield` — runs inside your VPC with your own LLM
+
 ## Coverage
 
-- **1,061 tickers**: 713 equities (full S&P 500 + international ADRs), 197 crypto, 127 ETFs, 16 commodities, 8 market indices + auto-discovery
-- **200+ sources** across 18 verticals
-- **20 technical indicators**: SMA, EMA, RSI, MACD, Bollinger, ATR, Stochastic, ADX, OBV, VWAP, Williams %R, CCI, MFI, ROC, and more
+- **1,061+ tickers**: 713 equities (full S&P 500 + international ADRs), 197 crypto, 127 ETFs, 16 commodities, 8 market indices + auto-discovery
+- **260 verified sources** across 18 verticals
+- **20 technical indicators**: SMA, EMA, RSI, MACD, Bollinger, ATR, Stochastic, ADX, OBV, VWAP, and more
 - **Multi-provider prices**: Yahoo Finance + Twelve Data + FMP with automatic failover
 
 ## Pricing
@@ -93,20 +104,23 @@ openclaw install veroq
 | Startup | 10,000 | 300/min | $79/mo |
 | Growth | 40,000 | 600/min | $179/mo |
 | Scale | 100,000 | 1,200/min | $399/mo |
+| Enterprise | Unlimited | 5,000/min | Custom |
 
 Free tier requires no API key. Upgrade at [veroq.ai/pricing](https://veroq.ai/pricing).
 
 ## Security & Privacy
 
 - **Read-only**: Only fetches public data. Does not write, modify, or delete anything.
-- **No credentials**: No API keys or tokens required.
+- **No credentials**: No API keys or tokens required for free tier.
 - **No user data**: Queries are not stored or shared.
 - **Single domain**: All requests go to `api.veroq.ai` only.
-
-Privacy policy: https://veroq.ai/privacy
+- **Self-hosted option**: Run entirely inside your VPC with `docker run veroq/shield`
 
 ## Links
 
-- [VEROQ](https://veroq.ai)
+- [VeroQ](https://veroq.ai)
+- [Shield](https://github.com/veroq-ai/shield)
+- [Self-Hosted Shield](https://github.com/veroq-ai/veroq-self-hosted)
 - [API Reference](https://veroq.ai/api-reference)
 - [SDKs & Integrations](https://veroq.ai/developers)
+- [GitHub](https://github.com/veroq-ai)

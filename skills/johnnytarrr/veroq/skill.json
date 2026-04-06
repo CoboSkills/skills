@@ -1,7 +1,7 @@
 {
   "name": "veroq",
-  "description": "Ask any question. Verify any claim. Verified intelligence from VEROQ — 1,061 tickers, 200+ sources, 18 categories, bias scored, confidence rated.",
-  "version": "2.6.1",
+  "description": "Verified AI. One function call. Shield any LLM output — claims extracted, fact-checked, corrected. Private knowledge base, 5-agent verified swarm, 1,061+ tickers, 260 sources, self-hosted Docker option.",
+  "version": "2.7.0",
   "author": "VEROQ",
   "homepage": "https://veroq.ai/integrations/openclaw",
   "license": "MIT",

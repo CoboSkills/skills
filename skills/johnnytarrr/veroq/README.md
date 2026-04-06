@@ -1,6 +1,8 @@
 # veroq
 
-Verified intelligence for AI agents from VEROQ — 1,061 tickers, 200+ sources, 18 categories, bias scored, confidence rated. Live prices, trading signals, AI screener, social sentiment, crypto, forex, commodities, economic data.
+**Verified AI. One function call.** Stop shipping hallucinations.
+
+Shield any LLM output — every claim extracted, fact-checked against live evidence, corrected if wrong. Private knowledge base, 5-agent verified swarm, 1,061+ tickers, 260 sources, self-hosted Docker option.
 
 ## Install
 
@@ -10,7 +12,7 @@ openclaw install veroq
 
 ## Hero Commands
 
-**`/ask`** — Ask any question. Get a verified, sourced answer with trade signals, reasoning traces, and follow-up suggestions. One command, any financial question.
+**`/ask`** — Ask any question. Get a verified, sourced answer with trade signals, reasoning, and follow-ups.
 
 ```
 /ask What's happening with NVDA?
@@ -18,16 +20,16 @@ openclaw install veroq
 /ask Compare AAPL and MSFT
 ```
 
-**`/verify`** — Fact-check any claim against hundreds of verified intelligence sources. Returns a verdict (supported, contradicted, unverifiable) with evidence and confidence score.
+**`/verify`** — Fact-check any claim. Returns verdict + evidence chain + confidence score.
 
 ```
 /verify NVIDIA revenue grew 200% last quarter
 /verify Bitcoin hit an all-time high in March 2026
 ```
 
-## All Commands (34)
+## All Commands (32)
 
-**Ask & Verify:** `/ask`, `/verify`
+**Shield & Verify:** `/ask`, `/verify`
 
 **Intelligence:** `/news`, `/brief`, `/search`, `/trending`, `/forecast`, `/entities`, `/trending-entities`, `/events`, `/historical`, `/similar`, `/clusters`, `/data`, `/timeline`, `/web-search`, `/crawl`
 
@@ -39,27 +41,19 @@ openclaw install veroq
 
 **Alternative Assets:** `/crypto`, `/defi`, `/economy`
 
-## Pricing
+## Beyond Commands
 
-| Plan | Credits/mo | Rate Limit | Price |
-|------|------------|------------|-------|
-| Free | 1,000 | 10/min | $0 |
-| Builder | 3,000 | 120/min | $24/mo |
-| Startup | 10,000 | 300/min | $79/mo |
-| Growth | 40,000 | 600/min | $179/mo |
-| Scale | 100,000 | 1,200/min | $399/mo |
-
-Free tier requires no API key. Upgrade at [veroq.ai/pricing](https://veroq.ai/pricing).
-
-## Security
-
-- **Read-only** — no write operations
-- **No credentials** — no API keys required
-- **No user data stored** — queries are not logged
-- **Single domain** — all requests go to `api.veroq.ai`
+- **Verified Swarm** — 5-agent pipeline with auto-verification at every step
+- **Agent Memory** — persistent per-agent knowledge that gets smarter over time
+- **Private Knowledge Base** — upload your docs, Shield verifies against them first
+- **Self-hosted Shield** — `docker run veroq/shield` — your VPC, your LLM, your data
+- **62 MCP tools** — [veroq-mcp](https://www.npmjs.com/package/veroq-mcp)
+- **8 SDKs** — Python, TypeScript, LangChain, CrewAI, Vercel AI, n8n, Haystack, CLI
 
 ## Links
 
-- [VEROQ](https://veroq.ai)
+- [VeroQ](https://veroq.ai)
+- [Shield](https://github.com/veroq-ai/shield)
+- [Self-Hosted](https://github.com/veroq-ai/veroq-self-hosted)
 - [API Reference](https://veroq.ai/api-reference)
-- [SDKs & Integrations](https://veroq.ai/developers)
+- [GitHub](https://github.com/veroq-ai)

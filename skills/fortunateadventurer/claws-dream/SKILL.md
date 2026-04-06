@@ -1,6 +1,6 @@
 ---
 name: claws-dream
-description: "World-class cognitive memory consolidation for OpenClaw — periodic dream cycles inspired by the KAIROS dream mechanism system. Consolidates daily logs into structured long-term memory with importance scoring, health metrics, smart skip, and rich notifications. Use when: user asks to 'dream', 'consolidate memory', 'run auto memory', or 'memory status'. Features: 5-metric health scoring, importance-based forgetting curve, milestone tracking, streak counting, and HTML dashboard generation. Version 2.2."
+description: "⚠️ DEPRECATED — OpenClaw 2026.4.5+ has official Dreaming (memory-core) built-in. This skill is no longer maintained. Use the official /dreaming slash command instead. Retired 2026-04-06."
 ---
 
 # 🦐 Nightly Dream — Memory Consolidation System
@@ -112,19 +112,106 @@ Entry archived when ALL true:
 
 Without this, the dream consolidation will timeout and fail. The skill scans many files and needs time to read, analyze, and write memory.
 
-## Cron Configuration
+## Cron Configuration (macOS launchd)
 
-```json
-{
-  "name": "claws-dream",
-  "schedule": { "kind": "cron", "expr": "0 3 * * *", "tz": "Asia/Shanghai" },
-  "payload": {
-    "kind": "agentTurn",
-    "message": "Run auto memory consolidation. Read skills/claws-dream/references/dream-prompt.md and follow every step strictly.",
-    "timeoutSeconds": 300
-  }
-}
+Create `~/Library/LaunchAgents/com.openclaw.claws-dream.plist`:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.openclaw.claws-dream</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/clawliu/.openclaw/workspace/skills/claws-dream/scripts/dream.sh</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>3</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>RunAtLoad</key>
+    <false/>
+    <key>StandardOutPath</key>
+    <string>/Users/clawliu/.openclaw/workspace/logs/claws-dream.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/clawliu/.openclaw/workspace/logs/claws-dream.err</string>
+</dict>
+</plist>
 ```
+
+Load with:
+```bash
+launchctl load ~/Library/LaunchAgents/com.openclaw.claws-dream.plist
+```
+
+### Linux (systemd timer)
+
+Create `/etc/systemd/system/claws-dream.service`:
+
+```ini
+[Unit]
+Description=claws-dream nightly memory consolidation
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/user/.openclaw/workspace/skills/claws-dream/scripts/dream.sh
+User=user
+```
+
+Create `/etc/systemd/system/claws-dream.timer`:
+
+```ini
+[Unit]
+Description=Run claws-dream daily at 3 AM
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+```
+
+Enable with:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now claws-dream.timer
+```
+
+### Linux (cron)
+
+```bash
+0 3 * * * /bin/bash /home/user/.openclaw/workspace/skills/claws-dream/scripts/dream.sh >> /home/user/.openclaw/workspace/logs/claws-dream.log 2>&1
+```
+
+### Windows (WSL)
+
+```batch
+:: Run via Windows Task Scheduler pointing to WSL
+wsl bash -c "bash /mnt/c/Users/you/.openclaw/workspace/skills/claws-dream/scripts/dream.sh"
+```
+
+Or create a `.bat` file:
+```batch
+@echo off
+wsl bash -c "bash /home/you/.openclaw/workspace/skills/claws-dream/scripts/dream.sh"
+```
+
+### Windows (PowerShell Task Scheduler)
+
+```powershell
+$action = New-ScheduledTaskAction -Execute 'bash' -Argument '-c "bash /home/you/.openclaw/workspace/skills/claws-dream/scripts/dream.sh"'
+$trigger = New-ScheduledTaskTrigger -Daily -At 3am
+Register-ScheduledTask -TaskName 'claws-dream' -Action $action -Trigger $trigger -RunLevel Limited
+```
+
+---
 
 ## Reference Files
 

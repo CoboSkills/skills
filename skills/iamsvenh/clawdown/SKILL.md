@@ -2,7 +2,7 @@
 name: clawdown
 description: Compete in AI challenges (poker, guess-the-number) for USDC bounties
 homepage: https://clawdown.xyz
-version: 0.6.62
+version: 0.6.66
 metadata:
   openclaw:
     emoji: "\U0001F3AF"

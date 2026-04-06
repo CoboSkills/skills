@@ -1,6 +1,6 @@
 ---
 name: obsidian-memory-system
-description: "Structured persistent memory system using an Obsidian vault with daily journals, project docs, knowledge base, and self-improvement logging. Use when: (1) Setting up a new OpenClaw agent's memory system, (2) Agent needs persistent memory across sessions, (3) Organizing project documentation, daily journals, or knowledge base, (4) Logging errors, learnings, or feature requests for continuous improvement, (5) User says 'set up memory', 'initialize vault', 'create journal', 'log this error', 'remember this', or 'update memory'. Also covers semantic search setup and the promotion pipeline for learnings into brain files."
+description: "Structured persistent memory system using an Obsidian vault with daily journals, project docs, knowledge base, self-improvement logging, and Discord workspace integration. Use when: (1) Setting up a new OpenClaw agent's memory system, (2) Agent needs persistent memory across sessions, (3) Organizing project documentation, daily journals, or knowledge base, (4) Logging errors, learnings, or feature requests for continuous improvement, (5) Setting up Discord as primary workspace (voice, components, threads, channel architecture), (6) User says 'set up memory', 'initialize vault', 'create journal', 'log this error', 'remember this', 'update memory', 'set up discord', or 'migrate from whatsapp'. Also covers semantic search setup, promotion pipeline for learnings into brain files, and Discord workspace configuration."
 metadata:
   openclaw:
     requires:
@@ -125,6 +125,62 @@ During periodic heartbeats (every few days):
 2. Promote applicable learnings to brain files
 3. Review recent journals → update MEMORY.md if needed
 4. Check MEMORY.md size, move detail creep to project/knowledge docs
+
+## Discord Workspace
+
+Discord replaces WhatsApp as primary channel with major upgrades: streaming, voice, buttons, threads, and channel isolation.
+
+For full setup guide: `read references/discord-setup.md`
+
+### Quick Summary
+
+| Feature | What it does |
+|---------|-------------|
+| Channel separation | Per-project channels = isolated sessions, less token waste |
+| Streaming | See responses as they generate |
+| Voice channels | Real-time voice: Whisper STT → LLM → OpenAI TTS |
+| Interactive components | Buttons, selects, forms for quick decisions |
+| Thread-bound coding | Codex/Claude Code get their own threads |
+| Reactions | Visual ack (configurable emoji) |
+| Auto-presence | Bot status shows health |
+
+### Channel Architecture
+
+```
+🏠 Home         → #general, #tasks, #coding
+🔊 Voice        → 🎙 General (voice conversations)
+🏥 [Your Org]   → #project-a, #project-b, ...
+🤖 Agents       → #agents (thread-bound sessions)
+📋 Ops          → #logs, #cron
+🧪 Research     → #research
+```
+
+Set channel topics with vault pointers for project routing:
+```
+Project A app | vault: 20-projects/project-a/ | repo: user/project-a | port: 3001
+```
+
+### Key Config
+
+```json5
+{
+  "channels": {
+    "discord": {
+      "streaming": "partial",
+      "replyToMode": "first",
+      "requireMention": false,   // under guilds.GUILD_ID
+      "threadBindings": { "enabled": true },
+      "voice": {
+        "enabled": true,
+        "tts": { "provider": "openai", "openai": { "voice": "onyx" } }
+      },
+      "ackReaction": "🦅"
+    }
+  }
+}
+```
+
+Full config and migration guide: `read references/discord-setup.md`
 
 ## Quick Commands
 

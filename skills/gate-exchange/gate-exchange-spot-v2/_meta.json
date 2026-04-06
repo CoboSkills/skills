@@ -1,11 +1,17 @@
 {
   "owner": "gate-exchange",
   "slug": "gate-exchange-spot-v2",
-  "displayName": "Gate Exchange Spot",
+  "displayName": "Gate Spot Exchange Skill",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774689590526,
-    "commit": "https://github.com/openclaw/skills/commit/209642cc5499b0b108842792452f19188d097c92"
+    "version": "1.0.2",
+    "publishedAt": 1775184619891,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774689590526,
+      "commit": "https://github.com/openclaw/skills/commit/209642cc5499b0b108842792452f19188d097c92"
+    }
+  ]
 }

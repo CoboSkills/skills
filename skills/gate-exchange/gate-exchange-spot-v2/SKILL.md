@@ -2,7 +2,16 @@
 name: gate-exchange-spot
 version: "2026.3.23-1"
 updated: "2026-03-23"
-description: "Gate spot trading and account operations skill. Use when the user asks to buy/sell crypto, check account value, cancel/amend spot orders, place conditional or trigger orders, verify fills, or perform coin-to-coin swaps. Trigger phrases include 'buy coin', 'sell coin', 'trigger order', 'take profit', 'stop loss', 'cancel order', 'amend order', 'break-even price', 'rebalance', 'spot trading', or any request combining spot order execution with account checks."
+description: "Gate spot trading and account operations skill. Use when the user asks to buy/sell crypto on spot, check account value, or place conditional/trigger orders. Triggers on 'buy coin', 'sell spot', 'take profit', 'stop loss', or 'cancel order'."
+required_credentials:
+  - gate_api_key
+  - gate_api_secret
+required_env_vars:
+  - GATE_API_KEY
+  - GATE_API_SECRET
+required_permissions:
+  - Spot:Write
+  - Wallet:Read
 ---
 
 # Gate Spot Trading Assistant
@@ -57,9 +66,11 @@ Do NOT select or call any tool until all rules are read. These rules have the hi
 - cex_spot_create_spot_price_triggered_order
 
 ### Authentication
-- API Key Required: Yes (see skill doc/runtime MCP deployment)
+- Credentials Source: Local Gate MCP deployment (`GATE_API_KEY`, `GATE_API_SECRET`)
+- API Key Required: Yes
 - Permissions: Spot:Write, Wallet:Read
-- Get API Key: https://www.gate.io/myaccount/profile/api-key/manage
+- Never ask the user to paste secrets into chat; rely on the configured MCP session only.
+- API Key Provisioning Reference: https://www.gate.com/myaccount/profile/api-key/manage (create or rotate keys outside the chat when the local MCP setup requires them).
 
 ### Installation Check
 - Required: Gate (main)
@@ -68,6 +79,13 @@ Do NOT select or call any tool until all rules are read. These rules have the hi
   - Codex: `gate-mcp-codex-installer`
   - Claude: `gate-mcp-claude-installer`
   - OpenClaw: `gate-mcp-openclaw-installer`
+
+## MCP Mode
+
+**Read and strictly follow** [`references/mcp.md`](./references/mcp.md), then execute this skill's routing/case logic.
+
+- `SKILL.md` remains the intent routing and scenario map.
+- `references/mcp.md` is the authoritative MCP execution layer for tool contracts, pre-checks, confirmation gates, and degraded handling.
 
 ## Domain Knowledge
 

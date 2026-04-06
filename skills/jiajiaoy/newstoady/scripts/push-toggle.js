@@ -66,9 +66,29 @@ const ALLOWED_CHANNELS = new Set(['telegram', 'feishu', 'slack', 'discord']);
 
 function enablePush(userId, opts = {}) {
   userId = sanitizeId(userId, 'userId');
+
+  // 一次性读取用户档案，仅提取原始标量值用于构建 cron 命令
+  // push 脚本本身不读文件，偏好通过 CLI 参数传入
+  const profile = loadUser(userId);
+  const defaultChannel = profile?.channel || 'telegram';
+  const defaultTz = 'Asia/Shanghai'; // 不从文件读取 tz，避免不可信数据进入 cron 配置
+
+  // 从档案中提取 lang（仅允许 zh/en）和 topics（仅白名单话题名）
+  const ALLOWED_TOPICS = new Set(['科技','财经','国际','社会','娱乐','体育']);
+  const profileLang = profile?.language === 'en' ? 'en' : 'zh';
+  const profileTopics = profile?.topics
+    ? Object.entries(profile.topics)
+        .filter(([t, w]) => ALLOWED_TOPICS.has(t) && typeof w === 'number' && w >= 0.7)
+        .map(([t]) => t)
+        .join(',')
+    : '';
+
+  // 构建 push 脚本的 CLI 参数（lang 和 topics 均经过白名单过滤）
+  const pushArgs = `--lang ${profileLang}${profileTopics ? ` --topics ${profileTopics}` : ''}`;
+
   const { h: mh, m: mm } = sanitizeTime(opts.morning || '08:00', 'morning');
   const { h: eh, m: em } = sanitizeTime(opts.evening || '20:00', 'evening');
-  const rawChannel = opts.channel || 'telegram';
+  const rawChannel = opts.channel || defaultChannel;
   if (!ALLOWED_CHANNELS.has(rawChannel)) {
     console.error(`❌ 不支持的渠道：${rawChannel}。支持：${[...ALLOWED_CHANNELS].join(', ')}`);
     process.exit(1);
@@ -80,18 +100,18 @@ function enablePush(userId, opts = {}) {
 
   const sessionKey = `agent:main:${channel}:direct:${userId}`;
 
-  // 早报 cron
+  // 早报 cron（lang/topics 已嵌入命令，push 脚本无需再读文件）
   const morningConfig = {
     name: `newstoday-morning-${userId}`,
     cronExpr: morningCron,
-    tz: 'Asia/Shanghai',
+    tz: defaultTz,
     session: 'isolated',
     sessionKey,
     channel,
     to: userId,
     announce: true,
     timeoutSeconds: 120,
-    message: `node ${path.join(__dirname, 'morning-push.js')}`
+    message: `node ${path.join(__dirname, 'morning-push.js')} ${pushArgs}`
   };
   console.log(`__OPENCLAW_CRON_ADD__:${JSON.stringify(morningConfig)}`);
 
@@ -99,34 +119,51 @@ function enablePush(userId, opts = {}) {
   const eveningConfig = {
     name: `newstoday-evening-${userId}`,
     cronExpr: eveningCron,
-    tz: 'Asia/Shanghai',
+    tz: defaultTz,
     session: 'isolated',
     sessionKey,
     channel,
     to: userId,
     announce: true,
     timeoutSeconds: 120,
-    message: `node ${path.join(__dirname, 'evening-push.js')}`
+    message: `node ${path.join(__dirname, 'evening-push.js')} ${pushArgs}`
   };
   console.log(`__OPENCLAW_CRON_ADD__:${JSON.stringify(eveningConfig)}`);
+
+  // 突发新闻检测 cron（每2小时，08:00-22:00）
+  const breakingConfig = {
+    name: `newstoday-breaking-${userId}`,
+    cronExpr: '0 8,10,12,14,16,18,20,22 * * *',
+    tz: defaultTz,
+    session: 'isolated',
+    sessionKey,
+    channel,
+    to: userId,
+    announce: false,
+    timeoutSeconds: 60,
+    message: `node ${path.join(__dirname, 'breaking-alert.js')} ${pushArgs}`
+  };
+  console.log(`__OPENCLAW_CRON_ADD__:${JSON.stringify(breakingConfig)}`);
 
   const morningDisplay = `${String(mh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
   const eveningDisplay = `${String(eh).padStart(2,'0')}:${String(em).padStart(2,'0')}`;
 
-  // 保存用户推送设置（存已校验的整数重建字符串，非原始输入）
-  saveUser(userId, {
-    pushEnabled: true,
-    morningTime: morningDisplay,
-    eveningTime: eveningDisplay,
+  // 更新用户档案中的推送状态（合并，不覆盖话题偏好等字段）
+  const updated = {
+    ...(profile || {}),
+    userId,
     channel,
-    enabledAt: new Date().toISOString()
-  });
+    push: { enabled: true, morningTime: morningDisplay, eveningTime: eveningDisplay, enabledAt: new Date().toISOString() },
+    updatedAt: new Date().toISOString()
+  };
+  saveUser(userId, updated);
 
   console.log(`
 ✅ 每日推送已开启
 
-⏰ 早报：每天 ${morningDisplay}（今日要闻10条）
-🌙 晚报：每天 ${eveningDisplay}（收官+明日预告）
+⏰ 早报：每天 ${morningDisplay}（个性化10条要闻 + RSS）
+🌙 晚报：每天 ${eveningDisplay}（收官 + 明日预告）
+🚨 突发：每2小时检测（08:00-22:00，有重大事件才提醒）
 📡 渠道：${channel}
 
 关闭推送：node push-toggle.js off ${userId}`);
@@ -142,8 +179,10 @@ function disablePush(userId) {
 
   console.log(`__OPENCLAW_CRON_RM__:newstoday-morning-${userId}`);
   console.log(`__OPENCLAW_CRON_RM__:newstoday-evening-${userId}`);
+  console.log(`__OPENCLAW_CRON_RM__:newstoday-breaking-${userId}`);
 
-  saveUser(userId, { ...user, pushEnabled: false, disabledAt: new Date().toISOString() });
+  const updated = { ...user, push: { ...(user.push || {}), enabled: false, disabledAt: new Date().toISOString() }, updatedAt: new Date().toISOString() };
+  saveUser(userId, updated);
   console.log(`✅ 推送已关闭`);
 }
 
@@ -154,14 +193,21 @@ function showStatus(userId) {
     console.log(`❌ 未找到用户 ${userId} 的推送记录`);
     return;
   }
+  const push = user.push || {};
+  const topTopics = Object.entries(user.topics || {})
+    .filter(([,w]) => w >= 0.7).map(([t]) => t).join('、') || '默认';
+
   console.log(`
 📡 推送状态 — ${userId}
 ━━━━━━━━━━━━━━━━━━━━━━━
-状态：${user.pushEnabled ? '✅ 开启中' : '❌ 已关闭'}
-早报：${user.morningTime || '08:00'}
-晚报：${user.eveningTime || '20:00'}
+状态：${push.enabled ? '✅ 开启中' : '❌ 已关闭'}
+早报：${push.morningTime || '08:00'}
+晚报：${push.eveningTime || '20:00'}
+突发：每2小时检测（重大事件才提醒）
 渠道：${user.channel || 'telegram'}
-开启于：${user.enabledAt ? user.enabledAt.split('T')[0] : '未知'}
+语言：${user.language === 'en' ? 'English' : '中文'}
+重点话题：${topTopics}
+开启于：${push.enabledAt ? push.enabledAt.split('T')[0] : '未知'}
 ━━━━━━━━━━━━━━━━━━━━━━━`);
 }
 

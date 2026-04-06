@@ -3,9 +3,15 @@
   "slug": "alpha-vantage-integration",
   "displayName": "Alpha Vantage",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774703063013,
-    "commit": "https://github.com/openclaw/skills/commit/3dc4b8e3de7785f17602625de8ae24be8498b6ce"
+    "version": "1.0.2",
+    "publishedAt": 1775168826018,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774703063013,
+      "commit": "https://github.com/openclaw/skills/commit/3dc4b8e3de7785f17602625de8ae24be8498b6ce"
+    }
+  ]
 }

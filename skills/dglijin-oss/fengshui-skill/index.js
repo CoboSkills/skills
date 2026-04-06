@@ -1,8 +1,9 @@
 /**
  * 风水堪舆 Skill - 核心算法
  * 作者：天工长老
- * 版本：v1.0
+ * 版本：v1.1
  * 创建：2026 年 3 月 29 日
+ * 更新：2026 年 3 月 30 日 - 添加玄空飞星基础、二十四山详解
  */
 
 // 命卦计算
@@ -184,5 +185,78 @@ module.exports = {
   getZhaiType,
   getJiuXing,
   matchZhaiMing,
-  getBuJuJianYi
+  getBuJuJianYi,
+  // v1.1 新增
+  getErShiSiShan,
+  getXuanKongFeiXing
 };
+
+// ========== v1.1 新增：二十四山详解 ==========
+
+// 二十四山
+const ER_SHI_SI_SHAN = {
+  北：['壬', '子', '癸'],
+  东北：['丑', '艮', '寅'],
+  东：['甲', '卯', '乙'],
+  东南：['辰', '巽', '巳'],
+  南：['丙', '午', '丁'],
+  西南：['未', '坤', '申'],
+  西：['庚', '酉', '辛'],
+  西北：['戌', '乾', '亥']
+};
+
+// 获取二十四山详情
+function getErShiSiShan(fangWei) {
+  if (ER_SHI_SI_SHAN[fangWei]) {
+    return {
+      方位：fangWei,
+      三山：ER_SHI_SI_SHAN[fangWei],
+      五行：getShanWuXing(fangWei)
+    };
+  }
+  return null;
+}
+
+// 山的五行
+function getShanWuXing(fangWei) {
+  const wuXingMap = {
+    北：'水', 东北：'土', 东：'木', 东南：'木',
+    南：'火', 西南：'土', 西：'金', 西北：'金'
+  };
+  return wuXingMap[fangWei] || '未知';
+}
+
+// 玄空飞星基础（简化版）
+function getXuanKongFeiXing(year, fangWei) {
+  // 九宫飞星顺序
+  const feiXing = [
+    '一白贪狼', '二黑巨门', '三碧禄存', '四绿文曲',
+    '五黄廉贞', '六白武曲', '七赤破军', '八白左辅', '九紫右弼'
+  ];
+  
+  // 年飞星（简化计算）
+  const yearStarIndex = (year - 1900) % 9;
+  const yearStar = feiXing[yearStarIndex];
+  
+  // 方位飞星
+  const fangWeiIndex = Object.keys(ER_SHI_SI_SHAN).indexOf(fangWei);
+  const fangWeiStar = feiXing[(yearStarIndex + fangWeiIndex) % 9];
+  
+  return {
+    年份：year,
+    年飞星：yearStar,
+    方位：fangWei,
+    方位飞星：fangWeiStar,
+    吉凶：getFeiXingJiXiong(fangWeiStar)
+  };
+}
+
+// 飞星吉凶
+function getFeiXingJiXiong(feiXing) {
+  const jiXing = ['一白贪狼', '四绿文曲', '六白武曲', '八白左辅', '九紫右弼'];
+  const xiongXing = ['二黑巨门', '三碧禄存', '五黄廉贞', '七赤破军'];
+  
+  if (jiXing.includes(feiXing)) return '吉';
+  if (xiongXing.includes(feiXing)) return '凶';
+  return '平';
+}

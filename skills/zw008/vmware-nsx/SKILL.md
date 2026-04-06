@@ -1,20 +1,18 @@
 ---
 name: vmware-nsx
 description: >
-  VMware NSX networking management: segments, gateways, NAT, routing, IPAM.
-  Query and configure network infrastructure via natural language.
-  Use when user asks to "list segments", "create a segment", "show NAT rules",
-  "check BGP neighbors", "add a static route", "create a Tier-1 gateway",
-  "check NSX alarms", "find which segment a VM is on", or mentions
-  NSX/NSX-T/VCF networking operations.
-  For DFW/firewall/security use vmware-nsx-security, for VM operations use
-  vmware-aiops, for monitoring use vmware-monitor.
+  Use this skill whenever the user needs to manage VMware NSX networking — segments, gateways, NAT, routing, and IP pools.
+  Directly handles: create/manage network segments, configure Tier-0/Tier-1 gateways, set up NAT rules, manage static routes, configure IP pools, check transport node and edge cluster health.
+  Always use this skill for "create segment", "set up gateway", "create NAT rule", "check network health", "troubleshoot connectivity", or any NSX/networking/segment task.
+  For DFW/firewall rules use vmware-nsx-security, for VM operations use vmware-aiops, for multi-step workflows use vmware-pilot. For load balancing/AVI/AKO use vmware-avi.
 installer:
   kind: uv
   package: vmware-nsx-mgmt
 allowed-tools:
   - Bash
 metadata: {"openclaw":{"requires":{"env":["VMWARE_NSX_CONFIG"],"bins":["vmware-nsx"],"config":["~/.vmware-nsx/config.yaml"]},"primaryEnv":"VMWARE_NSX_CONFIG","homepage":"https://github.com/zw008/VMware-NSX","emoji":"🌐","os":["macos","linux"]}}
+compatibility: >
+  Requires vmware-policy (auto-installed). All operations audited to ~/.vmware/audit.db.
 ---
 
 # VMware NSX
@@ -22,7 +20,8 @@ metadata: {"openclaw":{"requires":{"env":["VMWARE_NSX_CONFIG"],"bins":["vmware-n
 VMware NSX networking management — 31 MCP tools for segments, gateways, NAT, routing, and IPAM.
 
 > Domain-focused networking skill for NSX-T / NSX 4.x Policy API.
-> **Companion skills**: [vmware-nsx-security](https://github.com/zw008/VMware-NSX-Security) (DFW/firewall), [vmware-aiops](https://github.com/zw008/VMware-AIops) (VM lifecycle), [vmware-monitor](https://github.com/zw008/VMware-Monitor) (read-only monitoring), [vmware-storage](https://github.com/zw008/VMware-Storage) (iSCSI/vSAN), [vmware-vks](https://github.com/zw008/VMware-VKS) (Tanzu Kubernetes), [vmware-aria](https://github.com/zw008/VMware-Aria) (metrics/alerts/capacity).
+> **Companion skills**: [vmware-nsx-security](https://github.com/zw008/VMware-NSX-Security) (DFW/firewall), [vmware-aiops](https://github.com/zw008/VMware-AIops) (VM lifecycle), [vmware-monitor](https://github.com/zw008/VMware-Monitor) (read-only monitoring), [vmware-storage](https://github.com/zw008/VMware-Storage) (iSCSI/vSAN), [vmware-vks](https://github.com/zw008/VMware-VKS) (Tanzu Kubernetes), [vmware-aria](https://github.com/zw008/VMware-Aria) (metrics/alerts/capacity), [vmware-avi](https://github.com/zw008/VMware-AVI) (AVI/ALB/AKO).
+> | [vmware-pilot](../vmware-pilot/SKILL.md) (workflow orchestration) | [vmware-policy](../vmware-policy/SKILL.md) (audit/policy)
 
 ## What This Skill Does
 
@@ -62,6 +61,7 @@ vmware-nsx doctor
 - vSphere inventory, health, alarms, events → `vmware-monitor`
 - Storage: iSCSI, vSAN, datastores → `vmware-storage`
 - Tanzu Kubernetes → `vmware-vks`
+- Load balancing, AVI/ALB, AKO, Ingress → `vmware-avi`
 
 ## Related Skills — Skill Routing
 
@@ -74,19 +74,22 @@ vmware-nsx doctor
 | Storage: iSCSI, vSAN, datastores | **vmware-storage** |
 | Tanzu Kubernetes (vSphere 8.x+) | **vmware-vks** |
 | Aria Ops: metrics, alerts, capacity planning | **vmware-aria** |
+| Multi-step workflows with approval | **vmware-pilot** |
+| Load balancer, AVI, ALB, AKO, Ingress | **vmware-avi** (`uv tool install vmware-avi`) |
+| Audit log query | **vmware-policy** (`vmware-audit` CLI) |
 
 ## Common Workflows
 
 ### Create an App Network (Segment + T1 Gateway + NAT)
 
 1. Create a Tier-1 gateway → `vmware-nsx gateway create-t1 app-t1 --edge-cluster edge-cluster-01 --tier0 tier0-gw`
-2. Create a segment → `vmware-nsx segment create app-web-seg --gateway app-t1 --subnet 10.10.1.1/24 --transport-zone tz-overlay`
-3. Add SNAT rule → `vmware-nsx nat create app-t1 --action SNAT --source 10.10.1.0/24 --translated 172.16.0.10`
+2. Create a segment → `vmware-nsx segment create app-web-seg --gateway app-t1 --subnet <subnet-cidr> --transport-zone tz-overlay`
+3. Add SNAT rule → `vmware-nsx nat create app-t1 --action SNAT --source <private-cidr> --translated <public-ip>`
 4. Verify → `vmware-nsx segment list` and `vmware-nsx nat list app-t1`
 
 **Dry-run first**: Append `--dry-run` to any write command to preview without executing:
 ```bash
-vmware-nsx segment create app-web-seg --gateway app-t1 --subnet 10.10.1.1/24 --transport-zone tz-overlay --dry-run
+vmware-nsx segment create app-web-seg --gateway app-t1 --subnet <subnet-cidr> --transport-zone tz-overlay --dry-run
 ```
 
 ### Check Network Health
@@ -117,6 +120,14 @@ vmware-nsx segment list
 vmware-nsx segment list --target nsx-prod
 vmware-nsx health alarms --target nsx-lab
 ```
+
+## Usage Mode
+
+| Scenario | Recommended | Why |
+|----------|:-----------:|-----|
+| Local/small models (Ollama, Qwen) | **CLI** | ~2K tokens vs ~8K for MCP |
+| Cloud models (Claude, GPT-4o) | Either | MCP gives structured JSON I/O |
+| Automated pipelines | **MCP** | Type-safe parameters, structured output |
 
 ## MCP Tools (31)
 
@@ -268,11 +279,14 @@ mkdir -p ~/.vmware-nsx
 cp config.example.yaml ~/.vmware-nsx/config.yaml
 # Edit config.yaml with your NSX Manager targets
 
-echo "VMWARE_NSX_PROD_PASSWORD=your_password" > ~/.vmware-nsx/.env
+# Add to ~/.vmware-nsx/.env (create if missing, chmod 600):
+# VMWARE_NSX_PROD_PASSWORD=<your-password>
 chmod 600 ~/.vmware-nsx/.env
 
 vmware-nsx doctor
 ```
+
+> All tools are automatically audited via vmware-policy. Audit logs: `vmware-audit log --last 20`
 
 > Full setup guide with multi-target config, MCP server setup, and Docker: see `references/setup-guide.md`
 
@@ -291,6 +305,17 @@ Segments / Gateways / NAT / Routes / IP Pools / Transport Nodes
 ```
 
 The MCP server uses stdio transport (local only, no network listener). Connections to NSX Manager use HTTPS on port 443.
+
+## Audit & Safety
+
+All operations are automatically audited via vmware-policy (`@vmware_tool` decorator):
+- Every tool call logged to `~/.vmware/audit.db` (SQLite, framework-agnostic)
+- Policy rules enforced via `~/.vmware/rules.yaml` (deny rules, maintenance windows, risk levels)
+- Risk classification: each tool tagged as low/medium/high/critical
+- View recent operations: `vmware-audit log --last 20`
+- View denied operations: `vmware-audit log --status denied`
+
+vmware-policy is automatically installed as a dependency — no manual setup needed.
 
 ## License
 

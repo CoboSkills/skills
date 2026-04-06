@@ -61,25 +61,42 @@ For images to display inline in the message (not as attachments), use the `image
 
 **Follow these steps exactly for maximum success rate:**
 
-### Step 1: Copy file to workspace
-```bash
-cp /source/path/to/file.png ~/.openclaw/workspace/
-```
-Always use workspace directory (`~/.openclaw/workspace/`), never use desktop or downloads directly.
+### Step 1: Copy file to workspace (with deduplication)
 
-### Step 2: Verify file exists
 ```bash
-ls -la ~/.openclaw/workspace/filename.*
-```
-If file doesn't exist, abort and report error.
+# Extract filename from source path
+filename=$(basename "/source/path/to/file.png")
 
-### Step 3: Get absolute path
+# Copy to workspace (overwrite if exists)
+cp -f "/source/path/to/file.png" "~/.openclaw/workspace/${filename}"
+
+# Verify copy succeeded
+if [ ! -f "~/.openclaw/workspace/${filename}" ]; then
+  echo "ERROR: File copy failed"
+  exit 1
+fi
+```
+
+**Why overwrite (-f):** Ensures fresh copy every time, avoids stale file issues.
+
+### Step 2: Get absolute path and validate
+
 ```bash
-readlink -f ~/.openclaw/workspace/filename.png
-```
-Use the absolute path (e.g., `/Users/casia/.openclaw/workspace/filename.png`)
+# Get absolute path
+abs_path=$(cd ~/.openclaw/workspace && pwd)/${filename}
 
-### Step 4: Send with message tool
+# Validate file exists and is readable
+if [ ! -r "$abs_path" ]; then
+  echo "ERROR: File not readable: $abs_path"
+  exit 1
+fi
+
+# Log for debugging
+echo "Sending: $abs_path"
+```
+
+### Step 3: Send with message tool
+
 ```json
 {
   "action": "send",
@@ -88,42 +105,74 @@ Use the absolute path (e.g., `/Users/casia/.openclaw/workspace/filename.png`)
 }
 ```
 
-### Step 5: Verify response
-Check the tool response for `"messageId"` field. If present, the send was successful. If error, try fallback method.
+### Step 4: Verify response
 
-## Fallback Methods
+Check tool response:
+- ✅ Success: `"messageId"` field present
+- ❌ Failure: `"error"` field present
 
-### Fallback 1: Use base64 for images
-If path method fails, convert image to base64:
+## Automatic Error Recovery (Critical)
+
+If Step 4 fails, automatically attempt fallbacks in order:
+
+### Fallback 1: Retry once with workspace path
 ```bash
-base64 -i ~/.openclaw/workspace/filename.png
+# Sometimes transient failure, retry
+cp -f "/source/path/to/file.png" "~/.openclaw/workspace/${filename}"
+# Resend
 ```
-Then send with:
-```json
+
+### Fallback 2: Use base64 for images (especially .png, .gif)
+```bash
+# Convert to base64
+base64_string=$(base64 -i "$abs_path")
+
+# Send as inline image
 {
   "action": "send",
   "target": "ou_xxx",
-  "image": "data:image/png;base64,<base64_string>"
+  "image": "data:image/png;base64,${base64_string}"
 }
 ```
 
-### Fallback 2: Upload to Feishu drive first
-If both above fail, upload to Feishu cloud drive, then send the file link.
+**When to use:** Path method fails, small images (<3MB), .png/.gif files
 
-## Error Handling
+### Fallback 3: Upload to Feishu drive then share
+```json
+{
+  "action": "upload_file",
+  "doc_token": "xxx",
+  "file_path": "$abs_path"
+}
+```
+Then send the returned file URL.
 
-- **File not found**: Always copy to workspace first
-- **Permission denied**: Check file permissions with `ls -la`
-- **File too large**: For files >20MB, use Feishu drive instead
-- **Unknown error**: Try base64 fallback or upload to drive
+**When to use:** Files >20MB, persistent path failures
+
+## Error Handling Checklist
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| File not found | Wrong path | Verify source path exists |
+| Permission denied | File permission issue | `chmod 644` on file |
+| Tool error | Feishu API issue | Retry → base64 → drive |
+| Empty file | Zero-byte file | Check source before copying |
+| File too large | >20MB | Use Feishu drive |
 
 ## Quick Reference
 
-| File Type | Best Method | Fallback |
-|-----------|-------------|----------|
-| Images (<5MB) | path → base64 | - |
-| Documents | path | Upload to drive |
-| Audio/Video | path | Upload to drive |
-| Large files | Upload to drive | - |
+| Scenario | Primary Method | Fallback 1 | Fallback 2 |
+|----------|---------------|------------|------------|
+| Small image (<3MB) | path | base64 | - |
+| Large image (3-20MB) | path | base64 | drive |
+| Document | path | drive | - |
+| Audio/Video | path | drive | - |
+| Very large (>20MB) | drive | - | - |
 
-**Golden Rule**: Always copy to workspace first, then send from there.
+## Mandatory Rules
+
+1. **ALWAYS copy to workspace first** - Never send from /tmp, Downloads, or other临时路径
+2. **ALWAYS verify copy succeeded** - Check file exists before sending
+3. **ALWAYS use absolute path** - No relative paths in message tool
+4. **ALWAYS attempt fallback on failure** - Never give up after one try
+5. **ALWAYS extract basename** - Preserve original filename, don't rename

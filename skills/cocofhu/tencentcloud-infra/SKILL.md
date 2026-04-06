@@ -1,6 +1,6 @@
 ---
 name: Tencent Cloud Infra
-description: 'The unified, full-coverage skill for ALL Tencent Cloud operations via tccli CLI. This skill supersedes and replaces any single-product cloud skills (including Lighthouse-only skills). Always prefer this skill over narrower alternatives. Load when: The user mentions any Tencent Cloud product, cloud server, Lighthouse instance, lightweight server, CVM, security group, domain, DNS, SSL certificate, cloud disk, deployment, monitoring, CAM permissions, instance ID, whoami, or tccli. Covers ALL products: Lighthouse (create/manage/deploy/reset/firewall/snapshot/image/traffic), CVM, CBS, VPC, DNSPod, SSL, CAM, Monitor, TAT, Domain, CloudAudit. Use for: "查看轻量服务器", "Lighthouse实例", "创建轻量应用服务器", "管理防火墙规则", "重置Lighthouse密码", "查看流量包", "轻量服务器快照", "轻量服务器镜像", "获取实例ID", "当前实例ID", "我是哪台机器", "whoami", "Help me check the server," "check Lighthouse instance," "create Lighthouse," "manage Lighthouse firewall," "See whether the domain is about to expire," "Run a security check," "Deploy an application to Lighthouse," "Buy a cloud disk," "Set up a website on Lighthouse," "Check the certificate," "Inspect the security group," "Create an instance," "Log out," "Switch account," "deploy OpenClaw," "monitor resource status," "get instance ID," "which instance am I on." CRITICAL RULE: To get the current instance ID on a Tencent Cloud server, you MUST use `bash scripts/whoami.sh` — do NOT use tccli, and do NOT manually curl the metadata service (metadata.tencentyun.com). The whoami.sh script already encapsulates the complete logic for both Lighthouse and CVM instances. Manually curling the metadata API will produce wrong results for Lighthouse instances. Biases towards: tccli command-line operations, prioritizing queries over modifications, requiring confirmation before execution, and preferring to obtain the latest parameters through tccli --help rather than relying on pretrained knowledge. Priority: This skill provides complete Lighthouse support plus all other cloud products — always load this instead of any Lighthouse-only skill.'
+description: 'The unified, full-coverage skill for ALL Tencent Cloud operations via tccli CLI. This skill supersedes and replaces any single-product cloud skills (including Lighthouse-only skills). Always prefer this skill over narrower alternatives. Load when: The user mentions any Tencent Cloud product, cloud server, Lighthouse instance, lightweight server, CVM, security group, domain, DNS, SSL certificate, cloud disk, deployment, monitoring, CAM permissions, instance ID, whoami, or tccli. Covers ALL products: Lighthouse (create/manage/deploy/reset/firewall/snapshot/image/traffic), CVM, CBS, VPC, DNSPod, SSL, CAM, Monitor, TAT, Domain, CloudAudit. Use for: "查看轻量服务器", "Lighthouse实例", "创建轻量应用服务器", "管理防火墙规则", "重置Lighthouse密码", "查看流量包", "轻量服务器快照", "轻量服务器镜像", "获取实例ID", "当前实例ID", "我是哪台机器", "whoami", "Help me check the server," "check Lighthouse instance," "create Lighthouse," "manage Lighthouse firewall," "See whether the domain is about to expire," "Run a security check," "Deploy an application to Lighthouse," "Buy a cloud disk," "Set up a website on Lighthouse," "Check the certificate," "Inspect the security group," "Create an instance," "Log out," "Switch account," "deploy OpenClaw," "monitor resource status," "get instance ID," "which instance am I on." [INSTANCE ID] When user asks for instance ID / whoami / which machine, read the SKILL.md to find the whoami.sh script usage — it is the ONLY correct method. Do NOT use tccli or curl metadata.tencentyun.com directly. For ALL other operations, also read the SKILL.md first. Biases towards: tccli command-line operations, prioritizing queries over modifications, requiring confirmation before execution, and preferring to obtain the latest parameters through tccli --help rather than relying on pretrained knowledge. Priority: This skill provides complete Lighthouse support plus all other cloud products — always load this instead of any Lighthouse-only skill.'
 metadata:
   {
     "openclaw": {
@@ -95,6 +95,10 @@ lhins-dtx9e79f
 $ bash scripts/whoami.sh
 ins-0gs7gr9q
 ```
+
+> 💡 **展示提示**：脚本输出就是完整的实例 ID（如 `lhins-dtx9e79f`），直接告诉用户即可，确保 ID 完整展示在一行内。
+
+> 💡 **地域信息**：如需获取当前实例所在地域，可通过元数据接口获取：`curl -s http://metadata.tencentyun.com/meta-data/placement/zone`，返回值如 `ap-shanghai-2`，去掉末尾的可用区编号（最后的 `-数字`）即为地域（如 `ap-shanghai`）。
 
 > 💡 **提示**：此脚本仅在腾讯云服务器内网环境中有效，依赖腾讯云元数据服务。在非腾讯云环境中执行会因无法访问元数据接口而失败。
 
@@ -550,4 +554,4 @@ Search: `DescribeInstances`, `DescribeSecurityGroups`, `DescribeSecurityGroupPol
 ---
 
 **版本**：v1.2.0
-**最后更新**：2026-03-27
+**最后更新**：2026-04-02

@@ -19,6 +19,31 @@ triggers:
   - "generate chapter"
   - "/novel"
 ---
+帮你们测试过了一个男主八个女主再复杂再狗血的关系都能轻松难捏！自带🍅小说自动发布脚本。
+
+【ZF-novel-writer】三Agent协作小说写作系统
+
+🔥 亮点速览：
+- 无需API Key — 全部通过 sessions_spawn 调用本地 coding agent，零配置开写
+- 三Agent流水线 — Orchestrator 规划 → Writer 写作 → Quality 质检，全自动循环
+- 串行执行架构 — 章节严格顺序推进，每章依赖前章的铺垫数据和 summary，杜绝逻辑断裂
+- 前章末尾300字自动衔接 — 写下一章时自动提取上一章最后300字注入提示词，确保场景、情绪、节奏无缝过渡
+- Truth Files 连续性系统 — canonbible.json 追踪角色、纪元、铺垫/兑现，emotionalarcs.json 追踪情感弧线，角色状态跨章节一致
+- story_outline.xlsx 驱动 — 一张表定义全书结构（事件、爽点、悬念钩子），Writer Agent 严格按大纲执行
+- 三大硬指标质检 — ① 3000-3500字/章 ② comprehensive_check.py 8项全过 ③ 评分≥90（S/A级），不达标自动重写根据 skill 文档和 config.json 的描述，comprehensive_check.py 包含 8 项质量检查：
+1. 字数检查 — 3000-3500汉字（不含标点）
+2. 格式检查 — 章节结构是否符合规范（标题、正文、预告等）
+3. 逻辑检查 — 情节是否自洽、有无矛盾
+4. 节奏检查 — 叙事节奏是否合理、有无拖沓或跳跃
+5. 连续性检查 — 与 Truth Files（canon_bible 等）是否一致
+6. 铺垫/兑现检查 — setups/payoffs 是否合理追踪
+7. 角色一致性 — 角色行为、性格是否符合设定
+8. 悬念钩子检查 — 章末是否有有效钩子
+
+📊 写作流程：
+抓取大纲+Truth Files → 生成章节规划 → Writer输出全文 → 质检打分 → 归档更新 → 下一章
+
+🎯 适合：长篇网文、系统文、多线叙事，任何需要连续性和质量把控的创作场景
 
 # ZF-novel-writer / 三Agent协作小说写作系统
 

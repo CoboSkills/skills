@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/panthrocorp/openclaw-skills/google-workspace/internal/config"
+	"github.com/PanthroCorp-Limited/openclaw-skills/google-workspace/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -32,6 +32,9 @@ var (
 	setGmail    *bool
 	setCalendar string
 	setContacts *bool
+	setDrive    string
+	setDocs     string
+	setSheets   string
 )
 
 var configSetCmd = &cobra.Command{
@@ -53,6 +56,15 @@ var configSetCmd = &cobra.Command{
 		if cmd.Flags().Changed("contacts") {
 			cfg.Contacts = *setContacts
 		}
+		if cmd.Flags().Changed("drive") {
+			cfg.Drive = config.ServiceMode(setDrive)
+		}
+		if cmd.Flags().Changed("docs") {
+			cfg.Docs = config.ServiceMode(setDocs)
+		}
+		if cmd.Flags().Changed("sheets") {
+			cfg.Sheets = config.ServiceMode(setSheets)
+		}
 
 		if err := config.Save(configDir, cfg); err != nil {
 			exitf("saving config: %v", err)
@@ -68,6 +80,9 @@ func init() {
 	setGmail = configSetCmd.Flags().Bool("gmail", true, "enable Gmail read-only access")
 	configSetCmd.Flags().StringVar(&setCalendar, "calendar", "readonly", "calendar mode: off, readonly, or readwrite")
 	setContacts = configSetCmd.Flags().Bool("contacts", true, "enable Contacts read-only access")
+	configSetCmd.Flags().StringVar(&setDrive, "drive", "readonly", "drive mode: off, readonly, or readwrite")
+	configSetCmd.Flags().StringVar(&setDocs, "docs", "off", "docs mode: off, readonly, or readwrite")
+	configSetCmd.Flags().StringVar(&setSheets, "sheets", "off", "sheets mode: off, readonly, or readwrite")
 
 	configCmd.AddCommand(configShowCmd, configSetCmd)
 	rootCmd.AddCommand(configCmd)

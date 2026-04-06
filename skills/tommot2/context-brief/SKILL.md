@@ -1,142 +1,131 @@
 ---
 name: context-brief
-description: "Preserve critical context across compaction boundaries. Before OpenClaw compresses your conversation, this skill extracts and anchors key decisions, pending tasks, and important facts so nothing survives. Unlike native compaction which may lose nuance, context-brief gives you control over what matters. Completely stateless — reads no files, writes no files. Use when: (1) 'save context', (2) 'what do you remember', (3) long conversations approaching compaction, (4) 'context check', (5) agent starts forgetting earlier decisions, (6) 'hva husker du', (7) user wants to maximize conversation depth. Homepage: https://clawhub.ai/skills/context-brief"
+description: "Persistent context survival for OpenClaw. Writes file-based anchors to memory/anchors/ to preserve critical context across sessions. Reads MEMORY.md and daily logs for context — writes only to memory/anchors/. Use when: (1) 'save context', (2) 'what do you remember', (3) long conversations approaching compaction, (4) 'context check', (5) agent starts forgetting earlier decisions, (6) 'hva husker du', (7) resuming after time away. Homepage: https://clawhub.ai/skills/context-brief"
+metadata:
+  openclaw:
+    configPaths:
+      - MEMORY.md
+      - HEARTBEAT.md
+    capabilities: []
 ---
 
-# Context Brief
+# Context Brief v3.0
 
 **Install:** `clawhub install context-brief`
 
-**Your context survival kit.** Capture what matters before compaction erases it.
+Persistent context survival. Captures what matters before it's lost — and restores it when needed.
 
-This skill operates entirely within session context. It reads no files and writes no files. All information exists only in the current conversation.
+**Writes ONLY to `memory/anchors/`.** Reads MEMORY.md and daily logs — never modifies them.
 
 ## Language
 
 Detect from the user's message language. Default: English.
 
-## When to Activate
+## How It Works
 
-- Conversation exceeds ~50% of model's context window
-- Agent responses reference outdated information
-- User mentions forgetting or losing context
-- Compaction has occurred and important info was lost
-- User asks: "context check", "hva husker du", "save context", "context status"
-- User explicitly requests: "preserve context", "anchor decisions", "remember this"
+Three levels of action, based on user request or trigger:
 
-## Context Health Check
+**Level 1 — Context Note** (1-2 unsaved items, low risk)
+- Append a brief note to your response, no file writes
+- Example: `Unsaved context: [decision X pending, path Y important]`
 
-Run periodically or when user asks. Check via `session_status`:
+**Level 2 — Anchor** (3+ unsaved items OR user says "save context")
+- Write anchor file to `memory/anchors/`
+- Show summary to user after saving
+- Anchor contains task state, decisions, pending items — never credentials or secrets
 
-1. **Context usage %** — Tokens used vs window size
-2. **Compaction count** — How many times context has been compacted
-3. **Key information inventory** — What critical facts exist in conversation
+**Level 3 — Deep Anchor** (user explicitly requests "save context deep" or "context check")
+- Full anchor with all categories
+- User gets the summary
 
-**Report format** (adapts to user language):
+## Triggering
 
-```markdown
-## 🧠 Context Health Report
+Anchors are written when the **user explicitly asks** ("save context", "context check", "hva husker du", "preserve context") or when resuming after time away.
 
-| Metric | Value |
-|--------|-------|
-| Usage | X% (Xk / Xk tokens) |
-| Compactions | X |
+**Do NOT auto-save without user request.** Level 2+ requires user initiation or explicit consent.
 
-### Critical items at risk if compaction fires:
-- [item 1]
-- [item 2]
-```
+## Write Permissions
 
-## Preservation Protocol
+| File | Read | Write |
+|------|:----:|:-----:|
+| `memory/anchors/*.md` | ✅ | ✅ — **Only location this skill writes to** |
+| `memory/YYYY-MM-DD.md` | ✅ | ❌ — Never modified |
+| `MEMORY.md` | ✅ | ❌ — Recommend changes to user |
+| `HEARTBEAT.md` | ✅ | ❌ — Read only |
 
-### Step 1: Extract Critical Information
+## Anchor File Format
 
-Scan conversation and categorize into four buckets:
-
-**🔴 Must survive** — Will cause errors or bad decisions if lost:
-- Active task state and pending actions
-- User decisions that override earlier instructions
-- Authentication status, active connections, in-progress operations
-- Corrected mistakes (the CORRECT version, not the original error)
-
-**🟡 Should survive** — Would force re-asking if lost:
-- User preferences expressed in this session
-- Project context and naming conventions
-- Agreed-upon approaches or architectures
-- Important links, file paths, or identifiers discussed
-
-**⚪ Nice to survive** — Convenient but recoverable:
-- General conversation context
-- Exploratory discussion and brainstorming
-- Background information the user can re-provide
-
-**⚫ Safe to discard:**
-- Duplicate information
-- Off-topic discussion
-- Outdated guesses that were corrected
-
-### Step 2: Generate Context Anchor
-
-Create a compact anchor (5-10 lines) containing only 🔴 items:
+Write to `memory/anchors/YYYY-MM-DDTHH-mm.md`:
 
 ```markdown
-## Context Anchor — {date}
+# Anchor — YYYY-MM-DDTHH:mm+ZZ:ZZ
 
-### Active State
-- Task: [current task description]
+## Active State
+- Task: [what we're doing]
 - Status: [in progress / blocked / awaiting]
 
-### Decisions Made
-- [decision] → [chosen option] (reason: [brief])
+## Decisions
+- [thing] -> [chosen option] (reason)
 
-### Pending Actions
+## Pending
 - [ ] [next action with enough context to execute]
 
-### Corrections
-- [original wrong thing] → [correct thing]
+## Key Paths
+- [path]: [what it is]
 ```
 
-### Step 3: Deliver the Anchor
+**Rules:**
+- Create `memory/anchors/` if it doesn't exist
+- ISO 8601 timestamps
+- Max 20 lines — prioritize ruthlessly
+- **REDACT secrets** — strip any line containing: password, token, api_key, secret, bearer, private_key, or credential patterns
+- One anchor per checkpoint — never append to old anchors
 
-The anchor is the LAST thing discussed before compaction is likely to fire. This maximizes the chance it survives into the post-compaction context.
+## After Writing
 
-Tell the user (in their language):
+Show user (in their language):
 ```
-🔍 Context Anchor created. 8 critical items preserved.
-   If compaction fires, these will survive in recent messages.
+Context anchored (N items) → memory/anchors/YYYY-MM-DDTHH-mm.md
 ```
 
-### Step 4: Post-Compaction Recovery
+## Recovery — On Resume
 
-After compaction occurs:
-1. Check if the anchor survived in recent messages
-2. If yes → silently restore state, continue working
-3. If no → tell the user: "Context ble kompakt. Noen detaljer kan mangle — kan du bekrefte [critical item]?"
-4. Offer to regenerate the anchor for the new context window
+When resuming or after compaction:
+
+1. Check `memory/anchors/` for recent files (last 48h)
+2. If anchor found and items are missing from conversation:
+   ```
+   Restored from anchor: [brief list of items]
+   Continuing: [last active task]
+   ```
+3. If no anchor and context feels lost, ask the user what they were working on.
+
+## What This Skill Does NOT Do
+
+- Does NOT modify MEMORY.md, HEARTBEAT.md, or daily logs
+- Does NOT auto-save without user request or consent
+- Does NOT store credentials or secrets
+- Does NOT restore silently — always informs user
+- Does NOT create files outside `memory/anchors/`
 
 ## Guidelines for Agent
 
-1. **Proactive anchoring** — Don't wait for the user to ask. If context is above 50%, offer to create an anchor.
-2. **Ruthless prioritization** — A 5-line anchor with only 🔴 items beats a 20-line dump with everything.
-3. **Never write files** — This skill operates entirely within session context.
-4. **Never read files** — This skill operates entirely within session context.
-5. **Timestamp anchors** — ISO 8601 for the anchor creation time.
-6. **Correction emphasis** — When the user corrected the agent, the CORRECT version must be in the anchor, never the original error.
+1. **Wait for user trigger** — "save context", "context check", or resume
+2. **Keep it short** — 20 lines max per anchor
+3. **Redact secrets aggressively** — strip any sensitive patterns
+4. **Inform on restore** — never restore silently
+5. **Only write to `memory/anchors/`** — nowhere else
+6. **One anchor per checkpoint** — new file each time
+7. **Language follows user** — anchor content in the language being used
+8. **Timestamp everything** — ISO 8601
 
-## Output
+## More by TommoT2
 
-When context preservation is performed (adapts to user language):
+- **cross-check** — Auto-detect and verify assumptions in your responses
+- **setup-doctor** — Diagnose and fix OpenClaw setup issues
+- **locale-dates** — Format dates/times for any locale
 
-```markdown
-## 🧠 Context Anchor Created
-
-🔴 Must survive: [N] items
-🟡 Should survive: [N] items (not anchored, can re-ask if needed)
-
-Anchored:
-- [item 1]
-- [item 2]
-- [item 3]
-
-Ready for compaction. These items are in recent messages.
+Install the full suite:
+```bash
+clawhub install context-brief cross-check setup-doctor locale-dates
 ```

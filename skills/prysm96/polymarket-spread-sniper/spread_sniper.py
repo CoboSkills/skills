@@ -36,7 +36,7 @@ SKILL_SLUG = "polymarket-spread-sniper"
 TRADE_SOURCE = "sdk:spreadsniper"
 
 CONFIG_SCHEMA = {
-    "min_spread":         {"env": "SIMMER_SPREAD_MIN_SPREAD",      "default": 0.02,  "type": float},  # Min divergence AMM vs CLOB (2¢)
+    "min_spread":         {"env": "SIMMER_SPREAD_MIN_SPREAD",      "default": 0.005, "type": float},  # Min net edge after fees (0.5¢)
     "min_volume":         {"env": "SIMMER_SPREAD_MIN_VOLUME",       "default": 5000,  "type": float},  # Min 24h volume
     "max_position_usd":   {"env": "SIMMER_SPREAD_MAX_POSITION",     "default": 5.00,  "type": float},
     "max_trades_per_run": {"env": "SIMMER_SPREAD_MAX_TRADES",       "default": 3,     "type": int},
@@ -240,18 +240,20 @@ def run_strategy(dry_run=True, positions_only=False, show_config=False,
         if mid is None:
             continue
 
-        # Divergence: AMM price vs CLOB mid
-        # Compute net edge AFTER entry cost (paying ask/no-ask)
+        # Edge = gap between CLOB mid (informed price) and AMM price (what we pay via Simmer)
+        # We trade through Simmer at AMM price, not CLOB ask — that's the advantage.
+        # Subtract 2% fee from edge.
+        POLY_FEE = 0.02
         if market_p < mid:
-            # AMM underpriced → buy YES at CLOB ask
+            # CLOB says YES is worth more than AMM → buy YES through Simmer at AMM price
             side = "yes"
-            entry_price = best_ask if best_ask else (mid + spread / 2)
-            edge = mid - entry_price
+            entry_price = market_p
+            edge = (mid - market_p) - (market_p * POLY_FEE)
         else:
-            # AMM overpriced → buy NO at CLOB (pay 1 - best_bid)
+            # CLOB says NO is worth more than AMM → buy NO through Simmer at AMM NO price
             side = "no"
-            entry_price = (1 - best_bid) if best_bid else (1 - (mid - spread / 2))
-            edge = (1 - mid) - entry_price  # = best_bid - mid
+            entry_price = 1.0 - market_p
+            edge = (market_p - mid) - (entry_price * POLY_FEE)
 
         # Only trade when net edge exceeds MIN_SPREAD threshold
         if edge < MIN_SPREAD:
@@ -260,8 +262,8 @@ def run_strategy(dry_run=True, positions_only=False, show_config=False,
         signals_found += 1
 
         log(f"\n  {question}")
-        log(f"     Mkt={market_p:.3f} Mid={mid:.3f} Spread={spread:.3f} Edge={edge:.3f}")
-        log(f"     → BUY {side.upper()} @ {entry_price:.3f} | vol=${vol:.0f} | {hours:.0f}h")
+        log(f"     AMM={market_p:.3f} CLOB_mid={mid:.3f} CLOB_spread={spread:.3f} Edge={edge:.3f}")
+        log(f"     → BUY {side.upper()} via Simmer @ ~{entry_price:.3f} (AMM) | vol=${vol:.0f} | {hours:.0f}h")
 
         trades_attempted += 1
         result = execute_trade(

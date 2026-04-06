@@ -1,8 +1,8 @@
 ---
 skill_name: ogp-project
-version: 1.0.0
-description: Agent-aware project context skill for OGP with interview, freeform logging, and cross-peer summarization
-trigger: Use when the user wants to create, manage, log to, or summarize OGP projects. This includes project context interviews, freeform activity logging, and cross-peer collaboration. Recognizes natural language expressions of intent to log or track information, including: log this/that, add this to [project], account for this, make note of this, track this, remember that, jot this down, save this to [project], record this, document this, put this in [project], note for [project], and semantic equivalents regardless of exact phrasing
+version: 1.1.0
+description: Agent-aware project context skill for OGP with interview, freeform logging, and cross-peer summarization (updated for OGP 0.2.24+ peer identity)
+trigger: Use when the user wants to create, manage, log to, or summarize OGP projects. This includes project context interviews, freeform activity logging, and cross-peer collaboration. Also triggers on natural logging phrases like "remember this for project X", "account for this", "make note of", "track this", "jot this down", "save this to", "document this" when a project context is active or named.
 requires:
   bins:
     - ogp
@@ -24,6 +24,8 @@ ogp setup
 ogp start
 ```
 
+**Note on Peer IDs (OGP 0.2.24+):** Peers are identified by the first 16 characters of their Ed25519 public key (e.g., `302a300506032b65`). This is stable even when their gateway URL changes.
+
 Full documentation: https://github.com/dp-pcs/ogp
 
 
@@ -36,18 +38,10 @@ This skill enables conversational project management with OGP federation. It pro
 
 Use this skill when:
 - User wants to create a new OGP project with contextual setup
-- User expresses intent to log, track, or record information using natural language such as:
-  - "add this to project X" / "log that to project Y"
-  - "account for this" / "make note of this"
-  - "track this" / "remember that"
-  - "jot this down" / "save this to [project]"
-  - "record this" / "document this"
-  - "put this in [project]" / "note for [project]"
-  - Any semantic equivalent expressing intent to capture or track information
+- User says "add this to project X" or "log that to project Y"
 - User asks about project status, activity, or collaborator contributions
 - User wants to understand project context or recent work
 - User mentions OGP projects, project logging, or cross-peer collaboration
-- Intent recognition should focus on meaning rather than exact keywords
 
 ## Core Features
 
@@ -59,7 +53,8 @@ Use this skill when:
 ### 2. Freeform Activity Logging
 - Monitors for logging signals ("add this to project X")
 - Agent-driven logging of decisions, progress, blockers
-- Flexible topic assignment (progress, decision, blocker, context, summary)
+- Flexible entry type assignment (progress, decision, blocker, context, summary)
+- **Auto-registration**: Project IDs auto-register as agent-comms topics for all approved peers
 
 ### 3. Project-Aware Agent Behavior
 - Auto-loads project context on first reference
@@ -104,38 +99,29 @@ Project created! Let me capture some context (all optional — press Enter to sk
 
 ### Freeform Logging Detection
 
-Monitor for natural language expressions indicating logging intent. Focus on intent rather than exact phrasing:
+**IMPORTANT: Detect logging intent from ANY natural phrasing — not just exact keywords.**
 
-#### Explicit Project Logging Signals
-| User Input Pattern | Action | Example |
-|-------------------|---------|---------|
+Monitor for these signals (and semantic equivalents):
+
+| User Input | Action | Example |
+|------------|---------|---------|
 | "add this to [project]" | `ogp project contribute <id> context "<summary>"` | Context logging |
 | "log that to [project]" | `ogp project contribute <id> progress "<summary>"` | Progress update |
-| "save this to [project]" | `ogp project contribute <id> context "<summary>"` | Context logging |
-| "put this in [project]" | `ogp project contribute <id> context "<summary>"` | Context logging |
-| "record this in [project]" | `ogp project contribute <id> context "<summary>"` | Context logging |
-| "document this for [project]" | `ogp project contribute <id> context "<summary>"` | Context logging |
-| "note for [project]" | `ogp project contribute <id> context "<summary>"` | Context logging |
-
-#### General Logging Intent (Ask for Project)
-| User Input Pattern | Response | Action |
-|-------------------|----------|---------|
-| "account for this" | "Which project should I log this to?" | Prompt for project selection |
-| "make note of this" | "Which project should I log this to?" | Prompt for project selection |
-| "track this" | "Which project should I log this to?" | Prompt for project selection |
-| "remember that" | "Which project should I log this to?" | Prompt for project selection |
-| "jot this down" | "Which project should I log this to?" | Prompt for project selection |
-| "save this" | "Which project should I log this to?" | Prompt for project selection |
-| "record this" | "Which project should I log this to?" | Prompt for project selection |
-| "document this" | "Which project should I log this to?" | Prompt for project selection |
-| "log this" | "Which project should I log this to?" | Prompt for project selection |
-
-#### Contextual Logging Signals
-| Situation | Action | Example |
-|-----------|---------|---------|
+| "remember for [project] that..." | `ogp project contribute <id> context "<summary>"` | Context note |
+| "account for this in [project]" | `ogp project contribute <id> context "<summary>"` | Context note |
+| "make note of this for [project]" | `ogp project contribute <id> context "<summary>"` | Note |
+| "track this in [project]" | `ogp project contribute <id> progress "<summary>"` | Progress |
+| "jot this down for [project]" | `ogp project contribute <id> context "<summary>"` | Quick note |
+| "save this to [project]" | `ogp project contribute <id> context "<summary>"` | Context |
+| "put this in [project]" | `ogp project contribute <id> context "<summary>"` | Context |
+| "document this for [project]" | `ogp project contribute <id> context "<summary>"` | Documentation |
 | After coding session | Offer: "Should I log a summary to [project]?" | Proactive logging |
 | Decision made | `ogp project contribute <id> decision "<summary>"` | Architecture decisions |
 | Blocker encountered | `ogp project contribute <id> blocker "<summary>"` | Issue tracking |
+
+**If no project is specified:** Ask "Which project should I log this to?" and list active projects from `ogp project list`.
+
+**Intent over keywords:** If the user clearly wants to capture something for a project — regardless of exact phrasing — trigger the logging flow. Don't wait for magic words.
 
 ### Project Status and Summarization
 
@@ -167,40 +153,6 @@ ogp project status-peer <peer-id> <project-id>
 3. Merge, deduplicate, and present unified timeline
 4. Highlight collaboration patterns and recent activity
 
-## Natural Language Intent Recognition
-
-### Intent Detection Guidelines
-The skill should recognize logging intent from varied natural language expressions, not just specific keywords. Focus on semantic meaning:
-
-**Logging Intent Indicators:**
-- Words suggesting capture/storage: log, add, save, record, document, track, note, jot, put, remember, account
-- Context suggesting information preservation: "for the record", "so we don't forget", "to keep track"
-- Imperative tone with information: "make sure we capture this", "don't let this slip"
-
-**Project Identification:**
-- Explicit: "add this to [project-name]", "log this in mobile-app"
-- Implicit: If no project specified, ask: "Which project should I log this to?" and list active projects
-- Smart defaults: If user is currently working in a specific project context, offer that as default
-
-**Intent Confirmation:**
-- For explicit project references: Proceed with logging and confirm afterward
-- For implicit logging intent: Ask which project and what topic (progress, decision, context, etc.)
-- Example: "I'll log that to the mobile-app project as a decision. Sound good?"
-
-**Response Format:**
-After successful logging, always confirm:
-```
-✅ Logged to [project-name] as [topic]
-Summary: [brief summary of what was logged]
-```
-
-If project selection is needed:
-```
-📝 I can log this for you. Which project?
-Active projects: [project-1], [project-2], [project-3]
-Or tell me a new project name to create it.
-```
-
 ## Agent Instructions
 
 ### On Project Reference
@@ -213,18 +165,9 @@ When a project is mentioned:
 1. **Monitor for decisions**: Log architectural or product decisions automatically
 2. **Track blockers**: When user expresses frustration or being stuck, offer to log as blocker
 3. **Completion logging**: After significant work, offer: "Should I log a progress summary to [project]?"
-4. **Natural language monitoring**: Continuously watch for logging intent expressions:
-   - Semantic indicators: words/phrases suggesting information capture or tracking
-   - Context clues: tone, imperative statements, information-sharing moments
-   - Follow-up questions: when users provide additional details, ask if they want it logged
-5. **Intent clarification**: When logging intent is detected but project is unclear:
-   - List active projects for selection
-   - Offer to create new project if needed
-   - Suggest appropriate topic (progress, decision, context, blocker, summary)
-6. **Smart defaults**: If user is working in project context, offer that project as default
 
 ### Logging Intelligence
-**Topic Selection Logic:**
+**Entry Type Selection Logic:**
 - `progress` — work completed, features implemented, milestones reached
 - `decision` — architectural choices, technology selections, product decisions
 - `blocker` — things preventing progress, issues encountered, dependencies
@@ -262,11 +205,12 @@ ogp project status <id>
 
 ### Contributions & Logging
 ```bash
-# Add contribution
-ogp project contribute <id> <topic> <summary> [--metadata '{"key":"value"}']
+# Add contribution by entry type
+ogp project contribute <id> <type> <summary> [--metadata '{"key":"value"}']
 
 # Query contributions
-ogp project query <id> [--topic <topic>] [--author <author>] [--search <text>] [--limit <n>]
+ogp project query <id> [--type <type>] [--author <author>] [--search <text>] [--limit <n>]
+# Note: --topic is a hidden alias for --type for backwards compatibility
 ```
 
 ### Cross-Peer Collaboration
@@ -306,7 +250,7 @@ You can now:
 ### Freeform Logging Confirmation
 ```
 📝 Logged to project "{project_name}":
-  Topic: {topic}
+  Type: {type}
   Summary: {summary}
 
 Recent activity: {recent_count} contributions in the last week
@@ -341,12 +285,12 @@ Peer Contributions ({peer_count}):
 {collaboration_patterns}
 ```
 
-## Context Topics Schema
+## Context Entry Types Schema
 
-Standard context topics for structured project information:
+Standard context entry types for structured project information:
 
-| Topic | Purpose | Example |
-|-------|---------|---------|
+| Entry Type | Purpose | Example |
+|------------|---------|---------|
 | `context.repository` | Code repository URL | `https://github.com/user/repo` |
 | `context.workspace` | Local development path | `/Users/name/projects/myapp` |
 | `context.notes` | Notes/documentation location | `Obsidian vault: ProjectNotes/MyApp` |
@@ -380,7 +324,7 @@ Agent runs: ogp project contribute inventory-system decision "Switched from Mong
 User: "What has Alice been working on in the mobile-app project?"
 
 Agent runs:
-1. ogp project query-peer alice:18790 mobile-app --limit 10
+1. ogp project query-peer 9d4e1f... mobile-app --limit 10
 2. ogp project query mobile-app --limit 10 --author alice
 
 Agent: "Alice's recent contributions to mobile-app:
@@ -389,82 +333,6 @@ Agent: "Alice's recent contributions to mobile-app:
 • 1 week ago: Added offline data sync capability
 
 Total: 8 contributions this month, very active on backend integration work."
-```
-
-### Natural Language Intent Recognition Examples
-
-#### Explicit Project Logging
-```
-User: "Account for this API rate limiting issue in the mobile-app project"
-
-Agent: "I'll log that rate limiting issue to the mobile-app project as a blocker."
-Agent runs: ogp project contribute mobile-app blocker "API rate limiting issue encountered affecting user authentication flow"
-
-Agent: "✅ Logged to mobile-app as blocker
-Summary: API rate limiting issue affecting authentication"
-```
-
-#### Implicit Project Selection
-```
-User: "Make note of this - we decided to use React Native instead of Flutter"
-
-Agent: "📝 I can log this architectural decision for you. Which project?
-Active projects: mobile-app, web-portal, backend-api
-Or tell me a new project name to create it."
-
-User: "mobile-app"
-
-Agent runs: ogp project contribute mobile-app decision "Decided to use React Native instead of Flutter for mobile development"
-
-Agent: "✅ Logged to mobile-app as decision
-Summary: React Native chosen over Flutter for mobile development"
-```
-
-#### Context-Aware Logging
-```
-User: "Track this - the database migration will need to happen during off-peak hours"
-
-Agent: "Which project should I log this to?"
-Active projects: backend-api, data-pipeline
-
-User: "backend-api"
-
-Agent: "I'll log that deployment constraint to backend-api. Sound good?"
-Agent runs: ogp project contribute backend-api context "Database migration must be scheduled during off-peak hours for minimal service disruption"
-
-Agent: "✅ Logged to backend-api as context
-Summary: Database migration timing constraint noted"
-```
-
-#### Smart Default Suggestion
-```
-[User is currently working on authentication feature in auth-service project]
-
-User: "Remember that we need to handle the OAuth token refresh edge case"
-
-Agent: "I'll log that OAuth consideration to the auth-service project as context. Sound good?"
-
-User: "Yes"
-
-Agent runs: ogp project contribute auth-service context "Need to handle OAuth token refresh edge case for seamless user experience"
-
-Agent: "✅ Logged to auth-service as context
-Summary: OAuth token refresh edge case handling requirement"
-```
-
-#### Multi-Language/Phrasing Support
-```
-User: "Jot this down - the API endpoint needs rate limiting"
-
-Agent: "Which project should I log this to?"
-Active projects: backend-api, mobile-app
-
-User: "backend-api"
-
-Agent runs: ogp project contribute backend-api context "API endpoint requires rate limiting implementation for security and performance"
-
-Agent: "✅ Logged to backend-api as context
-Summary: Rate limiting requirement for API endpoint"
 ```
 
 ## Troubleshooting
@@ -491,10 +359,10 @@ ogp status
 ```bash
 # Verify peer is approved and has project scope
 ogp federation list --status approved
-ogp federation scopes <peer-id>
+ogp federation scopes 302a300506032b65
 
 # Test basic peer connectivity
-ogp federation send <peer-id> message '{"text":"ping"}'
+ogp federation send 302a300506032b65 message '{"text":"ping"}'
 ```
 
 ### No Context Loaded

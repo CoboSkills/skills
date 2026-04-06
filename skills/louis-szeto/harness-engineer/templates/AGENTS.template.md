@@ -26,13 +26,28 @@ it contains no implementation details. Follow the links to find what you need.
 
 ---
 
+## HOW TO USE THIS SKILL (reading order)
+
+1. CLAUDE.md or AGENTS.md if present (base context -- this file)
+2. CONFIG.yaml (runtime settings)
+3. runtime/loop.md (execution model)
+4. runtime/context-engineering.md (context budget rules)
+5. runtime/status-management.md (restore checkpoint if resuming)
+6. MEMORY.md (prior failure context)
+7. agents/dispatcher.md (task decomposition model)
+8. Begin the loop
+
+---
+
 ## CURRENT SYSTEM STATE
 
-**Phase:** active | maintenance | optimization  
-**Last cycle:** NNN  
-**Last quality report:** `docs/quality/QUALITY-NNN.md`  
-**Open bugs:** 0  
+**Phase:** active | maintenance | optimization
+**Last cycle:** NNN
+**Last quality report:** `docs/quality/QUALITY-NNN.md`
+**Open bugs:** 0
 **Entropy score:** --
+**Active constraints:** N (from references/constraints.md)
+**Recent failures:** N (from MEMORY.md)
 
 ---
 

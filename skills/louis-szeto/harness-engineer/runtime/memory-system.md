@@ -30,8 +30,7 @@ Lesson:  <one-sentence takeaway about system behavior>
 - Raw tool input values (file paths are fine; file *contents* are not)
 - Application log output (may contain secrets, tokens, PII, stack traces)
 - Web search query responses (stage in `docs/generated/search-staging/` instead)
-- Any string matching patterns: `*key*`, `*token*`, `*password*`, `*secret*`,
-  `*credential*`, `Bearer *`, `-----BEGIN *`
+- Any values that could be authentication material, access tokens, or credentials
 
 When in doubt, record the outcome and lesson only -- not the data that triggered it.
 

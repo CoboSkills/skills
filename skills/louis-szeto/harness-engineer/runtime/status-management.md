@@ -17,6 +17,7 @@ One tracking log per major phase, written append-only:
   docs/status/PROGRESS.md             -- compact cycle-level summary (one entry per phase)
   docs/status/HANDOFF.md              -- context reset checkpoint (overwritten each reset)
   docs/status/CYCLE-NNN.md            -- completed cycle archive (one per cycle)
+  docs/status/EFFICIENCY-HISTORY.md    -- context-tokens-per-gap and gap-closed-rate across cycles
   docs/status/CHECKLIST-NNN-XX.md     -- per-WU done criteria checklist (one per WU)
 
 ---
@@ -89,7 +90,8 @@ Entry fields specific to dispatch tracking:
   Tests: N passed, N failed, coverage=XX%
   Gap-closed: N/M criteria confirmed
   Queue remaining: <list of WU IDs not yet complete>
-  Context: ~XX%
+  Ctx-tokens: <approximate tokens consumed by this agent instance>
+  Ctx-used: ~XX%
   Error: <error or "none">
   ```
 
@@ -213,6 +215,8 @@ Written at Phase 5 (Reflect). Never modified after writing.
   Total iterations: N (average per WU: N)
   Tests written: N new
   Prevention rules added: N
+  Avg-ctx-tokens-per-gap: N   (quality/efficiency metric -- tracked in EFFICIENCY-HISTORY.md)
+  Gap-closed-rate: N/N        (gaps resolved / gaps attempted this cycle)
 
   ## Harness Gap Categories Observed
   <list of gap categories from runtime/observability.md>

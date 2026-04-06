@@ -18,8 +18,8 @@ Enforcement column: SKILL = enforced by agent instructions in this skill
 
 | Check | Enforcement | How to verify |
 |-------|-------------|---------------|
-| Forbidden paths in references/sensitive-paths.md are not read by agents | BOTH | Run a test cycle on a repo with a dummy .env file. Confirm agent skips it and logs "excluded -- sensitive path policy". |
-| Tool router blocks read_file calls to forbidden path patterns | PLATFORM | Attempt a read_file(".env") call through the MCP router. Confirm it returns "blocked -- sensitive path policy" with no content. |
+| Forbidden paths in references/sensitive-paths.md are not read by agents | BOTH | Run a test cycle on a repo with a test-only sensitive file. Confirm agent skips it and logs "excluded -- sensitive path policy". |
+| Tool router blocks read_file calls to forbidden path patterns | PLATFORM | Review router block-list config. Confirm forbidden path patterns from references/sensitive-paths.md are present. Check BLOCKED_READ entries in tool-logs after first cycle. |
 | CI config env/secrets sections are excluded from agent working memory | SKILL | Review RESEARCH-NNN.md after a cycle. Confirm no env: or secrets: values appear. |
 | sub-researchers receive pre-filtered file lists (no sensitive paths) | SKILL | Check RESEARCH-TRACK-NNN.md. Confirm sub-researcher scopes list no forbidden paths. |
 
@@ -34,9 +34,9 @@ Action if platform enforcement is unavailable:
 | Check | Enforcement | How to verify |
 |-------|-------------|---------------|
 | Tool calls route through a central router (not direct tool invocation) | PLATFORM | Review platform tool call logs. Confirm all calls pass through the router. |
-| Router enforces per-agent tool subsets (references/mcp-tools.md) | PLATFORM | Attempt a researcher_agent write_file call. Confirm it is blocked. |
-| Router blocks writes to protected paths (SKILL.md, CONFIG.yaml, agents/**, runtime/**, tools/**) | BOTH | Attempt a write_file("SKILL.md") call. Confirm BLOCKED_WRITE is logged. |
-| Router redacts credential-shaped strings before they reach agent context | PLATFORM | Pass a mock token string through a tool. Confirm it is masked in the result. |
+| Router enforces per-agent tool subsets (references/mcp-tools.md) | PLATFORM | Review router tool-subset config. Confirm researcher_agent does not have write_file in its allowed set. Check tool-logs for any unexpected tool calls. |
+| Router blocks writes to protected paths (SKILL.md, CONFIG.yaml, agents/**, runtime/**, tools/**) | BOTH | Review router protected-path config. Confirm all paths listed in tools/tool-router.md PROTECTED PATHS are present. Check BLOCKED_WRITE entries in tool-logs after first cycle. |
+| Router redacts authentication material before it reaches agent context | PLATFORM | Pass a mock token string through a tool. Confirm it is masked in the result. |
 | BLOCKED_READ and BLOCKED_WRITE events are logged (path pattern, not path content) | PLATFORM | Check tool-logs after a test cycle. Confirm blocked events appear. |
 
 Action if router is unavailable:
@@ -67,7 +67,7 @@ Action if git scoping is not configured:
 | Check | Enforcement | How to verify |
 |-------|-------------|---------------|
 | Tests run in an isolated environment with no access to host env vars | PLATFORM | Run a test that tries to read an env var. Confirm the sandbox returns empty or error. |
-| Generated code execution has no network path to harness secrets | PLATFORM | Confirm the sandbox has no access to the agent's credential context. |
+| Generated code execution has no network path to harness authentication material | PLATFORM | Confirm the sandbox has no access to the agent's authentication context. |
 | Each test execution starts in a clean environment | PLATFORM | Run the same test twice. Confirm state from run 1 does not affect run 2. |
 | Sandbox cannot read harness files (SKILL.md, CONFIG.yaml, MEMORY.md) | PLATFORM | Confirm sandbox filesystem access does not include the harness directory. |
 
@@ -99,7 +99,7 @@ Action if staging gate is not working:
 | max_history: 500 entries (CONFIG.yaml) | SKILL | Check CONFIG.yaml. Confirm max_history is not set to "unlimited". |
 | max_entry_age_days: 90 (CONFIG.yaml) | SKILL | Check CONFIG.yaml. Confirm max_entry_age_days is set. |
 | redact_before_write: true (CONFIG.yaml) | SKILL | Review runtime/memory-system.md redaction rules. |
-| MEMORY.md does not contain paths from references/sensitive-paths.md | SKILL | Grep MEMORY.md for .env, .key, .pem patterns after a test cycle. Expect zero matches. |
+| MEMORY.md does not contain paths from references/sensitive-paths.md | SKILL | Grep MEMORY.md for forbidden path patterns after a test cycle. Expect zero matches. |
 
 Action if memory retention is a concern:
   Set max_history to a lower value. Add a git hook that scans MEMORY.md for

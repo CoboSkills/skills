@@ -43,9 +43,11 @@ Agent => Tool Request => Tool Router => Validate => Execute => Normalize Output 
 ```
 
 **Redaction rule**: before any tool result is written to a log or returned to an agent,
-the router must strip or mask:
-- Any value matching: `*key*`, `*token*`, `*password*`, `*secret*`, `*credential*`,
-  `Bearer *`, `-----BEGIN *`, and strings > 64 chars that appear base64-encoded
+the router must strip or mask values that match common credential patterns.
+This includes authentication tokens, API keys, passwords, secrets, certificates,
+and any opaque string that could be an authentication token or credential.
+
+Additionally, the router must never log:
 - Full file contents (log the path, not the content)
 - Raw HTTP response bodies (log status code and outcome only)
 
@@ -87,13 +89,28 @@ forbidden patterns is blocked at the router level before the tool executes.
 Blocked reads are logged as BLOCKED_READ events (path pattern matched, not the path itself).
 The requesting agent receives: "read blocked -- sensitive path policy" with no content.
 
-Patterns blocked at router level:
-  .env, .env.*, .envrc
-  *.pem, *.key, *.p12, *.pfx, *.cer, *.secret
-  id_rsa, id_ed25519, id_ecdsa, authorized_keys
-  .git/config, .git/credentials
-  .npmrc, .pypirc, .netrc
-  config/master.key, config/credentials.yml.enc
-  terraform.tfvars, *.tfstate, *.tfstate.backup
-  .vault-token
-  (full list in references/sensitive-paths.md)
+The full list of blocked path patterns is maintained in references/sensitive-paths.md.
+Categories include: credential files, CI/CD configuration, git internals,
+package manager authentication, and application configuration with embedded secrets.
+
+---
+
+## OUTPUT REDACTION
+
+Before returning tool results to agents, the router applies output redaction:
+
+### Redaction Categories
+- Authentication tokens and API keys
+- Connection strings containing embedded credentials
+- Environment variable values for sensitive configuration
+- HTTP response bodies from external requests (keep status + headers only)
+
+### Redaction Log
+- Count of redacted items per tool call (metadata only)
+- Category of what was redacted (not the actual value)
+- Stored in docs/generated/tool-logs/
+- The actual redacted values are never stored
+
+### Exception
+Redaction does NOT apply when the agent explicitly requests raw output for
+debugging AND the human gate approves.

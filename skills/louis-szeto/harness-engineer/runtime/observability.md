@@ -17,6 +17,29 @@ The cycle summary records:
   - Duration per phase
   - Test results (aggregate counts + coverage)
   - Abnormalities detected
+  - Avg-ctx-tokens-per-gap (context efficiency metric)
+  - Gap-closed-rate (quality metric)
+
+### Queryable trace filesystem
+
+All tracking logs and tool-log entries are stored as grep-able plaintext files.
+The harness-improvement agent (Phase 6) navigates them selectively:
+
+  Find high-iteration WUs (scope too large?):
+    Search DISPATCH-TRACK-NNN.md for lines containing "ITER-3", "ITER-4", or "ITER-5"
+
+  Find high-context steps (context rule violated?):
+    Search DISPATCH-TRACK-NNN.md for "Ctx-used" entries where the percentage is 40 or above
+
+  Find recurring reviewer failures (review scope gap?):
+    Search DISPATCH-TRACK files for entries where L2 or L3 status is "fail"
+
+  Find repeated failure types across cycles (constraint gap?):
+    Search MEMORY.md for lines containing "Harness Cause:"
+
+The agent reads selectively. It does NOT ingest full tracking files.
+Full files exist in the filesystem for diagnosis; the agent retrieves what it needs.
+This is the key design: filesystem-as-feedback-channel, not prompt-as-feedback.
 
 ---
 
@@ -97,3 +120,14 @@ At the end of every 5 cycles, run a harness review:
 
 The harness should become measurably more effective over time.
 Track: regression rate, average cycle duration, context resets per cycle.
+
+---
+
+## COST TRACKING
+
+Token usage and cost are tracked per-cycle. See runtime/cost-tracking.md.
+
+Cost-per-gap is a primary efficiency metric. Rising cost-per-gap signals harness
+bloat (too many retries, too much context per gap, sub-optimal agent routing).
+Connect cost data to the feedback closed-loop: if cost-per-gap is increasing,
+analyze whether the harness is introducing unnecessary overhead.

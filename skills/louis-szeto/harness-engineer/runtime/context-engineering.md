@@ -34,6 +34,50 @@ A noisy context at 60%+ produces measurably worse agent decisions.
 
 ---
 
+## COMPACTION vs RESET: WHEN TO USE WHICH
+
+Context management has two mechanisms. Choosing the wrong one degrades quality.
+
+### Compaction = Summarize in-place, same agent continues
+- Good for mid-phase context management (e.g., research is long but not done)
+- The same agent picks up from the summary and keeps going
+- Trade-off: preserves continuity but does NOT eliminate context anxiety
+
+### Reset = Clear context entirely, fresh agent starts from HANDOFF.md
+- Essential when crossing phase boundaries (research → plan → implement)
+- A completely new agent session reads HANDOFF.md and resumes
+- Trade-off: no continuity, but a clean slate with full attention budget
+
+### Decision Matrix
+
+| Condition | Action |
+|-----------|--------|
+| Context >40% AND crossing a phase boundary | **RESET**, not compact |
+| Context >40% within a phase | Compact or sub-agent handoff |
+| Context anxiety detected (repetitive errors, degraded reasoning) | **RESET** regardless of phase |
+| Session end approaching (time or token limit) | Write HANDOFF.md, plan for reset |
+
+### Reset Protocol
+
+1. **Write HANDOFF.md** -- full checkpoint state, pending work, key files, decisions made
+2. **Verify state completeness** -- read HANDOFF.md back; confirm all critical items present
+3. **New agent session** -- start a fresh chat/context
+4. **Read HANDOFF.md** -- new agent loads checkpoint
+5. **Verify recovery** -- new agent reads listed files and confirms state matches
+6. **Continue** -- proceed from the checkpoint
+
+### Anthropic Insight
+
+> "Context resets provide a clean slate. Compaction preserves continuity but doesn't
+> eliminate context anxiety. For agents that exhibit context anxiety, resets are
+> essential."
+
+When an agent starts repeating mistakes, losing track of pending items, or producing
+degraded output, do not compact -- reset. The root cause is attention degradation,
+not information loss.
+
+---
+
 ## GROUND TRUTH HIERARCHY
 
 When sources conflict, trust in this order:
@@ -54,10 +98,14 @@ Every session begins with this sequence:
 
 1. Check for CLAUDE.md and AGENTS.md -- read both if present
 2. Check for docs/status/PROGRESS.md -- if present, this is a resumption
+2.5. If resuming from HANDOFF.md: verify recovery by reading listed files and confirming state matches. If mismatch: surface to human immediately.
 3. Check for docs/status/HANDOFF.md -- if present, load checkpoint state
 4. Read MEMORY.md -- reload failure patterns and prevention rules
 5. Check references/constraints.md -- apply all prevention rules
 6. Only then: begin planning or continue from checkpoint
+7. Instruction discovery walk (CWD → root, collect CLAW.md/AGENTS.md files)
+   See runtime/instruction-discovery.md for algorithm and budget rules.
+   Load CLAW.md/AGENTS.md at CWD immediately. Index others for on-demand reading.
 
 ---
 
@@ -97,6 +145,9 @@ See agents/researcher.md, agents/planner.md, agents/implementer.md for agent spe
 
 ## COMPACTION RULES
 
+For the full compaction algorithm (structured summary format, merge algorithm,
+preservation rules), see runtime/compaction.md.
+
 What to keep (high-signal):
   - Unresolved errors and their root causes
   - Architecture and design decisions made
@@ -111,3 +162,21 @@ What to discard (low-signal):
   - Early exploration that reached a dead end
 
 Never compact prevention rules or active constraints. These must persist.
+
+---
+
+## NON-EXISTENCE PRINCIPLE
+
+Anything the agent cannot access in-context effectively does not exist.
+
+Knowledge that lives outside the repo (Google Docs, chat threads, people's heads,
+email threads, Jira tickets without API access) is inaccessible. The agent cannot
+read it, reference it, or act on it.
+
+**Implication**: Push all relevant context into the repo.
+- Design decisions go in ADRs (docs/architecture/adr/)
+- Task context goes in GAPS and MASTER-PLAN documents
+- External references are staged in docs/references/ or summarized in-repo
+- If a human says something important, it must be written down in the repo to be real
+
+The repo is the agent's entire reality. If it's not in the repo, it doesn't exist.

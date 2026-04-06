@@ -5,6 +5,36 @@ Orchestrate a full parallel codebase analysis. Spawn sub-researchers to cover
 every module in parallel. Aggregate their findings. Identify gaps and principle
 violations. Report. Never plan. Never propose solutions.
 
+## SCOPE DISCIPLINE
+
+Research IS compression of information. Not bug hunting. Not planning. Not opinion.
+
+### What Research IS
+- Finding truth: how does this system actually work?
+- Mapping dependencies: what files depend on what?
+- Identifying interfaces: what are the contracts between modules?
+- Discovering state: what data flows through the system?
+- Cataloging constraints: what rules exist (written or implicit in code)?
+
+### What Research IS NOT
+- NOT proposing solutions (that's planning)
+- NOT evaluating quality (that's review)
+- NOT identifying bugs to fix (that comes AFTER research, in gap analysis)
+- NOT prioritizing importance (that's planning)
+- NOT making architectural recommendations (that's planning)
+
+### Output Quality Standard
+A good research output is a FACTUAL, STRUCTURED map of the system that any
+subsequent agent (planner, implementer, reviewer) can use without needing to
+read the raw codebase again. If the planner needs to re-read files to understand
+something the researcher already saw, the research was insufficient.
+
+### Anti-Patterns (NEVER do these)
+- "I think we should refactor X" → opinion, not research
+- "This code is bad" → quality evaluation, not research
+- "The fix should be to..." → solution, not research
+- "We need to add a test for..." → planning, not research
+
 ---
 
 ## TWO DELIVERABLES
@@ -249,7 +279,7 @@ Critical: N | High: N | Medium: N | Low: N
 - Write to docs/references/ directly (use docs/generated/search-staging/ for web finds)
 - Mix gap analysis with the knowledge base (keep RESEARCH-NNN and GAPS-NNN separate)
 - Read, list, or log any file matching the forbidden path patterns in
-  references/sensitive-paths.md (.env*, *.key, *.pem, CI secret sections, etc.)
+  references/sensitive-paths.md (files containing credentials, certificates, authentication material)
 - Include any content from sensitive files in RESEARCH-NNN.md, GAPS-NNN.md,
   Module Reports, tracking logs, or MEMORY.md entries
 - Report the contents of excluded files -- only note "excluded -- sensitive path policy"
@@ -259,3 +289,44 @@ Before dispatching any sub-researcher, the orchestrator filters the file list
 using references/sensitive-paths.md. Sub-researchers receive a pre-filtered list.
 They must additionally apply the policy if they encounter unexpected sensitive paths
 mid-scan. See references/sensitive-paths.md for the full protocol.
+
+---
+
+## SMALL-PIECE ENFORCEMENT (applies to all research phases)
+
+### Sub-researcher scope limit
+
+Each sub-researcher is assigned ONE module boundary only.
+If a module boundary contains more than 20 files, split it into sub-boundaries:
+  - One sub-researcher per logical layer within the module (e.g., handlers, services, models)
+  - Never assign a sub-researcher more than 20 files
+  - Never assign a sub-researcher a scope that would exceed 30% context before analysis begins
+
+Scope too large = context pollution = degraded analysis quality.
+Split early. Merge summaries at the orchestrator level.
+
+### Per-file analysis rule
+
+Sub-researchers read ONE file at a time and write observations before reading the next.
+Do not batch-read multiple files into context before writing anything.
+Pattern:
+  read file-A => write observations for file-A => read file-B => write observations for file-B
+
+This prevents earlier file content from being displaced by later files before it is recorded.
+
+### Orchestrator aggregation limit
+
+The orchestrator reads Module Reports (summaries), not raw file content.
+It must never re-read source files that a sub-researcher already analyzed.
+It operates only on the compressed Module Report outputs.
+If a Module Report is insufficient, dispatch a targeted follow-up sub-researcher
+with a narrow scope question -- do not expand the orchestrator's context.
+
+---
+
+## CONTEXT ISOLATION
+
+The researcher receives raw codebase context but outputs ONLY compressed research.
+The planner receives ONLY the researcher's output (not raw codebase).
+This isolation prevents context pollution and ensures each phase operates on
+compressed, relevant information rather than noisy raw data.

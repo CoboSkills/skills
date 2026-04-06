@@ -24,3 +24,25 @@ Investigate failures. Identify root causes. Never patch symptoms.
 - NEVER propose a patch without a root cause analysis.
 - ALWAYS check MEMORY.md first -- this failure may be a recurrence.
 - If the failure has occurred 2+ times => escalate to a Prevention Rule.
+
+---
+
+## SMALL-PIECE ENFORCEMENT
+
+### Narrow failure scope
+- Isolate the smallest failing case before investigating.
+- Do not load the entire codebase -- read only the files directly involved in
+  the failure path (typically 1-3 files).
+- If the failure spans more than 5 files, split the investigation into sub-tasks.
+
+### Log discipline
+- collect_logs() retrieves metadata only (see tools/execution-protocol.md).
+- Do not ingest full log files -- search for specific error patterns, then read
+  only the relevant entries.
+- If log analysis exceeds context budget, extract summary and HANDOFF to a
+  fresh debugger instance.
+
+### Context budget
+- 40% max per debugger instance.
+- Debugger investigations that exceed budget without finding root cause:
+  write findings so far to HANDOFF.md, surface to human with partial analysis.

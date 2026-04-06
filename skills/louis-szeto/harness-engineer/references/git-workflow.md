@@ -66,3 +66,40 @@ There is no auto-merge. The harness creates PRs; humans merge them.
 - Force-pushing to shared branches
 - Bypassing the reviewer cycle
 - Committing without checkpoint message format
+
+---
+
+## WORKTREE ISOLATION
+
+For parallel ITR groups, each group works in an isolated git worktree.
+
+### Protocol
+
+1. Before dispatching an ITR group, create a worktree:
+   git worktree add .worktrees/wu-{NNN}-{short-description} -b harness/wu-{NNN}
+
+2. Implementer operates within the worktree:
+   - All file reads/writes are scoped to the worktree
+   - Tests run within the worktree environment
+   - Commit checkpoints go to the worktree branch
+
+3. After ITR cycle completes successfully:
+   - All tests pass in the worktree
+   - Reviewer approves the changes
+   - Merge worktree branch back to trunk
+   - Delete the worktree: git worktree remove .worktrees/wu-{NNN}
+
+4. If ITR cycle fails:
+   - Delete the worktree and branch (clean slate)
+   - No partial state leaks into the main working tree
+
+### Benefits
+- True parallelism: multiple ITR groups can modify different files simultaneously
+- Isolation: a failing group cannot corrupt the main working tree
+- Clean rollback: failed work is deleted entirely, no merge conflicts to resolve
+
+### Integration with Dispatcher
+
+In agents/dispatcher.md, the dispatcher creates and manages worktrees as part
+of the ITR group lifecycle. The worktree path is passed to the implementer
+agent as the working directory.

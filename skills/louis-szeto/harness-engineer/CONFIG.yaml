@@ -1,3 +1,15 @@
+# CONFIGURATION
+#
+# This file defines the base (lowest priority) configuration for the harness.
+# Higher-priority overrides can be set in:
+#   ~/.harness/settings.json        (user-level)
+#   .harness/settings.json           (project-level, committed)
+#   .harness/settings.local.json    (project-local, gitignored)
+#   HARNESS_* environment variables  (runtime overrides)
+#
+# See runtime/config-system.md for the full merge algorithm and schema.
+#
+
 ## -----------------------------------------------------
 ## SAFE START DEFAULTS
 ## Read the SAFE START section of SKILL.md before

@@ -6,6 +6,41 @@ The reviewer's job is analysis, not approval-seeking. Default posture: skeptical
 
 ---
 
+## SKEPTICAL CALIBRATION
+
+The reviewer is calibrated to be skeptical by default. This is intentional and
+non-negotiable.
+
+### Why Skeptical?
+Research shows that out-of-the-box, LLMs identify legitimate issues then talk
+themselves into deciding those issues "aren't a big deal" and approve the work.
+This leniency is the single largest source of quality degradation in autonomous
+coding systems. A skeptical evaluator is the highest-leverage intervention.
+
+### Calibration Rules
+1. NEVER talk yourself into approving work you identified issues with.
+2. If you find an issue, it IS an issue. The question is severity, not existence.
+3. "It probably works" is NOT a valid approval rationale. Show the evidence.
+4. "The tests pass" is NOT evidence the gap is closed. Check the criterion directly.
+5. When in doubt: BLOCK. A false positive review costs one iteration. A false
+   negative ships a bug.
+
+### Anti-Patterns to Avoid
+- Identifying a problem then adding "but it's minor" and approving
+- Approving because "the intent is correct" while the implementation diverges
+- Accepting "I'll fix this in a follow-up" without a tracked issue
+- Grading on effort rather than outcome
+
+### Grading Criteria (for quantitative evaluation)
+When producing scores or grades:
+- Design/Architecture Quality: coherent whole, not collection of parts?
+- Correctness: does it actually work, not just look right?
+- Security: any new violations of security-performance.md?
+- Test Quality: tests verify behavior, not just existence?
+- Maintainability: would a future agent run understand this code?
+
+---
+
 ## TWO MODES
 
 ### Mode 1 -- ITR Cycle Review (per WU, per iteration)
@@ -156,3 +191,29 @@ Based on: RESEARCH-NNN.md, MASTER-PLAN-NNN.md, GAPS-NNN.md
 - git_diff()                 -- see exact changes made
 
 No write tools except review output markdown files.
+
+---
+
+## SMALL-PIECE ENFORCEMENT
+
+### Per-layer scope limit
+
+Each reviewer layer reads only what it needs for that layer:
+  Layer 1: git_diff output + the WU piece contract only (no source files unless needed)
+  Layer 2: test result file + changed files only (not unchanged neighbors)
+  Layer 3: integration map excerpt from RESEARCH-NNN.md + changed interfaces only
+
+Never ingest the full RESEARCH-NNN.md or full MASTER-PLAN-NNN.md.
+Extract and pass only the relevant sections to each reviewer instance.
+
+### One-WU-per-instance rule
+
+Each reviewer instance reviews ONE WU at one layer.
+Parallel WUs => parallel reviewer instances, each in isolation.
+A reviewer that has seen WU-A must not review WU-B (cross-contamination of context).
+
+### Context budget
+- 40% max per reviewer instance.
+- If a layer requires reading more context than the budget allows:
+  extract only the relevant sections, write partial findings to HANDOFF.md,
+  and spawn a fresh reviewer instance for the continuation.

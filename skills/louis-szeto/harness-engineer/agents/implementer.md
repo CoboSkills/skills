@@ -79,3 +79,32 @@ If during implementation you notice the plan conflicts with the codebase:
 4. Wait for human review of the conflict (Gate 2 or Gate 3 as applicable)
 
 This is not a failure. Catching disalignment early is the planner's intended purpose.
+
+---
+
+## SMALL-PIECE ENFORCEMENT
+
+### Context budget per implementer instance
+
+Hard limit: 3-5 files in context at any time.
+If the WU piece contract names more than 5 files:
+  1. Read only the primary change target file first
+  2. Implement the change
+  3. HANDOFF.md => fresh instance for secondary files
+  Never hold all files in context simultaneously.
+
+### One task per instance rule
+
+One implementer instance implements exactly ONE task (T-NNN) from the WU checklist.
+After committing the checkpoint for T-NNN, the next task gets a fresh instance.
+Pass between instances via HANDOFF.md + CHECKLIST-NNN-XX.md.
+This is not optional. Multi-task instances produce worse code with higher error rates.
+
+### Write-read-verify cycle
+
+For every change:
+  1. Read the target function/class only (not the whole file if large)
+  2. Write the change
+  3. Run the unit test for that specific function
+  4. Commit only after the test passes
+  Never write multiple changes before running any test.

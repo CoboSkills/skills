@@ -111,3 +111,16 @@ When tests fail:
 ```
 
 Note: log_ref points to a tool-log entry ID -- never raw log content.
+
+---
+
+## MECHANICAL ENFORCEMENT
+
+In addition to test coverage, quality is enforced via custom linters that run in
+pre-commit hooks. See references/mechanical-enforcement.md for the full list.
+
+Linter rules encode architectural constraints (dependency directions, file size limits,
+naming conventions, structured logging). When a linter violation occurs, the error
+message includes remediation instructions that go directly into agent context.
+
+"Documentation falls short? Promote the rule into code."

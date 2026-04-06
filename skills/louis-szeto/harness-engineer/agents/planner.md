@@ -16,6 +16,31 @@ Do not implement. Do not dispatch ITR groups. Plan only.
 
 ## PHASE A: PARALLEL GAP PLANNING
 
+### Step 0 -- Classify gap complexity (before spawning planners)
+
+Before spawning any gap planner, classify each gap:
+
+SIMPLE gap (use collapsed planning -- no parallel gap planner needed):
+  - Affects exactly 1 file
+  - Severity: low or medium
+  - Requires no interface contract changes
+  - Affects no consumers in other modules
+  Action: central planner writes the GAP-PLAN directly (no sub-agent spawn)
+  WU count: always 1
+  ITR group: collapsed to single implementer + single reviewer (Layer 2 only)
+             skip Layer 1 (plan alignment) and Layer 3 (architecture) for low severity
+
+STANDARD gap (use full parallel gap planner):
+  - Affects 2-5 files OR changes an interface contract OR has medium-high severity
+  Action: spawn one gap planner sub-agent (standard process below)
+
+COMPLEX gap (use full parallel gap planner + split into sub-gaps):
+  - Affects more than 5 files OR spans multiple modules OR is critical severity
+  Action: split into multiple standard gaps before spawning planners
+
+Record classification in MASTER-PLAN-NNN.md gap summary table (add "Type" column).
+Simple gaps skip the parallel planner spawn and go directly to the execution queue.
+
 ### Step 1 -- Spawn one gap planner per gap
 
 For each GAP-XX in GAPS-NNN.md, dispatch an independent gap planner:
@@ -229,3 +254,39 @@ Approved by: <pending>
 Approval timestamp: <pending>
 Deferred gaps: <any gaps human chose to skip>
 ```
+
+---
+
+## SMALL-PIECE ENFORCEMENT (applies to all planning phases)
+
+### Gap planner scope limit
+
+Each gap planner receives ONE gap only.
+It reads only the sections of RESEARCH-NNN.md relevant to that gap.
+It must not read the full research report -- extract and pass only the relevant pieces.
+
+DISPATCH format for gap planner:
+  CONTEXT: <paste only the PIECE entries from RESEARCH-NNN.md that this gap touches>
+            <do not include unrelated modules or pieces>
+  SCOPE:   <GAP-XX and its affected PIECE list only>
+
+If a gap spans more than 5 functional pieces, split it:
+  - GAP-XX-A: first 3 pieces
+  - GAP-XX-B: remaining pieces + integration between A and B
+  Each sub-gap gets its own gap planner. The central planner merges.
+
+### WU granularity rule
+
+A Work Unit must be completable by a single implementer in one context window (40% max).
+Each WU names 3-5 files at most (matching agents/implementer.md scope limit).
+If a gap requires more than 5 files across all its WUs, split into sub-gaps.
+The right size for a WU: one function, one class, one schema, or one interface contract.
+Not: "refactor the auth module". Yes: "add input validation to auth/token_validator.py:validate()".
+
+### Per-WU piece contract completeness
+
+Before writing a WU, ask: can an implementer complete this with ONLY:
+  - The piece contract
+  - The 3-5 files named in the contract
+  - No additional context lookups?
+If the answer is no, the WU scope is too large. Split it.

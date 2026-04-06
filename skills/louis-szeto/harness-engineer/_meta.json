@@ -3,9 +3,15 @@
   "slug": "harness-engineer",
   "displayName": "Harness Engineer",
   "latest": {
-    "version": "3.2.2",
-    "publishedAt": 1775026833794,
-    "commit": "https://github.com/openclaw/skills/commit/439a8008de3024376826304791b69c0b2f0d2e4e"
+    "version": "4.0.0",
+    "publishedAt": 1775114741568,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "3.2.2",
+      "publishedAt": 1775026833794,
+      "commit": "https://github.com/openclaw/skills/commit/439a8008de3024376826304791b69c0b2f0d2e4e"
+    }
+  ]
 }

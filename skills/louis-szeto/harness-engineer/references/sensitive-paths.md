@@ -1,6 +1,7 @@
 # SENSITIVE PATH POLICY
 
-Agents must never read, list, log, or store the contents of sensitive files.
+Agents must not read, list, log, or store the contents of files that typically
+contain credentials, authentication material, or infrastructure secrets.
 This policy is enforced in the skill. Platform enforcement is an additional layer,
 not the primary control.
 
@@ -8,61 +9,34 @@ not the primary control.
 
 ## FORBIDDEN READ PATHS
 
-The following path patterns are off-limits to ALL agents, including the researcher.
+The following path categories are off-limits to ALL agents, including the researcher.
 A matching path must be skipped silently and noted as "excluded -- sensitive" in output.
 
-### Credential and secret files
-  .env
-  .env.*          (.env.local, .env.production, .env.staging, etc.)
+### Credential and authentication material
+  .env and .env.* variants (local, production, staging, etc.)
   .envrc
-  *.pem
-  *.key
-  *.p12
-  *.pfx
-  *.cer
-  *.crt           (unless in a public CA bundle -- check context)
-  id_rsa
-  id_ed25519
-  id_ecdsa
-  authorized_keys
-  known_hosts
-  *.secret
-  *credentials*   (file names containing the word "credentials")
-  *secrets*       (file names containing the word "secrets")
+  Certificate files (*.pem, *.key, *.p12, *.pfx, *.cer, *.crt)
+  SSH material (id_rsa, id_ed25519, id_ecdsa, authorized_keys, known_hosts)
+  Files with "secret" or "credentials" in the filename
+  Any file matching patterns typically used for authentication tokens
 
-### CI/CD and infrastructure configs (often contain tokens or cloud credentials)
-  .github/workflows/*.yml     (may contain injected secrets)
-  .gitlab-ci.yml
-  .circleci/config.yml
-  Jenkinsfile
-  .travis.yml
-  azure-pipelines.yml
-  terraform.tfvars           (may contain cloud credentials)
-  *.tfstate                  (contains sensitive infrastructure state)
-  *.tfstate.backup
-  .vault-token
-  vault*.hcl
+### CI/CD and infrastructure configuration
+  CI workflow files (.github/workflows/*.yml, .gitlab-ci.yml, .circleci/config.yml, etc.)
+  Infrastructure state files (terraform.tfvars, *.tfstate, *.tfstate.backup)
+  Vault configuration (.vault-token, vault*.hcl)
 
 ### Git internals
-  .git/config                (may contain embedded credentials in remote URLs)
+  .git/config (may contain embedded credentials in remote URLs)
   .git/credentials
-  .git/hooks/*               (executable -- do not read)
+  .git/hooks/* (executable files -- do not read)
 
-### Package manager auth files
-  .npmrc                     (may contain registry tokens)
-  .pypirc
-  .netrc
-  pip.conf                   (if in home directory)
+### Package manager authentication
+  .npmrc, .pypirc, .netrc (may contain registry tokens)
 
-### Application config that commonly embeds secrets
-  config/database.yml
-  config/secrets.yml
-  config/credentials.yml.enc  (Rails encrypted credentials)
-  config/master.key            (Rails master key)
-  application.properties       (Spring Boot -- may contain DB passwords)
-  application.yml              (Spring Boot -- may contain secrets)
-  settings.py                  (Django -- check for SECRET_KEY)
-  local_settings.py            (Django local overrides)
+### Application configuration that commonly embeds credentials
+  Database and secrets configuration files
+  Encrypted credentials files and their master keys
+  Framework configuration with embedded secrets (Spring Boot, Django, Rails)
 
 ---
 
@@ -104,8 +78,8 @@ CI/CD config files (GitHub Actions, GitLab CI, etc.) may be read for structural
 analysis ONLY -- to understand the pipeline shape, not to extract values.
 Rules for reading CI configs:
   - Read only the structural keys (job names, step names, trigger conditions)
-  - Immediately discard any `env:` or `secrets:` sections from working memory
-  - Do not log, store, or record any value from `env:` or `secrets:` sections
+  - Immediately discard any environment variable or secrets sections from working memory
+  - Do not log, store, or record any value from those sections
   - Do not pass CI config contents to MEMORY.md or tool-logs
 
 ---
@@ -116,7 +90,7 @@ Before writing any entry to MEMORY.md, RESEARCH-NNN.md, GAPS-NNN.md, or any
 tracking log, the agent must verify the content does not contain:
 
   - A file path from the FORBIDDEN READ PATHS list
-  - Any value that looks like a secret (see tool-router.md redaction rule)
-  - Any content extracted from a sensitive file
+  - Any value that resembles a credential or authentication token
+  - Any content extracted from a file in the forbidden categories
 
 If uncertain: omit the value and write "redacted -- possible sensitive content".

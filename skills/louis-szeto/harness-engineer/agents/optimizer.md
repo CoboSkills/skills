@@ -22,3 +22,23 @@ Every optimization must include:
 - Before/after `performance_profile()` results
 - A note in the PLAN-NNN.md it was authorized under
 - A MEMORY.md entry (PROCEDURAL type) if the technique is worth repeating
+
+---
+
+## SMALL-PIECE ENFORCEMENT
+
+### One optimization per instance
+Each optimizer instance targets ONE performance concern (one hot path,
+one memory allocation pattern, one dependency removal).
+Do not batch multiple optimizations in a single instance.
+
+### Profile scope
+- Baseline profile: profile only the specific function or module being optimized.
+- Do not profile the entire application -- use targeted profiling to isolate
+  the bottleneck first (typically 1-3 files).
+- After optimization: re-profile the SAME scope to confirm improvement.
+
+### Context budget
+- 40% max per optimizer instance.
+- If profiling data exceeds budget: extract summary metrics, write HANDOFF.md,
+  spawn fresh instance for the next optimization target.

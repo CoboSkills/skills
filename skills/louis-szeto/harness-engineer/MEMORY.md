@@ -37,7 +37,7 @@ Tools Used: <list of tool names only -- no inputs, outputs, or payloads>
 
 **Never record in any MEMORY.md entry:**
 - File contents, log output, or API response bodies
-- Credential-shaped strings (tokens, keys, passwords, base64 blobs > 64 chars)
+- Authentication material (tokens, API keys, passwords, credentials)
 - PII or user-identifiable data
 - Full stack traces (record the exception type and location only)
 

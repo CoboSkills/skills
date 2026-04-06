@@ -65,3 +65,31 @@ _Lower is better. Computed as: dead code % + doc gap % + open bugs_
 | Doc gaps | | | |
 | Open bugs | | | |
 | **Entropy Score** | | | v / ^ |
+
+---
+
+## Cost Efficiency
+
+| Metric | Value |
+|--------|-------|
+| Total input tokens | <from runtime> |
+| Total output tokens | <from runtime> |
+| Cache hit rate | <cache_read / (cache_read + cache_creation)> |
+| Estimated cost (USD) | <from formula> |
+| Cost per gap closed | <total_cost / gaps_closed> |
+| vs. last cycle cost-per-gap | <delta %, up/down/stable> |
+
+---
+
+## Harness Self-Assessment
+
+| Metric | Score (0-5) |
+|--------|-------------|
+| Q1: Gap resolution effectiveness | |
+| Q2: Context efficiency | |
+| Q3: Agent discipline | |
+| Q4: Human gate compliance | |
+| Q5: Entropy trend | |
+| **Aggregate** | **/25** |
+| Status | healthy | attention | concern | critical |
+| Action | continue | review | variant-search | halt |

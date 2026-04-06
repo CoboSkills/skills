@@ -15,7 +15,7 @@ attempt to invoke them or construct equivalent behavior from other tools.
 | `call_api(endpoint, ...)` | Unconstrained outbound network access -- arbitrary host/port |
 | `start_server()` / `stop_server()` | Server lifecycle management is out of harness scope |
 | Any system hardware query | CPU model, VM identifiers, OS internals -- not application concerns |
-| Shell exec / eval / subprocess | Direct code execution bypasses the tool router entirely |
+| Direct shell invocation or dynamic code evaluation | Security risk -- all tool calls must route through the tool router |
 | Read/write to harness files | See PROTECTED PATHS in `tools/tool-router.md` |
 | Raw log/response body in memory | Logs contain only metadata -- never raw payloads |
 | Direct write to `docs/references/` from web_search | Stage in `docs/generated/search-staging/`; human promotes |

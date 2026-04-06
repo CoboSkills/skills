@@ -45,7 +45,45 @@ After all WUs in a GROUP complete:
     => log to DISPATCH-TRACK-NNN.md
     => surface to human (on-error hook) before advancing to next GROUP
 
+### Worktree Management
+
+For each ITR group, the dispatcher:
+
+1. Creates a git worktree:
+   Branch: harness/wu-{NNN}-{description}
+   Path: .worktrees/wu-{NNN}-{description}
+
+2. Passes the worktree path to the implementer agent as the working directory.
+
+3. After ITR cycle:
+   - SUCCESS: merge worktree branch to trunk, delete worktree
+   - FAILURE: delete worktree and branch (no merge, clean rollback)
+
+4. Integration check: after merging, run cross-gap integration tests on trunk.
+
 Advance to next GROUP only after current GROUP's integration tests pass.
+
+---
+
+## ADAPTIVE ITR STRUCTURE (per WU gap type)
+
+The ITR structure collapses for simple gaps to reduce overhead.
+Gap type is set by the planner in the MASTER-PLAN gap summary table.
+
+SIMPLE gap ITR (collapsed):
+  - Implementer: 1 instance, 1 file, 1 task
+  - Tester: run unit tests only (no integration, no e2e unless the file touches a boundary)
+  - Reviewer: Layer 2 only (correctness + quality)
+    Skip Layer 1 (plan alignment -- WU contract is trivially verifiable for 1-file changes)
+    Skip Layer 3 (architecture -- no interface changes, no cross-module impact)
+  - Feedback cap: 200 tokens (simple issues only)
+  - Max iterations: 2 (if not resolved in 2 iterations, reclassify as STANDARD and restart)
+
+STANDARD gap ITR (full 3-layer):
+  Run the full ITR loop as described below.
+
+COMPLEX gap ITR (full 3-layer, with integration gate between sub-gaps):
+  Run full ITR per sub-gap, plus an integration verification step between sub-gaps.
 
 ---
 
@@ -199,3 +237,30 @@ LIFESPAN HOOK: on-cycle-complete
   Surface FINAL-REVIEW-NNN.md to human.
   List: gaps resolved, gaps not resolved (if any), principles status.
   Wait for human acknowledgment.
+
+---
+
+## SMALL-PIECE ENFORCEMENT
+
+### WU dispatch context rule
+
+When dispatching an ITR group for a WU:
+  - Pass ONLY the WU's own piece contract (extracted from GAP-PLAN-NNN-XX.md)
+  - Pass ONLY the files named in the piece contract (not the full plan file)
+  - Pass ONLY the gap-closed criteria for this WU (not all gaps)
+  Never pass the full MASTER-PLAN or full GAP-PLAN to an implementer or reviewer.
+  Extract the relevant section, write it to a temp file, pass the temp file path.
+
+### Queue management granularity
+
+The dispatcher tracks WUs at the individual task level (T-NNN), not at the WU level.
+DISPATCH-TRACK-NNN.md has one entry per T-NNN per iteration.
+This means a context reset can resume from a specific task, not just a whole WU.
+
+### Feedback scope rule
+
+FEEDBACK-NNN-WU-XX-iterN.md must contain ONLY:
+  - Issues from the current iteration
+  - The specific piece contract done criteria
+  - Nothing from prior iterations (prior context pollutes the fresh implementer instance)
+  Maximum length: 500 tokens. If longer, the feedback is too broad -- split the WU further.

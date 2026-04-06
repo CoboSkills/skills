@@ -5,188 +5,12 @@
 
 const { initWasm } = require('./wasm-adapter');
 const {
-  GeometryType,
-  readPoints,
-  writePoints,
-  extractPolygonFromRegion,
-  extractLineFromGeoLine,
   parseGeoJSON,
-  createFeature
+  geojsonCoordsToPoint2Ds,
+  geojsonCoords2UGDoubleArray,
+  geojson2UGGeometry,
+  ugGeometry2Geojson
 } = require('./geojson');
-
-/**
- * 根据 GeoJSON 创建 WASM 几何对象
- * @param {Object} Module - WASM 模块实例
- * @param {string} type - 几何类型
- * @param {Array} coordinates - 坐标数组
- * @returns {Object} { geometryPtr, geometryType, cleanup }
- */
-function createGeometryFromGeoJSON(Module, type, coordinates) {
-  let geometryPtr = null;
-  let geometryType = null;
-  let cleanup = () => {};
-
-  switch (type) {
-    case 'Point': {
-      geometryPtr = Module._UGCWasm_GeoPoint_New();
-      Module._UGCWasm_GeoPoint_SetX(geometryPtr, coordinates[0]);
-      Module._UGCWasm_GeoPoint_SetY(geometryPtr, coordinates[1]);
-      geometryType = GeometryType.POINT;
-      cleanup = () => Module._UGCWasm_GeoPoint_Delete(geometryPtr);
-      break;
-    }
-
-    case 'LineString': {
-      geometryPtr = Module._UGCWasm_GeoLine_New();
-      geometryType = GeometryType.LINESTRING;
-
-      const pointCount = coordinates.length;
-      const bufferSize = pointCount * 2 * 8;
-      const bufferPtr = Module._malloc(bufferSize);
-
-      try {
-        writePoints(Module, bufferPtr, coordinates);
-        Module._UGCWasm_GeoLine_AddPart2(geometryPtr, bufferPtr, pointCount);
-      } finally {
-        Module._free(bufferPtr);
-      }
-
-      cleanup = () => Module._UGCWasm_GeoLine_Delete(geometryPtr);
-      break;
-    }
-
-    case 'MultiLineString': {
-      geometryPtr = Module._UGCWasm_GeoLine_New();
-      geometryType = GeometryType.LINESTRING;
-
-      for (const lineCoords of coordinates) {
-        const pointCount = lineCoords.length;
-        const bufferSize = pointCount * 2 * 8;
-        const bufferPtr = Module._malloc(bufferSize);
-
-        try {
-          writePoints(Module, bufferPtr, lineCoords);
-          Module._UGCWasm_GeoLine_AddPart2(geometryPtr, bufferPtr, pointCount);
-        } finally {
-          Module._free(bufferPtr);
-        }
-      }
-
-      cleanup = () => Module._UGCWasm_GeoLine_Delete(geometryPtr);
-      break;
-    }
-
-    case 'Polygon': {
-      geometryPtr = Module._UGCWasm_GeoRegion_New();
-      geometryType = GeometryType.POLYGON;
-
-      for (const ringCoords of coordinates) {
-        const pointCount = ringCoords.length;
-        const bufferSize = pointCount * 2 * 8;
-        const bufferPtr = Module._malloc(bufferSize);
-
-        try {
-          writePoints(Module, bufferPtr, ringCoords);
-          Module._UGCWasm_GeoRegion_AddPart2(geometryPtr, bufferPtr, pointCount);
-        } finally {
-          Module._free(bufferPtr);
-        }
-      }
-
-      cleanup = () => Module._UGCWasm_GeoRegion_Delete(geometryPtr);
-      break;
-    }
-
-    case 'MultiPolygon': {
-      geometryPtr = Module._UGCWasm_GeoRegion_New();
-      geometryType = GeometryType.POLYGON;
-
-      for (const polygonCoords of coordinates) {
-        for (const ringCoords of polygonCoords) {
-          const pointCount = ringCoords.length;
-          const bufferSize = pointCount * 2 * 8;
-          const bufferPtr = Module._malloc(bufferSize);
-
-          try {
-            writePoints(Module, bufferPtr, ringCoords);
-            Module._UGCWasm_GeoRegion_AddPart2(geometryPtr, bufferPtr, pointCount);
-          } finally {
-            Module._free(bufferPtr);
-          }
-        }
-      }
-
-      cleanup = () => Module._UGCWasm_GeoRegion_Delete(geometryPtr);
-      break;
-    }
-
-    case 'MultiPoint': {
-      // 将 MultiPoint 转换为多个点后处理
-      // 对于凸包等操作，可以将多点视为一个点集
-      geometryPtr = Module._UGCWasm_GeoRegion_New();
-      geometryType = GeometryType.POLYGON;
-
-      // 将所有点作为一个环添加
-      const pointCount = coordinates.length;
-      const bufferSize = pointCount * 2 * 8;
-      const bufferPtr = Module._malloc(bufferSize);
-
-      try {
-        writePoints(Module, bufferPtr, coordinates);
-        // 注意：对于凸包计算，我们需要使用 GeoLine 而不是 GeoRegion
-        // 但 WASM 可能需要不同的处理方式
-        Module._UGCWasm_GeoRegion_AddPart2(geometryPtr, bufferPtr, pointCount);
-      } finally {
-        Module._free(bufferPtr);
-      }
-
-      cleanup = () => Module._UGCWasm_GeoRegion_Delete(geometryPtr);
-      break;
-    }
-
-    default:
-      throw new Error(`不支持的几何类型: ${type}`);
-  }
-
-  return { geometryPtr, geometryType, cleanup };
-}
-
-/**
- * 从 WASM 几何对象提取 GeoJSON
- * @param {Object} Module - WASM 模块实例
- * @param {number} geomPtr - 几何对象指针
- * @param {number} geomType - 几何类型
- * @returns {Object} GeoJSON Geometry
- */
-function extractGeometryResult(Module, geomPtr, geomType) {
-  if (!geomPtr) return null;
-
-  switch (geomType) {
-    case GeometryType.POINT: {
-      const x = Module._UGCWasm_GeoPoint_GetX(geomPtr);
-      const y = Module._UGCWasm_GeoPoint_GetY(geomPtr);
-      return { type: 'Point', coordinates: [x, y] };
-    }
-    case GeometryType.LINESTRING: {
-      const coordinates = extractLineFromGeoLine(Module, geomPtr);
-      if (!coordinates || coordinates.length === 0) return null;
-      if (coordinates.length === 1) {
-        return { type: 'LineString', coordinates: coordinates[0] };
-      }
-      return { type: 'MultiLineString', coordinates };
-    }
-    case GeometryType.POLYGON: {
-      const coordinates = extractPolygonFromRegion(Module, geomPtr);
-      if (!coordinates || coordinates.length === 0) return null;
-      if (coordinates.length === 1) {
-        return { type: 'Polygon', coordinates: coordinates[0] };
-      }
-      return { type: 'MultiPolygon', coordinates: coordinates.map(c => [c]) };
-    }
-    default:
-      return null;
-  }
-}
 
 // ==================== 几何分析函数 ====================
 
@@ -195,22 +19,11 @@ function extractGeometryResult(Module, geomPtr, geomType) {
  */
 async function buffer(input, radius) {
   const parsedInput = typeof input === 'string' ? JSON.parse(input) : input;
-  const { type, coordinates, properties } = parseGeoJSON(parsedInput);
   const Module = await initWasm();
-
-  const { geometryPtr, cleanup } = createGeometryFromGeoJSON(Module, type, coordinates);
-  
-  try {
-    const resultPtr = Module._UGCWasm_Geometrist_Buffer(geometryPtr, radius);
-    if (!resultPtr) throw new Error('缓冲区分析失败');
-
-    const resultGeometry = extractGeometryResult(Module, resultPtr, GeometryType.POLYGON);
-    Module._UGCWasm_GeoRegion_Delete(resultPtr);
-
-    return createFeature(resultGeometry, { ...properties, bufferRadius: radius });
-  } finally {
-    cleanup();
-  }
+  const ugGeom = geojson2UGGeometry(Module, parsedInput);
+  const result = Module._UGCWasm_Geometrist_Buffer(ugGeom, radius);
+  const geometry = ugGeometry2Geojson(Module, result);
+  return { type: 'Feature', geometry, properties: { bufferRadius: radius } };
 }
 
 /**
@@ -218,42 +31,34 @@ async function buffer(input, radius) {
  */
 async function computeConvexHull(input) {
   const parsedInput = typeof input === 'string' ? JSON.parse(input) : input;
-  const { type, coordinates, properties } = parseGeoJSON(parsedInput);
+  const { type, coordinates } = parseGeoJSON(parsedInput);
   const Module = await initWasm();
 
-  // 对于 MultiPoint，需要创建 GeoLine 而不是 GeoRegion
-  let geometryPtr, cleanup;
-  
-  if (type === 'MultiPoint') {
-    geometryPtr = Module._UGCWasm_GeoLine_New();
-    const pointCount = coordinates.length;
-    const bufferSize = pointCount * 2 * 8;
-    const bufferPtr = Module._malloc(bufferSize);
-
-    try {
-      writePoints(Module, bufferPtr, coordinates);
-      Module._UGCWasm_GeoLine_AddPart2(geometryPtr, bufferPtr, pointCount);
-    } finally {
-      Module._free(bufferPtr);
-    }
-    cleanup = () => Module._UGCWasm_GeoLine_Delete(geometryPtr);
-  } else {
-    const geom = createGeometryFromGeoJSON(Module, type, coordinates);
-    geometryPtr = geom.geometryPtr;
-    cleanup = geom.cleanup;
+  // 提取扁平的点坐标数组
+  let points;
+  switch (type) {
+    case 'Point':
+      points = [coordinates];
+      break;
+    case 'MultiPoint':
+    case 'LineString':
+      points = coordinates;
+      break;
+    case 'MultiLineString':
+    case 'Polygon':
+      points = coordinates.flat();
+      break;
+    case 'MultiPolygon':
+      points = coordinates.flat(2);
+      break;
+    default:
+      points = coordinates;
   }
-  
-  try {
-    const resultPtr = Module._UGCWasm_Geometrist_ComputeConvexHull(geometryPtr);
-    if (!resultPtr) throw new Error('凸包计算失败');
 
-    const resultGeometry = extractGeometryResult(Module, resultPtr, GeometryType.POLYGON);
-    Module._UGCWasm_GeoRegion_Delete(resultPtr);
-
-    return createFeature(resultGeometry, properties);
-  } finally {
-    cleanup();
-  }
+  const ugPoints = geojsonCoordsToPoint2Ds(Module, points);
+  const result = Module._UGCWasm_Geometrist_ComputeConvexHull(ugPoints, points.length);
+  const geometry = ugGeometry2Geojson(Module, result);
+  return { type: 'Feature', geometry, properties: {} };
 }
 
 /**
@@ -261,22 +66,11 @@ async function computeConvexHull(input) {
  */
 async function resample(input, tolerance) {
   const parsedInput = typeof input === 'string' ? JSON.parse(input) : input;
-  const { type, coordinates, properties } = parseGeoJSON(parsedInput);
   const Module = await initWasm();
-
-  const { geometryPtr, geometryType, cleanup } = createGeometryFromGeoJSON(Module, type, coordinates);
-  
-  try {
-    const resultPtr = Module._UGCWasm_Geometrist_Resample(geometryPtr, tolerance);
-    if (!resultPtr) throw new Error('重采样失败');
-
-    const resultGeometry = extractGeometryResult(Module, resultPtr, geometryType);
-    Module._UGCWasm_GeoLine_Delete(resultPtr);
-
-    return createFeature(resultGeometry, { ...properties, tolerance });
-  } finally {
-    cleanup();
-  }
+  const ugFeature = geojson2UGGeometry(Module, parsedInput);
+  const result = Module._UGCWasm_Geometrist_Resample(ugFeature, tolerance);
+  const geometry = ugGeometry2Geojson(Module, result);
+  return { type: 'Feature', geometry, properties: { tolerance } };
 }
 
 /**
@@ -284,22 +78,11 @@ async function resample(input, tolerance) {
  */
 async function smooth(input, smoothness) {
   const parsedInput = typeof input === 'string' ? JSON.parse(input) : input;
-  const { type, coordinates, properties } = parseGeoJSON(parsedInput);
   const Module = await initWasm();
-
-  const { geometryPtr, geometryType, cleanup } = createGeometryFromGeoJSON(Module, type, coordinates);
-  
-  try {
-    const resultPtr = Module._UGCWasm_Geometrist_Smooth(geometryPtr, smoothness);
-    if (!resultPtr) throw new Error('光滑分析失败');
-
-    const resultGeometry = extractGeometryResult(Module, resultPtr, geometryType);
-    Module._UGCWasm_GeoLine_Delete(resultPtr);
-
-    return createFeature(resultGeometry, { ...properties, smoothness });
-  } finally {
-    cleanup();
-  }
+  const ugFeature = geojson2UGGeometry(Module, parsedInput);
+  const result = Module._UGCWasm_Geometrist_Smooth(ugFeature, smoothness);
+  const geometry = ugGeometry2Geojson(Module, result);
+  return { type: 'Feature', geometry, properties: { smoothness } };
 }
 
 /**
@@ -307,17 +90,31 @@ async function smooth(input, smoothness) {
  */
 async function computeGeodesicDistance(input, majorAxis = 6378137, flatten = 0.003352810664) {
   const parsedInput = typeof input === 'string' ? JSON.parse(input) : input;
-  const { type, coordinates, properties } = parseGeoJSON(parsedInput);
+  const { type, coordinates } = parseGeoJSON(parsedInput);
   const Module = await initWasm();
 
-  const { geometryPtr, cleanup } = createGeometryFromGeoJSON(Module, type, coordinates);
-  
-  try {
-    const distance = Module._UGCWasm_Geometrist_ComputeGeodesicDistance(geometryPtr, majorAxis, flatten);
-    return { type: 'Result', distance, unit: 'meters', properties };
-  } finally {
-    cleanup();
+  // 提取点坐标并分离 x/y 数组
+  let points;
+  switch (type) {
+    case 'Point':
+      points = [coordinates];
+      break;
+    case 'MultiPoint':
+    case 'LineString':
+      points = coordinates;
+      break;
+    default:
+      points = Array.isArray(coordinates[0]) && Array.isArray(coordinates[0][0])
+        ? coordinates.flat()
+        : coordinates;
   }
+
+  const xArray = points.map(p => p[0]);
+  const yArray = points.map(p => p[1]);
+  const pXArray = geojsonCoords2UGDoubleArray(Module, xArray);
+  const pYArray = geojsonCoords2UGDoubleArray(Module, yArray);
+  const distance = Module._UGCWasm_Geometrist_ComputeGeodesicDistance(pXArray, pYArray, majorAxis, flatten);
+  return { type: 'Result', distance, unit: 'meters', properties: {} };
 }
 
 /**
@@ -325,17 +122,11 @@ async function computeGeodesicDistance(input, majorAxis = 6378137, flatten = 0.0
  */
 async function computeGeodesicArea(input, majorAxis = 6378137, flatten = 0.003352810664) {
   const parsedInput = typeof input === 'string' ? JSON.parse(input) : input;
-  const { type, coordinates, properties } = parseGeoJSON(parsedInput);
   const Module = await initWasm();
-
-  const { geometryPtr, cleanup } = createGeometryFromGeoJSON(Module, type, coordinates);
-  
-  try {
-    const area = Module._UGCWasm_Geometrist_ComputeGeodesicArea(geometryPtr, majorAxis, flatten);
-    return { type: 'Result', area, unit: 'square_meters', properties };
-  } finally {
-    cleanup();
-  }
+  const ugFeature = geojson2UGGeometry(Module, parsedInput);
+  const prjCoordSys = Module._UGCWasm_Geometry_NewUGPrjCoordSys(4326);
+  const area = Module._UGCWasm_Geometrist_ComputeGeodesicArea(ugFeature, prjCoordSys);
+  return { type: 'Result', area, unit: 'square_meters', properties: {} };
 }
 
 /**
@@ -344,20 +135,11 @@ async function computeGeodesicArea(input, majorAxis = 6378137, flatten = 0.00335
 async function hasIntersection(input1, input2, tolerance = 0) {
   const parsed1 = typeof input1 === 'string' ? JSON.parse(input1) : input1;
   const parsed2 = typeof input2 === 'string' ? JSON.parse(input2) : input2;
-  const { type: type1, coordinates: coords1 } = parseGeoJSON(parsed1);
-  const { type: type2, coordinates: coords2 } = parseGeoJSON(parsed2);
   const Module = await initWasm();
-
-  const geom1 = createGeometryFromGeoJSON(Module, type1, coords1);
-  const geom2 = createGeometryFromGeoJSON(Module, type2, coords2);
-  
-  try {
-    const result = Module._UGCWasm_Geometrist_HasIntersection(geom1.geometryPtr, geom2.geometryPtr, tolerance);
-    return { type: 'Result', hasIntersection: result === 1 };
-  } finally {
-    geom1.cleanup();
-    geom2.cleanup();
-  }
+  const ugFeature1 = geojson2UGGeometry(Module, parsed1);
+  const ugFeature2 = geojson2UGGeometry(Module, parsed2);
+  const result = Module._UGCWasm_Geometrist_HasIntersection(ugFeature1, ugFeature2, tolerance);
+  return { type: 'Result', hasIntersection: result === 1 };
 }
 
 /**
@@ -366,20 +148,11 @@ async function hasIntersection(input1, input2, tolerance = 0) {
 async function hasTouch(input1, input2, tolerance = 0) {
   const parsed1 = typeof input1 === 'string' ? JSON.parse(input1) : input1;
   const parsed2 = typeof input2 === 'string' ? JSON.parse(input2) : input2;
-  const { type: type1, coordinates: coords1 } = parseGeoJSON(parsed1);
-  const { type: type2, coordinates: coords2 } = parseGeoJSON(parsed2);
   const Module = await initWasm();
-
-  const geom1 = createGeometryFromGeoJSON(Module, type1, coords1);
-  const geom2 = createGeometryFromGeoJSON(Module, type2, coords2);
-  
-  try {
-    const result = Module._UGCWasm_Geometrist_HasTouch(geom1.geometryPtr, geom2.geometryPtr, tolerance);
-    return { type: 'Result', hasTouch: result === 1 };
-  } finally {
-    geom1.cleanup();
-    geom2.cleanup();
-  }
+  const ugFeature1 = geojson2UGGeometry(Module, parsed1);
+  const ugFeature2 = geojson2UGGeometry(Module, parsed2);
+  const result = Module._UGCWasm_Geometrist_HasTouch(ugFeature1, ugFeature2, tolerance);
+  return { type: 'Result', hasTouch: result === 1 };
 }
 
 /**
@@ -388,20 +161,11 @@ async function hasTouch(input1, input2, tolerance = 0) {
 async function isIdentical(input1, input2, tolerance = 0) {
   const parsed1 = typeof input1 === 'string' ? JSON.parse(input1) : input1;
   const parsed2 = typeof input2 === 'string' ? JSON.parse(input2) : input2;
-  const { type: type1, coordinates: coords1 } = parseGeoJSON(parsed1);
-  const { type: type2, coordinates: coords2 } = parseGeoJSON(parsed2);
   const Module = await initWasm();
-
-  const geom1 = createGeometryFromGeoJSON(Module, type1, coords1);
-  const geom2 = createGeometryFromGeoJSON(Module, type2, coords2);
-  
-  try {
-    const result = Module._UGCWasm_Geometrist_IsIdentical(geom1.geometryPtr, geom2.geometryPtr, tolerance);
-    return { type: 'Result', isIdentical: result === 1 };
-  } finally {
-    geom1.cleanup();
-    geom2.cleanup();
-  }
+  const ugFeature1 = geojson2UGGeometry(Module, parsed1);
+  const ugFeature2 = geojson2UGGeometry(Module, parsed2);
+  const result = Module._UGCWasm_Geometrist_IsIdentical(ugFeature1, ugFeature2, tolerance);
+  return { type: 'Result', isIdentical: result === 1 };
 }
 
 /**
@@ -410,25 +174,13 @@ async function isIdentical(input1, input2, tolerance = 0) {
 async function intersect(input1, input2) {
   const parsed1 = typeof input1 === 'string' ? JSON.parse(input1) : input1;
   const parsed2 = typeof input2 === 'string' ? JSON.parse(input2) : input2;
-  const { type: type1, coordinates: coords1, properties } = parseGeoJSON(parsed1);
-  const { type: type2, coordinates: coords2 } = parseGeoJSON(parsed2);
   const Module = await initWasm();
-
-  const geom1 = createGeometryFromGeoJSON(Module, type1, coords1);
-  const geom2 = createGeometryFromGeoJSON(Module, type2, coords2);
-  
-  try {
-    const resultPtr = Module._UGCWasm_Geometrist_Intersect(geom1.geometryPtr, geom2.geometryPtr);
-    if (!resultPtr) return null;
-
-    const resultGeometry = extractGeometryResult(Module, resultPtr, GeometryType.POLYGON);
-    Module._UGCWasm_GeoRegion_Delete(resultPtr);
-
-    return createFeature(resultGeometry, properties);
-  } finally {
-    geom1.cleanup();
-    geom2.cleanup();
-  }
+  const ugFeature1 = geojson2UGGeometry(Module, parsed1);
+  const ugFeature2 = geojson2UGGeometry(Module, parsed2);
+  const resultPtr = Module._UGCWasm_Geometrist_Intersect(ugFeature1, ugFeature2);
+  if (!resultPtr) return null;
+  const geometry = ugGeometry2Geojson(Module, resultPtr);
+  return { type: 'Feature', geometry, properties: {} };
 }
 
 /**
@@ -437,25 +189,13 @@ async function intersect(input1, input2) {
 async function union(input1, input2) {
   const parsed1 = typeof input1 === 'string' ? JSON.parse(input1) : input1;
   const parsed2 = typeof input2 === 'string' ? JSON.parse(input2) : input2;
-  const { type: type1, coordinates: coords1, properties } = parseGeoJSON(parsed1);
-  const { type: type2, coordinates: coords2 } = parseGeoJSON(parsed2);
   const Module = await initWasm();
-
-  const geom1 = createGeometryFromGeoJSON(Module, type1, coords1);
-  const geom2 = createGeometryFromGeoJSON(Module, type2, coords2);
-  
-  try {
-    const resultPtr = Module._UGCWasm_Geometrist_Union(geom1.geometryPtr, geom2.geometryPtr);
-    if (!resultPtr) return null;
-
-    const resultGeometry = extractGeometryResult(Module, resultPtr, GeometryType.POLYGON);
-    Module._UGCWasm_GeoRegion_Delete(resultPtr);
-
-    return createFeature(resultGeometry, properties);
-  } finally {
-    geom1.cleanup();
-    geom2.cleanup();
-  }
+  const ugFeature1 = geojson2UGGeometry(Module, parsed1);
+  const ugFeature2 = geojson2UGGeometry(Module, parsed2);
+  const resultPtr = Module._UGCWasm_Geometrist_Union(ugFeature1, ugFeature2);
+  if (!resultPtr) return null;
+  const geometry = ugGeometry2Geojson(Module, resultPtr);
+  return { type: 'Feature', geometry, properties: {} };
 }
 
 /**
@@ -464,25 +204,13 @@ async function union(input1, input2) {
 async function erase(input1, input2) {
   const parsed1 = typeof input1 === 'string' ? JSON.parse(input1) : input1;
   const parsed2 = typeof input2 === 'string' ? JSON.parse(input2) : input2;
-  const { type: type1, coordinates: coords1, properties } = parseGeoJSON(parsed1);
-  const { type: type2, coordinates: coords2 } = parseGeoJSON(parsed2);
   const Module = await initWasm();
-
-  const geom1 = createGeometryFromGeoJSON(Module, type1, coords1);
-  const geom2 = createGeometryFromGeoJSON(Module, type2, coords2);
-  
-  try {
-    const resultPtr = Module._UGCWasm_Geometrist_Erase(geom1.geometryPtr, geom2.geometryPtr);
-    if (!resultPtr) return null;
-
-    const resultGeometry = extractGeometryResult(Module, resultPtr, GeometryType.POLYGON);
-    Module._UGCWasm_GeoRegion_Delete(resultPtr);
-
-    return createFeature(resultGeometry, properties);
-  } finally {
-    geom1.cleanup();
-    geom2.cleanup();
-  }
+  const ugFeature1 = geojson2UGGeometry(Module, parsed1);
+  const ugFeature2 = geojson2UGGeometry(Module, parsed2);
+  const resultPtr = Module._UGCWasm_Geometrist_Erase(ugFeature1, ugFeature2);
+  if (!resultPtr) return null;
+  const geometry = ugGeometry2Geojson(Module, resultPtr);
+  return { type: 'Feature', geometry, properties: {} };
 }
 
 /**
@@ -491,25 +219,13 @@ async function erase(input1, input2) {
 async function xor(input1, input2) {
   const parsed1 = typeof input1 === 'string' ? JSON.parse(input1) : input1;
   const parsed2 = typeof input2 === 'string' ? JSON.parse(input2) : input2;
-  const { type: type1, coordinates: coords1, properties } = parseGeoJSON(parsed1);
-  const { type: type2, coordinates: coords2 } = parseGeoJSON(parsed2);
   const Module = await initWasm();
-
-  const geom1 = createGeometryFromGeoJSON(Module, type1, coords1);
-  const geom2 = createGeometryFromGeoJSON(Module, type2, coords2);
-  
-  try {
-    const resultPtr = Module._UGCWasm_Geometrist_XOR(geom1.geometryPtr, geom2.geometryPtr);
-    if (!resultPtr) return null;
-
-    const resultGeometry = extractGeometryResult(Module, resultPtr, GeometryType.POLYGON);
-    Module._UGCWasm_GeoRegion_Delete(resultPtr);
-
-    return createFeature(resultGeometry, properties);
-  } finally {
-    geom1.cleanup();
-    geom2.cleanup();
-  }
+  const ugFeature1 = geojson2UGGeometry(Module, parsed1);
+  const ugFeature2 = geojson2UGGeometry(Module, parsed2);
+  const resultPtr = Module._UGCWasm_Geometrist_XOR(ugFeature1, ugFeature2);
+  if (!resultPtr) return null;
+  const geometry = ugGeometry2Geojson(Module, resultPtr);
+  return { type: 'Feature', geometry, properties: {} };
 }
 
 /**
@@ -518,25 +234,13 @@ async function xor(input1, input2) {
 async function clip(input1, input2) {
   const parsed1 = typeof input1 === 'string' ? JSON.parse(input1) : input1;
   const parsed2 = typeof input2 === 'string' ? JSON.parse(input2) : input2;
-  const { type: type1, coordinates: coords1, properties } = parseGeoJSON(parsed1);
-  const { type: type2, coordinates: coords2 } = parseGeoJSON(parsed2);
   const Module = await initWasm();
-
-  const geom1 = createGeometryFromGeoJSON(Module, type1, coords1);
-  const geom2 = createGeometryFromGeoJSON(Module, type2, coords2);
-  
-  try {
-    const resultPtr = Module._UGCWasm_Geometrist_Clip(geom1.geometryPtr, geom2.geometryPtr);
-    if (!resultPtr) return null;
-
-    const resultGeometry = extractGeometryResult(Module, resultPtr, GeometryType.POLYGON);
-    Module._UGCWasm_GeoRegion_Delete(resultPtr);
-
-    return createFeature(resultGeometry, properties);
-  } finally {
-    geom1.cleanup();
-    geom2.cleanup();
-  }
+  const ugFeature1 = geojson2UGGeometry(Module, parsed1);
+  const ugFeature2 = geojson2UGGeometry(Module, parsed2);
+  const resultPtr = Module._UGCWasm_Geometrist_Clip(ugFeature1, ugFeature2);
+  if (!resultPtr) return null;
+  const geometry = ugGeometry2Geojson(Module, resultPtr);
+  return { type: 'Feature', geometry, properties: {} };
 }
 
 /**
@@ -545,20 +249,11 @@ async function clip(input1, input2) {
 async function distance(input1, input2) {
   const parsed1 = typeof input1 === 'string' ? JSON.parse(input1) : input1;
   const parsed2 = typeof input2 === 'string' ? JSON.parse(input2) : input2;
-  const { type: type1, coordinates: coords1 } = parseGeoJSON(parsed1);
-  const { type: type2, coordinates: coords2 } = parseGeoJSON(parsed2);
   const Module = await initWasm();
-
-  const geom1 = createGeometryFromGeoJSON(Module, type1, coords1);
-  const geom2 = createGeometryFromGeoJSON(Module, type2, coords2);
-  
-  try {
-    const dist = Module._UGCWasm_Geometrist_Distance(geom1.geometryPtr, geom2.geometryPtr);
-    return { type: 'Result', distance: dist };
-  } finally {
-    geom1.cleanup();
-    geom2.cleanup();
-  }
+  const ugFeature1 = geojson2UGGeometry(Module, parsed1);
+  const ugFeature2 = geojson2UGGeometry(Module, parsed2);
+  const dist = Module._UGCWasm_Geometrist_Distance(ugFeature1, ugFeature2);
+  return { type: 'Result', distance: dist };
 }
 
 /**
@@ -631,22 +326,11 @@ async function distanceToLineSegment(point, lineStart, lineEnd) {
  */
 async function computeParallel(input, distance) {
   const parsedInput = typeof input === 'string' ? JSON.parse(input) : input;
-  const { type, coordinates, properties } = parseGeoJSON(parsedInput);
   const Module = await initWasm();
-
-  const { geometryPtr, cleanup } = createGeometryFromGeoJSON(Module, type, coordinates);
-  
-  try {
-    const resultPtr = Module._UGCWasm_Geometrist_ComputeParallel(geometryPtr, distance);
-    if (!resultPtr) throw new Error('计算平行线失败');
-
-    const resultGeometry = extractGeometryResult(Module, resultPtr, GeometryType.LINESTRING);
-    Module._UGCWasm_GeoLine_Delete(resultPtr);
-
-    return createFeature(resultGeometry, { ...properties, distance });
-  } finally {
-    cleanup();
-  }
+  const ugFeature = geojson2UGGeometry(Module, parsedInput);
+  const result = Module._UGCWasm_Geometrist_ComputeParallel(ugFeature, distance);
+  const geometry = ugGeometry2Geojson(Module, result);
+  return { type: 'Feature', geometry, properties: { distance } };
 }
 
 // 导出所有函数
@@ -676,9 +360,5 @@ module.exports = {
   isRight,
   isPointOnLine,
   isParallel,
-  distanceToLineSegment,
-  
-  // 工具函数
-  createGeometryFromGeoJSON,
-  extractGeometryResult
+  distanceToLineSegment
 };

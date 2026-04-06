@@ -284,6 +284,195 @@ function createFeatureCollection(features) {
   };
 }
 
+/**
+ * 将坐标数组转换为 WASM Point2Ds 对象
+ * 参照 src1/util.js 的 geojsonCoordsToPoint2Ds
+ * @param {Object} Module - WASM 模块实例
+ * @param {Array} coords - 坐标数组 [[x,y], ...]
+ * @returns {number} Point2Ds 指针
+ */
+function geojsonCoordsToPoint2Ds(Module, coords) {
+  if (!coords || coords.length === 0) return null;
+  const length = coords.length;
+  const dim = 2;
+  const coordArr = new Float64Array(coords.flat());
+  const coordPtr = Module._malloc(length * dim * 8);
+  Module.HEAPF64.set(coordArr, coordPtr / 8);
+  const seqPtr = Module._UGCWasm_Geometry_CreatePoint2DsFromBuffer(coordPtr, length);
+  Module._free(coordPtr);
+  return seqPtr;
+}
+
+/**
+ * 将 JS 数组转换为 WASM DoubleArray
+ * 参照 src1/util.js 的 geojsonCoords2UGDoubleArray
+ * @param {Object} Module - WASM 模块实例
+ * @param {Array} coords - 数值数组
+ * @returns {number} DoubleArray 指针
+ */
+function geojsonCoords2UGDoubleArray(Module, coords) {
+  if (!coords || coords.length === 0) return null;
+  const length = coords.length;
+  const coordArr = new Float64Array(coords);
+  const coordPtr = Module._malloc(length * 8);
+  Module.HEAPF64.set(coordArr, coordPtr / 8);
+  const pDoubleArray = Module._UGCWasm_Helper_CreateDoubleArray(coordPtr, length);
+  Module._free(coordPtr);
+  return pDoubleArray;
+}
+
+/**
+ * 从 WASM DoubleArray 获取 JS 数组
+ * 参照 src1/util.js 的 getJSArrayFromUGDoubleArray
+ * @param {Object} Module - WASM 模块实例
+ * @param {number} pDoubleArray - DoubleArray 指针
+ * @returns {Array} JS 数组
+ */
+function getJSArrayFromUGDoubleArray(Module, pDoubleArray) {
+  const length = Module._UGCWasm_Helper_GetDoubleArrayLength(pDoubleArray);
+  const pBuffer = Module._malloc(length * 8);
+  Module._UGCWasm_Helper_GetBufferFromDoubleArray(pDoubleArray, pBuffer);
+  const view = new Float64Array(Module.HEAPF64.buffer, pBuffer, length);
+  const coords = [];
+  for (let i = 0; i < length; i++) {
+    coords.push(view[i]);
+  }
+  Module._free(pBuffer);
+  return coords;
+}
+
+/**
+ * 将 GeoJSON 对象转换为 WASM 几何对象指针
+ * 参照 src1/util.js 的 geojson2UGGeometry
+ * @param {Object} Module - WASM 模块实例
+ * @param {Object} geojson - GeoJSON 对象
+ * @returns {number} WASM 几何对象指针
+ */
+function geojson2UGGeometry(Module, geojson) {
+  if (!geojson) throw new Error('No GeoJSON object provided');
+
+  switch (geojson.type) {
+    case 'Feature':
+      return geojson2UGGeometry(Module, geojson.geometry);
+    case 'FeatureCollection':
+      if (geojson.features.length === 0) return null;
+      return geojson2UGGeometry(Module, geojson.features[0].geometry);
+    case 'Point':
+      if (geojson.coordinates.length === 0) {
+        return Module._UGCWasm_GeoPoint_New();
+      }
+      return Module._UGCWasm_GeoPoint_New2(geojson.coordinates[0], geojson.coordinates[1]);
+    case 'LineString': {
+      if (geojson.coordinates.length === 0) {
+        return Module._UGCWasm_GeoLine_New();
+      }
+      const pGeoLine = Module._UGCWasm_GeoLine_New();
+      const pPoint2Ds = geojsonCoordsToPoint2Ds(Module, geojson.coordinates);
+      Module._UGCWasm_GeoLine_AddPart2(pGeoLine, pPoint2Ds, geojson.coordinates.length);
+      return pGeoLine;
+    }
+    case 'Polygon': {
+      if (geojson.coordinates.length === 0) {
+        return Module._UGCWasm_GeoRegion_New();
+      }
+      const pGeoRegion = Module._UGCWasm_GeoRegion_New();
+      for (let i = 0; i < geojson.coordinates.length; i++) {
+        const pPt = geojsonCoordsToPoint2Ds(Module, geojson.coordinates[i]);
+        Module._UGCWasm_GeoRegion_AddPart2(pGeoRegion, pPt, geojson.coordinates[i].length);
+      }
+      return pGeoRegion;
+    }
+    case 'MultiLineString': {
+      if (geojson.coordinates.length === 0) {
+        return Module._UGCWasm_GeoLine_New();
+      }
+      const pGeoLine = Module._UGCWasm_GeoLine_New();
+      for (let i = 0; i < geojson.coordinates.length; i++) {
+        const pPt = geojsonCoordsToPoint2Ds(Module, geojson.coordinates[i]);
+        Module._UGCWasm_GeoLine_AddPart2(pGeoLine, pPt, geojson.coordinates[i].length);
+      }
+      return pGeoLine;
+    }
+    case 'MultiPolygon': {
+      if (geojson.coordinates.length === 0) {
+        return Module._UGCWasm_GeoRegion_New();
+      }
+      const pGeoRegion = Module._UGCWasm_GeoRegion_New();
+      for (let i = 0; i < geojson.coordinates.length; i++) {
+        for (let j = 0; j < geojson.coordinates[i].length; j++) {
+          const pPt = geojsonCoordsToPoint2Ds(Module, geojson.coordinates[i][j]);
+          Module._UGCWasm_GeoRegion_AddPart2(pGeoRegion, pPt, geojson.coordinates[i][j].length);
+        }
+      }
+      return pGeoRegion;
+    }
+    case 'MultiPoint': {
+      const pGeoLine = Module._UGCWasm_GeoLine_New();
+      const pPoint2Ds = geojsonCoordsToPoint2Ds(Module, geojson.coordinates);
+      Module._UGCWasm_GeoLine_AddPart2(pGeoLine, pPoint2Ds, geojson.coordinates.length);
+      return pGeoLine;
+    }
+    default:
+      throw new Error('Unsupported GeoJSON type: ' + geojson.type);
+  }
+}
+
+/**
+ * 将 WASM 几何对象指针转换为 GeoJSON
+ * 参照 src1/util.js 的 ugGeometry2Geojson
+ * @param {Object} Module - WASM 模块实例
+ * @param {number} pUGGeo - WASM 几何对象指针
+ * @returns {Object} GeoJSON Geometry 对象
+ */
+function ugGeometry2Geojson(Module, pUGGeo) {
+  if (!pUGGeo) return null;
+
+  const geomType = Module._UGCWasm_Geometry_GetType(pUGGeo);
+  switch (geomType) {
+    case 1: { // UGGeoPoint
+      const x = Module._UGCWasm_GeoPoint_GetX(pUGGeo);
+      const y = Module._UGCWasm_GeoPoint_GetY(pUGGeo);
+      return { type: 'Point', coordinates: [x, y] };
+    }
+    case 3: { // UGGeoLine
+      const outlines = [];
+      const partCount = Module._UGCWasm_GeoLine_GetPartCount(pUGGeo);
+      for (let j = 0; j < partCount; j++) {
+        const count = Module._UGCWasm_GeoLine_GetPartPointCount(pUGGeo, j);
+        const pBuffer = Module._malloc(count * 2 * 8);
+        Module._UGCWasm_GeoLine_GetPart2(pUGGeo, pBuffer, j);
+        const view = new Float64Array(Module.HEAPF64.buffer, pBuffer, count * 2);
+        const coords = [];
+        for (let i = 0; i < count * 2; i += 2) {
+          coords.push([view[i], view[i + 1]]);
+        }
+        Module._free(pBuffer);
+        outlines.push(coords);
+      }
+      return { type: 'LineString', coordinates: outlines[0] };
+    }
+    case 5: { // UGGeoRegion
+      const outlines = [];
+      const partCount = Module._UGCWasm_GeoRegion_GetPartCount(pUGGeo);
+      for (let j = 0; j < partCount; j++) {
+        const count = Module._UGCWasm_GeoRegion_GetPartPointCount(pUGGeo, j);
+        const pBuffer = Module._malloc(count * 2 * 8);
+        Module._UGCWasm_GeoRegion_GetPart2(pUGGeo, pBuffer, j);
+        const view = new Float64Array(Module.HEAPF64.buffer, pBuffer, count * 2);
+        const coords = [];
+        for (let i = 0; i < count * 2; i += 2) {
+          coords.push([view[i], view[i + 1]]);
+        }
+        Module._free(pBuffer);
+        outlines.push(coords);
+      }
+      return { type: 'Polygon', coordinates: outlines };
+    }
+    default:
+      return null;
+  }
+}
+
 module.exports = {
   GeometryType,
   readPoint,
@@ -294,5 +483,10 @@ module.exports = {
   createGeoJSONGeometry,
   parseGeoJSON,
   createFeature,
-  createFeatureCollection
+  createFeatureCollection,
+  geojsonCoordsToPoint2Ds,
+  geojsonCoords2UGDoubleArray,
+  getJSArrayFromUGDoubleArray,
+  geojson2UGGeometry,
+  ugGeometry2Geojson
 };

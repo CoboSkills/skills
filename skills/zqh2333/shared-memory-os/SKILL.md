@@ -20,6 +20,7 @@ Adopt this tiering:
   - `current-state.md`
   - `recent-focus.md`
   - `trigger-map.md`
+  - `heartbeat-promotions.md`
   - `success-patterns.md`
   - `default-behaviors.md`
   - `feedback-model.md`
@@ -58,8 +59,9 @@ When attaching a new agent to the workspace:
 3. Read today and yesterday daily files if present
 4. In direct/private main sessions, also read `MEMORY.md`
 5. Read `memory/active-thread.md` and `memory/current-state.md` before acting on an ongoing thread
-6. Use `memory/index.md` only when routing help is needed
-7. Do not read `memory/private-secrets.md` unless the task explicitly requires credentialed action or secret lookup
+6. If the user references something previously summarized in heartbeat/maintenance context, check `memory/heartbeat-promotions.md`
+7. Use `memory/index.md` only when routing help is needed
+8. Do not read `memory/private-secrets.md` unless the task explicitly requires credentialed action or secret lookup
 
 Do not load every memory file by default. Prefer HOT, then the smallest matching WARM file.
 
@@ -80,6 +82,7 @@ Routing:
 - Current front-of-mind state → `current-state.md`
 - Recent 24-72h active topics → `recent-focus.md`
 - High-frequency aliases / fuzzy references → `trigger-map.md`
+- Heartbeat-thread summaries that will likely be asked again in main chat → `heartbeat-promotions.md`
 - Proven good collaboration pattern → `success-patterns.md`
 - Default behavior that should now be assumed → `default-behaviors.md`
 - User evaluation / feedback model → `feedback-model.md`
@@ -102,31 +105,9 @@ Use these files together:
 - `current-state.md` → current high-priority facts
 - `recent-focus.md` → what has been repeatedly active recently
 - `trigger-map.md` → fuzzy phrase / alias → intended topic
+- `heartbeat-promotions.md` → heartbeat-side summaries that have been promoted for future main-session recall
 
 These files exist to improve immediate context recall, not long-term archival depth.
-
-## Success, defaults, and feedback
-
-To evolve beyond pure error correction, keep three additional layers:
-- `success-patterns.md` → what already works well
-- `default-behaviors.md` → what the system should now do by default
-- `feedback-model.md` → how the user is currently evaluating quality, usefulness, and trust
-
-A system that wants to become more human-like must learn not only from mistakes, but also from successful interaction patterns and repeated user feedback.
-
-## Restricted secrets layer
-
-Use `memory/private-secrets.md` only for credentials or secret material that must be remembered for future automation.
-
-Hard rules:
-- Do not store secrets in HOT / DAILY / ordinary WARM / CONTROL files
-- Never copy secrets into skill bundles, release notes, published artifacts, or public/shareable memory
-- Do not read `private-secrets.md` by default during normal startup
-- Read it only when the current task explicitly requires credential lookup or secret-backed action
-- Never use restricted secrets in group/shared contexts unless the workspace owner clearly intends that use
-- Prefer storing a short usage note with each secret: what it is for, where it is used, and when it was last verified
-
-For a suggested structure, read `references/private-secrets-template.md`.
 
 ## Heartbeat integration
 
@@ -139,7 +120,8 @@ On heartbeat:
 4. Promote / merge / compact only when there is real value
 5. Optionally review newly added skills for intake classification
 6. Check whether repeated errors, repeated success patterns, new aliases, or recent active themes should be upgraded
-7. Otherwise respond with `HEARTBEAT_OK`
+7. If heartbeat produces a summary that is likely to be asked about again in main chat, promote it into `heartbeat-promotions.md` and, if needed, `recent-focus.md` / `current-state.md`
+8. Otherwise respond with `HEARTBEAT_OK`
 
 Heartbeat should maintain memory quietly, not create noise.
 

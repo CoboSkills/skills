@@ -1,8 +1,9 @@
 /**
  * 择日学 Skill - 核心算法
  * 作者：天工长老
- * 版本：v1.0
+ * 版本：v1.1
  * 创建：2026 年 3 月 29 日
+ * 更新：2026 年 3 月 30 日 - 添加神煞系统、时辰吉凶
  */
 
 // 建除十二神计算
@@ -140,6 +141,92 @@ function tuiJianJiRi(year, month, eventType = '嫁娶', limit = 5) {
   return jiRiList.slice(0, limit);
 }
 
+// ========== v1.1 新增：神煞系统 ==========
+
+// 常用神煞计算（简化版）
+function getShenSha(year, month, day) {
+  const shenSha = [];
+  const dayGan = (year + month + day) % 10; // 简化日干
+  const dayZhi = (year + month + day) % 12; // 简化日支
+  
+  // 天德贵人
+  if ([1, 3, 5, 7, 9, 11].includes(month)) shenSha.push('天德');
+  
+  // 月德贵人
+  if ([2, 6, 10].includes(month)) shenSha.push('月德');
+  
+  // 天赦日（春戊寅、夏甲午、秋戊申、冬甲子）
+  if ((month === 3 && day === 15) || (month === 6 && day === 21) || 
+      (month === 9 && day === 27) || (month === 12 && day === 3)) {
+    shenSha.push('天赦');
+  }
+  
+  // 三合日
+  const sanHe = {
+    1: [5, 9], 2: [6, 10], 3: [7, 11], 4: [8, 12],
+    5: [9, 1], 6: [10, 2], 7: [11, 3], 8: [12, 4],
+    9: [1, 5], 10: [2, 6], 11: [3, 7], 12: [4, 8]
+  };
+  if (sanHe[month] && sanHe[month].includes(day % 12 || 12)) {
+    shenSha.push('三合');
+  }
+  
+  // 岁破
+  if (month === ((year % 12) + 6) % 12 || month === ((year % 12) + 6) % 12 + 6) {
+    shenSha.push('岁破');
+  }
+  
+  // 月破
+  if (day === ((month + 6) % 12) || day === ((month + 6) % 12) + 12) {
+    shenSha.push('月破');
+  }
+  
+  return shenSha.length > 0 ? shenSha : ['无特殊神煞'];
+}
+
+// 神煞吉凶判断
+function getShenShaJiXiong(shenSha) {
+  const jiShen = ['天德', '月德', '天赦', '三合', '六合'];
+  const xiongShen = ['岁破', '月破', '四离', '四绝', '往亡'];
+  
+  let jiCount = 0;
+  let xiongCount = 0;
+  
+  shenSha.forEach(ss => {
+    if (jiShen.includes(ss)) jiCount++;
+    if (xiongShen.includes(ss)) xiongCount++;
+  });
+  
+  return { jiShen: jiCount, xiongShen: xiongCount };
+}
+
+// 时辰吉凶（简化版）
+function getShiChenJiXiong(hour) {
+  const shiChen = [
+    { name: '子时', time: '23:00-01:00' },
+    { name: '丑时', time: '01:00-03:00' },
+    { name: '寅时', time: '03:00-05:00' },
+    { name: '卯时', time: '05:00-07:00' },
+    { name: '辰时', time: '07:00-09:00' },
+    { name: '巳时', time: '09:00-11:00' },
+    { name: '午时', time: '11:00-13:00' },
+    { name: '未时', time: '13:00-15:00' },
+    { name: '申时', time: '15:00-17:00' },
+    { name: '酉时', time: '17:00-19:00' },
+    { name: '戌时', time: '19:00-21:00' },
+    { name: '亥时', time: '21:00-23:00' }
+  ];
+  
+  const shiChenIndex = Math.floor(hour / 2) % 12;
+  const jiXiong = ['吉', '凶', '吉', '吉', '凶', '吉', '凶', '吉', '吉', '凶', '吉', '凶'];
+  
+  return {
+    时辰：shiChen[shiChenIndex].name,
+    时间：shiChen[shiChenIndex].time,
+    吉凶：jiXiong[shiChenIndex]
+  };
+}
+
 // 导出
 module.exports = {
   zeRi,
@@ -147,5 +234,9 @@ module.exports = {
   getJianChu,
   getHuangDao,
   getJianChuJiXiong,
-  getHuangDaoJiXiong
+  getHuangDaoJiXiong,
+  // v1.1 新增
+  getShenSha,
+  getShenShaJiXiong,
+  getShiChenJiXiong
 };

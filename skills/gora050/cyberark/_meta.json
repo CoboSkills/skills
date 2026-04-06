@@ -3,11 +3,16 @@
   "slug": "cyberark",
   "displayName": "Cyberark",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775170229415,
-    "commit": "https://github.com/openclaw/skills/commit/3b76b2fd08e9e80ac9416557136ebfe50a5a979e"
+    "version": "1.0.2",
+    "publishedAt": 1775170231446,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775170229415,
+      "commit": "https://github.com/openclaw/skills/commit/3b76b2fd08e9e80ac9416557136ebfe50a5a979e"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774991161219,

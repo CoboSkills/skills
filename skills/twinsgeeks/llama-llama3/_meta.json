@@ -1,11 +1,17 @@
 {
   "owner": "twinsgeeks",
   "slug": "llama-llama3",
-  "displayName": "Llama 3 — Meta Llama 3.3, 3.2, 3.1 on Your Local Device Fleet",
+  "displayName": "Llama Llama3",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774928594421,
-    "commit": "https://github.com/openclaw/skills/commit/6633402dba723af55ade938a36d2cbec6cced925"
+    "version": "1.0.1",
+    "publishedAt": 1775254698795,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774928594421,
+      "commit": "https://github.com/openclaw/skills/commit/6633402dba723af55ade938a36d2cbec6cced925"
+    }
+  ]
 }

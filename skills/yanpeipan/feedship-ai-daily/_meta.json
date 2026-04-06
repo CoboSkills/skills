@@ -3,9 +3,15 @@
   "slug": "feedship-ai-daily",
   "displayName": "Ai Daily",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775042553229,
-    "commit": "https://github.com/openclaw/skills/commit/d189bc51d04216122db04f70b3bfe135fe24fef7"
+    "version": "1.13.0",
+    "publishedAt": 1775489257145,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775042553229,
+      "commit": "https://github.com/openclaw/skills/commit/d189bc51d04216122db04f70b3bfe135fe24fef7"
+    }
+  ]
 }

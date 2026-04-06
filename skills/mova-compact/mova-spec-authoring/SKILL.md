@@ -4,6 +4,8 @@ description: Author a new MOVA-spec contract from a pre-contract — translate i
 license: MIT-0
 ---
 
+> **Ecosystem Skill** — Supports building and managing the MOVA ecosystem. Requires the `openclaw-mova` plugin.
+
 # MOVA Spec Authoring
 
 Transform a fully calibrated pre-contract into a complete MOVA contract — structured JSON with envelope, instruction profile, and episode frame — ready for execution by any MOVA-compliant runtime.

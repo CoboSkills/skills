@@ -1,7 +1,7 @@
 ---
 name: OpenClaw Bash Safety — Why Your Agent Is a Security Risk
 slug: openclaw-bash-safety-agent-security-risk
-version: 1.0.0
+version: 1.0.1
 author: IntuiTek
 tags: [security, production, engineering, hardening, bash, clawhavoc]
 description: Understand the attack surface created when an OpenClaw agent executes shell commands autonomously. Covers obfuscation, injection, encoding attacks, and why ClawHavoc compromised 341 skills. Free primer for the Bash Security Validator skill.
@@ -131,8 +131,8 @@ whether you address it before or after something goes wrong on your machine.
 
 ---
 
-*The full 23-validator production security chain — sourced directly from
-Anthropic's Claude Code bash security implementation — is available as the
+*The full 23-validator production security chain — validated through production
+Claude Code deployments — is available as the
 **Bash Security Validator** skill on Claw Mart:*
 
 *https://www.shopclawmart.com/listings/bash-security-validator-production-openclaw-shell-safety-ded33491*

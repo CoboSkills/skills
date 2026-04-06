@@ -1,11 +1,17 @@
 {
   "owner": "sealawyer2026",
   "slug": "zhang-property-law",
-  "displayName": "九章物权法专家 V1.4.0",
+  "displayName": "九章-物权法专家",
   "latest": {
-    "version": "1.4.0",
-    "publishedAt": 1774502282151,
-    "commit": "https://github.com/openclaw/skills/commit/c0b587e8d902742d2386921d8544f34fda940cfc"
+    "version": "1.5.0",
+    "publishedAt": 1775099099970,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.4.0",
+      "publishedAt": 1774502282151,
+      "commit": "https://github.com/openclaw/skills/commit/c0b587e8d902742d2386921d8544f34fda940cfc"
+    }
+  ]
 }

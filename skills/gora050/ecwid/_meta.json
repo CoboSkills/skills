@@ -3,9 +3,15 @@
   "slug": "ecwid",
   "displayName": "Ecwid",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774314271420,
-    "commit": "https://github.com/openclaw/skills/commit/6b9c5d371ce00209d6e3095a7d76ff0b8aacfde9"
+    "version": "1.0.2",
+    "publishedAt": 1775166823358,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774314271420,
+      "commit": "https://github.com/openclaw/skills/commit/6b9c5d371ce00209d6e3095a7d76ff0b8aacfde9"
+    }
+  ]
 }

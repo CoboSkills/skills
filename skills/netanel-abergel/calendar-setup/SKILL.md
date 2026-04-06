@@ -187,6 +187,35 @@ gog auth remove owner@company.com
 
 ---
 
+## Heleni-specific: Direct API Workaround (when gog CLI auth fails)
+
+`gog auth login` requires a browser — doesn't work on a server. Use the pre-existing credentials in `/opt/ocana/openclaw/.gog/credentials.json` instead.
+
+```bash
+# 1. Read client_id, client_secret, refresh_token from the file (owner account)
+# Accounts: "agent" (genesis@ocana.ai), "owner" (netanelab@monday.com)
+
+# 2. Refresh access token
+curl -s -X POST https://oauth2.googleapis.com/token \
+  -d "client_id=<client_id>" \
+  -d "client_secret=<client_secret>" \
+  -d "refresh_token=<refresh_token>" \
+  -d "grant_type=refresh_token"
+# → get access_token from response
+
+# 3. Call Calendar API directly
+curl -s "https://www.googleapis.com/calendar/v3/calendars/netanelab%40monday.com/events?timeMin=<ISO>&timeMax=<ISO>&singleEvents=true&orderBy=startTime&maxResults=10" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+
+# 4. List all calendars
+curl -s "https://www.googleapis.com/calendar/v3/users/me/calendarList" \
+  -H "Authorization: Bearer $ACCESS_TOKEN"
+```
+
+**Note:** `~/.config/gws/credentials.json` (gog default path) has a stale/broken token. Always use `/opt/ocana/openclaw/.gog/credentials.json`.
+
+---
+
 ## Verification Checklist
 
 - [ ] Owner shared calendar with agent email
@@ -205,3 +234,64 @@ gog auth remove owner@company.com
 - **Small model OK:** All steps are procedural — any model can follow them
 - **Avoid:** Don't re-authenticate repeatedly — tokens last a long time if not revoked
 - **Batch:** Add all needed services in one `gog auth add` call (gmail,calendar,drive,contacts) instead of separate calls
+
+---
+
+## Email & Workspace Orientation (Merged from openclaw-email-orientation skill)
+
+### The Core Concept: Two Separate Accounts
+
+| | Account |
+|---|---|
+| **Owner** | The human's Google account (e.g. `owner@company.com`) |
+| **Agent** | The PA's own Google account (e.g. `agent@agentdomain.com`) |
+
+**These are separate.** Having an agent email does NOT automatically give access to the owner's email or calendar. Owner must explicitly share, and agent must explicitly authenticate.
+
+### Key Files
+
+| File | Purpose |
+|---|---|
+| `~/.openclaw/.gog/credentials.json` | gog OAuth client credentials |
+| `~/.openclaw/agents/main/agent/auth-profiles.json` | OpenClaw auth profiles |
+| `skills/gog/SKILL.md` | gog usage reference |
+
+**Security:** Never print the contents of these files in chat. Path is fine; content is not.
+
+### Using gog
+
+```bash
+# One-time: load OAuth credentials
+gog auth credentials /path/to/client_secret.json
+
+# Add an owner account (opens browser for OAuth)
+gog auth add owner@company.com --services gmail,calendar,drive,contacts,sheets,docs
+
+# Verify
+gog auth list
+
+# Always use GOG_ACCOUNT= in all commands
+GOG_ACCOUNT=owner@company.com gog gmail search 'is:unread' --max 10
+GOG_ACCOUNT=owner@company.com gog calendar events primary \
+  --from "2026-04-01T09:00:00Z" --to "2026-04-01T18:00:00Z"
+GOG_ACCOUNT=owner@company.com gog gmail send \
+  --to "recipient@example.com" --subject "Hello" --body "Message text"
+```
+
+### Troubleshooting Email/Calendar Access
+
+Work through in order:
+1. **Two accounts?** — Is the question about agent email or owner email?
+2. **gog installed?** — `which gog` — if missing, check PATH
+3. **Account added?** — `gog auth list` — does owner's account appear?
+4. **Write scope?** — OAuth must include calendar write scope, not read-only
+5. **GOG_ACCOUNT set?** — All commands must include `GOG_ACCOUNT=owner@company.com`
+6. **Permission level?** — Must be "Make changes to events", not "See all event details"
+
+**"Insufficient permissions" error** → Owner re-shares calendar with write permission (Step 1 above).
+
+**"Token expired" error:**
+```bash
+gog auth remove owner@company.com
+gog auth add owner@company.com --services gmail,calendar,drive,contacts
+```

@@ -1,9 +1,24 @@
 ---
 name: chat-visualizer-ymind
-description: Turn AI chat transcripts into structured YMind thinking maps with reasoning nodes, thinking shifts, and action items — rendered as an interactive D3.js force graph. Use this skill whenever a user shares a ChatGPT, Gemini, Claude, or DeepSeek conversation URL and wants to visualize, analyze, or extract insights from it — even if they just say "help me understand this chat", "what was decided here", or "summarize the key takeaways" without explicitly asking for a graph or visualization.
+description: Turn AI chat transcripts into interactive D3.js thinking maps with reasoning nodes, thinking shifts, and action items. Invoke this skill when the user shares a public share link from any AI chatbot or assistant (ChatGPT, Gemini, Claude, DeepSeek, Doubao, etc.), or pastes conversation text directly. Also applies when the user wants to visualize, analyze, or extract insights from a chat, even without explicit mention of a graph (e.g. "help me understand this chat", "what was decided here", "summarize the key takeaways").
 ---
 
 # Chat Visualizer - YMind
+
+## Version Check
+
+Run **once** at the start of each skill session. First locate the script (works regardless of which client installed the skill):
+
+```bash
+find ~/.codex/skills ~/.claude/skills ~/.openclaw/skills ~/skills -maxdepth 3 -name "check-version.py" 2>/dev/null | head -1
+```
+
+Then run it with `python3 <found_path>`.
+
+- Empty output → already up to date or network unavailable, proceed silently.
+- Output `UPDATE|X.X.X|Y.Y.Y|<skill_dir>|<notes>` → tell the user in English:
+  **"chat-visualizer-ymind vY.Y.Y is available** (you're on vX.X.X).\n\<notes\>\nUpdate: `cd <skill_dir> && git fetch && git checkout vY.Y.Y` — continue with current version?"
+  Wait for their reply before proceeding.
 
 ## Input
 
@@ -60,7 +75,7 @@ Users often give the wrong link type. Correct them if needed:
 |----------|-------------|-------------|
 | ChatGPT | `chatgpt.com/share/xxx` | `chatgpt.com/c/xxx` (private chat URL) |
 | Claude | `claude.ai/share/xxx` | `claude.ai/chat/xxx` (private chat URL) |
-| Gemini | `gemini.google.com/share/xxx` | `gemini.google.com/app/xxx` (app URL) |
+| Gemini | `gemini.google.com/share/xxx` or `g.co/gemini/share/xxx` | `gemini.google.com/app/xxx` (app URL) |
 | DeepSeek | `chat.deepseek.com/share/xxx` | `chat.deepseek.com/a/xxx` (private chat URL) |
 | Doubao | `www.doubao.com/thread/xxx` | `www.doubao.com/chat/xxx` (private chat URL) |
 
@@ -71,7 +86,7 @@ Note: `g.co/gemini/share/...` short links work — script auto-resolves them.
 Read `references/graph-schema.md` for node types, edge types, label rules, and output schema.
 
 Critical rules (non-obvious):
-- `turn_id`: assign actual turn number (1-based). Never default all nodes to the same value — this drives horizontal spread in the D3 visualization.
+- `turn_id`: assign actual turn number (1-based). One user message + one AI response = 1 turn — not one message per turn. A 3-round conversation yields turn_id 1, 2, 3 only. Never default all nodes to the same value — this drives horizontal spread in the D3 visualization.
 - Extraction density: scale with the substance of each turn. Brief or routine turns may yield 1-2 nodes; rich, multi-point turns can yield more. Let the content guide the count — the goal is to capture the meaningful thinking, not to hit a fixed number.
 - Edges: only add if the connection passes the "obviously yes" test.
 - Reasoning shifts: look for moments where thinking fundamentally changed. Capture what changed, from what, to what, and why.
@@ -90,6 +105,8 @@ bash scripts/run.sh render <run_dir>
 # validates JSON, renders graph.html + graph.png (screenshot, requires Playwright)
 # then rebuilds <ymind_dir>/index.json and <ymind_dir>/index.html automatically
 ```
+
+   `graph.html` is a **split-view** output when `raw_chat.json` is present in `<run_dir>`: left panel shows the original conversation, right panel shows the thinking map. If `raw_chat.json` is absent, only the graph is shown (no split).
 
 3. Output Markdown summary (format in `references/graph-schema.md`).
 4. If running as a bot with chat output capability, send the graph image — see **Bot Send** below.

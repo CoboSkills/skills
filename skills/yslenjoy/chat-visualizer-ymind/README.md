@@ -34,7 +34,11 @@ Want auto-fetch support for another provider? [Open an issue](https://github.com
 
 ## Install
 
-This skill is **not published on ClawHub yet**.
+### ClawHub
+
+```bash
+npx clawhub@latest install chat-visualizer-ymind
+```
 
 ### Manual Install
 
@@ -67,7 +71,7 @@ Results are saved to `~/ymind-ws/` by default (override with `YMIND_DIR`). Each 
   20260319-143021_chatgpt/
     raw_chat.json               ← fetched conversation
     graph.json                  ← extracted thinking graph
-    graph.html                  ← D3.js visualization
+    graph.html                  ← D3.js visualization (split view with chat panel if raw_chat.json exists)
     graph.png                   ← screenshot
     meta.json                   ← provider, url, title, created_at
 ```
@@ -76,7 +80,7 @@ Results are saved to `~/ymind-ws/` by default (override with `YMIND_DIR`). Each 
 
 - **No cookies stored** — fetching uses requests + Playwright in a fresh context; no session data is cached between runs
 - **Everything stays local** — all output is saved to your machine only, nothing is uploaded
-- **No external services** — rendering is fully offline; the graph HTML is self-contained
+- **No external services for data** — all conversation data stays local; the rendered HTML loads fonts and visualization libraries (D3.js, html2canvas) from CDN and requires an internet connection to display correctly
 - Conversation URLs are only used to fetch the public share page you provide
 
 ## Pipeline

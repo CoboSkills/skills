@@ -363,6 +363,205 @@
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ── Split mode ── */
+        body.split-mode { display: flex; flex-direction: row; overflow: hidden; }
+        body.split-mode .graph-container { flex: 1; min-width: 0; }
+
+        .chat-panel {
+            display: none;
+            width: 38%; min-width: 280px; max-width: 520px;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,0.07);
+            background: #0b0f19;
+            overflow: hidden; flex-shrink: 0;
+            z-index: 5;
+        }
+        body.split-mode .chat-panel { display: flex; }
+
+        .chat-panel-header {
+            padding: 13px 16px; flex-shrink: 0;
+            border-bottom: 1px solid rgba(255,255,255,0.07);
+            background: rgba(11,15,25,0.95); backdrop-filter: blur(12px);
+        }
+        .chat-panel-title {
+            font-size: 12px; font-weight: 500; color: #e5e7eb;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .chat-panel-sub { font-size: 10px; color: #6b7280; margin-top: 2px; }
+
+        .chat-messages-wrap {
+            flex: 1; overflow-y: auto; padding: 14px 12px;
+            display: flex; flex-direction: column; gap: 12px;
+            scroll-behavior: smooth;
+        }
+        .chat-messages-wrap::-webkit-scrollbar { width: 3px; }
+        .chat-messages-wrap::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+
+        .chat-msg { display: flex; flex-direction: column; gap: 3px; max-width: 94%; }
+        .chat-msg.user { align-self: flex-end; align-items: flex-end; }
+        .chat-msg.assistant { align-self: flex-start; align-items: flex-start; }
+        .chat-msg-role {
+            font-size: 9px; font-weight: 600; letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .chat-msg.user .chat-msg-role { color: rgba(0,240,255,0.55); }
+        .chat-msg.assistant .chat-msg-role { color: rgba(189,0,255,0.55); }
+        .chat-msg-bubble {
+            padding: 9px 12px; border-radius: 11px;
+            font-size: 11.5px; line-height: 1.65; font-weight: 300;
+            color: #e5e7eb; white-space: pre-wrap; word-break: break-word;
+        }
+        .chat-msg.user .chat-msg-bubble {
+            background: rgba(0,240,255,0.07);
+            border: 1px solid rgba(0,240,255,0.18);
+            border-bottom-right-radius: 3px;
+        }
+        .chat-msg.assistant .chat-msg-bubble {
+            background: rgba(189,0,255,0.05);
+            border: 1px solid rgba(189,0,255,0.13);
+            border-bottom-left-radius: 3px;
+        }
+
+        .split-divider {
+            display: none;
+            width: 4px; flex-shrink: 0; cursor: col-resize;
+            background: linear-gradient(to bottom,
+                rgba(189,0,255,0.3), rgba(0,240,255,0.3));
+            transition: background 0.2s;
+            z-index: 6;
+        }
+        body.split-mode .split-divider { display: block; }
+        .split-divider:hover, .split-divider.dragging {
+            background: linear-gradient(to bottom,
+                rgba(189,0,255,0.7), rgba(0,240,255,0.7));
+        }
+        /* Block pointer events on svg during resize drag */
+        body.resizing svg { pointer-events: none; }
+
+        /* ── Light Mode (A: Enhanced Aurora) ── */
+        body.light-mode {
+            background: radial-gradient(circle at 50% 50%, #f5f8ff 0%, #edf1fb 50%, #e4eaf6 100%);
+            color: #475569;
+        }
+        body.light-mode ::-webkit-scrollbar-thumb { background: #c7d0e0; }
+
+        body.light-mode .ambient-blob { mix-blend-mode: multiply; opacity: 0.20; }
+        body.light-mode .ambient-blob.violet {
+            background: radial-gradient(circle, rgba(112,0,255,0.55) 0%, rgba(112,0,255,0.06) 60%, transparent 80%);
+        }
+        body.light-mode .ambient-blob.cyan {
+            background: radial-gradient(circle, rgba(0,200,255,0.48) 0%, rgba(0,200,255,0.05) 60%, transparent 80%);
+        }
+        body.light-mode .ambient-blob.pink {
+            background: radial-gradient(circle, rgba(255,0,128,0.38) 0%, rgba(255,0,128,0.04) 60%, transparent 80%);
+        }
+        body.light-mode .ambient-blob.deep-cyan {
+            background: radial-gradient(circle, rgba(0,180,240,0.38) 0%, rgba(0,180,240,0.04) 60%, transparent 80%);
+        }
+
+        body.light-mode .hud-btn {
+            background: rgba(255,255,255,0.75); border-color: rgba(0,0,0,0.08);
+            color: #556070; box-shadow: 0 2px 10px rgba(80,100,160,0.1);
+        }
+        body.light-mode .hud-btn:hover { border-color: var(--aura-cyan); color: #0f172a; background: rgba(255,255,255,0.9); }
+        body.light-mode .hud-title {
+            color: rgba(0,0,0,0.5); background: rgba(255,255,255,0.65);
+            box-shadow: 0 2px 8px rgba(80,100,160,0.08);
+        }
+        body.light-mode .view-toggle {
+            background: rgba(255,255,255,0.75); border-color: rgba(0,0,0,0.08);
+            box-shadow: 0 2px 10px rgba(80,100,160,0.1);
+        }
+        body.light-mode .toggle-btn { color: #8a9ab8; }
+        body.light-mode .toggle-btn:first-child { border-right-color: rgba(0,0,0,0.06); }
+        body.light-mode .toggle-btn:hover { color: #1e293b; }
+        body.light-mode .toggle-btn.active { background: rgba(0,220,255,0.1); color: #0099bb; }
+
+        body.light-mode .legend-panel {
+            background: rgba(255,255,255,0.75); border-color: rgba(0,0,0,0.07);
+            box-shadow: 0 2px 10px rgba(80,100,160,0.1);
+        }
+        body.light-mode .legend-title { color: #8a9ab8; }
+
+        body.light-mode .tooltip {
+            background: rgba(255,255,255,0.92); border-color: rgba(0,0,0,0.07);
+            box-shadow: 0 4px 20px rgba(80,100,160,0.15);
+        }
+        body.light-mode .tooltip-label { color: #0f172a; }
+        body.light-mode .tooltip-desc { color: #475569; }
+        body.light-mode .tooltip-hint { color: #94a3b8; border-top-color: rgba(0,0,0,0.05); }
+
+        body.light-mode .node-label { fill: #1e293b; text-shadow: none; }
+        body.light-mode .node-group.root .node-label { fill: #0a0f1e; text-shadow: none; }
+        body.light-mode .turn-badge { fill: #94a3b8; }
+
+        body.light-mode .node-shape { filter: drop-shadow(0 0 5px currentColor) drop-shadow(0 1px 4px rgba(0,0,0,0.12)); }
+        body.light-mode .node-group:hover .node-shape { filter: drop-shadow(0 0 9px currentColor) drop-shadow(0 2px 6px rgba(0,0,0,0.15)); }
+        body.light-mode .node-group.selected .node-shape { filter: drop-shadow(0 0 12px currentColor) drop-shadow(0 2px 8px rgba(0,0,0,0.2)); }
+
+        body.light-mode .link.structural { stroke: #a0aec0; stroke-opacity: 0.35; }
+        body.light-mode .link.leads_to { stroke: #0088bb; stroke-opacity: 0.55; }
+        body.light-mode .link.causes { stroke: #cc3333; stroke-opacity: 0.55; }
+        body.light-mode .link.resolves { stroke: #7733bb; stroke-opacity: 0.55; }
+        body.light-mode .link.opposes { stroke: #bb6600; stroke-opacity: 0.55; }
+
+        body.light-mode .collapse-btn circle { fill: rgba(255,255,255,0.7); stroke: rgba(0,0,0,0.15); }
+        body.light-mode .collapse-btn:hover circle { fill: rgba(255,255,255,0.9); }
+        body.light-mode .collapse-btn text { fill: #334155; }
+
+        body.light-mode .status-toast {
+            background: rgba(255,255,255,0.92); border-color: rgba(0,0,0,0.07);
+            color: #1e293b; box-shadow: 0 4px 16px rgba(80,100,160,0.12);
+        }
+        body.light-mode .edit-input { background: rgba(255,255,255,0.97); color: #0f172a; }
+
+        body.light-mode .chat-panel { background: #f2f5fd; border-right-color: rgba(0,0,0,0.06); }
+        body.light-mode .chat-panel-header {
+            background: rgba(245,248,255,0.97); border-bottom-color: rgba(0,0,0,0.05);
+        }
+        body.light-mode .chat-panel-title { color: #1e293b; }
+        body.light-mode .chat-panel-sub { color: #8a9ab8; }
+        body.light-mode .chat-messages-wrap::-webkit-scrollbar-thumb { background: #c7d0e0; }
+        body.light-mode .chat-msg-bubble { color: #1e293b; }
+        body.light-mode .chat-msg.user .chat-msg-bubble {
+            background: rgba(0,200,255,0.08); border-color: rgba(0,200,255,0.25);
+        }
+        body.light-mode .chat-msg.assistant .chat-msg-bubble {
+            background: rgba(112,0,255,0.06); border-color: rgba(112,0,255,0.15);
+        }
+        body.light-mode .split-divider {
+            background: linear-gradient(to bottom, rgba(112,0,255,0.18), rgba(0,200,255,0.18));
+        }
+        body.light-mode .split-divider:hover, body.light-mode .split-divider.dragging {
+            background: linear-gradient(to bottom, rgba(112,0,255,0.45), rgba(0,200,255,0.45));
+        }
+
+        body.light-mode .modal-overlay { background: rgba(237,241,251,0.92); }
+        body.light-mode .manifesto-card {
+            background: linear-gradient(160deg, #ffffff 0%, #edf1fb 100%);
+            border-color: rgba(0,0,0,0.06);
+            box-shadow: 0 20px 50px rgba(80,100,160,0.1), 0 0 0 1px rgba(255,255,255,0.8) inset;
+            color: #1e293b;
+        }
+        body.light-mode .card-glow { background: radial-gradient(circle, rgba(0,200,255,0.1) 0%, transparent 70%); }
+        body.light-mode .modal-title { color: #0f172a; text-shadow: 0 0 20px rgba(0,200,255,0.2); }
+        body.light-mode .modal-subtitle { color: rgba(0,0,0,0.38); }
+        body.light-mode .card-title { color: #0f172a; text-shadow: none; }
+        body.light-mode .card-content { color: rgba(0,0,0,0.72); }
+        body.light-mode .card-source { color: #94a3b8; }
+        body.light-mode .card-quote { color: rgba(0,0,0,0.25); }
+        body.light-mode .card-brand { color: #000; opacity: 0.12; }
+        body.light-mode .card-footer { border-top-color: rgba(0,0,0,0.05); }
+        body.light-mode .action-btn.secondary {
+            background: rgba(255,255,255,0.7); color: #1e293b;
+            border-color: rgba(0,0,0,0.09); box-shadow: 0 1px 6px rgba(80,100,160,0.08);
+        }
+        body.light-mode .action-btn.secondary:hover { background: rgba(255,255,255,0.9); }
+        body.light-mode .action-btn.icon-btn { color: #64748b; }
+        body.light-mode .action-btn.icon-btn:hover { color: #1e293b; }
+        body.light-mode .cards-indicator-dot { background: rgba(0,0,0,0.12); }
+        body.light-mode .cards-container::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); }
     </style>
 </head>
 <body>
@@ -372,6 +571,16 @@
         <div class="ambient-blob pink"></div>
         <div class="ambient-blob deep-cyan"></div>
     </div>
+
+    <!-- Chat panel (split mode only) -->
+    <div class="chat-panel" id="chatPanel">
+        <div class="chat-panel-header">
+            <div class="chat-panel-title" id="chatPanelTitle"></div>
+            <div class="chat-panel-sub" id="chatPanelSub"></div>
+        </div>
+        <div class="chat-messages-wrap" id="chatMessagesWrap"></div>
+    </div>
+    <div class="split-divider" id="splitDivider"></div>
 
     <main class="graph-container" id="graphContainer">
         <svg id="graph"></svg>
@@ -409,6 +618,14 @@
 
         <!-- HUD Bottom Right: Action Cards button -->
         <div class="hud-bottom-right">
+            <div class="hud-btn" id="btnTheme" onclick="toggleTheme()" title="Toggle light / dark mode">
+                <svg id="themeIconMoon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+                <svg id="themeIconSun" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                    <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+            </div>
             <div class="hud-btn accent" id="btnActions" onclick="openActionCards()" title="Action Cards">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
@@ -457,6 +674,7 @@
     <script>
         // ============== Data (injected by render-html.py) ==============
         const __YMIND_DATA__ = {{GRAPH_JSON}};
+        const __CHAT_MESSAGES__ = {{CHAT_JSON}};
 
         // ============== State ==============
         let graphData = null;
@@ -561,8 +779,8 @@
         const config = {
             colors: { root: '#ffffff', fact: '#8b9dc3', friction: '#FF4D4D', spark: '#00F0FF', action: '#FFE600' },
             sizes: { root: 50, fact: 8, friction: 8, spark: 10, action: 8 },
-            yOffsets: { root: 0, fact: -120, friction: 0, spark: 0, action: 120 },
-            layout: { turnSpacing: 200, verticalCluster: 100, yStrength: 0.7 }
+            yOffsets: { root: 0, fact: -100, friction: -30, spark: 50, action: 130 },
+            layout: { turnSpacing: 200, verticalCluster: 100, yStrength: 0.8 }
             // turnSpacing is overridden dynamically in renderGraph() based on node count
         };
 
@@ -601,7 +819,61 @@
             t = i18n[lang];
             applyLang();
             updateActionBadge();
+            initSplitMode();
             renderGraph(graphData);
+        }
+
+        // ============== Split Mode ==============
+        function initSplitMode() {
+            const msgs = __CHAT_MESSAGES__;
+            if (!msgs || msgs.length === 0) return;
+
+            document.body.classList.add('split-mode');
+
+            // Header
+            const titleEl = document.getElementById('chatPanelTitle');
+            const subEl = document.getElementById('chatPanelSub');
+            if (titleEl) titleEl.textContent = (graphData && graphData.title) ? graphData.title : '';
+            if (subEl) subEl.textContent = Math.ceil(msgs.length / 2) + (navigator.language.startsWith('zh') ? ' 轮对话' : ' turns');
+
+            // Messages
+            const wrap = document.getElementById('chatMessagesWrap');
+            msgs.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'chat-msg ' + msg.role;
+                const role = document.createElement('div');
+                role.className = 'chat-msg-role';
+                role.textContent = msg.role === 'user' ? 'You' : 'AI';
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-msg-bubble';
+                bubble.textContent = msg.content;
+                div.appendChild(role);
+                div.appendChild(bubble);
+                wrap.appendChild(div);
+            });
+
+            // Drag resize
+            const divider = document.getElementById('splitDivider');
+            const panel = document.getElementById('chatPanel');
+            let dragging = false;
+            divider.addEventListener('mousedown', e => {
+                dragging = true;
+                divider.classList.add('dragging');
+                document.body.classList.add('resizing');
+                e.preventDefault();
+            });
+            document.addEventListener('mousemove', e => {
+                if (!dragging) return;
+                const totalW = document.body.offsetWidth;
+                const newW = Math.max(240, Math.min(totalW * 0.6, e.clientX));
+                panel.style.width = newW + 'px';
+            });
+            document.addEventListener('mouseup', () => {
+                if (!dragging) return;
+                dragging = false;
+                divider.classList.remove('dragging');
+                document.body.classList.remove('resizing');
+            });
         }
 
         // ============== Graph Rendering ==============
@@ -719,7 +991,8 @@
 
             // --- ADAPTIVE TURN SPACING ---
             const maxTurnId = Math.max(...visibleData.nodes.filter(n=>n.turn_id).map(n=>n.turn_id), 1);
-            config.layout.turnSpacing = Math.min(180, Math.max(70, (window.innerWidth * 0.68) / (maxTurnId + 1)));
+            const graphW = document.getElementById('graphContainer').offsetWidth || window.innerWidth;
+            config.layout.turnSpacing = Math.min(180, Math.max(70, (graphW * 0.68) / (maxTurnId + 1)));
 
             // --- PRE-PROCESS: in-turn index ---
             const turnGroups = {};
@@ -733,6 +1006,13 @@
                 group.forEach((n,i) => { n.inTurnIndex = i-(group.length-1)/2; });
             });
 
+            // --- PRE-POSITION: seed positions to avoid collinear starting layout ---
+            visibleData.nodes.forEach(n => {
+                if (n.type === 'root') { n.x = 0; n.y = 0; return; }
+                n.x = (n.turn_id || 0.5) * config.layout.turnSpacing + (Math.random() - 0.5) * 90;
+                n.y = (config.yOffsets[n.type] || 0) + (n.inTurnIndex || 0) * 60 + (Math.random() - 0.5) * 60;
+            });
+
             // --- FORCE SIMULATION ---
             simulation = d3.forceSimulation(visibleData.nodes)
                 .force('link', d3.forceLink(visibleData.links).id(d=>d.id)
@@ -740,13 +1020,13 @@
                     .strength(d => {
                         const isRoot = (d.source.id||d.source)==='root'||(d.target.id||d.target)==='root';
                         if (isRoot) return 0;
-                        return (d.relation_type && d.relation_type!=='parent') ? 0.6 : 0.3;
+                        return (d.relation_type && d.relation_type!=='parent') ? 0.3 : 0.3;
                     })
                 )
-                .force('charge', d3.forceManyBody().strength(-400))
-                .force('collision', d3.forceCollide().radius(d=>(config.sizes[d.type]||10)+30).strength(0.9).iterations(3))
-                .force('x', d3.forceX().x(d => d.type==='root' ? 0 : (d.turn_id||0.5)*config.layout.turnSpacing).strength(0.6))
-                .force('y', d3.forceY(d => (config.yOffsets[d.type]||0)+(d.inTurnIndex||0)*40).strength(config.layout.yStrength))
+                .force('charge', d3.forceManyBody().strength(-500))
+                .force('collision', d3.forceCollide().radius(d=>(config.sizes[d.type]||10)+36).strength(1.0).iterations(4))
+                .force('x', d3.forceX().x(d => d.type==='root' ? 0 : (d.turn_id||0.5)*config.layout.turnSpacing).strength(0.8))
+                .force('y', d3.forceY(d => (config.yOffsets[d.type]||0)+(d.inTurnIndex||0)*60).strength(config.layout.yStrength))
                 .force('proximityRepel', function(alpha) {
                     const ns = visibleData.nodes;
                     for (let i=0;i<ns.length;i++) {
@@ -758,6 +1038,29 @@
                                 const f=(80-dy)*0.15*alpha;
                                 if (ns[i].y<ns[j].y) { ns[i].vy-=f; ns[j].vy+=f; }
                                 else { ns[i].vy+=f; ns[j].vy-=f; }
+                            }
+                        }
+                    }
+                })
+                .force('edgeRepel', function(alpha) {
+                    const ns = visibleData.nodes;
+                    const ls = visibleData.links;
+                    for (const link of ls) {
+                        const a = link.source, b = link.target;
+                        if (!a || !b || a.type==='root' || b.type==='root') continue;
+                        const abx = b.x - a.x, aby = b.y - a.y;
+                        const len2 = abx*abx + aby*aby;
+                        if (len2 < 1) continue;
+                        for (const n of ns) {
+                            if (n === a || n === b || n.type === 'root') continue;
+                            const t = Math.max(0, Math.min(1, ((n.x-a.x)*abx + (n.y-a.y)*aby) / len2));
+                            const px = a.x + t*abx - n.x;
+                            const py = a.y + t*aby - n.y;
+                            const dist = Math.sqrt(px*px + py*py);
+                            if (dist < 55 && dist > 0.5) {
+                                const f = (55 - dist) / dist * 0.5 * alpha;
+                                n.vx -= px * f;
+                                n.vy -= py * f;
                             }
                         }
                     }
@@ -783,10 +1086,9 @@
             const root = data.nodes.find(n => n.type==='root');
             if (root) { root.fx=0; root.fy=0; }
 
-            // Auto-fit when simulation cools
-            simulation.on('end', () => fitAll(600));
-            // Also fit early so user sees something quickly
-            setTimeout(() => fitAll(750), 1200);
+            // Fit immediately using pre-positioned coordinates, then refine when simulation settles
+            setTimeout(() => fitAll(300), 30);
+            simulation.on('end', () => fitAll(400));
 
             updateRelationLegend(data);
         }
@@ -824,8 +1126,8 @@
             if (view === 'timeline') {
                 // Restore turn-based horizontal spread
                 simulation
-                    .force('x', d3.forceX().x(d => d.type==='root' ? 0 : (d.turn_id||0.5)*config.layout.turnSpacing).strength(0.6))
-                    .force('y', d3.forceY(d => (config.yOffsets[d.type]||0)+(d.inTurnIndex||0)*40).strength(config.layout.yStrength));
+                    .force('x', d3.forceX().x(d => d.type==='root' ? 0 : (d.turn_id||0.5)*config.layout.turnSpacing).strength(0.8))
+                    .force('y', d3.forceY(d => (config.yOffsets[d.type]||0)+(d.inTurnIndex||0)*60).strength(config.layout.yStrength));
             } else {
                 // Structure: group by type into quadrants
                 const w = window.innerWidth, h = window.innerHeight;
@@ -1267,7 +1569,24 @@
             return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
+
+        // ============== Theme Toggle ==============
+        function toggleTheme() {
+            const isLight = document.body.classList.toggle('light-mode');
+            document.getElementById('themeIconMoon').style.display = isLight ? 'none' : '';
+            document.getElementById('themeIconSun').style.display = isLight ? '' : 'none';
+            localStorage.setItem('ymind-theme', isLight ? 'light' : 'dark');
+        }
+        function initTheme() {
+            const saved = localStorage.getItem('ymind-theme');
+            if (saved === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('themeIconMoon').style.display = 'none';
+                document.getElementById('themeIconSun').style.display = '';
+            }
+        }
         // ============== Start ==============
+        initTheme();
         init();
     </script>
 </body>

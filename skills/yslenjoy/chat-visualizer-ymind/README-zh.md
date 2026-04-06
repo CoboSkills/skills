@@ -34,7 +34,11 @@
 
 ## 安装
 
-该 skill **尚未发布到 ClawHub**。
+### ClawHub
+
+```bash
+npx clawhub@latest install chat-visualizer-ymind
+```
 
 ### 手动安装
 
@@ -67,7 +71,7 @@ git clone https://github.com/yslenjoy/chat-visualizer-ymind.git ~/.codex/skills/
   20260319-143021_chatgpt/
     raw_chat.json               ← 抓取的原始对话
     graph.json                  ← 提取的思维图数据
-    graph.html                  ← D3.js 可视化
+    graph.html                  ← D3.js 可视化（有 raw_chat.json 时左右分栏，左边原始对话）
     graph.png                   ← 截图
     meta.json                   ← provider、url、标题、创建时间
 ```
@@ -76,7 +80,7 @@ git clone https://github.com/yslenjoy/chat-visualizer-ymind.git ~/.codex/skills/
 
 - **不存储 Cookie** —— 抓取使用全新浏览器上下文，不缓存任何会话数据
 - **完全本地** —— 所有输出只保存在本机，不上传任何内容
-- **无外部服务** —— 渲染完全离线，图的 HTML 文件自包含
+- **数据不出本机** —— 所有对话数据仅保存在本地；渲染出的 HTML 通过 CDN 加载字体和可视化库（D3.js、html2canvas），需要联网才能正常显示
 - 对话链接仅用于抓取你提供的公开分享页
 
 ## 处理流程

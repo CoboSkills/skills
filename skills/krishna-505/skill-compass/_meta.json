@@ -3,11 +3,16 @@
   "slug": "skill-compass",
   "displayName": "SkillCompass — Skill Evolution Engine",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1774711895277,
-    "commit": "https://github.com/openclaw/skills/commit/d49de3323d212228552fc84167c64e2134c0326e"
+    "version": "1.0.5",
+    "publishedAt": 1775032723894,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1774711895277,
+      "commit": "https://github.com/openclaw/skills/commit/d49de3323d212228552fc84167c64e2134c0326e"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1774582640790,

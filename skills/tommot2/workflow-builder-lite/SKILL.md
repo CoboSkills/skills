@@ -1,128 +1,121 @@
 ---
 name: workflow-builder-lite
-description: "Build and simulate multi-step workflows with conditional logic. Chain API calls and agent actions into sequences with if/else branching. Workflows exist only in the current session. Exec steps are simulation-only (the agent describes what would happen without running shell commands). API responses and results are returned in-chat only — never written to files unless the user explicitly requests it separately. Use when: user wants to plan a multi-step process, visualize a pipeline, prototype an automation flow, or think through conditional logic. Homepage: https://clawhub.ai/skills/workflow-builder-lite"
+description: "Build and execute multi-step workflows with conditional logic. Chain API calls, agent actions, and shell commands into sequences with if/else branching. Persists workflows to files for reuse. Use when: user wants to plan a multi-step process, automate a pipeline, schedule recurring tasks, or chain together agent actions. Homepage: https://clawhub.ai/skills/workflow-builder-lite"
 ---
 
-# Workflow Builder Lite
+# Workflow Builder Lite v2.0
 
 **Install:** `clawhub install workflow-builder-lite`
 
-Plan and visualize multi-step workflows with conditional logic. No code required.
-
-**Workflows are session-only — they are never written to files or persisted.** This skill plans and simulates workflows. Execution uses only the agent's built-in tools (message, browser, web_fetch) — no shell exec, no file writes, no external dependencies.
+Plan, save, and execute multi-step workflows with conditional logic.
 
 ## Language
 
-Detect from the user's message language. Default: English.
+Detect from user's message language. Default: English.
 
 ## How It Works
 
-### Method 1: Natural Language
+### Build — Natural Language
 
-> User: "Lag en workflow: hent vær fra wttr.in → hvis regn → send meg melding"
+> User: "Lag en workflow: hent vær → hvis regn → send meg melding"
 >
-> Agent: Her er foreslått workflow:
+> Agent:
 > ```
-> 1. ⛅ Hent vær (GET wttr.in/Oslo?format=j1)
-> 2. 🔀 Sjekk: Er det regn? (vurder weather_description)
->    → Ja: 3. 📨 Send melding "Ta paraply!" til bruker
->    → Nei: Stop (ingen handling)
+> Workflow: weather-alert
+> 1. ⛅ Hent vær (web_fetch wttr.in/Oslo?format=j1)
+> 2. 🔀 Sjekk: Er det regn?
+>    → Ja: 3. 📨 Send melding "Ta paraply!"
+>    → Nei: Stop
 > ```
 > Godkjent? (ja/nei/rediger)
 
-### Method 2: Step-by-Step
+### Build — Step by Step
 
-> "Legg til et steg: hent data fra API X"
+> "Legg til steg: hent data fra API X"
 > "Legg til betingelse: hvis status != 200, stopp"
-> "Legg til et steg: lagre resultat som variabel for neste steg"
+> "Slett steg 2"
 
-### Method 3: Edit Existing
+### Save — Persist to File
 
-> "Vis workflow 'morning brief'"
-> "Endre steg 2 til å bruke endpoint Y i stedet"
-> "Legg til et nytt steg etter steg 3"
-
-## Running a Workflow
-
-### Execution
-
-When the user approves a workflow, the agent executes it step by step using built-in tools:
-
-- **API steps**: Use the agent's built-in HTTP capabilities (or suggest smart-api-connector for complex REST calls). Results are returned in-chat only.
-- **Agent steps**: The agent uses only built-in tools (message, browser, web_fetch). No file writes, no shell commands.
-- **Exec steps**: NOT supported — this skill does not run shell commands. If a step requires shell access, suggest the user set up a cron job or run the command manually.
-
-### Progress Reporting
+When user approves a workflow, save to `memory/workflows/{name}.md`:
 
 ```markdown
-## ⚙️ Kjører: Morning Brief
+# Workflow: {name}
 
-| # | Steg | Status | Resultat |
-|---|------|--------|----------|
-| 1 | Hent vær | ✅ | 12°C, delvis skyet |
-| 2 | Sjekk regn | ⏭️ | Ingen regn → hopp over steg 3 |
-| 3 | Send melding | — | Hoppet over |
+## Steps
+1. [type] description
+2. [type] description
+   → condition: if X then step 3, else stop
 
-**Resultat:** Fullført. 2/3 steg kjørt.
+## Created
+YYYY-MM-DDTHH:mm+ZZ:ZZ
+
+## Last Run
+Never
 ```
 
-### Error Handling
+### Execute — With Confirmation
 
-| Step Error | Action |
-|-----------|--------|
-| Network failure | Retry once, then ask user |
-| API returns 4xx | Stop workflow, show error |
-| API returns 5xx | Retry 2x with delay, then stop |
-| Invalid data | Skip step, log warning, continue |
-| Condition parse error | Ask user to clarify |
+When user says "kjør workflow {name}":
 
-### Dry Run / Simulation
+1. Load workflow from file
+2. Show steps to user
+3. Ask: "Kjør denne workflowen? Y/N"
+4. Execute step by step
+5. Report progress after each step
 
-User says: "dry run workflow X" / "test X"
+**Step types and how to execute:**
 
-- Walk through all steps WITHOUT executing anything
-- Show what WOULD happen at each step
-- Highlight potential issues
-- No side effects whatsoever
+| Type | Execution Method | Requires Confirmation |
+|------|-----------------|:--------------------:|
+| API call | web_fetch or agent built-in HTTP | No (after workflow approval) |
+| Agent action | Built-in tools (message, browser, etc.) | No (after workflow approval) |
+| Shell command | exec tool | **Yes — show command, ask each time** |
+| File write | write tool | **Yes — show content, ask each time** |
 
-## Workflow Commands
+**Shell/file steps require per-step confirmation.** Show the exact command/content and wait for Y/N.
+
+### Progress
+
+```
+Running: weather-alert
+  [✅] Step 1: Hent vær — 15°C, delvis skyet
+  [⏭️] Step 2: Sjekk regn — nei
+  [⬜] Step 3: (skipped)
+Done. No rain today.
+```
+
+## Quick Commands
 
 | User says | Action |
 |-----------|--------|
-| "create workflow" / "lag workflow" | Start workflow builder |
-| "show workflows" / "vis workflows" | List workflows in this session |
-| "run X" / "kjør X" | Execute workflow |
-| "dry run X" / "test X" | Simulate without executing |
-| "edit workflow X" | Modify existing workflow |
+| "lag workflow" | Start building |
+| "vis workflows" | List saved workflows |
+| "kjør {name}" | Execute saved workflow |
+| "rediger {name}" | Modify steps |
 
-## Limitations
+## Guidelines for Agent
 
-- Workflows exist in session context only — closing the session loses them
-- Maximum 5 steps per workflow
-- Simple if/else branching (no nesting)
-- No shell/exec steps — use cron or manual commands for those
-- No file persistence — workflow definitions and results exist only in chat
-- No cron scheduling (use the agent's built-in cron tool directly if needed)
-- **Explicit file I/O is out of scope** — if the user wants to save API results to a file, recommend they use the `exec` tool separately after the workflow completes
+1. **Save workflows to files** — `memory/workflows/` for reuse
+2. **Confirm shell/file steps** — always ask before executing
+3. **Report after each step** — keep user informed
+4. **Support conditional branching** — if/else based on step results
+5. **Auto-create `memory/workflows/`** if it doesn't exist
 
-## Output Format
+## What This Skill Does NOT Do
 
-Adapts to user language.
-
-### English / Norwegian
-
-```markdown
-## ⚙️ Workflow: {name}
-
-**Status:** Running / Completed / Failed
-**Steps:** X/Y completed | **Time:** {X}s
-
-| # | Step | Status | Result |
-|---|------|--------|--------|
-```
+- Does NOT execute shell commands without user confirmation
+- Does NOT write files without user confirmation
+- Does NOT modify MEMORY.md, HEARTBEAT.md, or other skill files
+- Does NOT require external dependencies
 
 ## More by TommoT2
 
-- **smart-api-connector** — Connect to any REST API without writing code
-- **setup-doctor** — Diagnose and fix OpenClaw setup issues
-- **tommo-skill-guard** — Security scanner for all installed skills
+- **smart-api-connector** — Connect to any REST API without code
+- **context-brief** — Persistent context survival across sessions
+- **cross-check** — Auto-detect and verify assumptions
+
+Install the full suite:
+```bash
+clawhub install workflow-builder-lite smart-api-connector context-brief cross-check
+```

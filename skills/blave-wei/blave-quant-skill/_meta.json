@@ -3,11 +3,16 @@
   "slug": "blave-quant-skill",
   "displayName": "Blave Quant Skill",
   "latest": {
-    "version": "1.1.8",
-    "publishedAt": 1775458454843,
-    "commit": "https://github.com/openclaw/skills/commit/b57aedf490aa9abbb4197df02eb4a81505700756"
+    "version": "1.1.10",
+    "publishedAt": 1775490231356,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.8",
+      "publishedAt": 1775458454843,
+      "commit": "https://github.com/openclaw/skills/commit/b57aedf490aa9abbb4197df02eb4a81505700756"
+    },
     {
       "version": "1.0.7",
       "publishedAt": 1775036601065,

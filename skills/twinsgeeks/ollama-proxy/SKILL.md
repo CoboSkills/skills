@@ -1,9 +1,9 @@
 ---
 name: ollama-proxy
 description: Ollama proxy — one endpoint that routes to multiple Ollama instances. Drop-in Ollama proxy replacement for localhost:11434. Same Ollama API, same model names, but the Ollama proxy routes requests to the best device. Auto-discovers Ollama nodes, scores on 7 signals, retries on failure. Works with Open WebUI, LangChain, Aider. Ollama代理 | proxy Ollama
-version: 1.0.1
+version: 1.0.2
 homepage: https://github.com/geeks-accelerator/ollama-herd
-metadata: {"openclaw":{"emoji":"globe","requires":{"anyBins":["curl","wget"],"optionalBins":["python3","pip"]},"configPaths":["~/.fleet-manager/latency.db","~/.fleet-manager/logs/herd.jsonl"],"os":["darwin","linux"]}}
+metadata: {"openclaw":{"emoji":"globe","requires":{"anyBins":["curl","wget"],"optionalBins":["python3","pip"]},"configPaths":["~/.fleet-manager/latency.db","~/.fleet-manager/logs/herd.jsonl"],"os":["darwin","linux","windows"]}}
 ---
 
 # Ollama Proxy — One Endpoint for All Your Ollama Instances
@@ -83,7 +83,7 @@ ollama_proxy_response = ollama_proxy_client.chat.completions.create(
 | Model discovery | Per-machine Ollama | Ollama proxy aggregates fleet-wide |
 | Queue management | None | Ollama proxy manages per-node:model queues |
 | Dashboard | None | Ollama proxy provides real-time web UI |
-| Health checks | None | Ollama proxy runs 11 automated checks |
+| Health checks | None | Ollama proxy runs 15 automated checks |
 | Request tracing | None | Ollama proxy logs to SQLite trace store |
 | Image generation | None | Ollama proxy routes mflux + DiffusionKit |
 | Speech-to-text | None | Ollama proxy routes Qwen3-ASR |
@@ -138,7 +138,7 @@ curl -s http://ollama-proxy:11435/dashboard/api/health | python3 -m json.tool
 Ollama Herd (the Ollama proxy) is open source (MIT). We welcome contributions:
 - [Star on GitHub](https://github.com/geeks-accelerator/ollama-herd) — help others find the Ollama proxy
 - [Open an issue](https://github.com/geeks-accelerator/ollama-herd/issues) — bug reports, feature requests
-- **PRs welcome** — `CLAUDE.md` gives AI agents full Ollama proxy context. 412 tests, async Python.
+- **PRs welcome** — `CLAUDE.md` gives AI agents full Ollama proxy context. 444 tests, async Python.
 
 ## Guardrails
 

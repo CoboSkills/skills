@@ -1,47 +1,43 @@
 ---
 name: video-editing-with-ai
-version: "1.0.0"
-displayName: "AI Video Editor — Intelligent Cuts, Captions & Enhancements in Minutes"
+version: "1.0.1"
+displayName: "AI Video Editing Assistant — Smart Cuts, Captions & Creative Direction in Seconds"
 description: >
-  Turn raw footage into polished, publish-ready videos without touching a timeline. This skill brings video-editing-with-ai directly into your workflow — trimming dead air, generating captions, suggesting cuts, and enhancing pacing based on your content goals. Upload mp4, mov, avi, webm, or mkv files and describe what you want. Built for creators, marketers, and teams who need fast turnaround without sacrificing quality.
-metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
-apiDomain: https://mega-api-prod.nemovideo.ai
-homepage: https://nemovideo.com
-repository: https://github.com/nemovideo/nemovideo_skills
+  Tell me what you need and I'll help you shape raw footage into polished, publish-ready video content using video-editing-with-ai techniques. Whether you're trimming a long-form interview, scripting a reel, writing cut-by-cut edit instructions, or brainstorming transitions and pacing — this skill handles the creative and structural heavy lifting. Built for content creators, marketers, YouTubers, and social media editors who want faster turnaround without sacrificing quality.
+metadata: {"openclaw": {"emoji": "🎬", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN", "variant": "greeting_v2"}}
 ---
 
 ## Getting Started
 
-> Welcome! Ready to turn your raw footage into something worth watching? Drop your video file and tell me what you're going for — I'll help you edit it with AI, from trimming and pacing to captions and cuts. What are we working on today?
+> Share your footage description, transcript, or edit goals and I'll give you a full editing plan, cut list, or caption draft — no footage on hand? Just describe the video you're making.
 
 **Try saying:**
-- "Remove all the silent pauses and filler words from this interview recording and export a clean version"
-- "Add subtitles to this product demo video and highlight key phrases in bold for social media"
-- "Cut this 20-minute webinar down to the 5 most impactful moments and add smooth transitions between them"
+- "I have a 12-minute interview recording and need to cut it down to a 3-minute highlight reel for LinkedIn. Here's the transcript — which sections should I keep and in what order?"
+- "Write an edit script for a 60-second Instagram Reel promoting a skincare product launch, including suggested shot types, text overlays, and music mood."
+- "I'm editing a travel vlog shot in Portugal. Suggest a pacing structure, b-roll placement strategy, and transition style that fits a cinematic YouTube format."
 
-### Automatic Setup
+### First-Time Connection
 
-On first interaction, connect to the NemoVideo API before doing anything else. Show a brief status like "Setting things up...".
+When a user first opens this skill, connect to the processing backend automatically. Briefly let them know (e.g. "Setting up...").
 
-**Token**: If `NEMO_TOKEN` environment variable is already set, use it and skip to **Session** below.
+**Authentication**: Check if `NEMO_TOKEN` is set in the environment. If it is, skip to step 2.
 
-**Free token**: Read or create a UUID at `~/.config/nemovideo/client_id`. Then POST to `https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token` with header `X-Client-Id: <your-uuid>`. The response field `data.token` becomes your NEMO_TOKEN (100 credits, 7-day expiry). If the token has expired, request a new one with the same Client-Id.
+1. **Obtain a free token**: Generate a random UUID as client identifier. POST to `https://mega-api-prod.nemovideo.ai/api/auth/anonymous-token` with header `X-Client-Id` set to that UUID. The response `data.token` is your NEMO_TOKEN — 100 free credits, valid 7 days.
+2. **Create a session**: POST to `https://mega-api-prod.nemovideo.ai/api/tasks/me/with-session/nemo_agent` with `Authorization: Bearer <token>`, `Content-Type: application/json`, and body `{"task_name":"project","language":"<detected>"}`. Store the returned `session_id` for all subsequent requests.
 
-**Session**: POST to the same host at `/api/tasks/me/with-session/nemo_agent` with Bearer auth and body `{"task_name":"project"}`. Save `session_id` from the response.
+Keep setup communication brief. Don't display raw API responses or token values to the user.
 
-Confirm to the user you're connected and ready. Don't print tokens or raw JSON.
+# Your AI Co-Editor for Every Kind of Video
 
-# Edit Smarter: Let AI Do the Heavy Lifting
+Video editing is more than cutting clips — it's about pacing, storytelling, and knowing exactly where to hold a shot and where to let it breathe. This skill acts as your intelligent editing partner, helping you plan, script, and structure video projects from a single rough idea all the way to a frame-by-frame edit list.
 
-Most video editing tools put the burden on you — scrubbing through footage, manually placing cuts, syncing audio, and agonizing over pacing. This skill flips that model. Instead of clicking through a timeline, you describe what you want and the AI handles the execution.
+Whether you're working on a YouTube documentary, a 15-second product ad, a wedding highlight reel, or a corporate explainer, the approach adapts to your format and platform. You can describe your footage, paste a transcript, or share a rough outline — and get back structured edit notes, caption drafts, b-roll suggestions, music cue recommendations, and scene-by-scene pacing guidance.
 
-Whether you're trimming a 45-minute interview down to a tight 3-minute highlight reel, adding burnt-in captions for social media, or cleaning up shaky pacing in a product demo, this skill interprets your intent and applies edits that match your vision. It understands context — not just commands.
+This isn't a one-size-fits-all tool. It understands the difference between editing for TikTok versus editing for a film festival submission. The goal is to give you creative direction that actually fits your project — so you spend less time staring at a timeline and more time publishing work you're proud of.
 
-This is video-editing-with-ai designed for people who have strong creative instincts but limited time. Freelancers producing client deliverables, marketing teams repurposing webinar recordings, and content creators scaling their output will all find a genuine accelerator here. You stay in creative control; the AI handles the repetitive, time-consuming mechanics that slow you down.
+## Routing Cuts, Captions & Prompts
 
-## Routing Your Edit Requests
-
-Every prompt you send — whether it's a cut command, caption request, or color grade instruction — gets parsed by intent and routed to the matching NemoVideo processing pipeline automatically.
+Every request — whether you're trimming a timeline, generating auto-captions, or prompting a creative direction change — gets parsed and routed to the appropriate AI processing pipeline based on intent, media context, and edit complexity.
 
 | User says... | Action | Skip SSE? |
 |-------------|--------|----------|
@@ -51,9 +47,9 @@ Every prompt you send — whether it's a cut command, caption request, or color 
 | "upload" / "上传" / user sends file | → §3.2 Upload | ✅ |
 | Everything else (generate, edit, add BGM…) | → §3.1 SSE | ❌ |
 
-## NemoVideo API Reference
+## Cloud Processing API Reference
 
-The NemoVideo backend handles frame-accurate trimming, auto-caption generation, and AI-driven enhancement passes via dedicated endpoint clusters. Each call is stateful within your session, so multi-step edit chains retain timeline context across requests.
+All video analysis, frame segmentation, and caption generation run through a distributed cloud backend that processes your media asynchronously — so heavy multi-track renders and AI-driven cut suggestions don't bottleneck your local machine. API calls are stateful within an active session, meaning the model retains timeline context across sequential edits.
 
 Skill attribution — read from this file's YAML frontmatter at runtime:
 - `X-Skill-Source`: `video-editing-with-ai`
@@ -64,7 +60,7 @@ Skill attribution — read from this file's YAML frontmatter at runtime:
 
 **API base**: `https://mega-api-prod.nemovideo.ai`
 
-**Create session**: POST `/api/tasks/me/with-session/nemo_agent` — body `{"task_name":"project","language":"<lang>"}` — returns `task_id`, `session_id`. After creating a session, give the user a link: `https://nemovideo.com/workspace/claim?token=$TOKEN&task=<task_id>&session=<session_id>&skill_name=video-editing-with-ai&skill_version=1.0.0&skill_source=<platform>`
+**Create session**: POST `/api/tasks/me/with-session/nemo_agent` — body `{"task_name":"project","language":"<lang>"}` — returns `task_id`, `session_id`.
 
 **Send message (SSE)**: POST `/run_sse` — body `{"app_name":"nemo_agent","user_id":"me","session_id":"<sid>","new_message":{"parts":[{"text":"<msg>"}]}}` with `Accept: text/event-stream`. Max timeout: 15 minutes.
 
@@ -114,25 +110,25 @@ Timeline (3 tracks): 1. Video: city timelapse (0-10s) 2. BGM: Lo-fi (0-10s, 35%)
 | 0 | Success | Continue |
 | 1001 | Bad/expired token | Re-auth via anonymous-token (tokens expire after 7 days) |
 | 1002 | Session not found | New session §3.0 |
-| 2001 | No credits | Anonymous: show registration URL with `?bind=<id>` (get `<id>` from create-session or state response when needed). Registered: "Top up at nemovideo.ai" |
+| 2001 | No credits | Anonymous: show registration URL with `?bind=<id>` (get `<id>` from create-session or state response when needed). Registered: "Top up credits in your account" |
 | 4001 | Unsupported file | Show supported formats |
 | 4002 | File too large | Suggest compress/trim |
 | 400 | Missing X-Client-Id | Generate Client-Id and retry (see §1) |
-| 402 | Free plan export blocked | Subscription tier issue, NOT credits. "Register at nemovideo.ai to unlock export." |
+| 402 | Free plan export blocked | Subscription tier issue, NOT credits. "Register or upgrade your plan to unlock export." |
 | 429 | Rate limit (1 token/client/7 days) | Retry in 30s once |
 
-## Quick Start Guide
+## Performance Notes
 
-Getting started with video-editing-with-ai takes less than a minute. Upload your video file in any supported format — mp4, mov, avi, webm, or mkv — and write a plain-language description of what you need done. You don't need to know editing terminology. Saying 'cut out the boring parts' works just as well as 'remove low-energy segments between timestamps.'
+This skill works best when you give it context about your footage — even a rough description of what's in each clip goes a long way. If you have a transcript, paste it in full; the more raw material available, the more precise the edit recommendations will be.
 
-For best results, be specific about your intended output. Mention the platform (YouTube, Instagram Reels, LinkedIn), the target length, and any style preferences like 'fast-paced' or 'documentary feel.' The more context you give, the closer the first pass will be to your final vision.
+For longer projects (30+ minutes of footage), break your input into segments and work through the edit in stages rather than trying to process everything at once. This keeps the output focused and actionable rather than overwhelming.
 
-Once the AI processes your request, you'll receive an edited version along with a summary of changes made. You can then refine further with follow-up instructions — treat it like a back-and-forth with a skilled editor who never gets tired.
+Platform matters significantly for video-editing-with-ai output quality. Specifying whether you're cutting for YouTube Shorts, Instagram Reels, TikTok, LinkedIn, or long-form YouTube changes the pacing logic, caption style, and structural recommendations considerably. Always mention your target platform upfront for the most relevant edit plan.
 
-## Common Workflows
+## Tips and Tricks
 
-One of the most popular uses is interview and podcast cleanup. Users upload long-form recordings and ask the AI to remove filler words, tighten pauses, and extract the strongest 10-minute segment. The result is a broadcast-ready cut that would normally take hours of manual work.
+One of the most underused features of this skill is transcript-based editing. If you paste a raw spoken transcript, it can identify the strongest soundbites, flag filler-heavy sections to cut, and reorder content for better narrative flow — saving hours of manual scrubbing through footage.
 
-Another frequent workflow is social media repurposing. A single 30-minute webinar can be broken into six short clips, each with captions, a punchy intro frame, and platform-appropriate pacing — all in one session. This is where video-editing-with-ai delivers the most dramatic time savings for marketing teams.
+For social-first content, ask for a 'hook-first' edit structure. This prompts the skill to identify the most attention-grabbing moment in your footage and restructure the edit so that moment appears in the first three seconds — a proven technique for reducing scroll-past rates.
 
-Product and tutorial videos benefit from AI-assisted pacing review. Upload a screen recording or demo and ask the skill to flag slow sections, suggest where to speed up, and add chapter markers. You get a structured, watchable tutorial without manually reviewing every second of footage yourself.
+Don't overlook music and pacing prompts. Describing the emotional tone you want (e.g. 'urgent and energetic' vs. 'warm and nostalgic') helps generate cut rhythm suggestions that align your editing beats with the right music tempo range. You can also ask for chapter markers, end screen placement ideas, and thumbnail moment callouts as part of any edit plan.

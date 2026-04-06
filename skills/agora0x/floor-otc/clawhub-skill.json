@@ -23,7 +23,7 @@
   "registry_address": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
   "chain": "base",
   "chain_id": 8453,
-  "escrow_contract": "0x31Acb13BA6F76e2fc79cD301578538EEcde194dB",
+  "escrow_contract": "0x9EC9d882C93F52621CBD0d146D3F2e0929E53AA7",
   "endpoints": {
     "agent_card": "https://floor-a2a-production.up.railway.app/.well-known/agent.json",
     "a2a": "https://floor-a2a-production.up.railway.app/a2a",
@@ -38,17 +38,13 @@
     { "symbol": "DAI", "address": "0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb", "decimals": 18 },
     { "symbol": "WETH", "address": "0x4200000000000000000000000000000000000006", "decimals": 18 }
   ],
-  "spread_tiers_bps": [
-    { "max_usd": 5000, "bps": 5 },
-    { "max_usd": 25000, "bps": 10 },
-    { "max_usd": 100000, "bps": 25 },
-    { "above_usd": 100000, "bps": 50 }
-  ],
+  "protocol_fee_bps": 25,
+  "protocol_fee_note": "0.25% deducted from each side on settlement. Immutable in contract. Zero spread on quotes.",
   "skills": [
     {
       "id": "get_quote",
       "name": "Get OTC Quote",
-      "description": "Get a live token swap quote with real-time CoinGecko prices and transparent spread.",
+      "description": "Get a live token swap quote at real CoinGecko market rates. Zero spread.",
       "tags": ["quote", "swap", "pricing"],
       "input": {
         "method": "REST GET or JSON-RPC",
@@ -72,9 +68,8 @@
           "from_amount": "number",
           "to_amount": "number",
           "rate": "number",
-          "spread_bps": "number",
-          "spread_usd": "number",
           "usd_value": "number",
+          "protocol_fee_bps": 25,
           "escrow_contract": "address",
           "network": "Base Mainnet",
           "chain_id": 8453,

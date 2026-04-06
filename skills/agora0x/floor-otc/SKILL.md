@@ -64,20 +64,15 @@ curl -s -X POST https://floor-a2a-production.up.railway.app/a2a \
 | DAI | `0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb` |
 | WETH | `0x4200000000000000000000000000000000000006` |
 
-Additional tokens supported for quotes only: ETH, BTC, WBTC, USDT, UNI, LINK, AAVE.
+Additional tokens supported for quotes only: ETH, BTC, WBTC, UNI, LINK, AAVE.
 
-## Spread Tiers
+## Pricing
 
-| Trade Size | Spread |
-|-----------|--------|
-| < $5,000 | 5 bps (0.05%) |
-| $5,000 – $25,000 | 10 bps (0.10%) |
-| $25,000 – $100,000 | 25 bps (0.25%) |
-| > $100,000 | 50 bps (0.50%) |
+Quotes are free at real CoinGecko market rates — zero spread. A 25 bps (0.25%) protocol fee is deducted from each side on settlement. The fee is immutable in the smart contract — no admin keys.
 
 ## Skills
 
-- **get_quote** — Live swap quote with CoinGecko prices and transparent spread
+- **get_quote** — Live swap quote at real market rates, zero spread
 - **execute_trade** — Create on-chain escrow on Base (both parties deposit, atomic settlement)
 - **check_trade** — Check escrow status by trade ID
 - **get_prices** — Current token prices
@@ -93,7 +88,8 @@ Additional tokens supported for quotes only: ETH, BTC, WBTC, USDT, UNI, LINK, AA
 ## On-Chain
 
 - **Network:** Base Mainnet (chain ID 8453)
-- **Escrow Contract:** `0x31Acb13BA6F76e2fc79cD301578538EEcde194dB` (verified on Basescan)
+- **Escrow Contract (V2):** `0x9EC9d882C93F52621CBD0d146D3F2e0929E53AA7` (verified on Basescan)
+- **Protocol Fee:** 25 bps (0.25%) on settlement, immutable
 - **Identity Registry:** `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
 - **Agent ID:** 31596
 

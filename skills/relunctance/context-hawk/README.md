@@ -8,6 +8,8 @@
 [![OpenClaw Compatible](https://img.shields.io/badge/OpenClaw-2026.3%2B-brightgreen)](https://github.com/openclaw/openclaw)
 [![ClawHub](https://img.shields.io/badge/ClawHub-context--hawk-blue)](https://clawhub.com)
 
+**English** | [中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Français](README.fr.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [Italiano](README.it.md) | [Русский](README.ru.md) | [Português (Brasil)](README.pt-BR.md)
+
 ---
 
 ## What does it do?
@@ -24,7 +26,61 @@ Most AI agents suffer from **amnesia** — every new session starts from zero. C
 
 ---
 
-## ✨ 10 Core Features
+## ❌ Without vs ✅ With Context-Hawk
+
+| Scenario | ❌ Without Context-Hawk | ✅ With Context-Hawk |
+|----------|------------------------|---------------------|
+| **New session starts** | Blank — knows nothing about you | ✅ Injects relevant memories automatically |
+| **User repeats a preference** | "I told you before..." | Remembers from day 1 |
+| **Long task runs for days** | Restart = start over | Task state persists via `hawk resume` |
+| **Context gets large** | Token bill skyrockets, performance drops | 5 compression strategies keep it lean |
+| **Duplicate info** | Same fact stored 10 times | SimHash dedup — stored once |
+| **Memory recall** | All similar, redundant injection | MMR diverse recall — no repetition |
+| **Memory management** | Everything piles up forever | 4-tier decay — noise fades, signal stays |
+| **Self-improvement** | Repeats the same mistakes | Tracks importance + access_count → promotes what works |
+| **Multi-agent team** | Each agent starts fresh, no shared context | Shared memory (via LanceDB) — all agents learn from each other |
+
+---
+
+## 😰 Pain Points & Solutions
+
+| Pain Point | Impact | Context-Hawk Solution |
+|------------|--------|----------------------|
+| **AI forgets everything each session** | Users repeat themselves constantly | 4-tier memory decay — important stuff persists |
+| **Long-running tasks lost on restart** | Work wasted, context gone | `hawk resume` — task state survives restarts |
+| **Context window overflow** | Expensive tokens, slow responses | 5 injection strategies + 5 compression strategies |
+| **Memory noise** | Important info buried in chat history | AI importance scoring — auto-discard low-value content |
+| **Preferences ignored** | User has to re-explain rules every time | Importance ≥ 0.9 = permanent memory |
+
+**The core value:** Context-Hawk gives your AI agent a memory that actually works — not just storing everything, but intelligently retaining what matters and letting go of what doesn't.
+
+---
+
+## 🎯 5 Core Problems It Solves
+
+**Problem 1: Session context window limits**
+Context has a token limit (e.g. 32k). Long history crowds out important content.
+→ Context-Hawk compresses/archives old content, injects only the most relevant memories.
+
+**Problem 2: AI forgets across sessions**
+When a session ends, context disappears. Next conversation starts fresh.
+→ Memories are stored persistently; `hawk recall` retrieves relevant ones for the next session.
+
+**Problem 3: Multiple agents share nothing**
+Agent A knows nothing about Agent B's context. Decisions made by one agent are invisible to others.
+→ Shared LanceDB memory store (when used with hawk-bridge): all agents read/write to the same store. No silos.
+
+**Problem 4: Context grows too large before sending to LLM**
+Recall without optimization = large, repetitive context.
+→ After compression + SimHash dedup + MMR: context is **much smaller** before LLM is called, saving tokens and cost.
+
+**Problem 5: Memory never self-manages**
+Without management: all messages pile up until context overflows.
+→ Auto-extraction → importance scoring → 4-tier decay. Unimportant → delete. Important → promote to long-term.
+
+---
+
+## ✨ 12 Core Features
 
 | # | Feature | Description |
 |---|---------|-------------|
@@ -35,9 +91,26 @@ Most AI agents suffer from **amnesia** — every new session starts from zero. C
 | 5 | **5 Injection Strategies** | A(high-imp) / B(task) / C(recent) / D(top5) / E(full) |
 | 6 | **5 Compression Strategies** | summarize / extract / delete / promote / archive |
 | 7 | **Self-Introspection** | Checks task clarity, missing info, loop detection |
-| 8 | **LanceDB Vector Search** | Optional — hybrid vector + BM25 retrieval |
+| 8 | **LanceDB Vector Search** | Optional — hybrid vector + BM25 retrieval, supports sentence-transformers local embedding |
 | 9 | **Pure-Memory Fallback** | Works without LanceDB, JSONL file persistence |
-| 10 | **Auto-Dedup** | Merges duplicate memories automatically |
+| 10 | **Auto-Dedup** | SimHash-based dedup, removes duplicate memories |
+| 11 | **MMR Recall** | Maximal Marginal Relevance — diverse recall, no repetition |
+| 12 | **6-Category Extraction** | LLM-powered extraction: fact / preference / decision / entity / task / other |
+
+---
+
+## 🚀 Quick Install
+
+```bash
+# One-line install (recommended)
+bash <(curl -fsSL https://raw.githubusercontent.com/relunctance/context-hawk/master/install.sh)
+
+# Or via pip directly
+pip install context-hawk
+
+# With all features (including sentence-transformers)
+pip install "context-hawk[all]"
+```
 
 ---
 
@@ -133,9 +206,74 @@ hawk resume                           # Resume after restart ← CORE!
 
 ---
 
+## 🔍 MMR — Diverse Memory Recall
+
+**MMR (Maximal Marginal Relevance)** solves the "similar memories crowding out diverse ones" problem.
+
+When recalling memories, naive vector search returns the most similar — but they may all be about the same topic. MMR balances:
+
+```
+MMR = λ × Relevance(q, doc) − (1−λ) × max(Similarity(doc, already_selected))
+
+λ = 0.7: 70% relevance + 30% diversity
+```
+
+**Usage:**
+```python
+from hawk.similarity import MMR
+
+mmr = MMR(lambda_param=0.7)
+selected = mmr.select(query_vector, candidate_vectors, top_k=5)
+```
+
+---
+
 ## 🗜️ 5 Compression Strategies
 
 `summarize` · `extract` · `delete` · `promote` · `archive`
+
+### Strategy Overview
+
+| Strategy | Trigger | Action |
+|----------|---------|--------|
+| **summarize** | text > 500 chars | Compress to concise summary via LLM |
+| **extract** | any memory | Extract key facts/entities via LLM |
+| **delete** | importance < 0.3 + idle > 7 days | Permanently delete |
+| **promote** | importance ≥ 0.7 + access ≥ 5 | Upgrade short → long |
+| **archive** | tier timeout exceeded | Move to archive tier |
+
+### Usage
+
+```python
+from hawk.compression import MemoryCompressor
+
+mc = MemoryCompressor()
+
+# Single memory
+mc.summarize("mem_id_abc")
+mc.promote("mem_id_abc")
+
+# Batch
+mc.compress_all("archive")    # Archive all timed-out memories
+mc.compress_all("delete")    # Delete all candidates
+
+# Health report
+report = mc.audit()
+print(report["candidates"])
+# {'to_summarize': [...], 'to_delete': [...], 'to_promote': [...], 'to_archive': [...]}
+```
+
+### Thresholds (Configurable)
+
+| Rule | Threshold |
+|------|-----------|
+| Promote importance | ≥ 0.7 |
+| Promote access count | ≥ 5 |
+| Delete importance | < 0.3 |
+| Delete idle | > 7 days |
+| Archive working | > 24 hours |
+| Archive short | > 30 days |
+| Archive long | > 90 days |
 
 ---
 
@@ -150,11 +288,37 @@ hawk resume                           # Resume after restart ← CORE!
 
 ---
 
+## 🧬 SimHash — Auto-Dedup
+
+**SimHash** provides fast duplicate detection for memories using Hamming distance.
+
+- Compute 64-bit fingerprint for each memory text
+- Two memories are duplicates if Hamming distance < 3
+- O(1) comparison — no need for pairwise vector search
+
+**How it works:**
+```
+Text → Tokenize → MD5 hash each token → Sum vectors → Fingerprint
+```
+
+**Usage:**
+```python
+from hawk.similarity import SimHash
+
+sh = SimHash()
+if sh.is_duplicate(new_text, existing_text, threshold=3):
+    print("Duplicate detected, skipping store")
+else:
+    print("New content, store it")
+```
+
+---
+
 ## 🚀 Quick Start
 
 ```bash
-# Install LanceDB plugin (recommended)
-openclaw plugins install memory-lancedb-pro@beta
+# One-command install (recommended — auto-installs all dependencies)
+bash <(curl -fsSL https://raw.githubusercontent.com/relunctance/context-hawk/master/install.sh)
 
 # Activate skill
 openclaw skills install ./context-hawk.skill
@@ -170,6 +334,71 @@ hawk compress          # Compress memory
 hawk strategy B        # Switch to task-related mode
 hawk introspect         # Self-introspection report
 ```
+
+---
+
+## 📊 Embedding Providers & Graceful Degradation
+
+Context-Hawk works **out of the box without any API key**, and scales up to cloud embeddings when you need higher quality.
+
+### 🔄 Degradation Logic
+
+Context-Hawk auto-detects what's available and degrades gracefully:
+
+```
+Has OLLAMA_BASE_URL?       → Full hybrid: vector + BM25 + RRF
+Has USE_LOCAL_EMBEDDING=1? → sentence-transformers + BM25 + RRF
+Has JINA_API_KEY?          → Jina embeddings + BM25 + RRF
+Has MINIMAX_API_KEY?      → Minimax embeddings + BM25 + RRF
+Nothing configured?        → BM25-only (pure keyword, no API calls)
+```
+
+**No API key = no crash.** It always works — even with zero configuration.
+
+### 📊 Provider Comparison
+
+| Provider | API Key | Quality | Speed | Best For |
+|----------|---------|---------|-------|----------|
+| **BM25-only** | ❌ | ⭐⭐ | ⚡⚡⚡ | Zero-config, offline |
+| **sentence-transformers** | ❌ | ⭐⭐⭐ | ⚡⚡ | Local CPU, privacy-first |
+| **Ollama** | ❌ | ⭐⭐⭐⭐ | ⚡⚡⚡⚡ | Local GPU, free |
+| **Jina AI** | ✅ free | ⭐⭐⭐⭐ | ⚡⚡⚡⚡ | Free tier, good quality |
+| **Minimax** | ✅ | ⭐⭐⭐⭐⭐ | ⚡⚡⚡⚡⚡ | Production, highest quality |
+
+### 🔑 Jina API Key (Recommended Free Option)
+
+Jina AI offers a **generous free tier** — 1M embedding tokens/month, no credit card required.
+
+**Get Your Free Key:**
+1. **Register** at https://jina.ai/ (GitHub login supported)
+2. **Get Key**: https://jina.ai/settings/ → API Keys → Create API Key
+3. **Copy**: starts with `jina_`
+
+> ⚠️ **China users**: `api.jina.ai` is blocked. Set `HTTPS_PROXY` to your proxy URL.
+
+**Configure:**
+```bash
+mkdir -p ~/.hawk
+cat > ~/.hawk/config.json << 'EOF'
+{
+  "openai_api_key": "jina_YOUR_KEY_HERE",
+  "embedding_model": "jina-embeddings-v3",
+  "embedding_dimensions": 1024,
+  "base_url": "https://api.jina.ai/v1",
+  "proxy": "http://YOUR_PROXY_HOST:PORT"
+}
+EOF
+```
+
+> **Why "openai_api_key"?** Jina AI uses an OpenAI-compatible API format, so the config field is reused.
+
+### Free Tier Limits
+
+| | Free Tier |
+|--|-----------|
+| Embedding | 1M tokens/month |
+| Reranker | 10k tokens/month |
+|足够了 | ✅ Yes, for personal use |
 
 ---
 
@@ -218,14 +447,39 @@ context-hawk/
 
 ## 🔌 Tech Specs
 
-- **Persistence**: JSONL local files, no database required
-- **Vector Search**: LanceDB (optional), auto-fallback to files
-- **Cross-Agent**: Universal, no business logic, works with any AI agent
-- **Zero-Config**: Works out-of-the-box with smart defaults
+| | |
+|---|---|
+| **Persistence** | JSONL local files, no database required |
+| **Vector Search** | LanceDB (optional) + sentence-transformers local embedding, auto-fallback to files |
+| **Retrieval** | BM25 + ANN vector search + RRF fusion |
+| **Embedding Providers** | Ollama / sentence-transformers / Jina AI / Minimax / OpenAI |
+| **Cross-Agent** | Universal, no business logic, works with any AI agent |
+| **Zero-Config** | Works out-of-the-box with smart defaults (BM25-only mode) |
+| **Python** | 3.12+ |
 - **Extensible**: Custom injection strategies, compression policies, scoring rules
 
 ---
 
-## License
 
-MIT — free to use, modify, and distribute.
+
+## 🦅 Context-Hawk — Pure Python Memory Package
+
+> **纯 Python 记忆包，零外部依赖，零 API Key，直接 import 就能用**
+
+context-hawk 是一个独立的 Python 包，提供：
+- 四层记忆衰减（MemoryManager）
+- 向量语义检索（VectorRetriever）
+- Markdown 文件导入（MarkdownImporter）
+- 上下文压缩（ContextCompressor）
+- 记忆提取（Extractor — 支持零 API 关键词模式）
+- 自我反思（SelfImproving）
+- 系统巡检（Governance）
+
+**不需要 OpenClaw，不需要 API Key**，可嵌入任何 Python 项目。
+
+```bash
+pip install lancedb
+python3.12 -c "from hawk.memory import MemoryManager; print('OK')"
+```
+
+详细文档见 [SKILL.md](SKILL.md)

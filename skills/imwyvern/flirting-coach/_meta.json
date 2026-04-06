@@ -3,11 +3,16 @@
   "slug": "flirting-coach",
   "displayName": "Flirt Coach Skill",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774896446278,
-    "commit": "https://github.com/openclaw/skills/commit/e33d66d4fd3ade92b78a34cb4baf7f9b10f5b973"
+    "version": "1.0.3",
+    "publishedAt": 1775062964240,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774896446278,
+      "commit": "https://github.com/openclaw/skills/commit/e33d66d4fd3ade92b78a34cb4baf7f9b10f5b973"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774324090416,

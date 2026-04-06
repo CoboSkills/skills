@@ -1,14 +1,8 @@
-import { access } from 'node:fs/promises';
 import path from 'node:path';
 import type { Command } from 'commander';
-import { readTasks, TaskStatus, loadConfig } from '@nexum/core';
+import { readTasks, syncTasksWithContracts, TaskStatus, loadConfig } from '@nexum/core';
 import { getSessionStatus } from '@nexum/spawn';
 import { sendMessage, formatHealthAlert } from '@nexum/notify';
-import {
-  resolveWebhookAgentEndpoint,
-  resolveWebhookToken,
-  summarizeResponse,
-} from './callback.js';
 import {
   readGlobalConfig,
   addProject,
@@ -16,6 +10,9 @@ import {
   globalConfigPath,
 } from '../lib/global-config.js';
 import { installDaemon, uninstallDaemon, getDaemonStatus } from '../lib/daemon.js';
+import { processDispatchQueue } from '../lib/dispatch-queue.js';
+import { postWebhookMessage } from '../lib/webhook.js';
+import { getDisplaySession } from '../lib/task-session.js';
 
 const DEFAULT_TIMEOUT_MIN = 30;
 
@@ -48,6 +45,7 @@ export async function runHealth(
   opts: { timeoutMin?: number; notify?: boolean; json?: boolean } = {}
 ): Promise<HealthResult> {
   const timeoutMin = opts.timeoutMin ?? DEFAULT_TIMEOUT_MIN;
+  await syncTasksWithContracts(projectDir);
   const tasks = await readTasks(projectDir);
 
   const activeTasks = tasks.filter(
@@ -61,9 +59,10 @@ export async function runHealth(
     if (age < timeoutMin) continue;
 
     let sessionAlive: boolean | null = null;
-    if (task.acp_session_key) {
+    const activeSession = getDisplaySession(task);
+    if (activeSession.sessionKey) {
       try {
-        const s = await getSessionStatus(task.acp_session_key);
+        const s = await getSessionStatus(activeSession.sessionKey);
         sessionAlive = s === 'running';
       } catch {
         sessionAlive = null;
@@ -131,46 +130,20 @@ async function sendAlert(projectDir: string, stuck: StuckTask[]): Promise<void> 
     await sendMessage(target, msg);
   }
 
-  const token = await resolveWebhookToken(config);
-  if (!token) return;
-
-  const endpoint = resolveWebhookAgentEndpoint(config);
   const taskIds = stuck.map((task) => task.id).join(', ');
-  const payload = {
+  await postWebhookMessage({
+    projectDir,
     message: `nexum-health-alert: ${projectDir} stuck tasks: ${taskIds}`,
-    name: 'Nexum',
-    agentId: 'main',
-    deliver: false,
-  };
-
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const details = summarizeResponse(await response.text().catch(() => ''));
-      console.warn(
-        `[health] webhook alert failed for ${projectDir}: ${response.status} ${response.statusText}${details ? ` - ${details}` : ''}`
-      );
-    }
-  } catch (err) {
-    console.warn(`[health] webhook alert failed for ${projectDir}: ${err instanceof Error ? err.message : err}`);
-  }
+    source: 'health',
+  });
 }
 
-// ─── Watch (daemon mode, health-only, no dispatch) ───────────────────────────
+// ─── Watch (daemon mode: dispatch heartbeat + health checks) ─────────────────
 //
-// Watch ONLY does:
+// Watch does:
+//   - Periodic dispatch-queue replay to re-wake the orchestrator
 //   - Periodic health checks across all global projects
 //   - Alert on stuck tasks
-//
-// Dispatch is handled by callback.ts (event-driven, not polling).
 
 export async function runWatch(opts: { intervalMin?: number; timeoutMin?: number } = {}): Promise<void> {
   const globalCfg = await readGlobalConfig();
@@ -180,7 +153,7 @@ export async function runWatch(opts: { intervalMin?: number; timeoutMin?: number
 
   console.log(`👀 nexum watch 启动 (检查间隔: ${intervalMin}min，卡死阈值: ${timeoutMin}min)`);
   console.log(`📋 全局配置: ${globalConfigPath()}`);
-  console.log('📝 Watch 只做卡死检测。Dispatch 由 callback 事件驱动。');
+  console.log('📝 Watch 会重放 dispatch-queue，并检查卡死任务。');
   console.log('按 Ctrl+C 停止\n');
 
   const check = async () => {
@@ -194,8 +167,14 @@ export async function runWatch(opts: { intervalMin?: number; timeoutMin?: number
 
     for (const projectDir of projects) {
       try {
+        const dispatch = await processDispatchQueue(projectDir);
         const result = await runHealth(projectDir, { timeoutMin, notify: true });
         const tag = `[${ts()}] [${path.basename(projectDir)}]`;
+        if (dispatch.retried > 0 || dispatch.acknowledged > 0) {
+          console.log(
+            `${tag} 🔁 dispatch queue: ${dispatch.acknowledged} ack, ${dispatch.retried} replay`
+          );
+        }
         if (!result.ok) {
           console.log(`${tag} ⚠️  ${result.stuck.length} 个卡死任务，已发通知`);
         } else if (result.checked > 0) {
@@ -221,7 +200,7 @@ function ts(): string {
 export function registerHealth(program: Command): void {
   program
     .command('health')
-    .description('Check for stuck/hung tasks and alert via Telegram')
+    .description('Check for stuck/hung tasks and alert via OpenClaw messaging')
     .option('--project <dir>', 'Project directory', process.cwd())
     .option('--timeout <min>', 'Minutes before stuck', String(DEFAULT_TIMEOUT_MIN))
     .option('--no-notify', 'Skip notification')
@@ -242,7 +221,7 @@ export function registerHealth(program: Command): void {
 
   const watchCmd = program
     .command('watch')
-    .description('Health monitoring daemon (卡死检测 only, dispatch by callback)')
+    .description('Dispatch heartbeat + health monitoring daemon')
     .option('--interval <min>', 'Check interval', '5')
     .option('--timeout <min>', 'Stuck threshold', String(DEFAULT_TIMEOUT_MIN))
     .action(async (options: { interval: string; timeout: string }) => {

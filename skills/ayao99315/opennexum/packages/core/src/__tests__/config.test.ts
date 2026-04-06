@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { loadConfig, resolveAgentCli } from "../config";
+import { NexumError } from "../errors";
+import { loadConfig, resolveAgentCli, resolveAgentExecution } from "../config";
 
 test("loadConfig returns empty object when config.json does not exist", async () => {
   const projectDir = await mkdtemp(path.join(tmpdir(), "nexum-config-"));
@@ -44,12 +45,82 @@ test("resolveAgentCli returns cli from config when agent exists", () => {
   assert.equal(resolveAgentCli(config, "my-agent"), "claude");
 });
 
-test("resolveAgentCli defaults to codex when agent not in config", () => {
+test("resolveAgentCli infers codex from the logical agent prefix when config is missing", () => {
   const config = {};
-  assert.equal(resolveAgentCli(config, "unknown-agent"), "codex");
+  assert.equal(resolveAgentCli(config, "codex-gen-01"), "codex");
 });
 
-test("resolveAgentCli defaults to codex when agents map is empty", () => {
+test("resolveAgentCli throws for unknown non-standard logical agents", () => {
   const config = { agents: {} };
-  assert.equal(resolveAgentCli(config, "any-agent"), "codex");
+  assert.throws(() => resolveAgentCli(config, "any-agent"), {
+    name: NexumError.name,
+    code: "CONFIG_INVALID",
+  });
+});
+
+test("resolveAgentExecution defaults codex agents to ACP codex backend", () => {
+  const config = {
+    agents: {
+      "codex-gen-01": { cli: "codex" as const },
+    },
+  };
+
+  assert.deepEqual(resolveAgentExecution(config, "codex-gen-01"), {
+    cli: "codex",
+    runtime: "acp",
+    runtimeAgentId: "codex",
+  });
+});
+
+test("resolveAgentExecution defaults claude agents to acp claude backend", () => {
+  const config = {
+    agents: {
+      "claude-gen-01": { cli: "claude" as const },
+    },
+  };
+
+  assert.deepEqual(resolveAgentExecution(config, "claude-gen-01"), {
+    cli: "claude",
+    runtime: "acp",
+    runtimeAgentId: "claude",
+  });
+});
+
+test("resolveAgentExecution honors explicit execution mapping", () => {
+  const config = {
+    agents: {
+      review: {
+        cli: "claude" as const,
+        execution: {
+          runtime: "acp" as const,
+          agentId: "review-acp",
+        },
+      },
+    },
+  };
+
+  assert.deepEqual(resolveAgentExecution(config, "review"), {
+    cli: "claude",
+    runtime: "acp",
+    runtimeAgentId: "review-acp",
+  });
+});
+
+test("resolveAgentExecution defaults claude ACP backend to claude when no agentId override", () => {
+  const config = {
+    agents: {
+      review: {
+        cli: "claude" as const,
+        execution: {
+          runtime: "acp" as const,
+        },
+      },
+    },
+  };
+
+  assert.deepEqual(resolveAgentExecution(config, "review"), {
+    cli: "claude",
+    runtime: "acp",
+    runtimeAgentId: "claude",
+  });
 });

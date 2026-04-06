@@ -1,6 +1,6 @@
-export type ContractType = "coding" | "task" | "creative";
+export type ContractType = "coding" | "task";
 
-export type EvalStrategyType = "unit" | "integration" | "review";
+export type EvalStrategyType = "unit" | "integration" | "review" | "e2e" | "composite";
 
 export interface ContractScope {
   files: string[];
@@ -11,8 +11,14 @@ export interface ContractScope {
 export interface ContractCriterion {
   id: string;
   desc: string;
-  method: string;
-  threshold: string;
+  method?: string;
+  threshold?: string;
+  weight?: number;
+}
+
+export interface ContractDeliverable {
+  path?: string;
+  description: string;
 }
 
 export interface ContractEvalStrategy {
@@ -29,9 +35,11 @@ export interface Contract {
   id: string;
   name: string;
   type: ContractType;
-  created_at: string;
+  created_at?: string;
+  batch?: string;
+  description?: string;
   scope: ContractScope;
-  deliverables: string[];
+  deliverables: ContractDeliverable[];
   eval_strategy: ContractEvalStrategy;
   generator: string;
   evaluator: string;
@@ -65,10 +73,12 @@ export interface Task {
   head_commit?: string;
   acp_session_key?: string;
   acp_stream_log?: string;
-  tmux_session?: string;
+  generator_acp_session_key?: string;
+  generator_acp_stream_log?: string;
+  evaluator_acp_session_key?: string;
+  evaluator_acp_stream_log?: string;
   last_error?: string | null;
   eval_result_path?: string;
-  eval_tmux_session?: string;
   updated_at?: string;
   started_at?: string;
   completed_at?: string;

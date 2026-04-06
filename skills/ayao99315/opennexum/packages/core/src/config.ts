@@ -1,12 +1,26 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { ErrorCode, NexumError } from "./errors";
+
 export type AgentCli = "codex" | "claude";
+export type AgentRuntime = "acp";
+
+export interface ProjectConfig {
+  name?: string;
+  stack?: string;
+}
+
+export interface AgentExecutionConfig {
+  runtime?: AgentRuntime;
+  agentId?: string;
+}
 
 export interface AgentConfig {
   cli: AgentCli;
   model?: string;
   reasoning?: string;
+  execution?: AgentExecutionConfig;
 }
 
 export interface RoutingRule {
@@ -43,9 +57,11 @@ export interface HealthConfig {
 export interface WebhookConfig {
   gatewayUrl?: string;
   token?: string;
+  agentId?: string;
 }
 
 export interface NexumConfig {
+  project?: ProjectConfig;
   notify?: NotifyConfig;
   agents?: Record<string, AgentConfig>;
   git?: GitConfig;
@@ -53,6 +69,12 @@ export interface NexumConfig {
   health?: HealthConfig;
   routing?: RoutingConfig;
   webhook?: WebhookConfig;
+}
+
+export interface ResolvedAgentExecution {
+  cli: AgentCli;
+  runtime: AgentRuntime;
+  runtimeAgentId: string;
 }
 
 export async function loadConfig(projectDir: string): Promise<NexumConfig> {
@@ -70,7 +92,43 @@ export async function loadConfig(projectDir: string): Promise<NexumConfig> {
 }
 
 export function resolveAgentCli(config: NexumConfig, agentId: string): AgentCli {
-  return config.agents?.[agentId]?.cli ?? "codex";
+  const configuredCli = config.agents?.[agentId]?.cli;
+  if (configuredCli) {
+    return configuredCli;
+  }
+
+  if (agentId.startsWith("codex-")) {
+    return "codex";
+  }
+
+  if (agentId.startsWith("claude-")) {
+    return "claude";
+  }
+
+  throw new NexumError(
+    `Agent "${agentId}" is not configured. Add it to nexum/config.json or use a standard codex-/claude- logical agent ID.`,
+    ErrorCode.CONFIG_INVALID
+  );
+}
+
+export function resolveAgentExecution(
+  config: NexumConfig,
+  logicalAgentId: string
+): ResolvedAgentExecution {
+  const cli = resolveAgentCli(config, logicalAgentId);
+  const execution = config.agents?.[logicalAgentId]?.execution;
+  const runtime = normalizeRuntime(execution?.runtime);
+  const runtimeAgentId = execution?.agentId ?? defaultRuntimeAgentId(runtime, cli);
+
+  return { cli, runtime, runtimeAgentId };
+}
+
+function normalizeRuntime(_runtime: AgentExecutionConfig["runtime"]): AgentRuntime {
+  return "acp";
+}
+
+function defaultRuntimeAgentId(_runtime: AgentRuntime, cli: AgentCli): string {
+  return cli;
 }
 
 function isNodeError(error: unknown): error is NodeJS.ErrnoException {

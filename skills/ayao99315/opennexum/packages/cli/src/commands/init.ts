@@ -38,7 +38,7 @@ nexum callback INFRA-001 --project /path/to/project \\
 注意事项：
 - token 数量从本次对话的实际消耗中读取，无法确认时填 0
 - 模型名填当前使用的模型（如 claude-sonnet-4-6、gpt-5.4 等）
-- 此步骤会触发评估流程和 Telegram 通知，不可跳过
+- 此步骤会触发评估流程和编排通知，不可跳过
 ${CALLBACK_BLOCK_END}
 `;
 
@@ -77,32 +77,34 @@ async function upsertCallbackProtocol(
 ): Promise<{ result: "created" | "updated" | "unchanged"; targetFile: string }> {
   const agentsPath = path.join(projectDir, "AGENTS.md");
   const claudePath = path.join(projectDir, "CLAUDE.md");
-  const targetPath = (await fileExists(agentsPath)) ? agentsPath : claudePath;
+  const hasAgents = await fileExists(agentsPath);
+  const hasClaude = await fileExists(claudePath);
 
   const blockPattern = new RegExp(
     `${CALLBACK_BLOCK_START}[\\s\\S]*?${CALLBACK_BLOCK_END}\\n?`,
     "g"
   );
 
-  if (!(await fileExists(targetPath))) {
+  if (!hasAgents && !hasClaude) {
     await writeFile(
-      targetPath,
+      agentsPath,
       `${DEFAULT_AGENT_GUIDE}\n${CALLBACK_PROTOCOL_BLOCK}\n`,
       "utf8"
     );
-    return { result: "created", targetFile: targetPath };
+    return { result: "created", targetFile: agentsPath };
   }
 
-  const current = await readFile(targetPath, "utf8");
+  const sourcePath = hasAgents ? agentsPath : claudePath;
+  const current = await readFile(sourcePath, "utf8");
   const withoutExistingBlock = current.replace(blockPattern, "").trimEnd();
   const next = `${withoutExistingBlock ? `${withoutExistingBlock}\n\n` : ""}${CALLBACK_PROTOCOL_BLOCK}\n`;
 
-  if (next === current) {
-    return { result: "unchanged", targetFile: targetPath };
+  if (hasAgents && next === current) {
+    return { result: "unchanged", targetFile: agentsPath };
   }
 
-  await writeFile(targetPath, next, "utf8");
-  return { result: "updated", targetFile: targetPath };
+  await writeFile(agentsPath, next, "utf8");
+  return { result: hasAgents ? "updated" : "created", targetFile: agentsPath };
 }
 
 // ─── Interactive wizard ────────────────────────────────────────────────────────
@@ -122,6 +124,16 @@ interface WizardAnswers {
   watchIntervalMin: number;
   watchTimeoutMin: number;
 }
+
+type InitAgentConfig = {
+  cli: string;
+  model?: string;
+  reasoning?: string;
+  execution: {
+    runtime: string;
+    agentId: string;
+  };
+};
 
 async function runWizard(projectDir: string, useDefaults: boolean): Promise<WizardAnswers> {
   const defaultProjectName = path.basename(projectDir);
@@ -231,11 +243,18 @@ export async function runInit(projectDir: string, yes: boolean): Promise<void> {
   // Interactive wizard (or defaults)
   const answers = await runWizard(projectDir, useDefaults);
 
-  // Build agents config: only write detected CLIs; fallback to both if none found
-  const agents: Record<string, { cli: string }> = {};
-  if (cliAvail.codex) agents["codex"] = { cli: "codex" };
-  if (cliAvail.claude) agents["claude"] = { cli: "claude" };
-  // If neither CLI is available, leave agents empty (warn already printed above)
+  const agents: Record<string, InitAgentConfig> = {
+    "codex-gen-01": buildInitAgent("codex", "gpt-5.4", "high"),
+    "codex-gen-02": buildInitAgent("codex", "gpt-5.4", "high"),
+    "codex-gen-03": buildInitAgent("codex", "gpt-5.4", "high"),
+    "codex-frontend-01": buildInitAgent("codex", "gpt-5.4", "medium"),
+    "codex-eval-01": buildInitAgent("codex", "gpt-5.4", "high"),
+    "codex-e2e-01": buildInitAgent("codex", "gpt-5.4", "medium"),
+    "claude-gen-01": buildInitAgent("claude", "sonnet-4-6"),
+    "claude-gen-02": buildInitAgent("claude", "sonnet-4-6"),
+    "claude-eval-01": buildInitAgent("claude", "sonnet-4-6"),
+    "claude-plan-01": buildInitAgent("claude", "opus-4-6"),
+  };
 
   // Build full config
   const config: Record<string, unknown> = {
@@ -259,6 +278,9 @@ export async function runInit(projectDir: string, yes: boolean): Promise<void> {
           }
         : {}),
     },
+    webhook: {
+      agentId: "orchestrator",
+    },
     agents,
   };
 
@@ -268,6 +290,7 @@ export async function runInit(projectDir: string, yes: boolean): Promise<void> {
   const configPath = path.join(nexumDir, "config.json");
   const contractsDir = path.join(projectDir, "docs", "nexum", "contracts");
   const evalDir = path.join(nexumDir, "runtime", "eval");
+  const fieldReportsDir = path.join(nexumDir, "runtime", "field-reports");
 
   const created: string[] = [];
 
@@ -287,6 +310,10 @@ export async function runInit(projectDir: string, yes: boolean): Promise<void> {
     created.push(path.join(evalDir, ".gitkeep"));
   }
 
+  if (await ensureGitkeep(fieldReportsDir)) {
+    created.push(path.join(fieldReportsDir, ".gitkeep"));
+  }
+
   const { result: callbackResult, targetFile: callbackTarget } =
     await upsertCallbackProtocol(projectDir);
   if (callbackResult === "created" || callbackResult === "updated") {
@@ -297,6 +324,18 @@ export async function runInit(projectDir: string, yes: boolean): Promise<void> {
   for (const file of created) {
     console.log(`  写入 ${path.relative(projectDir, file)}`);
   }
+}
+
+function buildInitAgent(cli: "codex" | "claude", model: string, reasoning?: string): InitAgentConfig {
+  return {
+    cli,
+    model,
+    ...(reasoning ? { reasoning } : {}),
+    execution: {
+      runtime: "acp",
+      agentId: cli,
+    },
+  };
 }
 
 export function registerInit(program: Command): void {

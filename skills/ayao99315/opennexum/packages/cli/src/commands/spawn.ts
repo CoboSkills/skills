@@ -4,16 +4,16 @@ import type { Command } from 'commander';
 import {
   parseContract,
   getTask,
+  readTasks,
+  syncTasksWithContracts,
   updateTask,
-
-  TaskStatus,
-  getHeadCommit,
   loadConfig,
-  resolveAgentCli,
+  resolveAgentExecution,
+  TaskStatus,
 } from '@nexum/core';
-import type { AgentCli } from '@nexum/core';
+import type { AgentCli, AgentRuntime } from '@nexum/core';
 import { renderGeneratorPrompt } from '@nexum/prompts';
-import { resolveAgents } from '../lib/auto-route.js';
+import { resolveContractAgents } from '../lib/resolve-contract-agents.js';
 
 // ---------- commit type detection ----------
 
@@ -41,11 +41,28 @@ function toEnglishCommitSummary(name: string, taskId: string): string {
   return isAsciiOnly(name) ? name : taskIdToKebabSlug(taskId);
 }
 
+function quoteShellArg(value: string): string {
+  if (value === '') {
+    return "''";
+  }
+
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
 export interface SpawnPayload {
   taskId: string;
   taskName: string;
+  phase: 'generator' | 'evaluator';
   agentId: string;
   agentCli: AgentCli;
+  runtime: AgentRuntime;
+  runtimeAgentId: string;
+  constraints: {
+    dependsOn: string[];
+    conflictsWith: string[];
+    scopeFiles: string[];
+    scopeBoundaries: string[];
+  };
   promptFile: string;
   promptContent: string;
   label: string;
@@ -70,6 +87,7 @@ function getEvaluatorAgentId(contract: ContractWithAgentCompat): string {
 }
 
 export async function runSpawn(taskId: string, projectDir: string): Promise<SpawnPayload> {
+  await syncTasksWithContracts(projectDir, { taskId });
   const task = await getTask(projectDir, taskId);
   if (!task) {
     throw new Error(`Task not found: ${taskId}`);
@@ -88,9 +106,18 @@ export async function runSpawn(taskId: string, projectDir: string): Promise<Spaw
     'eval',
     `${taskId}-iter-${iteration}.yaml`
   );
+  const fieldReportPath = path.join(
+    projectDir,
+    'nexum',
+    'runtime',
+    'field-reports',
+    `${taskId}.md`
+  );
 
   const config = await loadConfig(projectDir);
-  const resolvedContract = { ...contract, ...resolveAgents(contract, config) };
+  const resolvedContract = resolveContractAgents(contract, config);
+  const tasks = await readTasks(projectDir);
+  assertGeneratorReady(taskId, task.status, resolvedContract.depends_on, resolvedContract.scope.conflicts_with, tasks);
   // If git.remote is explicitly set to empty string, skip push; otherwise default to 'origin'
   const gitRemoteRaw = config.git?.remote;
   const gitRemote = gitRemoteRaw === '' ? '' : (gitRemoteRaw ?? 'origin');
@@ -100,14 +127,15 @@ export async function runSpawn(taskId: string, projectDir: string): Promise<Spaw
   const scope = taskId.toUpperCase();
   const commitSummary = toEnglishCommitSummary(resolvedContract.name, taskId);
   const commitMsg = `${type}(${scope}): ${taskId}: ${commitSummary}`;
+  const quotedScopeFiles = resolvedContract.scope.files.map((file) => quoteShellArg(file)).join(' ');
   const gitCommitCmd = gitRemote
     ? [
-        `git add -- ${resolvedContract.scope.files.join(' ')}`,
+        `git add -- ${quotedScopeFiles}`,
         `git commit -m "${commitMsg}"`,
         `git push -u ${gitRemote} ${gitBranch}`,
       ].join(' && ')
     : [
-        `git add -- ${resolvedContract.scope.files.join(' ')}`,
+        `git add -- ${quotedScopeFiles}`,
         `git commit -m "${commitMsg}"`,
       ].join(' && ');
 
@@ -116,6 +144,7 @@ export async function runSpawn(taskId: string, projectDir: string): Promise<Spaw
     task: { id: task.id, name: task.name },
     gitCommitCmd,
     evalResultPath,
+    fieldReportPath,
     lessons: [],
     projectDir,
   });
@@ -125,23 +154,23 @@ export async function runSpawn(taskId: string, projectDir: string): Promise<Spaw
   const promptFile = path.join(promptsDir, `${taskId}-gen-${Date.now()}.md`);
   await writeFile(promptFile, promptContent, 'utf8');
 
-  const baseCommit = await getHeadCommit(projectDir).catch(() => '');
-
-  await updateTask(projectDir, taskId, {
-    status: TaskStatus.Running,
-    started_at: new Date().toISOString(),
-    ...(baseCommit ? { base_commit: baseCommit } : {}),
-    iteration,
-  });
-
-  const agentCli = resolveAgentCli(config, resolvedContract.generator);
+  const execution = resolveAgentExecution(config, resolvedContract.generator);
   const label = `nexum-${taskId.toLowerCase()}-${resolvedContract.generator}`;
 
   return {
     taskId,
     taskName: resolvedContract.name,
+    phase: 'generator',
     agentId: resolvedContract.generator,
-    agentCli,
+    agentCli: execution.cli,
+    runtime: execution.runtime,
+    runtimeAgentId: execution.runtimeAgentId,
+    constraints: {
+      dependsOn: resolvedContract.depends_on,
+      conflictsWith: resolvedContract.scope.conflicts_with,
+      scopeFiles: resolvedContract.scope.files,
+      scopeBoundaries: resolvedContract.scope.boundaries,
+    },
     promptFile,
     promptContent,
     label,
@@ -150,6 +179,7 @@ export async function runSpawn(taskId: string, projectDir: string): Promise<Spaw
 }
 
 export async function runSpawnEval(taskId: string, projectDir: string): Promise<SpawnPayload> {
+  await syncTasksWithContracts(projectDir, { taskId });
   const task = await getTask(projectDir, taskId);
   if (!task) {
     throw new Error(`Task not found: ${taskId}`);
@@ -159,14 +189,18 @@ export async function runSpawnEval(taskId: string, projectDir: string): Promise<
     ? task.contract_path
     : path.join(projectDir, task.contract_path);
   const contract = await parseContract(contractAbsPath);
-  const generatorAgentId = getGeneratorAgentId(contract);
-  const evaluatorAgentId = getEvaluatorAgentId(contract);
   const config = await loadConfig(projectDir);
-  const contractWithAgents = { ...contract, generator: generatorAgentId, evaluator: evaluatorAgentId };
-  const resolvedContract =
-    generatorAgentId === 'auto' || evaluatorAgentId === 'auto'
-      ? { ...contractWithAgents, ...resolveAgents(contractWithAgents, config) }
-      : contractWithAgents;
+  const contractWithAgents = {
+    ...contract,
+    generator: getGeneratorAgentId(contract),
+    evaluator: getEvaluatorAgentId(contract),
+  };
+  const resolvedContract = resolveContractAgents(contractWithAgents, config);
+  if (task.status !== TaskStatus.GeneratorDone) {
+    throw new Error(
+      `Task ${taskId} is not ready for evaluator spawn. Expected generator_done, got ${task.status}.`
+    );
+  }
 
   const iteration = task.iteration ?? 0;
   const evalResultPath = path.join(
@@ -176,6 +210,13 @@ export async function runSpawnEval(taskId: string, projectDir: string): Promise<
     'eval',
     `${taskId}-iter-${iteration}.yaml`
   );
+  const fieldReportPath = path.join(
+    projectDir,
+    'nexum',
+    'runtime',
+    'field-reports',
+    `${taskId}.md`
+  );
 
   const { renderEvaluatorPrompt } = await import('@nexum/prompts');
   const promptContent = renderEvaluatorPrompt({
@@ -183,6 +224,7 @@ export async function runSpawnEval(taskId: string, projectDir: string): Promise<
     task: { id: task.id, name: task.name },
     gitCommitCmd: '',
     evalResultPath,
+    fieldReportPath,
     lessons: [],
   });
 
@@ -192,18 +234,26 @@ export async function runSpawnEval(taskId: string, projectDir: string): Promise<
   await writeFile(promptFile, promptContent, 'utf8');
 
   await updateTask(projectDir, taskId, {
-    status: TaskStatus.Evaluating,
     eval_result_path: evalResultPath,
   });
 
-  const agentCli = resolveAgentCli(config, resolvedContract.evaluator);
+  const execution = resolveAgentExecution(config, resolvedContract.evaluator);
   const label = `nexum-${taskId.toLowerCase()}-eval`;
 
   return {
     taskId,
     taskName: resolvedContract.name,
+    phase: 'evaluator',
     agentId: resolvedContract.evaluator,
-    agentCli,
+    agentCli: execution.cli,
+    runtime: execution.runtime,
+    runtimeAgentId: execution.runtimeAgentId,
+    constraints: {
+      dependsOn: resolvedContract.depends_on,
+      conflictsWith: resolvedContract.scope.conflicts_with,
+      scopeFiles: resolvedContract.scope.files,
+      scopeBoundaries: resolvedContract.scope.boundaries,
+    },
     promptFile,
     promptContent,
     label,
@@ -225,4 +275,39 @@ export function registerSpawn(program: Command): void {
         process.exit(1);
       }
     });
+}
+
+function assertGeneratorReady(
+  taskId: string,
+  status: TaskStatus,
+  dependsOn: string[],
+  conflictsWith: string[],
+  tasks: Awaited<ReturnType<typeof readTasks>>
+): void {
+  if (status !== TaskStatus.Pending) {
+    throw new Error(`Task ${taskId} is not ready for generator spawn. Expected pending, got ${status}.`);
+  }
+
+  const completedIds = new Set(
+    tasks.filter((task) => task.status === TaskStatus.Done).map((task) => task.id)
+  );
+  const unmetDependencies = dependsOn.filter((dependencyId) => !completedIds.has(dependencyId));
+  if (unmetDependencies.length > 0) {
+    throw new Error(
+      `Task ${taskId} still has unmet dependencies: ${unmetDependencies.join(', ')}.`
+    );
+  }
+
+  const conflictingTasks = tasks.filter(
+    (task) =>
+      conflictsWith.includes(task.id) &&
+      (task.status === TaskStatus.Running ||
+        task.status === TaskStatus.GeneratorDone ||
+        task.status === TaskStatus.Evaluating)
+  );
+  if (conflictingTasks.length > 0) {
+    throw new Error(
+      `Task ${taskId} conflicts with active tasks: ${conflictingTasks.map((task) => task.id).join(', ')}.`
+    );
+  }
 }

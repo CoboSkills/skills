@@ -3,11 +3,16 @@
   "slug": "opennexum",
   "displayName": "OpenNexum",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1774944617189,
-    "commit": "https://github.com/openclaw/skills/commit/99716315b141a37a8da5b561759f09bf9a66a496"
+    "version": "2.1.4",
+    "publishedAt": 1775018205235,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1774944617189,
+      "commit": "https://github.com/openclaw/skills/commit/99716315b141a37a8da5b561759f09bf9a66a496"
+    },
     {
       "version": "2.0.0",
       "publishedAt": 1774621390574,

@@ -1,7 +1,7 @@
 ---
 name: opennexum
-version: 2.1.2
-description: Contract-driven multi-agent orchestration with ACP. Webhook + dispatch-queue dual dispatch, cross-review, auto-retry, batch progress tracking.
+version: 2.1.4
+description: Contract-driven multi-agent orchestration with ACP. Contract sync, webhook + dispatch-queue dual dispatch, cross-review, auto-retry, batch progress tracking.
 requires:
   node: ">=20"
   tools: [pnpm, openclaw]
@@ -15,7 +15,7 @@ Contract-driven coding agent orchestration via OpenClaw ACP.
 - Coordinating multiple AI coding agents (Codex + Claude)
 - Running generator/evaluator pairs with automatic retry and escalation
 - Parallel task execution with independent ACP sessions
-- Tracking task progress with Telegram notifications
+- Tracking task progress with OpenClaw notifications
 
 ## Architecture
 
@@ -42,6 +42,7 @@ Contract-driven coding agent orchestration via OpenClaw ACP.
 
 ```bash
 nexum init [--project <dir>] [--yes]
+nexum sync [taskId] [--project <dir>]
 nexum spawn <taskId> [--project <dir>]
 nexum track <taskId> <sessionKey>
 nexum callback <taskId> [--role evaluator] [--model gpt-5.4] [--input-tokens N] [--output-tokens N]
@@ -78,6 +79,8 @@ max_iterations: 3
 ```
 
 ## Callback Protocol (injected into AGENTS.md via nexum init)
+
+`nexum init` writes the callback protocol into `AGENTS.md` as the source of truth. If a project only has `CLAUDE.md`, Nexum will seed `AGENTS.md` from it and update `AGENTS.md` going forward.
 
 After completing a task, run:
 ```bash

@@ -1,7 +1,7 @@
 ---
 name: settlement-predictor
 description: Real-time on-chain settlement predictor for Ethereum, Bitcoin, Arbitrum, Optimism, Base & Polygon. Live gas tiers, mempool analysis, sandwich risk detection, transaction tracking, and fee trend analysis — zero API keys required for core features.
-version: "1.2.0"
+version: "1.3.1"
 author: Qi Ge
 tags:
   - web3
@@ -384,15 +384,6 @@ python settlement_predictor.py simulate-tx \
 | ⚠️ holder_count requires Pro | Etherscan free tier doesn't support holder count |
 | ⚠️ Hourly patterns are generalized | Not based on real on-chain history |
 | ⚠️ L2 batch mechanics | Some L2s may have prediction variance |
-
-## 扩展方向（v2 建议）
-
-- [ ] 接入 Tenderly API（免费层）提升交易模拟准确性
-- [ ] 存储历史 Gas 数据（SQLite）用于真实模式分析
-- [ ] Telegram / Email 最优窗口告警推送
-- [ ] 支持更多 DEX（Curve、Balancer、PancakeSwap）
-- [ ] 接入 Flashbots RPC 实现 MEV 保护交易提交
-- [ ] 添加 Solana Compute Unit (Cu) 预测模型
 
 ## 项目结构
 

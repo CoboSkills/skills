@@ -1,19 +1,18 @@
 ---
 name: vmware-nsx-security
 description: >
-  VMware NSX DFW microsegmentation and security operations: distributed firewall
-  policies and rules, security groups, VM tags, Traceflow packet tracing, and IDPS.
-  Use when user asks to "list firewall rules", "create a DFW policy", "create security group",
-  "trace a packet", "check IDS status", "apply NSX tag to VM", or mentions
-  NSX DFW/microsegmentation/security policy/zero-trust operations.
-  For NSX networking (segments, gateways, NAT) use vmware-nsx,
-  for VM operations use vmware-aiops.
+  Use this skill whenever the user needs to manage VMware NSX security — distributed firewall (DFW) policies, security groups, microsegmentation, and IDS/IPS.
+  Directly handles: create/manage DFW policies and rules, security groups, VM tags, network traceflow diagnostics, IDPS profiles and status.
+  Always use this skill for "create firewall rule", "set up microsegmentation", "add VM to security group", "run traceflow", "check IDS status", or any NSX security/DFW task.
+  For NSX networking (segments/gateways/NAT) use vmware-nsx, for VM operations use vmware-aiops. For load balancing/AVI/AKO use vmware-avi.
 installer:
   kind: uv
   package: vmware-nsx-security
 allowed-tools:
   - Bash
 metadata: {"openclaw":{"requires":{"env":["VMWARE_NSX_SECURITY_CONFIG"],"bins":["vmware-nsx-security"],"config":["~/.vmware-nsx-security/config.yaml"]},"primaryEnv":"VMWARE_NSX_SECURITY_CONFIG","homepage":"https://github.com/zw008/VMware-NSX-Security","emoji":"🔒","os":["macos","linux"]}}
+compatibility: >
+  Requires vmware-policy (auto-installed). All operations audited to ~/.vmware/audit.db.
 ---
 
 # VMware NSX Security
@@ -21,7 +20,8 @@ metadata: {"openclaw":{"requires":{"env":["VMWARE_NSX_SECURITY_CONFIG"],"bins":[
 VMware NSX DFW microsegmentation and security — 20 MCP tools for distributed firewall, security groups, VM tags, Traceflow, and IDPS.
 
 > Domain-focused security skill for NSX-T / NSX 4.x Policy API.
-> **Companion skills**: [vmware-nsx](https://github.com/zw008/VMware-NSX) (networking), [vmware-aiops](https://github.com/zw008/VMware-AIops) (VM lifecycle), [vmware-monitor](https://github.com/zw008/VMware-Monitor) (read-only monitoring).
+> **Companion skills**: [vmware-nsx](https://github.com/zw008/VMware-NSX) (networking), [vmware-aiops](https://github.com/zw008/VMware-AIops) (VM lifecycle), [vmware-monitor](https://github.com/zw008/VMware-Monitor) (read-only monitoring), [vmware-avi](https://github.com/zw008/VMware-AVI) (AVI/ALB/AKO).
+> | [vmware-pilot](../vmware-pilot/SKILL.md) (workflow orchestration) | [vmware-policy](../vmware-policy/SKILL.md) (audit/policy)
 
 ## What This Skill Does
 
@@ -58,6 +58,7 @@ vmware-nsx-security doctor
 - vSphere inventory, health, alarms, events → `vmware-monitor`
 - Storage: iSCSI, vSAN, datastores → `vmware-storage`
 - Tanzu Kubernetes → `vmware-vks`
+- Load balancing, AVI/ALB, AKO, Ingress → `vmware-avi`
 
 ## Related Skills — Skill Routing
 
@@ -69,6 +70,9 @@ vmware-nsx-security doctor
 | VM lifecycle, deployment, guest ops | **vmware-aiops** |
 | Storage: iSCSI, vSAN, datastores | **vmware-storage** |
 | Tanzu Kubernetes | **vmware-vks** |
+| Multi-step workflows with approval | **vmware-pilot** |
+| Load balancer, AVI, ALB, AKO, Ingress | **vmware-avi** (`uv tool install vmware-avi`) |
+| Audit log query | **vmware-policy** (`vmware-audit` CLI) |
 
 ## Common Workflows
 
@@ -106,7 +110,7 @@ vmware-nsx-security doctor
 
 1. Get source VM's logical port ID (from `vmware-nsx troubleshoot vm-segment`):
    ```bash
-   vmware-nsx-security traceflow run <lport-id> --src-ip 10.0.1.5 --dst-ip 10.0.2.10 --proto TCP --dst-port 443
+   vmware-nsx-security traceflow run <lport-id> --src-ip &lt;src-ip&gt; --dst-ip &lt;dst-ip&gt; --proto TCP --dst-port 443
    ```
 2. Check for DFW hits and drop reasons in the output.
 
@@ -130,6 +134,14 @@ vmware-nsx-security policy list
 vmware-nsx-security policy list --target nsx-prod
 vmware-nsx-security group list --target nsx-lab
 ```
+
+## Usage Mode
+
+| Scenario | Recommended | Why |
+|----------|:-----------:|-----|
+| Local/small models (Ollama, Qwen) | **CLI** | ~2K tokens vs ~8K for MCP |
+| Cloud models (Claude, GPT-4o) | Either | MCP gives structured JSON I/O |
+| Automated pipelines | **MCP** | Type-safe parameters, structured output |
 
 ## MCP Tools (20)
 
@@ -182,7 +194,7 @@ vmware-nsx-security tag list <vm-display-name>
 vmware-nsx-security tag apply <vm-external-id> --scope env --value production [--dry-run]
 
 # Traceflow
-vmware-nsx-security traceflow run <lport-id> --src-ip 10.0.1.5 --dst-ip 10.0.2.10
+vmware-nsx-security traceflow run <lport-id> --src-ip &lt;src-ip&gt; --dst-ip &lt;dst-ip&gt;
 
 # IDPS
 vmware-nsx-security idps profiles
@@ -248,11 +260,14 @@ mkdir -p ~/.vmware-nsx-security
 cp config.example.yaml ~/.vmware-nsx-security/config.yaml
 # Edit config.yaml with your NSX Manager targets
 
-echo "VMWARE_NSX_SECURITY_NSX_PROD_PASSWORD=your_password" > ~/.vmware-nsx-security/.env
+# Add to ~/.vmware-nsx-security/.env (create if missing, chmod 600):
+# VMWARE_NSX_SECURITY_NSX_PROD_PASSWORD=<your-password>
 chmod 600 ~/.vmware-nsx-security/.env
 
 vmware-nsx-security doctor
 ```
+
+> All tools are automatically audited via vmware-policy. Audit logs: `vmware-audit log --last 20`
 
 > Full setup guide: see `references/setup-guide.md`
 
@@ -271,6 +286,17 @@ DFW Policies / Rules / Security Groups / Tags / IDPS
 ```
 
 The MCP server uses stdio transport (local only, no network listener). All connections to NSX Manager use HTTPS on port 443.
+
+## Audit & Safety
+
+All operations are automatically audited via vmware-policy (`@vmware_tool` decorator):
+- Every tool call logged to `~/.vmware/audit.db` (SQLite, framework-agnostic)
+- Policy rules enforced via `~/.vmware/rules.yaml` (deny rules, maintenance windows, risk levels)
+- Risk classification: each tool tagged as low/medium/high/critical
+- View recent operations: `vmware-audit log --last 20`
+- View denied operations: `vmware-audit log --status denied`
+
+vmware-policy is automatically installed as a dependency — no manual setup needed.
 
 ## License
 

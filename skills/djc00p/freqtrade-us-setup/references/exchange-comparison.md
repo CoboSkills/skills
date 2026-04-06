@@ -76,7 +76,7 @@ Freqtrade is legal in the US. The problem is **which exchange you use**. Many in
 
 ## Decision Tree
 
-```
+```text
 Are you a US resident?
 ├─ Yes
 │  ├─ Starting fresh?

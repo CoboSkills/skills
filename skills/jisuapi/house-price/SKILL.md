@@ -1,9 +1,6 @@
 ---
-name: house-price
-description: >-
-  按城市查看全国各城二手房与新房参考均价、环比同比及近月走势（折线图同源接口）；固定中文输出模板。
-  适用于用户询问某市房价、区县或小区榜、查房价直达链接等场景。
-  城市 slug 表见与本 SKILL 同目录的 city.md；get.py 可抓取页面；需 python3、requests、beautifulsoup4。
+name: "House Price - 房价"
+description: 按城市查二手房与新房参考均价、环比同比及近月走势（可生成列表与 SVG 折线图）。当用户说：长沙房价多少？深圳二手房均价走势？给个查房价链接，或类似城市房价问题时，使用本技能。
 metadata: { "openclaw": { "emoji": "🏠", "requires": { "bins": ["python3"] } } }
 ---
 

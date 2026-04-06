@@ -1,73 +1,97 @@
 ---
-name: 省心返利神器
-description: 零门槛返利工具，自动识别购物链接并匹配最高返利渠道，小白用户也能轻松省钱。
-version: 0.1.0
+name: fanli
+description: 将商品链接或淘口令转为带优惠券的推广链接，跨平台比价（淘宝/天猫/京东/拼多多/抖音/唯品会/美团）， 查询历史价格走势并给出购买建议。当用户发来商品链接、淘口令，或提到"转链"、"比价"、"历史价"、 "全网最低价"、"有没有优惠券"、"值不值得买"、"价格走势"、"优惠"、"便宜"、"划算"、"打折"、 "降价"、"满减"、"省钱"、"买不买"、"该不该入手"时使用。 不适用于：快递查询、汇率换算、天气查询、闲鱼二手交易等非购物比价场景。
+version: 4.1.0
+allowed-tools: Bash(node {baseDir}/scripts/run.mjs:*),Read({baseDir}/**),Read({baseDir}/../fx-base/**)
+metadata:
+  openclaw:
+    requires:
+      env:
+        - FX_AI_API_KEY
+    primaryEnv: FX_AI_API_KEY
 ---
 
-# 省心返利神器
+> **CRITICAL** — 开始前 **必须**用 Read 工具读取 [`../fx-base/SKILL.md`](../fx-base/SKILL.md)，其中包含 fenxiang-ai API 认证和请求规范。
+>
+> fx-base 未安装？执行 `npx skills install fangshan101-coder/fx-base` 安装到同目录下。
 
-零门槛返利工具，专为不熟悉返利流程的普通用户设计。只需粘贴购物链接，自动识别商品平台并匹配最高返利渠道，无需任何配置即可开箱即用，让小白用户也能轻松省钱。
+# 省钱购物助手
 
-## 触发词
+一次 `convert` 调用 → 同时拿到商品信息 + 比价 + 历史价 → 直接按模板渲染输出。
 
-省钱、自动返利、最高返利、一键返利、智能返利、省心购物、fanli、auto cashback、smart rebate、帮我省钱
+## 前置条件
 
-## 计划实现能力
+- 环境变量 `FX_AI_API_KEY`：从 [fenxiang-ai 开放平台](https://platform.fenxiang-ai.com/) 登录获取。未设置时脚本会返回 `missing_api_key` 错误
+- **数据流向**：用户提供的商品链接会被发送到 `https://api-ai-brain.fenxianglife.com` 进行解析，请确保信任该服务后再使用
 
-### 核心功能
+## 快速开始
 
-- **智能链接识别**：自动解析用户粘贴的购物链接，识别商品所属平台和商品信息
-- **最优渠道匹配**：对比多个返利渠道（淘宝联盟、京东联盟、多多进宝等），自动选择返利最高的渠道
-- **替代商品推荐**：发现同款更低价或更高返利的替代商品，智能推荐
-- **领券+返利叠加**：自动查找可用优惠券，与返利叠加使用，最大化省钱效果
+```bash
+# 快捷命令（推荐）
+node {baseDir}/scripts/run.mjs convert "<链接或口令>"
 
-### 工作流程
+# 等价的标准调用
+node {baseDir}/scripts/run.mjs call convert --tpwd "<链接或口令>"
 
-```
-用户粘贴链接
-    ↓
-自动识别平台和商品
-    ↓
-查询多渠道返利比例
-    ↓
-查找可叠加优惠券
-    ↓
-输出最优省钱方案
-    ↓
-生成一键下单链接
+# 查看接口帮助
+node {baseDir}/scripts/run.mjs call convert --help
 ```
 
-### 省钱策略
+返回 JSON 包含：商品详情 + `comparePriceData`（比价） + `historyPriceData`（历史价）。
+服务端 `includeComparePrice` 和 `includeHistoryPrice` 默认 `true`，无需额外传参。
 
-| 策略 | 说明 | 预计额外节省 |
-|------|------|------------|
-| 渠道择优 | 选返利比例最高的渠道 | 5%-20% |
-| 优惠券叠加 | 返利+优惠券同时享受 | 额外 5%-50% |
-| 替代商品 | 同款低价+高返利商品 | 10%-40% |
-| 凑单建议 | 凑满减门槛更划算 | 额外 10%-30% |
+## 路由决策
 
-### 使用场景
+| 用户意图 | 快捷命令 | 标准调用 | 渲染模板 |
+|---------|---------|---------|---------|
+| 发链接、问值不值得买、问优惠券、没说意图 | `convert "<链接>"` | `call convert --tpwd "<链接>"` | Read `{baseDir}/references/convert-output.md` |
+| 明确说"比价"、"哪家便宜" | `compare-price "<链接>"` | `call compare-price --productIdentifier "<链接>"` | Read `{baseDir}/references/compare-price-output.md` |
+| 明确说"历史价"、"价格走势" | — | `call convert --tpwd "<链接>" --includeComparePrice false` | Read `{baseDir}/references/convert-output.md` |
 
-1. **日常购物**：看到想买的东西，粘贴链接就能知道怎么买最省
-2. **大促囤货**：双11/618等大促期间，批量查询最优购买方案
-3. **比价纠结**：不确定在哪个平台买最划算，一键对比
-4. **新手入门**：不懂返利是什么也没关系，粘贴链接就行
+所有命令前缀：`node {baseDir}/scripts/run.mjs`
 
-## 输出格式
+**默认用 `convert`**，它一次返回商品信息 + 比价 + 历史价全部数据。`convert` 支持两个可选参数控制返回内容：
+- `--includeComparePrice true/false`（默认 true）
+- `--includeHistoryPrice true/false`（默认 true）
+
+历史价路径走 `convert` 而非独立接口，是因为购买建议需要到手价（`finalPrice`）与历史价比较，而独立的历史价接口不返回到手价。
+
+**输出格式**：所有接口支持 `--format json`（默认）或 `--format table`。如果下游 Agent 需要结构化数据而非 Markdown 渲染，直接用 `--format json` 跳过模板渲染。
+
+## 工作流
 
 ```
-🛒 省钱方案
-
-商品：[商品名称]
-原价：¥[价格]
-
-💰 最优方案：
-  返利渠道：[渠道名] 返利 [X]%（¥[金额]）
-  可用优惠券：满[X]减[Y]
-  到手价：¥[最终价格]
-  总共节省：¥[节省金额]
-
-🔗 一键下单：[链接]
-
-💡 更省建议：[替代商品或凑单建议]
+收到链接/口令
+  → 输出"正在查询商品信息..."
+  → 根据上方路由表调用对应接口
+  → 拿到 JSON
+  → Read 路由表中对应的渲染模板，按模板输出
 ```
+
+没有链接时先问用户要。
+
+## 错误处理
+
+接口返回错误时，告知用户具体原因并给建议，不要返回原始 JSON：
+
+| 现象 | 用户可见提示 |
+|------|-------------|
+| `missing_parameter` | 请发一下商品链接或淘口令 |
+| `errorMessage: "未找到相关商品"` | 没找到商品信息，请检查链接是否正确 |
+| `topLowestItems` 为空 | 暂无比价数据 |
+| `historyPriceData` 不存在 | 暂无历史价格数据 |
+| `missing_api_key` | 请设置环境变量 `FX_AI_API_KEY`，从 [fenxiang-ai 开放平台](https://platform.fenxiang-ai.com/) 登录获取 |
+| `api_unavailable` / HTTP 错误 | 服务暂时不可用，请稍后再试 |
+
+## 不适用场景
+
+以下情况**不要**调用本 Skill：
+- 快递物流查询
+- 汇率换算、天气查询
+- 闲鱼/二手交易（无标准价格体系）
+- 没有具体商品链接的购物讨论
+
+## 环境依赖
+
+- Node.js 18+（内置 fetch，无需额外依赖）
+- 环境变量 `FX_AI_API_KEY`：从 [fenxiang-ai 开放平台](https://platform.fenxiang-ai.com/) 登录获取

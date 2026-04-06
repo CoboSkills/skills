@@ -1,5 +1,5 @@
 ﻿---
-name: AI办公本
+name: aispeech_ainote
 slug: aitablet
 description: |
   AI办公本 Skill：用于在 OpenClaw 中访问 思必驰AI办公本的会议（笔记、记录）、待办、标签与知识库检索能力。

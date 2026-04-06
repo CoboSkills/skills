@@ -53,31 +53,26 @@ def ensure_venv() -> Path:
         venv.create(str(VENV_DIR), with_pip=True)
         print(f"   ✅ .venv 已创建")
 
-    # 检查并安装依赖
-    deps = [
-        ("fastmcp", "fastmcp"),
-        ("flask", "flask"),
-    ]
-    for module_name, pip_name in deps:
-        check = subprocess.run(
-            [str(venv_python), "-c", f"import {module_name}"],
+    # 检查 fastmcp 是否已安装
+    check = subprocess.run(
+        [str(venv_python), "-c", "import fastmcp"],
+        capture_output=True,
+    )
+    if check.returncode == 0:
+        print(f"   ⏭️  fastmcp 已安装")
+    else:
+        print(f"   📦 安装 fastmcp...")
+        result = subprocess.run(
+            [str(venv_python), "-m", "pip", "install", "fastmcp"],
             capture_output=True,
+            text=True,
         )
-        if check.returncode == 0:
-            print(f"   ⏭️  {pip_name} 已安装")
+        if result.returncode == 0:
+            print(f"   ✅ fastmcp 安装成功")
         else:
-            print(f"   📦 安装 {pip_name}...")
-            result = subprocess.run(
-                [str(venv_python), "-m", "pip", "install", pip_name],
-                capture_output=True,
-                text=True,
-            )
-            if result.returncode == 0:
-                print(f"   ✅ {pip_name} 安装成功")
-            else:
-                print(f"   ❌ {pip_name} 安装失败:")
-                print(f"      {result.stderr.strip()}")
-                sys.exit(1)
+            print(f"   ❌ fastmcp 安装失败:")
+            print(f"      {result.stderr.strip()}")
+            sys.exit(1)
 
     return venv_python
 

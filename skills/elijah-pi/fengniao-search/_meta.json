@@ -1,13 +1,18 @@
 {
   "owner": "elijah-pi",
   "slug": "fengniao-search",
-  "displayName": "China company search fengniao",
+  "displayName": "Company search fengniao",
   "latest": {
-    "version": "1.0.9",
-    "publishedAt": 1774841715203,
-    "commit": "https://github.com/openclaw/skills/commit/a4eb5cf8d4e5d1e6aa3b0711504acafb50eb4dd5"
+    "version": "1.0.13",
+    "publishedAt": 1775119774076,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.9",
+      "publishedAt": 1774841715203,
+      "commit": "https://github.com/openclaw/skills/commit/a4eb5cf8d4e5d1e6aa3b0711504acafb50eb4dd5"
+    },
     {
       "version": "1.0.6",
       "publishedAt": 1774589462937,

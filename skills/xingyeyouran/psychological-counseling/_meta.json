@@ -3,11 +3,16 @@
   "slug": "psychological-counseling",
   "displayName": "psychological-counseling",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774625658456,
-    "commit": "https://github.com/openclaw/skills/commit/cd82d332f9042fde7bf223fe310fe97f6991ecb6"
+    "version": "1.0.5",
+    "publishedAt": 1775027632647,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774625658456,
+      "commit": "https://github.com/openclaw/skills/commit/cd82d332f9042fde7bf223fe310fe97f6991ecb6"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1774581328387,

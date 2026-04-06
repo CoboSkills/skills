@@ -3,7 +3,7 @@ import json
 import urllib.request
 import urllib.error
 
-CREATE_ORDER_URL = "https://ms.jr.jd.com/gw2/generic/hyqy/na/m/createOrder"
+CREATE_ORDER_URL = "https://ms.jr.jd.com/gw2/generic/hyqy/na/m/createOrderPre"
 
 
 def create_order(question: str) -> tuple:

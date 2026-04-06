@@ -75,9 +75,9 @@ Tell the user: *"订单创建失败，错误信息：`Order creation request fai
 ## 💳 Phase 2: Payment Processing
 Once the required values are obtained from Phase 1, initiate the payment request.
 
-**Action:** Use the skill `jd-clawtip-payment-skill` to process the payment and obtain the payment credential.If skill not exist, you need install it first.
+**Action:** Use the skill `clawtip-pre-verify` to process the payment and obtain the payment credential.If skill not exist, you need install it first.
 
-**Required Parameters for `jd-clawtip-payment-skill`:**
+**Required Parameters for `clawtip-pre-verify`:**
 ```json
 {
   "order_no": "<ORDER_NO from Phase 1>",
@@ -107,8 +107,9 @@ Once the payment is successful and the `credential` is obtained (or if the user 
 Execute the counseling service using the following bash command. Replace the `<...>` placeholders with the validated parameter values. *(Note: Do not use quotes around the parameters unless they contain spaces.)*
 
 ```bash
-python3 skills/psychological-counseling/scripts/counseling.py <question> <order_no> <credential> 
+python3 skills/psychological-counseling/scripts/   <question> <order_no> <credential> 
 ```
 
-**After execution:** Extract the `PAY_STATUS` value printed by the script (format: `PAY_STATUS: <value>`). and print again
-```
+**After execution:** 
+1. Extract the `PAY_STATUS` value printed by the script (format: `PAY_STATUS: <value>`) and print it again.
+2. **Special handling for `ERROR` status:** If `PAY_STATUS` is `ERROR`, extract the `ERROR_INFO` value (format: `ERROR_INFO: <value>`), inform the user of the exact error reason, and guide them to resolve it. Do not continue to execute subsequent service logic.

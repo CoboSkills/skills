@@ -1,67 +1,78 @@
 ---
 name: clashofcoins
-description: Use when an agent should interact with the ClashOfCoins x402 commerce service and choose the correct sub-skill for either buying items or integrating the service into another agent platform.
+description: Use when an agent should interact with the unified Clash of Coins commerce gateway and choose the correct sale or shop checkout surface.
 ---
 
-# ClashOfCoins
+# Clash of Coins Commerce
 
-Use this skill as the entrypoint for the ClashOfCoins commerce service on Base mainnet.
+Use this skill as the top-level router for the unified `x402-sale` gateway.
 
-## Service URL
+Protocol availability is deployment-specific. Some instances are `x402`-only, some are `mpp`-only, and some expose both. Check live discovery before choosing a payment path.
 
-- Production: `https://x402.clashofcoins.com`
+## Base URL
 
-## Network
+- deployment-specific public origin
+- x402: `https://x402.clashofcoins.com`
+- mpp: `https://mpp.clashofcoins.com`
 
-- Chain: `Base`
-- Network ID: `eip155:8453`
-- Payment asset: `USDC`
-- Sale contract: `0x3C83eF6119EB05Ca44144F05b331dbEE60656d5b`
+## Surfaces
 
-## What This Package Contains
+### Sale
 
-- `clashofcoins-buyer/SKILL.md`
-  Use this when the agent needs to discover active offers and complete a canonical x402 purchase.
-- `clashofcoins-integrator/SKILL.md`
-  Use this when the agent needs to integrate the service into another platform, agent runtime, scanner, or orchestration layer.
+- discovery at the domain root
+- paid routes under `/agentic/*`
+- use for presale lots and Agentic Passes that mint NFTs
+- x402-only and mpp-only deployments may use different public hosts
 
-## Selection Rules
+### Shop
 
-- If the task is to buy, quote, settle, or poll purchase status, use `clashofcoins-buyer`.
-- If the task is to consume discovery metadata, wire channels, register the service, or build a wrapper over the commerce API, use `clashofcoins-integrator`.
-- If both are needed, use `clashofcoins-integrator` first for discovery and route selection, then use `clashofcoins-buyer` for the actual paid x402 execution path.
+- discovery under `/shop/*`
+- paid routes under `/shop/*`
+- use for recipient-scoped in-game goods delivered by the backend
+- use `/shop/openapi.full.json` for the full shop contract
+- use `/shop/openapi.json` for protocol-aware payable discovery on the current shop instance
+- shop usually lives on the same host as the active sale surface for that deployment
 
-## Service Contract
+## Included Skills
 
-The service exposes discovery at the domain root and commerce routes under `/agentic`.
+- `clashofcoins-buyer`
+  - sale purchase flow
+- `clashofcoins-integrator`
+  - sale discovery and protocol integration
+- `clashofcoins-shop-buyer`
+  - shop purchase flow
+- `clashofcoins-shop-integrator`
+  - shop discovery and protocol integration
 
-Important entrypoints:
+## Routing Rules
 
-- `GET /.well-known/x402`
-- `GET /openapi.json`
-- `GET /.well-known/agent.json`
-- `GET /llms.txt`
-- `GET /agentic/x402/offers`
-- `GET /agentic/x402/quote`
-- `POST /agentic/x402/buy`
-- `GET /agentic/x402/purchases/{paymentTx}`
+- If the task is to buy presale passes or NFT-linked sale lots, use `clashofcoins-buyer`.
+- If the task is to buy game items for a nickname or address, use `clashofcoins-shop-buyer`.
+- If the task is to wire scanners, OpenAPI, manifests, or agent registries for sale, use `clashofcoins-integrator`.
+- If the task is to wire scanners, OpenAPI, manifests, or agent registries for shop, use `clashofcoins-shop-integrator`.
 
 ## Critical Rule
 
-There is one canonical payment and fulfillment flow.
+Do not treat sale and shop as one catalog.
 
-Non-x402 namespaces such as A2A, XMTP, or MPP are wrappers over the same purchase core and must not introduce a second settlement or mint pipeline.
+- Sale uses onchain catalog + mint delivery.
+- Shop uses backend offers + backend delivery.
 
-## Important Execution Notes
+## Shop x402 Retry Rule
 
-- Sale IDs and prices are dynamic. Agents must read `GET /agentic/x402/offers` instead of hardcoding a catalog.
-- The catalog response now includes human-facing fields:
-  - `catalogTitle`
-  - `catalogLocale`
-  - `catalogDescription`
-  - per-offer `title`, `shortDescription`, `description`, `metadataUri`, and `presentation`
-- The canonical payment flow is unchanged. These catalog additions are presentation data layered on top of the same purchase contract.
-- Follow the live x402 payment requirements returned by the service. Do not assume a fixed transfer method from static docs alone.
-- The current production Base mainnet flow uses canonical USDC x402 payment requirements and should not require a separate Permit2 approval step.
-- Payment signatures are produced by the buyer wallet or the buyer's x402 client, not by this skill package.
-- This service never asks an external buyer to provide a wallet private key, seed phrase, or relayer API secret.
+- When using shop `x402`, the paid retry must preserve the exact request body and send a canonical `PAYMENT-SIGNATURE` built from the latest `PAYMENT-REQUIRED` challenge, including its `resource` and one `accepted` payment requirement.
+
+## MPP Rule
+
+- Prefer the canonical `mppx` SDK for Tempo MPP.
+- Let `mppx` parse `WWW-Authenticate: Payment`, settle the Tempo transfer, and resend the request with `Authorization: Payment`.
+- If manual MPP is unavoidable, the transfer hash belongs in `credential.payload.hash` with `credential.payload.type = "hash"`, not in `payment.transactionHash`.
+
+## Discovery Consumers
+
+If the task is specifically about scanner or registry compatibility, use the repo integration notes:
+
+- `docs/integrations/x402scan.md`
+- `docs/integrations/mppscan.md`
+- `docs/integrations/bazaar.md`
+- `docs/integrations/402index.md`

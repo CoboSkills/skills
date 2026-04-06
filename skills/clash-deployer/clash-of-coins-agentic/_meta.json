@@ -3,9 +3,15 @@
   "slug": "clash-of-coins-agentic",
   "displayName": "Clash of Coins - Agentic Gateway",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774656438968,
-    "commit": "https://github.com/openclaw/skills/commit/1649d5813c86edae03aee1df62508568c8df4555"
+    "version": "1.0.4",
+    "publishedAt": 1775077560894,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774656438968,
+      "commit": "https://github.com/openclaw/skills/commit/1649d5813c86edae03aee1df62508568c8df4555"
+    }
+  ]
 }

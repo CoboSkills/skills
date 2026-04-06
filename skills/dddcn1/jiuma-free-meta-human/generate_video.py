@@ -9,8 +9,9 @@ import sys
 import json
 import argparse
 import requests
-from typing import Dict, Optional
+from typing import Dict
 import codecs
+from utils import JIUMA_API_KEY_SAVE_PATH,get_jiuma_api_key
 
 # Windows终端编码处理
 if sys.platform == "win32":
@@ -18,15 +19,11 @@ if sys.platform == "win32":
     sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer)
 
 class JiumaVideoGenerator:
-    def __init__(self, access_key: str, api_key: Optional[str] = None):
-        # self.api_key = api_key or os.getenv('JIUMA_API_KEY')
-        # if not self.api_key:
-        #     raise ValueError("API密钥未提供且环境变量JIUMA_API_KEY未设置")
+    def __init__(self,api_key):
         self.base_url = "https://api.jiuma.com"
         self.headers = {
-            # "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "X-Secret-Key": access_key
+            "X-Secret-Key": api_key,
         }
 
     def generate_video(self, human_id: str, voice_id: str, text: str) -> Dict:
@@ -51,6 +48,10 @@ class JiumaVideoGenerator:
             response.close()
             if result.get('code') == 500:
                 return {"code": 500, "error": result.get('message')}
+            if result.get('code') == 401 or result.get('code') == 405:
+                # 提示用户必须登录
+
+                return {"code":result.get('code')}
 
             human_video_id = result.get('data')
 
@@ -65,6 +66,7 @@ class JiumaVideoGenerator:
         except json.JSONDecodeError as e:
             print(f"❌ JSON解析失败: {e}")
             return {"code": 500, "error": "响应格式错误"}
+
 
     def check_task_status(self, human_video_id) -> Dict:
         """
@@ -120,7 +122,6 @@ def main():
     parser.add_argument("--human_id", type=int, help="数字人id", required=False)
     parser.add_argument("--voice_id", type=int, help="音色id", required=False)
     parser.add_argument("--human_video_id", type=int, help="human_video_id", required=False)
-    parser.add_argument("--access_key", type=str, help="访问秘钥", required=False, default='')
     args = parser.parse_args()
 
     action = args.action
@@ -128,12 +129,13 @@ def main():
     human_id = args.human_id
     voice_id = args.voice_id
     human_video_id = args.human_video_id
-    access_key = args.access_key
-
-    api_key = None
 
     try:
-        generator = JiumaVideoGenerator(access_key, api_key)
+        if os.path.exists(JIUMA_API_KEY_SAVE_PATH):
+            api_key = get_jiuma_api_key()
+        else:
+            api_key = ''
+        generator = JiumaVideoGenerator(api_key)
         if action == 'create':
             # 生成视频
             result = generator.generate_video(human_id, voice_id, text)

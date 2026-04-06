@@ -1,20 +1,5 @@
 [
   {
-    "timbre_id": 5725,
-    "gender": "男性",
-    "label": "英语,青年,叙事,故事"
-  },
-  {
-    "timbre_id": 5724,
-    "gender": "男性",
-    "label": "多语言,故事,少年"
-  },
-  {
-    "timbre_id": 5723,
-    "gender": "男性",
-    "label": "多语言,热门"
-  },
-  {
     "timbre_id": 5722,
     "gender": "男性",
     "label": "青年,中文,叙事,故事"
@@ -23,50 +8,5 @@
     "timbre_id": 5721,
     "gender": "女性",
     "label": "青年,中文,叙事,故事"
-  },
-  {
-    "timbre_id": 5720,
-    "gender": "男性",
-    "label": "多语言,情感,热门,新闻"
-  },
-  {
-    "timbre_id": 5719,
-    "gender": "女性",
-    "label": "多语言,热门,中年,叙事"
-  },
-  {
-    "timbre_id": 5718,
-    "gender": "女性",
-    "label": "多语言,热门,带货,老年"
-  },
-  {
-    "timbre_id": 5717,
-    "gender": "男性",
-    "label": "青年,中文,方言"
-  },
-  {
-    "timbre_id": 5716,
-    "gender": "女性",
-    "label": "青年,中文,方言"
-  },
-  {
-    "timbre_id": 5715,
-    "gender": "女性",
-    "label": "多语言,热门,中年"
-  },
-  {
-    "timbre_id": 5714,
-    "gender": "男性",
-    "label": "广告,英语,叙事,故事"
-  },
-  {
-    "timbre_id": 5713,
-    "gender": "男性",
-    "label": "广告,中文,故事,游戏"
-  },
-  {
-    "timbre_id": 5712,
-    "gender": "女性",
-    "label": "中文,叙事,故事,儿童"
   }
 ]

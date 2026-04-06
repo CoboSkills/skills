@@ -3,9 +3,15 @@
   "slug": "tastyigniter",
   "displayName": "Tastyigniter",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774812290332,
-    "commit": "https://github.com/openclaw/skills/commit/fb43dcf1c9e3b54c2cdbdd3bdf1fda065fdd6a6d"
+    "version": "1.0.2",
+    "publishedAt": 1775169321936,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774812290332,
+      "commit": "https://github.com/openclaw/skills/commit/fb43dcf1c9e3b54c2cdbdd3bdf1fda065fdd6a6d"
+    }
+  ]
 }

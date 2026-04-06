@@ -1,27 +1,27 @@
 ---
 name: setup-doctor
-description: "Diagnose and fix OpenClaw setup issues in one command. Checks Node, npm, gateway, config, and workspace. Runs in two modes: Quick (default, 10 seconds) and Full (all phases, opt-in). Multi-language support. Config and workspace checks report file existence and size only — never read contents. No credentials accessed without approval. Homepage: https://clawhub.ai/skills/setup-doctor"
+description: "Diagnose OpenClaw setup in one command. Auto-detects issues with Node, npm, gateway, config, and workspace. Quick mode (~10s) or Full mode. Multi-language. Config and workspace checks report file existence only — never reads contents. No credentials accessed without approval. Homepage: https://clawhub.ai/skills/setup-doctor"
 ---
 
-# Setup Doctor
+# Setup Doctor v3.0
 
 **Install:** `clawhub install setup-doctor`
 
-Diagnose OpenClaw setup issues. Like `brew doctor` — one command to check everything.
+Diagnose OpenClaw setup issues. Like `brew doctor` — one command, clear results.
 
 ## Language
 
-Detect from the user's message language. Default: English.
+Detect from user's message language. Default: English.
 
-Supported: English, Norwegian, German, Spanish, French, Japanese, Chinese.
+## Auto-Detection
 
-## Two Modes
+Run automatically when:
+- User mentions setup issues, errors, or "doesn't work"
+- Gateway fails to start or connect
+- A command returns an unexpected error
+- User says "doctor check", "diagnose", "hvorfor fungerer ikke"
 
-### 🟢 Quick Check (default)
-
-Runs in ~10 seconds. Covers the essentials.
-
-Trigger: "doctor check", "kjør doctor", "diagnose", "hvorfor fungerer ikke"
+## Quick Check (default, ~10s)
 
 ```bash
 node --version
@@ -29,76 +29,33 @@ npm --version
 openclaw gateway status 2>&1
 ```
 
-Expected: Node 20+, npm 9+, gateway running.
+**Report:**
+```
+Setup Doctor — Quick Check
+  Node.js:    ✅ v24.11.1
+  npm:        ✅ 10.9.2
+  Gateway:    ✅ Running (up 4h)
 
-**Report format:**
-
-```markdown
-## 🩺 Setup Doctor — Quick Check
-
-| Check | Status | Details |
-|-------|--------|---------|
-| Node.js | ✅ Pass | v24.11.1 |
-| npm | ✅ Pass | 10.9.2 |
-| Gateway | ✅ Pass | Running (PID 1234, up 4h) |
-
-Fixes available: none. Your setup looks healthy.
+Issues: none
 ```
 
-If issues found, show one-line fix for each:
-
-```markdown
-| Check | Status | Details | Fix |
-|-------|--------|---------|-----|
-| Node.js | ❌ Fail | v18.17.0 | Install Node 20+: https://nodejs.org |
-| Gateway | ❌ Fail | Not running | Run: openclaw gateway start |
+If issues found, include one-line fix:
+```
+  Gateway:    ❌ Not running → Fix: openclaw gateway start
 ```
 
-### 🔵 Full Check (opt-in)
+## Full Check (opt-in)
 
-Covers everything. Trigger: "doctor check full", "full diagnose"
+Trigger: "doctor full", "full diagnose"
 
-Includes Quick Check phases PLUS:
+Includes Quick Check PLUS:
 
-**Phase 3: Configuration**
-- Config file exists
-- Channel config has security settings
+- **Config**: File exists
+- **Workspace**: Directory exists, key files present (SOUL.md, AGENTS.md, etc.)
+- **Platform**: Windows (long paths, PowerShell policy), macOS (Homebrew PATH), Linux (systemd)
+- **Common pitfalls**: Known version conflicts, deprecated patterns
 
-**Phase 4: Workspace**
-- Workspace directory exists, no permission issues
-- Report file names and sizes only — do not read file contents
-
-**Phase 5: Channel Verification**
-- Check configured channels (Telegram, Discord, etc.) for obvious issues
-
-**Phase 6: Common Pitfalls**
-- Windows: long paths, PowerShell execution policy
-- macOS: FileVault, Homebrew PATH
-- Linux: systemd service enabled
-
-**Phase 7: API Connectivity (explicit opt-in)**
-Trigger: "doctor check api", "sjekk api"
-
-1. Network reachability test (no credentials)
-2. If user explicitly asks to test a specific provider key:
-   - Ask which provider
-   - Confirm before testing
-   - Never include keys in output
-   - Never test more than one per request
-
-## Quick Commands
-
-| User says | Action |
-|-----------|--------|
-| "doctor check" / "kjør doctor" | Quick Check (default) |
-| "doctor check full" / "full diagnose" | Full Check (all phases) |
-| "doctor check api" | API connectivity test |
-| "fix it" / "fix det" | Auto-fix with confirmation |
-| "setup wizard" / "oppsett" | New user setup wizard |
-
----
-
-## Auto-Fix
+## Fix Mode
 
 Trigger: "fix it", "fix det"
 
@@ -107,36 +64,64 @@ Trigger: "fix it", "fix det"
 3. Apply fix
 4. Re-run check to verify
 
-**Never auto-fix without showing what changes.**
-
----
-
-## Setup Wizard
-
-Trigger: "setup wizard", "oppsett"
-
-Guide new users through workspace configuration. Three profiles:
-
-| Profile | What you get |
-|---------|-------------|
-| 🟢 Minimal | SOUL.md, user config, AGENTS.md |
-| 🟡 Standard | + IDENTITY.md, long-term notes dir, HEARTBEAT.md |
-| 🔴 Power User | + Proactive automation rules, advanced heartbeat |
-
-Ask: name, language, timezone, agent name. Provide templates as output.
-
----
+**Never fix without confirmation.**
 
 ## Workspace Audit
 
 Trigger: "workspace audit"
 
-Check workspace files. Report existence and size only — never read contents.
+Report file existence and size only — never read contents:
 
-| File | Purpose | Status |
-|------|---------|--------|
-| SOUL.md | Agent personality | ✅/❌ |
-| User config | Name, timezone, prefs | ✅/❌ |
-| AGENTS.md | Behavior rules | ✅/❌ |
-| Long-term notes | Persistent memory | ✅/⚠️/❌ |
-| BOOTSTRAP.md | First-run script | ⚠️ Should delete |
+```
+Workspace Audit:
+  SOUL.md      ✅ 1.2 KB
+  AGENTS.md    ✅ 2.8 KB
+  MEMORY.md    ✅ 3.1 KB
+  HEARTBEAT.md ✅ 0.4 KB
+  TOOLS.md     ✅ 0.3 KB
+```
+
+## Quick Commands
+
+| User says | Action |
+|-----------|--------|
+| "doctor check" / "kjor doctor" | Quick Check |
+| "doctor full" | Full Check |
+| "fix it" | Auto-fix with confirmation |
+| "workspace audit" | File existence check |
+
+## HEARTBEAT Integration
+
+User can add to HEARTBEAT.md:
+
+```markdown
+## Setup Check
+- If gateway errors detected: run doctor quick check
+```
+
+## Guidelines for Agent
+
+1. **Auto-detect issues** — run quick check when user reports problems
+2. **Keep it fast** — quick check in ~10 seconds
+3. **One-line fixes** — clear, copy-pasteable solutions
+4. **Never read file contents** — existence and size only
+5. **Never fix without asking** — show what changes, get confirmation
+6. **Match user language** in reports
+
+## What This Skill Does NOT Do
+
+- Does NOT read file contents (existence/size only)
+- Does NOT access credentials without explicit approval
+- Does NOT modify config automatically
+- Does NOT modify HEARTBEAT.md or MEMORY.md
+
+## More by TommoT2
+
+- **context-brief** — Persistent context survival across sessions
+- **tommo-skill-guard** — Security scanner for installed skills
+- **locale-dates** — Format dates/times per locale
+
+Install the full suite:
+```bash
+clawhub install setup-doctor context-brief tommo-skill-guard locale-dates
+```

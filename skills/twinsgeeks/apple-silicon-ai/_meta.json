@@ -1,11 +1,17 @@
 {
   "owner": "twinsgeeks",
   "slug": "apple-silicon-ai",
-  "displayName": "Apple Silicon AI — Mac Studio, Mac Mini, MacBook Pro Local AI Fleet",
+  "displayName": "Apple Silicon Ai",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774921605128,
-    "commit": "https://github.com/openclaw/skills/commit/02151f5b865046b9776e15b3b9ac8a83af50732a"
+    "version": "1.0.3",
+    "publishedAt": 1775254688070,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774921605128,
+      "commit": "https://github.com/openclaw/skills/commit/02151f5b865046b9776e15b3b9ac8a83af50732a"
+    }
+  ]
 }

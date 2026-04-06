@@ -9,10 +9,12 @@
     python3 check_env.py           # 标准模式：输出详细检测结果
     python3 check_env.py --quiet   # 静默模式：仅输出错误信息（供其他脚本调用）
     python3 check_env.py --skip-update  # 跳过版本更新检查
+    python3 check_env.py --list-console-roles  # 列出支持控制台登录的角色（JSON）
+    python3 check_env.py --check-role <name>   # 检查指定角色是否支持控制台登录（JSON）
 
 返回码:
-    0 - 环境就绪（密钥 + 角色全部正常）
-    1 - Python 版本不满足
+    0 - 环境就绪（密钥 + 角色全部正常）/ 查询成功
+    1 - Python 版本不满足 / 查询失败
     2 - AK/SK 未配置或无效
     3 - 角色未配置（需要执行角色创建步骤）
 
@@ -107,6 +109,75 @@ def save_config(account_uin: str, role_name: str, role_arn: str,
             os.chmod(str(CONFIG_FILE), stat.S_IRUSR | stat.S_IWUSR)  # 600
         except OSError:
             pass
+
+
+def list_console_login_roles() -> dict:
+    """查询账号下所有支持控制台登录的用户自定义角色（只读）。
+
+    Returns:
+        dict: {
+            "success": bool,
+            "roles": [{"RoleName": ..., "ConsoleLogin": 1, ...}, ...],
+            "total": int,  # 筛选后数量
+            "error": {...}  # 仅失败时
+        }
+    """
+    result = call_api(
+        "cam", "cam.tencentcloudapi.com",
+        "DescribeRoleList", "2019-01-16",
+        {"Page": 1, "Rp": 200},
+    )
+    if not result.get("success"):
+        return {
+            "success": False,
+            "roles": [],
+            "error": result.get("error", {}),
+        }
+    role_list = result.get("data", {}).get("List", [])
+    console_roles = [
+        r for r in role_list
+        if r.get("ConsoleLogin") == 1 and r.get("RoleType") == "user"
+    ]
+    return {"success": True, "roles": console_roles, "total": len(console_roles)}
+
+
+def check_role_console_login(role_name: str) -> dict:
+    """检查指定角色是否存在及是否支持控制台登录（只读）。
+
+    Args:
+        role_name: 角色名称
+
+    Returns:
+        dict: {
+            "success": bool,   # API 调用是否成功
+            "role_name": str,
+            "exists": bool,    # 角色是否存在
+            "console_login": bool,  # 是否支持控制台登录
+            "data": {...}      # 角色完整数据（仅存在时）
+        }
+    """
+    result = call_api(
+        "cam", "cam.tencentcloudapi.com",
+        "GetRole", "2019-01-16",
+        {"RoleName": role_name},
+    )
+    if not result.get("success"):
+        return {
+            "success": False,
+            "role_name": role_name,
+            "exists": False,
+            "console_login": False,
+            "error": result.get("error", {}),
+        }
+    data = result.get("data", {})
+    console_login = data.get("ConsoleLogin", 0) == 1
+    return {
+        "success": True,
+        "role_name": role_name,
+        "exists": True,
+        "console_login": console_login,
+        "data": data,
+    }
 
 
 def parse_version(version_str: str) -> tuple:
@@ -305,6 +376,24 @@ def _fetch_remote_version(slug: str, local_ver: str) -> dict:
 
 
 def main():
+    # ============== 独立命令行参数（直接输出 JSON 并退出） ==============
+    args = sys.argv[1:]
+
+    if "--list-console-roles" in args:
+        result = list_console_login_roles()
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        sys.exit(0 if result.get("success") else 1)
+
+    if "--check-role" in args:
+        idx = args.index("--check-role")
+        if idx + 1 >= len(args) or args[idx + 1].startswith("--"):
+            print(json.dumps({"success": False, "error": "缺少角色名参数"}, ensure_ascii=False))
+            sys.exit(1)
+        role_name = args[idx + 1]
+        result = check_role_console_login(role_name)
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        sys.exit(0 if result.get("success") else 1)
+
     # ============== 1. 检查 Python 版本 ==============
     log_section("1. 检查运行环境")
 
@@ -338,8 +427,8 @@ def main():
                 for line in changelog:
                     log_info(line)
             log_info("")
-            log_info("  可前往 SkillHub 或 ClawHub 更新此 Skill")
-            log_info("  当前版本仍可正常使用，建议有空时更新。")
+            log_info("  请前往 SkillHub 或 ClawHub 更新此 Skill")
+            log_info("  当前版本仍可正常使用。")
             log_info("")
             # 不阻断，继续后续检测
         elif status in ("check_failed", "no_meta"):
@@ -483,16 +572,30 @@ def main():
                 role_configured = True
             else:
                 log_warn(f"角色 {ADVISOR_ROLE_NAME} 存在但不支持控制台登录")
-                log_info("  需要创建一个支持控制台登录的角色用于免密登录链接获取")
-                log_info(f"  请运行角色创建脚本: python3 {SCRIPT_DIR}/scripts/create_role.py")
-                sys.exit(3)
+                log_info("  尝试查找其他支持控制台登录的角色...")
         else:
-            # 角色不存在 → 提示需要创建
             log_warn(f"未检测到 {ADVISOR_ROLE_NAME} 角色")
-            log_info("")
-            log_info("  免密登录功能需要一个 CAM 角色，请执行角色创建步骤：")
-            log_info(f"  python3 {SCRIPT_DIR}/scripts/create_role.py")
-            sys.exit(3)
+            log_info("  尝试查找其他支持控制台登录的角色...")
+
+        # 5.5 advisor 不可用 → 查询角色列表寻找可用角色
+        if not role_configured:
+            list_result = list_console_login_roles()
+            if list_result.get("success") and list_result.get("roles"):
+                found_role = list_result["roles"][0]
+                found_name = found_role.get("RoleName", "")
+                log_ok(f"检测到可用角色 {found_name}（支持控制台登录），自动配置")
+                computed_arn = f"qcs::cam::uin/{account_uin}:roleName/{found_name}"
+                role_id = str(found_role.get("RoleId", ""))
+                save_config(account_uin, found_name, computed_arn,
+                            auto_created=False, role_id=role_id)
+                log_ok(f"配置已保存到 {CONFIG_FILE}")
+                role_configured = True
+            else:
+                log_warn("未找到任何支持控制台登录的角色")
+                log_info("")
+                log_info("  免密登录功能需要一个支持控制台登录的 CAM 角色，请执行角色创建步骤：")
+                log_info(f"  python3 {SCRIPT_DIR}/scripts/create_role.py")
+                sys.exit(3)
 
     # ============== 6. 验证角色扮演（仅角色已配置时） ==============
     if role_configured:

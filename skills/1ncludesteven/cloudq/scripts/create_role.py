@@ -70,6 +70,36 @@ def output_error(code: str, message: str) -> dict:
     }
 
 
+MAX_ROLE_NAME_ATTEMPTS = 20
+
+
+def find_available_role_name() -> tuple:
+    """查找可用的角色名称，支持递增命名。
+
+    检查顺序: advisor → advisor1 → advisor2 → ...
+    - 如果角色不存在 → 返回该名称（可创建）
+    - 如果角色存在且 ConsoleLogin=1 → 返回该名称（已可用）
+    - 如果角色存在但 ConsoleLogin=0 → 尝试下一个名称
+
+    Returns:
+        tuple: (role_name, existing_ok)
+            role_name: 可用的角色名称，或 None（超过最大尝试次数）
+            existing_ok: True 表示角色已存在且支持控制台登录（无需创建）
+    """
+    candidates = [ROLE_NAME] + [f"{ROLE_NAME}{i}" for i in range(1, MAX_ROLE_NAME_ATTEMPTS)]
+    for name in candidates:
+        result = call_api(
+            "cam", "cam.tencentcloudapi.com",
+            "GetRole", "2019-01-16",
+            {"RoleName": name},
+        )
+        if not result.get("success"):
+            return name, False
+        if result.get("data", {}).get("ConsoleLogin", 0) == 1:
+            return name, True
+    return None, False
+
+
 def save_config(account_uin: str, role_arn: str, role_id: str = "",
                 auto_created: bool = True):
     """保存配置到文件"""
@@ -140,31 +170,31 @@ def main():
             print(output_json(output_error("GetCallerIdentityFailed", error_msg)))
             sys.exit(2)
 
-    # ============== 3. 检查角色是否已存在 ==============
-    role_check = call_api(
-        "cam", "cam.tencentcloudapi.com",
-        "GetRole", "2019-01-16",
-        {"RoleName": ROLE_NAME},
-    )
+    # ============== 3. 查找可用角色名称 ==============
+    target_role, existing_ok = find_available_role_name()
 
-    if role_check.get("success"):
-        console_login = role_check.get("data", {}).get("ConsoleLogin", 0)
+    if target_role is None:
+        print(output_json(output_error(
+            "NoAvailableRoleName",
+            "无法找到可用的角色名称（已尝试 advisor ~ advisor19），"
+            "请到 CAM 控制台手动管理: https://console.cloud.tencent.com/cam/role"
+        )))
+        sys.exit(3)
+
+    if existing_ok:
+        # 角色已存在且支持控制台登录 → 直接保存配置
+        role_check = call_api(
+            "cam", "cam.tencentcloudapi.com",
+            "GetRole", "2019-01-16",
+            {"RoleName": target_role},
+        )
         role_id = str(role_check.get("data", {}).get("RoleId", "unknown"))
-        role_arn = f"qcs::cam::uin/{account_uin}:roleName/{ROLE_NAME}"
-
-        if console_login == 1:
-            # 角色已存在且支持控制台登录 → 直接保存配置
-            save_config(account_uin, role_arn, role_id, auto_created=False)
-            print(output_json(output_success(role_arn, account_uin, role_id)))
-            sys.exit(0)
-        else:
-            print(output_json(output_error(
-                "RoleExistsNoConsoleLogin",
-                f"角色 {ROLE_NAME} 已存在但未启用控制台登录（ConsoleLogin=0），"
-                "请到 CAM 控制台手动启用或删除后重新创建: "
-                "https://console.cloud.tencent.com/cam/role"
-            )))
-            sys.exit(3)
+        role_arn = f"qcs::cam::uin/{account_uin}:roleName/{target_role}"
+        save_config(account_uin, role_arn, role_id, auto_created=False)
+        result = output_success(role_arn, account_uin, role_id)
+        result["data"]["roleName"] = target_role
+        print(output_json(result))
+        sys.exit(0)
 
     # ============== 4. 创建角色 ==============
     trust_policy = json.dumps({
@@ -182,7 +212,7 @@ def main():
         "cam", "cam.tencentcloudapi.com",
         "CreateRole", "2019-01-16",
         {
-            "RoleName": ROLE_NAME,
+            "RoleName": target_role,
             "PolicyDocument": trust_policy,
             "ConsoleLogin": 1,
             "Description": "腾讯云智能顾问助手角色（由 tencent-cloudq skill 创建）",
@@ -193,7 +223,7 @@ def main():
         err = create_result.get("error", {})
         print(output_json(output_error(
             err.get("code", "CreateRoleFailed"),
-            f"角色创建失败: {err.get('message', '未知错误')}"
+            f"角色 {target_role} 创建失败: {err.get('message', '未知错误')}"
         )))
         sys.exit(3)
 
@@ -205,7 +235,7 @@ def main():
         attach_result = call_api(
             "cam", "cam.tencentcloudapi.com",
             "AttachRolePolicy", "2019-01-16",
-            {"AttachRoleName": ROLE_NAME, "PolicyName": policy_name},
+            {"AttachRoleName": target_role, "PolicyName": policy_name},
         )
         if not attach_result.get("success"):
             err_msg = attach_result.get("error", {}).get("message", "未知错误")
@@ -213,11 +243,12 @@ def main():
             print(f"WARNING: {attach_warnings[-1]}", file=sys.stderr)
 
     # ============== 6. 保存配置 ==============
-    role_arn = f"qcs::cam::uin/{account_uin}:roleName/{ROLE_NAME}"
+    role_arn = f"qcs::cam::uin/{account_uin}:roleName/{target_role}"
     save_config(account_uin, role_arn, role_id, auto_created=True)
 
     # ============== 7. 输出结果 ==============
     result = output_success(role_arn, account_uin, role_id)
+    result["data"]["roleName"] = target_role
     if attach_warnings:
         result["data"]["warnings"] = attach_warnings
     print(output_json(result))

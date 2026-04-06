@@ -256,7 +256,7 @@ def call_sse_api(question: str, session_id: str,
     # ---- 发送请求并解析 SSE 流 ----
     try:
         ctx = _get_ssl_context()
-        resp = urlopen(req, context=ctx, timeout=120)
+        resp = urlopen(req, context=ctx, timeout=600)
     except HTTPError as e:
         return _handle_http_error(e)
     except URLError as e:
@@ -327,6 +327,8 @@ _CONSOLE_URL_RE = re.compile(r'https://console\.cloud\.tencent\.com[^\s\)\]"\']*
 _ARCH_ID_RE = re.compile(r'\barch-[a-z0-9]+\b')
 # 免密登录链接特征（已替换过的不再处理）
 _LOGIN_URL_MARKER = "cloud.tencent.com/login/roleAccessCallback"
+# 不生成免密登录链接的路径（advisor/cloudq 需用户自行登录）
+_SKIP_LOGIN_PATHS = re.compile(r'https://console\.cloud\.tencent\.com/advisor/cloudq(\?|/|$)')
 
 # login_url.py 脚本路径
 _LOGIN_SCRIPT = Path(__file__).resolve().parent / "login_url.py"
@@ -401,6 +403,8 @@ def _replace_console_urls(content: str) -> str:
     for raw_url in unique_urls:
         if _LOGIN_URL_MARKER in raw_url:
             continue
+        if _SKIP_LOGIN_PATHS.match(raw_url):
+            continue
         target = _append_hide_nav(raw_url)
         target = _enrich_url_with_arch_id(target, first_arch_id)
         login_url = _generate_login_url(target)
@@ -425,14 +429,17 @@ def _ensure_login_url(content: str) -> str:
     确保 content 中包含免密登录链接。
     如果 content 不含任何免密链接，自动生成一个并追加到末尾。
 
+    排除规则：
+    - content 中已有 advisor/cloudq 链接（无需免密）则跳过
     场景判断：
-    - 智能顾问场景（含架构图/评估/巡检等关键词）:
-      有 archId 时: advisor?hideTopNav=true&archId={archId}
-      无 archId 时: advisor?hideTopNav=true
-    - 非智能顾问场景（CVM/Lighthouse/COS 等云产品）:
-      目标 URL: https://console.cloud.tencent.com/
+    - 智能顾问场景: advisor?hideTopNav=true（有 archId 时追加）
+    - 非智能顾问场景: https://console.cloud.tencent.com/
     """
     if not content or _LOGIN_URL_MARKER in content:
+        return content
+
+    # 已包含 advisor/cloudq 链接则跳过（该页面不需要免密）
+    if "console.cloud.tencent.com/advisor/cloudq" in content:
         return content
 
     first_arch_id = _extract_first_arch_id(content)

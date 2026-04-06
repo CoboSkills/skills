@@ -1,12 +1,14 @@
 ---
-name: jisu-travel
-description: 旅行信息聚合技能：航班列表、景点列表；火车查询使用极速数据 train 接口（站站/车次/余票）。
+name: "Travel Search Flight Train Scenery - 旅行搜索 航班 火车 景点"
+description: 聚合航班列表、景点信息，火车段可走 train 能力。当用户说：查一下上海到东京的航班、杭州有什么景点推荐、顺带帮我看看火车票，或类似出行规划问题时，使用本技能。
 metadata: { "openclaw": { "emoji": "🧳", "requires": { "bins": ["python3"], "env": ["JISU_API_KEY"] }, "primaryEnv": "JISU_API_KEY" } }
 ---
 
 # 旅行聚合（机票、火车、景点）（jisu-travel）
 
-数据使用同程旅行：<https://www.ly.com/>
+数据使用同程旅行：<https://www.ly.com/>  
+本技能由**极速数据**提供：[`https://www.jisuapi.com`](https://www.jisuapi.com)  
+信息反馈：请发邮件至 `liupandeng@jisuapi.com`
 
 能力说明：
 
@@ -20,11 +22,8 @@ metadata: { "openclaw": { "emoji": "🧳", "requires": { "bins": ["python3"], "e
 pip install requests beautifulsoup4
 ```
 
-## 环境变量
 
-火车需要先在极速数据平台申请火车相关接口，申请链接：
-
-- 火车接口：<https://www.jisuapi.com/api/train/>
+火车需要先在极速数据平台申请火车相关接口，申请链接：<https://www.jisuapi.com/api/train/>
 
 申请后再配置：
 

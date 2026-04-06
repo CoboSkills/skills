@@ -3,9 +3,15 @@
   "slug": "jiuma",
   "displayName": "Jiuma AI Video Generation (Free)",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1774686375304,
-    "commit": "https://github.com/openclaw/skills/commit/7f4cc42554cec75f938f6dd6a24c9d5343396a15"
+    "version": "1.1.1",
+    "publishedAt": 1775210019387,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1774686375304,
+      "commit": "https://github.com/openclaw/skills/commit/7f4cc42554cec75f938f6dd6a24c9d5343396a15"
+    }
+  ]
 }

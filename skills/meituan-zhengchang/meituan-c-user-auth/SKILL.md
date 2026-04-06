@@ -1,7 +1,7 @@
 ---
 name: "meituan-c-user-auth"
-description: "美团C端用户Agent认证工具。为需要美团用户身份的 Skill（如发券、查订单等）提供手机号验证码登录认证，管理用户Token，实现“一次认证、持续有效”。当其他 Skill 需要校验用户身份、获取用户Token时，作为前置认证模块调用。触发词：美团登录、用户认证、手机号验证、发送验证码、获取Token、切换账号、退出登录。"
-version: "1.0.5"
+description: "美团C端用户Agent认证工具。为需要美团用户身份的 Skill（如发券、查订单等）提供手机号验证码登录认证，管理用户Token，实现"一次认证、持续有效"。当其他 Skill 需要校验用户身份、获取用户Token时，作为前置认证模块调用。触发词：美团登录、用户认证、手机号验证、发送验证码、获取Token、切换账号、退出登录。"
+version: "1.0.8"
 ---
 
 # 美团C端用户认证工具
@@ -107,9 +107,9 @@ $PYTHON "$SCRIPT" version-check
 
 ## 服务协议确认（每次调用前必须检查）
 
-> **法律合规要求**：在使用本 Skill 的任何功能前，必须确认用户已阅读并接受《Skill 服务使用规则》。
+> **法律合规要求**：在使用本 Skill 的任何功能前，必须确认用户已阅读并接受《Skill服务使用规则》。
 
-**协议文档位置：**`references/terms-of-service.md`
+**协议链接：**https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html
 
 ### 协议检查命令
 
@@ -125,36 +125,47 @@ $PYTHON "$SCRIPT" terms-check
 ### 协议未接受时的处理流程
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│  用户未接受协议时，引导完成协议确认：    │
-│                                            │
-│  1. 展示官方声明并告知《Skill服务使用规则》概要：              │
-│                                            │
-│  "本Skill为美团官方开发并提供，请您放心使用。                  │
-│   使用前请参见并同意《Skill服务使用规则》"       │
-│                                            │
-│  2. 询问用户并合并接受流程：              │
-│  "请问您是否阅读并接受《Skill服务使用规则》？          │
-│   回复 '是' 或 '接受' 表示接受，        │
-│   回复 '否' 或 '拒绝' 表示不接受，      │
-│   回复 '查看全文' 查看完整规则内容。    │
-│   您也可以直接输入手机号，视为接受规则   │
-│   并开始登录认证。"                      │
-│                                            │
-│  3. 用户输入'查看全文'时：                │
-│   [使用Read工具读取并展示references/terms-of-service.md全文]│
-│   → 展示完成后重新询问是否接受            │
-│                                            │
-│  4. 用户接受后（回复'是'/接受 或 输入手机号）： │
-│   $PYTHON "$SCRIPT" terms-accept           │
-│   → 如果用户直接输入手机号，跳过询问直接发送验证码 │
-│   → 如果用户回复'是'/接受'，再请用户输入手机号│
-│                                            │
-│  5. 用户拒绝后执行：                         │
-│   $PYTHON "$SCRIPT" terms-decline         │
-│   → 告知用户无法使用服务，结束对话       │
-└──────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────┐
+│  用户未接受协议时，引导完成协议确认：                                        │
+│                                                                            │
+│  1. 展示官方声明与协议确认（必须使用以下原文，不得修改表述样式或内容）：            │
+│                                                                            │
+│  📋 本Skill由美团官方开发并提供，请您放心使用。具体使用规则请参见              │
+│   [《Skill服务使用规则》](https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html)。          │
+│   继续使用本Skill即表示您已阅读并同意                                       │
+│   [《Skill服务使用规则》](https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html)、         │
+│   [《美团用户服务协议》](https://rules-center.meituan.com/rule-detail/4/1)和              │
+│   [《隐私政策》](https://rules-center.meituan.com/m/detail/guize/2)的全部内容，              │
+│   并自愿接受该等规则的约束。                                               │
+│                                                                            │
+│   回复 「同意」 接受该等协议                                        │
+│   回复 「拒绝」 不接受该等协议                                        │
+│   回复 「查看全文」 查看完整协议                                      │
+│                                                                            │
+│   您也可以直接输入手机号，视为同意协议并发送验证码。                          │
+│                                                                            │
+│  2. 用户输入'查看全文'时：                                                   │
+│   使用系统默认浏览器打开完整协议内容：                                     │
+│   https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html │
+│   → 打开完成后重新询问是否同意                                               │
+│                                                                            │
+│  3. 用户接受后（回复「同意」或直接输入手机号）：                             │
+│   $PYTHON "$SCRIPT" terms-accept                                            │
+│   → 如果用户直接输入手机号，跳过询问直接发送验证码                           │
+│   → 如果用户回复「同意」，再请用户输入手机号                                 │
+│                                                                            │
+│  4. 用户拒绝后执行：                                                         │
+│   $PYTHON "$SCRIPT" terms-decline                                           │
+│   → 告知用户无法使用服务，结束对话                                           ┘
+└────────────────────────────────────────────────────────────────────────────┘
 ```
+
+**注意事项**
+
+- 《Skill服务使用规则》链接：https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html
+- 《美团用户服务协议》链接：https://rules-center.meituan.com/rule-detail/4/1
+- 《隐私政策》链接：https://rules-center.meituan.com/m/detail/guize/2
+- 展示协议部分时必须使用原文，不得修改表述样式或内容
 
 > **重要：**用户接受协议后，`terms_accepted` 状态会持久化存储在本地 Token 文件中，
 > 同一设备后续调用无需重复确认。如需撤销接受，可使用 `terms-decline` 命令。
@@ -283,7 +294,7 @@ $PYTHON "$SCRIPT" terms-check
 6. **device_token 不要在对话中展示**：device_token 是设备唯一标识，属于内部字段，正常交互中不得向用户输出；仅在排查登录问题时，且用户明确要求查看时，才可展示
 7. **安全验证（20010）处理**：当 send-sms 返回 `error=SMS_SECURITY_VERIFY_REQUIRED` 时，**必须从脚本 JSON 输出的 `redirect_url` 字段取值作为跳转链接**，禁止自行拼装或猜测链接；若 `redirect_url` 为空则提示用户稍后重试；引导用户点击该链接完成安全验证后，**重新调用 send-sms**（无需用户再次输入手机号）；安全验证后的短信由后端自动触发，用户直接输入收到的验证码即可
 8. **法律合规要求**：在使用任何功能前，必须检查并确认用户已接受《Skill 服务使用规则》（使用 `terms-check` 命令）
-9. **展示协议全文时必须展示原文**：当用户要求查看《Skill 服务使用规则》全文时，必须使用 Read 工具读取 `references/terms-of-service.md` 原文展示，不得精简、概括或修改内容
+9. **展示协议全文时引导用户访问官方链接**：当用户要求查看《Skill服务使用规则》全文时，使用系统默认浏览器打开 https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html
 
 ---
 

@@ -37,6 +37,36 @@ class TaskPusher:
         
         logger.info(f"Hiboards URL: {self.config.hiboards_url}")
     
+    def _preprocess_content(self, content: str) -> str:
+        """
+        预处理内容文本
+        处理换行符转义等问题
+        """
+        if not content:
+            return ""
+        
+        # 检查是否有双重转义的换行符
+        if '\\n' in content and '\n' not in content:
+            # 可能包含转义的换行符，如 "\\n\\n"
+            logger.debug("检测到可能转义的换行符，尝试修复")
+            # 替换双重转义的换行符
+            content = content.replace('\\n', '\n')
+        
+        # 检查其他常见转义字符
+        escape_mappings = {
+            '\\t': '\t',      # 制表符
+            '\\r': '\r',      # 回车符
+            '\\\\': '\\',     # 反斜杠
+            '\\"': '"',       # 双引号
+            "\\'": "'",       # 单引号
+        }
+        
+        for escaped, actual in escape_mappings.items():
+            if escaped in content:
+                content = content.replace(escaped, actual)
+        
+        return content
+    
     def format_task_data(self, task_data: Dict[str, Any]) -> Dict[str, Any]:
         """格式化任务数据为标准推送格式"""
         logger.debug("格式化任务数据...")
@@ -70,13 +100,24 @@ class TaskPusher:
         # 确定source值
         source_value = "OpenClaw"  # 默认值
         
+        # 预处理内容文本
+        raw_content = task_data.get('task_content', '')
+        processed_content = self._preprocess_content(raw_content)
+        
+        # 记录内容处理情况（调试用）
+        if raw_content != processed_content:
+            logger.debug(f"内容已预处理: 原始长度={len(raw_content)}, 处理后长度={len(processed_content)}")
+            # 检查是否有转义字符被处理
+            if '\\n' in raw_content and '\\n' not in processed_content:
+                logger.debug("已处理转义的换行符")
+        
         msg_content = {
             "msgId": msg_id,                     # 负一屏API要求的字段，自动生成
             "scheduleTaskId": schedule_task_id,  # 周期性任务ID（周期性任务保持一致）
             "scheduleTaskName": task_name,       # 任务名称
             "summary": task_name,                # 任务摘要
             "result": task_data.get('task_result', self.config.default_result),
-            "content": task_data.get('task_content', ''),
+            "content": processed_content,        # 预处理后的内容
             "source": source_value,              # 来源：OpenClaw
             "taskFinishTime": task_finish_time   # 任务完成时间戳（秒）
         }
@@ -238,11 +279,13 @@ class TaskPusher:
                                 hiboards_response: Any) -> Dict[str, Any]:
         """创建成功响应"""
         msg_content = push_data['msgContent'][0]
+        schedule_task_id = msg_content.get('scheduleTaskId')
         
         return {
             "success": True,
             "message": "任务结果推送成功",
-            "schedule_task_id": msg_content.get('scheduleTaskId'),
+            "task_id": schedule_task_id,  # 添加task_id字段，与schedule_task_id值相同
+            "schedule_task_id": schedule_task_id,
             "task_name": task_data.get('task_name', '未命名'),
             "task_result": msg_content.get('result'),
             "push_time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -261,9 +304,13 @@ class TaskPusher:
                               error_detail: str,
                               error_type: str) -> Dict[str, Any]:
         """创建错误响应"""
+        # 尝试从task_data中获取task_id，如果不存在则使用schedule_task_id
+        task_id = task_data.get('task_id') or task_data.get('schedule_task_id')
+        
         return {
             "success": False,
             "message": error_message,
+            "task_id": task_id,  # 添加task_id字段
             "task_name": task_data.get('task_name', 'unknown'),
             "error_type": error_type,
             "error_detail": error_detail,

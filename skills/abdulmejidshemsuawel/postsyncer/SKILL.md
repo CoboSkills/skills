@@ -1,6 +1,6 @@
 ---
 name: postsyncer-social-media-assistant
-version: 2.1.0
+version: 2.1.1
 title: Social Media Assistant (via postsyncer.com)
 description: Manages social media through PostSyncer using REST and/or MCP. Use when scheduling, posting, or managing content across Instagram, TikTok, YouTube, X (Twitter), LinkedIn, Facebook, Threads, Bluesky, Pinterest, Telegram, Mastodon. Covers posts, media library (list, import URLs, delete, multipart file upload), media folders (CRUD), comments with optional `media` attachments, labels, campaigns, and analytics. Accounts must be pre-connected in the PostSyncer app.
 license: MIT
@@ -189,7 +189,7 @@ curl -X POST "https://postsyncer.com/api/v1/posts" \
 ```
 
 - `schedule_type`: `publish_now` | `schedule` | `draft`
-- `schedule_for`: Required when `schedule_type` is `schedule`. Date `YYYY-MM-DD`, time `HH:MM`
+- `schedule_for`: Optional scheduling object used when `schedule_type` is `schedule`. Provide `{"date": "YYYY-MM-DD", "time": "HH:MM", "timezone": "..."}` to schedule for a specific date/time, or omit/leave empty to auto-schedule to the next available time slot
 - `content`: Array of thread items. Each needs `text` and/or `media`: an array of **library media IDs** (integers) and/or **HTTPS URL strings** (import or list media first when you want stable IDs)
 - `accounts`: Array of `{id, settings?}`. Platform-specific options go in `settings`
 

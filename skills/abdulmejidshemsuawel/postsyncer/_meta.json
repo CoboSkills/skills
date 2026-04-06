@@ -3,11 +3,16 @@
   "slug": "postsyncer",
   "displayName": "Social Media Assistant (via postsyncer.com)",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1774898007295,
-    "commit": "https://github.com/openclaw/skills/commit/be30b16965c4186a6aa11389cbf5cc1e396b6b9f"
+    "version": "2.1.1",
+    "publishedAt": 1774976167130,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1774898007295,
+      "commit": "https://github.com/openclaw/skills/commit/be30b16965c4186a6aa11389cbf5cc1e396b6b9f"
+    },
     {
       "version": "2.0.0",
       "publishedAt": 1774476299650,

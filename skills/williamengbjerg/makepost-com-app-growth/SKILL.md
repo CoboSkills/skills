@@ -1,6 +1,6 @@
 ---
 name: makepost-app-growth
-version: 1.0.1
+version: 1.0.7
 title: App Growth Toolkit (via makepost.com)
 description: Manage social media across 9 platforms, track App Store analytics, monitor ASO keywords, analyze competitors, and control subscription pricing — all through conversation.
 license: MIT
@@ -57,7 +57,9 @@ API docs: `https://api.makepost.com`
 - `title` (string, required) — Video title.
 - `caption` (string) — Default caption for publishing. Falls back to title if empty.
 - `app_id` (string) — App to link to. Accepts app ID, name, or bundle ID. Auto-selects if you have one app.
-- Returns: video_id, url, title, duration, file_size, is_short_eligible.
+- `cover_timestamp` (float) — Seconds into the video to extract as cover frame (e.g. 5.5).
+- `cover_image_url` (string) — Public URL to a custom cover image (JPEG/PNG/WebP/GIF, max 10MB). Alternative to cover_timestamp. Accepts any public URL directly — no need to upload the cover image separately first.
+- Returns: video_id, url, title, duration, file_size, is_short_eligible, cover_url.
 - Runs content moderation automatically. Rejected content is deleted.
 - For direct file uploads (not URL), use the REST API endpoint `POST /v1/media/upload-file` with multipart form data.
 
@@ -95,6 +97,11 @@ API docs: `https://api.makepost.com`
 - `timezone` (string) — IANA timezone. Defaults to your account timezone.
 - Only works on "scheduled" posts. New time must be at least 5 minutes in the future.
 
+**edit_scheduled_post_caption** — Edit the caption of a scheduled post.
+- `post_id` (string, required) — Post ID to edit.
+- `caption` (string, required) — The new caption text.
+- Only works on posts with status "scheduled".
+
 **get_publishing_results** — Check publishing results for a post.
 - `post_id` (string, required) — Post ID to check.
 - Returns: status, platform_url (null while pending), stats (views, likes, comments, shares — null until synced), error_message (only for failed posts).
@@ -113,6 +120,7 @@ API docs: `https://api.makepost.com`
 - `app_id` (string) — App or project ID to associate content with (from list_apps).
 - `captions` (dict) — Per-platform caption overrides, e.g. {"linkedin": "Professional version", "x": "Short version"}.
 - `group_ids` (list of strings) — Account group IDs to resolve to individual accounts (from list_account_groups).
+- `tiktok_is_draft` (bool, default false) — Send to TikTok as a draft instead of publishing live. The video appears in the user's TikTok drafts for editing before posting.
 - Text-only posts work on X, LinkedIn, Threads, Bluesky, Facebook. TikTok, Instagram, YouTube, Pinterest require media.
 
 **upload_image** — Upload an image from a public URL into MakePost.
@@ -143,6 +151,36 @@ API docs: `https://api.makepost.com`
 
 **delete_draft_tool** — Delete a draft post permanently.
 - `post_id` (string, required) — Draft post ID to delete.
+
+### Bulk Operations
+
+**bulk_publish_content** — Publish, schedule, or draft up to 20 content items in a single request.
+- `items` (list, required) — Array of content items (max 20). Each item has the same fields as publish_content: content_type, caption, account_ids, media_id, scheduled_at, timezone, is_draft, title, app_id, captions, group_ids, tiktok_is_draft.
+- Each item is processed independently — failures on individual items do not stop the batch.
+- Returns a list of per-item results with success/failure status and error details for failed items.
+- Rate limit: 5 requests per minute.
+
+**bulk_upload_media** — Upload up to 20 images or videos from public URLs in a single request.
+- `items` (list, required) — Array of media items (max 20). Each item has: `url` (string, required), `type` ("image" or "video", default "image"), `title` (string), `app_id` (string).
+- Image URLs: .jpg, .png, .webp, or .gif. Max 20MB per image.
+- Video URLs: .mp4, .mov, .webm, or .m4v. Max 500MB, max 10 minutes per video.
+- Each item is processed independently — failures on individual items do not stop the batch.
+- Returns a list of per-item results with media_id on success or error details on failure.
+- Rate limit: 3 requests per minute.
+
+**bulk_cancel_posts** — Cancel up to 50 scheduled posts in a single request.
+- `post_ids` (list of strings, required) — Post IDs to cancel (max 50).
+- Only works on posts with status "scheduled". Non-scheduled posts are skipped with an error.
+- Each post is processed independently — failures on individual posts do not stop the batch.
+- Returns a list of per-item results with success/failure status and error details.
+- Rate limit: 10 requests per minute.
+
+**bulk_reschedule_posts** — Reschedule up to 50 scheduled posts in a single request.
+- `items` (list, required) — Array of reschedule items (max 50). Each item has: `post_id` (string, required), `scheduled_at` (string, required — ISO 8601 datetime), `timezone` (string).
+- Only works on "scheduled" posts. New time must be at least 5 minutes in the future.
+- Each post is processed independently — failures on individual posts do not stop the batch.
+- Returns a list of per-item results with success/failure status and error details.
+- Rate limit: 10 requests per minute.
 
 ### App Analytics
 
@@ -235,6 +273,13 @@ API docs: `https://api.makepost.com`
 - "What keywords did my app gain or lose rankings on?" — Checks ASO keyword history and highlights changes.
 - "Lower my Pro subscription price to $4.99 in Brazil and push it live" — Stages the price change and pushes to App Store Connect after your confirmation.
 
+### Bulk Operations
+
+- "Schedule a week of posts — Monday text, Tuesday image, Wednesday video, Thursday text, Friday carousel, Saturday image, Sunday video" — Uses bulk_publish_content with 7 items, each with a different scheduled_at and content_type, all in one call.
+- "Upload these 10 product screenshots and then post them all to Instagram and LinkedIn" — First calls bulk_upload_media with 10 image URLs, then uses the returned media_ids in bulk_publish_content to publish all 10.
+- "Cancel all my scheduled posts for next week" — Lists posts filtered by status "scheduled", identifies the ones in the target date range, then calls bulk_cancel_posts with their IDs.
+- "Move all my Friday posts to Saturday at the same times" — Lists scheduled posts, filters for Friday, then calls bulk_reschedule_posts with each post shifted by one day.
+
 ## Tips
 
 - **App auto-selection**: If you have only one app, you can omit app_id from any tool — it auto-selects.
@@ -257,13 +302,18 @@ Content-Type: multipart/form-data
 Authorization: Bearer <MAKEPOST_API_KEY>
 
 file: <binary>       (required) Image or video file
-type: "image"|"video" (default "image")
+type: "image"|"video"|"cover" (default "image")
 title: string         (optional)
 app_id: string        (optional)
 ```
 - Images: max 20MB, JPEG/PNG/WebP/GIF
 - Videos: max 500MB, MP4/MOV/WebM, max 10 minutes
 - Returns same response as upload_image or upload_video
+
+**REST API: Cover Image Upload** — Upload a cover image without creating a media record.
+- `POST /v1/media/upload-file` with `type: "cover"` — returns `{"url": "...", "type": "cover"}` with no media_id.
+- `POST /v1/media/upload` with `type: "cover"` — same, from a public URL.
+- Use the returned URL as `cover_image_url` when uploading a video.
 
 ## Supported Platforms
 

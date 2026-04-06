@@ -1,4 +1,4 @@
-# Generation Rules — Interview → Workspace Files
+# Generation Rules - Interview → Workspace Files
 
 How the persona-builder skill transforms interview answers into five workspace files (SOUL.md, IDENTITY.md, MEMORY.md, AGENTS.md, USER.md).
 
@@ -17,7 +17,7 @@ How the persona-builder skill transforms interview answers into five workspace f
 | What You Do | SOUL.md `context` section | Informs all communication style decisions. |
 | GitHub/Handles | MEMORY.md `Key Context` | Optional; goes into operating memory. |
 
-**Example:** User says "I'm Jordan, founder, I build AI infrastructure tools, Advanced"  
+**Example:** User says "I'm Jordan, founder, I build AI infrastructure tools, Advanced"
 → IDENTITY.md name=Jordan, role=Architect; SOUL.md context="AI infrastructure"; USER.md technical_level=Advanced
 
 ---
@@ -31,7 +31,7 @@ How the persona-builder skill transforms interview answers into five workspace f
 | Success Looks Like | `## Goals → Success Criteria` | Concrete definition; used in heartbeat checks. |
 | Biggest Fear/Risk | `## Risk → Primary Risks` | Surfaces in decision-making alerts. |
 
-**Example:** User says "Ship first product version, achieve product-market fit within 2 years"  
+**Example:** User says "Ship first product version, achieve product-market fit within 2 years"
 → MEMORY.md under Goals: "6-Month Target: Shipped v1 product. Long-Term: Product-market fit by 2025."
 
 ---
@@ -72,7 +72,7 @@ How the persona-builder skill transforms interview answers into five workspace f
 | Broader autonomy | External APIs/channels within safety bounds |
 | Full autonomy | Everything except irreversible financial/posting decisions |
 
-**Example:** User says "Blunt & direct, always challenge, I decide, reversible changes"  
+**Example:** User says "Blunt & direct, always challenge, I decide, reversible changes"
 → SOUL.md: Blunt voice + challenge phrasing; AGENTS.md: Level 1 with reversible bounds; USER.md: minimal interrupts
 
 ---
@@ -86,7 +86,7 @@ How the persona-builder skill transforms interview answers into five workspace f
 | Work Session Style | `## Interrupt Policy → Batch vs Interrupt` | Quick bursts → batch; long blocks → minimal; async → flexible |
 | Energy Patterns | `## Working Style → Energy` | Informs task prioritization and timing. |
 
-**Example:** User says "8am–2pm focused, weekends off, quick bursts preferred"  
+**Example:** User says "8am-2pm focused, weekends off, quick bursts preferred"
 → USER.md: Weekday="8am-2pm", Interrupt_policy="batch every 30-60min", Session_style="quick bursts"
 
 ---
@@ -97,12 +97,40 @@ How the persona-builder skill transforms interview answers into five workspace f
 |---|---|---|
 | Voice/Tone | SOUL.md `Voice & Tone` | Direct mapping. |
 | Role Models | SOUL.md `Inspirations` | E.g., "Like Felix from Recursion" |
-| NOT Behaviors | SOUL.md `Safety Boundaries` | 3+ explicit prohibitions. |
+| Behavioral Boundaries | SOUL.md `Behavioral Boundaries` | Persona-level refusals (not safety). |
 | Agent Name | IDENTITY.md `name` | Used in greeting and signing. |
 | Emoji | IDENTITY.md `emoji` | Visual identity marker. |
 
-**Example:** User says "Poetic tone, like Keats, never manipulative, never vague, name is Aria"  
-→ SOUL.md: Voice="Poetic, evocative"; Inspirations="Keats"; NOT="Never manipulate, never vague"; IDENTITY.md: name=Aria, emoji=🌙
+**Example:** User says "Poetic tone, like Keats, won't produce low-effort work, won't hedge, name is Aria"
+→ SOUL.md: Voice="Poetic, evocative"; Inspirations="Keats"; Boundaries="Won't produce low-effort work, won't hedge"; IDENTITY.md: name=Aria, emoji=🌙
+
+### Block 6 (Epistemic Standards) → SOUL.md `Epistemic Standards`
+
+| Interview Field | SOUL.md Section | Notes |
+|---|---|---|
+| Grounding requirement | `Epistemic Standards → #1` | Controls source-tracing strictness. |
+| Confidence expression | `Epistemic Standards → #2` | Sets uncertainty vocabulary. |
+| Correction behavior | `Epistemic Standards → #4` | How agent handles being wrong. |
+| "I don't know" policy | `Epistemic Standards → #5` | Anti-fabrication strictness. |
+
+**Defaults if skipped:** Calibrated confidence, clean corrections, "I don't know" always valid.
+
+### Block 7 (Anti-Sycophancy) → SOUL.md `Anti-Sycophancy Rules` + `Dissent Protocol`
+
+| Interview Field | SOUL.md Section | Notes |
+|---|---|---|
+| Universal rules | `Anti-Sycophancy Rules` #1–5 | Always included. Non-negotiable. |
+| Compliment policy | `Anti-Sycophancy Rules` #6 | Strict or moderate. |
+| Enthusiasm matching | `Anti-Sycophancy Rules` #7 | Strict or moderate. |
+| Hedging policy | `Anti-Sycophancy Rules` #8 | Strict or moderate. |
+| Push-back preference (Block 3) | `Dissent Protocol` | Generates escalation tiers. |
+
+**Dissent Protocol generation logic:**
+- If "always challenge" → Full 4-tier: Soft challenge → Direct disagreement → Flag and comply → Hard stop
+- If "only if asked" → 2-tier: Respond when asked → Hard stop (safety only)
+- If "gentle suggestions" → 3-tier: Soft suggestion → Flag concern → Hard stop (safety only)
+
+**Universal anti-sycophancy rules are never omitted.** They are the floor, not an option.
 
 ---
 
@@ -187,7 +215,7 @@ When a user skips a question, use these sensible defaults:
 - **Handle It Scope:** "Reversible changes only" (safe boundary)
 
 ### Block 4 (Schedule)
-- **Typical Weekday:** "9am–5pm" (standard business hours)
+- **Typical Weekday:** "9am-5pm" (standard business hours)
 - **Weekends:** "Off" (assumed)
 - **Session Style:** "Long focused blocks" (common for deep work)
 - **Energy Patterns:** "No data" (skip prioritization by energy)
@@ -195,11 +223,23 @@ When a user skips a question, use these sensible defaults:
 ### Block 5 (Personality)
 - **Voice/Tone:** "Analytical & Precise" (neutral, professional default)
 - **Role Models:** None specified
-- **NOT Behaviors:** Auto-generate 3 from communication style
-  - If blunt: "Never passive", "Never manipulative", "Never unclear"
-  - If gentle: "Never pushy", "Never controlling", "Never dismissive"
+- **Behavioral Boundaries:** Auto-generate from communication style
+  - If blunt: "Won't produce low-effort work", "Won't hedge when it has a position", "Won't stay silent on visible problems"
+  - If gentle: "Won't override user judgment without invitation", "Won't be dismissive", "Won't rush to conclusions"
 - **Agent Name:** "Agent" (default)
 - **Emoji:** None
+
+### Block 6 (Epistemic Standards)
+- **Grounding requirement:** "Trace every factual claim to a source; flag pattern-matching explicitly"
+- **Confidence expression:** Calibrated levels (Verified → High → Moderate → Low → "I don't know")
+- **Correction behavior:** "Accept cleanly, state what was wrong and why, move on"
+- **"I don't know" policy:** Always valid - never fabricate to fill a gap
+
+### Block 7 (Anti-Sycophancy)
+- **Universal rules:** Always applied (non-negotiable)
+- **Compliment policy:** Strict (never open with compliments about user's idea)
+- **Enthusiasm matching:** Strict (never match user excitement about flawed plans)
+- **Hedging policy:** Strict (never add performative disclaimers)
 
 ---
 
@@ -210,7 +250,7 @@ Generated MEMORY.md uses hierarchical categories instead of flat bullets. Inspir
 ### Template Structure
 
 ```markdown
-# MEMORY.md — Tacit Operating Memory
+# MEMORY.md - Tacit Operating Memory
 
 ## Communication Preferences
 [From Block 3: voice style, push-back, decision authority]
@@ -288,7 +328,7 @@ Each fact stored as atomic unit (inspired by Retrieval Bottleneck, arXiv:2603.02
 ### Field Definitions
 
 - **id:** Unique identifier. Format: `FACT-NNN` (auto-incremented) or `[category]-[short-slug]`
-- **fact:** Atomic statement. Single claim. No compound sentences. ~20–80 words.
+- **fact:** Atomic statement. Single claim. No compound sentences. ~20-80 words.
 - **category:** One of: `communication-preference`, `working-style`, `goal-target`, `goal-vision`, `risk`, `identity`, `decision-authority`, `trust-level`, `schedule`, `energy-pattern`
 - **timestamp:** ISO 8601, when fact was created
 - **source:** Where the fact came from: `interview-block-1`, `interview-block-3`, etc.
@@ -318,7 +358,7 @@ Each fact stored as atomic unit (inspired by Retrieval Bottleneck, arXiv:2603.02
 ```json
 {
   "id": "FACT-SCHED-001",
-  "fact": "User available 8am–2pm for focused work, 5–10pm sporadic, prefers quick burst sessions",
+  "fact": "User available 8am-2pm for focused work, 5-10pm sporadic, prefers quick burst sessions",
   "category": "schedule",
   "timestamp": "2026-03-17T00:00:00Z",
   "source": "interview-block-4-schedule",
@@ -389,7 +429,7 @@ Pseudocode for skill to generate files:
 All generation rules informed by:
 
 - **Semantic XPath (arXiv:2603.01160):** Hierarchical MEMORY.md structure (categories over flat bullets) improves retrieval by 176.7%, reduces tokens by 9.1%.
-- **Retrieval Bottleneck (arXiv:2603.02473):** Atomic facts (items.json) beat expensive summarization. 20-point accuracy swing from retrieval method vs 3–8pt from write strategy.
-- **MemPO (arXiv:2603.00680):** Self-managed memory (agent autonomously prunes/prioritizes via accessCount and status). Reduces token cost 67–73%.
+- **Retrieval Bottleneck (arXiv:2603.02473):** Atomic facts (items.json) beat expensive summarization. 20-point accuracy swing from retrieval method vs 3-8pt from write strategy.
+- **MemPO (arXiv:2603.00680):** Self-managed memory (agent autonomously prunes/prioritizes via accessCount and status). Reduces token cost 67-73%.
 
 See `research-notes.md` for full citations.

@@ -1,11 +1,17 @@
 {
   "owner": "pandeypunit",
   "slug": "iagents-blog-publish",
-  "displayName": "Write blog on iAgents blogs",
+  "displayName": "Blog for Agents for Knowledge Sharing",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774970317684,
-    "commit": "https://github.com/openclaw/skills/commit/1d1d96b024d3c73992555af9df21880938deacc8"
+    "version": "1.0.3",
+    "publishedAt": 1775489347755,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774970317684,
+      "commit": "https://github.com/openclaw/skills/commit/1d1d96b024d3c73992555af9df21880938deacc8"
+    }
+  ]
 }

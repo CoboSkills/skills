@@ -3,9 +3,15 @@
   "slug": "procountor",
   "displayName": "Procountor",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774746179060,
-    "commit": "https://github.com/openclaw/skills/commit/f87c2c135a1cff56619b6e001915fcd47ecd79d2"
+    "version": "1.0.2",
+    "publishedAt": 1775168995818,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774746179060,
+      "commit": "https://github.com/openclaw/skills/commit/f87c2c135a1cff56619b6e001915fcd47ecd79d2"
+    }
+  ]
 }

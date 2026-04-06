@@ -19,6 +19,7 @@ DEFAULT_MANIFEST_NAME = "memory-governor-host.toml"
 MANIFEST_TARGETS = {
     "long_term_memory",
     "daily_memory",
+    "learning_candidates",
     "reusable_lessons",
     "proactive_state",
     "working_buffer",
@@ -27,6 +28,7 @@ MANIFEST_TARGETS = {
     "tool_rules",
 }
 STRUCTURED_TARGETS = {
+    "learning_candidates",
     "reusable_lessons",
     "proactive_state",
     "working_buffer",
@@ -80,6 +82,80 @@ def validate_manifest_paths_array(entry: dict, field_name: str) -> tuple[list[st
     if not isinstance(value, list) or not value or not all(isinstance(p, str) for p in value):
         return None, f"{field_name} must be a non-empty string array if present"
     return value, None
+
+
+def check_optional_path_list(
+    root: pathlib.Path,
+    entry: dict,
+    field_name: str,
+    label: str,
+) -> list[CheckResult]:
+    results: list[CheckResult] = []
+    values, error = validate_manifest_paths_array(entry, field_name)
+    if error is not None:
+        return [CheckResult("ERROR", f"integration: {error}")]
+    if values is None:
+        return results
+
+    for raw_path in values:
+        resolved = resolve_manifest_path(root, raw_path)
+        if resolved.exists():
+            results.append(CheckResult("OK", f"{label}: {rel(resolved, root)}"))
+        else:
+            results.append(CheckResult("ERROR", f"{label}: missing {rel(resolved, root)}"))
+    return results
+
+
+def read_text_if_exists(path: pathlib.Path) -> str | None:
+    if not path.exists() or not path.is_file():
+        return None
+    return path.read_text(encoding="utf-8")
+
+
+def check_host_entry_contract(root: pathlib.Path, path: pathlib.Path) -> CheckResult:
+    text = read_text_if_exists(path)
+    if text is None:
+        return CheckResult("ERROR", f"integration host entry: missing {rel(path, root)}")
+
+    lowered = text.lower()
+    if "memory-governor" not in lowered:
+        return CheckResult("ERROR", f"integration host entry: {rel(path, root)} does not mention memory-governor")
+
+    return CheckResult("OK", f"integration host entry: {rel(path, root)}")
+
+
+def check_writer_contract(root: pathlib.Path, path: pathlib.Path) -> CheckResult:
+    text = read_text_if_exists(path)
+    if text is None:
+        return CheckResult("ERROR", f"integration writer contract: missing {rel(path, root)}")
+
+    lowered = text.lower()
+    if "## memory contract" not in lowered:
+        return CheckResult("ERROR", f"integration writer contract: {rel(path, root)} missing '## Memory Contract'")
+    if "memory-governor" not in lowered:
+        return CheckResult("ERROR", f"integration writer contract: {rel(path, root)} does not mention memory-governor")
+
+    return CheckResult("OK", f"integration writer contract: {rel(path, root)}")
+
+
+def check_integration_paths(root: pathlib.Path, integration: dict) -> list[CheckResult]:
+    results: list[CheckResult] = []
+
+    host_entry_paths, host_entry_error = validate_manifest_paths_array(integration, "host_entry_paths")
+    if host_entry_error is not None:
+        results.append(CheckResult("ERROR", f"integration: {host_entry_error}"))
+    elif host_entry_paths is not None:
+        for raw_path in host_entry_paths:
+            results.append(check_host_entry_contract(root, resolve_manifest_path(root, raw_path)))
+
+    writer_contract_paths, writer_contract_error = validate_manifest_paths_array(integration, "writer_contract_paths")
+    if writer_contract_error is not None:
+        results.append(CheckResult("ERROR", f"integration: {writer_contract_error}"))
+    elif writer_contract_paths is not None:
+        for raw_path in writer_contract_paths:
+            results.append(check_writer_contract(root, resolve_manifest_path(root, raw_path)))
+
+    return results
 
 
 def find_manifest(root: pathlib.Path) -> pathlib.Path | None:
@@ -143,6 +219,13 @@ def check_manifest(root: pathlib.Path, manifest_path: pathlib.Path) -> list[Chec
         results.append(CheckResult("ERROR", "manifest: profile must be a string if present"))
     elif isinstance(profile, str):
         results.append(CheckResult("OK", f"declared profile: {profile}"))
+
+    integration = manifest.get("integration")
+    if integration is not None:
+        if not isinstance(integration, dict):
+            results.append(CheckResult("ERROR", "manifest: [integration] must be a table if present"))
+        else:
+            results.extend(check_integration_paths(root, integration))
 
     targets = manifest.get("targets")
     if not isinstance(targets, dict):

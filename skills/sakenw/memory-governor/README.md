@@ -1,69 +1,41 @@
 # Memory Governor
 
-Memory governance core for AI agents.  
-AI agent 的记忆治理内核。
+## English
 
-`memory-governor` helps you decide:
+`memory-governor` is a memory governance kernel for AI agents. It does not try to be a second-brain app, a sync bus, or a universal knowledge manager. Its job is narrower and more useful: define what is worth remembering, classify it before it touches storage, route it into stable target classes, decide when something should stay short-term, when it should be promoted, and when it should be excluded entirely. It is built for hosts that already have multiple memory layers, multiple skills that write memory, or optional adapters such as `self-improving` and `proactivity`, and need one shared contract before the system drifts into path-based chaos.
 
-- what is worth remembering
-- where it should go
-- when it should be promoted
-- what should be excluded
+In practice, `memory-governor` gives you a full governance stack for agent memory. It defines standard target classes such as `long_term_memory`, `daily_memory`, `learning_candidates`, `reusable_lessons`, `proactive_state`, `working_buffer`, `project_facts`, `system_rules`, and `tool_rules`. It separates `memory type -> target class -> adapter / fallback` so the core contract is not tied to any one plugin or directory layout. It adds a staged correction pipeline so explicit corrections and emerging lessons can land in `learning_candidates` before they harden into `reusable_lessons`. It includes candidate review guidance and a lightweight reviewer for keep / promote / discard decisions, stronger lifecycle guidance for candidate entries, schema validation for structured targets, a host manifest contract via `memory-governor-host.toml`, a host checker, a generic-host bootstrap flow, and OpenClaw-compatible reference behavior without making OpenClaw the only world that matters. The intended readiness model is explicit: `Installed` means the governance core is present, `Integrated` means the host has actually wired itself to the contract, and `Validated` means the checker has confirmed the current wiring.
 
-It is designed for agents that already have multiple memory layers, multiple skills that write memory, or optional memory-related adapters.
+## 中文
 
-It is **not** a second-brain platform, sync bus, or universal knowledge manager.  
-It is a governance layer.
+`memory-governor` 是一个给 AI agent 用的记忆治理内核。它不是 second brain，不是同步总线，也不是一个什么都想管的知识管理平台。它解决的是更底层、也更关键的问题：什么值得记、先归到哪一类、该由哪个 adapter 落地、哪些内容应该停留在短期层、哪些内容值得升格、哪些内容根本不该进入记忆。它特别适合已经开始出现多层记忆、多种写记忆 skill、或者可选 adapter 越来越多的宿主系统，因为这时候最容易从“先能用”滑向“边界越来越乱”。
 
-## 中文摘要
+具体来说，`memory-governor` 现在已经提供了一整套相对完整的记忆治理能力。它定义了标准 target classes，包括 `long_term_memory`、`daily_memory`、`learning_candidates`、`reusable_lessons`、`proactive_state`、`working_buffer`、`project_facts`、`system_rules`、`tool_rules`。它把 `memory type -> target class -> adapter / fallback` 这层关系拆开，让治理内核不依赖某个特定插件或目录结构。它引入了候选层机制，让明确纠错和新出现但证据不足的经验先进入 `learning_candidates`，而不是立刻硬化进长期规则；同时又补上了 candidate review 流程、review helper、条目生命周期建议、结构化 schema 校验、宿主 manifest、host checker、generic host bootstrap，以及和 OpenClaw 相容但不被 OpenClaw 绑死的参考接入方式。推荐用三层 readiness 来理解它：`Installed` 表示内核已经可用，`Integrated` 表示宿主真的把它接上了，`Validated` 表示接线状态已经被工具确认。
 
-`memory-governor` 给 agent 一套共享的记忆 contract。
+## 0.2.8 Features
 
-它帮助宿主判断：
+`0.2.8` 是这个项目第一次把“候选层记忆治理”真正做成可用 contract 的版本。当前版本的能力可以概括为：
 
-- 什么应该记
-- 该先路由到哪个 target class
-- 该由哪个 adapter 落地
-- 哪些短期信息值得升格
-- 什么根本不该进入记忆
+- 标准化 memory target classes，不再让每个 skill 自己发明一套全局记忆分类
+- 明确的 staged correction flow：`correction -> learning_candidates -> reusable_lessons`
+- `learning_candidates` 的 candidate review workflow，包括 `keep / promote / discard`
+- candidate 条目的推荐结构，包括 `summary`、`why_it_matters`、`promotion_signals`、`lifecycle_stage`、`evidence_count`、`next_review`
+- `review-learning-candidates.py`，用于检查候选层是否 stale、是否结构化、是否已经准备升格
+- `validate-memory-frontmatter.py`，用于校验结构化 memory 文件的 frontmatter 和基本 schema
+- `check-memory-host.py`，用于检查 host manifest、target wiring、fallback、integration 声明，以及 host entry / writer contract 的最低语义接线痕迹
+- `memory-governor-host.toml` manifest contract，用来声明 target class、adapter mode、fallback path、structured target 和 integration path
+- generic host example 和 bootstrap 脚本，方便从非 OpenClaw 宿主快速起一个最小可用骨架
+- OpenClaw profile checking 和 OpenClaw-style simulated tests，用来更接近真实使用场景地验证 fallback、本地/外部 adapter、半安装状态和 schema failure
 
-它特别适合：
+Current version:
 
-- 已经有多层记忆的宿主
-- 有多个会写记忆的 skill
-- optional adapter 越来越多、边界开始变乱的系统
-
-它 **不会** 在安装时静默重写宿主。  
-推荐用这三种状态来理解它：
-
-- `Installed`：治理内核已可用
-- `Integrated`：宿主已显式接线
-- `Validated`：checker 已确认接线状态
-
-## English Summary
-
-`memory-governor` gives agents a shared memory contract.
-
-It helps a host decide:
-
-- what should be remembered
-- which target class it belongs to
-- which adapter should store it
-- when short-term information should be promoted
-- what should never enter memory at all
-
-It works best for hosts that already have multiple memory layers, optional memory-related skills, or growing routing ambiguity.
-
-It does **not** silently rewrite the host on install.  
-The intended model is:
-
-- `Installed`: the governance core is available
-- `Integrated`: the host is explicitly wired to it
-- `Validated`: the host checker confirms the wiring
+- `0.2.8`
 
 ## At a Glance
 
 - Standard target classes for agent memory
+- Low-commitment `learning_candidates` layer for corrections and emerging lessons
+- Candidate review helper for keep / promote / discard passes
 - `memory type -> target class -> adapter / fallback`
 - Stateful target rules for current-task and recovery memory
 - Explicit `Installed / Integrated / Validated` readiness model
@@ -102,9 +74,38 @@ The intended model is:
 
 当前仓库里的 OpenClaw 集成是 reference profile，不是唯一默认宿主。
 
-Current version:
+## Package Layout
 
-- `0.2.4-beta`
+This repository is intentionally split into runtime, examples, tests, and maintainer material.
+
+Runtime package:
+
+- `SKILL.md`
+- `README.md`
+- `VERSION`
+- `references/`
+- `assets/`
+- `scripts/`
+
+Integration example:
+
+- `examples/generic-host/`
+
+Publish-only bundle:
+
+- `publish/clawhub/`
+  generated from runtime files only, for ClawHub publishing
+
+Maintainer-only material:
+
+- `tests/`
+- `dev/plans/`
+- `dev/eval-lab/`
+- `releases/`
+
+Normal installation is about the runtime package.
+Tests and maintainer notes are useful for development, but they are not required for basic use.
+ClawHub publishing should use `publish/clawhub/`, not the repository root.
 
 ## It Is Not
 
@@ -126,6 +127,50 @@ In short, it is not:
 
 它只负责治理。
 
+## Who It Is For
+
+`memory-governor` is most useful when your host is already getting complicated.
+
+Good fit:
+
+- multiple memory layers already exist
+- multiple skills write memory or memory-like state
+- optional adapters are starting to create routing ambiguity
+- you want one shared contract before the system gets messier
+
+Probably overkill:
+
+- a small single-agent setup
+- very little memory beyond one or two files
+- no reusable lessons layer
+- no need for host-level integration or validation
+
+In short:
+
+- this is a governance kernel for complex agent systems
+- it is not a “use it once and get instant productivity” skill
+
+## Why It Feels Different
+
+Some skills are execution tools.  
+This one is infrastructure.
+
+It does not try to:
+
+- complete a task directly
+- auto-organize your whole knowledge base
+- silently take over your host on install
+
+Instead, it gives you:
+
+- shared memory vocabulary
+- shared routing rules
+- shared promotion rules
+- shared fallback rules
+
+That means its value compounds when the host gets more complex.
+It is usually less impressive in a tiny or short-lived setup, and more valuable in a multi-skill system that is starting to drift.
+
 ## What It Gives You
 
 安装后，你会得到：
@@ -135,6 +180,7 @@ In short, it is not:
 - adapter / fallback 模型
 - stateful target 规则
 - 轻量 schema conventions + validator
+- 候选层 review helper
 - retention / read-order 规则
 - 轻量 bootstrap 入口
 - 路由规则
@@ -172,6 +218,7 @@ In short, it is not:
 
 - `long_term_memory`
 - `daily_memory`
+- `learning_candidates`
 - `reusable_lessons`
 - `proactive_state`
 - `working_buffer`
@@ -186,6 +233,8 @@ In short, it is not:
 比如：
 
 - `daily_memory` -> `memory/YYYY-MM-DD.md`
+- `learning_candidates` -> `self-improving` if resolved
+- `learning_candidates` -> packaged fallback template if not
 - `proactive_state` -> `proactivity` if resolved
 - `proactive_state` -> packaged fallback template if not
 - `reusable_lessons` -> `self-improving` if resolved
@@ -225,6 +274,7 @@ In short, it is not:
 这个 demo skill 只做三件事：
 
 - 把当天关键进展路由到 `daily_memory`
+- 把明确纠错先路由到 `learning_candidates`
 - 把可复用经验路由到 `reusable_lessons`
 - 把临时恢复线索路由到 `working_buffer`
 
@@ -307,6 +357,12 @@ Script compatibility:
 - `references/host-checker.md`
 - `references/openclaw-adoption-prompts.md`
 
+If you are maintaining the package itself, also see:
+
+- `tests/`
+- `dev/README.md`
+- `releases/README.md`
+
 ## First Reading Path
 
 English quick reading path:
@@ -314,16 +370,18 @@ English quick reading path:
 1. `SKILL.md`
 2. `references/memory-routing.md`
 3. `references/promotion-rules.md`
-4. `references/exclusions.md`
-5. `references/adapters.md`
+4. `references/candidate-review.md`
+5. `references/exclusions.md`
+6. `references/adapters.md`
 
 如果你是第一次打开这个 skill，推荐按这个顺序读：
 
 1. `SKILL.md`
 2. `references/memory-routing.md`
 3. `references/promotion-rules.md`
-4. `references/exclusions.md`
-5. `references/adapters.md`
+4. `references/candidate-review.md`
+5. `references/exclusions.md`
+6. `references/adapters.md`
 
 然后再按需看这些：
 
@@ -366,7 +424,7 @@ English quick reading path:
 
 - `VERSION`
 - `CHANGELOG.md`
-- `RELEASE-NOTES-0.2.0-beta.md`
+- `releases/`
 - `SKILL.md`
 - `examples/generic-host/README.md`
 - `references/bootstrap.md`
@@ -388,6 +446,22 @@ English quick reading path:
 - `references/skill-integration.md`
 - `references/integration-checklist.md`
 - `references/host-profiles.md`
+
+## Testing
+
+For normal installation, you do not need the test suite.
+
+For package maintenance, the test entry point is:
+
+```sh
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+The tests are maintainer-facing and currently cover:
+
+- frontmatter validation
+- host checker behavior
+- bootstrap -> checker flow
 
 ## Current Status
 

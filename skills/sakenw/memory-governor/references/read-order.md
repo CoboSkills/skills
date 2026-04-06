@@ -20,6 +20,7 @@
 6. current `proactive_state` (read the current-task slice first if the adapter is split)
 7. today's `daily_memory` only if recent context matters
 8. `working_buffer` only when recovery risk is high
+9. do not read `learning_candidates` during normal startup unless you are explicitly reviewing candidate promotions
 
 ## Why This Order
 
@@ -28,6 +29,7 @@
 - 再读可复用经验，避免重复踩同样的坑
 - 再读项目局部事实，避免把全局规则误用于局部例外
 - 最后读当前状态和临时 breadcrumb
+- 候选层默认不参与启动时主上下文，避免把未证明的规则提前当真
 
 ## Recovery Mode
 

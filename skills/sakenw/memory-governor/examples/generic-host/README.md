@@ -21,12 +21,17 @@
   宿主级“记忆治理声明”
 - `memory-governor-host.toml`
   给 checker 读取的 machine-readable adapter manifest
+  现在也声明了 host entry 和 writer contract 路径
 - `adapter-map.md`
   这个宿主当前采用的 target class 到路径映射
 - `memory/long-term.md`
   `long_term_memory` 的一个宿主级落点示例
 - `skills/example-writer/SKILL.md`
   一个接入了 `memory-governor` 的普通 skill 示例
+- `memory/learning-candidates.md`
+  本地 `learning_candidates` fallback 示例
+- `python3 ../scripts/review-learning-candidates.py memory/learning-candidates.md`
+  对候选层做轻量 review 检查
 - `memory/proactive-state.md`
   本地 `proactive_state` fallback 示例
 - `memory/reusable-lessons.md`
@@ -53,5 +58,6 @@
 3. `adapter-map.md`
 4. `memory/proactive-state.md`
 5. `skills/example-writer/SKILL.md`
-6. `memory/reusable-lessons.md`
-7. `memory/working-buffer.md`
+6. `memory/learning-candidates.md`
+7. `memory/reusable-lessons.md`
+8. `memory/working-buffer.md`

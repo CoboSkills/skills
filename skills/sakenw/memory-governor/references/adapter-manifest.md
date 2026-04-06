@@ -37,8 +37,34 @@ structured = true
   当前 manifest 版本。推荐先用 `"0.1"`。
 - `profile`
   可选。宿主自我声明的 profile，比如 `"generic"`、`"openclaw"`、`"custom"`。
+- `[integration]`
+  可选。把宿主入口和 memory-writing skill contract 也声明进去，方便 checker 验证“真的接线了”。
 - `[targets.*]`
   每个 target class 一张表。
+
+## Optional Integration Table
+
+如果你想让 checker 不只验证 adapter，还验证宿主接线，可加：
+
+```toml
+[integration]
+host_entry_paths = ["HOST.md"]
+writer_contract_paths = ["skills/example-writer/SKILL.md"]
+```
+
+字段含义：
+
+- `host_entry_paths`
+  宿主级入口文件，比如 `HOST.md`、`AGENTS.md`
+- `writer_contract_paths`
+  会写记忆的 skill contract 文件
+
+checker 当前行为：
+
+- host entry 必须存在并明确提到 `memory-governor` -> `OK`
+- writer contract 必须存在，并同时包含 `## Memory Contract` 和 `memory-governor` -> `OK`
+- 声明了但文件不存在，或只是占位内容 -> `ERROR`
+- 不声明 -> 不报错，但验证范围只覆盖 adapter 层
 
 ## Supported Target Classes
 
@@ -46,6 +72,7 @@ structured = true
 
 - `long_term_memory`
 - `daily_memory`
+- `learning_candidates`
 - `reusable_lessons`
 - `proactive_state`
 - `working_buffer`
@@ -131,6 +158,7 @@ structured = false
 
 默认建议：
 
+- `learning_candidates` -> `true`
 - `reusable_lessons` -> `true`
 - `proactive_state` -> `true`
 - `working_buffer` -> `true`
@@ -149,6 +177,10 @@ structured = false
 version = "0.1"
 profile = "generic"
 
+[integration]
+host_entry_paths = ["HOST.md"]
+writer_contract_paths = ["skills/example-writer/SKILL.md"]
+
 [targets.long_term_memory]
 mode = "single"
 paths = ["memory/long-term.md"]
@@ -158,6 +190,11 @@ structured = false
 mode = "pattern"
 paths = ["notes/daily/YYYY-MM-DD.md"]
 structured = false
+
+[targets.learning_candidates]
+mode = "single"
+paths = ["memory/learning-candidates.md"]
+structured = true
 
 [targets.reusable_lessons]
 mode = "single"

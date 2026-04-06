@@ -17,13 +17,29 @@
 - 会影响未来判断或协作方式
 - 已经从事件变成稳定模式
 
-### correction → self-improving/memory
+### correction → learning_candidates
 
-当一条纠错已经能抽象为可复用原则时，升级为通用执行经验。
+默认先把明确纠错写进 `learning_candidates`。
+
+原因：
+
+- 用户纠正的是这一次的错，不一定已经证明是长期规则
+- 单次纠错太容易过拟合到当前任务
+- 候选层让宿主先收集证据，再决定是否值得硬化
+
+### learning_candidates → reusable_lessons
+
+满足任意两个条件时，才考虑升到 `reusable_lessons`：
+
+- 同类问题在多个任务、日期或上下文中重复出现
+- 已经能被改写成脱离当前案例的通用原则
+- 用户明确把它表述为以后都应遵守的规则
+- 它会稳定影响未来判断、执行或协作质量
 
 例子：
 
 - 纠错：别写客服腔
+- 候选：这次输出太像客服模板，需要更直接
 - 规则：默认直接、简洁、有判断
 
 ### self-improving/* → AGENTS
@@ -43,11 +59,22 @@
 这两层默认不能直接升格。  
 必须先提炼成稳定事实或复用规则，再进入长期层。
 
+### learning_candidates → system_rules / tool_rules / AGENTS / TOOLS / SOUL
+
+候选层默认不能直接升到系统级文件。
+
+正确顺序是：
+
+1. 先升到 `reusable_lessons`
+2. 再判断它是否已经改变全局启动、工具、表达或协作规则
+
 capture 阶段遇到歧义时，先看 [routing-precedence.md](routing-precedence.md)。
 
 ## 禁止升级的情况
 
 - 原始长日志直接升到长期层
 - 未验证的猜测升到长期层
+- 单次纠错直接升到 `reusable_lessons`
+- 候选内容直接升到 `AGENTS.md` / `TOOLS.md` / `SOUL.md`
 - 临时恢复线索直接升到 `MEMORY.md`
 - 项目局部事实直接升到全局规则

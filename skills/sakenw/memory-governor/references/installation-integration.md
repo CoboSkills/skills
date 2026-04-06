@@ -40,6 +40,7 @@
 - 主入口已承认 `memory-governor`
 - 相关 skill 已补 `Memory Contract`
 - 宿主已声明 `memory-governor-host.toml`
+- 如果希望 machine-checkable，还应在 manifest 里声明 host entry 和 writer contract 路径
 
 这个状态下：
 
@@ -235,6 +236,7 @@ generic package 自带 fallback 模板：
 5. 在宿主根目录加 `memory-governor-host.toml`
 6. 检查 optional skill 是否需要 adapter 说明
 7. 选择并记录当前 host profile
+8. 如果想让 checker 也验证接线面，在 manifest 里补 `[integration]`
 
 如果你想先看一个不依赖 OpenClaw 的完整样例，可直接参考：
 

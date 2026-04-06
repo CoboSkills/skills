@@ -69,6 +69,7 @@ structured = false
 - 宿主是否真的接上了
 - 哪些 target 仍然只是 legacy adapter
 - 哪些 fallback 已经能被工具稳定校验
+- 宿主入口和 writer skill contract 是否已声明并存在
 
 ## Phase 4: Tighten
 

@@ -26,6 +26,17 @@
 
 只有在信息已经明显是长期稳定事实或长期稳定偏好时，才直接进入 `long_term_memory`。
 
+### `learning_candidates` vs `reusable_lessons`
+
+默认先写 `learning_candidates`。
+
+只有当经验已经明显跨任务成立，或者用户已经明确把它升格为长期规则时，才直接进入 `reusable_lessons`。
+
+一句话：
+
+- 单次纠错，先候选
+- 重复验证后，再复用
+
 ### `project_facts` vs `reusable_lessons`
 
 默认先写 `project_facts`。

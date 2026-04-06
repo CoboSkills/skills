@@ -40,6 +40,7 @@
 - 默认映射到哪些 target classes
 - 当前环境里优先使用哪个 adapter
 - 哪些信息只应该提炼后再写
+- 哪些纠错默认应先进入候选层
 
 每个 skill 不应自行定义：
 
@@ -56,7 +57,8 @@
 3. 当前环境优先使用哪些 adapter
 4. 哪些内容绝不能直接写入长期层
 5. stateful target 用 append、replace 还是 merge
-6. 它依赖 `memory-governor` 的哪些规则
+6. 哪些纠错或新模式先进入 `learning_candidates`
+7. 它依赖 `memory-governor` 的哪些规则
 
 ## 建议模板
 
@@ -70,10 +72,21 @@ This skill follows `memory-governor`.
 Typical outputs:
 - project facts -> `project_facts`
 - temporary recovery hints -> `working_buffer`
+- explicit corrections -> `learning_candidates`
 - reusable workflow lessons -> `reusable_lessons`
 
 This skill does not define its own global memory rules.
 ```
+
+## Correction Staging Rule
+
+默认规则：
+
+- 单次明确纠错 -> `learning_candidates`
+- 已经被证明跨任务可复用的经验 -> `reusable_lessons`
+- 会改变全局启动、工具、表达方式的规则 -> 仍然要先经过 promotion，再决定是否升到系统级文件
+
+不要让 skill 自己跳过候选层，除非宿主已经有更强的人工审核或明确的长期规则判定。
 
 ## 典型对接关系
 
@@ -106,8 +119,21 @@ adapter 的职责：
 - 把 skill 的输出映射到标准 memory types
 - 把 memory types 映射到 target classes
 - 调用统一路由规则
+- 对 correction / emerging lesson 默认先走候选层
 - 标记哪些内容需要提炼，哪些内容只能短存
 - 对 stateful target 应遵守 canonical write semantics
+
+## Sampling Boundary
+
+自动采样或自动纠错抽取不是当前 phase 的强制能力。
+
+在 `0.2.8-lite` 里：
+
+- skill 可以声明自己会产出 correction candidates
+- 宿主可以手动或半自动 review `learning_candidates`
+- 但 `memory-governor` 不要求所有宿主立刻接入自动 sampling
+
+先证明候选层有用，再让工具链依赖它。
 
 ## 禁止事项
 

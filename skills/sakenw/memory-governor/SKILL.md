@@ -1,6 +1,6 @@
 ---
 name: memory-governor
-description: Memory governance core for AI agents. Defines what is worth remembering, where it should go, when it should be promoted, and what should be excluded, while providing a shared memory contract for other skills. 记忆治理内核。统一定义什么值得记、该记到哪、何时升级、什么不要记，并为其他 skill 提供统一的 memory contract。
+description: Memory governance core for AI agents. Defines what is worth remembering, where it should go, when it should be promoted, and what should be excluded, while providing a shared memory contract for other skills.
 ---
 
 # Memory Governor
@@ -9,23 +9,9 @@ Reusable memory-governance core for different host environments.
 
 The OpenClaw integration in this repository is only a reference host profile, not the only host model.
 
-It is not a second-brain system, sync bus, or knowledge manager.  
-It governs what should be remembered, where it should go, when it should be promoted, and what should be excluded.
+It is not a second-brain system, sync bus, or knowledge manager. It governs what should be remembered, where it should go, when it should be promoted, and what should be excluded.
 
-这是一个可复用于不同宿主环境的记忆治理内核。
-
-当前仓库中的 OpenClaw 集成只是它的一个 reference host profile，不是唯一宿主。
-
-它不是 second brain，不是外脑总线，也不是 Obsidian / Notion / OmniFocus 同步器。
-
-它只负责四件事：
-
-1. 定义什么值得记
-2. 定义该记到哪
-3. 定义什么时候升级 / 提炼
-4. 定义什么不要记
-
-如果没有读取顺序、状态更新语义和生命周期规则，记忆治理是不完整的。
+It is a governance kernel, not an execution-first productivity skill. Its value is highest when a host already has multiple memory layers, multiple memory-writing skills, or adapter drift.
 
 ## When to Use
 
@@ -33,16 +19,8 @@ Use this skill when:
 
 - you need to decide whether something should enter memory
 - you need to choose the right memory layer or target class
-- you need to promote daily / correction / working state into durable rules
+- you need to promote daily, correction, or working state into durable rules
 - multiple skills are starting to define memory differently and need governance
-
-在这些场景使用：
-
-- 需要判断一条信息是否应该进入记忆系统
-- 需要决定信息应该写入哪一层
-- 需要把 daily / correction / working state 升级为长期规则
-- 需要为其他 skill 提供统一的记忆规则
-- 发现多个 skill 对“记忆”有不同写法或不同口径，需要治理
 
 ## First Reading Path
 
@@ -54,53 +32,47 @@ If this is your first time opening `memory-governor`, start here:
 4. `references/exclusions.md`
 5. `references/adapters.md`
 
-如果你是第一次接触 `memory-governor`，先读这些：
-
-1. `SKILL.md`
-2. `references/memory-routing.md`
-3. `references/promotion-rules.md`
-4. `references/exclusions.md`
-5. `references/adapters.md`
-
-剩下的 reference 文件按需打开，不必第一次就全读完。
+The remaining reference files are optional on first read.
 
 ## What Counts as Memory
 
-只有会改善未来判断、恢复、执行质量或协作一致性的信息，才算记忆。
+Only information that improves future judgment, recovery, execution quality, or coordination consistency counts as memory.
 
-典型包括：
+Typical examples:
 
-- 长期稳定偏好
-- 长期稳定事实
-- 当天关键事件
-- 明确纠错
-- 可复用经验
-- 当前推进态
-- 临时恢复线索
+- stable long-term preferences
+- stable long-term facts
+- key same-day events
+- explicit corrections
+- unproven but promising candidate lessons
+- reusable lessons
+- current progress state
+- short-term recovery hints
 
-不属于记忆的内容，见 [references/exclusions.md](references/exclusions.md)。
+For content that should stay out of memory, see [references/exclusions.md](references/exclusions.md).
 
 ## Core Rule
 
-统一的是 **memory contract**，不是统一所有 skill 的实现。
+The thing being standardized is the **memory contract**, not every skill implementation.
 
-这意味着：
+That means:
 
-- 所有 skill 应该服从同一套记忆分类、路由、升级、排除规则
-- 但每个 skill 可以保留自己的内部逻辑、下游工具、交互方式、目录习惯
+- all skills should follow the same classification, routing, promotion, and exclusion rules
+- each skill may keep its own internal logic, downstream tools, interaction style, and directory habits
 
-一句话：
+In short:
 
-**统一内核，不统一一切。**
+**standardize the core, not everything else**
 
 ## Target Classes
 
-内核优先定义的是抽象目标类型，不是某个可选 skill 的具体路径。
+The kernel defines abstract target classes before it defines any optional skill path.
 
-推荐使用这些标准 target classes：
+Recommended standard target classes:
 
 - `long_term_memory`
 - `daily_memory`
+- `learning_candidates`
 - `reusable_lessons`
 - `proactive_state`
 - `working_buffer`
@@ -108,97 +80,103 @@ If this is your first time opening `memory-governor`, start here:
 - `system_rules`
 - `tool_rules`
 
-具体文件路径只是 adapter 的实现细节。
+Concrete file paths are adapter details, not the contract itself.
 
-其中：
+Notes:
 
-- `proactive_state` 和 `working_buffer` 是 stateful targets
-- 它们不应被写成无穷 append 日志
-- 默认需要 freshness、replace / merge、retention 规则
+- `learning_candidates` is a low-commitment staging layer for corrections and emerging lessons
+- it exists to prevent single observations from hardening too early
+- `proactive_state` and `working_buffer` are stateful targets
+- they should not become infinite append-only logs
+- they need freshness, replace or merge, and retention rules by default
 
 ## Routing Order
 
-处理任何一条候选信息时，按这个顺序判断：
+When evaluating a candidate memory, reason in this order:
 
-1. 这条信息值不值得记？
-2. 它属于哪一类记忆？
-3. 这类记忆默认属于哪个 target class？
-4. 当前环境里，这个 target class 应该由哪个 adapter 落地？
-5. 它现在是短存，还是已经值得升格？
-6. 它是否命中排除条件？
+1. Is it worth remembering at all?
+2. What memory type is it?
+3. Which target class does that type belong to?
+4. Which adapter in the current host should store that target class?
+5. Is it still short-term, or is it ready for promotion?
+6. Does it match any exclusion rule?
 
-详细路由见 [references/memory-routing.md](references/memory-routing.md)。
+See [references/memory-routing.md](references/memory-routing.md) for the routing table.
 
-歧义项优先级见 [references/routing-precedence.md](references/routing-precedence.md)。
+See [references/routing-precedence.md](references/routing-precedence.md) for ambiguity resolution.
 
 ## Promotion Rules
 
-所有升级都应先提炼，再升格。
+All promotion should extract and refine before it hardens.
 
-禁止：
+Never:
 
-- 把原始日志直接写进长期层
-- 把 working buffer 直接当长期记忆
-- 把系统级治理文件当临时记录入口
+- write raw logs directly into long-term memory
+- treat a working buffer as long-term memory
+- use system-governance files as temporary capture inboxes
 
-详细规则见 [references/promotion-rules.md](references/promotion-rules.md)。
+See [references/promotion-rules.md](references/promotion-rules.md) for details.
 
-状态型 target 的更新语义见 [references/stateful-targets.md](references/stateful-targets.md)。
+See [references/correction-pipeline.md](references/correction-pipeline.md) for the correction-to-candidate-to-rule flow.
 
-如果宿主需要更强的结构化约束，见 [references/schema-conventions.md](references/schema-conventions.md)。
+See [references/candidate-review.md](references/candidate-review.md) for keep/promote/discard review workflow.
 
-生命周期规则见 [references/retention-rules.md](references/retention-rules.md)。
+See [references/stateful-targets.md](references/stateful-targets.md) for update semantics on stateful targets.
 
-恢复时的读取顺序见 [references/read-order.md](references/read-order.md)。
+See [references/schema-conventions.md](references/schema-conventions.md) if the host wants stronger structured constraints.
+
+See [references/retention-rules.md](references/retention-rules.md) for lifecycle rules.
+
+See [references/read-order.md](references/read-order.md) for recovery-time read order.
 
 ## Skill Integration
 
-其他 skill 接入本内核时，遵循以下原则：
+When another skill integrates with this kernel:
 
-- skill 可以声明自己会产出哪些信息类型
-- skill 可以声明默认把这些类型写到哪里
-- skill 不应自行发明新的全局记忆层定义
-- skill 不应绕过排除规则
-- skill 不应把下游沉淀规则误写成上游记忆规则
+- the skill may declare which information types it emits
+- the skill may declare where those types usually land
+- the skill should not invent a new global memory-layer definition
+- the skill should not bypass exclusion rules
+- the skill should not confuse downstream storage rules with upstream memory rules
 
-接入方式见 [references/skill-integration.md](references/skill-integration.md)。
+See [references/skill-integration.md](references/skill-integration.md).
 
 ## Adapters
 
-`memory-governor` 可以提供默认 adapter，但不应把它们当成唯一真理。
+`memory-governor` may provide default adapters, but those adapters are not the only truth.
 
-例如：
+Examples:
 
 - `long_term_memory` -> `MEMORY.md`
 - `daily_memory` -> `memory/YYYY-MM-DD.md`
-- `reusable_lessons` -> 如果装了 `self-improving`，则映射到 `~/self-improving/...`
-- `reusable_lessons` -> 如果没装 `self-improving`，则映射到本地 fallback 文件
+- `reusable_lessons` -> `~/self-improving/...` if `self-improving` is installed
+- `reusable_lessons` -> a local fallback file if `self-improving` is absent
 
-默认 adapter 说明见 [references/adapters.md](references/adapters.md)。
+See [references/adapters.md](references/adapters.md) for default adapter behavior.
 
-接入检查见 [references/integration-checklist.md](references/integration-checklist.md)。
+See [references/integration-checklist.md](references/integration-checklist.md) for integration checks.
 
-分发安装与包外集成说明见 [references/installation-integration.md](references/installation-integration.md)。
+See [references/installation-integration.md](references/installation-integration.md) for installation and host integration guidance.
 
-宿主差异说明见 [references/host-profiles.md](references/host-profiles.md)。
+See [references/host-profiles.md](references/host-profiles.md) for host differences.
 
 ## Never Do
 
-- 不把本 skill 扩展成“大一统自用记忆系统”
-- 不把 Obsidian / Notion / OmniFocus 的落地逻辑写进治理内核
-- 不强迫所有 skill 共享同一种实现方式
-- 不发明新的主干记忆目录，除非治理层已明确批准
-- 不把 secrets、原始长日志、短期噪声写入记忆系统
+- do not turn this skill into a monolithic personal memory system
+- do not embed Obsidian, Notion, or OmniFocus implementation details into the governance kernel
+- do not force every skill into the same implementation style
+- do not invent a new primary memory directory unless the governance layer explicitly approves it
+- do not write secrets, raw long logs, or short-lived noise into memory
 
 ## Phase Boundary
 
-当前只做治理内核。
+The current phase is governance core only.
 
-这意味着：
+That means:
 
-- 可以定义 contract
-- 可以定义 references
-- 可以约束其他 skill 的写法
-- 不能在这一阶段偷偷长成统一执行总线
+- it may define contracts
+- it may define references
+- it may constrain how other skills write memory
+- it may not quietly grow into a unified execution bus at this stage
 
-如果未来要做整合层或完整自用记忆系统，应在治理层稳定后单独立项。
+If the project later wants an orchestration layer or a full personal memory system, that should be scoped separately after the governance layer is stable.

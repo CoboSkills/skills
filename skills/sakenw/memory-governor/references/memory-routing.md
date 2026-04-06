@@ -20,7 +20,8 @@
 | 长期稳定事实 | 长期身份、环境、架构事实 | `long_term_memory` | `MEMORY.md` |
 | 当天关键事件 | 与当天决策或后续恢复相关 | `daily_memory` | `memory/YYYY-MM-DD.md` |
 | 阶段性进展 | 本周内还会回看 | `daily_memory` | `memory/YYYY-MM-DD.md` |
-| 明确纠错 | 用户明确纠正、明确否定 | `reusable_lessons` | `~/self-improving/corrections.md` 或 fallback |
+| 明确纠错 | 用户明确纠正、明确否定，但还未证明跨任务复用 | `learning_candidates` | `~/self-improving/candidates.md` 或 fallback |
+| 新出现的可疑模式 | 像经验，但证据只有一次 | `learning_candidates` | `~/self-improving/candidates.md` 或 fallback |
 | 可复用执行经验 | 可跨任务复用 | `reusable_lessons` | `~/self-improving/memory.md` 或 fallback |
 | 领域专项经验 | 只在某领域复用 | `reusable_lessons` | `~/self-improving/domains/<domain>.md` 或 fallback |
 | 项目级例外规则 | 只对当前项目有效 | `project_facts` | project docs / project adapter |
@@ -36,10 +37,14 @@
 
 `AGENTS.md`、`TOOLS.md`、`SOUL.md` 是提炼后的治理目标，不是原始捕获入口。
 
+`learning_candidates` 也是 capture 层，不是默认读取层。
+它的职责是先容纳纠错和新出现的模式，再决定是否值得升到 `reusable_lessons` 或系统级规则。
+
 默认顺序是：
 
 - 先写 target class
 - 再由 adapter 落到具体路径
+- 候选内容先进入 `learning_candidates`
 - 再提炼
 - 最后才升格到系统级文件
 

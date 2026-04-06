@@ -13,6 +13,18 @@ from datetime import datetime
 
 
 SCHEMAS = {
+    "learning_candidates": {
+        "required_keys": {
+            "target_class",
+            "schema_version",
+            "updated_at",
+            "candidate_status",
+        },
+        "enum": {
+            "candidate_status": {"candidate", "discarded", "promoted"},
+        },
+        "required_headings": {"## Candidates"},
+    },
     "proactive_state": {
         "required_keys": {
             "target_class",

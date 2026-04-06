@@ -15,6 +15,7 @@
 |---|---|
 | `long_term_memory` | 长期稳定记忆 |
 | `daily_memory` | 每日事件与阶段记录 |
+| `learning_candidates` | 低承诺纠错与新模式候选层 |
 | `reusable_lessons` | 可复用经验、纠错、长期执行教训 |
 | `proactive_state` | 主动性边界族和当前推进态 |
 | `working_buffer` | 极短期恢复线索 |
@@ -30,6 +31,8 @@
 |---|---|---|
 | `long_term_memory` | built-in | `MEMORY.md` |
 | `daily_memory` | built-in | `memory/YYYY-MM-DD.md` |
+| `learning_candidates` | `self-improving` if resolved | `~/self-improving/candidates.md` |
+| `learning_candidates` | packaged fallback template | `assets/fallbacks/learning-candidates.md` |
 | `reusable_lessons` | `self-improving` if resolved | `~/self-improving/...` |
 | `reusable_lessons` | packaged fallback template | `assets/fallbacks/reusable-lessons.md` |
 | `proactive_state` | `proactivity` if resolved | `~/proactivity/memory.md` + `~/proactivity/session-state.md` |
@@ -46,7 +49,9 @@
 
 因此：
 
+- `learning_candidates` 是低承诺 capture layer，不是 `reusable_lessons` 的别名
 - `self-improving` 是 `reusable_lessons` 的一个 adapter，不是内核本身
+- `self-improving` 也可以承接 `learning_candidates`
 - `proactivity` 是 `proactive_state` / `working_buffer` 的一个 adapter，不是全局记忆的唯一来源
 
 如果某个 optional skill 没安装：
@@ -100,6 +105,7 @@ fallback 的目标不是完美，而是不让内核失效。
 
 当前默认 packaged fallback 模板：
 
+- `assets/fallbacks/learning-candidates.md`
 - `assets/fallbacks/proactive-state.md`
 - `assets/fallbacks/reusable-lessons.md`
 - `assets/fallbacks/working-buffer.md`

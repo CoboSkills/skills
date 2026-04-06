@@ -1,11 +1,17 @@
 {
   "owner": "modi2meet",
   "slug": "agentphone-ai",
-  "displayName": "AgentPhone",
+  "displayName": "Agentphone Skills",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774947857936,
-    "commit": "https://github.com/openclaw/skills/commit/9558ce0ce02a49bd331ffc2c1354382d3542d1f0"
+    "version": "1.2.0",
+    "publishedAt": 1775198124169,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774947857936,
+      "commit": "https://github.com/openclaw/skills/commit/9558ce0ce02a49bd331ffc2c1354382d3542d1f0"
+    }
+  ]
 }

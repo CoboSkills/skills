@@ -81,7 +81,7 @@ At this point you only have:
 
 > **Important:** After Stage 1, the skill shell is present, but the underlying
 > `clawsqlite` CLI may still be missing or outdated. Stage 2 ensures
-> `clawsqlite>=0.1.7` is available in the runtime Python environment.
+> `clawsqlite>=0.1.8` is available in the runtime Python environment.
 
 ### 2.2 Stage 2 — install or upgrade `clawsqlite` (PyPI, v0.1.7)
 
@@ -99,7 +99,7 @@ install:
 The script content (simplified) is:
 
 ```python
-requirement = "clawsqlite>=0.1.7"
+requirement = "clawsqlite>=0.1.8"
 cmd = [sys.executable, "-m", "pip", "install", requirement]
 proc = subprocess.run(cmd)
 if proc.returncode != 0:
@@ -116,7 +116,7 @@ if proc.returncode != 0:
 
 This means:
 
-- It first tries to install `clawsqlite>=0.1.7` into the default Python
+- It first tries to install `clawsqlite>=0.1.8` into the default Python
   environment used by the skill runtime;
 - If that environment is read‑only (or `pip install` fails), it falls back to a
   **workspace‑local prefix** under:
@@ -144,13 +144,13 @@ openclaw skills install clawsqlite-knowledge  # re-runs the install hooks
 
 > **Note:** This skill **never** vendors `clawsqlite` source code or clones the
 > GitHub repo. The only way it brings in code is via `pip install
-> "clawsqlite>=0.1.7"`.
+> "clawsqlite>=0.1.8"`.
 
 ### 2.3 Where is the `clawsqlite` CLI installed?
 
 Depending on your environment:
 
-- If `pip install clawsqlite>=0.1.7` succeeds in the base runtime venv, the
+- If `pip install clawsqlite>=0.1.8` succeeds in the base runtime venv, the
   `clawsqlite` entrypoint will live in that venv’s `bin` directory and be
   importable as the `clawsqlite_cli` module.
 - If the bootstrap falls back to the workspace prefix,
@@ -260,7 +260,7 @@ This is the path for:
 The underlying `clawsqlite knowledge ingest --text ...` call will:
 
 - Generate a long summary (up to ~800 characters, soft‑truncated)
-- Extract tags using jieba/heuristics (in clawsqlite>=0.1.7 these reuse the
+- Extract tags using jieba/heuristics (in clawsqlite>=0.1.8 these reuse the
   same TextRank/semantic pipelines as the query‑side keyword extraction)
 - Optionally embed the summary (when embedding is configured)
 - Store a markdown file with a pinyin/ASCII slug filename
@@ -276,7 +276,7 @@ Under the hood this calls `clawsqlite knowledge search ...` with:
 - tag‑aware scoring: tags are generated from article content via
   TextRank/TF‑IDF + optional semantic rerank (when embeddings + jieba are
   available) and used as an extra signal in the final score. In
-  clawsqlite>=0.1.7, the scorer embeds both summary and tags into vec0
+  clawsqlite>=0.1.8, the scorer embeds both summary and tags into vec0
   tables, normalizes vector distances via a logistic sigmoid over
   `1/(1+d)`, and splits the tag channel into semantic (vector) and
   lexical (FTS) parts; lexical tag scores can be log-compressed via
@@ -406,7 +406,64 @@ See the `clawsqlite` README for the full behavior and env matrix.
 
 ---
 
-## 7. Upgrade notes (clawsqlite>=0.1.7)
+## 7. Upgrade notes (clawsqlite>=0.1.8)
 
-- This Skill now depends on `clawsqlite>=0.1.7`; updates will install the new PyPI version via `bootstrap_deps.py`.
+- This Skill now depends on `clawsqlite>=0.1.8`; updates will install the new PyPI version via `bootstrap_deps.py`.
 - In OpenClaw, a typical rollout is: `openclaw skills update clawsqlite-knowledge`, then rebuild FTS if you changed `CLAWSQLITE_FTS_JIEBA`.
+
+## 8. Interest clusters & weekly reports (via underlying clawsqlite CLI)
+
+This Skill deliberately keeps its JSON API small (ingest/search/show), but
+it runs on top of the same SQLite DB and articles directory as the
+full `clawsqlite knowledge` CLI.
+
+If you want to analyze and report on your own interests over time, you can
+use the **interest clusters** and **interest report** commands directly
+against the same DB:
+
+```bash
+# Build or refresh interest clusters from existing embeddings
+clawsqlite knowledge build-interest-clusters \
+  --db /path/to/knowledge.sqlite3 \
+  --min-size 5 \
+  --max-clusters 16
+
+# Inspect cluster quality (radius / distances / PCA plot)
+clawsqlite knowledge inspect-interest-clusters \
+  --db /path/to/knowledge.sqlite3 \
+  --vec-dim 1024
+
+# Generate a weekly interest report (Markdown + PNG, optional HTML/PDF)
+clawsqlite knowledge report-interest \
+  --db /path/to/knowledge.sqlite3 \
+  --days 7 \
+  --vec-dim 1024 \
+  --lang zh \
+  --format html \
+  --out-dir /path/to/reports
+```
+
+The `report-interest` command will create a dated report directory under
+`--out-dir` (default `./reports`):
+
+- `report.md`  – a Markdown report describing:
+  - total new articles and clusters touched in the window;
+  - daily new article counts (table + PNG bar chart);
+  - per-cluster distribution (size, share, mean_radius, sample articles);
+  - a PCA 2D scatter plot of cluster centroids;
+  - "heating / cooling" clusters compared to the previous window.
+- `images/`    – PNG charts (`daily_articles.png`,
+  `cluster_distribution.png`, `interest_clusters_pca.png`).
+- optional `report.pdf` – a PDF generated via `pandoc report.md -o report.pdf`
+  (best-effort; missing LaTeX will not cause the CLI to fail).
+- optional `report.html` – when `--format html` is set and `pandoc` is
+  available, a self-contained HTML report generated via:
+
+  ```bash
+  pandoc report.md -s -o report.html --mathjax --self-contained
+  ```
+
+This Skill does **not** expose interest cluster or report actions directly
+in its JSON API. Instead, it stays focused on ingestion and retrieval,
+while the underlying `clawsqlite` CLI provides the full cluster/report
+tooling on the same knowledge base.

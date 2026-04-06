@@ -33,7 +33,7 @@
 - **clawsqlite-knowledge（本 Skill）**
   - 代码目录：`clawhub-skills/clawsqlite-knowledge`；
   - 由 ClawHub 安装并运行；
-  - 依赖 PyPI 上的 `clawsqlite>=0.1.7` 包（不 vendor 源码，不 git clone）；
+  - 依赖 PyPI 上的 `clawsqlite>=0.1.8` 包（不 vendor 源码，不 git clone）；
   - 对外暴露一个小而精的 JSON API：
     - `ingest_url`
     - `ingest_text`
@@ -78,7 +78,7 @@ openclaw skills install clawsqlite-knowledge
 
 > **重要：** 完成这一步后，只是把 Skill 壳拉到了 workspace，底层的
 > `clawsqlite` CLI 可能还没有安装，或者版本还停留在旧的 0.1.x。第二步
-> 会确保环境里存在 **`clawsqlite>=0.1.7`**。
+> 会确保环境里存在 **`clawsqlite>=0.1.8`**。
 
 ### 2.2 第二步：安装/升级 `clawsqlite`（PyPI v0.1.4）
 
@@ -95,7 +95,7 @@ install:
 脚本的核心逻辑（简化版）：
 
 ```python
-requirement = "clawsqlite>=0.1.7"
+requirement = "clawsqlite>=0.1.8"
 cmd = [sys.executable, "-m", "pip", "install", requirement]
 proc = subprocess.run(cmd)
 if proc.returncode != 0:
@@ -112,7 +112,7 @@ if proc.returncode != 0:
 
 含义是：
 
-- 优先尝试把 `clawsqlite>=0.1.7` 装到 Skill 运行时使用的默认 Python 环境；
+- 优先尝试把 `clawsqlite>=0.1.8` 装到 Skill 运行时使用的默认 Python 环境；
 - 如果该环境只读或 `pip install` 失败，则退回安装到 workspace 本地前缀：
 
   ```text
@@ -138,13 +138,13 @@ openclaw skills install clawsqlite-knowledge
 ```
 
 > **注意：** 这个 Skill **从不** vendor `clawsqlite` 源码，也不会 git clone
-> 仓库。唯一的代码来源就是 `pip install "clawsqlite>=0.1.7"`。
+> 仓库。唯一的代码来源就是 `pip install "clawsqlite>=0.1.8"`。
 
 ### 2.3 `clawsqlite` CLI 实际装在哪里？
 
 取决于你的环境：
 
-- 如果 `pip install clawsqlite>=0.1.7` 能在基础 venv 中成功：
+- 如果 `pip install clawsqlite>=0.1.8` 能在基础 venv 中成功：
   - `clawsqlite` 可执行入口会出现在该 venv 的 `bin` 目录；
   - 模块 `clawsqlite_cli` 可直接通过 `python -m clawsqlite_cli` 调用。
 - 如果走的是 workspace 前缀回退路径：
@@ -251,7 +251,7 @@ EOF)"$PYTHONPATH" \
 
 - 从正文构造“长摘要”（约 800 字以内，按自然段边界软截断）；
 - 用 jieba/启发式抽标签；
-- 在 `clawsqlite>=0.1.7` 中，这套标签生成逻辑与查询侧关键词抽取共用
+- 在 `clawsqlite>=0.1.8` 中，这套标签生成逻辑与查询侧关键词抽取共用
   同一条 TextRank + 语义向心流水线；
 - 在配置了 Embedding 的情况下，为摘要打向量并写入 vec 表；
 - 用拼音/ASCII 生成文件名，在 articles 目录下写入 markdown。
@@ -261,7 +261,7 @@ EOF)"$PYTHONPATH" \
 在知识库中检索。
 
 底层调用的是 `clawsqlite knowledge search ...`，并继承了
-`clawsqlite>=0.1.7` 中的行为：
+`clawsqlite>=0.1.8` 中的行为：
 
 - hybrid 检索：向量 + FTS 的混合模式，在 Embedding 或 vec0
   不可用时自动退化为纯 FTS；
@@ -403,7 +403,75 @@ clawsqlite knowledge reindex --rebuild --fts
 
 ---
 
-## 7. 升级说明（clawsqlite>=0.1.7）
+## 7. 升级说明（clawsqlite>=0.1.8）
 
-- 本 Skill 依赖 `clawsqlite>=0.1.7`，更新时会通过 `bootstrap_deps.py` 安装新的 PyPI 版本。
+- 本 Skill 依赖 `clawsqlite>=0.1.8`，更新时会通过 `bootstrap_deps.py` 安装新的 PyPI 版本。
 - 在 OpenClaw 中，推荐的下发流程是：`openclaw skills update clawsqlite-knowledge`，如同时调整了 `CLAWSQLITE_FTS_JIEBA`，再执行一次 FTS 重建。
+
+## 8. 兴趣簇与兴趣报告（通过底层 clawsqlite CLI）
+
+本 Skill 的 JSON API 刻意保持很小（入库/检索/按 id 查看），但其底层
+仍然是同一个 SQLite 数据库和 articles 目录。因此，你可以直接使用
+`clawsqlite knowledge` 的兴趣簇与兴趣报告命令，在同一个知识库上做
+更深入的分析。
+
+典型用法：
+
+```bash
+# 基于现有 embedding 构建或刷新兴趣簇
+clawsqlite knowledge build-interest-clusters \
+  --db /path/to/knowledge.sqlite3 \
+  --min-size 5 \
+  --max-clusters 16
+
+# 检查兴趣簇质量（簇半径 / 簇间距离 / PCA 图）
+clawsqlite knowledge inspect-interest-clusters \
+  --db /path/to/knowledge.sqlite3 \
+  --vec-dim 1024
+
+# 生成一份周度兴趣报告（Markdown + PNG，HTML/PDF 可选）
+clawsqlite knowledge report-interest \
+  --db /path/to/knowledge.sqlite3 \
+  --days 7 \
+  --vec-dim 1024 \
+  --lang zh \
+  --format html \
+  --out-dir /path/to/reports
+```
+
+`report-interest` 会在 `--out-dir`（默认为当前目录下的 `./reports`）
+下创建一个按时间窗口结束日期命名的目录，例如
+`reports/20260331-report/`，其中至少包含：
+
+- `report.md`  – 报告正文（窗口内新增文章数、涉及兴趣簇数、每日新增、
+  按兴趣簇分布、簇心 PCA 图、升温/降温簇等）；
+- `images/`    – PNG 图表（`daily_articles.png` / `cluster_distribution.png`
+  / `interest_clusters_pca.png`）。
+
+如果环境中安装了 `pandoc`，且未显式加 `--no-pdf`，CLI 会在生成
+Markdown 后尝试：
+
+```bash
+pandoc report.md -o report.pdf
+```
+
+缺少 LaTeX 等依赖时，该步骤是“尽力而为”的：命令不会失败，只是目录中
+可能没有 `report.pdf`。
+
+当你传入 `--format html`，并且环境中有 `pandoc` 时，CLI 会在写出
+`report.md` 后尝试执行等价于：
+
+```bash
+pandoc report.md -s -o report.html --mathjax --self-contained
+```
+
+成功时会额外生成一个 `report.html`，包含内联图片的自包含 HTML 报告。
+
+需要注意的是：
+
+- 本 Skill 本身只暴露入库/检索/查看的 JSON API；
+- 兴趣簇构建与兴趣报告（`build-interest-clusters` /
+  `inspect-interest-clusters` / `report-interest`）目前仅通过底层
+  `clawsqlite` CLI 提供；
+- Skill 与 CLI 复用同一个知识库根目录，因此你可以一边用 Skill 做
+  日常 ingest/search，一边用 CLI 定期生成兴趣簇与周报。

@@ -5,6 +5,13 @@ description: "Backup the agent workspace to a GitHub repository. Use when: asked
 
 # Git Backup Skill
 
+## Load Local Context
+```bash
+CONTEXT_FILE="/opt/ocana/openclaw/workspace/skills/git-backup/.context"
+[ -f "$CONTEXT_FILE" ] && source "$CONTEXT_FILE"
+# Then use: $GITHUB_ACCOUNT, $REPO_NAME, $WORKSPACE, $GITHUB_TOKEN_FILE, etc.
+```
+
 ## Minimum Model
 Any model. This is pure shell — no reasoning needed.
 
@@ -221,7 +228,7 @@ Runs every 6 hours silently. Change to `"0 23 * * *"` for nightly only.
 ## What to Include / Exclude
 
 **Always include:**
-- `MEMORY.md`, `SOUL.md`, `AGENTS.md`, `TOOLS.md`
+- `MEMORY.md`, `SOUL.md`, `AGENTS.md`, `TOOLS.md`, `PA_LIST.md`
 - `memory/` — daily notes
 - `skills/` — installed skills
 - `.learnings/` — corrections and learnings
@@ -233,6 +240,12 @@ Runs every 6 hours silently. Change to `"0 23 * * *"` for nightly only.
 - `credentials/` directory
 - Log files (`*.log`)
 - Node modules, Python cache
+
+## Production Notes
+- Workspace is at `/opt/ocana/openclaw/workspace` (not `~/.openclaw/workspace`)
+- GitHub account: `netanel-abergel`, repo: `heleni-memory`
+- After every significant memory update — always push to git (do not batch indefinitely)
+- After skill updates (like this review) — push immediately
 
 ---
 

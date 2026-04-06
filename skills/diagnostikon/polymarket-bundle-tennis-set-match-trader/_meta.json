@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-bundle-tennis-set-match-trader",
-  "displayName": "Bundle Tennis Set-Match Constraint Trader",
+  "displayName": "Polymarket Bundle Tennis Set Match Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774736501174,
-    "commit": "https://github.com/openclaw/skills/commit/7b7b7eccfc6e42b955ebbf5760781a1f69ab5ad1"
+    "version": "1.0.1",
+    "publishedAt": 1775317016587,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774736501174,
+      "commit": "https://github.com/openclaw/skills/commit/7b7b7eccfc6e42b955ebbf5760781a1f69ab5ad1"
+    }
+  ]
 }

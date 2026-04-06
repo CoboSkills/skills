@@ -1,135 +1,134 @@
 #!/bin/bash
 # Multi-language Subtitle Generator
-# Transcribes and translates subtitles
+# 使用 Whisper 转录 → 生成 SRT 字幕 → 可选翻译
+# Whisper 直接输出带时间戳的 SRT，比旧版 ASR 精准得多
 
-VIDEO_FILE="$1"
-TARGET_LANG="$2"
+set -euo pipefail
 
-if [ -z "$VIDEO_FILE" ]; then
-    echo "❌ 用法：multi-lang-subtitles.sh <视频文件> [目标语言]"
-    echo "   目标语言示例：en, ja, ko, fr, de, es (默认：en)"
+VIDEO_FILE="${1:-}"
+TARGET_LANG="${2:-en}"
+WHISPER_MODEL="${3:-turbo}"
+
+if [[ -z "$VIDEO_FILE" ]]; then
+    echo "❌ 用法：multi-lang-subtitles.sh <视频文件> [目标语言] [whisper模型]"
+    echo "   目标语言：en, ja, ko, fr, de, es (默认：en)"
+    echo "   whisper模型：tiny, base, small, medium, large, turbo (默认：turbo)"
+    echo ""
+    echo "示例："
+    echo "   multi-lang-subtitles.sh video.mp4"
+    echo "   multi-lang-subtitles.sh video.mp4 ja"
+    echo "   multi-lang-subtitles.sh video.mp4 en medium"
     exit 1
 fi
 
-if [ ! -f "$VIDEO_FILE" ]; then
+if [[ ! -f "$VIDEO_FILE" ]]; then
     echo "❌ 文件不存在：$VIDEO_FILE"
     exit 1
 fi
 
-# Default target language
-if [ -z "$TARGET_LANG" ]; then
-    TARGET_LANG="en"
-fi
-
-OUTPUT_SRT="${VIDEO_FILE%.*}-${TARGET_LANG}.srt"
-OUTPUT_CN_SRT="${VIDEO_FILE%.*}-zh.srt"
-
-echo "🌍 多语言字幕生成器"
-echo "📁 视频：$VIDEO_FILE"
-echo "🎯 目标语言：$TARGET_LANG"
-echo "📤 输出：$OUTPUT_SRT"
-echo ""
-
-# Step 1: Transcribe with Qwen ASR
-echo "🎤 步骤 1: 语音识别 (中文)..."
-
-curl -s -X POST "http://127.0.0.1:8000/gradio_api/call/run" \
-    -H "Content-Type: application/json" \
-    -d "{\"data\": [\"$VIDEO_FILE\"]}" \
-    > /tmp/asr-result.json 2>/dev/null
-
-if [ ! -s /tmp/asr-result.json ]; then
-    echo "⚠️  ASR 转录失败"
+# 检查依赖
+if ! command -v whisper &>/dev/null; then
+    echo "❌ whisper 未安装"
+    echo "💡 安装：brew install openai-whisper"
     exit 1
 fi
 
-echo "✅ 转录完成"
+OUTPUT_CN="${VIDEO_FILE%.*}-zh.srt"
+OUTPUT_TRANSLATED="${VIDEO_FILE%.*}-${TARGET_LANG}.srt"
+
+echo "🌍 多语言字幕生成器 (Whisper)"
+echo "📁 视频：$VIDEO_FILE"
+echo "🤖 模型：$WHISPER_MODEL"
+echo "🎯 目标语言：$TARGET_LANG"
 echo ""
 
-# Step 2: Generate Chinese SRT
-echo "📝 步骤 2: 生成中文字幕..."
+# Step 1: 提取音频
+echo "🎵 步骤 1: 提取音频..."
+TEMP_DIR=$(mktemp -d)
+trap "rm -rf $TEMP_DIR" EXIT
 
-python3 << 'PYTHON_SCRIPT'
-import json
-import sys
+AUDIO_FILE="$TEMP_DIR/audio.wav"
+ffmpeg -y -i "$VIDEO_FILE" -vn -acodec pcm_s16le -ar 16000 -ac 1 "$AUDIO_FILE" -loglevel error 2>/dev/null
 
-# Simplified SRT generation
-# In production, parse actual ASR output with timestamps
+if [[ ! -f "$AUDIO_FILE" ]]; then
+    echo "❌ 音频提取失败"
+    exit 1
+fi
 
-print("生成中文字幕...")
+AUDIO_DUR=$(ffprobe -v quiet -show_entries format=duration -of csv=p=0 "$AUDIO_FILE" 2>/dev/null)
+echo "   ✅ 音频提取完成 (${AUDIO_DUR}s)"
 
-# Example SRT output
-srt_content = """1
-00:00:00,000 --> 00:00:05,000
-欢迎观看本视频
+# Step 2: Whisper 转录 → 直接生成 SRT
+echo "🎤 步骤 2: 语音识别 (Whisper $WHISPER_MODEL)..."
+echo "   ⏳ 转录中，请稍候..."
 
-2
-00:00:05,000 --> 00:00:10,000
-今天我们来聊聊视频剪辑
+whisper "$AUDIO_FILE" \
+    --model "$WHISPER_MODEL" \
+    --language zh \
+    --output_format srt \
+    --output_dir "$TEMP_DIR" \
+    2>&1 | grep -v "UserWarning\|warnings.warn" || true
 
-3
-00:00:10,000 --> 00:00:15,000
-首先打开 Final Cut Pro
-"""
+SRT_FILE="$TEMP_DIR/audio.srt"
 
-with open('/tmp/chinese-subtitles.srt', 'w', encoding='utf-8') as f:
-    f.write(srt_content)
+if [[ ! -f "$SRT_FILE" ]] || [[ ! -s "$SRT_FILE" ]]; then
+    echo "❌ 语音识别失败或无语音内容"
+    exit 1
+fi
 
-print("✅ 中文字幕已生成：/tmp/chinese-subtitles.srt")
-PYTHON_SCRIPT
+# 统计字幕条数
+SUB_COUNT=$(grep -c '^[0-9]\+$' "$SRT_FILE" 2>/dev/null || echo "0")
+echo "   ✅ 识别完成 ($SUB_COUNT 条字幕)"
 
+# 预览前几条
+echo "   📝 预览："
+head -12 "$SRT_FILE" | sed 's/^/      /'
 echo ""
 
-# Step 3: Translate to target language
-echo "🌐 步骤 3: 翻译到 $TARGET_LANG ..."
+# Step 3: 保存中文字幕
+echo "📝 步骤 3: 保存中文字幕..."
+cp "$SRT_FILE" "$OUTPUT_CN"
+echo "   ✅ 中文字幕：$OUTPUT_CN"
+echo ""
 
-# Use translation API or local model
-# For now, create placeholder
-python3 << PYTHON_SCRIPT
-target_lang = "$TARGET_LANG"
-
-# Placeholder translation
-# In production, call translation API
-translations = {
-    'en': 'Welcome to this video',
-    'ja': 'このビデオへようこそ',
-    'ko': '이 비디오에 오신 것을 환영합니다',
-    'fr': 'Bienvenue dans cette vidéo',
-    'de': 'Willkommen zu diesem Video',
-    'es': 'Bienvenido a este video'
-}
-
-text = translations.get('$TARGET_LANG', 'Welcome to this video')
-
-srt_content = f"""1
-00:00:00,000 --> 00:00:05,000
-{text}
-
-2
-00:00:05,000 --> 00:00:10,000
-[Translation needed]
-
-3
-00:00:10,000 --> 00:00:15,000
-[Translation needed]
-"""
-
-with open('/tmp/translated-subtitles.srt', 'w', encoding='utf-8') as f:
-    f.write(srt_content)
-
-print(f"✅ {target_lang} 字幕已生成：/tmp/translated-subtitles.srt")
-PYTHON_SCRIPT
+# Step 4: 翻译（使用 Whisper translate 功能，仅支持翻译到英文）
+if [[ "$TARGET_LANG" == "en" ]]; then
+    echo "🌐 步骤 4: 翻译到英文 (Whisper translate)..."
+    
+    whisper "$AUDIO_FILE" \
+        --model "$WHISPER_MODEL" \
+        --task translate \
+        --output_format srt \
+        --output_dir "$TEMP_DIR" \
+        2>&1 | grep -v "UserWarning\|warnings.warn" || true
+    
+    # Whisper translate 会覆盖同名文件，所以直接拷贝
+    if [[ -f "$SRT_FILE" ]]; then
+        cp "$SRT_FILE" "$OUTPUT_TRANSLATED"
+        echo "   ✅ 英文字幕：$OUTPUT_TRANSLATED"
+    else
+        echo "   ⚠️ 翻译失败，已保存翻译模板"
+        cp "$OUTPUT_CN" "$OUTPUT_TRANSLATED"
+    fi
+else
+    echo "🌐 步骤 4: 翻译到 $TARGET_LANG..."
+    echo ""
+    echo "   ⚠️ Whisper 仅支持自动翻译到英文"
+    echo "   💡 其他语言推荐方式："
+    echo "      1. 让 Agent 读取 $OUTPUT_CN 并翻译"
+    echo "      2. 使用在线翻译工具（DeepL / Google Translate）"
+    echo "      3. 手动翻译后保存为 $OUTPUT_TRANSLATED"
+    echo ""
+    
+    # 复制中文字幕作为翻译模板（保留时间戳）
+    cp "$OUTPUT_CN" "$OUTPUT_TRANSLATED"
+    echo "   📄 已生成翻译模板：$OUTPUT_TRANSLATED"
+    echo "   （时间戳已保留，替换中文内容即可）"
+fi
 
 echo ""
 echo "✅ 字幕生成完成！"
 echo ""
 echo "📄 输出文件："
-echo "   中文：$OUTPUT_CN_SRT"
-echo "   $TARGET_LANG: $OUTPUT_SRT"
-echo ""
-echo "💡 下一步："
-echo "1. 在 FCP 中导入字幕文件"
-echo "2. 检查并调整时间轴"
-echo "3. 导出时选择嵌入字幕"
-
-rm -f /tmp/asr-result.json /tmp/chinese-subtitles.srt /tmp/translated-subtitles.srt
+echo "   中文字幕：$OUTPUT_CN"
+echo "   ${TARGET_LANG} 字幕：$OUTPUT_TRANSLATED"

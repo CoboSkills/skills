@@ -3,9 +3,15 @@
   "slug": "helpcrunch",
   "displayName": "Helpcrunch",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774400709990,
-    "commit": "https://github.com/openclaw/skills/commit/30b7314ae191a5e8d5b84a341035155f6d1a9ae5"
+    "version": "1.0.2",
+    "publishedAt": 1775167257101,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774400709990,
+      "commit": "https://github.com/openclaw/skills/commit/30b7314ae191a5e8d5b84a341035155f6d1a9ae5"
+    }
+  ]
 }

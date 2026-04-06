@@ -3,9 +3,15 @@
   "slug": "fix",
   "displayName": "Fix Behavior",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1775019654612,
-    "commit": "https://github.com/openclaw/skills/commit/a26be80c431a670ccf218bf88585633cdb1937f8"
+    "version": "0.1.1",
+    "publishedAt": 1775194389355,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1775019654612,
+      "commit": "https://github.com/openclaw/skills/commit/a26be80c431a670ccf218bf88585633cdb1937f8"
+    }
+  ]
 }

@@ -247,4 +247,32 @@ methodalgo snapshot SOLUSDT.P 60 --url --json
 > **Features**: Simple mapping structure containing instant-access WebP preview links.
 
 ---
-💡 *Note: All timestamps are in milliseconds.*
+
+## 📅 Economic Calendar (calendar)
+
+```bash
+methodalgo calendar --countries US --json
+```
+
+```json
+[
+  {
+    "title": "Non Farm Payrolls",
+    "country": "US",
+    "indicator": "Jobs",
+    "period": "Mar",
+    "comment": "Nonfarm Payrolls measures the change in the number of people employed during the previous month, excluding the farming industry...",
+    "actual": "275K",
+    "forecast": "198K",
+    "previous": "229K",
+    "importance": 1,
+    "date": "2026-04-03T12:30:00.000Z",
+    "source": "Bureau of Labour Statistics",
+    "source_url": "http://www.bls.gov/"
+  }
+]
+```
+
+---
+
+💡 *Note: All timestamps are in milliseconds or ISO format.*

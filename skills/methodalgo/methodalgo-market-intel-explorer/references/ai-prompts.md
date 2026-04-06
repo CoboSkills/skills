@@ -47,6 +47,17 @@ This document provides a series of optimized prompt examples designed to help AI
 > Note: This command returns an object; please extract `symbol`, `perc` (unlock percentage), `countDown`, and `unlockTokenVal` (unlock value) from the `signals` array. `ts` is the scheduled unlock time.
 > Highlight projects with unlock proportions exceeding 1% of the circulating supply and analyze the potential downward pressure on price.
 
+### 5. Macroeconomic Data and Volatility Analysis
+**Quick Tip**: Since macro events happen at precise times, you should fetch the latest data **immediately after the release time** (e.g., exactly at 8:30 AM ET for NFP) to capture the `actual` values for real-time volatility analysis.
+
+**Prompt Template**:
+> Use the `methodalgo-market-intel-explorer` skill to analyze this week's global macroeconomic events and their potential impact on Bitcoin:
+> 1. Fetch the latest US economic events: `methodalgo calendar --countries US --json`.
+> 2. Focus on high `importance` events (e.g., CPI, NFP, or FOMC-related data).
+> 3. Compare `actual` vs. `forecast` trends to predict price volatility.
+> 
+> Summarize the key findings and how they might affect the Dollar Index (DXY) and cryptocurrency markets.
+
 ---
 
 ## 🛠️ Troubleshooting for AI

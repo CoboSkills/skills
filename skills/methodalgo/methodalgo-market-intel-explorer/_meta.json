@@ -3,9 +3,15 @@
   "slug": "methodalgo-market-intel-explorer",
   "displayName": "Methodalgo Market Intel Explorer",
   "latest": {
-    "version": "1.0.9",
-    "publishedAt": 1775042539201,
-    "commit": "https://github.com/openclaw/skills/commit/fd9ffc7f73b0457e805d9018dbab063f549c715d"
+    "version": "1.1.1",
+    "publishedAt": 1775140279644,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.9",
+      "publishedAt": 1775042539201,
+      "commit": "https://github.com/openclaw/skills/commit/fd9ffc7f73b0457e805d9018dbab063f549c715d"
+    }
+  ]
 }

@@ -1,9 +1,9 @@
 ---
 name: gemma-gemma3
-description: Gemma 3 by Google — run Gemma 3 (4B, 12B, 27B) across your local device fleet. Google's most capable open model with 128K context, strong coding, and multilingual support. Fleet-routed to the best available machine via Ollama Herd. Zero cloud costs on Mac Studio, Mac Mini, MacBook Pro.
-version: 1.0.0
+description: Gemma 3 by Google — run Gemma 3 (4B, 12B, 27B) across your local device fleet. Google's most capable open model with 128K context, strong coding, and multilingual support. Fleet-routed to the best available machine via Ollama Herd. Cross-platform (macOS, Linux, Windows). Zero cloud costs.
+version: 1.0.1
 homepage: https://github.com/geeks-accelerator/ollama-herd
-metadata: {"openclaw":{"emoji":"gem","requires":{"anyBins":["curl","wget"],"optionalBins":["python3","pip"]},"configPaths":["~/.fleet-manager/latency.db","~/.fleet-manager/logs/herd.jsonl"],"os":["darwin","linux"]}}
+metadata: {"openclaw":{"emoji":"gem","requires":{"anyBins":["curl","wget"],"optionalBins":["python3","pip"]},"configPaths":["~/.fleet-manager/latency.db","~/.fleet-manager/logs/herd.jsonl"],"os":["darwin","linux","windows"]}}
 ---
 
 # Gemma 3 — Run Google's Open Models Across Your Fleet
@@ -80,6 +80,8 @@ curl http://localhost:11435/v1/chat/completions \
 
 ## Which Gemma for your hardware
 
+> **Cross-platform:** These are example configurations. Any device (Mac, Linux, Windows) with equivalent RAM works. The fleet router runs on all platforms.
+
 | Device | RAM | Best Gemma model |
 |--------|-----|-----------------|
 | MacBook Air (8GB) | 8GB | `gemma3:1b` — instant responses |
@@ -138,7 +140,7 @@ curl http://localhost:11435/api/embed \
 ## Contribute
 
 Ollama Herd is open source (MIT). Stars, issues, and PRs welcome — from humans and AI agents alike:
-- [GitHub](https://github.com/geeks-accelerator/ollama-herd) — 412 tests, fully async, `CLAUDE.md` makes AI agents productive instantly
+- [GitHub](https://github.com/geeks-accelerator/ollama-herd) — 444 tests, fully async, `CLAUDE.md` makes AI agents productive instantly
 - Found a bug? [Open an issue](https://github.com/geeks-accelerator/ollama-herd/issues)
 - Want to add a feature? Fork, branch, PR — the test suite runs in under 40 seconds
 

@@ -3,11 +3,16 @@
   "slug": "tech-doc-writer",
   "displayName": "Tech Doc Writer",
   "latest": {
-    "version": "1.3.3",
-    "publishedAt": 1774882944405,
-    "commit": "https://github.com/openclaw/skills/commit/305dee9937b5a5e208195d1271d9bc24c0c02b75"
+    "version": "1.3.4",
+    "publishedAt": 1775056162738,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.3.3",
+      "publishedAt": 1774882944405,
+      "commit": "https://github.com/openclaw/skills/commit/305dee9937b5a5e208195d1271d9bc24c0c02b75"
+    },
     {
       "version": "v1.3.0",
       "publishedAt": 1774626493331,

@@ -1,138 +1,292 @@
 ---
 name: plan
-description: "Think-first execution: research, plan, approve, execute. For complex multi-step or irreversible tasks. Not for simple edits or quick questions."
+description: "Think-first execution with approval gating. Use when work is complex, ambiguous, irreversible, multi-step, worth comparing before choosing, interrupted and needs recovery, or long-running enough to need a living plan. Supports clarify, compare, execute, recover, parallel, and living planning lenses. Not for simple edits or quick questions."
 ---
 
-# 📋 Plan Mode
+# Plan
 
-**Stop your AI agent from yolo-executing complex tasks.**
+Use this skill to stop execution-first behavior on meaningful work.
 
-Every AI coding agent has the same problem: you ask for something complex and it immediately starts hacking away — editing files, running commands, deploying things — before you've even agreed on the approach. Plan Mode fixes this with a simple, battle-tested pattern: **Research → Plan → Approve → Execute.**
+Default pattern: **clarify → plan → approve → execute → close**.
 
-Inspired by how 8 tools handle planning (Claude Code, Aider, Codex, Cursor, Windsurf, Roo Code, ExecPlan, claw-superpowers) — distilled into one lightweight, agent-agnostic skill.
+Treat `/plan` as a **read-only planning stance** until approval. Safe reads are allowed: reading files, listing files, searching, inspecting docs, checking status, and other non-destructive exploration. Do not edit files, delete data, push commits, deploy, or run destructive or irreversible commands until the user approves a plan or explicitly says to skip planning.
 
-## ✨ What Makes This Different
+Prefer the **core lenses** first. Use `parallel` and `living` only when the work is clearly big enough to justify the extra structure.
 
-| Feature | Most agents | With Plan Mode |
+## When to stay out of the way
+
+Do not force planning for:
+- trivial single-file edits
+- simple factual questions
+- obvious follow-up micro-actions
+- work where the user explicitly says to skip planning
+
+## Command model
+
+Use `/plan` as an auto-router. Pick the lens that matches the real problem.
+
+### Core lenses
+
+| Command | Use for | Output |
 |---|---|---|
-| Complex task lands | Immediately starts editing | 📋 Researches first, presents plan |
-| You want changes to the approach | Too late, already done | Revise plan before any action |
-| Existing skills/tools | Agent reinvents the wheel | **Toolbox audit** — checks what's already installed |
-| Something goes wrong mid-task | Silent fix attempt | Stops, reports, asks what to do |
-| Simple quick fix | Same ceremony as big refactor | Auto-skips — no plan needed |
+| `/plan` | Auto-pick the right lens | Short diagnosis + recommended plan |
+| `/plan clarify` | Vague or political requests | Scope, assumptions, open questions, success criteria |
+| `/plan compare` | Choosing between options | Option matrix, tradeoffs, recommendation |
+| `/plan execute` | Clear multi-step work | Ordered plan, risks, checkpoints, definition of done |
+| `/plan recover` | Interrupted or messy work | Current state, what is done, what is blocked, safest next step |
 
-## 🚀 Quick Start
+### Advanced lenses
 
-```bash
-clawhub install plan-mode
-```
+| Command | Use for | Output |
+|---|---|---|
+| `/plan parallel` | Work that should split across subagents or lanes | Solo lane, parallel lanes, merge points |
+| `/plan living` | Multi-session or strategic work | Persistent plan with decisions, next actions, open loops |
 
-After install, `/plan` shows up as a **native slash command** (autocomplete on Discord/Telegram).
+### Auto-router heuristics
 
-**Three modes:**
+When the user just says `/plan`, pick the simplest fitting lens:
+- unclear request, fuzzy scope, or political ambiguity → `clarify`
+- explicit choice between 2+ viable paths → `compare`
+- clear multi-step task with real execution work → `execute`
+- interrupted, messy, or half-finished work → `recover`
+- only escalate to `parallel` if there are clearly separable lanes with owners and a merge point
+- only escalate to `living` if the work is likely to span multiple sessions, days, or major checkpoints
 
-| Command | What it does |
-|---|---|
-| `/plan` | Full planning mode — research, plan, approve, execute |
-| `/plan light` | Quick inline plan only — minimal ceremony |
-| `/plan off` | Disable auto-activation for this session |
+If two lenses could fit, prefer the simpler one.
 
-**That's it.** Your agent will now stop and think before acting on complex tasks.
+### Depth modifiers
 
-## 💡 The Toolbox Audit (unique to this skill)
+Use these as optional modifiers, not separate lenses:
+- `light` — use for small work, usually <= 5 steps, no lasting state needed
+- `standard` — default for normal complex work
+- `deep` — use for risky, irreversible, multi-day, or file-backed work
 
-Before writing a plan, the agent checks:
-- ✅ **What skills are already installed** — "I have `pdf-generator`, I'll use it"
-- 💡 **What's available on ClawHub** — "There's a `remotion` skill for video. Install it?"
-- 🚫 **What NOT to reinvent** — no more hand-rolled solutions when a skill exists
+### Format guidance
 
-This prevents the #1 waste of AI agent time: rebuilding capabilities that already exist in your toolbox.
+#### Light
+Use for short tasks.
+Keep output inline:
+- Goal
+- Approach
+- 2-5 steps
+- Main risk
 
-## 📖 Example
+#### Standard
+Use for most work.
+Include:
+- Goal
+- Recommended lens
+- Approach
+- Using
+- Steps
+- Risks
+- Approval ask
 
-**You:** "Migrate our auth from sessions to JWT"
+Keep it short enough that the user can approve it quickly.
 
-**Agent (without Plan Mode):** *immediately starts editing 15 files...*
+#### Deep
+Use for large or risky work.
+Include:
+- Goal
+- Context / current state
+- Option or approach rationale
+- Detailed steps
+- Checkpoints
+- Risks and reversibility
+- Definition of done
+- Optional persistent file only after explicit approval if the plan should survive compaction
 
-**Agent (with Plan Mode):**
-```
-📋 Planning this first...
+Examples:
+- `/plan compare`
+- `/plan recover light`
+- `/plan living deep`
+- `/plan off`
 
-## Plan: Auth Migration (Sessions → JWT)
+Use `/plan off` to disable auto-activation for the current session.
 
-**Goal:** Replace session auth with stateless JWT tokens.
-**Approach:** Dual-mode first (both work), migrate incrementally, then remove sessions.
+## What to do in each lens
 
-**Using:**
-- ✅ Already installed: github — for PR creation after migration
+### Clarify
 
-**Steps:**
-1. Add JWT utils → new `lib/jwt.ts`
-2. Create dual-auth middleware → `middleware/auth.ts`
-3. Migrate login endpoint → `routes/auth.ts`
-4. Update 12 protected routes → `routes/*.ts`
-5. ⚠️ Remove session store → irreversible
-6. Update tests (23 files)
+Use when the request is still fuzzy.
 
-**Risks:** Active sessions invalidated on deploy → 24h overlap period
-**Estimate:** deep (2-3 hours, may use subagents)
-```
+Do this:
+- Define the actual problem
+- Surface assumptions
+- List open questions only if they materially affect the plan
+- State success criteria and non-goals
 
-**You:** "do steps 1-4, hold on 5"
+Do not jump into solution design too early.
 
-**Agent:** *executes steps 1-4, pauses before the irreversible step*
+### Compare
 
-## 🔧 How It Works
+Use when multiple routes are plausible.
 
-### The Four Phases
+Do this:
+- Compare 2-4 realistic options
+- Show tradeoffs: speed, risk, reversibility, cost, maintenance, politics
+- Recommend one path and explain why
 
-**Phase 1: Research** *(internal, no output)*
-- Reads relevant files and checks current state
-- Audits installed skills and searches ClawHub for relevant tools
-- Max 5-10 tool calls — focused, not exhaustive
+Prefer recommendation over fence-sitting.
 
-**Phase 2: Plan** *(presented to you)*
-- Format scales: **inline** (1-2 steps) → **standard** (3-7) → **living document** (8+)
-- Includes a `Using:` section showing which skills/tools will be leveraged
-- Complex plans get saved to file for context compaction survival
+### Execute
 
-**Phase 3: Approve** *(your call)*
+Use for normal complex work.
 
-| You say | What happens |
-|---|---|
-| "go" / "do it" / 👍 | Execute full plan |
-| "do steps 1-3, hold on 4" | Partial execution |
-| "change X" | Revise and re-present |
-| "skip plan" / "just do it" | Exit plan mode |
-| "cancel" | Abort |
+Do this:
+- State goal and approach
+- List concrete steps
+- Flag irreversible or high-risk actions with `⚠️`
+- State dependencies, checkpoints, and definition of done
+- Ask for approval before acting
 
-**Phase 4: Execute** *(follows the plan)*
-- No scope creep — only what was approved
-- Surprises trigger stop → report → wait for your input
-- Subagent delegation with full context handoff
+### Recover
 
-### When It Activates (and when it doesn't)
+Use when work already exists and the problem is continuity, not invention.
 
-**Auto-activates:** `/plan` command · 3+ files/systems · irreversible actions · architecture decisions
+Do this:
+- Summarize current state
+- Distinguish completed / partial / blocked / unknown
+- Give the safest next step
+- Say what should be discarded, preserved, or verified
 
-**Stays out of the way:** Quick fixes · single file edits · "just do it" · subagent execution · `/plan off`
+Prefer stabilization over cleverness.
 
-### Safety
+### Parallel
 
-- **Hard gate:** Agent cannot act until you approve — no exceptions
-- **Irreversible steps** flagged with ⚠️
-- **Mid-execution surprises** trigger immediate pause
-- **No nested planning** — subagents execute directly
-- **Context-aware** — uses compact format when context is >80K tokens
+Use only when splitting work clearly improves speed or clarity.
 
-## 🤝 Compatibility
+Do this:
+- Separate solo work from delegable work
+- Define lanes with owners
+- Define merge points and shared assumptions
+- Keep parallelism minimal and purposeful
 
-Works with **OpenClaw** (native `/plan` command), **Claude Code**, **Codex**, **Cursor**, **Windsurf**, **Roo Code**, and any agent that loads SKILL.md files.
+Do not parallelize tiny tasks just because you can.
 
-## 📚 Research
+### Living
 
-This skill was built by analyzing planning patterns across 8 tools. The full comparative analysis (Claude Code permission modes, Aider architect/editor split, Windsurf background planner, Roo Code orchestrator, ExecPlan living documents, claw-superpowers hard gates) is in `references/patterns.md`.
+Use for long-running projects.
 
-## License
+Do this:
+- Before creating a new living plan, first check whether one already exists for the project
+- Do not write or update a living-plan file until the user explicitly approves persistent storage
+- Once approved, persist the plan to file when useful
+- If the project has no existing convention, default to a simple plan file under `docs/plans/` or another clearly named project folder
+- Keep these sections updated:
+  - current focus
+  - next actions
+  - decisions
+  - open loops
+  - risks
+- On session start, resume, or after compaction, reload the latest approved living plan before continuing
+- If the living plan is stale enough to be doubtful, say so and refresh it before acting
 
-MIT
+Prefer living plans for strategy, negotiations, and multi-day builds.
+
+## Approval contract
+
+Until approval:
+- Stay read-only
+- Inspect files, docs, and current state
+- Audit available tools and skills using local/project context first
+- Do not create or update plan files
+- Do not make external network lookups for toolbox audit unless the user explicitly approves that broader search
+- Compare approaches
+- Ask only the minimum blocking questions
+
+After approval:
+- Execute only the approved scope
+- Respect partial approvals like “do 1-3, hold on 4”
+- If reality changes materially, stop and re-plan
+
+Recognize these approval patterns:
+- `go`
+- `do it`
+- `do steps 1-3`
+- `hold on 4`
+- `skip plan`
+- `cancel`
+- similar clearly positive approval language such as "sounds good" or "yes, proceed"
+
+Control semantics:
+- `/plan off` = stop auto-activating this skill for the current session
+- `cancel` before execution = abort the plan and do nothing
+- `cancel` during partial execution = stop immediately, report what has already been done, and do not assume rollback unless explicitly asked
+
+## Surprise policy
+
+Pause and report when:
+- a required tool, file, or dependency was missing from the plan
+- risk becomes meaningfully higher than planned
+- destructive action becomes necessary unexpectedly
+- new information changes the recommendation
+
+Do not silently widen scope.
+
+## Toolbox audit
+
+Before presenting an execute-oriented plan:
+- Check relevant installed skills first
+- Prefer local/project-available capabilities over reinvention
+- Only check external registries such as ClawHub when it materially changes the recommendation and the user has approved that broader search
+- Do not send plan contents, secrets, or private project details to external services during toolbox audit
+
+Show this briefly in a `Using:` section when it materially changes the approach.
+
+## Likely failure modes to avoid
+
+- Using `parallel` for work that is still unclear
+- Using `living` for tasks that are actually small and one-shot
+- Presenting too many lenses at once instead of recommending one
+- Turning `/plan` into ceremony on obvious work
+
+## Example patterns
+
+### Example: compare
+User: “Should we launch in market A or market B first?”
+
+Output:
+- Option A: Market A first
+- Option B: Market B first
+- Tradeoffs
+- Recommendation
+
+### Example: execute
+User: “Migrate auth from sessions to JWT.”
+
+Output:
+- Goal
+- Approach
+- Using
+- Ordered steps
+- `⚠️` irreversible cleanup step
+- Approval ask
+
+### Example: recover
+User: “Everything is all over the place. Pick this back up.”
+
+Output:
+- Current state
+- What is done
+- What is blocked
+- Safest next step
+
+### Example: parallel
+User: “Review the repo, draft migration steps, and prep the rollout note.”
+
+Output:
+- Solo lane
+- Parallel lanes with owners
+- Merge point
+- Approval ask
+
+### Example: living
+User: “Track this negotiation through 14 April.”
+
+Output:
+- Current focus
+- Next actions
+- Decisions
+- Open loops
+- Resume instruction

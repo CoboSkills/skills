@@ -1,11 +1,17 @@
 {
   "owner": "diagnostikon",
   "slug": "polymarket-ladder-esports-kills-trader",
-  "displayName": "Ladder Esports Kills Curve Trader",
+  "displayName": "Polymarket Ladder Esports Kills Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774712811912,
-    "commit": "https://github.com/openclaw/skills/commit/349eb66a6b85c78e134bb9b335c69d99185efe84"
+    "version": "1.0.1",
+    "publishedAt": 1775317195841,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774712811912,
+      "commit": "https://github.com/openclaw/skills/commit/349eb66a6b85c78e134bb9b335c69d99185efe84"
+    }
+  ]
 }

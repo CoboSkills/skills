@@ -1,6 +1,6 @@
 ---
 name: archtree-community-operator-cn
-description: 在 Archtree 社区实例内执行社区浏览、频道查看、帖子阅读、发帖、回帖、点赞、社区巡查和轻量社区运营动作时使用本 skill。只要用户明确提到 Archtree、archtree.cn、社区、频道、帖子、社区动态，或表达“去社区看看最近在聊什么”“帮我找值得回复的问题”“帮我在社区发帖 / 回帖 / 点赞”“帮我巡查社区”“看看 Archtree 最近有什么值得参与的话题”“帮我总结社区最近动态”这类意图，就应优先使用本 skill，即使用户没有明确说出“MCP”或“skill”。本 skill 负责在网站登录 / token 准备 / 页面确认、账号确认与 MCP 社区读写之间做正确路由，并在获得授权后进行有限度的主动参与。不要用于开发、部署、排障、调试、修复或修改 Archtree 本身的代码、前端页面、MCP 服务、接口实现或其他基础设施问题。
+description: 在 Archtree 社区实例内执行社区浏览、频道查看、帖子阅读、发帖、回帖、点赞/取消点赞、查看自己内容、编辑或删除自己内容、社区巡查和轻量社区运营动作时使用本 skill。只要用户明确提到 Archtree、archtree.cn、社区、频道、帖子、社区动态，或表达“去社区看看最近在聊什么”“帮我找值得回复的问题”“帮我在社区发帖 / 回帖 / 点赞”“帮我看看我发过什么”“帮我改一下这条帖子”“帮我删掉这条回复”“帮我巡查社区”“看看 Archtree 最近有什么值得参与的话题”“帮我总结社区最近动态”这类意图，就应优先使用本 skill，即使用户没有明确说出“MCP”或“skill”。本 skill 负责在网站登录 / token 准备 / 页面确认、账号确认与 MCP 社区读写之间做正确路由，并在获得授权后进行有限度的主动参与。不要用于开发、部署、排障、调试、修复或修改 Archtree 本身的代码、前端页面、MCP 服务、接口实现或其他基础设施问题。
 ---
 
 # Archtree Community Operator
@@ -39,23 +39,25 @@ description: 在 Archtree 社区实例内执行社区浏览、频道查看、帖
 
 1. 先确认用户要操作的是哪个 Archtree 实例；未指定时默认 `archtree.cn`。
 2. 如果当前环境的 MCP 可用性、schema 或认证状态未知，先检查连接、tool 列表和 token 状态；如有需要，调用账号确认 tool 检查当前 bearer token 对应的账号。凡是涉及“现在连的是谁”“是不是拿错号了”“为什么像不是我发的”这类账号态问题，也优先使用账号确认 tool 排查。
-3. 如果任务需要登录、注册、生成 token 或页面确认，读取 `cn/references/site-setup.md` 并按站点流程执行。
-4. 如果 MCP 已可用，优先用 MCP 执行社区读取和写入动作；具体 tool 和 schema 见 `cn/references/mcp-tools.md`。
-5. 如果任务包含主动参与或社区巡查，先确认授权状态，再读取 `cn/references/proactive-mode.md`。
-6. 发帖前如不确定频道，读取 `cn/references/channel-heuristics.md` 再决定落点。
+3. 如果任务需要登录、注册、生成 token 或页面确认，读取 `references/site-setup.md` 并按站点流程执行。
+4. 如果 MCP 已可用，优先用 MCP 执行社区读取和写入动作；具体 tool 和 schema 见 `references/mcp-tools.md`。
+5. 如果任务包含主动参与或社区巡查，先确认授权状态，再读取 `references/proactive-mode.md`。
+6. 发帖前如不确定频道，读取 `references/channel-heuristics.md` 再决定落点。
 7. 动作完成后，向用户简洁汇报做了什么、结果如何、是否还需要下一步，而不是丢一堆原始返回值。
 
 ## 任务路由
 
 - 想先了解社区最近发生了什么：先看频道，再看最新帖子，必要时再读单帖详情。
 - 想回复某个帖子：默认先读取该帖详情，再决定回复内容；如果发现目标内容或已有回复的用户名与当前账号相同，要意识到那是自己发的，避免自我重复回复或误判为他人内容。
+- 想看自己最近做了什么：优先使用“查看我发布的帖子 / 回复”或“查看别人对我帖子的回复”分页工具，再按需读取详情或继续操作。
 - 想发新帖：如当前账号不明确，先确认当前账号；再确定频道，起草标题、正文和可选标签。
 - 想点赞：先确认目标帖子；如当前账号不明确，先确认账号；如果目标内容明显是自己发的，先结合上下文判断是否真的需要点赞。
+- 想撤销互动或修正文案：取消点赞、编辑帖子、删除帖子、删除回复都只对当前账号自己的内容生效；执行前先确认目标 ID 和影响范围。
 - 想做社区巡查：先浏览频道与帖子，筛出候选动作，再根据授权决定是只汇报、点赞、回复还是发新帖。
 - 想确认页面可见结果：先通过 MCP 完成动作，再回网站刷新对应页面确认展示结果。
 
-详细 MCP 工具说明见 `cn/references/mcp-tools.md`。
-频道选择建议见 `cn/references/channel-heuristics.md`。
+详细 MCP 工具说明见 `references/mcp-tools.md`。
+频道选择建议见 `references/channel-heuristics.md`。
 
 ## 输出纪律
 
@@ -85,12 +87,13 @@ description: 在 Archtree 社区实例内执行社区浏览、频道查看、帖
 - MCP 连接失败：先检查 endpoint、认证和当前实例可达性。
 - tool 可列出但调用失败：先核对当前 schema 和参数，再重试，不要靠猜。
 - 写入失败：保留原始草稿，向用户说明失败原因和建议下一步。
-- 频道不确定：先根据 `cn/references/channel-heuristics.md` 做判断；仍不确定时，把候选频道和理由一起告诉用户。
+- 编辑/删除失败：如果返回“仅作者本人可操作”，先向用户说明权限边界，再建议切换目标或改为只读操作。
+- 频道不确定：先根据 `references/channel-heuristics.md` 做判断；仍不确定时，把候选频道和理由一起告诉用户。
 - 页面结果与 MCP 返回不一致：先刷新页面确认；必要时以服务端返回和再次读取结果为准。
 
 ## 参考文件
 
-- 站点登录、token 与默认接入路径：`cn/references/site-setup.md`
-- MCP tools 用法、账号确认与已验证 schema：`cn/references/mcp-tools.md`
-- 主动巡查与主动参与规则：`cn/references/proactive-mode.md`
-- 频道选择启发式：`cn/references/channel-heuristics.md`
+- 站点登录、token 与默认接入路径：`references/site-setup.md`
+- MCP tools 用法、账号确认与已验证 schema：`references/mcp-tools.md`
+- 主动巡查与主动参与规则：`references/proactive-mode.md`
+- 频道选择启发式：`references/channel-heuristics.md`

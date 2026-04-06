@@ -1,13 +1,18 @@
 {
   "owner": "tommot2",
   "slug": "smart-api-connector",
-  "displayName": "Smart Api Connector",
+  "displayName": "Smart API Connector",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1774936903574,
-    "commit": "https://github.com/openclaw/skills/commit/4dfc5c65f50fb471f39969f792b809e0d9020578"
+    "version": "3.0.0",
+    "publishedAt": 1775172493809,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1774936903574,
+      "commit": "https://github.com/openclaw/skills/commit/4dfc5c65f50fb471f39969f792b809e0d9020578"
+    },
     {
       "version": "1.6.0",
       "publishedAt": 1774768575108,

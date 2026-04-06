@@ -3,9 +3,15 @@
   "slug": "zoho-cliq",
   "displayName": "Zoho Cliq",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775009068542,
-    "commit": "https://github.com/openclaw/skills/commit/e9f92200a6f08a64c3ecb23b587c07bfd5421d6d"
+    "version": "1.0.2",
+    "publishedAt": 1775170302333,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775009068542,
+      "commit": "https://github.com/openclaw/skills/commit/e9f92200a6f08a64c3ecb23b587c07bfd5421d6d"
+    }
+  ]
 }

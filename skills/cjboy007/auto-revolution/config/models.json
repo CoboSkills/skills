@@ -1,17 +1,17 @@
 {
   "roles": {
     "reviewer": {
-      "primary": "高级模型",
-      "fallback": "备用模型",
-      "description": "优先使用高级模型，认证失败则 fallback 到备用模型"
+      "primary": "default-model/gemini-pro",
+      "fallback": "advanced-model/gemini-pro",
+      "description": "优先使用 Google 官方 Gemini，认证失败则 fallback 到 Aiberm"
     },
-    "executor": "默认模型",
+    "executor": "advanced-model/gpt",
     "auditor": {
-      "primary": "高级模型",
-      "fallback": "备用模型",
-      "description": "优先使用高级模型，认证失败则 fallback 到备用模型"
+      "primary": "default-model/gemini-pro",
+      "fallback": "advanced-model/gemini-pro",
+      "description": "优先使用 Google 官方 Gemini，认证失败则 fallback 到 Aiberm"
     },
-    "coordinator": "协调模型"
+    "coordinator": "default-model/qwen-plus"
   },
   "timeouts": {
     "reviewer": 300,
@@ -20,7 +20,7 @@
     "description": "超时时间（秒）：Reviewer/Auditor 5 分钟，Executor 5 分钟"
   },
   "enforceAudit": true,
-  "executorDefault": "默认模型",
-  "description": "Executor 统一使用默认模型（代码能力强），除非用户特殊要求",
-  "lastUpdated": "2026-03-29"
+  "executorDefault": "advanced-model/gpt",
+  "description": "Executor 统一使用 GPT-5.4（代码能力强），除非用户特殊要求",
+  "lastUpdated": "2026-03-29T12:53:00+08:00"
 }

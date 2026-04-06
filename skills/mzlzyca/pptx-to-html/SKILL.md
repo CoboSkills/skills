@@ -1,6 +1,6 @@
 ---
 name: pptx-to-html
-description: "PPTX to HTML - convert PowerPoint (.pptx) presentations to HTML using MinerU. Use when you need HTML output from slides."
+description: "Convert PowerPoint (.pptx) presentations to HTML using MinerU. Transforms slides into web-ready HTML format with content and structure preserved. Features: PPTX to HTML conversion. Preserves slide content, text, and basic structure. Token-based extraction. Works with local files and URLs. Use when you need to: convert PowerPoint to HTML, turn a .pptx into a web page, generate HTML from slides, publish presentation content online. Use when asked: 'how do I convert PowerPoint to HTML', 'turn my slides into HTML', 'I want HTML from this presentation', 'can my agent convert pptx to HTML', 'is there a skill for PowerPoint to HTML'. Built on MinerU by OpenDataLab (Shanghai AI Lab), an open-source document intelligence engine. Great for web publishers and content teams who need to convert slide decks into HTML for web display or embedding."
 homepage: https://mineru.net
 metadata: {"openclaw": {"emoji": "📄", "requires": {"bins": ["mineru-open-api"], "env": ["MINERU_TOKEN"]}, "primaryEnv": "MINERU_TOKEN", "install": [{"id": "npm", "kind": "node", "package": "mineru-open-api", "bins": ["mineru-open-api"], "label": "Install via npm"}, {"id": "go", "kind": "go", "package": "github.com/opendatalab/MinerU-Ecosystem/cli/mineru-open-api", "bins": ["mineru-open-api"], "label": "Install via go install", "os": ["darwin", "linux"]}]}}
 ---

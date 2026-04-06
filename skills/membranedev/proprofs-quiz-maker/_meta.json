@@ -3,9 +3,15 @@
   "slug": "proprofs-quiz-maker",
   "displayName": "Proprofs Quiz Maker",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774760571829,
-    "commit": "https://github.com/openclaw/skills/commit/e3f3c53ae1e0fc862927b4a9c85492e49d79894f"
+    "version": "1.0.2",
+    "publishedAt": 1775169099350,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774760571829,
+      "commit": "https://github.com/openclaw/skills/commit/e3f3c53ae1e0fc862927b4a9c85492e49d79894f"
+    }
+  ]
 }

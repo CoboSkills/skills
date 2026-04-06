@@ -1,10 +1,13 @@
 ---
 name: auto-caption-video
-version: "5.0.1"
+version: 5.0.2
 displayName: "Auto Caption Video — AI Captions for Creators Managing Multiple Client Projects Simultaneously"
 description: >
   Tuesday at 4 PM. You have eight client videos due tomorrow morning: a restaurant walkthrough, a SaaS product demo, a gym trainer intro, a real estate agent tour, and four social clips. Every one needs captions. Manual work would mean working until 2 AM. Auto Caption Video processes all eight simultaneously — upload the batch, describe your styling preferences once, and receive captioned videos ready for client delivery before dinner. For creators managing volume, the math is simple: eight videos at 45 minutes manual captioning each equals six hours of repetitive work. Auto Caption Video handles the same eight videos in under twenty minutes, with consistent timing accuracy and platform-appropriate positioning across every deliverable.
-metadata: {"openclaw": {"emoji": "📝", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+metadata: {"openclaw": {"emoji": "📝", "requires": {"env": ["NEMO_TOKEN"], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+homepage: https://nemovideo.com
+repository: https://github.com/nemovideo/nemovideo_skills
+apiDomain: https://mega-api-prod.nemovideo.ai
 ---
 
 # Auto Caption Video — When Eight Clients All Need Captions by Morning, Manual Work Is Not an Option

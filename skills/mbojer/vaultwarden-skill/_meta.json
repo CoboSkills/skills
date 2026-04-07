@@ -1,0 +1,11 @@
+{
+  "owner": "mbojer",
+  "slug": "vaultwarden-skill",
+  "displayName": "Vaultwarden Secrets",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775247890256,
+    "commit": null
+  },
+  "history": []
+}

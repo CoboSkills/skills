@@ -139,8 +139,6 @@ Default for `text-to-image`: **nano-banana-2**
 | runway | Runway | Runway | text-to-video, image-to-video | 720p, 1080p | 5s, 10s |
 | veo-3-1 | Veo 3.1 | Google | text-to-video, image-to-video, frames-to-video, reference-to-video | 720p, 1080p, 4k | — |
 | veo-3-1-fast | Veo 3.1 Fast | Google | text-to-video, image-to-video, frames-to-video, reference-to-video | 720p, 1080p, 4k | — |
-| sora-2-pro | Sora 2 Pro | OpenAI | text-to-video, image-to-video | — | 10s, 15s |
-| sora-2 | Sora 2 | OpenAI | text-to-video, image-to-video | — | 10s, 15s |
 | seedence-1-0-pro | Seedence 1.0 Pro | ByteDance | text-to-video, image-to-video | 480p, 720p, 1080p | 5s, 10s |
 | seedence-1-0-pro-fast | Seedence 1.0 Pro Fast | ByteDance | image-to-video | 720p, 1080p | 5s, 10s |
 | seedence-1-0-lite | Seedence 1.0 Lite | ByteDance | text-to-video, image-to-video | 480p, 720p, 1080p | 5s, 10s |

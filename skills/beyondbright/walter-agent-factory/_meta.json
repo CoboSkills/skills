@@ -1,11 +1,17 @@
 {
   "owner": "beyondbright",
   "slug": "walter-agent-factory",
-  "displayName": "walter-agent-factory",
+  "displayName": "Agent Factory (Walter)",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1775121117642,
-    "commit": "https://github.com/openclaw/skills/commit/f06c029868878ee59fef9ad9a404b61170c1d1d5"
+    "version": "2.1.1",
+    "publishedAt": 1775495284028,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1775121117642,
+      "commit": "https://github.com/openclaw/skills/commit/f06c029868878ee59fef9ad9a404b61170c1d1d5"
+    }
+  ]
 }

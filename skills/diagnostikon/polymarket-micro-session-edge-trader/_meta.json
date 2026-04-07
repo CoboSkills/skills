@@ -1,0 +1,11 @@
+{
+  "owner": "diagnostikon",
+  "slug": "polymarket-micro-session-edge-trader",
+  "displayName": "Polymarket Micro Session Edge Trader",
+  "latest": {
+    "version": "1.0.4",
+    "publishedAt": 1775368686550,
+    "commit": null
+  },
+  "history": []
+}

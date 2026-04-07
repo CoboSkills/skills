@@ -3,9 +3,15 @@
   "slug": "agent-matchmaking",
   "displayName": "Agent Matchmaking",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1775092926319,
-    "commit": "https://github.com/openclaw/skills/commit/a73c3fc52d7d0cda7c42b552ae12645c67676222"
+    "version": "0.1.1",
+    "publishedAt": 1775353816085,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1775092926319,
+      "commit": "https://github.com/openclaw/skills/commit/a73c3fc52d7d0cda7c42b552ae12645c67676222"
+    }
+  ]
 }

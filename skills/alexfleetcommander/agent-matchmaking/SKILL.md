@@ -1,9 +1,20 @@
 ---
-name: agent_matchmaking
-description: "Cross-platform agent discovery and matching. Find the right agent for a task using capability profiles, reputation scores, and compatibility-weighted ranking."
+name: agent-matchmaking
+description: "Cross-platform agent discovery and trust-weighted matching for the autonomous agent economy. Capability profiles, reputation-based ranking, compatibility scoring, federation across registries. Find the right agent for any task. Part of the Agent Trust Stack."
 user-invocable: true
+tags:
+  - agent-trust
+  - matchmaking
+  - discovery
+  - federation
+  - capability-matching
+  - marketplace
+  - mcp
+  - autonomous-agents
 metadata:
   openclaw:
+    author: alexfleetcommander
+    homepage: https://vibeagentmaking.com
     requires:
       bins:
         - python3

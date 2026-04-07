@@ -1,0 +1,11 @@
+{
+  "owner": "justoneapi",
+  "slug": "justoneapi-facebook",
+  "displayName": "Facebook API",
+  "latest": {
+    "version": "1.0.6",
+    "publishedAt": 1775375318587,
+    "commit": null
+  },
+  "history": []
+}

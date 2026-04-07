@@ -1,0 +1,11 @@
+{
+  "owner": "alexhegit",
+  "slug": "llamacpp-bench",
+  "displayName": "llama.cpp Benchmark",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775348612173,
+    "commit": null
+  },
+  "history": []
+}

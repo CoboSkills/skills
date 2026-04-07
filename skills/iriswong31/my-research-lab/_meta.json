@@ -1,11 +1,17 @@
 {
   "owner": "iriswong31",
   "slug": "my-research-lab",
-  "displayName": "私人研究院",
+  "displayName": "My Research Lab",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775057404471,
-    "commit": "https://github.com/openclaw/skills/commit/5a8aedf5cb0bfd169a772dfd8b1a0b60fe56f37e"
+    "version": "1.8.0",
+    "publishedAt": 1775185151557,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775057404471,
+      "commit": "https://github.com/openclaw/skills/commit/5a8aedf5cb0bfd169a772dfd8b1a0b60fe56f37e"
+    }
+  ]
 }

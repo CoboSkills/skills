@@ -1,0 +1,5 @@
+{
+  "skillPath": "/Users/yaohua.liu/.workbuddy/skills/csdn-article-publish",
+  "outputDir": "~/WorkBuddy/csdn-article-publish",
+  "description": "浏览器发布 CSDN；本地导出的 Markdown 草稿/附件建议放 outputDir"
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "ip2location",
+  "displayName": "Ip2Location",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775383522473,
+    "commit": null
+  },
+  "history": []
+}

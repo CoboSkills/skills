@@ -1,0 +1,11 @@
+{
+  "owner": "ymgenc",
+  "slug": "plex-control",
+  "displayName": "Plex Media Remote",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1775387654916,
+    "commit": null
+  },
+  "history": []
+}

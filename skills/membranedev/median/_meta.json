@@ -3,9 +3,15 @@
   "slug": "median",
   "displayName": "Median",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775135001240,
-    "commit": "https://github.com/openclaw/skills/commit/c5291911ff003c158571fa9d4bd34932adb849a6"
+    "version": "1.0.2",
+    "publishedAt": 1775171030329,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775135001240,
+      "commit": "https://github.com/openclaw/skills/commit/c5291911ff003c158571fa9d4bd34932adb849a6"
+    }
+  ]
 }

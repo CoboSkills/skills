@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "google-ad-manager",
+  "displayName": "Google Ad Manager",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775350999947,
+    "commit": null
+  },
+  "history": []
+}

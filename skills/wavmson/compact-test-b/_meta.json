@@ -1,0 +1,11 @@
+{
+  "owner": "wavmson",
+  "slug": "compact-test-b",
+  "displayName": "Test B",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775066406192,
+    "commit": null
+  },
+  "history": []
+}

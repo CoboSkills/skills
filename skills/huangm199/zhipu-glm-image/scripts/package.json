@@ -1,6 +1,6 @@
 {
   "name": "zhipu-glm-image",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "智谱 GLM-Image 网页登录态图片生成与下载工具",
   "main": "./zhipu_api.js",
   "bin": {

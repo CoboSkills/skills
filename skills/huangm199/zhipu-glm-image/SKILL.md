@@ -63,4 +63,6 @@ npm run generate
 
 - 依赖浏览器远程调试端口 `18800`
 - 需要浏览器里登录 `https://image.z.ai/`
+- session 保存在 Windows 用户目录：`%USERPROFILE%\\.zhipu_image_session.json`
+- 首次使用前请先在 `scripts/` 目录执行 `npm install`
 - 这是网页接口方案；如果网页字段更新，优先用 `network_monitor.js` 重新观察请求

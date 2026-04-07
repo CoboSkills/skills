@@ -10,7 +10,7 @@ let CDP;
 try {
   CDP = require('chrome-remote-interface');
 } catch {
-  CDP = require('C:\\Users\\huang\\.openclaw\\workspace\\skills\\doubao-media\\scripts\\node_modules\\chrome-remote-interface');
+  throw new Error('Missing dependency: chrome-remote-interface. Run npm install in scripts/ before using this skill.');
 }
 const http = require('http');
 const https = require('https');

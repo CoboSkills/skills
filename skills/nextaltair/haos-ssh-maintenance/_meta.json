@@ -1,0 +1,11 @@
+{
+  "owner": "nextaltair",
+  "slug": "haos-ssh-maintenance",
+  "displayName": "Haos Ssh Maintenance",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775290963784,
+    "commit": null
+  },
+  "history": []
+}

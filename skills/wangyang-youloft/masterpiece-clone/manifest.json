@@ -1,8 +1,8 @@
 {
   "name": "masterpiece-clone",
   "display_name": "MasterPiece Clone",
-  "description": "Execute the MasterPiece Clone workflow with prompt-to-text and image-to-image processing",
-  "version": "1.0.1",
+  "description": "Transfer the style of a reference image to a target photo using advanced image-to-image processing",
+  "version": "1.0.2",
   "author": "your-name",
   "type": "api",
   "category": "image-generation",
@@ -15,8 +15,7 @@
   "request_body": {
     "inputs": {
       "Image Input": "{{image}}",
-      "Image Input 1": "{{image_1}}",
-      "Text Input": "{{prompt}}"
+      "Image Input 1": "{{image_1}}"
     }
   },
   "inputs": [
@@ -31,12 +30,6 @@
       "type": "string",
       "required": true,
       "description": "Publicly accessible second image URL"
-    },
-    {
-      "name": "prompt",
-      "type": "string",
-      "required": true,
-      "description": "Text prompt to control the generation"
     }
   ],
   "outputs": [

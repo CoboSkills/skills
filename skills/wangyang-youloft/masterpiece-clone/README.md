@@ -1,24 +1,31 @@
 # MasterPiece Clone
 
-**MasterPiece Clone** is a specialized AI workflow that functions as a **visual language expert** and editorial photography cloning system. It takes high-end photography as input, decomposes it into cinematic, descriptive prompts, and recreates the visual essence in a new image.
+**MasterPiece Clone** transfers the visual style of a reference image to your target photo. Upload a reference image with your desired aesthetic (lighting, mood, composition), and the workflow will transform your photo to match that style while preserving your subject.
 
 ---
 
 ## ✨ Features
 
-- **Visual Language Deconstruction**: Transforms high-end editorial photography into clean, technical descriptive prompts.
-- **Privacy-First Design**: Unified subject terminology (e.g., "The person", "The subject") to strip specific identity traits.
-- **Cinematic Style Cloning**: High-fidelity recreation of composition, textures, and lighting.
-- **Async Execution**: Robust asynchronous API handling for complex AI generation tasks.
+- **Style Transfer**: Apply the visual aesthetic of a high-end reference photo to your own images
+- **Cinematic Enhancement**: Transform standard photos into editorial-quality images with professional lighting and composition
+- **Composition Cloning**: Replicate the lighting, color grading, and mood of a reference image
+- **Async Execution**: Robust asynchronous API handling for complex AI generation tasks
 
 ---
 
 ## 🚀 How It Works
 
-1. **Upload Images**: Provide two reference images for style and content analysis.
-2. **Assign Instructions**: Define the role of the visual language expert via a text prompt.
-3. **Analyze & Generate**: The AI analyzes the photography style and processes it into a refined output.
-4. **Get Results**: Receive a high-quality, photorealistic editorial masterpiece.
+1. **Prepare Two Images**:
+   - **Reference Image**: A photo with the visual style you want to transfer (lighting, mood, color grading)
+   - **Target Photo**: Your image that you want to transform
+
+2. **Submit in Correct Order**:
+   - First parameter (`Image Input`): Reference image
+   - Second parameter (`Image Input 1`): Target photo to be transformed
+
+3. **Get Results**: Receive your target photo transformed with the reference style applied
+
+⚠️ **Important: Image order matters!** Swapping the images will produce different results.
 
 ---
 
@@ -27,14 +34,30 @@
 ### Input
 ```json
 {
-  "Image Input": "https://example.com/adopted_20260324081228_0.png",
-  "Image Input 1": "https://example.com/20251219_200547_ivy_runway_fullbody.png",
-  "Text Input": "你是一位视觉语言专家。请将输入的【摄影大片】拆解为一段高度精炼、纯描述性的英文短段落，用于闭源 AI 图生图工作流..."
+  "Image Input": "https://example.com/reference-style.png",
+  "Image Input 1": "https://example.com/target-photo.png"
 }
 ```
 
+**What happens:**
+- The workflow analyzes the reference image's visual characteristics (lighting, color grading, composition)
+- It applies these characteristics to transform your target photo
+- You receive a new image that maintains your subject while adopting the reference style
+
 ### Preview
-![Cloned MasterPiece](https://cdn.miraskill.cc/__skill_publish_files__/wangyang/generated-kM43NBVXDjluTGUiozmE-0_compressed.png)
+
+| Reference Style | Target Photo | Result |
+| :---: | :---: | :---: |
+| ![Reference](https://cdn.miraskill.cc/__skill_publish_files__/wangyang/adopted_20260324081228_0_compressed.png) | ![Target](https://cdn.miraskill.cc/__skill_publish_files__/wangyang/20251219_200547_ivy_runway_fullbody_916_dramatic_013_compressed450.png) | ![Result](https://cdn.miraskill.cc/__skill_publish_files__/wangyang/generated-kM43NBVXDjluTGUiozmE-0_compressed.png) |
+
+---
+
+## 💡 Use Cases
+
+- **Editorial Photography**: Transform your photos into magazine-quality images
+- **Brand Consistency**: Apply a consistent visual style across multiple photos
+- **Creative Direction**: Reimagine your photos with the artistic direction of a reference image
+- **Professional Enhancement**: Upgrade standard photos with cinematic lighting and mood
 
 ---
 

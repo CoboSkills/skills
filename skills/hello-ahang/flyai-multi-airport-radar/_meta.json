@@ -3,9 +3,15 @@
   "slug": "flyai-multi-airport-radar",
   "displayName": "同城不同价",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775122431986,
-    "commit": "https://github.com/openclaw/skills/commit/64bfef343b0f2c19045a82d3f8bc5bf649d72748"
+    "version": "1.0.1",
+    "publishedAt": 1775236992623,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775122431986,
+      "commit": "https://github.com/openclaw/skills/commit/64bfef343b0f2c19045a82d3f8bc5bf649d72748"
+    }
+  ]
 }

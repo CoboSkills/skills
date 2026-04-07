@@ -1,23 +1,19 @@
 ---
 name: sn-work-record
-description: 蜀宁 OA 工时管理（需提供：系统地址、账号、密码）。当用户提到工时、撤回、修改工时描述、或提到蜀宁科技时触发。用于：查询工时状态、撤回审批中的工时、修改工时描述后自动重新提交。
+description: 蜀宁 OA 工时管理（凭证加密存储）。当用户提到工时、撤回、修改工时描述、或提到蜀宁科技时触发。用于：查询工时状态、撤回审批中的工时、修改工时描述后自动重新提交。
 ---
 
 # 蜀宁 OA 工时管理
 
-## 凭据要求
+## 安全说明
 
-**首次使用**需提供以下信息（仅本次，之后存到本地）：
+凭证使用 **AES-256-CBC** 加密存储在 `memory/sn-work-record-credentials.md.enc`，解密密钥（passphrase）仅存在于内存中，不会落盘。
 
-- **系统地址**：OA 登录页 URL（如 http://117.172.29.11:18089/login）
-- **账号**：工时系统登录账号
-- **密码**：登录密码
+**首次使用**需要提供：
+- 系统地址、账号、密码
+- 一个你记住的 passphrase（用于加密/解密凭证）
 
-**安全建议**：建议使用**副账号**而非主账号，避免个人密码泄露。
-
-## 存储方式
-
-凭据保存到 `memory/sn-work-record-credentials.md`。文件由 OpenClaw  workspace 管理，仅本地访问，不随 skill 分发。
+**重要**：passphrase 必须记住！如果遗忘，只能删除加密文件后重新输入凭证。
 
 ## 状态值
 
@@ -48,11 +44,22 @@ POST /sn/timeEntry/update {"id": "<工时ID>", "jobDesc": "新描述"}
 
 ## 完整流程
 
-1. 确认凭据已保存（首次需提供）
+1. 确认凭据已加密保存（首次需提供系统地址+账号+密码+passphrase）
 2. 获取工时 ID（列表页或日历视图）
-3. `cancelApply` 撤回
-4. `update` 修改描述 → 自动重新提交
-5. `get` 验证结果
+3. 输入 passphrase 解密
+4. `cancelApply` 撤回
+5. `update` 修改描述 → 自动重新提交
+6. `get` 验证结果
+
+## 加密/解密命令
+
+```bash
+# 加密（存凭证）
+openssl enc -aes-256-cbc -salt -in credential_input.txt -out memory/sn-work-record-credentials.md.enc -pass pass:YOUR_PASSPHRASE
+
+# 解密（读凭证）
+openssl enc -d -aes-256-cbc -in memory/sn-work-record-credentials.md.enc -pass pass:YOUR_PASSPHRASE
+```
 
 ## API 详情
 

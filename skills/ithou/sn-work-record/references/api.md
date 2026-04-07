@@ -2,7 +2,7 @@
 
 ## 系统信息
 
-- **baseURL**: 从对话获取后保存（存于 memory/sn-work-record-credentials.md）
+- **baseURL**: 从对话获取后保存（存于 memory/sn-work-hours-credentials.md）
 - **API 路径**: /sn/timeEntry/*
 
 ## 工时相关 API
@@ -54,17 +54,17 @@ Content-Type: application/json
 撤回:
 
 ```json
-{"code": "200", "msg": "操作成功", "data": {"id": "...", "state": "10"}}
+{"code": "200", "msg": "操作成功", "data": {"id": "2039999338606305282", "state": "10"}}
 ```
 
 修改:
 
 ```json
-{"code": "200", "msg": "操作成功", "data": {"id": "...", "jobDesc": "..."}}
+{"code": "200", "msg": "操作成功", "data": {"id": "2039999338606305282", "jobDesc": "发改需求：12345企业投诉不满意数据重构"}}
 ```
 
 查询:
 
 ```json
-{"id": "...", "jobDesc": "...", "state": "20"}
+{"id": "2039999338606305282", "jobDesc": "发改需求：12345企业投诉不满意数据重构", "state": "20"}
 ```

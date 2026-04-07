@@ -1,0 +1,11 @@
+{
+  "owner": "w1tv",
+  "slug": "xiaobaozi-hello-skill",
+  "displayName": "小包子Hello技能",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775338702856,
+    "commit": null
+  },
+  "history": []
+}

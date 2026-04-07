@@ -1,0 +1,11 @@
+{
+  "owner": "goog",
+  "slug": "substack-search",
+  "displayName": "substack AI news SEARCH",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775379502258,
+    "commit": null
+  },
+  "history": []
+}

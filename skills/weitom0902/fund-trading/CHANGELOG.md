@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-04-03
+
+### Added
+- 添加重要声明：**真实基金净值，虚拟资金交易**
+- 明确说明基金净值和行情数据来自真实市场
+- 明确说明交易资金为虚拟模拟资金
+
+### Changed
+- 更新文档标题为"基金模拟交易工具"
+- 添加"模拟交易"、"虚拟资金"标签
+
 ## [1.0.1] - 2026-03-30
 
 ### Changed

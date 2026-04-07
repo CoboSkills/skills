@@ -3,9 +3,15 @@
   "slug": "adversarial-verification",
   "displayName": "Adversarial Verification",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775337437819,
-    "commit": "https://github.com/openclaw/skills/commit/3e1ff5b22dcb2b7b196fbb0cb66bd68d55f10ca2"
+    "version": "1.0.3",
+    "publishedAt": 1775337458093,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775337437819,
+      "commit": "https://github.com/openclaw/skills/commit/3e1ff5b22dcb2b7b196fbb0cb66bd68d55f10ca2"
+    }
+  ]
 }

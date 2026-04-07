@@ -1,6 +1,6 @@
 {
   "name": "adversarial-verification",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "对抗性验证技能 - 专门想方设法搞崩系统，受对抗性测试理念启发（开源社区贡献，非商业化）",
   "main": "scripts/simple-verify.js",
   "scripts": {

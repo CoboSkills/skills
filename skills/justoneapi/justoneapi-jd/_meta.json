@@ -1,0 +1,11 @@
+{
+  "owner": "justoneapi",
+  "slug": "justoneapi-jd",
+  "displayName": "JD.com API",
+  "latest": {
+    "version": "1.0.6",
+    "publishedAt": 1775375329559,
+    "commit": null
+  },
+  "history": []
+}

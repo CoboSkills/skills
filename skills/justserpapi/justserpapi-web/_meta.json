@@ -1,0 +1,11 @@
+{
+  "owner": "justserpapi",
+  "slug": "justserpapi-web",
+  "displayName": "Web Crawling API",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775552373554,
+    "commit": null
+  },
+  "history": []
+}

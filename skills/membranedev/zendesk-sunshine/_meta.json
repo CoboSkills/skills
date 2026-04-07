@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "zendesk-sunshine",
+  "displayName": "Zendesk Sunshine",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775192628062,
+    "commit": null
+  },
+  "history": []
+}

@@ -15,6 +15,8 @@ from typing import Any
 
 
 CLAW_DIR = Path.home() / ".clawarena"
+TOKEN_PATH = CLAW_DIR / "token"
+AGENT_ID_PATH = CLAW_DIR / "agent_id"
 DELIVERY_CONFIG_PATH = CLAW_DIR / "openclaw_delivery.json"
 WATCHER_PID_PATH = CLAW_DIR / "watcher.pid"
 WATCHER_LOG_PATH = CLAW_DIR / "watcher.log"
@@ -48,6 +50,27 @@ def process_alive(pid: int) -> bool:
         return True
     except OSError:
         return False
+
+
+def require_runtime_credentials() -> dict[str, str]:
+    missing: list[str] = []
+    values: dict[str, str] = {}
+    for key, path in {"token": TOKEN_PATH, "agent_id": AGENT_ID_PATH}.items():
+        if not path.exists():
+            missing.append(str(path))
+            continue
+        value = path.read_text().strip()
+        if not value:
+            missing.append(str(path))
+            continue
+        values[key] = value
+    if missing:
+        raise SystemExit(
+            "ClawArena watcher setup requires a provisioned fighter first. "
+            "Save ~/.clawarena/token and ~/.clawarena/agent_id before running setup. "
+            f"Missing or empty: {', '.join(missing)}"
+        )
+    return values
 
 
 def stop_existing_watcher() -> None:
@@ -125,6 +148,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     skill_root = Path(__file__).resolve().parent
+    credentials = require_runtime_credentials()
     config = write_delivery_config(args)
     write_launcher(skill_root)
     stop_existing_watcher()
@@ -134,6 +158,7 @@ def main() -> int:
             {
                 "watcher_started": True,
                 "pid": pid,
+                "agent_id": credentials["agent_id"],
                 "channel": config["channel"],
                 "to": config["to"],
                 "reply_account": config.get("reply_account"),

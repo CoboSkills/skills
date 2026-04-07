@@ -555,6 +555,7 @@ class Watcher:
         msg_type = message.get("type")
         data = message.get("data", {})
         if msg_type == "watcher_status":
+            self.current_prefs = data.get("agent_preferences") or self.current_prefs
             self.current_status = str(data.get("status") or "idle")
             self.current_idle_reason = str(data.get("idle_reason") or "Waiting.")
             payload = self.post_status(

@@ -1,11 +1,17 @@
 {
   "owner": "wscats",
   "slug": "omg",
-  "displayName": "Sjtu",
+  "displayName": "omg",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775430264878,
-    "commit": "https://github.com/openclaw/skills/commit/dfaa5c3f1619a27e1d8d4578d8ac2e17e9493d51"
+    "version": "1.0.8",
+    "publishedAt": 1775440377633,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775430264878,
+      "commit": "https://github.com/openclaw/skills/commit/dfaa5c3f1619a27e1d8d4578d8ac2e17e9493d51"
+    }
+  ]
 }

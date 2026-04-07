@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "duo-security",
+  "displayName": "Duo Security",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775271851750,
+    "commit": null
+  },
+  "history": []
+}

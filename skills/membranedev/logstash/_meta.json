@@ -3,9 +3,15 @@
   "slug": "logstash",
   "displayName": "Logstash",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775109770422,
-    "commit": "https://github.com/openclaw/skills/commit/f6e3bf7ce3d02c55eaeef71db841bf7c01b894bb"
+    "version": "1.0.2",
+    "publishedAt": 1775170850209,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775109770422,
+      "commit": "https://github.com/openclaw/skills/commit/f6e3bf7ce3d02c55eaeef71db841bf7c01b894bb"
+    }
+  ]
 }

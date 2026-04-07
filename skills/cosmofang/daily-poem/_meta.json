@@ -1,0 +1,11 @@
+{
+  "owner": "cosmofang",
+  "slug": "daily-poem",
+  "displayName": "Daily Poem",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775365327000,
+    "commit": null
+  },
+  "history": []
+}

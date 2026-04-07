@@ -3,9 +3,15 @@
   "slug": "community-os-v2",
   "displayName": "CommunityOS",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1775199055248,
-    "commit": "https://github.com/openclaw/skills/commit/5bee0444e7b1d8590ccfdfd51c52bb9a3d207c5e"
+    "version": "1.2.0",
+    "publishedAt": 1775202831240,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1775199055248,
+      "commit": "https://github.com/openclaw/skills/commit/5bee0444e7b1d8590ccfdfd51c52bb9a3d207c5e"
+    }
+  ]
 }

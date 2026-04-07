@@ -60,14 +60,14 @@ metadata:
 
 ### 1. 安装 Skill
 ```bash
-clawhub install community-os
+clawhub install community-os-v2
 ```
 
 ### 2. 初始化项目
 
 交互式（推荐）：
 ```bash
-python3 ~/.openclaw/workspace/skills/community-os/scripts/init_community_os.py ./my-community
+python3 ~/.openclaw/workspace/skills/community-os-v2/scripts/init_community_os.py ./my-community
 ```
 
 向导会要求填写：
@@ -104,7 +104,7 @@ python3 start_harness.py
 ### 创建新 Bot
 
 ```bash
-python3 ~/.openclaw/workspace/skills/community-os/scripts/create_bot.py <项目路径> <bot_id> "<名字>" --role <角色>
+python3 ~/.openclaw/workspace/skills/community-os-v2/scripts/create_bot.py <项目路径> <bot_id> "<名字>" --role <角色>
 
 # 示例
 python3 scripts/create_bot.py ./my-community newsbot "资讯Bot" --role broadcaster
@@ -114,7 +114,7 @@ python3 scripts/create_bot.py ./my-community newsbot "资讯Bot" --role broadcas
 
 ```bash
 # 初始化知识库
-python3 ~/.openclaw/workspace/skills/community-os/scripts/setup_knowledge.py ./my-community cypher
+python3 ~/.openclaw/workspace/skills/community-os-v2/scripts/setup_knowledge.py ./my-community cypher
 
 # 添加文档后索引
 python3 scripts/setup_knowledge.py ./my-community cypher --index

@@ -1,0 +1,11 @@
+{
+  "owner": "bensema",
+  "slug": "tdx-api-skill",
+  "displayName": "通达信TDX股票查询技能",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775195412491,
+    "commit": null
+  },
+  "history": []
+}

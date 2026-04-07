@@ -1,0 +1,11 @@
+{
+  "owner": "crftsmnd",
+  "slug": "baseline-rag",
+  "displayName": "Baseline-RAG",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775367044765,
+    "commit": null
+  },
+  "history": []
+}

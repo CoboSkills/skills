@@ -1,84 +1,71 @@
 ---
 name: tmux-bridge
-description: Bundled CLI for tmux cross-pane messaging and pane interaction.
+description: Cross-pane messaging for AI agents.
 metadata:
   { "openclaw": { "emoji": "🌉", "os": ["darwin", "linux"], "requires": { "bins": ["tmux"] } } }
 ---
 
 # tmux-bridge
 
-在这个 skill 里默认优先使用本机已安装的 `tmux-bridge` 命令。不要使用任何相对路径，因为 agent 看到的 skill 目录可能是软链接。命令不存在时，先解析脚本真实路径；如果还不可用，就让用户先安装。
+Simple CLI for cross-pane messaging with explicit reply tracking.
 
-## 快速理解
-
-`tmux-bridge` 做 3 件事：
-
-- 读取别的 pane
-- 给别的 pane 发任务
-- 管理“这条消息要不要等回复”
-
-## 关键规则
-
-- agent pane 默认用 `read -> send`
-- `type` 或 `keys` 前必须先 `read`
-- `send` / `message` 必须显式声明 `--expect-reply` 或 `--no-reply`
-- 不要持续抓取对方状态；只有期待回复且超时未回时才检查
-- 发给 agent 后不要等待或轮询；回复会回到你的 pane
-- label 只有在当前 session 内唯一时才可靠
-
-## 常用命令
+## Commands
 
 ```bash
-tmux-bridge list
-tmux-bridge read <target> [lines]
-tmux-bridge send --expect-reply <target> <text>
-tmux-bridge send --no-reply <target> <text>
-tmux-bridge message --expect-reply <target> <text>
-tmux-bridge message --no-reply <target> <text>
-tmux-bridge type <target> <text>
-tmux-bridge keys <target> <key>...
-tmux-bridge name <target> <label>
-tmux-bridge resolve <label>
-tmux-bridge id
+tmux-bridge -l <session_name> [delay_secs]               # Short alias for launch
+tmux-bridge -k <session_name>                            # Short alias for kill-session
+tmux-bridge launch <session_name> [delay_secs]          # Create 3-pane AI workspace and attach
+tmux-bridge kill-session <session_name>                 # Kill a tmux session by name
+tmux-bridge list                                         # List panes with labels p1, p2...
+tmux-bridge pending                                      # Show unresolved incoming reply requests
+tmux-bridge rename                                       # Auto-rename panes to p1, p2...
+tmux-bridge send --expect-reply <target> <msg>          # Send message and require a reply
+tmux-bridge send --no-reply <target> <msg>              # Send informational message without reply
+tmux-bridge reply <msg>                                  # Reply to latest pending request in current pane
+tmux-bridge auto-label                                   # Output auto-label config for tmux.conf
+tmux-bridge help                                         # Show help
+```
+
+## Protocol
+
+- `--expect-reply` creates a pending item for the target pane.
+- `pending` is how an agent decides whether the current request came from another pane.
+- `reply` consumes the latest pending item for the current pane.
+- If there is no pending item, `reply` fails with `no pending reply target for this pane`.
+
+## Examples
+
+```bash
+# Start a fresh AI workspace session from a normal shell
+tmux-bridge -l mysession
+
+# Close a session by name
+tmux-bridge -k mysession
+
+# Long form remains supported
+tmux-bridge launch mysession
+
+# Start with a custom rename delay
+tmux-bridge launch mysession 10
+
+# Close a session by name
+tmux-bridge kill-session mysession
+
+# Ask another agent to investigate and report back
+tmux-bridge send --expect-reply p1 'Please review src/auth.ts'
+
+# Broadcast a status update without requiring a response
+tmux-bridge send --no-reply p1 'I am rebasing now'
+
+# Before final answer, check whether current pane owes another agent a reply
 tmux-bridge pending
-tmux-bridge check <target>
+
+# Return the conclusion
+tmux-bridge reply 'Review done: no issues found'
 ```
 
-## 最小模式
+## Target Format
 
-给 agent 发消息：
-
-```bash
-tmux-bridge read %39 20
-tmux-bridge send --no-reply %39 'Please review src/auth.ts'
-```
-
-When a reply is required:
-
-```bash
-tmux-bridge read %39 20
-tmux-bridge send --expect-reply %39 'Please review src/auth.ts and reply with the result'
-```
-
-Follow up only after timeout:
-
-```bash
-tmux-bridge pending
-tmux-bridge check %39
-```
-
-检查草稿后提交：
-
-```bash
-tmux-bridge read %39 20
-tmux-bridge message --expect-reply %39 'Please review src/auth.ts'
-tmux-bridge read %39 20
-tmux-bridge keys %39 Enter
-```
-
-## Practical defaults
-
-- Use `--no-reply` for normal delegation
-- Use `--expect-reply` only when you really need a response
-- Do not poll the target pane repeatedly
-- If no reply arrives after 120 seconds, use `pending` / `check`
+- `%N` - pane ID (for example `%19`)
+- `p1`, `p2`, ... - pane label in the current session
+- `session:win.pane` - full pane reference

@@ -1,13 +1,14 @@
----
+***
+
 name: tmux
 description: Raw tmux commands for session, pane, and window control.
 metadata:
-  { "openclaw": { "emoji": "🧵", "os": ["darwin", "linux"], "requires": { "bins": ["tmux"] } } }
----
+{ "openclaw": { "emoji": "🧵", "os": \["darwin", "linux"], "requires": { "bins": \["tmux"] } } }
+------------------------------------------------------------------------------------------------
 
 # tmux
 
-跨 pane 通信优先用 `./scripts/tmux-bridge`。原生 `tmux` 只保留 3 类 fallback：目标确认、布局管理、排障。
+跨 pane 通信优先使用已安装的 `tmux-bridge` 命令。如果命令不存在，使用绝对路径调用 bridge 脚本，严禁使用相对路径。原生 `tmux` 只保留 3 类 fallback：目标确认、布局管理、排障。
 
 ## 目标确认
 
@@ -35,3 +36,4 @@ tmux capture-pane -t SESSION:WINDOW.PANE -p
 - 发 agent 消息时不要手搓 `send-keys`
 - 确认目标时先看当前 session，再发消息
 - 创建新 pane 时优先 `split-window`，然后 `select-layout tiled`
+

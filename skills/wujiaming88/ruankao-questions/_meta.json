@@ -1,11 +1,17 @@
 {
   "owner": "wujiaming88",
   "slug": "ruankao-questions",
-  "displayName": "软考真题搜索 | Ruankao Past Exam Questions",
+  "displayName": "软考高级真题与模拟题",
   "latest": {
-    "version": "2.0.1",
-    "publishedAt": 1774247247752,
-    "commit": "https://github.com/openclaw/skills/commit/60d07e9829261bdb5bd18a482d7ab2f1dfa86067"
+    "version": "3.1.0",
+    "publishedAt": 1775530425663,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.1",
+      "publishedAt": 1774247247752,
+      "commit": "https://github.com/openclaw/skills/commit/60d07e9829261bdb5bd18a482d7ab2f1dfa86067"
+    }
+  ]
 }

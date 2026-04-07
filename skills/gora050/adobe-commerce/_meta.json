@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "adobe-commerce",
+  "displayName": "Adobe Commerce",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775390810594,
+    "commit": null
+  },
+  "history": []
+}

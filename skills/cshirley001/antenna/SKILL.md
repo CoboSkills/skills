@@ -1,0 +1,342 @@
+---
+name: antenna
+description: >
+  Inter-host OpenClaw session messaging over reachable HTTPS using built-in
+  gateway webhook hooks. Use when: (1) sending a message from this OpenClaw
+  instance to another host's session, (2) checking status/health of a remote
+  peer, (3) managing the peer registry (adding/removing/listing known peers),
+  (4) exchanging bootstrap trust material for new peers, (5) any cross-host
+  agent communication that should NOT go through visible chat channels like
+  Telegram/WhatsApp/Discord. Triggers: "send to PEER", "message the other
+  host", "antenna send", "antenna status", "antenna peers exchange",
+  "cross-host message", "inter-host relay", "ping PEER", "peer list",
+  "check antenna inbox", "approve message".
+metadata:
+  version: 1.1.4
+---
+
+# Antenna — Inter-Host OpenClaw Messaging (v1.1.4)
+
+Send messages between OpenClaw instances over reachable HTTPS via the built-in `/hooks/agent` webhook.
+
+## Prerequisites
+
+Each participating host needs:
+1. OpenClaw gateway running with hooks enabled (`hooks.enabled: true`)
+2. A reachable HTTPS endpoint for `/hooks/agent`
+3. Antenna agent registered in gateway config (`agents` section)
+4. `hooks.allowedAgentIds` includes `"antenna"`
+5. `hooks.allowedSessionKeyPrefixes` includes `"hook:antenna"`
+6. Host-specific Antenna config in:
+   - `antenna-config.json`
+   - `antenna-peers.json`
+
+Normal path:
+- Run `antenna setup` to generate the live runtime files.
+- Use `antenna-config.example.json` and `antenna-peers.example.json` as tracked reference templates only.
+
+Notes:
+- Peers do **not** need to share one tailnet or one central hub.
+- Tailscale Funnel is a convenient default, but reverse proxies, VPS/domain-hosted HTTPS, Cloudflare Tunnel, and similar paths also work.
+
+## Architecture
+
+Messages flow through a script-first relay pipeline:
+
+1. **Sender** runs `antenna-send.sh` which builds an `[ANTENNA_RELAY]` envelope and POSTs it to the recipient's `/hooks/agent` endpoint.
+2. **Recipient gateway** dispatches to the dedicated **Antenna agent**.
+3. **Antenna agent** runs `antenna-relay.sh` which deterministically parses, validates, and formats the message.
+4. **Antenna agent** calls `sessions_send` to inject the formatted message into the target session.
+5. **Message appears** persistently in the target conversation thread.
+
+The LLM never performs relay parsing logic; the scripts do.
+
+## Trust Model
+
+Antenna trust is layered:
+- **Peer URL** — where to reach that installation
+- **Hook bearer token** — protects webhook ingress
+- **Per-peer runtime identity secret** — authenticates claimed sender identity when configured
+- **Inbound session allowlist** — limits where inbound relay may deliver
+- **Untrusted-input framing** — reminds receiving agents the relayed content may be external
+
+For peer onboarding, Antenna now prefers **Layer A encrypted bootstrap exchange** using `age`.
+
+## Configuration
+
+Live runtime files are local installation state:
+- `antenna-config.json`
+- `antenna-peers.json`
+
+Tracked reference files live beside them:
+- `antenna-config.example.json`
+- `antenna-peers.example.json`
+
+Use `antenna setup` for normal installation; use the `*.example.json` files for schema reference or manual recovery.
+
+### `antenna-config.json`
+
+```json
+{
+  "max_message_length": 10000,
+  "default_target_session": "main",
+  "relay_agent_id": "antenna",
+  "relay_agent_model": "openai/gpt-5.4",
+  "local_agent_id": "<your-agent-id>",
+  "install_path": "<absolute-path-to-this-skill-directory>",
+  "log_enabled": true,
+  "log_path": "antenna.log",
+  "log_max_size_bytes": 10485760,
+  "log_verbose": false,
+  "mcs_enabled": false,
+  "mcs_model": "sonnet",
+  "allowed_inbound_sessions": ["main", "antenna"],
+  "allowed_inbound_peers": ["<peer-a>", "<peer-b>"],
+  "allowed_outbound_peers": ["<peer-a>", "<peer-b>"],
+  "rate_limit": {
+    "per_peer_per_minute": 10,
+    "global_per_minute": 30
+  }
+}
+```
+
+Key fields:
+- `relay_agent_model` — use a full provider/model ID, not a local alias
+- `local_agent_id` — used to resolve `main` → `agent:<id>:main`
+- `install_path` — absolute path to this skill directory
+- `allowed_inbound_sessions` — inbound delivery allowlist
+- `allowed_inbound_peers` / `allowed_outbound_peers` — peer allowlists
+- `rate_limit.*` — inbound abuse controls
+
+### `antenna-peers.json`
+
+```json
+{
+  "<your-host-id>": {
+    "url": "https://<your-reachable-hostname>",
+    "token_file": "secrets/hooks_token_<your-host-id>",
+    "peer_secret_file": "secrets/antenna-peer-<your-host-id>.secret",
+    "exchange_public_key": "age1...",
+    "agentId": "antenna",
+    "display_name": "My Host",
+    "self": true
+  },
+  "<remote-peer-id>": {
+    "url": "https://<remote-reachable-hostname>",
+    "token_file": "secrets/hooks_token_<remote-peer-id>",
+    "peer_secret_file": "secrets/antenna-peer-<remote-peer-id>.secret",
+    "exchange_public_key": "age1...",
+    "agentId": "antenna",
+    "display_name": "Remote Host"
+  }
+}
+```
+
+Key fields:
+- `url` — reachable HTTPS hook base URL
+- `token_file` — bearer token for that peer
+- `peer_secret_file` — per-peer runtime identity secret
+- `exchange_public_key` — peer's `age` public key for Layer A exchange
+- `self` — marks the local host entry
+
+## Usage
+
+### Send a message
+
+```bash
+scripts/antenna-send.sh <peer> "Your message here"
+antenna msg <peer> "Your message here"
+antenna msg <peer> --subject "Config sync" "Here's the block you need..."
+antenna msg <peer> --session "agent:<agent-id>:mychannel" "Your message"
+echo "Long message body..." | antenna send <peer> --stdin
+antenna send <peer> --dry-run "Test message"
+```
+
+### Peer onboarding / bootstrap exchange
+
+Preferred encrypted flow:
+
+```bash
+antenna peers exchange keygen
+antenna peers exchange pubkey
+antenna peers exchange initiate <peer-id> --pubkey <age1...> --print
+antenna peers exchange import <bundle-file>
+antenna peers exchange reply <peer-id>
+```
+
+Optional direct-send convenience:
+
+```bash
+antenna peers exchange initiate <peer-id> \
+  --pubkey <age1...> \
+  --email someone@example.com \
+  --send-email
+```
+
+Legacy/manual fallback:
+
+```bash
+antenna peers exchange <peer-id> --export
+antenna peers exchange <peer-id> --import <file>
+antenna peers exchange <peer-id> --import-value <hex>
+```
+
+Notes:
+- Secure Layer A requires `age` and `age-keygen`
+- Optional direct-send requires `himalaya`
+- Email is convenience transport only, not part of the trust model
+- Import shows a preview and asks before allowlist changes unless `--yes` is used
+
+### Health and status
+
+```bash
+antenna doctor
+antenna uninstall --dry-run
+antenna uninstall
+antenna peers list
+antenna peers test <id>
+antenna status
+antenna log --tail 50
+```
+
+### Testing
+
+```bash
+antenna test <model>
+antenna test-suite --tier A
+antenna test-suite --model <m>
+antenna test-suite --models "<m1>,<m2>"
+antenna test-suite --report
+```
+
+### Inbox (optional approval queue)
+
+When `inbox_enabled` is `true` in config, inbound messages from peers not in `inbox_auto_approve_peers` are queued for review instead of being relayed immediately. Auto-approved peers bypass the queue and relay instantly (current behavior).
+
+```bash
+antenna inbox                        # list pending messages (table view)
+antenna inbox count                  # pending count (for heartbeat/cron checks)
+antenna inbox show <ref>             # full message body for a ref
+antenna inbox approve all            # approve everything pending
+antenna inbox approve 1,3,5-7       # selective approval (commas and ranges)
+antenna inbox deny all               # reject everything pending
+antenna inbox deny 2,4               # selective denial
+antenna inbox drain                  # output delivery JSON for approved, remove denied
+antenna inbox clear                  # purge all processed items
+```
+
+**Delivery flow:** `antenna inbox drain` outputs one JSON line per approved message with `sessionKey` and `message` fields. The calling agent (your primary assistant) reads these and calls `sessions_send` for each. This avoids re-entering the relay agent via `/hooks/agent`.
+
+**Configuration:**
+```json
+{
+  "inbox_enabled": false,
+  "inbox_auto_approve_peers": ["trusted-peer-id"],
+  "inbox_queue_path": "antenna-inbox.json"
+}
+```
+
+Notes:
+- Disabled by default — existing behavior is unchanged
+- Auto-approve list lets trusted peers bypass the queue (progressive trust)
+- Queue file is local runtime state (gitignored)
+- Ref numbers auto-increment and support range selection
+- When inbox is enabled, the relay agent only needs `exec` (not `sessions_send`), reducing its required permissions
+
+**Heartbeat / cron integration:**
+
+Add to your `HEARTBEAT.md`:
+```markdown
+## Antenna inbox check
+- Run: `antenna inbox count`
+- If > 0: run `antenna inbox list` and mention it
+```
+
+Or set up a cron job for automated handling:
+```
+Check antenna inbox. If there are pending messages from peers
+in [trusted-peer-id], approve and drain them. For anything else,
+summarize the queue and ask me.
+```
+
+**Conversational usage:** Ask your assistant "any Antenna messages waiting?" — it can run `antenna inbox list`, you review, then say "approve 1 and 3, deny 2" and it handles the rest.
+
+## Security Notes
+
+- Relay agent is script-first and non-interpreting
+- Inbound sessions are allowlisted
+- Sender peer must be allowlisted
+- Per-peer identity secret can authenticate sender claims
+- Tokens and secrets are file-backed and should be `chmod 600`
+- `antenna status` audits secret/token file permissions
+- Relayed content is framed as potentially untrusted input
+- Rate limiting throttles inbound bursts
+
+## Troubleshooting
+
+- **Gateway won't start**: Run `antenna doctor`
+- **Want a clean slate**: Run `antenna uninstall` (use `--dry-run` first if you want a preview)
+- **401 Unauthorized**: wrong hook bearer token
+- **403 Forbidden**: session prefix/agent restrictions or peer policy mismatch
+- **Relay rejected**: peer not allowlisted, session not allowlisted, or identity secret mismatch
+- **Encrypted exchange fails immediately**: `age` / `age-keygen` missing
+- **Email send convenience fails**: `himalaya` missing or no suitable account configured
+- **Message sent but not visible**: check `commands.ownerDisplay = "raw"` on the receiver; without it, hook-delivered messages are processed but invisible in Control UI
+- **Exec denied / allowlist miss**: ensure relay agent instructions use only simple commands (no `$(...)`, heredocs, or chaining); the `antenna-relay-exec.sh` wrapper exists for this
+- **Repeated approval prompts**: ensure Antenna agent has `tools.exec.security: "allowlist"`, `tools.exec.ask: "off"`, and `sandbox: { mode: "off" }` in registration
+
+## File Inventory
+
+```text
+skills/antenna/
+├── SKILL.md
+├── README.md
+├── CHANGELOG.md
+├── antenna-config.example.json
+├── antenna-peers.example.json
+├── antenna-peers.json
+├── antenna-config.json
+├── antenna.log
+├── bin/
+│   └── antenna
+├── scripts/
+│   ├── antenna-send.sh
+│   ├── antenna-relay.sh
+│   ├── antenna-health.sh
+│   ├── antenna-peers.sh
+│   ├── antenna-doctor.sh
+│   ├── antenna-exchange.sh
+│   ├── antenna-relay-exec.sh
+│   ├── antenna-inbox.sh
+│   ├── antenna-model-test.sh
+│   └── antenna-test-suite.sh
+├── references/
+│   ├── ANTENNA-RELAY-FSD.md          # Relay architecture contract
+│   └── issues.md                      # Known issues / gaps tracker
+├── docs/                               # Repo-only (operator / historical)
+│   ├── full-removal-checklist.md
+│   ├── SECURITY-ASSESSMENT-v1.0.20.md
+│   ├── RED-TEAM-REPORT-v1.0.4.md
+│   ├── LAYER-A-SECRET-EXCHANGE-PLAN.md
+│   └── SECRET-EXCHANGE-OPTIONS.md
+└── agent/
+    ├── AGENTS.md
+    └── TOOLS.md
+```
+
+Notes:
+- `antenna-config.json`, `antenna-peers.json`, and `antenna-inbox.json` are local runtime files (gitignored)
+- `antenna-config.example.json` and `antenna-peers.example.json` are tracked reference templates
+
+## Gateway / Agent Registration
+
+On each host:
+- agent `antenna` registered in OpenClaw config under `agents` with:
+  - `agentDir` and `workspace` both pointing to the Antenna `agent/` directory
+  - `sandbox: { mode: "off" }`
+  - `tools.exec: { security: "allowlist", ask: "off" }`
+  - restrictive `tools.deny` (block web, browser, image, cron, memory tools)
+- `hooks.allowedAgentIds` includes `"antenna"`
+- `hooks.allowedSessionKeyPrefixes` includes `"hook:antenna"`
+- `commands.ownerDisplay` set to `"raw"` (required for relay messages to appear in Control UI)
+- Exec allowlist entries for Antenna agent: `/usr/bin/bash`, `/usr/bin/echo`, `/usr/bin/jq`, `/usr/bin/cat`

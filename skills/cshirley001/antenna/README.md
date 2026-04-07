@@ -1,0 +1,226 @@
+# 📡 Antenna — Inter-Host OpenClaw Messaging
+
+Send messages between OpenClaw instances using the built-in `/hooks/agent` webhook. Works across Tailscale (direct or Funnel), or any public HTTPS endpoint — your infrastructure, your choice. No custom server, no persistent connections — just fire-and-forget relay with full audit logging.
+
+## What It Does
+
+- **Cross-host messaging** between OpenClaw instances — Tailscale, Funnel, Cloudflare Tunnel, reverse proxy, or any reachable HTTPS URL
+- **Script-first relay** — all parsing, validation, and formatting is deterministic (no LLM interpretation of message content)
+- **Dedicated lightweight relay agent** — minimal context, minimal cost per relay
+- **Peer registry** — manage known hosts with URLs, tokens, and display names
+- **Transaction logging** — every send/receive is logged with metadata
+- **CLI interface** — `antenna msg`, `antenna peers`, `antenna status`, etc.
+
+## Quick Start
+
+### Prerequisites
+
+1. Two or more OpenClaw instances, each with a **reachable HTTPS endpoint** (Tailscale Funnel, Cloudflare Tunnel, reverse proxy, VPS — any works)
+2. Hooks enabled on all instances (`hooks.enabled: true`)
+3. Each peer's hooks bearer token (exchanged out-of-band; per-peer, not shared)
+4. Per-peer identity secrets for sender authentication (generated during `antenna setup` / `antenna peers exchange`)
+5. The `antenna` agent registered on each instance
+
+### Dependencies
+
+Required (setup will check for these):
+- **jq** — JSON processing (`apt install jq` / `brew install jq`)
+- **curl** — HTTP requests
+- **openssl** — secret generation
+
+Required for encrypted peer exchange (Layer A):
+- **age** — modern file encryption (`apt install age` / `brew install age` / [github.com/FiloSottile/age](https://github.com/FiloSottile/age))
+
+Optional:
+- **himalaya** — CLI email client, used by `--send-email` to send bootstrap bundles as email attachments
+
+### Install & Configure
+
+1. Copy or install the skill into your OpenClaw `skills/antenna/` directory
+2. Run `antenna setup` to generate your local runtime files:
+   - `antenna-config.json`
+   - `antenna-peers.json`
+   - Later, if you want to reset or remove the install cleanly, use `antenna uninstall`
+3. Inspect `antenna-config.example.json` and `antenna-peers.example.json` if you want reference templates for manual editing/recovery
+4. Register the `antenna` agent in your gateway config
+
+### Send a message
+
+```bash
+antenna msg <peer-id> "Hello from across the reef!"
+```
+
+### Check peer health
+
+```bash
+antenna peers test <peer-id>
+```
+
+### View status
+
+```bash
+antenna status
+```
+
+## How It Works
+
+```
+Sender                                  Recipient
+──────                                  ─────────
+antenna-send.sh                         /hooks/agent endpoint
+  → builds [ANTENNA_RELAY] envelope       → Antenna agent runs antenna-relay.sh
+  → POSTs to peer via Tailscale             → script parses, validates, formats
+                                            → agent calls sessions_send
+                                            → message appears in target session
+```
+
+## Testing
+
+Built-in three-tier test suite to validate relay script correctness and model compatibility across 7 provider families (OpenAI, OpenAI Codex, OpenRouter, Nvidia NIM, Ollama, Anthropic, Google Gemini):
+
+```bash
+# Script-only validation (no model, no network)
+antenna test-suite --tier A
+
+# Full suite against a single model
+antenna test-suite --model openai/gpt-5.4
+
+# Compare multiple models side-by-side (max 6)
+antenna test-suite --models "anthropic/claude-sonnet-4-20250514,google/gemini-2.5-flash,openai/gpt-5.4"
+
+# Save structured report with request/response dumps
+antenna test-suite --models "anthropic/claude-sonnet-4-20250514,google/gemini-2.5-flash" --report
+```
+
+| Tier | Tests | What it checks |
+|------|-------|----------------|
+| A | 8 | Relay script parsing, validation, rejection, session mapping |
+| B | 4 | Model correctly calls `exec` with relay script and envelope |
+| C | 4 | Model correctly calls `sessions_send` with relay output |
+
+Each provider uses its **native API format** — Anthropic's Messages API, Google's generateContent, OpenAI-compatible chat/completions — with provider-specific tool schemas and multi-turn conventions.
+
+## Security
+
+- Transport runs over reachable HTTPS (Tailscale/Funnel, reverse proxy, VPS/domain-hosted HTTPS, etc.)
+- Bearer token authentication on every request
+- Per-peer identity secret can authenticate claimed sender identity
+- Sender validated against allowlist on receipt
+- Session injection restricted by allowlist/prefix policy
+- Relay agent never interprets message body content
+
+## Configuration
+
+Live host-specific settings are local runtime files:
+- `antenna-config.json` — model, agent ID, install path, allowed peers, logging
+- `antenna-peers.json` — peer URLs, tokens, display names
+
+These are generated by `antenna setup` and are intended to stay local to the installation.
+
+Tracked reference files are also included:
+- `antenna-config.example.json`
+- `antenna-peers.example.json`
+
+Use the example files for schema/reference/manual recovery; use `antenna setup` for normal installation.
+
+## Health Check & Diagnostics
+
+Antenna includes a built-in doctor that validates your installation before and after setup:
+
+```bash
+# Full health check — verifies gateway config, hooks, agent registration, secrets, connectivity
+antenna doctor
+
+# Back up your gateway config before making changes
+antenna doctor --backup
+
+# Show copy-paste fix suggestions for any issues found
+antenna doctor --fix-hints
+```
+
+The doctor checks:
+1. Antenna config files exist and are valid JSON
+2. Gateway config (`openclaw.json`) exists and is valid JSON
+3. Hooks are enabled with the correct settings
+4. Antenna agent is registered
+5. Required allowlist entries are present
+6. Secret files exist with correct permissions
+7. Remote peer connectivity (basic reachability)
+
+**Run `antenna doctor` after editing your gateway config and before restarting the gateway.** This catches JSON syntax errors and missing config entries before they take your gateway down.
+
+## Troubleshooting & Recovery
+
+### Gateway won't start after editing config
+
+This is the most common issue — a JSON syntax error in `openclaw.json` after adding the Antenna agent.
+
+**If you have a backup** (created automatically by `antenna setup`):
+```bash
+cp ~/.openclaw/openclaw.json.antenna-backup ~/.openclaw/openclaw.json
+openclaw gateway restart
+```
+
+**If you don't have a backup**, find and fix the JSON error:
+```bash
+# This will show you exactly where the syntax error is
+jq empty ~/.openclaw/openclaw.json
+
+# Common culprits:
+# - Missing comma after the entry before the one you added
+# - Trailing comma after the last entry in an array/object
+# - Mismatched brackets or braces
+```
+
+**Validate before restarting** — always run this after editing:
+```bash
+jq empty ~/.openclaw/openclaw.json && echo "Valid JSON ✓" || echo "INVALID JSON ✗"
+# or simply:
+antenna doctor
+```
+
+### Hooks return 401/403
+
+- **401 Unauthorized**: Token mismatch. Verify the sending peer's token matches your `hooks.token`.
+- **403 Forbidden**: Session key prefix or agent ID not in allowlist. Check `hooks.allowedAgentIds` includes `"antenna"` and `hooks.allowedSessionKeyPrefixes` includes `"hook:antenna"` (or broader `"hook:"`).
+
+### Message sent but not visible
+
+This is usually a Control UI display delay, not a delivery failure. The receiving agent processes the message promptly — the sender's UI may take minutes to refresh.
+
+### Peer unreachable
+
+```bash
+# Check if their endpoint responds at all
+curl -s -o /dev/null -w '%{http_code}' https://peer-hostname.example/hooks/agent
+
+# If 000: host is down, tunnel/funnel is off, or DNS isn't resolving
+# If 405: endpoint is reachable (POST-only, GET returns 405) — this is fine
+```
+
+### Starting fresh
+
+If things are really tangled:
+```bash
+# Preview exactly what Antenna would remove
+antenna uninstall --dry-run
+
+# Remove Antenna runtime state + gateway registration changes
+antenna uninstall
+
+# Or fully remove the skill directory too
+antenna uninstall --yes --purge-skill-dir
+```
+
+Notes:
+- By default, `antenna uninstall` removes Antenna runtime files, logs, rate-limit state, test results, Antenna-owned secrets, and the Antenna agent/hooks entries from gateway config.
+- It does **not** remove the rest of OpenClaw.
+- It does **not** delete external token files referenced outside the Antenna skill directory.
+
+## Version
+
+**1.0.10** — Added Layer A encrypted bootstrap exchange, synchronized docs, and kept live runtime config local while tracked examples provide reference defaults.
+
+## License
+
+MIT

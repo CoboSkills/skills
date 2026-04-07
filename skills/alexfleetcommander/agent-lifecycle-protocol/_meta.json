@@ -3,9 +3,15 @@
   "slug": "agent-lifecycle-protocol",
   "displayName": "Agent Lifecycle Protocol",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1775089045183,
-    "commit": "https://github.com/openclaw/skills/commit/fd63615d5b2ef54d0bc5985370b1d13351835433"
+    "version": "0.1.1",
+    "publishedAt": 1775353805487,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1775089045183,
+      "commit": "https://github.com/openclaw/skills/commit/fd63615d5b2ef54d0bc5985370b1d13351835433"
+    }
+  ]
 }

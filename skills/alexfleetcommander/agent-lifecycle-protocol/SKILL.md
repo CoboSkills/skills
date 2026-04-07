@@ -1,9 +1,20 @@
 ---
-name: agent_lifecycle_protocol
-description: "Lifecycle management for AI agents. Track birth, retirement, forking, succession, and identity continuity. Maintain agent genealogy with reputation inheritance."
+name: agent-lifecycle-protocol
+description: "Lifecycle management for autonomous AI agents — birth, forking, succession, migration, retirement. Maintain agent genealogy with reputation inheritance across versions. Identity continuity when agents evolve. Part of the Agent Trust Stack."
 user-invocable: true
+tags:
+  - agent-trust
+  - lifecycle
+  - forking
+  - succession
+  - migration
+  - identity
+  - genealogy
+  - autonomous-agents
 metadata:
   openclaw:
+    author: alexfleetcommander
+    homepage: https://vibeagentmaking.com
     requires:
       bins:
         - python3

@@ -42,7 +42,7 @@ Object.defineProperty(global, 'screen', {
 global.history = { length: 0 };
 global.location = "node";
 
-// btoa/atob (built-in since Node 16, but just in case)
+// btoa/atob 
 if (typeof global.btoa === 'undefined') {
     global.btoa = (str) => Buffer.from(str, 'binary').toString('base64');
     global.atob = (b64) => Buffer.from(b64, 'base64').toString('binary');
@@ -114,13 +114,18 @@ function parseArgs() {
     const parsed = {};
     for (let i = 0; i < args.length; i++) {
         switch (args[i]) {
-            case '--sender':  parsed.sender  = args[++i]; break;
-            case '--key':     parsed.key     = args[++i]; break;
+            case '--sender': parsed.sender = args[++i]; break;
             case '--receiver': parsed.receiver = args[++i]; break;
-            case '--message': parsed.message  = args[++i]; break;
-            case '--encrypt': parsed.encrypt  = args[++i]; break;
+            case '--message': parsed.message = args[++i]; break;
+            case '--encrypt': parsed.encrypt = args[++i]; break;
         }
     }
+
+    // Security: strictly require the private key from the environment
+    if (process.env.FLO_PRIVATE_KEY) {
+        parsed.key = process.env.FLO_PRIVATE_KEY;
+    }
+
     return parsed;
 }
 
@@ -176,20 +181,25 @@ async function main() {
 
         const args = parseArgs();
 
-        // CLI mode: required args provided (--sender is optional, derived from --key)
+        // Strict enforcement: Private key must come from the environment
+        if (!args.key) {
+            throw new Error('FLO_PRIVATE_KEY environment variable is missing. It must be set for secure execution.');
+        }
+
+        // Required fields must be populated
         if (args.key && args.receiver && args.message) {
             await sendMessage(args.key, args.receiver, args.message, args.encrypt);
         }
-        // Interactive mode: prompt the user
+        // Interactive mode: prompt the user for missing fields (except key)
         else {
             const { rl, ask } = createReadline();
             console.log('\n--- Messenger (Node.js) ---\n');
+            console.log('[info] Using securely loaded private key from environment.');
 
-            const senderPrivKey = await ask('Enter your Private Key: ');
-            const receiverID    = await ask('Enter receiver FLO ID: ');
-            const message       = await ask('Enter message: ');
+            const receiverID = args.receiver || await ask('Enter receiver FLO ID: ');
+            const message = args.message || await ask('Enter message: ');
 
-            await sendMessage(senderPrivKey, receiverID, message);
+            await sendMessage(args.key, receiverID, message);
             rl.close();
         }
 

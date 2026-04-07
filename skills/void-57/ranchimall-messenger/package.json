@@ -1,6 +1,6 @@
 {
   "name": "messenger-send-node",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Node.js based FLO messenger skill for OpenClaw",
   "main": "send_node.js",
   "type": "commonjs",
@@ -8,6 +8,6 @@
     "start": "node send_node.js"
   },
   "dependencies": {
-    "ws": "^8.17.0"
+    "ws": "^8.20.0"
   }
 }

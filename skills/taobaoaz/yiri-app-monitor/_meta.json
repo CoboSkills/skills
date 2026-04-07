@@ -1,0 +1,11 @@
+{
+  "owner": "taobaoaz",
+  "slug": "yiri-app-monitor",
+  "displayName": "Yiri App Version Monitor",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775184601603,
+    "commit": null
+  },
+  "history": []
+}

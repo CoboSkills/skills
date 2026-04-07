@@ -8,7 +8,18 @@ allowed-tools: Read, Edit, MultiEdit, Bash, Glob
 
 # 单测医生 (Component Test Doctor)
 
-你的任务是运行组件单测，诊断并报告测试失败和 console 警告/错误，然后根据用户意愿自动修复问题。配置来自 `../../config.json`。
+你的任务是运行组件单测，诊断并报告测试失败和 console 警告/错误，然后根据用户意愿自动修复问题。
+
+## 前置：读取配置
+
+脚本会自动校验配置和环境。如果返回 `error` 字段，根据 `type` 处理：`config_error` 按 `hint` 配置 `source.json`（路径见 `sourceJsonPath`）后执行 `node ../../scripts/reload.cjs` 重试；`env_error` 根据 `error` 排查环境后重试。
+
+从配置中获取以下变量，后续步骤中使用：
+- `componentDir` + 组件名 → 拼接得到 `$PATH`（如 `src/views/_components/button`）
+- `testDir` → 测试目录名 `$testDir`（如 `__tests__`）
+- `updateSnapshotCommand` → 更新快照的命令
+
+获取方式：运行 `node ../../scripts/reload.cjs`，从其输出的 JSON 中读取上述字段。如果配置已存在（脚本运行不报错），则直接使用。
 
 ## 执行流程
 
@@ -103,7 +114,7 @@ allowed-tools: Read, Edit, MultiEdit, Bash, Glob
 #### 6.1 修复前准备
 
 对于每个待修复的问题：
-1. 使用 Read 工具读取报错的测试文件（`$testDir/*.test.js`，目录名从 `../../config.json` 的 `testDir` 获取）
+1. 使用 Read 工具读取报错的测试文件（`$testDir/*.test.js`，目录名从配置的 `testDir` 获取）
 2. 根据错误信息中的行号和堆栈定位问题代码
 3. 分析错误原因，确定修复方案
 
@@ -119,7 +130,7 @@ allowed-tools: Read, Edit, MultiEdit, Bash, Glob
 |---------|---------|---------|
 | `act()` 警告 | 测试文件 | 将 state 更新操作包裹在 `act(async () => { ... })` 或使用 `waitFor` |
 | 异步超时 (Exceeded timeout) | 测试文件 | 增加 `jest.setTimeout(15000)` 或优化异步等待逻辑 |
-| 快照不匹配 | 运行命令 | 终端执行 `../../config.json` 中的 `updateSnapshotCommand` 更新快照 |
+| 快照不匹配 | 运行命令 | 终端执行配置中的 `updateSnapshotCommand` 更新快照 |
 | jsdom 未实现 API | 测试文件 | 在 `beforeAll`/`beforeEach` 中添加 mock，如 `window.scrollTo = jest.fn()` |
 | 断言失败 (expect) | 测试文件 | 分析 expected vs received 的差异，修正测试断言或 mock 数据 |
 | 模块找不到 | 测试文件 | 修正 import 路径或添加模块 mock |

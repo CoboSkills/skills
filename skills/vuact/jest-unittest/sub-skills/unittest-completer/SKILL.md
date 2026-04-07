@@ -13,10 +13,14 @@ allowed-tools: Read, Edit, MultiEdit, Write, Bash, Glob, Grep, TaskCreate, TaskU
 
 ## 前置：读取配置
 
-从 `../../config.json` 中获取（脚本会自动校验配置和环境。如果返回 `error` 字段，根据 `type` 处理：`config_error` 按 `hint` 配置后执行 `node ../../scripts/reload.cjs` 重试；`env_error` 根据 `error` 排查环境后重试）：
+脚本会自动校验配置和环境。如果返回 `error` 字段，根据 `type` 处理：`config_error` 按 `hint` 配置 `source.json`（路径见 `sourceJsonPath`）后执行 `node ../../scripts/reload.cjs` 重试；`env_error` 根据 `error` 排查环境后重试。
+
+从配置中获取以下变量，后续步骤中使用：
 - `componentDir` + 组件名 → 拼接得到 `$PATH`（如 `src/views/_components/button`）
-- `testDir` → 测试目录名（如 `__tests__`）
+- `testDir` → 测试目录名 `$testDir`（如 `__tests__`）
 - `updateSnapshotCommand` → 更新快照的命令
+
+获取方式：运行 `node ../../scripts/reload.cjs`，从其输出的 JSON 中读取上述字段。如果配置已存在（脚本运行不报错），则直接使用。
 
 ## 参数
 
@@ -58,7 +62,7 @@ allowed-tools: Read, Edit, MultiEdit, Write, Bash, Glob, Grep, TaskCreate, TaskU
 1. 读取 `error` 字段，分析报错原因
 2. 读取对应的测试文件（`$PATH/$testDir/` 下的文件）
 3. 读取组件源代码（`$PATH/` 下的 tsx、ts 文件）
-4. 如果报错是快照不匹配（snapshot mismatch），运行 `../../config.json` 中的 `updateSnapshotCommand` 更新快照
+4. 如果报错是快照不匹配（snapshot mismatch），运行配置中的 `updateSnapshotCommand` 更新快照
 5. 回到 Step 5 重新检测
 
 ### Step 4: 分析未覆盖代码并编写补充测试

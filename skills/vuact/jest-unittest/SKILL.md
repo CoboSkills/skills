@@ -11,11 +11,19 @@ description: >
 
 ## 配置
 
+配置文件按项目隔离，存放在 `.temp/projects/<hash>/` 下（hash 由项目根路径计算）：
+- `source.json` — 用户配置的 jest 配置文件路径
+- `config.json` — 由 `reload.cjs` 自动生成的完整配置
+
 各子技能的脚本启动时会自动校验配置和环境。如果返回 `error` 字段，根据 `type` 处理：
-- `config_error` → 按 `hint` 帮用户配置 `source.json`，执行 `node scripts/reload.cjs` 生成配置，然后重试
+- `config_error` → 按 `hint` 帮用户配置 `source.json`（路径见错误信息中的 `sourceJsonPath`），执行 `node scripts/reload.cjs` 生成配置，然后重试
 - `env_error` → 根据 `error` 信息排查环境问题，解决后重试
 
 用户主动要求 reload 时，直接执行 `node scripts/reload.cjs`。
+
+### 多项目支持
+
+本 skill 支持在多个项目间使用而不产生配置冲突。每个项目的 `source.json` 和 `config.json` 独立存放在 `.temp/projects/<hash>/` 下，切换项目时自动识别。
 
 ## 路由规则
 

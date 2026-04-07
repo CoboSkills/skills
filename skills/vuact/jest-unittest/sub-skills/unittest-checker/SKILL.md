@@ -9,6 +9,10 @@ allowed-tools: Read, Bash, Glob
 
 你的任务是运行组件单测，分析覆盖率报告，输出未达到 100% 覆盖率的组件列表。
 
+## 前置：确保配置存在
+
+脚本依赖配置文件。如果是首次使用，先运行 `node ../../scripts/reload.cjs` 生成配置。如果返回 `error`，按 `hint` 帮用户配置 `source.json`（路径见 `sourceJsonPath`）后重试。
+
 ## 执行流程
 
 ### Step 1: 确定检查范围

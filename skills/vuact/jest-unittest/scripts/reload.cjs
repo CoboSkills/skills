@@ -5,8 +5,8 @@
  * 用法：
  *   node scripts/reload.cjs
  *
- * 输入：source.json
- * 输出：config.json（全字符串，脚本直接读取即可）
+ * 输入：.temp/projects/<hash>/source.json
+ * 输出：.temp/projects/<hash>/config.json（全字符串，脚本直接读取即可）
  *
  * 支持的 jest 配置格式：
  *   - jest.config.js / .ts / .cjs / .mjs / .json
@@ -18,8 +18,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const skillRoot = path.resolve(__dirname, '..');
-const projectRoot = path.resolve(__dirname, '../../../..');
+const project = require('./resolve-project.cjs');
+const { skillRoot, projectRoot, projectDir, sourcePath, configPath } = project;
 
 // 产物统一输出到 .temp/coverage
 const coverageDir = path.relative(projectRoot, path.join(skillRoot, '.temp', 'coverage'));
@@ -30,20 +30,22 @@ function fail(error, hint) {
 }
 
 // ==================== 1. 读取 source.json ====================
-const sourcePath = path.join(skillRoot, 'source.json');
 if (!fs.existsSync(sourcePath)) {
-  fail(`source.json 不存在`, `请创建 ${path.relative(projectRoot, sourcePath)} 并配置 jestConfigPath`);
+  // 首次使用：自动创建目录和空 source.json
+  fs.mkdirSync(projectDir, { recursive: true });
+  fs.writeFileSync(sourcePath, JSON.stringify({ jestConfigPath: '' }, null, 2) + '\n');
+  fail(`source.json 不存在，已自动创建`, `请编辑 ${path.relative(projectRoot, sourcePath)} 并配置 jestConfigPath`);
 }
 
 const source = JSON.parse(fs.readFileSync(sourcePath, 'utf-8'));
 if (!source.jestConfigPath) {
-  fail('source.json 中缺少 jestConfigPath 字段', '请在 source.json 中配置 jestConfigPath（jest 配置文件的相对路径）');
+  fail('source.json 中缺少 jestConfigPath 字段', `请在 ${path.relative(projectRoot, sourcePath)} 中配置 jestConfigPath（jest 配置文件的相对路径）`);
 }
 
 // ==================== 2. 读取 jest 配置文件 ====================
 const jestConfigFullPath = path.join(projectRoot, source.jestConfigPath);
 if (!fs.existsSync(jestConfigFullPath)) {
-  fail(`jest 配置文件不存在: ${source.jestConfigPath}`, '请检查 source.json 中的 jestConfigPath 是否正确');
+  fail(`jest 配置文件不存在: ${source.jestConfigPath}`, `请检查 ${path.relative(projectRoot, sourcePath)} 中的 jestConfigPath 是否正确`);
 }
 
 const jestContent = fs.readFileSync(jestConfigFullPath, 'utf-8');
@@ -192,7 +194,7 @@ const config = {
   testOneCommand: `${baseCmd} --coverageDirectory=${coverageDir}/{name} ${testPathFlag}=${dirBaseName}/{name}/ --collectCoverageFrom=${componentDir}/{name}/${coverageGlob}`,
 };
 
-const configPath = path.join(skillRoot, 'config.json');
+fs.mkdirSync(projectDir, { recursive: true });
 fs.writeFileSync(configPath, JSON.stringify(config, null, 2) + '\n');
 
 console.log('reload 成功，config.json 已生成:\n');

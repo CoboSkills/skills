@@ -15,10 +15,8 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
-const skillRoot = path.resolve(__dirname, '..');
-const projectRoot = path.resolve(__dirname, '../../../..');
-const configPath = path.join(skillRoot, 'config.json');
-const sourcePath = path.join(skillRoot, 'source.json');
+const project = require('./resolve-project.cjs');
+const { projectRoot, configPath, sourcePath } = project;
 const relSourcePath = path.relative(projectRoot, sourcePath);
 
 function fail(type, error, hint) {

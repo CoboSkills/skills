@@ -9,13 +9,13 @@
 
 使用方式：
   # 首次发布（注册）
-  python3 cms-create-skill/scripts/skill-management/publish_skill.py ./im-robot --code im-robot --name "IM 机器人"
+  python3 cms-push-skill/scripts/skill-management/publish_skill.py ./im-robot --code im-robot --name "IM 机器人"
 
   # 更新已有 Skill（加 --update）
-  python3 cms-create-skill/scripts/skill-management/publish_skill.py ./im-robot --code im-robot --update [--name "新名称"] [--version 1.2.0]
+  python3 cms-push-skill/scripts/skill-management/publish_skill.py ./im-robot --code im-robot --update [--name "新名称"] [--version 1.2.0]
 
   # 外部 Skill（ClawHub）发布
-  python3 cms-create-skill/scripts/skill-management/publish_skill.py ./im-robot --code im-robot --name "IM 机器人" --external
+  python3 cms-push-skill/scripts/skill-management/publish_skill.py ./im-robot --code im-robot --name "IM 机器人" --external
 
 参数说明：
   skill_dir       Skill 目录路径（必须）
@@ -58,7 +58,8 @@ from upload_to_qiniu import get_qiniu_token, upload_file
 from register_skill import call_api as register_api
 from update_skill import call_api as update_api
 
-API_BASE = "https://skills.mediportal.com.cn"
+DEFAULT_API_BASE = "https://skills.mediportal.com.cn"
+API_BASE = DEFAULT_API_BASE
 
 ROBOT_SYNC_URL = f"{API_BASE.rstrip('/')}/api/robot/skill-sync"
 
@@ -76,7 +77,7 @@ def build_register_payload(args, download_url: str, is_internal: bool) -> dict:
         "name": args.code,
         "skillCode": args.code,
         "displayName": args.name,
-        "clawVersion": args.version,
+        "version": args.version,
         "description": args.description,
         "downloadUrl": download_url,
         "metadata": {
@@ -90,7 +91,6 @@ def build_update_payload(args, download_url: str, is_internal: bool) -> dict:
     """构造 ClawHub 协议格式的更新 payload。"""
     tags = [t.strip() for t in args.label.split(",") if t.strip()] if args.label else []
     payload = {
-        "name": args.code,
         "skillCode": args.code,
         "downloadUrl": download_url,
         "metadata": {
@@ -103,7 +103,7 @@ def build_update_payload(args, download_url: str, is_internal: bool) -> dict:
     if args.description:
         payload["description"] = args.description
     if args.version:
-        payload["clawVersion"] = args.version
+        payload["version"] = args.version
     return payload
 
 
@@ -119,7 +119,7 @@ def dispatch_skill_sync(token: str, action: str, args, download_url: str,
         "skillCode": args.code,
         "name": args.name or args.code,
         "description": args.description or "",
-        "clawVersion": args.version or "0.0.1",
+        "version": args.version or "0.0.1",
         "downloadUrl": download_url,
         "deleted": False,
         "syncClawhub": sync_clawhub,
@@ -134,15 +134,14 @@ def dispatch_skill_sync(token: str, action: str, args, download_url: str,
         timeout=60,
     )
     response.raise_for_status()
-    return response.json()
+    data = response.json()
+    if isinstance(data, dict) and data.get("resultCode") not in (None, 1):
+        message = data.get("resultMsg") or data.get("detailMsg") or response.text
+        raise RuntimeError(f"派发同步任务失败: {message}")
+    return data
 
 
 def main():
-    token = os.environ.get("XG_USER_TOKEN") or os.environ.get("access-token") or os.environ.get("ACCESS_TOKEN")
-    if not token:
-        print("错误: 请设置环境变量 XG_USER_TOKEN", file=sys.stderr)
-        sys.exit(1)
-
     parser = argparse.ArgumentParser(description="一站式发布 Skill")
     parser.add_argument("skill_dir", help="Skill 目录路径")
     parser.add_argument("--code", required=True, help="Skill 唯一标识")
@@ -155,6 +154,7 @@ def main():
     parser.add_argument("--file-key", default="", help="七牛文件 key")
     parser.add_argument("--internal", action="store_true", help="标记为内部 Skill")
     parser.add_argument("--external", action="store_true", help="标记为外部 Skill（使用 ClawHub 下载地址）")
+    parser.add_argument("--corp-id", default=os.environ.get("XG_CORP_ID", ""), help="企业 ID（用于获取七牛上传凭证）")
     parser.add_argument("--sync-clawhub", dest="sync_clawhub", action="store_true", default=None,
                         help="同步到 ClawHub（内部 Skill 默认启用）")
     parser.add_argument("--no-sync-clawhub", dest="sync_clawhub", action="store_false",
@@ -164,6 +164,11 @@ def main():
     parser.add_argument("--no-sync-github", dest="sync_github", action="store_false",
                         help="不同步到 GitHub")
     args = parser.parse_args()
+
+    token = os.environ.get("XG_USER_TOKEN") or os.environ.get("access-token") or os.environ.get("ACCESS_TOKEN")
+    if not token:
+        print("错误: 请设置环境变量 XG_USER_TOKEN", file=sys.stderr)
+        sys.exit(1)
 
     if args.internal and args.external:
         print("错误: --internal 和 --external 不能同时使用", file=sys.stderr)
@@ -196,7 +201,7 @@ def main():
         print(f"\n{'='*50}", file=sys.stderr)
         print(f"[Step 1/3] 打包 Skill 目录 → ZIP", file=sys.stderr)
         print(f"{'='*50}", file=sys.stderr)
-        zip_path = pack_skill(args.skill_dir, zip_output)
+        zip_path = pack_skill(args.skill_dir, zip_output, emit_stdout=False)
 
         # ── Step 2: 上传七牛 ──
         file_key = args.file_key or f"skills/{args.code}/{int(time.time())}-{os.path.basename(zip_path)}"
@@ -204,7 +209,7 @@ def main():
         print(f"[Step 2/3] 上传到七牛 (fileKey={file_key})", file=sys.stderr)
         print(f"{'='*50}", file=sys.stderr)
 
-        creds = get_qiniu_token(token, file_key)
+        creds = get_qiniu_token(token, file_key, args.corp_id)
         qiniu_token = creds["token"]
         domain = creds["domain"]
         print(f"凭证获取成功，domain={domain}", file=sys.stderr)

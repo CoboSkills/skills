@@ -5,7 +5,7 @@
 用途：将已发布的 Skill 下架
 
 使用方式：
-  python3 cms-create-skill/scripts/skill-management/delete_skill.py --id <skill-id> [--reason <下架原因>]
+  python3 cms-push-skill/scripts/skill-management/delete_skill.py --id <skill-id> [--reason <下架原因>]
 
 参数说明：
   --id       Skill ID（必须）
@@ -25,9 +25,18 @@ import warnings
 # 禁用 InsecureRequestWarning (因为 verify=False)
 warnings.filterwarnings("ignore", category=requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
-API_BASE = "https://skills.mediportal.com.cn"
+DEFAULT_API_BASE = "https://skills.mediportal.com.cn"
+API_BASE = DEFAULT_API_BASE
 
 API_URL = f"{API_BASE.rstrip('/')}/api/skill/delete"
+
+
+def parse_api_response(response: requests.Response, action: str) -> dict:
+    data = response.json()
+    if isinstance(data, dict) and data.get("resultCode") not in (None, 1):
+        message = data.get("resultMsg") or data.get("detailMsg") or response.text
+        raise RuntimeError(f"{action}失败: {message}")
+    return data
 
 
 def call_api(token: str, skill_id: str, reason: str = "") -> dict:
@@ -51,23 +60,22 @@ def call_api(token: str, skill_id: str, reason: str = "") -> dict:
             timeout=60,
         )
         response.raise_for_status()
-        return response.json()
+        return parse_api_response(response, "下架 Skill")
     except Exception as e:
         print(f"错误: 请求失败: {e}", file=sys.stderr)
         sys.exit(1)
 
 
 def main():
-    token = os.environ.get("XG_USER_TOKEN") or os.environ.get("access-token") or os.environ.get("ACCESS_TOKEN")
-
-    if not token:
-        print("错误: 请设置环境变量 XG_USER_TOKEN", file=sys.stderr)
-        sys.exit(1)
-
     parser = argparse.ArgumentParser(description="下架（删除）Skill")
     parser.add_argument("--id", required=True, help="Skill ID")
     parser.add_argument("--reason", default="", help="下架原因")
     args = parser.parse_args()
+
+    token = os.environ.get("XG_USER_TOKEN") or os.environ.get("access-token") or os.environ.get("ACCESS_TOKEN")
+    if not token:
+        print("错误: 请设置环境变量 XG_USER_TOKEN", file=sys.stderr)
+        sys.exit(1)
 
     result = call_api(token, args.id, args.reason)
     print(json.dumps(result, ensure_ascii=False, indent=2))

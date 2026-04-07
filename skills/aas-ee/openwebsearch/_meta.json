@@ -1,0 +1,11 @@
+{
+  "owner": "aas-ee",
+  "slug": "openwebsearch",
+  "displayName": "OpenWebSearch",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775367242803,
+    "commit": null
+  },
+  "history": []
+}

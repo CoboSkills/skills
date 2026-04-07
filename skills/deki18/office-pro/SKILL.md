@@ -1,64 +1,47 @@
 ---
 name: Office Pro
 slug: office-pro
-version: 1.0.0
-description: "Enterprise-grade document automation suite for Microsoft Word and Excel. Create professional documents, reports, and spreadsheets with business templates, dynamic data binding, and template-based generation. Supports template rendering (Jinja2 for Word, data substitution for Excel), batch processing, and cross-format data exchange. Use when (1) generating business documents with consistent branding; (2) creating reports from structured data; (3) automating Excel workflows with templates; (4) converting between CSV/JSON and Office formats; (5) batch document generation is required."
-changelog: "Initial release with Word and Excel automation, 16 enterprise templates, template engine, and CLI tools."
-metadata: {"openclaw":{"emoji":"📊","requires":{"bins":["python3"],"pip":["python-docx","openpyxl","docxtpl","Jinja2","pandas","Pillow","click","python-dateutil"]},"os":["linux","darwin","win32"]}}
+version: 1.2.0
+description: "Enterprise document automation suite for AI Agents. Generate professional Word contracts and Excel reports with one function call. Built-in 10 contract templates, 6 Excel templates, and report templates. No external template files required."
+changelog: "v1.2.0 - Simplified API for AI Agents, built-in templates, removed external dependencies."
+metadata: {"openclaw":{"emoji":"📊","requires":{"bins":["python3"],"pip":["python-docx","openpyxl"]},"os":["linux","darwin","win32"]}}
 ---
 
 # Office Pro - 企业级文档自动化套件
 
-专业级 Microsoft Word 和 Excel 文档自动化工具，提供企业级模板、动态数据绑定和批量处理能力。
+专为 AI Agent 设计的文档生成工具，一键生成专业合同和报表。
 
 ## 核心功能
 
-### Word 文档处理 (.docx)
-- **模板引擎**：基于 Jinja2 的 `docxtpl`，支持变量、条件、循环
-- **企业模板**：8 个预设专业模板（商务信函、会议纪要、工作报告等）
-- **完整格式支持**：段落、表格、图片、页眉页脚、页码、样式
-- **动态内容**：邮件合并、批量生成
-
-### Excel 表格处理 (.xlsx)
-- **模板驱动**：基于 xlsx-template 理念，数据替换保持格式
-- **企业模板**：8 个预设专业模板（财务报表、项目进度、库存管理等）
-- **高级功能**：图表、透视表、公式、数据验证、条件格式
-- **数据交换**：CSV/JSON 互导、Word ↔ Excel 数据交互
-
-### 批量与自动化
-- 批量文档生成
-- 命令行接口 (CLI)
-- Python API
+- **一键生成**：无需外部模板文件，内置完整条款
+- **合同模板**：10种专业合同（车位租赁、房屋租赁、劳动合同等）
+- **Excel模板**：6种报表模板（财务报表、项目进度、员工花名册等）
+- **报告模板**：会议纪要、工作报告
+- **高级功能**：Excel图表、Word高级样式（可选）
 
 ## API Schema
 
-### Actions 输入输出规范
-
-#### word.generate
-生成Word文档（基于模板）
+### generate_contract
+生成合同文档
 
 ```json
 {
   "input": {
     "type": "object",
-    "required": ["template", "data", "output"],
+    "required": ["contract_type"],
     "properties": {
-      "template": {
+      "contract_type": {
         "type": "string",
-        "description": "Template filename (e.g., meeting-minutes.docx)"
+        "enum": ["parking_lease", "house_lease", "labor", "sales", "service", "purchase", "nda", "cooperation", "loan", "commission"],
+        "description": "Contract type ID"
       },
-      "data": {
-        "type": "object",
-        "description": "Template data as JSON object or path to JSON file"
-      },
-      "output": {
-        "type": "string",
-        "description": "Output file path"
-      },
-      "template_dir": {
-        "type": "string",
-        "description": "Custom template directory (optional)"
-      }
+      "party_a": {"type": "string", "description": "Party A name"},
+      "party_b": {"type": "string", "description": "Party B name"},
+      "location": {"type": "string", "description": "Location/address"},
+      "monthly_rent": {"type": "number", "description": "Monthly rent (yuan)"},
+      "start_date": {"type": "string", "description": "Start date (YYYY-MM-DD)"},
+      "end_date": {"type": "string", "description": "End date (YYYY-MM-DD)"},
+      "output": {"type": "string", "description": "Output filename (optional)"}
     }
   },
   "output": {
@@ -66,39 +49,28 @@ metadata: {"openclaw":{"emoji":"📊","requires":{"bins":["python3"],"pip":["pyt
     "properties": {
       "success": {"type": "boolean"},
       "output_path": {"type": "string"},
-      "message": {"type": "string"},
-      "error": {"type": "string"},
-      "error_code": {"type": "string"}
+      "message": {"type": "string"}
     }
   }
 }
 ```
 
-#### excel.generate
-生成Excel报表（基于模板）
+### generate_excel
+生成Excel报表
 
 ```json
 {
   "input": {
     "type": "object",
-    "required": ["template", "data", "output"],
+    "required": ["excel_type"],
     "properties": {
-      "template": {
+      "excel_type": {
         "type": "string",
-        "description": "Template filename (e.g., sales-report.xlsx)"
+        "enum": ["financial_report", "project_schedule", "employee_roster", "asset_inventory", "expense_report", "invoice"],
+        "description": "Excel template type ID"
       },
-      "data": {
-        "type": "object",
-        "description": "Template data as JSON object or path to JSON file"
-      },
-      "output": {
-        "type": "string",
-        "description": "Output file path"
-      },
-      "template_dir": {
-        "type": "string",
-        "description": "Custom template directory (optional)"
-      }
+      "company_name": {"type": "string", "description": "Company name"},
+      "output": {"type": "string", "description": "Output filename (optional)"}
     }
   },
   "output": {
@@ -106,15 +78,44 @@ metadata: {"openclaw":{"emoji":"📊","requires":{"bins":["python3"],"pip":["pyt
     "properties": {
       "success": {"type": "boolean"},
       "output_path": {"type": "string"},
-      "message": {"type": "string"},
-      "error": {"type": "string"},
-      "error_code": {"type": "string"}
+      "message": {"type": "string"}
     }
   }
 }
 ```
 
-#### templates.list
+### generate_report
+生成报告文档
+
+```json
+{
+  "input": {
+    "type": "object",
+    "required": ["report_type"],
+    "properties": {
+      "report_type": {
+        "type": "string",
+        "enum": ["meeting_minutes", "work_report"],
+        "description": "Report type ID"
+      },
+      "meeting_title": {"type": "string", "description": "Meeting title (for meeting_minutes)"},
+      "meeting_date": {"type": "string", "description": "Meeting date"},
+      "reporter": {"type": "string", "description": "Reporter name (for work_report)"},
+      "output": {"type": "string", "description": "Output filename (optional)"}
+    }
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "success": {"type": "boolean"},
+      "output_path": {"type": "string"},
+      "message": {"type": "string"}
+    }
+  }
+}
+```
+
+### list_templates
 列出可用模板
 
 ```json
@@ -122,196 +123,105 @@ metadata: {"openclaw":{"emoji":"📊","requires":{"bins":["python3"],"pip":["pyt
   "input": {
     "type": "object",
     "properties": {
-      "type": {
+      "category": {
         "type": "string",
-        "enum": ["word", "excel", "all"],
-        "default": "all",
-        "description": "Template type to list"
-      },
-      "template_dir": {
-        "type": "string",
-        "description": "Custom template directory (optional)"
+        "enum": ["contract", "excel", "report", null],
+        "default": null,
+        "description": "Template category (null for all)"
       }
     }
   },
   "output": {
     "type": "object",
     "properties": {
-      "success": {"type": "boolean"},
-      "templates": {
-        "type": "object",
-        "properties": {
-          "word": {"type": "array", "items": {"type": "string"}},
-          "excel": {"type": "array", "items": {"type": "string"}}
-        }
-      }
+      "contracts": {"type": "array", "items": {"type": "string"}},
+      "excel": {"type": "array", "items": {"type": "string"}},
+      "reports": {"type": "array", "items": {"type": "string"}}
     }
   }
 }
 ```
 
-#### word.create
-创建空白Word文档
+## 可用模板
 
-```json
-{
-  "input": {
-    "type": "object",
-    "required": ["output"],
-    "properties": {
-      "output": {
-        "type": "string",
-        "description": "Output file path"
-      },
-      "title": {
-        "type": "string",
-        "description": "Document title (optional)"
-      }
-    }
-  },
-  "output": {
-    "type": "object",
-    "properties": {
-      "success": {"type": "boolean"},
-      "output_path": {"type": "string"},
-      "message": {"type": "string"}
-    }
-  }
-}
-```
+### 合同模板 (10种)
 
-#### excel.create
-创建空白Excel工作簿
+| ID | 名称 | ID | 名称 |
+|---|------|---|------|
+| `parking_lease` | 车位租赁合同 | `sales` | 销售合同 |
+| `house_lease` | 房屋租赁合同 | `service` | 服务合同 |
+| `labor` | 劳动合同 | `purchase` | 采购合同 |
+| `nda` | 保密协议 | `cooperation` | 合作协议 |
+| `loan` | 借款合同 | `commission` | 委托合同 |
 
-```json
-{
-  "input": {
-    "type": "object",
-    "required": ["output"],
-    "properties": {
-      "output": {
-        "type": "string",
-        "description": "Output file path"
-      },
-      "sheets": {
-        "type": "integer",
-        "default": 1,
-        "description": "Number of sheets to create"
-      }
-    }
-  },
-  "output": {
-    "type": "object",
-    "properties": {
-      "success": {"type": "boolean"},
-      "output_path": {"type": "string"},
-      "message": {"type": "string"}
-    }
-  }
-}
-```
+### Excel模板 (6种)
 
-### Error Codes
+| ID | 名称 |
+|---|------|
+| `financial_report` | 财务报表 |
+| `project_schedule` | 项目进度表 |
+| `employee_roster` | 员工花名册 |
+| `asset_inventory` | 资产清单 |
+| `expense_report` | 费用报销单 |
+| `invoice` | 发票管理表 |
 
-| Code | Description |
-|------|-------------|
-| SKILL_404 | Template not found |
-| SKILL_401 | Invalid file path (security violation) |
-| SKILL_402 | Template rendering failed |
-| SKILL_501 | Dependency not available |
-| SKILL_999 | Document not loaded |
+### 报告模板 (2种)
 
-## 快速开始
+| ID | 名称 |
+|---|------|
+| `meeting_minutes` | 会议纪要 |
+| `work_report` | 工作报告 |
 
-### 安装
+## 使用示例
 
-```bash
-# 使用 pip 安装依赖
-pip install python-docx openpyxl docxtpl pandas Pillow click
-```
-
-### 模板初始化
-
-本技能首次运行时会**自动生成** 16 个专业级模板（8个Word + 8个Excel）。模板将在首次调用时自动创建，无需手动上传。
-
-如果需要手动生成模板：
-
-```bash
-python generate_premium_templates.py
-```
-
-生成的模板位于 `assets/templates/` 目录：
-- **Word模板**: `assets/templates/word/` - 会议纪要、商务信函、简历、项目提案、工作报告、合同、新闻稿、邀请函
-- **Excel模板**: `assets/templates/excel/` - 销售报告、财务报表、预算表、项目时间线、库存管理、CRM、考勤表、数据透视表
-
-### 使用模板生成 Word 文档
+### Python API
 
 ```python
-from office_pro import WordProcessor
+from office_pro import generate_contract, generate_excel, generate_report
 
-# 加载模板
-wp = WordProcessor()
-doc = wp.load_template('meeting-minutes.docx')
+# 生成车位租赁合同
+generate_contract('parking_lease',
+    party_a='张三', party_b='李四',
+    location='XX小区地下停车场',
+    space_number='A-123',
+    monthly_rent=500,
+    start_date='2024-01-01',
+    end_date='2024-12-31'
+)
 
-# 渲染数据
-context = {
-    'meeting_title': 'Q1 产品规划会议',
-    'date': '2024-03-15',
-    'attendees': ['张三', '李四', '王五'],
-    'agenda': [
-        {'topic': '产品路线图回顾', 'duration': '30分钟'},
-        {'topic': '新功能讨论', 'duration': '45分钟'}
-    ]
-}
+# 生成财务报表
+generate_excel('financial_report', company_name='XX公司')
 
-# 生成文档
-doc.render(context)
-doc.save('output/meeting-minutes-2024-03-15.docx')
+# 生成会议纪要
+generate_report('meeting_minutes',
+    meeting_title='Q1规划会议',
+    meeting_date='2024-03-15'
+)
 ```
 
-### 使用模板生成 Excel 报表
+### 高级功能（可选）
 
 ```python
-from office_pro import ExcelProcessor
+from office_pro import create_chart, create_styled_document
 
-# 加载模板
-ep = ExcelProcessor()
-wb = ep.load_template('sales-report.xlsx')
+# Excel图表
+create_chart('report.xlsx') \
+    .add_bar_chart('Sheet1', 'A1:B10', '销售数据') \
+    .save()
 
-# 数据替换
-data = {
-    'report_date': '2024-03-15',
-    'sales_rep': '张三',
-    'total_sales': 150000,
-    'target': 120000,
-    'products': [
-        {'name': '产品A', 'quantity': 100, 'revenue': 50000},
-        {'name': '产品B', 'quantity': 80, 'revenue': 60000},
-        {'name': '产品C', 'quantity': 50, 'revenue': 40000}
-    ]
-}
-
-# 生成报表
-wb.render(data)
-wb.save('output/sales-report-2024-03.xlsx')
+# Word高级样式
+create_styled_document() \
+    .add_styled_heading('报告', color='1F4E79') \
+    .add_table_with_style([['项目', '金额'], ['收入', '100万']]) \
+    .save('report.docx')
 ```
 
-### 命令行使用
+## 安装依赖
 
 ```bash
-# Word 文档生成
-office-pro word generate --template meeting-minutes.docx --data meeting.json --output meeting-2024-03-15.docx
-
-# Excel 报表生成
-office-pro excel generate --template sales-report.xlsx --data sales.json --output sales-march.xlsx
-
-# 查看可用模板
-office-pro templates list
-
-# 批量生成
-office-pro batch --config batch-config.yaml
+pip install python-docx openpyxl
 ```
 
 ## 许可协议
 
-MIT License - 开源免费使用
+MIT License

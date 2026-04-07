@@ -1,176 +1,136 @@
 # OpenClaw Office Pro
 
-**企业级文档自动化套件 - 专为OpenClaw AI助手设计**
+**企业级文档自动化套件 - 专为AI Agent设计**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![OpenClaw Skill](https://img.shields.io/badge/OpenClaw-Skill-green.svg)](https://openclaw.ai)
 
-专业级Microsoft Word和Excel文档自动化工具，提供企业级模板、动态数据绑定和批量处理能力。专为OpenClaw AI助手设计，支持自动化文档生成、报表创建和商务文档处理。
+## 安装
 
-## ✨ 特性
-
-### 📝 Word文档处理
-- **模板引擎**: 基于Jinja2的`docxtpl`，支持变量、条件、循环
-- **企业模板**: 8个预设专业模板（商务信函、会议纪要、工作报告等）
-- **完整格式支持**: 段落、表格、图片、页眉页脚、页码、样式
-- **动态内容**: 邮件合并、批量生成
-
-### 📊 Excel表格处理  
-- **模板驱动**: 基于xlsx-template理念，数据替换保持格式
-- **企业模板**: 8个预设专业模板（财务报表、项目进度、库存管理等）
-- **高级功能**: 图表、透视表、公式、数据验证、条件格式
-- **数据交换**: CSV/JSON互导、Word ↔ Excel数据交互
-
-### ⚡ 自动化能力
-- **批量文档生成**: 一键生成多个文档
-- **命令行接口**: 完整的CLI工具
-- **Python API**: 易于集成的编程接口
-- **OpenClaw集成**: 作为技能直接调用
-
-## 🚀 快速开始
-
-### 安装依赖
 ```bash
-pip install python-docx openpyxl docxtpl pandas Pillow click
+pip install python-docx openpyxl
 ```
 
-### 基本使用
+## 快速开始
 
-#### 1. 使用Python API
+### 生成合同
 
 ```python
-from office_pro import WordProcessor, ExcelProcessor
+from office_pro import generate_contract
 
-# Word文档生成
-wp = WordProcessor()
-doc = wp.load_template('meeting-minutes.docx')
-doc.render({
-    'meeting_title': 'Q1产品规划会议',
-    'date': '2024-03-15',
-    'attendees': ['张三', '李四', '王五']
-})
-doc.save('output/meeting-minutes-2024-03-15.docx')
+# 车位租赁合同
+generate_contract('parking_lease',
+    party_a='张三', party_b='李四',
+    location='XX小区地下停车场',
+    space_number='A-123',
+    monthly_rent=500,
+    start_date='2024-01-01',
+    end_date='2024-12-31'
+)
 
-# Excel报表生成
-ep = ExcelProcessor()
-wb = ep.load_template('sales-report.xlsx')
-wb.render({
-    'report_date': '2024-03-15',
-    'sales_rep': '张三',
-    'total_sales': 150000
-})
-wb.save('output/sales-report-2024-03.xlsx')
+# 其他合同类型
+generate_contract('house_lease', ...)    # 房屋租赁
+generate_contract('labor', ...)          # 劳动合同
+generate_contract('sales', ...)          # 销售合同
+generate_contract('service', ...)        # 服务合同
+generate_contract('purchase', ...)       # 采购合同
+generate_contract('nda', ...)            # 保密协议
+generate_contract('cooperation', ...)    # 合作协议
+generate_contract('loan', ...)           # 借款合同
+generate_contract('commission', ...)     # 委托合同
 ```
 
-#### 2. 使用命令行
+### 生成Excel
 
-```bash
-# Word文档生成
-office-pro word generate --template meeting-minutes.docx --data meeting.json --output meeting.docx
+```python
+from office_pro import generate_excel
 
-# Excel报表生成
-office-pro excel generate --template sales-report.xlsx --data sales.json --output sales.xlsx
-
-# 查看可用模板
-office-pro templates list
+generate_excel('financial_report', company_name='XX公司')  # 财务报表
+generate_excel('project_schedule', ...)   # 项目进度表
+generate_excel('employee_roster', ...)    # 员工花名册
+generate_excel('asset_inventory', ...)    # 资产清单
+generate_excel('expense_report', ...)     # 费用报销单
+generate_excel('invoice', ...)            # 发票管理表
 ```
 
-#### 3. 在OpenClaw中使用
+### 生成报告
 
-```bash
-# 作为OpenClaw技能调用
-openclaw sessions_spawn \
-  --runtime subagent \
-  --task "使用Office Pro生成销售报表" \
-  --label office-pro \
-  --mode run
+```python
+from office_pro import generate_report
+
+generate_report('meeting_minutes', meeting_title='Q1规划会议', ...)
+generate_report('work_report', reporter='张三', ...)
 ```
 
-## 🎯 可用模板
+## 可用模板
 
-### Word模板 (8个)
-1. **商务信函** (`letter-business`) - 正式商务往来信函
-2. **会议纪要** (`meeting-minutes`) - 标准会议记录模板
-3. **项目提案** (`project-proposal`) - 商业项目提案书
-4. **工作报告** (`work-report`) - 周/月工作报告
-5. **简单合同** (`contract-simple`) - 标准商务合同
-6. **专业简历** (`resume-professional`) - 求职简历模板
-7. **新闻稿** (`press-release`) - 企业新闻稿
-8. **正式邀请函** (`invitation-formal`) - 正式场合邀请函
+### 合同模板 (10种)
 
-### Excel模板 (8个)
-1. **财务报表** (`financial-statement`) - 资产负债表、利润表、现金流量表
-2. **预算表** (`budget-template`) - 年度/月度预算表
-3. **项目进度** (`project-timeline`) - 甘特图、里程碑追踪
-4. **库存管理** (`inventory-management`) - 产品库存跟踪
-5. **销售报表** (`sales-report`) - 销售业绩分析
-6. **员工考勤** (`attendance-tracking`) - 月度考勤记录
-7. **客户管理** (`crm-simple`) - 客户关系管理
-8. **数据透视** (`pivot-demo`) - 数据透视表示例
+| ID | 名称 | ID | 名称 |
+|---|------|---|------|
+| `parking_lease` | 车位租赁 | `sales` | 销售合同 |
+| `house_lease` | 房屋租赁 | `service` | 服务合同 |
+| `labor` | 劳动合同 | `purchase` | 采购合同 |
+| `nda` | 保密协议 | `cooperation` | 合作协议 |
+| `loan` | 借款合同 | `commission` | 委托合同 |
 
-## 🔧 技术栈
+### Excel模板 (6种)
 
-### 核心依赖
-- **python-docx** (>=1.1.2) - Word文档处理
-- **openpyxl** (>=3.1.5) - Excel表格处理
-- **docxtpl** (>=0.6.9) - Word模板引擎 (基于Jinja2)
-- **Jinja2** (>=3.1.4) - 模板渲染
-- **pandas** (>=2.0.0) - 数据处理与分析
-- **click** (>=8.1.0) - CLI框架
+| ID | 名称 | ID | 名称 |
+|---|------|---|------|
+| `financial_report` | 财务报表 | `project_schedule` | 项目进度表 |
+| `employee_roster` | 员工花名册 | `asset_inventory` | 资产清单 |
+| `expense_report` | 费用报销单 | `invoice` | 发票管理表 |
 
-### 可选依赖
-- **Pillow** (>=10.0.0) - 图片处理
-- **python-dateutil** (>=2.8.0) - 日期解析
-- **markdown** (>=3.5.0) - Markdown支持
+### 报告模板 (2种)
 
-## 📖 文档
+| ID | 名称 |
+|---|------|
+| `meeting_minutes` | 会议纪要 |
+| `work_report` | 工作报告 |
 
-- [SKILL.md](SKILL.md) - OpenClaw技能主文档，包含完整API规范和使用指南
+## 高级功能（可选）
 
-## 🛠️ 开发
+### Excel图表
 
-### 环境设置
-```bash
-# 克隆仓库
-git clone https://github.com/yourusername/Openclaw-Office-Pro.git
-cd Openclaw-Office-Pro
+```python
+from office_pro import create_chart
 
-# 创建虚拟环境
-python3 -m venv venv
-source venv/bin/activate
-
-# 安装依赖
-pip install -r requirements.txt
+create_chart('report.xlsx') \
+    .add_bar_chart('Sheet1', 'A1:B10', '销售数据') \
+    .add_pie_chart('Sheet1', 'C1:D5', '占比分析') \
+    .save()
 ```
 
-### 运行测试
-```bash
-# 运行功能测试
-python -m pytest tests/
+### Word高级样式
 
-# 运行端到端测试
-python scripts/test_end_to_end.py
+```python
+from office_pro import create_styled_document
+
+create_styled_document() \
+    .add_styled_heading('报告', color='1F4E79') \
+    .add_table_with_style([['项目', '金额'], ['收入', '100万']]) \
+    .add_picture('chart.png', width=6) \
+    .save('report.docx')
 ```
 
-## 📄 许可证
+## 工具函数
 
-本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
+```python
+from office_pro import list_templates, num_to_chinese
 
-## 🤝 致谢
+# 列出所有模板
+list_templates()
+# {'contracts': [...], 'reports': [...], 'excel': [...]}
 
-- [python-docx](https://github.com/python-openxml/python-docx) 开发团队
-- [openpyxl](https://openpyxl.readthedocs.io/) 开发团队  
-- [docxtpl](https://github.com/elapouya/python-docx-template) 开发团队
-- [OpenClaw](https://openclaw.ai) 社区
+# 数字转中文大写
+num_to_chinese(15000)  # 壹万伍仟
+```
 
-## 📞 支持
+## 许可证
 
-- 问题反馈: [GitHub Issues](https://github.com/yourusername/Openclaw-Office-Pro/issues)
-- 功能建议: [GitHub Discussions](https://github.com/yourusername/Openclaw-Office-Pro/discussions)
+MIT License
 
 ---
 
-**Made with ❤️ for OpenClaw Community**
-
-*让AI助手成为你的专业文档助手*
+**Made for OpenClaw Community**

@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "product-hunt-integration",
+  "displayName": "Product Hunt",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775293425973,
+    "commit": null
+  },
+  "history": []
+}

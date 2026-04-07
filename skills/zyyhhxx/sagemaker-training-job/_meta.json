@@ -1,0 +1,11 @@
+{
+  "owner": "zyyhhxx",
+  "slug": "sagemaker-training-job",
+  "displayName": "SageMaker Training Job",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775383247967,
+    "commit": null
+  },
+  "history": []
+}

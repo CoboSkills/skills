@@ -1,0 +1,11 @@
+{
+  "owner": "ansike",
+  "slug": "ctrip-publish-skill",
+  "displayName": "携程笔记全自动发布",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775303571878,
+    "commit": null
+  },
+  "history": []
+}

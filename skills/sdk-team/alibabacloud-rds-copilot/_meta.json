@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-rds-copilot",
+  "displayName": "Alibabacloud Rds Copilot",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1775220716144,
+    "commit": null
+  },
+  "history": []
+}

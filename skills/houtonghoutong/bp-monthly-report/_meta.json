@@ -3,9 +3,15 @@
   "slug": "bp-monthly-report",
   "displayName": "BP Monthly Report Writer",
   "latest": {
-    "version": "0.2.4",
-    "publishedAt": 1775122085693,
-    "commit": "https://github.com/openclaw/skills/commit/c066e09633633e4ac63596035b7d041967eb1520"
+    "version": "0.3.1",
+    "publishedAt": 1775214832470,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.2.4",
+      "publishedAt": 1775122085693,
+      "commit": "https://github.com/openclaw/skills/commit/c066e09633633e4ac63596035b7d041967eb1520"
+    }
+  ]
 }

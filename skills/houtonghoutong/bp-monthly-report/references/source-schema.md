@@ -67,16 +67,21 @@ department:
   author_matches_current_owner: true | false
   report_id:
   report_link_md:
-  report_link_status: ready | missing_report_id
-  attachments: []
-  attachment_fetch_status:
-  confidence: high | medium | low
+report_link_status: ready | missing_report_id
+attachments: []
+attachment_fetch_status:
+reply_count:
+node_count:
+reply_lines: []
+node_lines: []
+confidence: high | medium | low
 ```
 
 ## Source inventory summary
 
 ```yaml
 raw_report_hit_count:
+candidate_report_count:
 adopted_report_count:
 adopted_manual_report_count:
 adopted_primary_report_count:
@@ -95,19 +100,35 @@ batch_collapse_note:
   target_statement:
   result_judgments:
     - result_id:
+      result_name:
       measure_standard:
       current_evidence:
       judgment:
+      traffic_light_reason:
+      human_review_status:
+      disagreement_reason_category:
+      disagreement_reason_text:
+      corrective_plan:
+      corrective_due_date:
+      next_cycle_actions: []
   selected_evidence: []
   primary_evidence: []
   auxiliary_evidence: []
   progress_points: []
   metrics: []
-  traffic_light: green | yellow | red
+  section_level_summary:
   risks: []
   next_actions: []
   missing_fields: []
 ```
+
+## Fine-grained cards
+
+Minimum persisted card units:
+
+- one KR card under `04_cards/kr_cards/`
+- one action card under `04_cards/action_cards/`
+- one review card per `🟡 / 🔴 / ⚫` block under `05_review_queue/`
 
 ## Drafting guidance
 
@@ -123,6 +144,8 @@ The primary evidence object should be the original BP report itself:
 - author
 - report type
 - linked task id
+- reply list and reply count when exposed
+- node-opinion list and node count when exposed
 - attachment metadata or attachment links if available
 
 Do not treat a hand-written markdown summary or a dumped local JSON file as the primary evidence object.

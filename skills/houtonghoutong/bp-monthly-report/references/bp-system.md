@@ -87,7 +87,7 @@ Reason:
 - key result detail exposes `measureStandard`
 - result-level detail is the main evaluation basis for the report
 
-### Step 5: fetch related report bodies
+### Step 5: fetch related report ids from BP
 
 - `POST /bp/task/relation/pageAllReports`
 
@@ -99,29 +99,49 @@ Recommended request shape:
 - `sortBy: relation_time`
 - `sortOrder: desc`
 
-Important fields:
+Important fields in the updated response:
 
-- `type`: `manual` or `ai`
-- `main`: report title
-- `content`: full report body in text
-- `contentType`: `html` or `markdown`
-- `writeEmpName`: author
+- `bizId`: report id
+- `type` or `typeDesc`: report type
 
-Current practical caveat:
+The updated BP API is now used only as the BP-to-report-id bridge. Do not assume it still returns report title, body, or author.
 
-- the live `pageAllReports` response observed in this workflow may not expose `reportId`
-- if `reportId` is missing, do not dump full report JSON just to preserve a clickable source
-- keep the evidence as minimal metadata plus progress extraction, and upgrade to `[标题](reportId=<id>&linkType=report)` as soon as a report id is available from upstream
+### Step 6: fetch work-report details by `reportId`
+
+Use the work-collaboration APIs after Step 5:
+
+- `GET /work-report/report/info?reportId=...`
+- `GET /work-report/report/getReportNodeDetail?reportId=...`
+
+Use them for:
+
+- report title
+- report body
+- report create time
+- author
+- replies
+- node processing opinions
+
+This is now the required detail-fetch chain for month report drafting.
 
 Do not treat all related reports as equal evidence.
 You must compare the report author against the current BP node's people.
 
-The API supports sorting by:
+The BP report-link API supports sorting by:
 
 - `relation_time`
 - `business_time`
 
-For monthly reports, prefer evidence aligned to the reporting month and sort with business time when possible.
+For monthly reports, use:
+
+- `sortBy: business_time`
+- month attribution mode: `report_time`
+
+Current fixed rule:
+
+- only use `汇报日期`
+- do not use `关联时间` as the default month-attribution rule
+- do not use LLM inference on正文月份 as the default month-attribution rule
 
 ## Drafting priority rules
 

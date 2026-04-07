@@ -16,6 +16,12 @@ Default minimum intake should be treated as:
 - BP period
 - node identity
 
+`node identity` can be any of:
+
+- node name
+- `groupId`
+- BP组织节点ID
+
 Only ask for these additional items when they are truly unknown in the current environment:
 
 - template file
@@ -76,6 +82,14 @@ For the current node, map:
 - action assignees
 - action ids and action names
 
+For chapter 2, the mapping must preserve the relationship:
+
+- section heading -> goal
+- goal -> one or more key results
+- key result -> measure standard -> linked evidence
+
+Do not collapse multiple key results into a single section-level light by default.
+
 This step should be driven by the BP system's real object model:
 
 - goal = target state
@@ -88,6 +102,7 @@ This produces the stable skeleton of the report.
 Output:
 
 - `bp_anchor_map`
+- `bp_anchor_map` must preserve key-result-level judgment units for chapter 2
 
 ## Stage 3: Evidence collection
 
@@ -121,11 +136,16 @@ Output:
 - `evidence_ledger`
 - `source_inventory_summary`
 
-## Stage 4: Section card assembly
+## Stage 4: Card assembly
 
-Before drafting prose, build cards for each chapter.
+Before drafting prose, build structured cards.
 
-Each card should contain:
+There should be two card layers:
+
+- `04_cards`: AI structure cards
+- `05_review_queue`: user review cards for `🟡 / 🔴 / ⚫`
+
+Each structure card should contain:
 
 - target heading
 - source BP anchors
@@ -142,7 +162,8 @@ This is the main control point. If the cards are weak, the draft will drift.
 
 Output:
 
-- `section_cards`
+- `04_cards`
+- `05_review_queue`
 
 ## Stage 5: Fixed-order drafting
 
@@ -169,7 +190,7 @@ Reason:
 
 Output:
 
-- `draft_v1`
+- `05_ai_baseline_report.md`
 
 ## Stage 6: Cross-check
 
@@ -180,6 +201,15 @@ Check:
 - the reported raw-hit count matches the pre-collapse evidence scan
 - every claimed progress point can be traced to an original BP report link or, if `reportId` is unavailable, to the adopted report title plus task and author metadata
 - every traffic-light judgment is explainable from evidence
+- every traffic-light judgment in the final report is followed by a visible status-colored `判断理由`
+- every traffic-light judgment in the final report is followed by a human-review block
+- every `🟡 / 🔴 / ⚫` judgment in the final report is followed by `整改方案` / `承诺完成时间` / `下周期具体举措`
+- every `🟡 / 🔴 / ⚫` judgment also has a dedicated review card in `05_review_queue`
+- the user may edit any part of the review report, but `🟡 / 🔴 / ⚫` blocks must not remain unexplained in the user review version
+- every section 4 key action item carries its own traffic-light judgment; do not leave section 4 as a light-free narrative list
+- every `⚫` judgment explicitly records a black-light subtype: `未开展/未执行` / `已开展但未关联` / `体外开展但体系内无留痕`
+- every `⚫ 已开展但未关联` item is kept as a carry-forward reminder until the next cycle confirms BP association is completed
+- every `⚫ 体外开展但体系内无留痕` item states what record-keeping change is required so future cycles can judge the same layer
 - next month priorities align with unresolved items and milestones
 - issue and risk sections do not contradict the overall judgment
 - headings and order exactly match the template
@@ -192,6 +222,7 @@ Check:
 Output:
 
 - `review_notes`
+- `07_user_review_report.md`
 
 ## When to stop and ask
 

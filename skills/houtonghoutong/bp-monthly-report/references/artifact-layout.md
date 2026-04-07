@@ -16,14 +16,29 @@ Inside it, use one subfolder per reporting cycle:
 
 ## Required files per cycle
 
-Each cycle folder should contain:
+Each cycle folder should contain the fixed backbone files:
 
 1. `00_intake.yaml`
 2. `01_bp_anchor_map.yaml`
 3. `02_source_inventory.md`
 4. `03_evidence_ledger.md`
-5. `04_section_cards.md`
-6. `05_report.md`
+5. `04_cards/`
+6. `05_ai_baseline_report.md`
+7. `05_review_queue/`
+8. `07_user_review_report.md`
+
+But the cycle folder should not be treated as a fixed eight-item package forever.
+
+The layout must support dynamic expansion when the template or revision flow requires it, for example:
+
+- `02a_time_attribution_check.md`
+- `04_cards/2.1_kr_01.md`
+- `04_cards/2.1_kr_02.md`
+- `04_cards/4.2_action_01.md`
+- `05_review_queue/2.1_kr_02_yellow.md`
+- `05_review_queue/4.2_action_01_black.md`
+- `06_revision_log.md`
+- `07_user_supplied_materials.md`
 
 ## File purpose
 
@@ -36,6 +51,9 @@ Stores:
 - report cycle
 - previous baseline path if any
 - template and spec paths
+- month attribution mode
+
+Current default `month attribution mode` must be `report_time`.
 
 ### `01_bp_anchor_map.yaml`
 
@@ -50,6 +68,8 @@ Stores:
 
 Stores:
 
+- raw-hit report count
+- candidate report count after time attribution
 - adopted report counts and breakdown
 - all adopted evidence sources
 - source priority
@@ -60,22 +80,45 @@ Stores:
 Stores:
 
 - month evidence lines
+- time-attribution notes when needed
 - source links
 - confidence
 - traffic-light support notes
 
-### `04_section_cards.md`
+### `04_cards/`
 
 Stores:
 
-- section-by-section drafting cards
+- structure cards used for drafting
 - chosen evidence
 - traffic-light judgments
 - open gaps
 
-### `05_report.md`
+The minimum card unit should be:
 
-Stores the final monthly or quarterly report draft.
+- one key-result card
+- or one key-action card
+
+This is a required granularity target, not an optional refinement.
+
+### `05_ai_baseline_report.md`
+
+Stores the AI-generated baseline draft.
+
+### `05_review_queue/`
+
+Stores:
+
+- one review card per `🟡 / 🔴 / ⚫` judgment block
+- user-required answers
+- rectification commitments
+- carry-forward reminders
+
+### `07_user_review_report.md`
+
+Stores the user-reviewed monthly or quarterly report.
+
+This is the formal review version, not just the AI baseline.
 
 ## Source linking rule
 
@@ -92,6 +135,8 @@ If the current API response does not expose `reportId`, keep the minimal source 
 - task mapping
 - evidence priority
 - `report_link_status: missing_report_id`
+
+Attachment reading and direct online links should remain pending until upstream APIs expose stable fields for them.
 
 ## Minimum source metadata
 
@@ -111,6 +156,7 @@ Each adopted source entry should contain:
 The file header should also contain:
 
 - total raw-hit work-report count
+- total candidate report count after time attribution, when different from raw-hit count
 - total adopted work-report count
 - adopted owner-authored report count
 - adopted other-manual report count

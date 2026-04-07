@@ -3,9 +3,15 @@
   "slug": "flyai-companion-match",
   "displayName": "带谁去哪",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775103221294,
-    "commit": "https://github.com/openclaw/skills/commit/d880ef9fe5ed065f7fdf1ff9169cf4a527f1ea8c"
+    "version": "1.0.1",
+    "publishedAt": 1775237363001,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775103221294,
+      "commit": "https://github.com/openclaw/skills/commit/d880ef9fe5ed065f7fdf1ff9169cf4a527f1ea8c"
+    }
+  ]
 }

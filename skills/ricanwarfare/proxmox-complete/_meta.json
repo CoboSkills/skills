@@ -1,0 +1,11 @@
+{
+  "owner": "ricanwarfare",
+  "slug": "proxmox-complete",
+  "displayName": "Proxmox Complete",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775414740660,
+    "commit": null
+  },
+  "history": []
+}

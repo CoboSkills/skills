@@ -12,6 +12,17 @@ metadata:
 
 **CRITICAL — Ensure the user is logged in (`pbd-cli login`) before executing commands, otherwise a session expired error will be returned.**
 
+## Installation
+
+### One-click Install
+**Linux / macOS:**
+
+```bash
+curl -sSL https://raw.githubusercontent.com/PaleBlueDot-AI-Open/pbd-cli/main/install.sh | bash
+```
+
+This script automatically detects your OS and architecture, downloads the latest release, and installs to `/usr/local/bin`.
+
 ## Core Scenarios
 
 The pbd-cli skill includes the following core scenarios:

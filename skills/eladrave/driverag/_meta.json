@@ -1,0 +1,11 @@
+{
+  "owner": "eladrave",
+  "slug": "driverag",
+  "displayName": "Rag based on Google drive",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1775441744714,
+    "commit": null
+  },
+  "history": []
+}

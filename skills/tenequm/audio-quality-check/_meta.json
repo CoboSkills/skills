@@ -1,0 +1,11 @@
+{
+  "owner": "tenequm",
+  "slug": "audio-quality-check",
+  "displayName": "Audio Recording Quality Analyzer",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1775221706928,
+    "commit": null
+  },
+  "history": []
+}

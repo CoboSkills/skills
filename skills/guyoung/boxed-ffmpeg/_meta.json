@@ -1,0 +1,11 @@
+{
+  "owner": "guyoung",
+  "slug": "boxed-ffmpeg",
+  "displayName": "Boxed FFmpeg",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775198517810,
+    "commit": null
+  },
+  "history": []
+}

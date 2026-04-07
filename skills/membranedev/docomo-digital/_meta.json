@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "docomo-digital",
+  "displayName": "Docomo Digital",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775275435312,
+    "commit": null
+  },
+  "history": []
+}

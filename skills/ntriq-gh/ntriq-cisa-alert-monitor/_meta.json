@@ -1,0 +1,11 @@
+{
+  "owner": "ntriq-gh",
+  "slug": "ntriq-cisa-alert-monitor",
+  "displayName": "Ntriq Cisa Alert Monitor",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775600430842,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,11 +1,17 @@
 {
   "owner": "shenghoo123-png",
   "slug": "cicd-templates-generator",
-  "displayName": "CI/CD Templates Generator",
+  "displayName": "Cicd Templates Generator",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775517266786,
-    "commit": "https://github.com/openclaw/skills/commit/479ef525f0749536e80e24348ef193a3fcfc2c01"
+    "version": "1.0.1",
+    "publishedAt": 1775536804611,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775517266786,
+      "commit": "https://github.com/openclaw/skills/commit/479ef525f0749536e80e24348ef193a3fcfc2c01"
+    }
+  ]
 }

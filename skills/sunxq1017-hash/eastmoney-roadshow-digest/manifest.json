@@ -1,0 +1,32 @@
+{
+  "name": "eastmoney-roadshow-transcript-summary",
+  "version": "0.1.0-draft",
+  "title": "EastMoney Roadshow Digest (Transcript + Summary)｜东方财富路演纪要生成",
+  "description": "A reliability-first transcript & summary skill for public EastMoney roadshow replays. It validates public replay URLs, extracts structured metadata, prefers subtitle discovery, falls back to bounded media+ASR, and produces transcript, clean transcript, summary, brief, and run report outputs.",
+  "author": "Tywin",
+  "license": "MIT",
+  "inputs": {
+    "url": {
+      "type": "string",
+      "description": "Public EastMoney roadshow replay URL, e.g. https://roadshow.eastmoney.com/luyan/5149204"
+    }
+  },
+  "outputs": [
+    "outputs/meta.json",
+    "outputs/transcript.md",
+    "outputs/clean_transcript.md",
+    "outputs/summary.md",
+    "outputs/brief.md",
+    "outputs/run_report.md"
+  ],
+  "dependencies": {
+    "python": [
+      "requests>=2.31.0",
+      "faster-whisper>=1.1.0"
+    ],
+    "system": [
+      "ffmpeg (required for audio extraction / ASR fallback)"
+    ]
+  },
+  "entry": "main.py"
+}

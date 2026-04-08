@@ -20,7 +20,8 @@ export function createAgentDerbySkill({
   // Phase 2: conservative default spacing between pixel sends.
   pixel_min_interval_ms = 300,
 } = {}) {
-  const chat = new ChatWSClient({ url: chatWsUrl });
+  // Shared singleton chat client per process (prevents API vs stream divergence).
+  const chat = ChatWSClient.getShared({ url: chatWsUrl });
   const board = new BoardWSClient({ url: boardWsUrl });
   const limiter = new SpacingLimiter({ minIntervalMs: pixel_min_interval_ms });
   const coord = new CoordClient({ baseUrl });
@@ -28,7 +29,8 @@ export function createAgentDerbySkill({
   async function get_recent_messages({ limit = 50, since_ts = null } = {}) {
     try {
       await chat.awaitReady();
-      return ok({ messages: chat.getRecent({ limit, sinceTs: since_ts }) });
+      // Semantic: chat-only messages (exclude intents)
+      return ok({ messages: chat.getRecent({ limit, sinceTs: since_ts, type: "chat" }) });
     } catch (e) {
       return err(ErrorCode.TIMEOUT, String(e?.message || e));
     }
@@ -178,6 +180,82 @@ export function createAgentDerbySkill({
     return ok({ accepted: true, observed: observe ? results.every((r) => r.ok && r.observed) : false, results });
   }
 
+  // High-level helper: chunk large pixel arrays into multiple safe draw_pixels calls.
+  // This preserves the low-level Phase 2 cap (50) while returning an explicit job-level result.
+  async function draw_pixels_chunked({ pixels, chunkSize = 50, observe = false, stopOnError = true } = {}) {
+    if (!Array.isArray(pixels)) return err(ErrorCode.INVALID, "pixels must be an array");
+    const req = pixels.length;
+    const cs = Math.max(1, Math.min(50, Number(chunkSize) || 50));
+    const totalChunks = Math.ceil(req / cs);
+
+    let completedChunks = 0;
+    let accepted = 0;
+    let observedCount = 0;
+    let failed = 0;
+    const failures = [];
+
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      const start = chunkIndex * cs;
+      const end = Math.min(req, start + cs);
+      const chunk = pixels.slice(start, end);
+
+      const r = await draw_pixels({ pixels: chunk, observe });
+      if (!r.ok) {
+        failures.push({ chunkIndex, reason: r.error?.code || "ERROR", message: r.error?.message || null });
+        if (stopOnError) {
+          return ok({
+            ok: false,
+            requested: req,
+            chunkSize: cs,
+            totalChunks,
+            completedChunks,
+            accepted,
+            observed: observe ? observedCount : null,
+            failed,
+            stoppedReason: r.error?.code || "ERROR",
+            failures,
+          });
+        }
+        // best-effort continue
+        completedChunks++;
+        continue;
+      }
+
+      completedChunks++;
+
+      // Per-chunk results
+      const chunkResults = r.results || [];
+      for (const it of chunkResults) {
+        if (it && it.ok && it.accepted) accepted++;
+        else failed++;
+        if (observe && it && it.ok && it.observed) observedCount++;
+        if (it && !it.ok) {
+          failures.push({
+            chunkIndex,
+            pixelIndex: start + Math.max(0, chunkResults.indexOf(it)),
+            x: it.x,
+            y: it.y,
+            reason: it.error?.code || it.code || "ERROR",
+            message: it.error?.message || it.message || null,
+          });
+        }
+      }
+    }
+
+    return ok({
+      ok: true,
+      requested: req,
+      chunkSize: cs,
+      totalChunks,
+      completedChunks,
+      accepted,
+      observed: observe ? observedCount : null,
+      failed,
+      stoppedReason: null,
+      failures,
+    });
+  }
+
   // Phase 3: coordination primitives
   async function claim_region({ agent_id, region, ttl_ms = 60000, reason = "" } = {}) {
     if (!agent_id) return err(ErrorCode.INVALID, "agent_id required");
@@ -206,6 +284,32 @@ export function createAgentDerbySkill({
     return coord.heartbeat({ agent_id });
   }
 
+  // TEMP TRACE: expose shared-client truth path snapshot
+  async function get_debug_truth_trace() {
+    // best-effort connect so readyState/connected is meaningful
+    try { await chat.connect(); } catch {}
+
+    const latestChatTs = Math.max(...(chat.recent || []).filter((m) => (m?.type || "chat") === "chat").map((m) => m.ts || 0), 0) || null;
+    const latestIntentTs = Math.max(...(chat.recent || []).filter((m) => (m?.type || "chat") === "intent").map((m) => m.ts || 0), 0) || null;
+
+    return ok({
+      clientId: chat.clientId || null,
+      sharedKey: chat._sharedKey || null,
+      wasReused: chat._wasReused ?? null,
+      readyState: chat.ws ? chat.ws.readyState : null,
+      connected: !!chat.connected,
+      lastAnyFrameAt: chat.lastAnyFrameAt || null,
+      lastHistoryAt: chat.lastHistoryAt || null,
+      lastMessageAt: chat.lastMessageAt || null,
+      recentLen: Array.isArray(chat.recent) ? chat.recent.length : null,
+      latestChatTs,
+      latestIntentTs,
+      writeTrace: Array.isArray(chat._writeTrace) ? chat._writeTrace.slice(-10) : [],
+      readTrace: Array.isArray(chat._readTrace) ? chat._readTrace.slice(-10) : [],
+      recvTrace: Array.isArray(chat._recvTrace) ? chat._recvTrace.slice(-10) : [],
+    });
+  }
+
   return {
     // Phase 1 APIs
     get_recent_messages,
@@ -218,6 +322,10 @@ export function createAgentDerbySkill({
     // Phase 2 APIs
     draw_pixel,
     draw_pixels,
+    draw_pixels_chunked,
+
+    // TEMP TRACE
+    get_debug_truth_trace,
 
     // Phase 3 APIs
     claim_region,

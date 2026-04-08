@@ -110,9 +110,9 @@ var require_buffer_util = __commonJS({
       toBuffer,
       unmask: _unmask
     };
-    if (!process.env.WS_NO_BUFFER_UTIL) {
+    if (false) {
       try {
-        const bufferUtil = require("bufferutil");
+        const bufferUtil = null;
         module2.exports.mask = function(source, mask, output, offset, length) {
           if (length < 48) _mask(source, mask, output, offset, length);
           else bufferUtil.mask(source, mask, output, offset, length);
@@ -749,9 +749,9 @@ var require_validation = __commonJS({
       module2.exports.isValidUTF8 = function(buf) {
         return buf.length < 24 ? _isValidUTF8(buf) : isUtf8(buf);
       };
-    } else if (!process.env.WS_NO_UTF_8_VALIDATE) {
+    } else if (false) {
       try {
-        const isValidUTF8 = require("utf-8-validate");
+        const isValidUTF8 = null;
         module2.exports.isValidUTF8 = function(buf) {
           return buf.length < 32 ? _isValidUTF8(buf) : isValidUTF8(buf);
         };
@@ -5762,15 +5762,49 @@ function backoffMs(attempt, { baseMs = 250, maxMs = 5e3, jitter = 0.2 } = {}) {
 }
 
 // src/client/chatws.js
-var ChatWSClient = class {
+var _globalClients = globalThis.__agentderby_chatws_clients || (globalThis.__agentderby_chatws_clients = /* @__PURE__ */ new Map());
+var _nextClientId = (() => {
+  const k = "__agentderby_chatws_next_id";
+  globalThis[k] = globalThis[k] || 1;
+  return () => globalThis[k]++;
+})();
+function _ringPush(arr, item, cap = 50) {
+  arr.push(item);
+  if (arr.length > cap) arr.splice(0, arr.length - cap);
+}
+var ChatWSClient = class _ChatWSClient {
+  static getShared({ url, maxRecent = 200 } = {}) {
+    const key = String(url || "");
+    if (!key) throw new Error("chatws url required");
+    const existing = _globalClients.get(key);
+    if (existing && !existing._closed) {
+      existing._sharedKey = key;
+      existing._wasReused = true;
+      return existing;
+    }
+    const c = new _ChatWSClient({ url: key, maxRecent });
+    c._sharedKey = key;
+    c._wasReused = false;
+    _globalClients.set(key, c);
+    return c;
+  }
   constructor({ url, maxRecent = 200 } = {}) {
     this.url = url;
     this.maxRecent = maxRecent;
+    this.clientId = `chatws_${_nextClientId()}`;
+    this._sharedKey = null;
+    this._wasReused = null;
+    this._writeTrace = [];
+    this._readTrace = [];
+    this._recvTrace = [];
     this.ws = null;
     this.connected = false;
     this._ready = null;
     this._readyResolve = null;
     this.recent = [];
+    this.lastAnyFrameAt = 0;
+    this.lastMessageAt = 0;
+    this.lastHistoryAt = 0;
     this._connecting = false;
     this._closed = false;
   }
@@ -5808,20 +5842,50 @@ var ChatWSClient = class {
       });
       ws.on("message", (data) => {
         const s = data.toString();
-        if (s.startsWith("H ") || s.startsWith("M ")) {
-          const payload = s.slice(2);
-          try {
-            const msg = JSON.parse(payload);
-            if (msg && typeof msg.text === "string") {
-              if (!msg.type) msg.type = "chat";
-              this._pushRecent(msg);
-              if (this._readyResolve) {
-                this._readyResolve();
-                this._readyResolve = null;
-              }
+        const isHistory = s.startsWith("H ");
+        const isMessage = s.startsWith("M ");
+        if (!isHistory && !isMessage) return;
+        const payload = s.slice(2);
+        try {
+          const parsed = JSON.parse(payload);
+          this.lastAnyFrameAt = Date.now();
+          const preLen = Array.isArray(this.recent) ? this.recent.length : 0;
+          const preLatestChatTs = Math.max(...(this.recent || []).filter((m) => (m?.type || "chat") === "chat").map((m) => m.ts || 0), 0) || 0;
+          const preLatestIntentTs = Math.max(...(this.recent || []).filter((m) => (m?.type || "chat") === "intent").map((m) => m.ts || 0), 0) || 0;
+          _ringPush(this._recvTrace, {
+            at: Date.now(),
+            clientId: this.clientId,
+            kind: isHistory ? "H" : "M",
+            parsedType: parsed?.type || null,
+            ts: parsed?.ts || null,
+            pre: { recentLen: preLen, latestChatTs: preLatestChatTs, latestIntentTs: preLatestIntentTs }
+          }, 50);
+          if (isHistory) {
+            const snap = this._normalizeHistorySnapshot(parsed);
+            if (snap.length) {
+              for (const m of snap) this._pushRecent(m, { kind: "H" });
+            } else if (parsed && typeof parsed.text === "string") {
+              if (!parsed.type) parsed.type = "chat";
+              this._pushRecent(parsed, { kind: "H" });
             }
-          } catch (_) {
+            this.lastHistoryAt = Date.now();
+            if (this._readyResolve) {
+              this._readyResolve();
+              this._readyResolve = null;
+            }
+            return;
           }
+          const msg = parsed;
+          if (msg && typeof msg.text === "string") {
+            if (!msg.type) msg.type = "chat";
+            this._pushRecent(msg, { kind: "M" });
+            this.lastMessageAt = Date.now();
+            if (this._readyResolve) {
+              this._readyResolve();
+              this._readyResolve = null;
+            }
+          }
+        } catch (_) {
         }
       });
       ws.on("close", () => {
@@ -5839,11 +5903,24 @@ var ChatWSClient = class {
       });
     });
   }
-  _pushRecent(msg) {
+  _pushRecent(msg, meta = null) {
     this.recent.push(msg);
     if (this.recent.length > this.maxRecent) {
       this.recent = this.recent.slice(this.recent.length - this.maxRecent);
     }
+    const latestChatTs = Math.max(...this.recent.filter((m) => (m?.type || "chat") === "chat").map((m) => m.ts || 0), 0) || 0;
+    const latestIntentTs = Math.max(...this.recent.filter((m) => (m?.type || "chat") === "intent").map((m) => m.ts || 0), 0) || 0;
+    _ringPush(this._writeTrace, {
+      at: Date.now(),
+      clientId: this.clientId,
+      kind: meta?.kind || null,
+      type: msg?.type || null,
+      ts: msg?.ts || null,
+      appended: true,
+      recentLen: this.recent.length,
+      latestChatTs,
+      latestIntentTs
+    }, 50);
   }
   async awaitReady({ timeoutMs = 4e3 } = {}) {
     await this.connect();
@@ -5859,11 +5936,55 @@ var ChatWSClient = class {
       clearTimeout(t);
     }
   }
-  getRecent({ limit = 50, sinceTs = null, type = null } = {}) {
+  _normalizeHistorySnapshot(parsed) {
+    const arr = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.messages) ? parsed.messages : Array.isArray(parsed?.history) ? parsed.history : [];
+    const out = [];
+    for (const m of arr) {
+      if (!m || typeof m.text !== "string") continue;
+      if (!m.type) m.type = "chat";
+      out.push(m);
+    }
+    return out;
+  }
+  _ensureFreshOrReconnect({ maxStaleMs = 15e3 } = {}) {
+    if (this._closed) return;
+    const ws = this.ws;
+    const open = !!ws && ws.readyState === wrapper_default.OPEN;
+    if (!this.lastAnyFrameAt) return;
+    const stale = Date.now() - this.lastAnyFrameAt > maxStaleMs;
+    if (!open || stale) {
+      try {
+        ws?.close();
+      } catch {
+      }
+      this.connected = false;
+      this.ws = null;
+      this.connect().catch(() => {
+      });
+    }
+  }
+  getRecent({ limit = 50, sinceTs = null, type = null, maxStaleMs = 15e3 } = {}) {
+    this._ensureFreshOrReconnect({ maxStaleMs });
     let xs = this.recent;
     if (sinceTs != null) xs = xs.filter((m) => (m.ts ?? 0) >= sinceTs);
     if (type) xs = xs.filter((m) => m.type === type);
     if (limit != null) xs = xs.slice(Math.max(0, xs.length - limit));
+    const latestChatTs = Math.max(...this.recent.filter((m) => (m?.type || "chat") === "chat").map((m) => m.ts || 0), 0) || 0;
+    const latestIntentTs = Math.max(...this.recent.filter((m) => (m?.type || "chat") === "intent").map((m) => m.ts || 0), 0) || 0;
+    const retMaxTs = Math.max(...xs.map((m) => m.ts || 0), 0) || 0;
+    _ringPush(this._readTrace, {
+      at: Date.now(),
+      clientId: this.clientId,
+      sharedKey: this._sharedKey,
+      readyState: this.ws ? this.ws.readyState : null,
+      connected: !!this.connected,
+      recentLen: this.recent.length,
+      latestChatTs,
+      latestIntentTs,
+      filter: { limit, sinceTs, type },
+      retCount: xs.length,
+      retMaxTs
+    }, 50);
     return xs;
   }
   send({ name, text, ts }) {
@@ -6117,14 +6238,14 @@ function createAgentDerbySkill({
   // Phase 2: conservative default spacing between pixel sends.
   pixel_min_interval_ms = 300
 } = {}) {
-  const chat = new ChatWSClient({ url: chatWsUrl });
+  const chat = ChatWSClient.getShared({ url: chatWsUrl });
   const board = new BoardWSClient({ url: boardWsUrl });
   const limiter = new SpacingLimiter({ minIntervalMs: pixel_min_interval_ms });
   const coord = new CoordClient({ baseUrl });
   async function get_recent_messages({ limit = 50, since_ts = null } = {}) {
     try {
       await chat.awaitReady();
-      return ok({ messages: chat.getRecent({ limit, sinceTs: since_ts }) });
+      return ok({ messages: chat.getRecent({ limit, sinceTs: since_ts, type: "chat" }) });
     } catch (e) {
       return err(ErrorCode.TIMEOUT, String(e?.message || e));
     }
@@ -6244,6 +6365,71 @@ function createAgentDerbySkill({
     }
     return ok({ accepted: true, observed: observe ? results.every((r) => r.ok && r.observed) : false, results });
   }
+  async function draw_pixels_chunked({ pixels, chunkSize = 50, observe = false, stopOnError = true } = {}) {
+    if (!Array.isArray(pixels)) return err(ErrorCode.INVALID, "pixels must be an array");
+    const req = pixels.length;
+    const cs = Math.max(1, Math.min(50, Number(chunkSize) || 50));
+    const totalChunks = Math.ceil(req / cs);
+    let completedChunks = 0;
+    let accepted = 0;
+    let observedCount = 0;
+    let failed = 0;
+    const failures = [];
+    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
+      const start = chunkIndex * cs;
+      const end = Math.min(req, start + cs);
+      const chunk = pixels.slice(start, end);
+      const r = await draw_pixels({ pixels: chunk, observe });
+      if (!r.ok) {
+        failures.push({ chunkIndex, reason: r.error?.code || "ERROR", message: r.error?.message || null });
+        if (stopOnError) {
+          return ok({
+            ok: false,
+            requested: req,
+            chunkSize: cs,
+            totalChunks,
+            completedChunks,
+            accepted,
+            observed: observe ? observedCount : null,
+            failed,
+            stoppedReason: r.error?.code || "ERROR",
+            failures
+          });
+        }
+        completedChunks++;
+        continue;
+      }
+      completedChunks++;
+      const chunkResults = r.results || [];
+      for (const it of chunkResults) {
+        if (it && it.ok && it.accepted) accepted++;
+        else failed++;
+        if (observe && it && it.ok && it.observed) observedCount++;
+        if (it && !it.ok) {
+          failures.push({
+            chunkIndex,
+            pixelIndex: start + Math.max(0, chunkResults.indexOf(it)),
+            x: it.x,
+            y: it.y,
+            reason: it.error?.code || it.code || "ERROR",
+            message: it.error?.message || it.message || null
+          });
+        }
+      }
+    }
+    return ok({
+      ok: true,
+      requested: req,
+      chunkSize: cs,
+      totalChunks,
+      completedChunks,
+      accepted,
+      observed: observe ? observedCount : null,
+      failed,
+      stoppedReason: null,
+      failures
+    });
+  }
   async function claim_region({ agent_id, region, ttl_ms = 6e4, reason = "" } = {}) {
     if (!agent_id) return err(ErrorCode.INVALID, "agent_id required");
     if (!region || !Number.isInteger(region.x) || !Number.isInteger(region.y) || !Number.isInteger(region.w) || !Number.isInteger(region.h)) {
@@ -6266,6 +6452,30 @@ function createAgentDerbySkill({
     if (!agent_id) return err(ErrorCode.INVALID, "agent_id required");
     return coord.heartbeat({ agent_id });
   }
+  async function get_debug_truth_trace() {
+    try {
+      await chat.connect();
+    } catch {
+    }
+    const latestChatTs = Math.max(...(chat.recent || []).filter((m) => (m?.type || "chat") === "chat").map((m) => m.ts || 0), 0) || null;
+    const latestIntentTs = Math.max(...(chat.recent || []).filter((m) => (m?.type || "chat") === "intent").map((m) => m.ts || 0), 0) || null;
+    return ok({
+      clientId: chat.clientId || null,
+      sharedKey: chat._sharedKey || null,
+      wasReused: chat._wasReused ?? null,
+      readyState: chat.ws ? chat.ws.readyState : null,
+      connected: !!chat.connected,
+      lastAnyFrameAt: chat.lastAnyFrameAt || null,
+      lastHistoryAt: chat.lastHistoryAt || null,
+      lastMessageAt: chat.lastMessageAt || null,
+      recentLen: Array.isArray(chat.recent) ? chat.recent.length : null,
+      latestChatTs,
+      latestIntentTs,
+      writeTrace: Array.isArray(chat._writeTrace) ? chat._writeTrace.slice(-10) : [],
+      readTrace: Array.isArray(chat._readTrace) ? chat._readTrace.slice(-10) : [],
+      recvTrace: Array.isArray(chat._recvTrace) ? chat._recvTrace.slice(-10) : []
+    });
+  }
   return {
     // Phase 1 APIs
     get_recent_messages,
@@ -6277,6 +6487,9 @@ function createAgentDerbySkill({
     // Phase 2 APIs
     draw_pixel,
     draw_pixels,
+    draw_pixels_chunked,
+    // TEMP TRACE
+    get_debug_truth_trace,
     // Phase 3 APIs
     claim_region,
     release_region,

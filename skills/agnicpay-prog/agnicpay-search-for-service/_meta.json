@@ -1,0 +1,11 @@
+{
+  "owner": "agnicpay-prog",
+  "slug": "agnicpay-search-for-service",
+  "displayName": "Search for Service",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775599212815,
+    "commit": null
+  },
+  "history": []
+}

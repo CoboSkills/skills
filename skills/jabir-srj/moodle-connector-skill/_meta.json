@@ -1,0 +1,11 @@
+{
+  "owner": "jabir-srj",
+  "slug": "moodle-connector-skill",
+  "displayName": "Moodle Connector Skill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775653792919,
+    "commit": null
+  },
+  "history": []
+}

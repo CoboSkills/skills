@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "softledger",
+  "displayName": "Softledger",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775437437725,
+    "commit": null
+  },
+  "history": []
+}

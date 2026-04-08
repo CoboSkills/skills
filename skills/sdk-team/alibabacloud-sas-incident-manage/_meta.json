@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-sas-incident-manage",
+  "displayName": "Alibabacloud Sas Incident Manage",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1775642142269,
+    "commit": null
+  },
+  "history": []
+}

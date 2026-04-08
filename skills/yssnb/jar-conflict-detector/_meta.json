@@ -1,0 +1,11 @@
+{
+  "owner": "yssnb",
+  "slug": "jar-conflict-detector",
+  "displayName": "jar冲突检测器",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775555831580,
+    "commit": null
+  },
+  "history": []
+}

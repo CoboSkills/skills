@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "conjur",
+  "displayName": "Conjur",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775665404091,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "support-greenapi",
+  "slug": "green-api",
+  "displayName": "GREEN-API",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775566246095,
+    "commit": null
+  },
+  "history": []
+}

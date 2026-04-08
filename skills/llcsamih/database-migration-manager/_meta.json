@@ -1,0 +1,11 @@
+{
+  "owner": "llcsamih",
+  "slug": "database-migration-manager",
+  "displayName": "Database Migration Manager",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775627207791,
+    "commit": null
+  },
+  "history": []
+}

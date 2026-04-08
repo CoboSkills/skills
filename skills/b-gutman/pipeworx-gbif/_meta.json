@@ -1,0 +1,11 @@
+{
+  "owner": "b-gutman",
+  "slug": "pipeworx-gbif",
+  "displayName": "Pipeworx gbif",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775679754816,
+    "commit": null
+  },
+  "history": []
+}

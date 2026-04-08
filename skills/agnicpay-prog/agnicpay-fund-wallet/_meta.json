@@ -1,0 +1,11 @@
+{
+  "owner": "agnicpay-prog",
+  "slug": "agnicpay-fund-wallet",
+  "displayName": "Fund Wallet",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775599246362,
+    "commit": null
+  },
+  "history": []
+}

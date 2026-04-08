@@ -1,0 +1,11 @@
+{
+  "owner": "otman-ai",
+  "slug": "google-search-console-maton",
+  "displayName": "Google seach console",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775573580228,
+    "commit": null
+  },
+  "history": []
+}

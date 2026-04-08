@@ -1,0 +1,11 @@
+{
+  "owner": "liusaikang",
+  "slug": "blog-generation",
+  "displayName": "blog generation  博客生成skill,去除AI味，更有可读性~",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775545144066,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "patrickcure",
+  "slug": "mpa-wallet",
+  "displayName": "Multi-Party Agent Wallet",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775493648633,
+    "commit": null
+  },
+  "history": []
+}

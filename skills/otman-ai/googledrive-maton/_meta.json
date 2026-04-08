@@ -1,0 +1,11 @@
+{
+  "owner": "otman-ai",
+  "slug": "googledrive-maton",
+  "displayName": "Google Drive",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775562462009,
+    "commit": null
+  },
+  "history": []
+}

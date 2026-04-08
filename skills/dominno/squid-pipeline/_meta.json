@@ -1,0 +1,11 @@
+{
+  "owner": "dominno",
+  "slug": "squid-pipeline",
+  "displayName": "Squid",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775602206804,
+    "commit": null
+  },
+  "history": []
+}

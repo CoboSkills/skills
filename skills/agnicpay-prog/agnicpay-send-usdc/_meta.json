@@ -1,0 +1,11 @@
+{
+  "owner": "agnicpay-prog",
+  "slug": "agnicpay-send-usdc",
+  "displayName": "Send USDC",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775599196294,
+    "commit": null
+  },
+  "history": []
+}

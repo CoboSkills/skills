@@ -1,0 +1,11 @@
+{
+  "owner": "ferrentinomj-dev",
+  "slug": "release-gate",
+  "displayName": "Release Gate",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775670111402,
+    "commit": null
+  },
+  "history": []
+}

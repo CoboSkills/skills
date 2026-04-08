@@ -1,0 +1,11 @@
+{
+  "owner": "orca-labs-sudo",
+  "slug": "claw-pay-x402",
+  "displayName": "claw-pay",
+  "latest": {
+    "version": "0.2.5",
+    "publishedAt": 1775565794452,
+    "commit": null
+  },
+  "history": []
+}

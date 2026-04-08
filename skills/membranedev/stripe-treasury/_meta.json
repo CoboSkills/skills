@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "stripe-treasury",
+  "displayName": "Stripe Treasury",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775631886096,
+    "commit": null
+  },
+  "history": []
+}

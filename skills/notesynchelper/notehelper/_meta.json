@@ -1,0 +1,11 @@
+{
+  "owner": "notesynchelper",
+  "slug": "notehelper",
+  "displayName": "笔记同步助手",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775549268933,
+    "commit": null
+  },
+  "history": []
+}

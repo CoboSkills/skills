@@ -1,0 +1,11 @@
+{
+  "owner": "ntriq-gh",
+  "slug": "ntriq-domain-threat-intelligence-scorer",
+  "displayName": "Ntriq Domain Threat Intelligence Scorer",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775660153134,
+    "commit": null
+  },
+  "history": []
+}

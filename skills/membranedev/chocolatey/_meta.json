@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "chocolatey",
+  "displayName": "Chocolatey",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775444686880,
+    "commit": null
+  },
+  "history": []
+}

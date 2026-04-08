@@ -34,13 +34,16 @@ function generateHealthReport(memories) {
         // Strength distribution
         const level = memory.strength.level;
         strengthDistribution[level] = (strengthDistribution[level] || 0) + 1;
-        totalStrength += memory.strength.score;
+        // 防御性检查：确保 strength.score 是有效数字
+        const score = memory.strength.score;
+        const validScore = (score !== null && score !== undefined && !isNaN(score)) ? score : 0;
+        totalStrength += validScore;
         // Critical memories
         if (level === 'critical') {
             criticalCount++;
         }
     }
-    const avgStrength = totalStrength / memories.length;
+    const avgStrength = memories.length > 0 ? totalStrength / memories.length : 0;
     // Calculate health score
     let healthScore = 100;
     healthScore -= criticalCount * 5; // -5 for each critical memory

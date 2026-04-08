@@ -3,7 +3,8 @@
 import { Memory, MemoryIndex, Stats, CommandArgs } from './types';
 import { 
   readJson, writeJson, formatTimestamp, 
-  printColored, truncate, fuzzyMatch, STORE_FILE, INDEX_FILE 
+  printColored, truncate, fuzzyMatch, fuzzyMatchWithTolerance, regexMatch, 
+  multiKeywordMatch, calculateRelevanceScore, parseSearchKeywords, STORE_FILE, INDEX_FILE 
 } from './utils';
 import { updateStrength, getStrengthEmoji, getDecayWarning } from './strength';
 import * as fs from 'fs';
@@ -113,22 +114,47 @@ export class MemoryManager {
   }
 
   search(args: CommandArgs): void {
-    const keyword = args.keyword as string;
+    const keyword = args.keyword as string || args.content as string;
     if (!keyword) {
       printColored('Error: keyword is required', 'red');
       return;
     }
 
-    let results = this.index.memories.filter(m => 
-      fuzzyMatch(m.content, keyword) || 
-      (m.tag && fuzzyMatch(m.tag, keyword))
-    );
+    const useRegex = args.regex === true;
+    const useFuzzy = args.fuzzy === true;
+    const keywords = parseSearchKeywords(keyword);
+    
+    let results = this.index.memories.filter(m => {
+      const text = m.content + ' ' + (m.tag || '');
+      
+      if (useRegex) {
+        // 正则模式
+        return regexMatch(text, keyword);
+      } else if (useFuzzy) {
+        // 模糊模式：使用多关键词 AND 匹配
+        return multiKeywordMatch(text, keywords);
+      } else {
+        // 默认模式：原始模糊匹配
+        return fuzzyMatch(m.content, keyword) || 
+               (m.tag && fuzzyMatch(m.tag, keyword));
+      }
+    });
+
+    // 按相关性排序
+    if (useFuzzy || keywords.length > 1) {
+      results = results.sort((a, b) => {
+        const scoreA = calculateRelevanceScore(a, keywords);
+        const scoreB = calculateRelevanceScore(b, keywords);
+        return scoreB - scoreA;
+      });
+    }
 
     if (args.tag) {
       results = results.filter(m => m.tag === args.tag);
     }
 
     const limit = parseInt(args.limit as string) || 10;
+    const totalResults = results.length;
     results = results.slice(0, limit);
 
     if (results.length === 0) {
@@ -136,7 +162,7 @@ export class MemoryManager {
       return;
     }
 
-    console.log(`\nFound ${results.length} results for "${keyword}":\n`);
+    console.log(`\nFound ${totalResults} results for "${keyword}" (showing ${results.length}):\n`);
     for (const memory of results) {
       const emoji = getStrengthEmoji(memory.strength.level);
       console.log(`${emoji} #${memory.id} [${memory.timestamp}]`);

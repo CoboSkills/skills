@@ -1,237 +1,190 @@
-# Micro Memory 🧠
+# Micro Memory V4 — Your Second Brain
 
-**🧠 你的第二大脑 | Your Second Brain — 智能记忆系统，支持强度衰减、知识图谱、间隔重复，让知识真正属于你 | Smart memory with decay, knowledge graph & spaced repetition**
+> 🧠 **Not just a note-taking tool, but your external brain that truly remembers.**
+> 
+> 不只是笔记工具，而是真正会"记忆"的外部大脑。
 
-> 不是简单的笔记存储，而是会思考、会遗忘、会提醒的第二大脑。
-> Not just note storage, but a thinking, forgetting, reminding second brain.
+## What is Micro Memory? | 什么是 Micro Memory？
 
----
+Micro Memory is an **intelligent memory system** inspired by how the human brain works:
 
-## 为什么你需要它？| Why You Need It?
+- 🧠 **Like your brain**, memories fade over time without reinforcement
+- 🔗 **Like your brain**, related concepts form neural networks  
+- 📅 **Like your brain**, spaced repetition strengthens retention
+- 🏥 **Unlike your brain**, it gives you health reports and analytics
 
-| 传统笔记 | Micro Memory |
-|---------|-------------|
-| 写下来就遗忘 | 智能强度衰减，主动提醒复习 |
-| 孤立无关联 | 知识图谱，自动关联相关记忆 |
-| 手动整理归档 | 自动归档，健康报告一目了然 |
-| 静态存储 | 动态记忆，越用越聪明 |
+Micro Memory 是一个**智能记忆系统**，灵感来自人脑的工作方式：
 
-| Traditional Notes | Micro Memory |
-|------------------|--------------|
-| Write and forget | Smart decay, active review reminders |
-| Isolated entries | Knowledge graph, auto-linking related memories |
-| Manual organization | Auto-archive, health dashboard |
-| Static storage | Dynamic memory, gets smarter with use |
+- 🧠 **像大脑一样**，记忆会随时间衰减，需要强化巩固
+- 🔗 **像大脑一样**，相关概念形成神经网络关联
+- 📅 **像大脑一样**，间隔重复加强记忆留存
+- 🏥 ** unlike大脑**，它能给你健康报告和分析
 
 ---
 
-## 核心特性 | Core Features
+## Why Micro Memory? | 为什么选择 Micro Memory？
 
-### 🧠 智能记忆强度 | Intelligent Memory Strength
-- 记忆会随时间自然衰减（符合艾宾浩斯遗忘曲线）
-- 主动提醒需要复习的内容
-- 强化机制让重要记忆更持久
+| Feature | Traditional Notes | Micro Memory |
+|---------|------------------|--------------|
+| Storage | Static files | Living memories with strength |
+| Search | Simple text | Multi-keyword + Regex + Fuzzy |
+| Organization | Folders/tags | Semantic networks |
+| Retention | Manual review | Spaced repetition scheduling |
+| Health | No insight | Memory health reports |
+| Compression | None | TF-IDF smart compression |
 
-- Memories naturally decay over time (Ebbinghaus forgetting curve)
-- Proactive reminders for review
-- Reinforcement makes important memories last longer
-
-### 🔗 知识图谱 | Knowledge Graph
-- 记忆之间自由建立关联
-- 自动发现知识连接
-- 可视化关联网络
-
-- Free linking between memories
-- Auto-discover knowledge connections
-- Visualize relationship networks
-
-### 📊 健康仪表盘 | Health Dashboard
-- 记忆库整体健康度评分
-- 弱记忆和临界记忆预警
-- 归档和备份管理
-
-- Overall memory health score
-- Weak & critical memory alerts
-- Archive and backup management
-
-### 🤖 原生集成 | Native Integration
-- Clawdbot 自动触发，无需手动命令
-- 智能识别"记住"、"搜索"等意图
-- 对话中自然交互
-
-- Clawdbot auto-triggers, no manual commands
-- Intent recognition: "remember", "search", etc.
-- Natural conversation interaction
+| 特性 | 传统笔记 | Micro Memory |
+|---------|------------------|--------------|
+| 存储 | 静态文件 | 有强度的活记忆 |
+| 搜索 | 简单文本 | 多关键词 + 正则 + 模糊 |
+| 组织 | 文件夹/标签 | 语义网络 |
+| 留存 | 手动复习 | 间隔重复调度 |
+| 健康 | 无洞察 | 记忆健康报告 |
+| 压缩 | 无 | TF-IDF 智能压缩 |
 
 ---
 
-## 快速开始 | Quick Start
+## Core Features | 核心功能
 
-### 安装 | Install
-
+### 📝 Smart Memory Creation | 智能记忆创建
 ```bash
-clawdhub install micro-memory
+memory add "Learned about TypeScript decorators"
+memory add "Important meeting with client" --tag=work --type=longterm --importance=5
+memory add "Related concept" --tag=study --link=1,2
 ```
 
-### 添加记忆 | Add Memory
-
+### 🔍 Advanced Search | 高级搜索
 ```bash
-# 基础添加 | Basic add
-node dist/index.js add "学习内容"
-
-# 带标签和重要性 | With tags & importance
-node dist/index.js add "重要知识点" --tag=study --type=longterm --importance=5
-
-# 带关联 | With links
-node dist/index.js add "相关概念" --tag=study --link=1,2
+memory search "TypeScript"                    # Multi-keyword
+memory search "Type.*script" --regex          # Regex pattern
+memory search "Typscript" --fuzzy             # Fuzzy matching
+memory search "meeting client" --tag=work     # Filtered search
 ```
 
-### 自然语言触发 | Natural Language Triggers
-
-| 你说 | You Say | 自动执行 |
-|------|---------|---------|
-| 记住... / 记录... | Remember... / Note... | 自动添加记忆 |
-| 搜索记忆... | Search memory... | 自动搜索 |
-| 列出记忆 | List my memories | 自动列出 |
-| 记忆健康 | Memory health | 健康报告 |
-| 复习记忆 | Review memories | 今日复习 |
-
----
-
-## 命令参考 | Command Reference
-
-### 记忆管理 | Memory Management
-
+### 🔗 Memory Networks | 记忆网络
 ```bash
-# 列出记忆 | List memories
-node dist/index.js list
-node dist/index.js list --tag=study
-node dist/index.js list --type=longterm --show_strength
-
-# 搜索记忆 | Search memories
-node dist/index.js search "关键词"
-node dist/index.js search "关键词" --tag=study --limit=5
-
-# 强化记忆 | Reinforce memory
-node dist/index.js reinforce --id=1
-node dist/index.js reinforce --id=1 --boost=2
+memory link --from=1 --to=2,3    # Connect memories
+memory graph --id=1              # Visualize connections
+memory graph                     # Full network view
 ```
 
-### 复习系统 | Review System
+### 📊 Strength System | 强度系统
+Memories have 5 strength levels that decay over time:
 
+| Level | Score | Icon | Description |
+|-------|-------|------|-------------|
+| 💎 Permanent | 80-100 | 💎 | Permanent memory |
+| 💪 Strong | 60-79 | 💪 | Strong memory |
+| 📊 Stable | 40-59 | 📊 | Stable memory |
+| ⚠️ Weak | 20-39 | ⚠️ | Weak memory - needs review |
+| 🔴 Critical | 0-19 | 🔴 | Critical - about to be forgotten |
+
+### 🔄 Spaced Repetition | 间隔重复
+Based on SM-2 algorithm:
+- Level 0 → 1 day
+- Level 1 → 3 days
+- Level 2 → 7 days
+- Level 3 → 14 days
+- Level 4 → 30 days
+- Level 5+ → 60-90 days
+
+### 🏥 Health Reports | 健康报告
 ```bash
-# 今日复习 | Today's review
-node dist/index.js review
-node dist/index.js review --today
+memory health    # Overall system health
+memory stats     # Detailed statistics
+memory strength  # Strength distribution
 ```
 
-### 健康报告 | Health Report
-
+### 📦 Compression & Archiving | 压缩与归档
 ```bash
-# 记忆库健康 | Memory health
-node dist/index.js health
-```
-
-### 关联网络 | Link Network
-
-```bash
-# 建立关联 | Create links
-node dist/index.js link --from=1 --to=2,3
-
-# 查看图谱 | View graph
-node dist/index.js graph
-node dist/index.js graph --id=1
-```
-
-### 归档导出 | Archive & Export
-
-```bash
-# 归档旧记忆 | Archive old memories
-node dist/index.js archive --older_than=30
-
-# 导出数据 | Export data
-node dist/index.js export --format=json
-node dist/index.js export --format=csv
+memory compress --auto           # Auto-compress weak memories
+memory compress --id=1           # Compress specific memory
+memory archive --older_than=30   # Archive old memories
+memory archive --restore=1       # Restore from archive
 ```
 
 ---
 
-## 记忆强度系统 | Memory Strength System
+## Quick Start | 快速开始
 
-| 强度 | Strength | 状态 | Status | 说明 | Description |
-|------|----------|------|--------|------|-------------|
-| 💎 80-100 | Permanent | 永久 | Permanent | 永远不会遗忘 | Never forgets |
-| 💪 60-79 | Strong | 强 | Strong | 长期保持 | Long-term retention |
-| 📊 40-59 | Stable | 稳定 | Stable | 中期记忆 | Medium-term |
-| ⚠️ 20-39 | Weak | 弱 | Weak | 需要复习 | Needs review |
-| 🔴 0-19 | Critical | 临界 | Critical | 即将遗忘 | About to forget |
+### Installation | 安装
+```bash
+npm install
+npm run build
+```
+
+### Basic Usage | 基本用法
+```bash
+# Add a memory
+memory add "Learned about neural networks"
+
+# List all memories
+memory list
+
+# Search memories
+memory search "neural"
+
+# Check health
+memory health
+
+# Review due memories
+memory review --today
+```
 
 ---
 
-## 间隔重复算法 | Spaced Repetition
+## Clawdbot Integration | Clawdbot 集成
 
-基于 SM-2 算法简化实现：
+As a native skill, Micro Memory auto-triggers on:
 
-| 等级 | Level | 间隔 | Interval |
-|------|-------|------|----------|
-| 0 | Level 0 | 1天 | 1 day |
-| 1 | Level 1 | 3天 | 3 days |
-| 2 | Level 2 | 7天 | 7 days |
-| 3 | Level 3 | 14天 | 14 days |
-| 4 | Level 4 | 30天 | 30 days |
-| 5 | Level 5 | 60天 | 60 days |
-| 6+ | Level 6+ | 90天 | 90 days |
+| Trigger | Action |
+|---------|--------|
+| "记住..." / "记录..." | Auto-add memory |
+| "搜索记忆..." / "找找之前..." | Auto-search |
+| "列出记忆" / "我的记忆" | Auto-list |
+| "记忆健康" | Show health report |
+| "复习记忆" | Show today's reviews |
 
 ---
 
-## 数据存储 | Data Storage
+## Data Storage | 数据存储
 
 ```
 store/
-├── index.json      # 记忆主索引 | Memory index
-├── links.json      # 关联网络 | Link network
-├── reviews.json    # 复习计划 | Review schedule
-├── store.md        # Markdown 备份 | Markdown backup
-└── archive/        # 归档文件 | Archived files
+├── index.json      # Main memory index
+├── links.json      # Association networks
+├── reviews.json    # Review schedules
+├── store.md        # Markdown backup
+└── archive/        # Archived memories
 ```
 
 ---
 
-## 技术栈 | Tech Stack
+## Version | 版本
 
-- **语言 | Language:** TypeScript (Native Clawdbot Skill)
-- **版本 | Version:** 3.1.2
-- **架构 | Architecture:** 零依赖原生实现 | Zero-dependency native implementation
-
----
-
-## 适合谁？| Who Is It For?
-
-- 🎓 **学习者** - 管理学习笔记，构建知识体系
-- 💼 **工作者** - 记录项目信息，追踪重要决策
-- 🧑‍💻 **开发者** - 保存技术方案，积累代码片段
-- 📝 **写作者** - 收集素材灵感，管理创作内容
-
-- 🎓 **Learners** - Manage study notes, build knowledge systems
-- 💼 **Professionals** - Record project info, track decisions
-- 🧑‍💻 **Developers** - Save technical solutions, code snippets
-- 📝 **Writers** - Collect ideas, manage creative content
+- **Current | 当前**: 4.0.1
+- **Implementation | 实现**: TypeScript (Native Clawdbot Skill)
 
 ---
 
-## 立即开始 | Get Started Now
+## Architecture | 架构
 
-```bash
-clawdhub install micro-memory
+```
+micro-memory/
+├── src/
+│   ├── index.ts      # CLI entry
+│   ├── memory.ts     # Core memory management
+│   ├── strength.ts   # Strength decay system
+│   ├── links.ts      # Network associations
+│   ├── review.ts     # Spaced repetition
+│   ├── health.ts     # Health analytics
+│   ├── archive.ts    # Compression & archiving
+│   └── utils.ts      # Utilities
+└── dist/             # Compiled JavaScript
 ```
 
-然后对 Clawdbot 说：
-> "记住：我今天学习了间隔重复算法"
-
-Then tell Clawdbot:
-> "Remember: I learned about spaced repetition algorithms today"
-
 ---
 
-*让记忆不再沉睡，让知识真正属于你。*
-*Don't let memories sleep, make knowledge truly yours.*
+**Your thoughts deserve to be remembered. Not just stored.**
+
+**你的想法值得被记住，而不只是被存储。**

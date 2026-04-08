@@ -30,11 +30,15 @@ function parseArgs(args) {
             positional.push(arg);
         }
     }
-    // Handle positional arguments - first positional is content
-    if (positional.length > 0 && !parsed.content) {
+    // Handle positional arguments - first positional is content or keyword
+    if (positional.length > 0 && !parsed.content && !parsed.keyword) {
         // Clean up any escaped quotes from Windows cmd
         const cleanContent = positional[0].replace(/^["']|["']$/g, '');
         parsed.content = cleanContent;
+        // For search command, also set keyword
+        if (command === 'search') {
+            parsed.keyword = cleanContent;
+        }
     }
     return { command, args: parsed };
 }

@@ -33,11 +33,17 @@ function parseArgs(args: string[]): { command: string; args: CommandArgs } {
     }
   }
 
-  // Handle positional arguments - first positional is content
-  if (positional.length > 0 && !parsed.content) {
+  // Handle positional arguments - first positional is content/keyword
+  if (positional.length > 0) {
     // Clean up any escaped quotes from Windows cmd
     const cleanContent = positional[0].replace(/^["']|["']$/g, '');
-    parsed.content = cleanContent;
+    // 如果没有 content，也没有 keyword，则把位置参数同时设为两者
+    if (!parsed.content) {
+      parsed.content = cleanContent;
+    }
+    if (!parsed.keyword) {
+      parsed.keyword = cleanContent;
+    }
   }
 
   return { command, args: parsed };

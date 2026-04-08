@@ -53,6 +53,44 @@ class MemoryManager {
             memory.strength = (0, strength_1.updateStrength)(memory);
         }
     }
+    // 模糊匹配（容错版）
+    fuzzyMatchWithTolerance(text, pattern, tolerance) {
+        if (!text || !pattern)
+            return false;
+        text = text.toLowerCase();
+        pattern = pattern.toLowerCase();
+        // 如果完全包含，直接返回 true
+        if (text.includes(pattern))
+            return true;
+        // 如果 pattern 很短，直接检查包含
+        if (pattern.length <= 3)
+            return text.includes(pattern);
+        // 计算 Levenshtein 距离
+        const distance = this.levenshteinDistance(text, pattern);
+        // 如果距离在容错范围内，返回 true
+        return distance <= tolerance;
+    }
+    // Levenshtein 距离算法
+    levenshteinDistance(s1, s2) {
+        const m = s1.length, n = s2.length;
+        if (m < n)
+            return this.levenshteinDistance(s2, s1);
+        if (n === 0)
+            return m;
+        let prev = new Array(n + 1);
+        let curr = new Array(n + 1);
+        for (let j = 0; j <= n; j++)
+            prev[j] = j;
+        for (let i = 1; i <= m; i++) {
+            curr[0] = i;
+            for (let j = 1; j <= n; j++) {
+                const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+                curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+            }
+            [prev, curr] = [curr, prev];
+        }
+        return prev[n];
+    }
     syncToMarkdown() {
         const lines = ['# Memory Store\n'];
         for (const memory of this.index.memories) {
@@ -135,8 +173,41 @@ class MemoryManager {
             (0, utils_1.printColored)('Error: keyword is required', 'red');
             return;
         }
-        let results = this.index.memories.filter(m => (0, utils_1.fuzzyMatch)(m.content, keyword) ||
-            (m.tag && (0, utils_1.fuzzyMatch)(m.tag, keyword)));
+        let results = [];
+        // 正则搜索模式
+        if (args.regex) {
+            try {
+                const regex = new RegExp(keyword, 'i');
+                results = this.index.memories.filter(m => regex.test(m.content) ||
+                    (m.tag && regex.test(m.tag)));
+            } catch (e) {
+                (0, utils_1.printColored)('Error: invalid regex pattern', 'red');
+                return;
+            }
+        }
+        // 模糊搜索模式（简化版：支持字符缺失容错）
+        else if (args.fuzzy) {
+            const keywords = keyword.toLowerCase().split(/\s+/);
+            results = this.index.memories.filter(m => {
+                const content = m.content.toLowerCase();
+                const tag = m.tag ? m.tag.toLowerCase() : '';
+                // 每个关键词至少模糊匹配（允许1-2个字符缺失）
+                return keywords.every(kw => {
+                    return this.fuzzyMatchWithTolerance(content, kw, 2) ||
+                           this.fuzzyMatchWithTolerance(tag, kw, 2);
+                });
+            });
+        }
+        // 默认：多关键词搜索
+        else {
+            const keywords = keyword.toLowerCase().split(/\s+/);
+            results = this.index.memories.filter(m => {
+                const content = m.content.toLowerCase();
+                const tag = m.tag ? m.tag.toLowerCase() : '';
+                // 所有关键词都必须在内容或标签中出现
+                return keywords.every(kw => content.includes(kw) || tag.includes(kw));
+            });
+        }
         if (args.tag) {
             results = results.filter(m => m.tag === args.tag);
         }
@@ -146,7 +217,8 @@ class MemoryManager {
             (0, utils_1.printColored)(`No memories found for "${keyword}"`, 'yellow');
             return;
         }
-        console.log(`\nFound ${results.length} results for "${keyword}":\n`);
+        const searchMode = args.regex ? ' (regex)' : args.fuzzy ? ' (fuzzy)' : '';
+        console.log(`\nFound ${results.length} results for "${keyword}"${searchMode}:\n`);
         for (const memory of results) {
             const emoji = (0, strength_1.getStrengthEmoji)(memory.strength.level);
             console.log(`${emoji} #${memory.id} [${memory.timestamp}]`);

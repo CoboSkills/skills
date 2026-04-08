@@ -9,12 +9,11 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Reuse diagnostics from ai-orchestrator, but keep Qwen-specific auth local.
-const DIAG_DIR = path.resolve(__dirname, '../ai-orchestrator');
+// Local diagnostics + local auth check. Keep qwen-orchestrator fully self-contained.
 let Diagnostics;
 let requireAuth;
 try {
-  ({ Diagnostics } = require(path.join(DIAG_DIR, 'diagnostics.js')));
+  ({ Diagnostics } = require(path.join(__dirname, 'diagnostics.js')));
 } catch (e) {
   Diagnostics = class { start(){} succeed(){} fail(){} skip(){} printSummary(){} save(){} summary(){} finish(){} };
 }
@@ -77,6 +76,7 @@ if (CONFIG.logToFile) {
 
 // ═══ CDP Interceptor state ═══════════════════════════════════════════════
 var cdpInterceptor = null;
+let answerBaseline = null;
 
 const argv = process.argv.slice(2);
 const isVisible = argv.includes('--visible');
@@ -117,6 +117,258 @@ function ensureDirSync(d) { try { fs.mkdirSync(d, { recursive: true }); } catch 
 // ═══ Qwen-specific constants ═════════════════════════════════════════════
 const QWEN_URL = 'https://chat.qwen.ai/';
 const QWEN_CHAT_RE = /^https:\/\/chat\.qwen\.ai\/c\//;
+
+function safePageUrl(page) {
+  try { return page?.url?.() || ''; } catch { return ''; }
+}
+
+function isQwenChatUrl(url) {
+  return typeof url === 'string' && QWEN_CHAT_RE.test(url);
+}
+
+function getQwenChatId(url) {
+  if (typeof url !== 'string' || !url) return null;
+  try {
+    const u = new URL(url);
+    const parts = u.pathname.split('/').filter(Boolean);
+    return parts[0] === 'c' ? (parts[1] || null) : null;
+  } catch {
+    return null;
+  }
+}
+
+function sameQwenChat(urlA, urlB) {
+  const a = getQwenChatId(urlA);
+  const b = getQwenChatId(urlB);
+  return !!a && !!b && a === b;
+}
+
+function isPersistableQwenChatUrl(url) {
+  if (!isQwenChatUrl(url)) return false;
+  const chatId = getQwenChatId(url) || '';
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(chatId);
+}
+
+function describeContinuityMismatch(expectedUrl, currentUrl) {
+  if (!expectedUrl || !currentUrl) return null;
+  if (sameQwenChat(expectedUrl, currentUrl)) return null;
+  if (currentUrl.includes('/c/new-chat')) {
+    return `перешёл в new-chat (${currentUrl}) вместо ожидаемого чата`;
+  }
+  if (isQwenChatUrl(currentUrl)) {
+    return `перешёл в другой чат (${currentUrl}) вместо ожидаемого`;
+  }
+  return `ушёл с ожидаемого chat URL на ${currentUrl}`;
+}
+
+async function waitForSameFollowUpChatStable(page, expectedUrl, timeoutMs = 12000, stableMs = 1500) {
+  if (!expectedUrl) return safePageUrl(page);
+  const started = Date.now();
+  let stableSince = null;
+  let lastGoodUrl = '';
+  while (Date.now() - started < timeoutMs) {
+    const currentUrl = safePageUrl(page);
+    const mismatch = describeContinuityMismatch(expectedUrl, currentUrl);
+    if (!mismatch) {
+      if (currentUrl !== lastGoodUrl) {
+        stableSince = Date.now();
+        lastGoodUrl = currentUrl;
+      } else if (stableSince !== null && Date.now() - stableSince >= stableMs) {
+        return currentUrl;
+      }
+    } else {
+      stableSince = null;
+      lastGoodUrl = currentUrl;
+    }
+    await sleep(150);
+  }
+  const finalUrl = safePageUrl(page);
+  throw new Error(`Follow-up chat did not stabilize: ожидался чат ${expectedUrl}, текущий URL ${finalUrl || '(empty)'}`);
+}
+
+async function rebindFollowUpChat(page, expectedUrl, reason = 'follow-up-rebind') {
+  if (!expectedUrl) return safePageUrl(page);
+  log(`♻️ Rebinding follow-up chat (${reason}): ${expectedUrl.substring(0, 80)}`);
+  await page.goto(expectedUrl, { waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
+  await sleep(2500);
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
+  await sleep(4000);
+  const stableUrl = await waitForSameFollowUpChatStable(page, expectedUrl);
+  log(`♻️ Follow-up chat rebound: ${stableUrl.substring(0, 80)}`);
+  return stableUrl;
+}
+
+async function waitForFollowUpChatReady(page, composerSelector, expectedUrl, timeoutMs = 8000, stableMs = 1200) {
+  if (!expectedUrl) return safePageUrl(page);
+  const started = Date.now();
+  let stableSince = null;
+  let lastGoodUrl = '';
+  while (Date.now() - started < timeoutMs) {
+    const currentUrl = safePageUrl(page);
+    const composerReady = await page.$(composerSelector).catch(() => null);
+    const mismatch = describeContinuityMismatch(expectedUrl, currentUrl);
+    if (!mismatch && composerReady) {
+      if (currentUrl !== lastGoodUrl) {
+        stableSince = Date.now();
+        lastGoodUrl = currentUrl;
+      } else if (stableSince !== null && Date.now() - stableSince >= stableMs) {
+        log(`🔒 Follow-up чат готов: ${currentUrl.substring(0, 80)}`);
+        return currentUrl;
+      }
+    } else {
+      stableSince = null;
+      lastGoodUrl = currentUrl;
+    }
+    await sleep(150);
+  }
+  const finalUrl = safePageUrl(page);
+  throw new Error(`Chat continuity preflight failed: ожидался чат ${expectedUrl}, текущий URL ${finalUrl || '(empty)'}`);
+}
+
+async function fetchQwenChatMetadata(page, chatId) {
+  if (!chatId) return null;
+  try {
+    return await page.evaluate(async (id) => {
+      const res = await fetch(`/api/v2/chats/${id}`, { credentials: 'include' });
+      const text = await res.text();
+      let json = null;
+      try { json = JSON.parse(text); } catch {}
+      return { ok: res.ok, status: res.status, json, text: text.slice(0, 1000) };
+    }, chatId);
+  } catch (e) {
+    debugLog(`⚠️ fetchQwenChatMetadata failed: ${e.message}`);
+    return null;
+  }
+}
+
+function extractQwenChatTitle(meta) {
+  if (!meta || !meta.ok || !meta.json) return null;
+  return meta.json?.title
+    || meta.json?.name
+    || meta.json?.data?.title
+    || meta.json?.data?.name
+    || null;
+}
+
+async function clickChatItemByTitle(page, title, timeoutMs = 5000) {
+  if (!title) return false;
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    const result = await page.evaluate((expectedTitle) => {
+      const norm = (s) => (s || '').trim().replace(/\s+/g, ' ');
+      const target = norm(expectedTitle);
+      const nodes = Array.from(document.querySelectorAll('[aria-label="chat-item"], a, button, [role="button"]'));
+      const hit = nodes.find((el) => {
+        const txt = norm(el.innerText || el.textContent || '');
+        if (!txt) return false;
+        const s = getComputedStyle(el);
+        const r = el.getBoundingClientRect();
+        if (s.display === 'none' || s.visibility === 'hidden' || r.width <= 0 || r.height <= 0) return false;
+        return txt === target || txt.includes(target);
+      });
+      if (!hit) return { clicked: false };
+      hit.scrollIntoView({ block: 'center' });
+      hit.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+      hit.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+      hit.click();
+      return { clicked: true, text: target };
+    }, title).catch(() => ({ clicked: false }));
+    if (result.clicked) {
+      log(`🧷 Активировал chat-item по заголовку: ${title}`);
+      return true;
+    }
+    await sleep(250);
+  }
+  return false;
+}
+
+async function stabilizeFollowUpChatBinding(page, expectedUrl) {
+  if (!expectedUrl) return page;
+  const expectedChatId = getQwenChatId(expectedUrl);
+  log(`🧷 Усиливаю привязку follow-up чата: ${expectedUrl.substring(0, 80)}`);
+
+  if (!sameQwenChat(safePageUrl(page), expectedUrl)) {
+    await page.goto(expectedUrl, { waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
+    await sleep(2500);
+  }
+
+  const meta = await fetchQwenChatMetadata(page, expectedChatId);
+  const title = extractQwenChatTitle(meta);
+
+  await page.reload({ waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
+  await sleep(4000);
+
+  if (title) {
+    await clickChatItemByTitle(page, title, 3000);
+    await sleep(2000);
+  }
+
+  const finalUrl = safePageUrl(page);
+  const mismatch = describeContinuityMismatch(expectedUrl, finalUrl);
+  if (mismatch) {
+    throw new Error(`Chat continuity activation failed: ${mismatch}; expected ${expectedUrl}`);
+  }
+  log(`🧷 Follow-up чат активирован: ${finalUrl.substring(0, 80)}`);
+  return page;
+}
+
+async function assertFollowUpContinuityAfterSubmit(page, expectedUrl, timeoutMs = 2500) {
+  if (!expectedUrl) return safePageUrl(page);
+  const started = Date.now();
+  let lastUrl = safePageUrl(page);
+  while (Date.now() - started < timeoutMs) {
+    const currentUrl = safePageUrl(page);
+    const mismatch = describeContinuityMismatch(expectedUrl, currentUrl);
+    if (mismatch) {
+      throw new Error(`Chat continuity broken on follow-up submit: ${mismatch}; expected ${expectedUrl}`);
+    }
+    if (currentUrl) lastUrl = currentUrl;
+    await sleep(120);
+  }
+  log(`🔒 Follow-up continuity OK after submit: ${lastUrl.substring(0, 80)}`);
+  return lastUrl;
+}
+
+function persistSessionState(session, page, reason = 'state-sync', options = {}) {
+  if (!session) return;
+  const { expectedChatUrl = null, strictContinuity = false } = options;
+  try {
+    if (browser?.wsEndpoint) session.wsEndpoint = browser.wsEndpoint();
+  } catch {}
+  const url = safePageUrl(page);
+  if (strictContinuity && expectedChatUrl) {
+    const mismatch = describeContinuityMismatch(expectedChatUrl, url);
+    if (mismatch) {
+      log(`🛑 Не сохраняю chatUrl (${reason}): ${mismatch}`);
+      saveSession(session.name, session);
+      return;
+    }
+  }
+  if (isPersistableQwenChatUrl(url)) {
+    if (session.chatUrl !== url) {
+      log(`💾 Сохраняю chatUrl (${reason}): ${url.substring(0, 80)}`);
+    }
+    session.chatUrl = url;
+  } else if (url) {
+    debugLog(`💾 Пропускаю сохранение chatUrl (${reason}): непостоянный или не-чат URL ${url}`);
+  }
+  saveSession(session.name, session);
+}
+
+async function logUrlTransition(page, beforeUrl, reason, timeoutMs = 5000) {
+  const start = Date.now();
+  let last = beforeUrl || '';
+  while (Date.now() - start < timeoutMs) {
+    const now = safePageUrl(page);
+    if (now && now !== last) {
+      log(`🔗 URL changed (${reason}): ${last || '(empty)'} -> ${now}`);
+      return now;
+    }
+    await sleep(200);
+  }
+  debugLog(`🔗 URL unchanged after ${reason}: ${beforeUrl || '(empty)'}`);
+  return safePageUrl(page);
+}
 
 // Input/composer selectors — try the most specific first
 const COMPOSER = [
@@ -170,6 +422,8 @@ let browser = null;
 let qwenPage = null;
 let browserLaunchedByUs = false;
 let browserConnectionMode = 'local';
+const DAEMON_LOCK_FILE = path.join(BASE_DIR, '.daemon-request.lock');
+let daemonLockHeld = false;
 
 ensureDirSync(SESSIONS_DIR);
 ensureDirSync(PROFILE_DIR);
@@ -272,10 +526,77 @@ async function connectToExisting(session) {
 async function cleanup() {
   try {
     if (browser) {
-      if (browserLaunchedByUs) { await browser.close().catch(() => {}); }
-      else { try { browser.disconnect(); } catch {} }
+      if (browserLaunchedByUs) {
+        await browser.close().catch(() => {});
+      } else {
+        try { browser.disconnect(); } catch {}
+      }
     }
-  } finally { browser = null; qwenPage = null; }
+  } finally {
+    if (daemonLockHeld) {
+      try { fs.unlinkSync(DAEMON_LOCK_FILE); } catch {}
+      daemonLockHeld = false;
+    }
+    browser = null;
+    qwenPage = null;
+    browserLaunchedByUs = false;
+    browserConnectionMode = 'local';
+  }
+}
+
+async function acquireDaemonLock(timeoutMs = 120000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const fd = fs.openSync(DAEMON_LOCK_FILE, 'wx');
+      fs.writeFileSync(fd, String(process.pid));
+      fs.closeSync(fd);
+      daemonLockHeld = true;
+      return;
+    } catch (e) {
+      if (e.code !== 'EEXIST') throw e;
+      try {
+        const stat = fs.statSync(DAEMON_LOCK_FILE);
+        if (Date.now() - stat.mtimeMs > timeoutMs) {
+          fs.unlinkSync(DAEMON_LOCK_FILE);
+          continue;
+        }
+      } catch {}
+      await sleep(250);
+    }
+  }
+  throw new Error('Не удалось получить daemon request lock вовремя');
+}
+
+async function ensureActivePage(preferredPage = null) {
+  const candidate = preferredPage || qwenPage;
+  if (candidate) {
+    try {
+      if (!candidate.isClosed()) {
+        await candidate.title().catch(() => {});
+        qwenPage = candidate;
+        return candidate;
+      }
+    } catch {}
+  }
+
+  if (!browser) throw new Error('Browser handle is missing');
+
+  const pages = await browser.pages().catch(() => []);
+  const livePages = pages.filter((p) => {
+    try { return p && !p.isClosed(); } catch { return false; }
+  });
+  const picked = livePages.find((p) => {
+    try {
+      const url = p.url();
+      return url.includes('qwen') || url === 'about:blank';
+    } catch {
+      return false;
+    }
+  }) || livePages[0] || await browser.newPage();
+
+  qwenPage = picked;
+  return picked;
 }
 
 async function disableAnimations(page) {
@@ -468,9 +789,17 @@ async function setupQwenInterceptor(page) {
 }
 
 // ═══ Send prompt ═════════════════════════════════════════════════════════
-async function sendPrompt(page, composerSelector, prompt) {
+async function sendPrompt(page, composerSelector, prompt, options = {}) {
+  const { expectedChatUrl = null, strictContinuity = false } = options;
   log(`📝 "${prompt.substring(0, 60)}${prompt.length > 60 ? '...' : ''}"`);
+  answerBaseline = await captureAnswerBaseline(page).catch(() => []);
   if (cdpInterceptor) { cdpInterceptor.prepareForRequest(); }
+
+  const beforeUrl = safePageUrl(page);
+  if (strictContinuity && expectedChatUrl) {
+    await stabilizeFollowUpChatBinding(page, expectedChatUrl);
+    await waitForFollowUpChatReady(page, composerSelector, expectedChatUrl, 15000, 2000);
+  }
 
   const el = await page.waitForSelector(composerSelector, { visible: true, timeout: 10000 });
 
@@ -488,21 +817,17 @@ async function sendPrompt(page, composerSelector, prompt) {
       el.textContent = text;
       el.dispatchEvent(new Event('input', { bubbles: true }));
     }
-    // Enter to send
-    const ev = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
-    el.dispatchEvent(new KeyboardEvent('keydown', ev));
-    el.dispatchEvent(new KeyboardEvent('keypress', ev));
-    el.dispatchEvent(new KeyboardEvent('keyup', ev));
-    // Click send button
-    for (const sel of ['#send-message-button', 'button[type="submit"]', '[data-testid="send"]', 'button[aria-label*="send" i]']) {
-      const b = (el.closest('form') || document).querySelector(sel);
-      if (b && b.offsetWidth > 0 && !b.disabled) { b.click(); return; }
-    }
-    const nb = el.parentElement?.querySelector('button, [role="button"]');
-    if (nb && nb.offsetWidth > 0 && !nb.disabled) nb.click();
   }, prompt);
 
-  await sleep(20);
+  await el.focus();
+  log('📨 Submit method: Enter only');
+  await page.keyboard.press('Enter');
+  await sleep(120);
+  const afterUrl = await logUrlTransition(page, beforeUrl, 'submit');
+  if (strictContinuity && expectedChatUrl) {
+    await assertFollowUpContinuityAfterSubmit(page, expectedChatUrl);
+  }
+  return afterUrl;
 }
 
 // ═══ Enable web search ═══════════════════════════════════════════════════
@@ -670,45 +995,73 @@ async function ensureThinkingMode(page) {
 
 // ═══ New chat ════════════════════════════════════════════════════════════
 async function startNewChat(page, force = false) {
+  page = await ensureActivePage(page);
   log('🆕 Начинаю новый чат...');
   try {
     const url = page.url();
-    if (QWEN_CHAT_RE.test(url) && !newChat && !force) { log('🆕 Уже в чате — продолжаем'); return; }
+    if (QWEN_CHAT_RE.test(url) && !newChat && !force) {
+      log('🆕 Уже в чате — продолжаем');
+      return page;
+    }
   } catch {}
 
-  const clicked = await page.evaluate(() => {
-    const candidates = document.querySelectorAll('button, [role="button"], a, i');
-    for (const el of candidates) {
-      const text = (el.textContent || el.innerText || '').trim().toLowerCase();
-      const aria = (el.getAttribute('aria-label') || '').toLowerCase();
-      const cls = (el.className || '').toLowerCase();
-      if (el.offsetWidth > 0 && (
-        text.includes('new chat') || text.includes('новый чат') || text.includes('новый') ||
-        aria.includes('new chat') || cls.includes('new-chat') || cls.includes('sidebar-new') ||
-        cls.includes('plus') || cls.includes('icon-line-plus')
-      )) {
-        el.click();
-        return text || aria || cls;
+  let clicked = null;
+  try {
+    clicked = await page.evaluate(() => {
+      const candidates = document.querySelectorAll('button, [role="button"], a, i');
+      for (const el of candidates) {
+        const text = (el.textContent || el.innerText || '').trim().toLowerCase();
+        const aria = (el.getAttribute('aria-label') || '').toLowerCase();
+        const cls = (el.className || '').toLowerCase();
+        if (el.offsetWidth > 0 && (
+          text.includes('new chat') || text.includes('новый чат') || text.includes('новый') ||
+          aria.includes('new chat') || cls.includes('new-chat') || cls.includes('sidebar-new') ||
+          cls.includes('plus') || cls.includes('icon-line-plus')
+        )) {
+          el.click();
+          return text || aria || cls;
+        }
       }
+      return null;
+    });
+  } catch (e) {
+    if (/detached|Target closed|Execution context was destroyed/i.test(String(e?.message || ''))) {
+      page = await ensureActivePage();
+    } else {
+      throw e;
     }
-    return null;
-  }).catch(() => null);
+  }
 
   if (clicked) {
     log(`🆕 New chat: "${clicked}"`);
     await sleep(1500);
-  } else {
-    log('📍 Переход на главную Qwen...');
-    try { await page.goto(QWEN_URL, { waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout }); }
-    catch (e) { if (!String(e?.message || '').includes('ERR_ABORTED')) throw e; log('⚠️ Навигация прервана UI'); }
-    await sleep(1500);
+    page = await ensureActivePage(page);
+    try { log(`🆕 URL after new-chat click: ${safePageUrl(page).substring(0, 80)}`); } catch {}
+    return page;
   }
+
+  log('📍 Переход на главную Qwen...');
+  page = await ensureActivePage(page);
+  try {
+    await page.goto(QWEN_URL, { waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
+  } catch (e) {
+    const msg = String(e?.message || '');
+    if (/ERR_ABORTED|detached|Target closed|Execution context was destroyed/i.test(msg)) {
+      log('⚠️ Навигация была прервана или страница перепривязана; пробую восстановить handle');
+      page = await ensureActivePage();
+    } else {
+      throw e;
+    }
+  }
+  await sleep(1500);
+  page = await ensureActivePage(page);
+  try { log(`🆕 URL after new-chat navigation: ${safePageUrl(page).substring(0, 80)}`); } catch {}
+  return page;
 }
 
 // ═══ Extract answer from DOM ═════════════════════════════════════════════
-async function extractAnswerFromDOM(page, minLen = 50) {
-  return page.evaluate((minLen) => {
-    // Try markdown-rendered content blocks
+async function captureAnswerBaseline(page) {
+  return page.evaluate(() => {
     const selectors = [
       'div[class*="markdown-body"]',
       'div[class*="md-preview"]',
@@ -716,19 +1069,50 @@ async function extractAnswerFromDOM(page, minLen = 50) {
       'article',
       '.prose',
     ];
+    const out = [];
     for (const sel of selectors) {
-      const els = document.querySelectorAll(sel);
-      for (let i = els.length - 1; i >= 0; i--) {
-        const el = els[i];
+      const els = Array.from(document.querySelectorAll(sel));
+      for (const el of els) {
         if (el.closest('.sidebar, nav, aside, .history')) continue;
         if (el.closest('textarea, [contenteditable], [role="textbox"]')) continue;
         const txt = el.innerText?.trim();
-        if (txt && txt.length >= minLen) return txt.slice(0, 15000);
+        if (txt) out.push(txt.slice(0, 15000));
       }
     }
-    // Fallback: get body text
+    return out;
+  }).catch(() => []);
+}
+
+async function extractAnswerFromDOM(page, minLen = 50, baseline = null) {
+  return page.evaluate(({ minLen, baseline }) => {
+    const selectors = [
+      'div[class*="markdown-body"]',
+      'div[class*="md-preview"]',
+      'div[class*="message-content"]',
+      'article',
+      '.prose',
+    ];
+    const baselineSet = new Set(Array.isArray(baseline) ? baseline : []);
+    const candidates = [];
+    for (const sel of selectors) {
+      const els = Array.from(document.querySelectorAll(sel));
+      for (const el of els) {
+        if (el.closest('.sidebar, nav, aside, .history')) continue;
+        if (el.closest('textarea, [contenteditable], [role="textbox"]')) continue;
+        const txt = el.innerText?.trim();
+        if (!txt) continue;
+        const clipped = txt.slice(0, 15000);
+        candidates.push(clipped);
+      }
+    }
+    for (let i = candidates.length - 1; i >= 0; i--) {
+      const txt = candidates[i];
+      if (txt.length < minLen) continue;
+      if (baselineSet.has(txt)) continue;
+      return txt;
+    }
     return null;
-  }, minLen).catch(() => null);
+  }, { minLen, baseline }).catch(() => null);
 }
 
 // ═══ Wait for response ═══════════════════════════════════════════════════
@@ -740,18 +1124,20 @@ async function waitForAnswer(page, timeout = TIMEOUT_ANSWER) {
 
   async function clickContinueIfPresent() {
     const clicked = await page.evaluate(() => {
-      const matcher = /continue|continue generating|продолж|продолжить генерацию|далее|more|read more/i;
-      const all = Array.from(document.querySelectorAll('button, [role="button"], a, div, span'));
+      const matcher = /^(continue|continue generating|продолжить|продолжить генерацию|далее|read more|show more|more)$/i;
+      const rejectMatcher = /^(новый чат|new chat|projects|проекты|community|сообщество)$/i;
+      const all = Array.from(document.querySelectorAll('button, [role="button"], a[role="button"]'));
       const btn = all.find((el) => {
-        const text = (el.innerText || el.textContent || '').trim();
+        const text = (el.innerText || el.textContent || '').trim().replace(/\s+/g, ' ');
         if (!text) return false;
+        if (rejectMatcher.test(text)) return false;
         const s = getComputedStyle(el);
         const r = el.getBoundingClientRect();
         if (s.visibility === 'hidden' || s.display === 'none' || r.width <= 0 || r.height <= 0) return false;
         return matcher.test(text);
       });
       if (!btn) return { clicked: false };
-      const text = (btn.innerText || btn.textContent || '').trim();
+      const text = (btn.innerText || btn.textContent || '').trim().replace(/\s+/g, ' ');
       const r = btn.getBoundingClientRect();
       btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 }));
       btn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 }));
@@ -784,7 +1170,7 @@ async function waitForAnswer(page, timeout = TIMEOUT_ANSWER) {
 
     // DOM-based check
     try {
-      const text = await extractAnswerFromDOM(page, MIN_RESPONSE);
+      const text = await extractAnswerFromDOM(page, MIN_RESPONSE, answerBaseline);
       if (text && text.length > lastText.length) {
         lastText = text;
         idleSince = null;
@@ -811,14 +1197,27 @@ async function waitForAnswer(page, timeout = TIMEOUT_ANSWER) {
           idleSince = Date.now();
         } else if (Date.now() - idleSince > CONFIG.shortAnswerStableMs) {
           const isGenerating = await page.evaluate(() => {
+            const hasVisible = (selectors) => selectors.some((sel) => {
+              const nodes = Array.from(document.querySelectorAll(sel));
+              return nodes.some((el) => {
+                const s = getComputedStyle(el);
+                const r = el.getBoundingClientRect();
+                return s.visibility !== 'hidden' && s.display !== 'none' && r.width > 0 && r.height > 0;
+              });
+            });
+
+            const bodyText = document.body?.innerText || '';
             return !!(
-              document.querySelector('[class*="stop" i]') ||
-              document.querySelector('[class*="loading" i]') ||
-              document.querySelector('i[class*="Stop" i]') ||
-              document.querySelector('i[class*="loading"]') ||
-              document.querySelector('[class*="generating" i]') ||
-              document.querySelector('[class*="thinking" i]') ||
-              document.body?.innerText?.includes('The chat is in progress!')
+              hasVisible([
+                '[class*="stop" i]',
+                'button[aria-label*="stop" i]',
+                '[class*="loading" i]',
+                'i[class*="Stop" i]',
+                'i[class*="loading" i]',
+                '[class*="generating" i]',
+                '[data-testid*="stop" i]'
+              ]) ||
+              bodyText.includes('The chat is in progress!')
             );
           }).catch(() => false);
 
@@ -848,23 +1247,41 @@ async function ensureBrowser(session) {
     catch (e) { browser = null; qwenPage = null; }
   }
 
-  // Try daemon
-  if (useDaemon || (!isVisible && fs.existsSync(DAEMON_ENDPOINT_FILE))) {
+  // Try daemon only when explicitly requested.
+  if (useDaemon) {
     try {
+      await acquireDaemonLock();
       browser = await connectToDaemon();
-      const pages = await browser.pages();
-      qwenPage = pages.find(p => {
-        try { return p.url().includes('qwen'); } catch { return false; }
-      }) || pages[0];
-      if (!qwenPage?.url?.().match(QWEN_CHAT_RE || /qwen/i)) {
-        log('📍 Навигация на Qwen Chat...');
-        await qwenPage.goto(QWEN_URL, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      const pages = await browser.pages().catch(() => []);
+      const livePages = pages.filter((p) => {
+        try { return p && !p.isClosed(); } catch { return false; }
+      });
+      qwenPage = ((session?.chatUrl && !newChat)
+        ? livePages.find((p) => {
+            try { return p.url() === session.chatUrl; } catch { return false; }
+          })
+        : null) || livePages.find((p) => {
+          try { return p.url().includes('qwen'); } catch { return false; }
+        }) || livePages[0];
+      debugLog(`🔍 Daemon live pages: ${livePages.map((p) => { try { return p.url(); } catch { return '(unreadable)'; } }).join(' | ')}`);
+      if (!qwenPage) {
+        qwenPage = await browser.newPage();
       }
-      log(`🔗 Подключился к демону (URL: ${qwenPage.url().substring(0, 50)})`);
+      try {
+        await qwenPage.setViewport({ width: 1280, height: 800 });
+      } catch {}
+
+      const restoreUrl = session?.chatUrl && !newChat ? session.chatUrl : QWEN_URL;
+      if (session?.chatUrl && !newChat) {
+        log(`📂 Восстанавливаю чат в daemon page: ${session.chatUrl.substring(0, 60)}`);
+      } else {
+        log('📍 Навигация на Qwen Chat...');
+      }
+      await qwenPage.goto(restoreUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      log(`🔗 Подключился к демону (singleton page URL: ${qwenPage.url().substring(0, 50)})`);
       return qwenPage;
     } catch (e) {
-      if (useDaemon) throw new Error(`Демон недоступен: ${e.message}`);
-      log(`⚠️ Демон недоступен: ${e.message}, запускаю локально`);
+      throw new Error(`Демон недоступен: ${e.message}`);
     }
   }
 
@@ -873,7 +1290,20 @@ async function ensureBrowser(session) {
     return qwenPage;
   }
 
-  // Launch new
+  // Launch new local browser.
+  // Safety rule: local mode and daemon mode currently share the same Chromium profile.
+  // Running a local browser while daemon owns that profile can disconnect the daemon browser.
+  if (!useDaemon && fs.existsSync(DAEMON_ENDPOINT_FILE)) {
+    const daemonWs = fs.readFileSync(DAEMON_ENDPOINT_FILE, 'utf8').trim();
+    if (daemonWs) {
+      const daemonAlive = await isBrowserAlive(daemonWs).catch(() => false);
+      if (daemonAlive) {
+        throw new Error('Локальный режим недоступен, пока активен qwen-daemon: общий Chromium profile может убить daemon-сессию. Используй --daemon или сначала останови qwen-daemon.');
+      }
+      try { fs.unlinkSync(DAEMON_ENDPOINT_FILE); } catch {}
+    }
+  }
+
   await cleanup();
   if (!session && shouldClose) await killChromeProfile(PROFILE_DIR);
 
@@ -924,9 +1354,7 @@ async function ensureBrowser(session) {
   }
 
   if (session) {
-    session.wsEndpoint = browser.wsEndpoint();
-    session.chatUrl = qwenPage.url();
-    saveSession(session.name, session);
+    persistSessionState(session, qwenPage, 'ensureBrowser');
   }
 
   return qwenPage;
@@ -969,17 +1397,19 @@ async function main() {
       session.lastUsed = new Date().toISOString();
       saveSession(session.name, session);
     }
+    const expectedFollowUpChatUrl = (session && session.chatUrl && !newChat) ? session.chatUrl : null;
+    const strictFollowUpContinuity = !!expectedFollowUpChatUrl;
 
     // Ensure browser
     if (diag) diag.start('BROWSER_LAUNCH');
-    const page = await ensureBrowser(session);
+    let page = await ensureBrowser(session);
     if (diag) diag.succeed('BROWSER_LAUNCH');
 
     // New chat? Force a fresh chat for standalone requests so previous in-progress chats do not poison extraction.
     if (!session) {
-      await startNewChat(page, true);
+      page = await startNewChat(page, true);
     } else if (newChat || !session.chatUrl) {
-      await startNewChat(page);
+      page = await startNewChat(page);
     }
 
     // Wait for page ready
@@ -1018,22 +1448,42 @@ async function main() {
 
     // Send prompt
     if (diag) diag.start('PROMPT_SEND');
-    await sendPrompt(page, composerSel, fullQuestion);
+    await sendPrompt(page, composerSel, fullQuestion, {
+      expectedChatUrl: expectedFollowUpChatUrl,
+      strictContinuity: strictFollowUpContinuity,
+    });
+    if (session) {
+      persistSessionState(session, page, 'post-submit', {
+        expectedChatUrl: expectedFollowUpChatUrl,
+        strictContinuity: strictFollowUpContinuity,
+      });
+    }
     if (diag) diag.succeed('PROMPT_SEND');
 
     // Wait for response
     if (diag) diag.start('ANSWER_WAIT');
     const result = await waitForAnswer(page);
-    if (diag) diag.succeed('ANSWER_WAIT', { chars: result?.text?.length || 0 });
+    if (diag) {
+      diag.answerComplete = !!result?.complete;
+      diag.incompleteReason = result?.complete ? null : 'не полный';
+      diag.charactersExtracted = result?.text?.length || 0;
+      diag.continueRounds = result?.continueClicks || 0;
+      diag.succeed('ANSWER_WAIT', { chars: result?.text?.length || 0, complete: !!result?.complete, continueClicks: result?.continueClicks || 0 });
+    }
 
     // Extract from DOM as fallback
     if (!result?.text && !result?.complete) {
       if (diag) diag.start('ANSWER_EXTRACT');
-      const domText = await extractAnswerFromDOM(page, 20);
+      const domText = await extractAnswerFromDOM(page, 20, answerBaseline);
       if (domText) {
         result.text = domText;
         result.complete = true;
-        if (diag) diag.succeed('ANSWER_EXTRACT', { chars: domText.length });
+        if (diag) {
+          diag.answerComplete = true;
+          diag.incompleteReason = null;
+          diag.charactersExtracted = domText.length;
+          diag.succeed('ANSWER_EXTRACT', { chars: domText.length });
+        }
       } else {
         if (diag) diag.fail('ANSWER_EXTRACT', 'No text found in DOM');
       }
@@ -1059,9 +1509,11 @@ async function main() {
 
     // Save session
     if (session) {
-      try { session.chatUrl = page.url(); } catch {}
       session.messageCount = (session.messageCount || 0) + 2;
-      saveSession(session.name, session);
+      persistSessionState(session, page, 'post-answer', {
+        expectedChatUrl: expectedFollowUpChatUrl,
+        strictContinuity: strictFollowUpContinuity,
+      });
     }
 
     if (diag) {

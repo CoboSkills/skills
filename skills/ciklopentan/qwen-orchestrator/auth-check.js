@@ -1,7 +1,6 @@
 /**
  * Qwen Chat auth checker.
- * Keeps the same interface as ai-orchestrator/auth-check.js but uses
- * Qwen-specific URL and DOM signals.
+ * Uses Qwen-specific URL and DOM signals.
  */
 
 const URL_PATTERNS = {

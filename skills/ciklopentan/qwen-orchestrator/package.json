@@ -1,6 +1,6 @@
 {
   "name": "qwen-orchestrator",
-  "version": "1.2.0",
+  "version": "1.2.3",
   "description": "Qwen Chat (chat.qwen.ai) browser automation via Puppeteer with daemon mode and auth checks",
   "main": "ask-puppeteer.js",
   "bin": {

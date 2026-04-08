@@ -117,7 +117,7 @@ fi
 # End session
 if [[ "$END_SESSION" = true ]]; then
   if [[ -n "$SESSION_NAME" ]]; then
-    node "$SCRIPT_DIR/ask-puppeteer.js" "${SESSION_ARGS[@]}" --end-session 2>/dev/null || true
+    node "$SCRIPT_DIR/ask-puppeteer.js" "${SESSION_ARGS[@]}" --end-session >/dev/null 2>&1 || true
     rm -f "$SCRIPT_DIR/.sessions/${SESSION_NAME}.json"
     echo "Сессия '$SESSION_NAME' завершена"
   else

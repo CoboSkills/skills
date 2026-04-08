@@ -70,3 +70,4 @@ bash ask-qwen.sh --session test --end-session
 - Daemon mode depends on a valid `.daemon-ws-endpoint`.
 - Search toggle may need selector updates if chat.qwen.ai UI changes.
 - Browser auth state is profile-backed; profile corruption can require re-login.
+- Local mode and daemon mode currently share one Chromium profile. Do not run local mode while `qwen-daemon` is active; use `--daemon` or stop the daemon first.

@@ -7,6 +7,9 @@ SKILL_DIR="$(dirname "$SCRIPT_DIR")"
 
 cd "$SKILL_DIR"
 
+echo "🧩 Running isolation check..."
+node "$SCRIPT_DIR/isolation-check.js"
+
 echo "📦 Installing dependencies..."
 npm install --silent
 

@@ -8,7 +8,7 @@ description: >
   (4) web search via Qwen's built-in search, (5) "consult Qwen" or ask-qwen.sh.
 ---
 
-# Qwen Orchestrator v1.2.0
+# Qwen Orchestrator v1.2.3
 
 **What this is:** Browser automation that talks to Qwen Chat via Puppeteer.
 **Default runtime policy:** before sending a prompt, qwen-orchestrator should switch the Qwen mode selector to thinking mode when the selector is available.
@@ -59,6 +59,10 @@ EOF
 
 **Rule:** Need LLM reasoning without API key → qwen-orchestrator.
 Need browser tasks (scrape, click, fill forms) → use `agent-browser` skill instead.
+
+**Session continuity:** in daemon mode, follow-up requests using `--session NAME` must restore the exact saved Qwen `chatUrl` for that session unless `--new-chat` was explicitly requested. Reusing an arbitrary open Qwen tab is incorrect because it breaks multi-round review continuity.
+
+**Follow-up continuity invariant:** after restoring an existing session chat, the next prompt send must remain bound to that same chat unless `--new-chat` was explicitly requested. Before follow-up submit, qwen-orchestrator should actively re-bind the restored chat by reloading the chat URL and, when possible, activating the matching chat item in the sidebar by its real chat title. If submit still jumps to `/c/new-chat` or a different chat id, treat it as a continuity failure; do not silently accept or persist the new chat as the session state.
 
 ## All Flags
 | Flag | Purpose |
@@ -137,5 +141,6 @@ cd ~/.openclaw/workspace/skills/qwen-orchestrator && bash scripts/setup-daemon.s
 - Auth repair → stop daemon → `--visible --wait --dry-run`
 - Health check → `--dry-run`
 - Long answers → `--session` + chunk
+- If `qwen-daemon` is running, prefer `--daemon`; local mode currently must not run concurrently against the same Chromium profile
 - Browser automation → use `agent-browser`
 - Need deeper runtime details or repair commands → read `REFERENCE.md`. Purpose: debug failures.

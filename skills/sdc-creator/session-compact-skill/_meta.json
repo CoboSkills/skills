@@ -1,0 +1,11 @@
+{
+  "owner": "sdc-creator",
+  "slug": "session-compact-skill",
+  "displayName": "Session Compact Skill",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1775522575411,
+    "commit": null
+  },
+  "history": []
+}

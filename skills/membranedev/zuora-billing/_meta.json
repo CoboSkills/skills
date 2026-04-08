@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "zuora-billing",
+  "displayName": "Zuora Billing",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775541894756,
+    "commit": null
+  },
+  "history": []
+}

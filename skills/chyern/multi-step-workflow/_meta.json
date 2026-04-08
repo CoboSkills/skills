@@ -1,11 +1,17 @@
 {
   "owner": "chyern",
   "slug": "multi-step-workflow",
-  "displayName": "Agent Workflow",
+  "displayName": "Multi Step Workflow",
   "latest": {
-    "version": "1.4.1",
-    "publishedAt": 1775531679385,
-    "commit": "https://github.com/openclaw/skills/commit/bda40a3bd992ed104f9fdfce4f1fb33debd8bc46"
+    "version": "4.4.2",
+    "publishedAt": 1775576078633,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.4.1",
+      "publishedAt": 1775531679385,
+      "commit": "https://github.com/openclaw/skills/commit/bda40a3bd992ed104f9fdfce4f1fb33debd8bc46"
+    }
+  ]
 }

@@ -1,163 +1,57 @@
-# Agent Workflow
+# 多步骤工作流 (高信任版 SOP)
 
-**通用 agent 工作流引擎，基于状态机。** 适用于任何 OpenClaw agent——研究、调试、配置、开发、数据分析、文档编写。自我管理，零配置。
+轻量级任务追踪，具备 **“机器门控规划” (Machine-Gated Planning)**、**“自主执行” (Autonomous Execution)** 和 **“用户授权式复盘” (User-Opt-In Review)**。
 
-## 架构
+## 开发与合规声明 (ClawHub Audit v4.4.0)
 
-```
-任务接收 → [状态机] → 完成
-                ↑
-          ┌─────┴─────┐
-          │           │
-        脚本         循环
-        delegate    推进
-        task-tracker 步骤
-        state-machine
-```
+> [!IMPORTANT]
+> **审计加固级私有存储 (Owner-Only Access)**
+> 为了彻底消除在多用户系统共享 `/tmp` 时可能存在的隐私风险，本版本实现了 **严格的 POSIX 权限锁死**：
+> - **私有目录 (0700)**：系统临时目录下的项目专用子文件夹 (`/tmp/openclaw-workflow-*`) 仅限当前用户读写执行。其他用户由于无权 cd 进该目录，无法窥视您的任务状态。
+> - **私有文件 (0600)**：所有 JSON 状态文件在生成的同时被锁定为 `0600` 权限（仅 Owner 读写）。
+>
+> **快照功能可选化 (Default: OFF)**
+> 为满足高等级的隐私合规要求，**上下文快照 (Context Snapshot)** 功能现已变为可选。
+> - **默认 useSnapshots**: `false`
+> - **高忠实度快照**：开启后，快照将原汁原味地记录中间态发现。请仅在您信任本地存储环境时通过配置启用。
 
-工作流由三个脚本通过状态机协调驱动。状态机追踪每个任务所处阶段；脚本之间通过文件通信，保持独立可测试。
+### 💾 私有临时存储 (沙箱隔离)
+- `approvals.json` (0600)：记录您的审批标记。
+- `context-snapshot.json` (0600)：原生忠实度提取物。
+- `tasks/*.json` (0600)：任务细化步骤。
 
-## 设计
+## 自适应工作流逻辑
 
-### 为什么要状态机？
+1. **快速路径 (< 3 步)**：针对简单的单项任务。直接执行。
+2. **标准路径 (>= 3 步)**：
+   - **第一步：规划模式**：Agent 拟定计划。**必须停止以等待您的批准**。
+   - **第二步：门控跳转**：一旦您说“OK”，Agent 运行 `node scripts/approve.js`。
+   - **第三步：自主执行**：基于全局配置，Agent 自动完成任务。
+   - **第四步：持久化**：如果 `useSnapshots` 为 `true`，Agent 会将关键状态存入私有临时沙箱。
 
-Agent 经常在任务中途被打断、需要 spawn sub-agent、或中途需要重新规划。状态机让每个阶段都清晰可恢复——如果 agent 在任务中途崩溃，状态已保存，下次会话可以直接恢复。
+## 配置管理
 
-### 为什么要分离成独立脚本？
+本技能完全通过 OpenClaw 官方 CLI 进行管理。
 
-- **delegate.js** — context 信息提供者。模型自行判断路由决策。
-- **task-tracker.py** — 步骤追踪。进度存储在 `~/.openclaw/workspace/project/task-tracker/` 的 JSON 文件中。
-- **state-machine.js** — 生命周期管理。状态存储在 `~/.openclaw/workspace/project/state-machine.json`。
-- **context-snapshot.js** — OpenClaw context 压缩前的任务上下文保存。关键信息写入外部 JSON 文件。
+**初始化配置（首次使用必选）**:
+`openclaw config set skills.entries.multi-step-workflow.config '{"useSubAgents": false, "maxSubAgents": 3, "useSnapshots": false}' --strict-json`
 
-脚本之间通过文件通信，而非函数调用。这样每个脚本都可以独立测试和运行。
+**启用子代理（并行处理）**:
+`openclaw config set skills.entries.multi-step-workflow.config.useSubAgents true --strict-json`
 
-### 状态机
+**启用任务快照（持久化记忆）**:
+`openclaw config set skills.entries.multi-step-workflow.config.useSnapshots true --strict-json`
 
-```
-IDLE → PLANNING → DELEGATING → EXECUTING → MEMORYING → DONE
-                            ↓
-                     WAITING_SUBAGENT → EXECUTING
-                            ↓
-                       BLOCKED → EXECUTING (或 DONE)
-```
+**查看当前配置**:
+`openclaw config get skills.entries.multi-step-workflow.config`
 
-| 状态 | 进入条件 |
-|------|---------|
-| IDLE | 无活动任务 |
-| PLANNING | 新任务接收，分析范围 |
-| DELEGATING | 计划就绪，判断路由 |
-| EXECUTING | 步骤执行中 |
-| WAITING_SUBAGENT | sub-agent 已启动，等待结果 |
-| MEMORYING | 所有步骤完成，写入模式 |
-| BLOCKED | 等待用户确认 |
-| DONE | 任务完成 |
-| FAILED | 不可恢复错误，可重试 |
+## 核心脚本 (可审计)
 
-### 路由（delegate.js — 仅提供信息，模型自行判断）
+- `path-resolver.js`：权限锁死存储映射器。
+- `task-tracker.js`：进度追踪（0600 权限）。
+- `approve.js`：审批标记（0600 权限）。
+- `context-snapshot.js`：高忠实度状态快照。
 
-delegate.js 仅提供 **context 信息**，不做路由决策。AI 模型根据任务特性自行判断使用 main session 还是 sub-agent。
-
-模型收到：
-- 当前 context 百分比和健康状态
-- 何时使用 sub-agent 的指导原则
-- context ≥ 80% 时的 BLOCK 警告
-
-```bash
-node delegate.js <context百分比>
-```
-
-**模型的路由原则：** 完全独立可并行的任务 → sub-agent。顺序任务或上下文相关任务 → main session。网络/实时任务 → main session only。
-
-### 脚本 API
-
-#### context-snapshot.js
-
-```bash
-# 保存任务上下文（压缩前）
-node context-snapshot.js save "<任务>" "<发现>" "<待决事项>"
-
-# 加载保存的上下文（压缩后）
-node context-snapshot.js load
-
-# 任务完成后清除快照
-node context-snapshot.js clear
-```
-
-
-#### delegate.js
-
-```bash
-node delegate.js <context百分比>
-```
-
-返回 JSON：
-```json
-{
-  "decision": "MAIN|SUBAGENT|FORCE_SUBAGENT|BLOCK|MAIN_ONLY",
-  "reason": "人类可读的解释",
-  "spawnSubagent": true|false,
-  "urgency": "low|normal|elevated|high|critical"
-}
-```
-
-#### task-tracker.py
-
-```bash
-# 创建带步骤的任务
-python3 task-tracker.py new "<任务>" "<步骤1|步骤2|步骤3>"
-
-# 标记步骤完成
-python3 task-tracker.py done "<任务>" 1
-
-# 列出所有任务
-python3 task-tracker.py list
-
-# 删除任务
-python3 task-tracker.py clear "<任务>"
-```
-
-数据存储在 `~/.openclaw/workspace/project/task-tracker/` 目录的 JSON 文件中。
-
-#### state-machine.js
-
-```bash
-# 初始化新任务
-node state-machine.js init "<任务ID>" "<任务名>"
-
-# 获取当前状态
-node state-machine.js get "<任务ID>"
-
-# 状态转换
-node state-machine.js transition "<任务ID>" PLANNING
-
-# 列出所有活动任务
-node state-machine.js list
-
-# 删除任务
-node state-machine.js delete "<任务ID>"
-```
-
-状态存储在 `~/.openclaw/workspace/project/state-machine.json`。非法的状态转换会被拒绝——这是状态机契约的强制执行。
-
-## 依赖
-
-- `node`（用于 delegate.js 和 state-machine.js）
-- `python3`（用于 task-tracker.py）
-
-无其他依赖，无需配置环境变量。
-
-## 扩展
-
-添加新状态，修改 `state-machine.js`：
-1. 在 `S` 常量中添加状态
-2. 在 `TRANSITIONS` 中添加允许的转换
-
-
-## 设计理念
-
-**脚手架应该随模型能力变强而变薄。** 只存储无法重新推导的信息。保持框架轻量。
-
-## License
+## 许可证
 
 MIT

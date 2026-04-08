@@ -1,0 +1,11 @@
+{
+  "owner": "yerassyl-sailaubay",
+  "slug": "moodle-student-sync",
+  "displayName": "Moodle Student Sync",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1775551738419,
+    "commit": null
+  },
+  "history": []
+}

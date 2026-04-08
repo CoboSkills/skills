@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "sonatype",
+  "displayName": "Sonatype",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775567302018,
+    "commit": null
+  },
+  "history": []
+}

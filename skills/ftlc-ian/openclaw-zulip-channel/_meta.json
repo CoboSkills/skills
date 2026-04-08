@@ -1,0 +1,11 @@
+{
+  "owner": "ftlc-ian",
+  "slug": "openclaw-zulip-channel",
+  "displayName": "OpenClaw Zulip Channel",
+  "latest": {
+    "version": "2026.4.7",
+    "publishedAt": 1775605575953,
+    "commit": null
+  },
+  "history": []
+}

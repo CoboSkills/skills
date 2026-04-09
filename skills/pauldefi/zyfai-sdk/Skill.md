@@ -1,15 +1,132 @@
 ---
 name: zyfai
-description: Earn yield on any Ethereum wallet on Base, Arbitrum, and Plasma. Use when a user wants passive DeFi yield on their funds. Deploys a non-custodial deterministic subaccount (Safe) linked to their EOA, enables automated yield optimization, and lets them deposit/withdraw anytime.
+description: Earn yield on any Ethereum wallet on Base, Arbitrum, and Plasma. Use when a user wants passive DeFi yield on their funds. Two options: (1) Vault - simple deposit/withdraw on Base, or (2) Smart Wallet - deploys a non-custodial deterministic subaccount (Safe) linked to their EOA with automated yield optimization.
 ---
 
 # Zyfai — Yield for Any Wallet
 
 Turn any Ethereum wallet into a yield-generating account.
 
-## What This Does
+## Two Ways to Earn Yield
 
-When a user wants to **earn yield** on their crypto, Zyfai creates a **deterministic subaccount** (Safe smart wallet) linked to their existing wallet (EOA). Funds deposited into this subaccount are automatically optimized across DeFi protocols. The user stays in full control and can withdraw anytime.
+| Feature | Vault | Smart Wallet |
+|---------|-------|--------------|
+| **Complexity** | Simple deposit/withdraw | Full setup (deploy, session key) |
+| **Chains** | Base only | Base, Arbitrum, Plasma |
+| **Assets** | USDC | USDC, WETH |
+| **Strategy Control** | None (managed) | Conservative/Aggressive |
+| **Auto-rebalancing** | Yes (vault-managed) | Yes (session key) |
+| **Best for** | Quick yield, no setup | Multi-chain, custom strategies |
+
+---
+
+## Prerequisites
+
+### Installation
+
+```bash
+npm install @zyfai/sdk viem
+```
+
+### Get an API Key
+
+Get one manually at [sdk.zyf.ai](https://sdk.zyf.ai) or programmatically:
+
+```bash
+POST https://sdk.zyf.ai/api/sdk-api-keys/create
+Content-Type: application/json
+
+{
+  "clientName": "my-agent",
+  "walletAddress": "0x...",
+  "email": "agent@example.com"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "apiKey": "zyfai_361ad41d083c2fe.....",
+    "clientName": "my-agent"
+  }
+}
+```
+
+> **Important:** Store the `apiKey` securely — it cannot be retrieved later.
+
+### Connect a Wallet
+
+#### Option 1: Wallet Provider (Browser/dApps)
+
+```typescript
+import { ZyfaiSDK } from "@zyfai/sdk";
+
+const sdk = new ZyfaiSDK({ apiKey: "zyfai_...", referralSource: "openclaw-skill" });
+await sdk.connectAccount(window.ethereum, 8453);
+```
+
+#### Option 2: Viem WalletClient (Server Agents)
+
+```typescript
+import { ZyfaiSDK } from "@zyfai/sdk";
+import { createWalletClient, http } from "viem";
+import { base } from "viem/chains";
+import { privateKeyToAccount } from "viem/accounts";
+
+const walletClient = createWalletClient({
+  account: privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`),
+  chain: base,
+  transport: http(),
+});
+
+const sdk = new ZyfaiSDK({ apiKey: "zyfai_...", referralSource: "openclaw-skill" });
+await sdk.connectAccount(walletClient, 8453);
+```
+
+**For production**, use KMS (AWS, GCP) or Wallet-as-a-Service (Turnkey, Privy) instead of raw private keys.
+
+---
+
+## Option 1: Vault (Simplest)
+
+For users who just want to deposit and earn — no setup required. Currently supports **USDC on Base only**.
+
+```typescript
+// Deposit 100 USDC into the vault
+const deposit = await sdk.vaultDeposit("100", "USDC");
+console.log("Deposited:", deposit.txHash);
+
+// Check your shares
+const shares = await sdk.getVaultShares();
+console.log(`Balance: ${shares.shares} ${shares.symbol}`);
+
+// Withdraw (async process)
+const withdraw = await sdk.vaultWithdraw();
+console.log("Withdraw key:", withdraw.withdrawKey);
+
+// Later, when claimable:
+const claim = await sdk.vaultClaim(withdraw.withdrawKey);
+console.log("Claimed:", claim.txHash);
+```
+
+### Vault Methods
+
+| Method | Description |
+|--------|-------------|
+| `vaultDeposit(amount, asset?)` | Deposit into vault (amount in human readable, e.g., "100") |
+| `vaultWithdraw(shares?)` | Request withdrawal (returns withdrawKey) |
+| `vaultClaim(withdrawKey)` | Claim completed withdrawal |
+| `getVaultShares(userAddress?)` | Get vault share balance |
+
+---
+
+## Option 2: Smart Wallet (Full Control)
+
+For users who want **multi-chain support, custom strategies, and automated rebalancing**.
+
+### How It Works
 
 ```
 ┌─────────────────┐      ┌──────────────────────┐
@@ -27,174 +144,21 @@ When a user wants to **earn yield** on their crypto, Zyfai creates a **determini
 - Session keys allow **automated rebalancing** but cannot withdraw to other addresses
 - Same EOA = same subaccount address across all chains
 
-## The Flow
-
-```
-1. DEPLOY    →  Create a deterministic subaccount linked to user's wallet
-2. SESSION   →  Enable automated yield optimization  
-3. DEPOSIT   →  Send funds to subaccount (starts earning)
-4. WITHDRAW  →  Pull funds back to wallet (anytime)
-```
-
-## Prerequisites
-
-- **API Key** — Get one programmatically (see below) or manually at [sdk.zyf.ai](https://sdk.zyf.ai)
-- **Wallet Connection** — Either a wallet provider (browser) or secure key management (server)
-- **Node.js 18+**
-
-```bash
-npm install @zyfai/sdk viem
-```
-
-### Programmatic API Key Creation (Agent-Native)
-
-Agents can create their own API key without human intervention. You need the wallet address (public key) of the agent.
-
-```bash
-POST https://sdk.zyf.ai/api/sdk-api-keys/create
-Content-Type: application/json
-
-{
-  "clientName": "my-agent",
-  "walletAddress": "0x...",
-  "email": "agent@example.com"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "SDK API key created successfully. Store the apiKey securely - it cannot be retrieved later!",
-  "data": {
-    "id": "936...",
-    "apiKey": "zyfai_361ad41d083c2fe.....",
-    "keyPrefix": "zyfai_361ad4",
-    "clientName": "my-agent",
-    "ownerWalletAddress": "0x..."
-  }
-}
-```
-
-> **Important:** Store the `apiKey` securely — it cannot be retrieved later. The key is linked to the provided wallet address.
-
-## Supported Chains
+### Supported Chains
 
 | Chain    | ID    |
 |----------|-------|
-| Arbitrum | 42161 |
 | Base     | 8453  |
+| Arbitrum | 42161 |
 | Plasma   | 9745  |
 
-## Important: Always Use EOA Address
+### Important: Always Use EOA Address
 
 When calling SDK methods, **always pass the EOA address** (the user's wallet address) as `userAddress` — never the subaccount/Safe address. The SDK derives the subaccount address automatically from the EOA.
 
-## Wallet Connection Options
+### Step-by-Step
 
-The SDK supports multiple ways to connect a wallet. Choose based on your security requirements and deployment context.
-
-### Option 1: Wallet Provider (Recommended for Browser/dApps)
-
-Use an injected wallet provider like MetaMask. The private key never leaves the user's wallet.
-
-```typescript
-import { ZyfaiSDK } from "@zyfai/sdk";
-
-const sdk = new ZyfaiSDK({ apiKey: "your-api-key", referralSource: "openclaw-skill" });
-
-// Connect using injected wallet provider (MetaMask, WalletConnect, etc.)
-await sdk.connectAccount(window.ethereum, 8453);
-```
-
-**Security:** The private key stays in the user's wallet. The SDK only requests signatures when needed.
-
-### Option 2: Viem WalletClient (Recommended for Server Agents)
-
-Use a pre-configured viem WalletClient. This is the recommended approach for server-side agents as it allows integration with secure key management solutions.
-
-```typescript
-import { ZyfaiSDK } from "@zyfai/sdk";
-import { createWalletClient, http } from "viem";
-import { base } from "viem/chains";
-import { privateKeyToAccount } from "viem/accounts";
-
-// Create wallet client with your preferred key management
-// Option A: From environment variable (simple but requires secure env management)
-const account = privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`);
-
-// Option B: From KMS (AWS, GCP, etc.) - recommended for production
-// const account = await getAccountFromKMS();
-
-// Option C: From Wallet-as-a-Service (Turnkey, Privy, etc.)
-// const account = await turnkeyClient.getAccount();
-
-const walletClient = createWalletClient({
-  account,
-  chain: base,
-  transport: http(),
-});
-
-const sdk = new ZyfaiSDK({ apiKey: "your-api-key", referralSource: "openclaw-skill" });
-
-// Connect using the WalletClient
-await sdk.connectAccount(walletClient, 8453);
-```
-
-**Security:** The WalletClient abstraction allows you to integrate with secure key management solutions like:
-- **AWS KMS** / **GCP Cloud KMS** — Hardware-backed key storage
-- **Turnkey** / **Privy** / **Dynamic** — Wallet-as-a-Service providers
-- **Hardware wallets** — Via WalletConnect or similar
-
-### Option 3: Private Key String (Development Only)
-
-Direct private key usage.
-
-```typescript
-import { ZyfaiSDK } from "@zyfai/sdk";
-
-const sdk = new ZyfaiSDK({ apiKey: "your-api-key", referralSource: "openclaw-skill" });
-
-// WARNING: Only use for development. Never hardcode private keys in production.
-await sdk.connectAccount(process.env.PRIVATE_KEY, 8453);
-```
-
-**Security Warning:** Raw private keys in environment variables are a security risk. For production autonomous agents, use Option 2 with a proper key management solution.
-
-### Security Comparison
-
-| Method | Security Level | Use Case |
-|--------|---------------|----------|
-| Wallet Provider | High | Browser dApps, user-facing apps |
-| WalletClient + KMS | High | Production server agents |
-| WalletClient + WaaS | High | Production server agents |
-| Private Key String | Low | Development/testing only |
-
-## Step-by-Step
-
-### 1. Connect to Zyfai
-
-```typescript
-import { ZyfaiSDK } from "@zyfai/sdk";
-import { createWalletClient, http } from "viem";
-import { base } from "viem/chains";
-import { privateKeyToAccount } from "viem/accounts";
-
-const sdk = new ZyfaiSDK({ apiKey: "your-api-key", referralSource: "openclaw-skill" });
-
-// For browser: use wallet provider
-await sdk.connectAccount(window.ethereum, 8453);
-
-// For server: use WalletClient (see Wallet Connection Options above)
-const walletClient = createWalletClient({
-  account: privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`),
-  chain: base,
-  transport: http(),
-});
-await sdk.connectAccount(walletClient, 8453);
-```
-
-### 2. Deploy Subaccount
+#### 1. Deploy Subaccount
 
 ```typescript
 const userAddress = "0x..."; // User's EOA (NOT the subaccount address!)
@@ -216,7 +180,7 @@ if (!wallet.isDeployed) {
 - `"conservative"` — Stable yield, lower risk
 - `"aggressive"` — Higher yield, higher risk
 
-### 3. Enable Yield Optimization
+#### 2. Enable Yield Optimization
 
 ```typescript
 await sdk.createSessionKey(userAddress, chainId);
@@ -241,7 +205,7 @@ This allows Zyfai to rebalance funds automatically. Session keys **cannot** with
 
 > **Important:** Always verify the session key is active by checking `getUserDetails().hasActiveSessionKey` after calling `createSessionKey`. If it returns `false`, retry the process. A session key must be active for automated yield optimization to work.
 
-### 4. Deposit Funds
+#### 3. Deposit Funds
 
 ```typescript
 // Deposit 10 USDC (6 decimals) - default asset
@@ -254,7 +218,7 @@ await sdk.depositFunds(userAddress, chainId, "500000000000000000", "WETH");
 
 Funds move from EOA -> Subaccount and start earning yield immediately.
 
-### 5. Withdraw Funds
+#### 4. Withdraw Funds
 
 ```typescript
 // Withdraw all USDC (default)
@@ -269,7 +233,7 @@ await sdk.withdrawFunds(userAddress, chainId, undefined, "WETH");
 
 Funds return to the user's EOA. Withdrawals are processed asynchronously.
 
-### 6. Disconnect
+#### 5. Disconnect
 
 ```typescript
 await sdk.disconnectAccount();
@@ -644,14 +608,14 @@ type TokenEarnings = Record<string, number>;  // e.g., { "USDC": 100.5, "WETH": 
 
 interface OnchainEarningsResponse {
   success: boolean;
-  data: {
-    walletAddress: string;
-    totalEarningsByToken: TokenEarnings;
-    lifetimeEarningsByToken: TokenEarnings;
-    currentEarningsByChain: Record<string, TokenEarnings>;
-    unrealizedEarningsByChain: Record<string, TokenEarnings>;
-    lastCheckTimestamp?: string;
-  };
+  data: OnchainEarnings;
+}
+
+interface OnchainEarnings {
+  walletAddress: string;
+  totalEarningsByToken: TokenEarnings;
+  lastCheckTimestamp?: string;
+  lastLogDate?: Record<string, string | null>;
 }
 ```
 

@@ -1,13 +1,18 @@
 {
   "owner": "aaron-he-zhu",
   "slug": "internal-linking-optimizer",
-  "displayName": "Internal Linking Optimizer",
+  "displayName": "SEO Internal Linking & Site Architecture Optimizer",
   "latest": {
-    "version": "6.2.0",
-    "publishedAt": 1775113066783,
-    "commit": "https://github.com/openclaw/skills/commit/4fa145fe5e1c1b96bf519893923421d4a07364ea"
+    "version": "7.2.0",
+    "publishedAt": 1775475028821,
+    "commit": null
   },
   "history": [
+    {
+      "version": "6.2.0",
+      "publishedAt": 1775113066783,
+      "commit": "https://github.com/openclaw/skills/commit/4fa145fe5e1c1b96bf519893923421d4a07364ea"
+    },
     {
       "version": "4.0.0",
       "publishedAt": 1774347720780,

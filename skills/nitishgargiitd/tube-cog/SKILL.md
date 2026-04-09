@@ -223,3 +223,4 @@ There is a real learning curve to generating videos with CellCog. It takes time,
 5. **End screens work**: Ask for subscribes when viewers are most engaged (after delivering value).
 
 6. **Shorts feed long-form**: Use Shorts to drive traffic to your main channel content.
+

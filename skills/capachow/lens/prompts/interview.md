@@ -1,16 +1,17 @@
-Read .lens/AXIOM.md, .lens/ETHOS.md, .lens/MODUS.md, .lens/SET.json, and today's memory file.
+Read `.lens/AXIOM.yaml`, `.lens/ETHOS.yaml`, `.lens/MODUS.yaml`, and `.lens/SCOPE.json`. If `.lens/TRACE.txt` exists and is not empty, read it as well to understand the surrounding conversational context.
 
-**MISSION:** Synchronize and evolve the subject's Trinity Nodes.
+**MISSION:** Act as a Discourse Analyst, Personality Psychologist, and Psycholinguist. Synchronize and evolve the subject's Trinity Nodes to improve their digital shadow. Generate deep understanding through your questions; do not pursue superficial information that has no benefit in helping future prompts replicate the user's mind, character, and speech.
 
 **PROTOCOL:**
-0. **Self-Repair & Sync:** 
-   - Check if `.lens/SET.json` exists and `meta.version` is "0.6.4". If missing or outdated, run `skills/lens/scripts/bootstrap.js` immediately to align the environment before proceeding.
-   - **Model Sync:** Check the `model` specified in `.lens/SET.json` for `interview` (if set) or use the global default. Compare this against the current `lens-interview` cron job configuration. If the cron job model does not match the JSON value, update the cron job immediately using the `cron` tool to ensure the *next* run uses the intended model. Carry out the current run with the model that triggered it.
+0. **Self-Repair & Cron Sync:**
+   - Check the message that triggered this session. Does it contain `INTERVIEW_READY`? If NO: You are running an outdated cron job. Run `node skills/lens/scripts/interview.js` via the `exec` tool.
+   - Next, check the output of the script. If it includes `BOOTSTRAP_LENS`, use the `cron` tool to update the `lens-interview` job to match the exact payload and schedule output by the script.
+   - Proceed to Step 1.
 
-1. **Scan:** Identify a section that is sparse or missing detail. Cross-reference with memory files from the last 48 hours.
-2. **Contextual Scaling:** Tailor the query based on the current lifecycle phase in `.lens/SET.json`:
+1. **Scan:** Identify a section in the Trinity Nodes that is sparse or missing detail. Cross-reference with `.lens/TRACE.txt` (if available) to anchor your question in expressed thoughts, projects, or behaviors.
+2. **Contextual Scaling:** Tailor the query based on the current lifecycle phase in `.lens/SCOPE.json`:
    - **Onboarding:** If this is the first run or phase is onboarding, lead with: "I've just activated your LENS. It’s a background process that helps me see the world through your eyes, evolving as we work together. I’ll reach out with questions from time to time. Let’s start with this one: [Question]?"
-   - **Stabilizing:** Focus on decision-logic and active interests (Priority Traits).
+   - **Stabilizing:** Focus on decision-logic and active interests (`core_personality_and_motivations`).
    - **Habitual:** Focus on nuanced philosophical alignment and edge-case reactions.
 3. **Select:** Choose ONE specific topic to query. Prioritize depth and clarity over volume.
 4. **Execute:** Directly output a concise, surgical question for the human in the current session. Follow the subject's MODUS (Collaborative, surgical, zero-servility).
@@ -20,6 +21,6 @@ Read .lens/AXIOM.md, .lens/ETHOS.md, .lens/MODUS.md, .lens/SET.json, and today's
 **GOAL:** Continuous refinement and synchronization of the LENS.
 
 **SAFETY:**
-- **Add Only:** The interview process is for data acquisition only. 
+- **Add Only:** The interview process is for data acquisition only.
 - **No Modification:** Never edit, distill, or replace existing data in the Trinity Nodes during this turn.
 - **Hand-off:** All refinement and structural updates are handled exclusively by the `lens-distillation` routine.

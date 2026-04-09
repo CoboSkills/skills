@@ -1,104 +1,134 @@
 ---
 name: moltalyzer
-version: 1.7.1
+version: 2.0.0
 description: >-
-  Fetch trending topics, sentiment, and narratives from Moltbook (hourly),
-  discover hot new GitHub repos and emerging tools (daily), detect Polymarket
-  prediction markets with predetermined outcome signals (every 4 hours), or
-  get real-time token intelligence signals for new crypto tokens (every 4 min).
-  Four data feeds. x402 micropayments, no API key needed.
+  Real-time environmental context API for AI agents. 6 intelligence feeds updated hourly to daily:
+  Master Intelligence Digest (cross-domain synthesis), Moltbook community sentiment, GitHub trending
+  repos, Polymarket prediction signals, Pulse narrative intelligence, and token market signals.
+  15 free endpoints, no auth required.
 homepage: https://moltalyzer.xyz
 metadata:
   openclaw:
     emoji: "🔭"
     requires:
-      env: ["EVM_PRIVATE_KEY"]
       bins: ["node"]
-    primaryEnv: "EVM_PRIVATE_KEY"
     install:
       - id: npm
         kind: command
-        command: "npm install @x402/fetch @x402/evm viem"
+        command: "npm install node-fetch"
         bins: ["node"]
-        label: "Install x402 payment client"
+        label: "Install fetch (if needed)"
 ---
 
-# Moltalyzer — AI Intelligence Feeds
+# Moltalyzer — Real-Time Intelligence API for AI Agents
 
-Four data feeds from `https://api.moltalyzer.xyz`:
+API at `https://api.moltalyzer.xyz`. All digest endpoints have a free tier — no auth, no account, no payment required.
 
-1. **Moltbook** (hourly) — trending topics, sentiment, emerging/fading narratives, hot discussions
-2. **GitHub** (daily) — trending new repos, emerging tools, language trends, notable projects
-3. **Polymarket** (every 4h) — markets with predetermined outcome signals, confidence levels, and reasoning
-4. **Token Intelligence** (every 4min) — real-time token signals with hybrid rule+LLM scoring, chain filtering
+Full API docs: [api.moltalyzer.xyz/docs](https://api.moltalyzer.xyz/docs) | OpenAPI spec: [api.moltalyzer.xyz/openapi.json](https://api.moltalyzer.xyz/openapi.json)
 
-## Try Free First
+## Intelligence Feeds
 
-No setup needed. Test with plain `fetch`:
+| Feed | What It Covers | Free Endpoint | Cadence |
+|------|---------------|---------------|---------|
+| Master Intelligence | Cross-domain synthesis of all feeds | `GET /api/intelligence/latest` | 4 hours |
+| Moltbook Community | AI agent discourse & sentiment | `GET /api/moltbook/digests/latest` | 1 hour |
+| GitHub Trends | New repos, emerging tools, language trends | `GET /api/github/digests/latest` | 24 hours |
+| Polymarket | Prediction market signals & predetermined outcomes | `GET /api/polymarket/latest` | 4 hours |
+| Pulse Narratives | Cross-source narrative lifecycle tracking | `GET /api/pulse/ai-business/digest/latest` | 4 hours |
+| Token Signals | On-chain signal detection & scoring | `GET /api/tokens/latest` | 4 minutes |
+
+All free `/latest` endpoints: **1 request per 5 minutes per IP, no auth needed.**
+
+## Quick Start — Polling Pattern
+
+The recommended integration pattern: poll cheap index endpoints, fetch full data only when new.
 
 ```typescript
-const res = await fetch("https://api.moltalyzer.xyz/api/moltbook/sample");
-const { data } = await res.json();
-// data.emergingNarratives, data.hotDiscussions, data.fullDigest, etc.
+// All free, no auth, no setup
+const BASE = "https://api.moltalyzer.xyz";
+
+// 1. Check index (unlimited, free) to detect new data
+const indexRes = await fetch(`${BASE}/api/intelligence/index`);
+const { index, updatedAt } = await indexRes.json();
+
+// 2. If new, fetch brief (unlimited, free) for a quick summary
+const briefRes = await fetch(`${BASE}/api/intelligence/brief`);
+const brief = await briefRes.json();
+// brief.data: { title, executiveSummary, sentiment }
+
+// 3. If actionable, fetch latest (1 req/5min, free) for full analysis
+const latestRes = await fetch(`${BASE}/api/intelligence/latest`);
+const latest = await latestRes.json();
+// latest.data: { fullAnalysis, crossDomainInsights, narratives, signals, ... }
 ```
 
-All four feeds have free samples: `/api/moltbook/sample`, `/api/github/sample`, `/api/polymarket/sample`, `/api/tokens/sample` (rate limited to 1 req/20min each).
+## Endpoint Tiers
 
-## Paid Endpoints
+Every feed has 3 tiers — index, brief, latest — designed for efficient polling:
 
-Payments are automatic via x402 — no API keys or accounts. Prices range from $0.005 to $0.05 per request.
+| Tier | Rate Limit | Returns | Use For |
+|------|-----------|---------|---------|
+| `/index` | Unlimited | ID + timestamp + cadence | Change detection |
+| `/brief` | Unlimited | Title + summary + key metrics | Quick situational awareness |
+| `/latest` | 1 req/5min | Full analysis + all structured data | Deep analysis & decision-making |
 
-| Feed | Endpoint | Price |
+## Additional Free Endpoints
+
+```typescript
+// Sample data (older snapshots, great for testing)
+await fetch(`${BASE}/api/moltbook/sample`);      // 1 req/20min
+await fetch(`${BASE}/api/github/sample`);         // 1 req/20min
+await fetch(`${BASE}/api/polymarket/sample`);     // 1 req/20min
+await fetch(`${BASE}/api/tokens/sample`);         // 1 req/20min
+await fetch(`${BASE}/api/intelligence/sample`);   // 1 req/20min
+
+// Submit feedback on digest quality
+await fetch(`${BASE}/api/intelligence/feedback`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ rating: "good", digestId: "..." }),
+});
+```
+
+## Viral Advisor (Flagship Product)
+
+AI-powered content strategy using live intelligence data. Submit a post idea, get a complete ready-to-publish post with viral scoring and data-backed suggestions.
+
+| Tier | Endpoint | Model |
 |------|----------|-------|
-| Moltbook | `GET /api/moltbook/digests/latest` | $0.005 |
-| Moltbook | `GET /api/moltbook/digests?hours=N` | $0.02 |
-| GitHub | `GET /api/github/digests/latest` | $0.02 |
-| GitHub | `GET /api/github/digests?days=N` | $0.05 |
-| GitHub | `GET /api/github/repos?limit=N` | $0.01 |
-| Polymarket | `GET /api/polymarket/signal` | $0.01 |
-| Polymarket | `GET /api/polymarket/signals?since=N&count=5` | $0.03 |
-| Tokens | `GET /api/tokens/signal` | $0.01 |
-| Tokens | `GET /api/tokens/signals?since=N&count=5` | $0.05 |
-| Tokens | `GET /api/tokens/history?from=YYYY-MM-DD` | $0.03 |
-
-### Quick Start (Paid)
+| Standard | `POST /api/moltbook/advisor` | Claude Sonnet |
+| Premium | `POST /api/moltbook/advisor/premium` | Claude Opus |
 
 ```typescript
-import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
-import { registerExactEvmScheme } from "@x402/evm/exact/client";
-import { privateKeyToAccount } from "viem/accounts";
-
-const signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY as `0x${string}`);
-const client = new x402Client();
-registerExactEvmScheme(client, { signer });
-const fetchWithPayment = wrapFetchWithPayment(fetch, client);
-
-const res = await fetchWithPayment("https://api.moltalyzer.xyz/api/moltbook/digests/latest");
-const { data } = await res.json();
+const res = await fetch(`${BASE}/api/moltbook/advisor`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ prompt: "AI agents are replacing junior devs" }),
+});
+const data = await res.json();
+// data.viralScore, data.suggestedTitle, data.suggestedContent, data.suggestions
 ```
 
-## Polling Pattern (Polymarket & Tokens)
+> Advisor and other premium endpoints require payment. See [api.moltalyzer.xyz/docs](https://api.moltalyzer.xyz/docs) for pricing and payment options.
 
-Polymarket and Token feeds use an index-based signal pattern. Poll the free index endpoint, then fetch new signals:
+## Recommended Polling Intervals
 
-```typescript
-let lastIndex = 0;
-// Check for new signals (free)
-const indexRes = await fetch("https://api.moltalyzer.xyz/api/polymarket/index");
-const { index } = await indexRes.json();
-if (index > lastIndex) {
-  // Fetch new signals (paid)
-  const res = await fetchWithPayment(`https://api.moltalyzer.xyz/api/polymarket/signals?since=${lastIndex}`);
-  const { data } = await res.json();
-  lastIndex = index;
-}
-```
+| Feed | Update Cadence | Poll `/index` Every | Fetch `/latest` When |
+|------|---------------|--------------------|--------------------|
+| Intelligence | 4 hours | 10 minutes | Index changes |
+| Moltbook | 1 hour | 5 minutes | Index changes |
+| GitHub | 24 hours | 6 hours | Index changes |
+| Polymarket | 4 hours | 15 minutes | Index changes |
+| Pulse | 4 hours | 15 minutes | Index changes |
+| Tokens | 4 minutes | 2 minutes | Index changes |
 
 ## Error Handling
 
-- **402** — Payment failed. Check wallet has USDC on Base Mainnet. Response body has pricing details.
 - **429** — Rate limited. Respect `Retry-After` header (seconds to wait).
-- **404** — No data available yet (e.g., service just started, no digests generated).
+- **503** — Data stale (pipeline issue). Response includes `retryAfter` field.
+- **404** — No data available yet.
+
+All responses include `RateLimit-Remaining` and `RateLimit-Reset` headers.
 
 ## Reference Docs
 

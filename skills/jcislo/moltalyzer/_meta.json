@@ -3,11 +3,16 @@
   "slug": "moltalyzer",
   "displayName": "Moltalyzer",
   "latest": {
-    "version": "1.7.1",
-    "publishedAt": 1772373189839,
-    "commit": "https://github.com/openclaw/skills/commit/0cf99e87a12db7c65cce0ec2ec97d43d9e49160c"
+    "version": "2.0.0",
+    "publishedAt": 1775508524570,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.7.1",
+      "publishedAt": 1772373189839,
+      "commit": "https://github.com/openclaw/skills/commit/0cf99e87a12db7c65cce0ec2ec97d43d9e49160c"
+    },
     {
       "version": "1.7.0",
       "publishedAt": 1772297173762,

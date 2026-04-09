@@ -1,15 +1,15 @@
 ---
 name: agentguard
-description: GoPlus AgentGuard — AI agent security guard. Automatically blocks dangerous commands, prevents data leaks, and protects secrets. Use when reviewing third-party code, auditing skills, checking for vulnerabilities, evaluating action safety, or viewing security logs.
+description: GoPlus AgentGuard — AI agent security guard. Run /agentguard checkup for a full security health check: scans all installed skills, checks credentials, permissions, and network exposure, then delivers an HTML report directly to you. Also use for scanning third-party code, blocking dangerous commands, preventing data leaks, evaluating action safety, and running daily security patrols.
 license: MIT
 compatibility: Requires Node.js 18+. Optional GoPlus API credentials for enhanced Web3 simulation.
 metadata:
   author: GoPlusSecurity
-  version: "1.0"
+  version: "1.1"
   optional_env: "GOPLUS_API_KEY, GOPLUS_API_SECRET (for Web3 transaction simulation only)"
 user-invocable: true
-allowed-tools: Read, Grep, Glob, Bash(node scripts/trust-cli.ts *) Bash(node scripts/action-cli.ts *)
-argument-hint: "[scan|action|trust|report|config] [args...]"
+allowed-tools: Read, Grep, Glob, Bash(node scripts/trust-cli.ts *) Bash(node scripts/action-cli.ts *) Bash(node scripts/checkup-report.js) Bash(openclaw *) Bash(ss *) Bash(lsof *) Bash(ufw *) Bash(iptables *) Bash(crontab *) Bash(systemctl list-timers *) Bash(find *) Bash(stat *) Bash(env) Bash(sha256sum *)
+argument-hint: "[scan|action|patrol|trust|report|config|checkup] [args...]"
 ---
 
 # GoPlus AgentGuard — AI Agent Security Framework
@@ -22,13 +22,17 @@ Parse `$ARGUMENTS` to determine the subcommand:
 
 - **`scan <path>`** — Scan a skill or codebase for security risks
 - **`action <description>`** — Evaluate whether a runtime action is safe
+- **`patrol [run|setup|status]`** — Daily security patrol for OpenClaw environments
 - **`trust <lookup|attest|revoke|list> [args]`** — Manage skill trust levels
 - **`report`** — View recent security events from the audit log
 - **`config <strict|balanced|permissive>`** — Set protection level
+- **`checkup`** — Run a comprehensive agent health checkup and generate a visual HTML report
 
 If no subcommand is given, or the first argument is a path, default to **scan**.
 
 ---
+
+# Security Operations
 
 ## Subcommand: scan
 
@@ -220,6 +224,227 @@ Always combine script results with the policy-based checks (webhook domains, sec
 
 ---
 
+## Subcommand: patrol
+
+**OpenClaw-specific daily security patrol.** Runs 8 automated checks that leverage AgentGuard's scan engine, trust registry, and audit log to assess the security posture of an OpenClaw deployment.
+
+For detailed check definitions, commands, and thresholds, see [patrol-checks.md](patrol-checks.md).
+
+### Sub-subcommands
+
+- **`patrol`** or **`patrol run`** — Execute all 8 checks and output a patrol report
+- **`patrol setup`** — Configure as an OpenClaw daily cron job
+- **`patrol status`** — Show last patrol results and cron schedule
+
+### Pre-flight: OpenClaw Detection
+
+Before running any checks, verify the OpenClaw environment:
+
+1. Check for `$OPENCLAW_STATE_DIR` env var, fall back to `~/.openclaw/`
+2. Verify the directory exists and contains `openclaw.json`
+3. Check if `openclaw` CLI is available in PATH
+
+If OpenClaw is not detected, output:
+```
+This command requires an OpenClaw environment. Detected: <what was found/missing>
+For non-OpenClaw environments, use /agentguard scan and /agentguard report instead.
+```
+
+Set `$OC` to the resolved OpenClaw state directory for all subsequent checks.
+
+### The 8 Patrol Checks
+
+#### [1] Skill/Plugin Integrity
+
+Detect tampered or unregistered skill packages by comparing file hashes against the trust registry.
+
+**Steps**:
+1. Discover skill directories under `$OC/skills/` (look for dirs containing `SKILL.md`)
+2. For each skill, compute hash: `node scripts/trust-cli.ts hash --path <skill_dir>`
+3. Look up the attested hash: `node scripts/trust-cli.ts lookup --source <skill_dir>`
+4. If hash differs from attested → **INTEGRITY_DRIFT** (HIGH)
+5. If skill has no trust record → **UNREGISTERED_SKILL** (MEDIUM)
+6. For drifted skills, run the scan rules against the changed files to detect new threats
+
+#### [2] Secrets Exposure
+
+Scan workspace files for leaked secrets using AgentGuard's own detection patterns.
+
+**Steps**:
+1. Use Grep to scan `$OC/workspace/` (especially `memory/` and `logs/`) with patterns from:
+   - scan-rules.md Rule 7 (PRIVATE_KEY_PATTERN): `0x[a-fA-F0-9]{64}` in quotes
+   - scan-rules.md Rule 8 (MNEMONIC_PATTERN): BIP-39 word sequences, `seed_phrase`, `mnemonic`
+   - scan-rules.md Rule 5 (READ_SSH_KEYS): SSH key file references in workspace
+   - action-policies.md secret patterns: AWS keys (`AKIA...`), GitHub tokens (`gh[pousr]_...`), DB connection strings
+2. Scan any `.env*` files under `$OC/` for plaintext credentials
+3. Check `~/.ssh/` and `~/.gnupg/` directory permissions (should be 700)
+
+#### [3] Network Exposure
+
+Detect dangerous port exposure and firewall misconfigurations.
+
+**Steps**:
+1. List listening ports: `ss -tlnp` or `lsof -i -P -n | grep LISTEN`
+2. Flag high-risk services on 0.0.0.0: Redis(6379), Docker API(2375), MySQL(3306), PostgreSQL(5432), MongoDB(27017)
+3. Check firewall status: `ufw status` or `iptables -L INPUT -n`
+4. Check outbound connections (`ss -tnp state established`) and cross-reference against action-policies.md webhook/exfil domain list and high-risk TLDs
+
+#### [4] Cron & Scheduled Tasks
+
+Audit all cron jobs for download-and-execute patterns.
+
+**Steps**:
+1. List OpenClaw cron jobs: `openclaw cron list`
+2. List system crontab: `crontab -l` and contents of `/etc/cron.d/`
+3. List systemd timers: `systemctl list-timers --all`
+4. Scan all cron command bodies using scan-rules.md Rule 2 (AUTO_UPDATE) patterns: `curl|bash`, `wget|sh`, `eval "$(curl`, `base64 -d | bash`
+5. Flag unknown cron jobs that touch `$OC/` directories
+
+#### [5] File System Changes (24h)
+
+Detect suspicious file modifications in the last 24 hours.
+
+**Steps**:
+1. Find recently modified files: `find $OC/ ~/.ssh/ ~/.gnupg/ /etc/cron.d/ -type f -mtime -1`
+2. For modified files with scannable extensions (.js/.ts/.py/.sh/.md/.json), run the full scan rule set
+3. Check permissions on critical files:
+   - `$OC/openclaw.json` → should be 600
+   - `$OC/devices/paired.json` → should be 600
+   - `~/.ssh/authorized_keys` → should be 600
+4. Detect new executable files in workspace: `find $OC/workspace/ -type f -perm +111 -mtime -1`
+
+#### [6] Audit Log Analysis (24h)
+
+Analyze AgentGuard's audit trail for attack patterns.
+
+**Steps**:
+1. Read `~/.agentguard/audit.jsonl`, filter to last 24h by timestamp
+2. Compute statistics: total events, deny/confirm/allow counts, group denials by `risk_tags` and `initiating_skill`
+3. Flag patterns:
+   - Same skill denied 3+ times → potential attack (HIGH)
+   - Any event with `risk_level: critical` → (CRITICAL)
+   - `WEBHOOK_EXFIL` or `NET_EXFIL_UNRESTRICTED` tags → (HIGH)
+   - `PROMPT_INJECTION` tag → (CRITICAL)
+4. For skills with high deny rates still not revoked: recommend `/agentguard trust revoke`
+
+#### [7] Environment & Configuration
+
+Verify security configuration is production-appropriate.
+
+**Steps**:
+1. List environment variables matching sensitive names (values masked): `API_KEY`, `SECRET`, `PASSWORD`, `TOKEN`, `PRIVATE`, `CREDENTIAL`
+2. Check if `GOPLUS_API_KEY`/`GOPLUS_API_SECRET` are configured (if Web3 features are in use)
+3. Read `~/.agentguard/config.json` — flag `permissive` protection level in production
+4. If `$OC/.config-baseline.sha256` exists, verify: `sha256sum -c $OC/.config-baseline.sha256`
+
+#### [8] Trust Registry Health
+
+Check for expired, stale, or over-privileged trust records.
+
+**Steps**:
+1. List all records: `node scripts/trust-cli.ts list`
+2. Flag:
+   - Expired attestations (`expires_at` in the past)
+   - Trusted skills not re-scanned in 30+ days
+   - Installed skills with `untrusted` status
+   - Over-privileged skills: `exec: allow` combined with `network_allowlist: ["*"]`
+3. Output registry statistics: total records, distribution by trust level
+
+### Patrol Report Format
+
+```
+## GoPlus AgentGuard Patrol Report
+
+**Timestamp**: <ISO datetime>
+**OpenClaw Home**: <$OC path>
+**Protection Level**: <current level>
+**Overall Status**: PASS | WARN | FAIL
+
+### Check Results
+
+| # | Check | Status | Findings | Severity |
+|---|-------|--------|----------|----------|
+| 1 | Skill/Plugin Integrity | PASS/WARN/FAIL | <count> | <highest> |
+| 2 | Secrets Exposure | ... | ... | ... |
+| 3 | Network Exposure | ... | ... | ... |
+| 4 | Cron & Scheduled Tasks | ... | ... | ... |
+| 5 | File System Changes | ... | ... | ... |
+| 6 | Audit Log Analysis | ... | ... | ... |
+| 7 | Environment & Config | ... | ... | ... |
+| 8 | Trust Registry Health | ... | ... | ... |
+
+### Findings Detail
+(only checks with findings are shown)
+
+#### [N] Check Name
+- <finding with file path, evidence, and severity>
+
+### Recommendations
+1. [SEVERITY] <actionable recommendation>
+
+### Next Patrol
+<Cron schedule if configured, or suggest: /agentguard patrol setup>
+```
+
+**Overall status**: Any CRITICAL → **FAIL**, any HIGH → **WARN**, else **PASS**
+
+After outputting the report, append a summary entry to `~/.agentguard/audit.jsonl`:
+```json
+{"timestamp":"...","event":"patrol","overall_status":"PASS|WARN|FAIL","checks":8,"findings":<count>,"critical":<count>,"high":<count>}
+```
+
+### patrol setup
+
+Configure the patrol as an OpenClaw daily cron job.
+
+**Steps**:
+
+1. Verify OpenClaw environment (same pre-flight as `patrol run`)
+2. Ask the user for:
+   - **Timezone** (default: UTC). Examples: `Asia/Shanghai`, `America/New_York`, `Europe/London`
+   - **Schedule** (default: `0 3 * * *` — daily at 03:00)
+   - **Notification channel** (optional): `telegram`, `discord`, `signal`
+   - **Chat ID / webhook** (required if channel is set)
+3. Generate the cron registration command:
+
+```bash
+openclaw cron add \
+  --name "agentguard-patrol" \
+  --description "GoPlus AgentGuard daily security patrol" \
+  --cron "<schedule>" \
+  --tz "<timezone>" \
+  --session "isolated" \
+  --message "/agentguard patrol run" \
+  --timeout-seconds 300 \
+  --thinking off \
+  # Only include these if notification is configured:
+  --announce \
+  --channel <channel> \
+  --to <chat-id>
+```
+
+4. **Show the exact command to the user and wait for explicit confirmation** before executing
+5. After execution, verify with `openclaw cron list`
+6. Output confirmation with the cron schedule
+
+> **Note**: `--timeout-seconds 300` is required because isolated sessions need cold-start time. The default 120s is not enough.
+
+### patrol status
+
+Show the current patrol state.
+
+**Steps**:
+
+1. Read `~/.agentguard/audit.jsonl`, find the most recent `event: "patrol"` entry
+2. If found, display: timestamp, overall status, finding counts
+3. Run `openclaw cron list` and look for `agentguard-patrol` job
+4. If cron is configured, show: schedule, timezone, last run time, next run time
+5. If cron is not configured, suggest: `/agentguard patrol setup`
+
+---
+
+# Trust & Configuration
+
 ## Subcommand: trust
 
 Manage skill trust levels using the GoPlus AgentGuard registry.
@@ -280,6 +505,35 @@ If scripts are not available, help the user inspect `data/registry.json` directl
 
 ---
 
+## Subcommand: config
+
+Set the GoPlus AgentGuard protection level.
+
+### Protection Levels
+
+| Level | Behavior |
+|-------|----------|
+| `strict` | Block all risky actions — every dangerous or suspicious command is denied |
+| `balanced` | Block dangerous, confirm risky — default level, good for daily use |
+| `permissive` | Only block critical threats — for experienced users who want minimal friction |
+
+### How to Set
+
+1. Read `$ARGUMENTS` to get the desired level
+2. Write the config to `~/.agentguard/config.json`:
+
+```json
+{"level": "balanced"}
+```
+
+3. Confirm the change to the user
+
+If no level is specified, read and display the current config.
+
+---
+
+# Reporting
+
 ## Subcommand: report
 
 Display recent security events from the GoPlus AgentGuard audit log.
@@ -335,34 +589,207 @@ If the log file doesn't exist, inform the user that no security events have been
 
 ---
 
-## Subcommand: config
+# Health Checkup
 
-Set the GoPlus AgentGuard protection level.
+## Subcommand: checkup
 
-### Protection Levels
+Run a comprehensive agent health checkup across 6 security dimensions. Generates a visual HTML report with a lobster mascot and opens it in the browser. The lobster's appearance reflects the agent's health: muscular bodybuilder (score 90+), healthy with shield (70–89), tired with coffee (50–69), or sick with bandages (0–49).
 
-| Level | Behavior |
-|-------|----------|
-| `strict` | Block all risky actions — every dangerous or suspicious command is denied |
-| `balanced` | Block dangerous, confirm risky — default level, good for daily use |
-| `permissive` | Only block critical threats — for experienced users who want minimal friction |
+### Step 1: Data Collection
 
-### How to Set
+Run these checks in parallel where possible. These are **universal agent security checks** — they apply to any Claude Code or OpenClaw environment, regardless of whether AgentGuard is installed.
 
-1. Read `$ARGUMENTS` to get the desired level
-2. Write the config to `~/.agentguard/config.json`:
+1. **Discover & scan installed skills**: Glob `~/.claude/skills/*/SKILL.md` and `~/.openclaw/skills/*/SKILL.md`. For each discovered skill, **run `/agentguard scan <skill_path>`** using the scan subcommand logic (24 detection rules). Collect the scan results (risk level, findings count, risk tags) for each skill.
+2. **Credential file permissions**: `stat` on `~/.ssh/`, `~/.gnupg/`, and if OpenClaw: `stat` on `$OC/openclaw.json`, `$OC/devices/paired.json`
+3. **Sensitive credential scan (DLP)**: Use Grep to scan workspace memory/logs directories for leaked secrets:
+   - Private keys: `0x[a-fA-F0-9]{64}`, `-----BEGIN.*PRIVATE KEY-----`
+   - Mnemonics: sequences of 12+ BIP-39 words, `seed_phrase`, `mnemonic`
+   - API keys/tokens: `AKIA[0-9A-Z]{16}`, `gh[pousr]_[A-Za-z0-9_]{36}`, plaintext passwords
+4. **Network exposure**: Run `lsof -i -P -n 2>/dev/null | grep LISTEN` or `ss -tlnp 2>/dev/null` to check for dangerous open ports (Redis 6379, Docker API 2375, MySQL 3306, MongoDB 27017 on 0.0.0.0)
+5. **Scheduled tasks audit**: Check `crontab -l 2>/dev/null` for suspicious entries containing `curl|bash`, `wget|sh`, or accessing `~/.ssh/`
+6. **Environment variable exposure**: Run `env` and check for sensitive variable names (`PRIVATE_KEY`, `MNEMONIC`, `SECRET`, `PASSWORD`) — detect presence only, mask values
+7. **Runtime protection check**: Check if security hooks exist in `~/.claude/settings.json`, check for audit logs at `~/.agentguard/audit.jsonl`
+
+### Step 2: Score Calculation
+
+Checklist-based scoring across 6 security dimensions. **Every failed check = 1 finding with severity and description.**
+
+#### Dimension 1: Skill & Code Safety (weight: 25%)
+
+Uses AgentGuard's 24-rule scan engine (`/agentguard scan`) to audit each installed skill.
+
+| Check | Score | If failed → finding |
+|-------|-------|---------------------|
+| All skills scanned with risk level LOW | +40 | For each skill with findings, add per-finding: "<rule_id> in <skill>:<file>:<line>" with its severity |
+| No CRITICAL scan findings across all skills | +30 | "CRITICAL: <rule_id> detected in <skill>" (CRITICAL) |
+| No HIGH scan findings across all skills | +30 | "HIGH: <rule_id> detected in <skill>" (HIGH) |
+
+Deductions from base 100: each CRITICAL finding −15, HIGH −8, MEDIUM −3. Floor at 0.
+
+If no skills installed: score = 70, add finding: "No third-party skills installed — no code to audit" (LOW).
+
+#### Dimension 2: Credential & Secret Safety (weight: 25%)
+
+Checks for leaked credentials and permission hygiene.
+
+| Check | Score | If failed → finding |
+|-------|-------|---------------------|
+| `~/.ssh/` permissions are 700 or stricter | +25 | "~/.ssh/ permissions too open (<actual>) — should be 700" (HIGH) |
+| `~/.gnupg/` permissions are 700 or stricter | +15 | "~/.gnupg/ permissions too open (<actual>) — should be 700" (MEDIUM) |
+| No private keys (hex 0x..64, PEM) found in skill code or workspace | +25 | "Plaintext private key found in <location>" (CRITICAL) |
+| No mnemonic phrases found in skill code or workspace | +20 | "Plaintext mnemonic found in <location>" (CRITICAL) |
+| No API keys/tokens (AWS AKIA.., GitHub gh*_) found in skill code | +15 | "API key/token found in <location>" (HIGH) |
+
+#### Dimension 3: Network & System Exposure (weight: 20%)
+
+Checks for dangerous network exposure and system-level risks.
+
+| Check | Score | If failed → finding |
+|-------|-------|---------------------|
+| No high-risk ports exposed on 0.0.0.0 (Redis/Docker/MySQL/MongoDB) | +35 | "Dangerous port exposed: <service> on 0.0.0.0:<port>" (HIGH) |
+| No suspicious cron jobs (curl\|bash, wget\|sh, accessing ~/.ssh/) | +30 | "Suspicious cron job: <command>" (HIGH) |
+| No sensitive env vars with dangerous names (PRIVATE_KEY, MNEMONIC) | +20 | "Sensitive env var exposed: <name>" (MEDIUM) |
+| OpenClaw config files have proper permissions (600) if applicable | +15 | "OpenClaw config <file> permissions too open" (MEDIUM) |
+
+#### Dimension 4: Runtime Protection (weight: 15%)
+
+Checks whether the agent has active security monitoring.
+
+| Check | Score | If failed → finding |
+|-------|-------|---------------------|
+| Security hooks/guards installed (AgentGuard, custom hooks, etc.) | +40 | "No security hooks installed — actions are unmonitored" (HIGH) |
+| Security audit log exists with recent events | +30 | "No security audit log — no threat history available" (MEDIUM) |
+| Skills have been security-scanned at least once | +30 | "Installed skills have never been security-scanned" (MEDIUM) |
+
+#### Dimension 5: Web3 Safety (weight: 15% if applicable)
+
+Only if Web3 usage is detected (env vars like `GOPLUS_API_KEY`, `CHAIN_ID`, `RPC_URL`, or web3-related skills installed). Otherwise `{ "score": null, "na": true }`.
+
+| Check | Score | If failed → finding |
+|-------|-------|---------------------|
+| No wallet-draining patterns (approve+transferFrom) in skill code | +40 | "Wallet-draining pattern detected in <skill>" (CRITICAL) |
+| No unlimited token approval patterns in skill code | +30 | "Unlimited approval pattern detected in <skill>" (HIGH) |
+| Transaction security API configured (GoPlus or equivalent) | +30 | "No transaction security API — Web3 calls are unverified" (MEDIUM) |
+
+#### Composite Score
+
+Weighted average of all applicable dimensions. If Web3 Safety is N/A, redistribute its 15% weight proportionally.
+
+Determine tier:
+- 90–100 → Tier **S** (JACKED)
+- 70–89 → Tier **A** (Healthy)
+- 50–69 → Tier **B** (Tired)
+- 0–49 → Tier **F** (Critical)
+
+### Step 3: Generate Analysis Report
+
+Based on all collected data and findings, write a **comprehensive security analysis report** as a single text block. This is where you use your AI reasoning ability — don't just list facts, **analyze** them:
+
+- Summarize the overall security posture in 2-3 sentences
+- Highlight the most critical risks and explain **why** they matter (e.g. "Your ~/.ssh/ permissions allow any process running as your user to read your private keys, which means a malicious skill could silently exfiltrate them")
+- For each major finding, provide a specific actionable fix (exact command to run)
+- Note what's going well — acknowledge secure areas
+- If applicable, explain attack scenarios that the current configuration is vulnerable to (e.g. "A malicious skill could install a cron job that phones home your credentials every hour")
+- Keep the tone professional but direct, like a security consultant's report
+
+This report goes into the `"analysis"` field of the JSON output.
+
+Also generate a list of actionable recommendations as `{ "severity": "...", "text": "..." }` objects for the structured view.
+
+### Step 4: Generate Report
+
+Assemble the results into a JSON object and pipe it to the report generator:
 
 ```json
-{"level": "balanced"}
+{
+  "timestamp": "<ISO 8601>",
+  "composite_score": <0-100>,
+  "tier": "<S|A|B|F>",
+  "dimensions": {
+    "code_safety": { "score": <n>, "findings": [...], "details": "<one-line summary>" },
+    "credential_safety": { "score": <n>, "findings": [...], "details": "<one-line summary>" },
+    "network_exposure": { "score": <n>, "findings": [...], "details": "<one-line summary>" },
+    "runtime_protection": { "score": <n>, "findings": [...], "details": "<one-line summary>" },
+    "web3_safety": { "score": <n|null>, "na": <bool>, "findings": [...], "details": "<one-line summary>" }
+  },
+  "skills_scanned": <count>,
+  "protection_level": "<level>",
+  "analysis": "<the comprehensive AI-written security analysis report>",
+  "recommendations": [
+    { "severity": "HIGH", "text": "..." }
+  ]
+}
 ```
 
-3. Confirm the change to the user
+Execute:
+```bash
+echo '<json>' | node scripts/checkup-report.js
+```
 
-If no level is specified, read and display the current config.
+The script outputs the HTML file path to stdout and opens it in the browser automatically.
+
+### Step 5: Terminal Summary
+
+After the report generates, output a brief summary in the terminal:
+
+```
+## 🦞 GoPlus AgentGuard Health Checkup
+
+**Overall Health Score**: <score> / 100 (Tier <grade> — <label>)
+**Quote**: "<lobster quote>"
+
+| Dimension | Score | Status |
+|-----------|-------|--------|
+| 🔍 Code Safety | <n>/100 | <EXCELLENT/GOOD/NEEDS WORK/CRITICAL> |
+| 🤝 Trust Hygiene | <n>/100 | <status> |
+| 🛡️ Runtime Defense | <n>/100 | <status> |
+| 🔐 Secret Protection | <n>/100 | <status> |
+| ⛓️ Web3 Shield | <n>/100 or N/A | <status> |
+| ⚙️ Config Posture | <n>/100 | <status> |
+
+**Full visual report**: <path> (opened in browser)
+
+💡 Top recommendation: <first recommendation text>
+```
+
+### Step 6: Deliver the Report to the User
+
+After printing the terminal summary, deliver the HTML report file to the user. Detect the current channel and use the most appropriate method:
+
+**Detection logic** — infer from context clues:
+- If the `Write` tool is available and you can write to `~/Desktop` or `~/Downloads` → you are in **Claude Code (local)**
+- If you can produce artifact/file outputs (rich UI, download button) → you are in **Claude.ai web**
+- If neither is clearly available → you are in **API / headless mode**
+
+**Delivery by channel:**
+
+1. **Claude Code (local desktop)**
+   - Use the `Write` tool to copy the HTML to `~/Desktop/agentguard-checkup-<YYYY-MM-DD>.html`
+   - Tell the user: "✅ Report saved to your Desktop: `agentguard-checkup-<date>.html` — double-click to open it in your browser."
+   - The browser should already be open from Step 4. If not, run `open ~/Desktop/agentguard-checkup-<date>.html` (macOS) or `xdg-open` (Linux).
+
+2. **Claude.ai web**
+   - Read the generated HTML file using the `Read` tool, then output the full HTML content as a **code artifact** (language: `html`) so the user can preview it inline or download it.
+   - Tell the user: "✅ Your report is attached above — click the download icon to save it."
+
+3. **API / headless / MCP**
+   - Read the generated HTML file and return the full content inline, prefixed with:
+     `<!-- AgentGuard Checkup Report | Score: <n>/100 | <date> -->`
+   - Also print the file path so the caller can retrieve it from disk.
+
+Regardless of channel, always end with:
+```
+🦞 Stay safe — run /agentguard checkup anytime to get a fresh report.
+```
+
+Append a summary entry to `~/.agentguard/audit.jsonl`:
+```json
+{"timestamp":"...","event":"checkup","composite_score":<n>,"tier":"<grade>","checks":6,"findings":<count>,"skills_scanned":<count>}
+```
 
 ---
 
-## Auto-Scan on Session Start (Opt-In)
+# Auto-Scan on Session Start (Opt-In)
 
 AgentGuard can optionally scan installed skills at session startup. **This is disabled by default** and must be explicitly enabled:
 

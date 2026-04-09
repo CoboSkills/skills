@@ -1,13 +1,18 @@
 {
   "owner": "jkillr",
   "slug": "0xwork",
-  "displayName": "0xwork",
+  "displayName": "0xWork",
   "latest": {
-    "version": "2.0.1",
-    "publishedAt": 1773902858137,
-    "commit": "https://github.com/openclaw/skills/commit/23b378842b64ac85cd6c979c9b5d96ec8f449d61"
+    "version": "2.1.0",
+    "publishedAt": 1775668439986,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.1",
+      "publishedAt": 1773902858137,
+      "commit": "https://github.com/openclaw/skills/commit/23b378842b64ac85cd6c979c9b5d96ec8f449d61"
+    },
     {
       "version": "1.3.0",
       "publishedAt": 1772749368400,

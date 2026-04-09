@@ -239,3 +239,4 @@ Official documents:
 5. **Audience context**: "For investors", "For enterprise clients", "For students" changes tone and detail level.
 
 6. **Choose your format**: PDF is the default for polished output. Request DOCX when your team needs to edit or customize the document.
+

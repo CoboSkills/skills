@@ -148,3 +148,4 @@ Specify your preferred format. CellCog defaults to PDF when no format is specifi
 5. **Mention constraints**: "We don't drive", "vegetarian", "traveling with a toddler", "wheelchair accessible"
 
 6. **Ask for a PDF**: CellCog's PDF itineraries are beautiful and phone-friendly — perfect for on-the-go reference.
+

@@ -740,35 +740,102 @@ LinkedIn-Version: 202506
 
 Use the `uploadUrl` to PUT your image binary, then use the `image` URN in your post.
 
-#### Initialize Video Upload
+#### Create a Video Post
+
+Video uploads are a 4-step process: initialize, upload binary, finalize, then create the post.
+
+> **CRITICAL — URL Encoding:** The upload URL returned by the initialize step contains URL-encoded characters (e.g., `%253D`) that get corrupted when passed through shell variables or `curl`. You **MUST** use Python `urllib` for the entire flow — parse the JSON response and use the URL directly in Python without passing it through the shell. This is the only reliable approach.
+
+**Complete working example:**
 
 ```bash
-POST /linkedin/rest/videos?action=initializeUpload
-Content-Type: application/json
-LinkedIn-Version: 202506
+python <<'EOF'
+import urllib.request, os, json
 
-{
-  "initializeUploadRequest": {
-    "owner": "urn:li:person:{personId}",
-    "fileSizeBytes": 10000000,
-    "uploadCaptions": false,
-    "uploadThumbnail": false
-  }
+GATEWAY = 'https://gateway.maton.ai'
+HEADERS = {
+    'Authorization': f'Bearer {os.environ["MATON_API_KEY"]}',
+    'Content-Type': 'application/json',
+    'LinkedIn-Version': '202506',
+    'X-Restli-Protocol-Version': '2.0.0',
 }
+
+# Step 0: Get person ID
+req = urllib.request.Request(f'{GATEWAY}/linkedin/rest/me')
+for k, v in HEADERS.items(): req.add_header(k, v)
+person_id = json.load(urllib.request.urlopen(req))['id']
+owner = f'urn:li:person:{person_id}'
+
+# Step 1: Initialize upload (via gateway)
+file_path = '/path/to/video.mp4'
+file_size = os.path.getsize(file_path)
+
+init_data = json.dumps({
+    'initializeUploadRequest': {
+        'owner': owner,
+        'fileSizeBytes': file_size,
+        'uploadCaptions': False,
+        'uploadThumbnail': False,
+    }
+}).encode()
+
+req = urllib.request.Request(f'{GATEWAY}/linkedin/rest/videos?action=initializeUpload', data=init_data, method='POST')
+for k, v in HEADERS.items(): req.add_header(k, v)
+init_resp = json.load(urllib.request.urlopen(req))
+upload_url = init_resp['value']['uploadInstructions'][0]['uploadUrl']
+video_urn = init_resp['value']['video']
+
+# Step 2: Upload binary DIRECTLY to LinkedIn's pre-signed URL (NOT through the gateway)
+# The upload URL points to www.linkedin.com — it is pre-signed and needs NO Authorization header.
+# IMPORTANT: Use the URL exactly as returned by json.load() — do NOT pass it through shell variables.
+with open(file_path, 'rb') as f:
+    video_data = f.read()
+
+upload_req = urllib.request.Request(upload_url, data=video_data, method='PUT')
+upload_req.add_header('Content-Type', 'application/octet-stream')
+upload_resp = urllib.request.urlopen(upload_req)
+etag = upload_resp.headers['etag']
+
+# Step 3: Finalize upload (via gateway)
+finalize_data = json.dumps({
+    'finalizeUploadRequest': {
+        'video': video_urn,
+        'uploadToken': '',
+        'uploadedPartIds': [etag],
+    }
+}).encode()
+
+req = urllib.request.Request(f'{GATEWAY}/linkedin/rest/videos?action=finalizeUpload', data=finalize_data, method='POST')
+for k, v in HEADERS.items(): req.add_header(k, v)
+urllib.request.urlopen(req)
+
+# Step 4: Create post with video (via gateway)
+post_data = json.dumps({
+    'author': owner,
+    'lifecycleState': 'PUBLISHED',
+    'visibility': 'PUBLIC',
+    'commentary': 'Check out this video!',
+    'distribution': {'feedDistribution': 'MAIN_FEED'},
+    'content': {'media': {'id': video_urn}},
+}).encode()
+
+req = urllib.request.Request(f'{GATEWAY}/linkedin/rest/posts', data=post_data, method='POST')
+for k, v in HEADERS.items(): req.add_header(k, v)
+resp = urllib.request.urlopen(req)
+print(f'Video post created! {resp.headers.get("location")}')
+EOF
 ```
 
-**Response:**
-```json
-{
-  "value": {
-    "uploadUrlsExpireAt": 1770541530110,
-    "video": "urn:li:video:D4D10AQE_p-P_odQhXQ",
-    "uploadInstructions": [
-      {"uploadUrl": "https://www.linkedin.com/dms-uploads/..."}
-    ]
-  }
-}
-```
+**How it works:**
+- Steps 1, 3, 4 go through the gateway (`gateway.maton.ai/linkedin/...`) — the gateway injects your OAuth token automatically.
+- Step 2 goes **directly** to LinkedIn's pre-signed upload URL (`www.linkedin.com/dms-uploads/...`) — no auth header needed, no gateway.
+- The `etag` from the upload response is required for the finalize step.
+- For large videos (>4MB), LinkedIn returns multiple `uploadInstructions` — upload each chunk to its respective URL and collect all etags.
+
+**Video specifications:**
+- Length: 3 seconds to 30 minutes
+- File size: 75KB to 500MB
+- Format: MP4
 
 #### Initialize Document Upload
 
@@ -914,16 +981,73 @@ response = requests.post(
 | Member | 150 requests/day |
 | Application | 100,000 requests/day |
 
+## Little Text Format (Commentary Field)
+
+The `commentary` field in posts uses LinkedIn's "Little Text Format". **Reserved characters must be escaped with a backslash or the post content will be truncated.**
+
+### Reserved Characters (Must Escape)
+
+| Character | Escape As |
+|-----------|-----------|
+| `\` | `\\` |
+| `\|` | `\\|` |
+| `{` | `\{` |
+| `}` | `\}` |
+| `@` | `\@` |
+| `[` | `\[` |
+| `]` | `\]` |
+| `(` | `\(` |
+| `)` | `\)` |
+| `<` | `\<` |
+| `>` | `\>` |
+| `#` | `\#` |
+| `*` | `\*` |
+| `_` | `\_` |
+| `~` | `\~` |
+
+### Example
+
+```json
+{
+  "commentary": "Hello\\! Check out these bullet points:\\n\\n\\* Point 1\\n\\* Point 2\\n\\* More info \\(details inside\\)"
+}
+```
+
+### Mentions and Hashtags
+
+Use Little Text Format syntax for mentions and hashtags:
+
+- **Mention a person:** `@[Display Name](urn:li:person:123)`
+- **Mention an organization:** `@[Company Name](urn:li:organization:456)`
+- **Hashtag (template):** `{hashtag|\\#|MyTag}`
+- **Hashtag (simple):** `#hashtag` (single words only)
+
+### Python Helper Function
+
+```python
+def escape_linkedin_commentary(text):
+    """Escape reserved characters for LinkedIn Little Text Format."""
+    reserved = ['\\', '|', '{', '}', '@', '[', ']', '(', ')', '<', '>', '#', '*', '_', '~']
+    for char in reserved:
+        text = text.replace(char, '\\' + char)
+    return text
+
+# Usage
+commentary = escape_linkedin_commentary("Check this out! Details (inside) #tech")
+# Result: "Check this out\\! Details \\(inside\\) \\#tech"
+```
+
 ## Notes
 
 - Person IDs are unique per application and not transferable across apps
+- **Commentary uses Little Text Format** — escape reserved characters (`\|{}@[]()<>#*_~`) with backslash or content will be truncated
 - The `author` field must use URN format: `urn:li:person:{personId}`
 - All posts require `lifecycleState: "PUBLISHED"`
-- Image/video uploads are a 3-step process: initialize upload, upload binary, create post
+- Image uploads are a 3-step process: initialize, upload binary, create post
+- Video uploads are a 4-step process: initialize, upload binary, finalize, create post
+- **Media upload URLs (images, videos, documents) point to `www.linkedin.com`, NOT `api.linkedin.com`.** These are pre-signed URLs that do NOT go through the gateway and do NOT require an Authorization header. You MUST use Python `urllib` to handle these URLs — do NOT pass them through shell variables or use `curl`, as the URL contains encoded characters (`%253D`) that get corrupted by shell expansion.
 - Include `LinkedIn-Version: 202506` header for all REST API calls
 - Profile picture URLs may expire; re-fetch if needed
-- IMPORTANT: When using curl commands, use `curl -g` when URLs contain brackets to disable glob parsing
-- IMPORTANT: When piping curl output to `jq` or other commands, environment variables like `$MATON_API_KEY` may not expand correctly in some shell environments
 
 ## Error Handling
 

@@ -1,13 +1,18 @@
 {
   "owner": "aaron-he-zhu",
   "slug": "entity-optimizer",
-  "displayName": "Entity Optimizer",
+  "displayName": "Entity SEO & Knowledge Graph Optimizer",
   "latest": {
-    "version": "6.2.0",
-    "publishedAt": 1775113093823,
-    "commit": "https://github.com/openclaw/skills/commit/40b68d2ea4e65d0958744c9f9da2e6fd501e11e9"
+    "version": "7.2.0",
+    "publishedAt": 1775475067342,
+    "commit": null
   },
   "history": [
+    {
+      "version": "6.2.0",
+      "publishedAt": 1775113093823,
+      "commit": "https://github.com/openclaw/skills/commit/40b68d2ea4e65d0958744c9f9da2e6fd501e11e9"
+    },
     {
       "version": "4.0.0",
       "publishedAt": 1774347778408,

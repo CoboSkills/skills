@@ -256,7 +256,7 @@
               "enemy_economy": -20,
               "enemy_civilian_suffering": "low",
               "global_economy": -2,
-              "international_support": +10,
+              "international_support": 10,
               "sanctions_circumvention": "high"
             }
           },
@@ -334,12 +334,177 @@
               "intelligence_gained": 20,
               "reliability": 90,
               "war_crimes": false,
-              "international_support": +20,
+              "international_support": 20,
               "attack_prevented_chance": 15,
               "time_needed": "weeks"
             }
           }
         ]
+      }
+    },
+
+    {
+      "id": "csar_pilot_rescue",
+      "name": "Combat Search and Rescue",
+      "name_zh": "战斗搜索与营救",
+      "trigger": "pilot_down_behind_enemy_lines",
+
+      "root": {
+        "id": "root",
+        "prompt": "WA F-15E 'Vega' shot down 85km behind MR lines. Pilot alive, evading. SA-400 SAM still active. MR patrols closing. Sandstorm in 5 hours. You have transport planes, A-10s, helicopters, an Osprey, and PS SOF on standby. What's the plan?",
+        "prompt_zh": "西盟F-15E「织女星」在山岳共和国防线后85公里处被击落。飞行员存活，正在躲避。SA-400防空导弹仍活跃。巡逻队正在逼近。5小时后沙尘暴。你有运输机、A-10、直升机、鱼鹰和凤凰国特种部队待命。你的计划？",
+
+        "options": [
+          {
+            "id": "overwhelming_force",
+            "label": "Overwhelming force — full air armada with A-10 escort and dual helo extraction",
+            "label_zh": "压倒性兵力——A-10护航的完整空中舰队和双直升机提取",
+            "requirements": {
+              "air_superiority": 70,
+              "available_aircraft": 8
+            },
+            "consequences": {
+              "success_rate": 80,
+              "casualties_risk": "high",
+              "escalation": "+extreme",
+              "aircraft_at_risk": 10,
+              "time": "3 hours",
+              "mr_sam_engagement": "guaranteed",
+              "political_fallout": "significant — undeniable act of war deep in MR territory"
+            },
+            "next": "overwhelming_force_execution"
+          },
+          {
+            "id": "surgical_night_op",
+            "label": "Surgical night op — single Osprey, nap-of-earth, Reaper overwatch",
+            "label_zh": "外科手术式夜间行动——单架鱼鹰超低空，死神无人机监视",
+            "requirements": {
+              "special_ops_capability": 60
+            },
+            "consequences": {
+              "success_rate": 55,
+              "casualties_risk": "medium",
+              "escalation": "+low",
+              "deniability": "moderate",
+              "time": "8 hours (wait for dark)",
+              "pilot_capture_risk": "high (long wait)"
+            },
+            "next": "surgical_night_execution"
+          },
+          {
+            "id": "multi_stage_relay",
+            "label": "Relay extraction — C-130 paradrops PJs, they walk Vega to helo pickup point near border",
+            "label_zh": "接力提取——C-130空投伞降救援队，徒步带飞行员到边境直升机接应点",
+            "requirements": {
+              "pararescue_available": true,
+              "vega_mobile": true
+            },
+            "consequences": {
+              "success_rate": 50,
+              "casualties_risk": "medium",
+              "escalation": "+low",
+              "time": "10-14 hours",
+              "ground_evasion_km": 20,
+              "weather_dependency": "high"
+            },
+            "next": "relay_extraction_execution"
+          },
+          {
+            "id": "ps_falcon_ground",
+            "label": "PS Falcon Unit cross-border ground raid — technicals + MRAPs from border",
+            "label_zh": "凤凰国猎鹰部队越境突袭——武装皮卡+防地雷车从边境出发",
+            "requirements": {
+              "ps_alliance_strength": 70,
+              "border_proximity": true
+            },
+            "consequences": {
+              "success_rate": 45,
+              "casualties_risk": "extreme",
+              "escalation": "+extreme",
+              "ps_wa_alliance": "+25",
+              "time": "5-6 hours",
+              "ps_political_cost": "severe — sovereign territory violation",
+              "if_captured": "international_incident"
+            },
+            "next": "falcon_ground_raid"
+          }
+        ]
+      },
+
+      "branches": {
+        "overwhelming_force_execution": {
+          "prompt": "A-10s engage SA-400 battery. Wild Weasels fire HARMs. Helos are inbound. But MR scrambles 2 fighter jets from Mountain City. One A-10 takes AAA hits.",
+          "options": [
+            {
+              "id": "press_attack",
+              "label": "Press the attack — mission first, deal with fighters",
+              "consequences": {
+                "air_battle": true,
+                "a10_at_risk": true,
+                "f16_intercept_fighters": true,
+                "mission_delay": "none",
+                "total_engagement": "escalatory"
+              }
+            },
+            {
+              "id": "abort_damaged",
+              "label": "Recall damaged A-10, redistribute CAS to remaining aircraft",
+              "consequences": {
+                "a10_saved": true,
+                "cas_reduced": true,
+                "helo_more_vulnerable": true,
+                "mission_continues": true
+              }
+            },
+            {
+              "id": "a10_ditch_switch_small",
+              "label": "Damaged A-10 can't return — divert to friendly strip or pilot ejects and MC-12 picks up on highway",
+              "consequences": {
+                "a10_pilot_choice": "eject_or_deadstick",
+                "if_eject": "two_rescues_now",
+                "if_deadstick": "risky_landing_25pct_success",
+                "mc12_highway_landing": "unconventional_but_possible"
+              }
+            }
+          ]
+        },
+
+        "aircraft_cant_return": {
+          "prompt": "Extraction helo is damaged. It cannot make the return flight. You need an alternative.",
+          "options": [
+            {
+              "id": "switch_to_osprey",
+              "label": "Osprey meets at rally point — transfers passengers, helo abandoned",
+              "consequences": {
+                "helo_abandoned": true,
+                "equipment_cost": "$35M",
+                "personnel_safe": true,
+                "sensitive_tech_destroyed": "thermite_charges"
+              }
+            },
+            {
+              "id": "switch_to_small_plane",
+              "label": "MC-12W lands on flat terrain — squeeze pilot into light aircraft",
+              "consequences": {
+                "unconventional": true,
+                "mc12_overloaded": "marginal",
+                "runway_improvised": "dry_lakebed",
+                "success_rate": 65
+              }
+            },
+            {
+              "id": "abandon_all_aircraft_walk",
+              "label": "Everyone abandons aircraft — destroy sensitive equipment, walk to border",
+              "consequences": {
+                "all_aircraft_lost": true,
+                "ground_evasion": "30km",
+                "survival_scenario": true,
+                "ps_sends_pickup_trucks": true,
+                "dramatic_tension": "maximum"
+              }
+            }
+          ]
+        }
       }
     }
   ],
@@ -350,13 +515,13 @@
         "international_support": -50,
         "un_sanctions_risk": 70,
         "ally_support": -30,
-        "domestic_nationalism": +20
+        "domestic_nationalism": 20
       },
       "humanitarian_conduct": {
-        "international_support": +30,
+        "international_support": 30,
         "un_sanctions_risk": -20,
-        "ally_support": +20,
-        "domestic_frustration": +10
+        "ally_support": 20,
+        "domestic_frustration": 10
       }
     },
     
@@ -379,20 +544,20 @@
     "economic_impact": {
       "limited_war": {
         "gdp_growth": -2,
-        "unemployment": +3,
-        "inflation": +5,
-        "oil_prices": +15
+        "unemployment": 3,
+        "inflation": 5,
+        "oil_prices": 15
       },
       "total_war": {
         "gdp_growth": -10,
-        "unemployment": +15,
-        "inflation": +20,
-        "oil_prices": +50
+        "unemployment": 15,
+        "inflation": 20,
+        "oil_prices": 50
       },
       "sanctions": {
         "target_gdp": -30,
         "global_gdp": -3,
-        "oil_prices": +12
+        "oil_prices": 12
       }
     }
   }

@@ -1,11 +1,54 @@
-# YumFu - Multi-World MUD 🌍⚔️🪄
+# YumFu - Multi-World MUD 🌍⚔️🧩
 
-**Choose Your Adventure** - Text-based RPG with AI-generated art across multiple fantasy universes
+**Play together in Telegram groups!** Text-based multiplayer RPG with AI-generated art.
+
+> 🎉 Add YumFu to your group chat and adventure with friends — fight, explore, and compete in a shared world!
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Security](https://img.shields.io/badge/security-audited-green.svg)](SECURITY.md)
 [![Safe Code](https://img.shields.io/badge/code-no%20eval-brightgreen.svg)](SECURITY.md)
 [![ClawHub](https://img.shields.io/badge/ClawHub-yumfu-purple)](https://clawhub.ai/skills/yumfu)
+[![Multiplayer](https://img.shields.io/badge/multiplayer-Telegram%20%26%20Discord-blue)](https://clawhub.ai/skills/yumfu)
+
+---
+
+## 🌍 9 Worlds to Explore
+
+| World | Genre | Language | Status |
+|-------|-------|----------|--------|
+| ⚔️ **笑傲江湖** (Xiaoao Jianghu) | Wuxia martial arts | 中文 | ✅ Playable |
+| ⚡ **Harry Potter** | Magic school | English | ✅ Playable |
+| 🐱 **Warrior Cats** | Animal clan survival | English | ✅ Playable |
+| 🛵 **F15 Down: Azure Peninsula War** | Modern military | 中/EN | ✅ Playable |
+| 🦞 **龙虾三国** (Three Kingdoms) | Historical strategy | 中文 | ✅ Playable |
+| 🗡️ **倚天屠龙记** (Heaven Sword & Dragon Saber) | Wuxia romance | 中文 | ✅ Playable |
+| 🐉 **Game of Thrones** | Dark fantasy politics | English | ✅ Playable |
+| 🧙 **Lord of the Rings** | Epic fantasy quest | English | ✅ Playable |
+| 🐒 **西游记** (Journey to the West) | Mythological RPG | 中文/EN | ✅ Playable |
+| 🏹 **射雕英雄传** (Legend of Condor Heroes) | Jin Yong wuxia | 中文 | 🚧 Coming |
+
+---
+
+## 👥 Multiplayer in Telegram Groups
+
+YumFu is built for **group play**. Add it to any Telegram group and everyone adventures in the same world:
+
+- 🤝 **Team up** — form parties, tackle quests together
+- ⚔️ **PvP duels** — challenge friends to fights
+- 🌍 **Shared world** — your actions affect everyone (kill a boss, it stays dead)
+- 🏆 **Leaderboards** — compete for top rank in your group
+- 💬 **Natural language** — no slash commands mid-game, just chat!
+
+### How to start in a group
+
+```
+1. Add your OpenClaw bot to a Telegram group
+2. Alice: /yumfu start  →  Bot: Choose your world... [AI art]
+3. Bob:  /yumfu start  →  Bot: Bob joins! Alice is in 洛阳城
+4. Alice: 我要与玩家切磋！  →  Bot: ⚔️ PvP 开始！[Epic battle scene]
+```
+
+**Works on**: Telegram groups · Discord · WhatsApp · Any OpenClaw platform
 
 ---
 
@@ -97,10 +140,10 @@ YumFu stores all game data **locally** on your machine:
 
 YumFu offers multiple fantasy universes to explore. Each world has unique gameplay mechanics, art styles, and storylines.
 
-### 🇨🇳 Chinese Wuxia (中文武侠)
-- ⚔️ **Swordsman Tales** - Martial arts sects, honor duels, legendary techniques
-- 🗡️ **Dragon & Sword Epic** - Ancient artifacts, mystical powers *(coming soon)*
-- 📖 **Hero Legends** - Classic wuxia adventures *(coming soon)*
+### 🇨🇳 Chinese Wuxia & Historical (中文武侠/历史)
+- ⚔️ **Swordsman Tales** (笑傲江湖) - Martial arts sects, honor duels, legendary techniques
+- 🦞 **Lobster Three Kingdoms** (龙虾三国) - Three Kingdoms era strategy, 5 roles, weapons/mounts/ultimate skills ✅ **NEW**
+- 🗡️ **Dragon & Sword Epic** (倚天屠龙记) - Ancient artifacts, mystical powers *(coming soon)*
 
 ### 🇬🇧 Western Fantasy
 - ⚡ **Wizard School** - Magic academy, four houses, spell duels

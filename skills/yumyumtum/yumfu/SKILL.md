@@ -1,6 +1,6 @@
 ---
 name: yumfu
-description: "Multi-World text adventure MUD game (Wuxia, Harry Potter, Warrior Cats, LOTR). Use when: user types /yumfu, /江湖, or asks to play a text adventure, MUD game, role-playing game, interactive story, wuxia game, 武侠游戏, 角色扮演, Harry Potter RP, warrior cats adventure. ALWAYS use this skill for ongoing game sessions (笑傲江湖, Harry Potter, Warrior Cats). NOT for: stock analysis, news, weather, real-world tasks."
+description: "Multiplayer text RPG with 8 playable worlds — play together in Telegram groups! Worlds: 笑傲江湖, Harry Potter, Warrior Cats, F15 Down, 龙虾三国, 倚天屠龙记, Game of Thrones, Lord of the Rings. Each player gets their own character in a shared world with AI art every scene. PvP, team quests, natural language — no commands needed. Use when: /yumfu, group RPG, text adventure, 武侠, 권力의게임, LOTR, 指环王, 权力的游戏, 三国, 张无忌."
 homepage: https://github.com/yumyumtum/yumfu
 metadata:
   {
@@ -8,7 +8,7 @@ metadata:
       {
         "emoji": "🌍",
         "requires": { "bins": ["uv"] },
-        "triggers": ["/yumfu", "/江湖", "笑傲江湖", "华山派", "武当", "Harry Potter", "Hogwarts", "warrior cats", "ThunderClan"]
+        "triggers": ["/yumfu", "/江湖", "笑傲江湖", "华山派", "武当", "Harry Potter", "Hogwarts", "warrior cats", "ThunderClan", "倚天屠龙记", "张无忌", "赵敏", "九阳神功", "明教", "龙虾三国", "三国", "Game of Thrones", "Westeros", "Iron Throne", "Stark", "Lannister", "Targaryen", "权力的游戏", "Lord of the Rings", "LOTR", "Fellowship", "Frodo", "Aragorn", "Gandalf", "指环王", "魔戒"]
       }
   }
 ---
@@ -29,7 +29,7 @@ Just talk naturally after starting — no commands needed. Say what you want to 
 | ⚡ Harry Potter | Magic school | ✅ Ready |
 | 🐱 Warrior Cats | Animal clan | ✅ Ready |
 | 🛵 F15 Down | Modern military | ✅ NEW |
-| 🗡️ LOTR | Epic fantasy | 🚧 Soon |
+| 🧙 Lord of the Rings | Epic fantasy | ✅ Playable |
 | 🐉 Game of Thrones | Political | 🚧 Soon |
 | ⚔️ 倚天屠龙记 | Jin Yong wuxia | 🚧 Soon |
 
@@ -195,11 +195,14 @@ Trigger one of: Encounter / Crisis / Discovery / Opportunity / Echo (delayed con
 - ⚡ **Harry Potter** - Hogwarts, magic, wizarding duels
 - 🐱 **Warrior Cats** - Clan life, forest territories, warrior code
 - 🛵 **F15 Down: Azure Peninsula War** - Modern military strategy, 14 frontline roles, C&C aesthetic
+- 🦞 **龙虾三国** - Three Kingdoms era, 5 roles, weapons/mounts/ultimate skills
+- 🗡️ **倚天屠龙记** - The Heaven Sword & Dragon Saber, 4 romance routes, 6 endings
+- 🐉 **Game of Thrones** - Seven Kingdoms, 7 houses, play as Jon/Dany/Tyrion/Arya/Cersei
 
 ### 🚧 **Coming Soon (Roadmap):**
-- 🗡️ **Lord of the Rings** - Middle-earth, Fellowship
-- 🐉 **Game of Thrones** - Westeros, power struggles
-- 📚 **More Jin Yong Novels** - 倚天屠龙记, 射雕英雄传, 天龙八部
+- 🧙 **Lord of the Rings** - Middle-earth, 5 races, Ring corruption system, play as Frodo/Aragorn/Gandalf
+- 🐒 **西游记** - Journey to the West: 9 factions, play as gods/demons/pilgrims
+- 🏹 **射雕英雄传** - Legend of the Condor Heroes *(coming soon)*
 
 ---
 

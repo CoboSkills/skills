@@ -90,6 +90,14 @@
 - International waters dispute
 - EC calls for ceasefire, DK stays neutral
 
+**Day 35 - "Fallen Eagle" (CSAR)**
+- MR SA-400 shoots down WA F-15E near Highland Fortress
+- Pilot "Vega" ejects 85km behind enemy lines
+- Full Combat Search and Rescue operation launched
+- Assets: A-10 Warthogs, HH-60W Jolly Green, AH-64 Apache, CV-22 Osprey, C-130J, MQ-9 Reaper
+- Complications: active SAM, sandstorm, MR search parties, damaged aircraft
+- Key dilemma: if aircraft can't return — switch to smaller planes, emergency highway landings, or abandon and walk to border
+
 ---
 
 ## Gameplay Mechanics
@@ -183,6 +191,7 @@ Risk of full-scale war, diplomatic endgame or total conflict
 3. **"Silent Hunter"** - Submarine infiltration to plant surveillance
 4. **"Fire and Shadow"** - Night raid on MR weapons cache
 5. **"Last Light"** - Evacuate civilians before airstrike
+6. **"Fallen Eagle"** - CSAR: Full air armada rescues downed F-15 pilot deep behind enemy lines
 
 ---
 

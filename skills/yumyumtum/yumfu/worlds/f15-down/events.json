@@ -76,7 +76,7 @@
       "consequences": {
         "ps_economy": -15,
         "ge_threat_level": "+medium",
-        "mr_domestic_approval": +20,
+        "mr_domestic_approval": 20,
         "oil_prices": "+12%"
       },
       
@@ -361,6 +361,289 @@
           ]
         }
       ]
+    },
+
+    {
+      "id": "fallen_eagle",
+      "day": 35,
+      "time": "1630",
+      "name": "Fallen Eagle",
+      "name_zh": "坠鹰行动",
+      "type": "csar_rescue",
+      "trigger": "f15_shot_down_over_hostile_territory",
+
+      "location": "highland_wastes",
+      "perpetrator": "mountain_republic",
+      "target": "western_alliance",
+
+      "description": "MR advanced SAM battery (SA-400 'Stone Shield') shoots down a WA F-15E Strike Eagle during a routine patrol near Highland Fortress. Pilot 'Vega' ejects successfully 85km behind enemy lines in the Highland Wastes — rugged mountain terrain with MR patrols and militia checkpoints. WA must launch a full-scale Combat Search and Rescue (CSAR) operation before MR captures the pilot.",
+
+      "description_zh": "山岳共和国先进防空导弹（SA-400「石盾」）在高地要塞附近击落一架西盟F-15E攻击鹰。飞行员「织女星」在敌后85公里的高地荒原成功弹射——那里是崎岖山区，遍布山岳共和国巡逻队和民兵检查站。西盟必须在飞行员被俘前发动全面战斗搜救(CSAR)行动。",
+
+      "pilot_profile": {
+        "callsign": "Vega",
+        "name": "Captain Eliana Torres",
+        "name_zh": "伊莲娜·托雷斯上尉",
+        "status": "ejected_alive",
+        "injuries": "dislocated_shoulder_minor_cuts",
+        "equipment": ["survival_radio", "sidearm", "flare_kit", "72hr_survival_pack", "evasion_chart"],
+        "location": "grid_ref_HW-4472",
+        "terrain": "rocky_canyon_with_sparse_scrub",
+        "enemy_proximity": "mr_patrol_20min_away"
+      },
+
+      "timeline": {
+        "t_plus_0": "F-15E hit by SA-400. Vega ejects at 25000ft",
+        "t_plus_5min": "Wingman confirms chute. Relays coordinates to AWACS",
+        "t_plus_15min": "MR mobilizes search teams — 3 ground patrols + 2 technicals",
+        "t_plus_30min": "WA CSAR package begins assembling at Sunspear Air Base",
+        "t_plus_2hr": "CSAR force launches. MR tightens cordon",
+        "t_plus_4hr": "Window closing — MR moving reinforcements from Mountain City",
+        "t_plus_6hr": "Daylight fading. If not extracted, night operation required",
+        "t_plus_12hr": "MR deploys thermal drones. Capture probability 90%"
+      },
+
+      "csar_package": {
+        "primary_extraction": {
+          "aircraft": ["2x HH-60W Jolly Green II (rescue helos)", "2x AH-64 Apache (escort)"],
+          "range": "280km round trip",
+          "capacity": "pilot + pararescue team",
+          "vulnerability": "SAM threat, RPGs at low altitude"
+        },
+        "air_support": {
+          "suppression": ["4x A-10C Warthog (SEAD/CAS)", "2x F-16CJ Wild Weasel (SAM suppression)"],
+          "overwatch": ["1x E-3 AWACS (command & control)", "2x MQ-9 Reaper (ISR)"],
+          "tanker": "1x KC-135 (aerial refueling)"
+        },
+        "backup_transport": {
+          "heavy": "2x C-130J (paradrop pararescue if helos can't reach)",
+          "light": "1x MC-12W Liberty (light ISR, can land on short strips)",
+          "contingency": "1x CV-22 Osprey (long-range, can switch to airplane mode)"
+        },
+        "ground_option": {
+          "forces": "PS Falcon Unit SOF team (if within 30km of border)",
+          "vehicles": "4x armed technicals + 2x MRAP",
+          "risk": "extreme — deep behind enemy lines"
+        }
+      },
+
+      "complications": [
+        "SA-400 battery still active — helos must fly nap-of-earth",
+        "MR jamming survival radio intermittently",
+        "Weather deteriorating — sandstorm ETA 5 hours",
+        "Vega moving to avoid patrol, losing GPS fix",
+        "Local village sympathetic to MR blocking road access",
+        "MR propaganda: 'Crusader pilot captured!' (false, but demoralizing)"
+      ],
+
+      "casualties": {
+        "initial": {
+          "wa_aircraft_lost": "1x F-15E ($90M)",
+          "pilot_status": "alive_evading"
+        }
+      },
+
+      "global_reaction": {
+        "western_alliance": "emergency CSAR authorized — 'leave no one behind'",
+        "phoenix_state": "offers Falcon Unit SOF for ground extraction",
+        "mountain_republic": "deploys search parties, offers $2M bounty for pilot",
+        "eastern_coalition": "privately offers to mediate pilot's return",
+        "media": "24/7 live coverage — 'WA pilot trapped behind enemy lines'"
+      },
+
+      "consequences": {
+        "wa_domestic_pressure": "+extreme (bring pilot home)",
+        "escalation_risk": "+40%",
+        "mr_propaganda_value": "+high if captured",
+        "wa_ps_alliance": "+15 if PS helps",
+        "oil_prices": "+5%"
+      },
+
+      "decisions": [
+        {
+          "id": "csar_approach",
+          "faction": "western_alliance",
+          "prompt": "Your pilot is down 85km behind enemy lines. SA-400 still active. MR patrols closing in. Sandstorm in 5 hours. How do you extract Vega?",
+          "prompt_zh": "你的飞行员在敌后85公里处坠落。SA-400仍在活动。山岳共和国巡逻队正在逼近。5小时后有沙尘暴。如何营救织女星？",
+          "options": [
+            {
+              "id": "full_csar_package",
+              "label": "Full CSAR — A-10s suppress SAMs, helos extract under Apache escort",
+              "label_zh": "全面CSAR——A-10压制防空，直升机在阿帕奇护航下提取",
+              "consequences": {
+                "success_rate": 75,
+                "time": "3-4 hours",
+                "risk_to_csar_force": "high",
+                "escalation": "+high",
+                "aircraft_at_risk": 8,
+                "enemy_engagement": "guaranteed",
+                "pilot_rescue_likely": true
+              }
+            },
+            {
+              "id": "stealth_insertion",
+              "label": "Night stealth — wait for dark, Osprey low-level insertion with Reaper overwatch",
+              "label_zh": "夜间隐蔽——等天黑，鱼鹰低空渗透配死神无人机监视",
+              "consequences": {
+                "success_rate": 60,
+                "time": "6-8 hours (wait for nightfall)",
+                "risk_to_csar_force": "medium",
+                "escalation": "+medium",
+                "pilot_capture_risk": 40,
+                "sandstorm_may_help_cover": true
+              }
+            },
+            {
+              "id": "paradrop_pj",
+              "label": "C-130 paradrop — insert pararescue team, they walk Vega to extraction point",
+              "label_zh": "C-130空降——投入伞降救援队，徒步带飞行员到提取点",
+              "consequences": {
+                "success_rate": 55,
+                "time": "8-12 hours",
+                "risk_to_csar_force": "medium",
+                "escalation": "+low",
+                "requires_vega_mobile": true,
+                "ground_evasion_distance": "15km"
+              }
+            },
+            {
+              "id": "diplomatic_channel",
+              "label": "Accept EC mediation — negotiate pilot's return through diplomacy",
+              "label_zh": "接受东方联盟调停——通过外交谈判归还飞行员",
+              "consequences": {
+                "success_rate": 40,
+                "time": "48-72 hours",
+                "risk_to_csar_force": 0,
+                "escalation": "-medium",
+                "domestic_outrage": "+extreme",
+                "mr_propaganda_victory": true,
+                "ec_gains_leverage": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "csar_complication_sam",
+          "faction": "western_alliance",
+          "trigger": "chosen_full_csar_or_stealth",
+          "prompt": "A-10 Warthog 'Hawg-2' is hit by AAA fire during SAM suppression run. Pilot alive, aircraft losing hydraulics. Can't make it back to base. Options?",
+          "prompt_zh": "A-10疣猪「野猪-2号」在压制防空火力时被高炮击中。飞行员存活，液压系统失效。无法返回基地。选项？",
+          "options": [
+            {
+              "id": "divert_to_forward_strip",
+              "label": "Divert to abandoned PS forward airstrip (30km, risky landing)",
+              "label_zh": "转降废弃的凤凰国前线机场（30公里，高风险着陆）",
+              "consequences": {
+                "a10_saved": 60,
+                "pilot_safe": 85,
+                "csar_mission_continues": true,
+                "strip_may_be_mined": 20
+              }
+            },
+            {
+              "id": "switch_to_light_aircraft",
+              "label": "MC-12W lands on highway to pick up A-10 pilot, A-10 ditched",
+              "label_zh": "MC-12W在公路降落接A-10飞行员，A-10弃机",
+              "consequences": {
+                "a10_lost": true,
+                "a10_cost": "$19M",
+                "pilot_safe": 90,
+                "mc12_risk": "moderate (highway landing)",
+                "csar_loses_one_cas_asset": true
+              }
+            },
+            {
+              "id": "eject_and_rescue",
+              "label": "A-10 pilot ejects — now two pilots to rescue",
+              "label_zh": "A-10飞行员弹射——现在要救两个飞行员",
+              "consequences": {
+                "a10_lost": true,
+                "pilots_to_rescue": 2,
+                "csar_complexity": "+extreme",
+                "helo_must_split": true,
+                "time_pressure": "+critical"
+              }
+            },
+            {
+              "id": "abandon_aircraft_glide",
+              "label": "A-10 attempts dead-stick glide across border (50km, no hydraulics)",
+              "label_zh": "A-10尝试无动力滑翔过境（50公里，无液压）",
+              "consequences": {
+                "success_rate": 25,
+                "if_success": "pilot_and_aircraft_saved",
+                "if_fail": "crash_in_no_mans_land",
+                "heroic_if_succeeds": true,
+                "csar_mission_unaffected": true
+              }
+            }
+          ]
+        },
+        {
+          "id": "csar_extraction_final",
+          "faction": "western_alliance",
+          "trigger": "helo_reaches_vega",
+          "prompt": "Jolly Green reaches Vega's position but takes RPG fire from nearby ridgeline. Helo damaged, can still fly but slowly. MR reinforcement convoy 20 minutes out. Sandstorm wall visible on horizon.",
+          "prompt_zh": "绿巨人直升机到达织女星位置，但遭到附近山脊的RPG火力。直升机受损，仍能飞行但速度慢。山岳共和国增援车队20分钟到达。沙尘暴墙在地平线上可见。",
+          "options": [
+            {
+              "id": "grab_and_go",
+              "label": "Grab Vega NOW — limp home in damaged helo, race the storm",
+              "label_zh": "立刻接上织女星——受损直升机艰难返航，和沙尘暴赛跑",
+              "consequences": {
+                "vega_rescued": true,
+                "helo_crash_risk": 30,
+                "storm_risk": "moderate",
+                "if_survives": "mission_success_heroic",
+                "if_crashes": "multiple_casualties_in_storm"
+              }
+            },
+            {
+              "id": "transfer_to_osprey",
+              "label": "Call Osprey for transfer — Osprey faster, can outrun storm in airplane mode",
+              "label_zh": "呼叫鱼鹰转运——鱼鹰更快，可以飞机模式跑赢沙尘暴",
+              "consequences": {
+                "wait_time": "15 minutes",
+                "mr_convoy_arrives_during_transfer": 70,
+                "osprey_speed": "fast",
+                "storm_survivable": true,
+                "firefight_likely": true
+              }
+            },
+            {
+              "id": "use_storm_as_cover",
+              "label": "Wait for sandstorm — use it as cover to escape at ground level",
+              "label_zh": "等沙尘暴——利用沙暴掩护低空撤离",
+              "consequences": {
+                "mr_blinded": true,
+                "helo_flying_in_storm": "extremely_dangerous",
+                "crash_risk": 50,
+                "if_survives": "untraceable_escape",
+                "vega_exposure_time": "+45min"
+              }
+            },
+            {
+              "id": "abandon_helo_ground_evade",
+              "label": "Abandon damaged helo — everyone goes on foot to border with Vega (30km)",
+              "label_zh": "弃机——所有人和织女星徒步撤向边境（30公里）",
+              "consequences": {
+                "helo_lost": true,
+                "ground_evasion": "30km in hostile terrain",
+                "time": "12-18 hours",
+                "mr_search_parties": "active",
+                "ps_falcon_ground_pickup": "possible",
+                "survival_drama": "extreme"
+              }
+            }
+          ]
+        }
+      ],
+
+      "player_impact": {
+        "if_wa": "your_pilot_your_call — career-defining rescue or failure",
+        "if_ps": "offer_falcon_unit_for_ground_rescue — deepen_alliance_or_stay_out",
+        "if_mr": "hunt_the_pilot — propaganda_gold_or_let_them_go_for_leverage",
+        "if_neutral": "media_frenzy — pick_a_side_or_offer_mediation"
+      }
     }
   ]
 }

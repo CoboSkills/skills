@@ -16,6 +16,8 @@ DESCRIPTION=""
 TTL=""
 CLIENT=""
 TARGET=""
+FORKABLE=""
+SPA_MODE=""
 
 usage() {
   cat <<'USAGE'
@@ -65,6 +67,8 @@ while [[ $# -gt 0 ]]; do
     --client)       CLIENT="$2"; shift 2 ;;
     --base-url)     BASE_URL="$2"; shift 2 ;;
     --allow-nonherenow-base-url) ALLOW_NON_HERENOW_BASE_URL=1; shift ;;
+    --forkable)     FORKABLE="true"; shift ;;
+    --spa)          SPA_MODE="true"; shift ;;
     --help|-h)      usage ;;
     -*)             die "unknown option: $1" ;;
     *)              [[ -z "$TARGET" ]] && TARGET="$1" || die "unexpected argument: $1"; shift ;;
@@ -152,6 +156,7 @@ elif [[ -d "$TARGET" ]]; then
     rel="${f#$TARGET/}"
     [[ "$rel" == ".DS_Store" ]] && continue
     [[ "$(basename "$rel")" == ".DS_Store" ]] && continue
+    [[ "$rel" == ".herenow/fork-meta.json" ]] && continue
     sz=$(wc -c < "$f" | tr -d ' ')
     ct=$(guess_content_type "$f")
     h=$(compute_sha256 "$f")
@@ -166,6 +171,18 @@ fi
 
 file_count=$(echo "$FILES_JSON" | "$JQ_BIN" 'length')
 [[ "$file_count" -gt 0 ]] || die "no files found"
+
+# Read fork-meta.json defaults if present and no explicit flags given
+FORK_META=""
+if [[ -d "$TARGET" ]]; then
+  FORK_META_PATH="$TARGET/.herenow/fork-meta.json"
+  if [[ -f "$FORK_META_PATH" ]]; then
+    FORK_META=$(cat "$FORK_META_PATH")
+    if [[ -z "$FORKABLE" ]]; then
+      FORKABLE=$("$JQ_BIN" -r '.forkable // empty' <<< "$FORK_META" 2>/dev/null || true)
+    fi
+  fi
+fi
 
 # Build request body
 BODY=$(echo "$FILES_JSON" | "$JQ_BIN" '{files: .}')
@@ -183,6 +200,14 @@ fi
 
 if [[ -n "$CLAIM_TOKEN" && -n "$SLUG" && -z "$API_KEY" ]]; then
   BODY=$(echo "$BODY" | "$JQ_BIN" --arg ct "$CLAIM_TOKEN" '.claimToken = $ct')
+fi
+
+if [[ "$FORKABLE" == "true" ]]; then
+  BODY=$(echo "$BODY" | "$JQ_BIN" '.forkable = true')
+fi
+
+if [[ "$SPA_MODE" == "true" ]]; then
+  BODY=$(echo "$BODY" | "$JQ_BIN" '.spaMode = true')
 fi
 
 # Determine endpoint and method

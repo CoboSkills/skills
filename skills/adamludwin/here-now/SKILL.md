@@ -12,7 +12,7 @@ description: >
 
 # here.now
 
-**Skill version: 1.11.0**
+**Skill version: 1.12.1**
 
 Create a live URL from any file or folder. Static hosting with optional proxy routes for calling external APIs server-side.
 
@@ -162,6 +162,7 @@ mkdir -p ~/.herenow && echo "{API_KEY}" > ~/.herenow/credentials && chmod 600 ~/
 | `--allow-nonherenow-base-url` | Allow sending auth to non-default `--base-url` |
 | `--api-key {key}`      | API key override (prefer credentials file)    |
 | `--spa`                | Enable SPA routing (serve index.html for unknown paths) |
+| `--forkable`           | Allow others to fork this site                           |
 
 ## SPA routing
 
@@ -203,6 +204,37 @@ curl -sS -X POST https://here.now/api/v1/publish/{slug}/duplicate \
   -H "Content-Type: application/json" \
   -d '{"viewer": {"title": "My Copy"}}'
 ```
+
+## Forking a site
+
+Publishers can allow others to fork their sites. When a site has `forkable: true`, its file manifest is exposed and visitors see a fork button.
+
+**Publishing a forkable site:**
+
+```bash
+./scripts/publish.sh ./dist --forkable
+```
+
+Or toggle on an existing site:
+
+```bash
+curl -sS -X PATCH https://here.now/api/v1/publish/{slug}/metadata \
+  -H "Authorization: Bearer {API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"forkable": true}'
+```
+
+**Forking an existing forkable site:**
+
+1. Fetch the file manifest: `GET https://{slug}.here.now/.herenow/manifest.json`
+2. Download each file from: `GET https://{slug}.here.now/.herenow/raw/{path}`
+3. Publish the downloaded files
+
+The manifest returns a JSON object with `files` (array of `{path, size}`), `spaMode`, and `requiredVariables` (variables needed for proxy routes, with upstream domains).
+
+If the site has proxy routes, the `.herenow/proxy.json` file is included in the download. The forker needs to set up their own variables for the proxy routes to work. Check `requiredVariables` in the manifest for what's needed.
+
+Forkable is mutually exclusive with password protection and payment gating — disable one before enabling the other.
 
 ## Beyond the script
 
@@ -400,6 +432,8 @@ The response includes `is_apex`, DNS instructions, and (for apex domains) an `ow
 - **Apex domains** (e.g. `example.com`):
   1. Add an **ALIAS** record pointing to `fallback.here.now`. (Your DNS provider may call this ANAME or CNAME flattening.)
   2. Add a **TXT** record using the `name` and `value` from the `ownership_verification` field in the response.
+
+**Tip:** Not all DNS providers support ALIAS records for apex domains. If yours doesn't, use `www.example.com` with a CNAME instead, then set up a redirect from the apex to `www` at your registrar.
 
 SSL is provisioned automatically once DNS is verified.
 

@@ -1,16 +1,18 @@
 ---
 name: crypto-cog
-description: "The market never sleeps, and neither does your analysis. #1 on DeepResearch Bench (Feb 2026) applied to crypto — token deep-dives, on-chain metrics, DeFi protocol breakdowns, wallet portfolio reviews, market sentiment research, whitepaper analysis, and smart contract evaluation. From degen plays to institutional due diligence, one prompt covers it all."
+description: "The market never sleeps, and neither does your analysis. #1 on DeepResearch Bench (Apr 2026) applied to crypto — token deep-dives, on-chain metrics, DeFi protocol breakdowns, wallet portfolio reviews, market sentiment research, whitepaper analysis, and smart contract evaluation. From degen plays to institutional due diligence, one prompt covers it all."
 metadata:
   openclaw:
     emoji: "🪙"
+    os: [darwin, linux, windows]
 author: CellCog
+homepage: https://cellcog.ai
 dependencies: [cellcog]
 ---
 
 # Crypto Cog - Deep Research for a 24/7 Market
 
-**The market never sleeps, and neither does your analysis.** #1 on DeepResearch Bench (Feb 2026) applied to crypto.
+**The market never sleeps, and neither does your analysis.** #1 on DeepResearch Bench (Apr 2026) applied to crypto.
 
 Crypto moves fast. Narratives shift overnight. New protocols launch daily. You need research depth that keeps pace with a market that never closes. CellCog brings the same deep reasoning that tops financial research benchmarks — now applied to tokens, DeFi, on-chain data, and the entire Web3 landscape. From degen plays to institutional due diligence, one prompt covers it all.
 
@@ -26,17 +28,26 @@ clawhub install cellcog
 
 **Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
 
-**Quick pattern (v1.0+):**
+**OpenClaw agents (fire-and-forget — recommended for long tasks):**
 ```python
-# Fire-and-forget - returns immediately
 result = client.create_chat(
-    prompt="[your crypto research request]",
-    notify_session_key="agent:main:main",
-    task_label="crypto-analysis",
-    chat_mode="agent team"  # Agent team for deep crypto research
+    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",  # OpenClaw only
+    task_label="my-task",
+    chat_mode="agent",  # See cellcog skill for all modes
 )
-# Daemon notifies you when complete - do NOT poll
 ```
+
+**All other agents (blocks until done):**
+```python
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+```
+
+See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
 
 ---
 
@@ -131,10 +142,13 @@ Due diligence on new projects:
 |----------|------------------|
 | Quick price checks, simple token lookups, basic metrics | `"agent"` |
 | Deep token analysis, DeFi research, ecosystem mapping, portfolio strategy | `"agent team"` |
+| Institutional due diligence, high-stakes portfolio decisions, regulatory analysis | `"agent team max"` |
 
 **Use `"agent team"` for most crypto research.** The crypto space requires synthesizing information from many sources — protocol docs, on-chain data, market analysis, social sentiment. Agent team mode delivers the multi-source depth that serious crypto research demands.
 
 **Use `"agent"` for quick lookups** — current prices, basic metrics, or simple factual questions.
+
+**Use `"agent team max"` for institutional-grade crypto work** — fund-level due diligence, high-stakes portfolio rebalancing, regulatory compliance research, or any crypto analysis where significant capital is at risk. All settings maxed for the deepest reasoning. Requires ≥2,000 credits.
 
 ---
 
@@ -202,3 +216,4 @@ Due diligence on new projects:
 5. **Timeframe matters**: "Next month" vs "next 2 years" leads to very different analysis.
 
 6. **Don't trust, verify**: Use CellCog's research as a starting point. Always verify on-chain data with primary sources before making financial decisions.
+

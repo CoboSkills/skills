@@ -27,7 +27,7 @@ import sqlite3
 import logging
 from pathlib import Path
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List
 
 logger = logging.getLogger("nima.dream_db_sync")
 
@@ -35,25 +35,45 @@ logger = logging.getLogger("nima.dream_db_sync")
 # --- Security: Escape function for Cypher queries ---
 def _escape_cypher(s: str) -> str:
     """Escape strings for safe use in Cypher queries.
-    
+
     LadybugDB (Kùzu) does NOT support parameterized Cypher queries,
     so string escaping is the only defense against injection.
-    
+
     Backslashes MUST be escaped before single quotes to avoid
     double-escaping (e.g. \\' becoming \\\\' instead of \\').
-    
+
     Must be applied to ALL user-controlled or external data before
     embedding in Cypher query strings.
-    
+
     Args:
         s: String to escape
-        
+
     Returns:
         Escaped string safe for Cypher string literals
     """
     if not isinstance(s, str):
         s = str(s)
-    return s.replace("\\", "\\\\").replace("'", "\\'")
+
+    # Remove null bytes (can terminate strings in some contexts)
+    s = s.replace('\x00', '')
+
+    # Escape backslashes first (order matters!)
+    s = s.replace("\\", "\\\\")
+
+    # Escape single quotes
+    s = s.replace("'", "\\'")
+
+    # Escape newlines and tabs to prevent query breaking
+    s = s.replace('\n', '\\n')
+    s = s.replace('\r', '\\r')
+    s = s.replace('\t', '\\t')
+
+    # Escape Cypher comment markers to prevent comment injection
+    s = s.replace('//', '\\/\\/')
+    s = s.replace('/*', '\\/\\*')
+    s = s.replace('*/', '\\*\\/')
+
+    return s
 
 
 # --- Config (all overridable via env vars) ---
@@ -67,7 +87,7 @@ DREAMS_DIR = Path(os.environ.get("NIMA_DREAMS_DIR", ""))
 if not DREAMS_DIR.name:
     # Try common locations
     for candidate in [
-        Path(NIMA_WORKSPACE) / "lilu_core" / "storage" / "data" / "dreams",
+        Path(NIMA_WORKSPACE) / "nima_core" / "storage" / "data" / "dreams",
         Path(NIMA_HOME) / "dreams",
         Path(NIMA_WORKSPACE) / "data" / "dreams",
     ]:
@@ -130,8 +150,8 @@ def _get_ladybug_conn():
         conn = lb.Connection(db)
         try:
             conn.execute("LOAD VECTOR")
-        except Exception:
-            pass  # Extension may not exist yet (read-only is fine)
+        except (OSError, RuntimeError) as e:
+            logger.debug("DB operation skipped (Extension may not exist yet (read-only is fine)): %s", e)
         return conn
     except RuntimeError as e:
         logger.warning(f"LadybugDB connection failed: {e}")
@@ -337,9 +357,9 @@ def sync_insights_to_ladybug(conn, insights: List[Dict]) -> int:
             # SECURITY: Escape all external data before embedding in Cypher
             insight_id = _escape_cypher(ins.get('id', ''))
             
-            # Check if exists
+            # Check if exists — use insight_id (primary key in schema)
             r = conn.execute(
-                f"MATCH (n:InsightNode) WHERE n.id = '{insight_id}' RETURN count(n) AS cnt"
+                f"MATCH (n:InsightNode) WHERE n.insight_id = '{insight_id}' RETURN count(n) AS cnt"
             )
             if r.get_next()[0] > 0:
                 continue
@@ -349,21 +369,25 @@ def sync_insights_to_ladybug(conn, insights: List[Dict]) -> int:
             domains = _escape_cypher(json.dumps(ins.get('domains', [])))
             sources = _escape_cypher(json.dumps(ins.get('sources', [])))
             ins_type = _escape_cypher(ins.get('type', ''))
-            timestamp = _escape_cypher(ins.get('timestamp', ''))
+            timestamp = ins.get('timestamp', 0)
+            # Coerce timestamp to int for INT64 column
+            try:
+                timestamp = int(timestamp) if timestamp else 0
+            except (ValueError, TypeError):
+                timestamp = 0
             confidence = float(ins.get('confidence', 0.5))
             importance = float(ins.get('importance', 0.5))
             
             conn.execute(f"""
                 CREATE (n:InsightNode {{
-                    id: '{insight_id}',
+                    insight_id: '{insight_id}',
                     content: '{content}',
-                    type: '{ins_type}',
+                    insight_type: '{ins_type}',
                     confidence: {confidence},
-                    sources: '{sources}',
+                    source_ids: '{sources}',
                     domains: '{domains}',
-                    timestamp: '{timestamp}',
-                    importance: {importance},
-                    validated: false
+                    timestamp: {timestamp},
+                    strength: {importance}
                 }})
             """)
             count += 1
@@ -392,9 +416,8 @@ def sync_patterns_to_ladybug(conn, patterns: List[Dict]) -> int:
                 PRIMARY KEY (id)
             )
         """)
-    except Exception:
-        pass
-    
+    except (OSError, RuntimeError) as e:
+        logger.debug("Sync operation failed silently: %s", e)
     for pat in patterns:
         try:
             # SECURITY: Escape all external data before embedding in Cypher
@@ -418,10 +441,8 @@ def sync_patterns_to_ladybug(conn, patterns: List[Dict]) -> int:
                     """)
                     count += 1
                     continue
-            except Exception:
-                pass
-            
-            # SECURITY: Escape all fields for CREATE
+            except (OSError, RuntimeError) as e:
+                logger.debug("DB operation skipped (SECURITY: Escape all fields for CREATE): %s", e)
             name = _escape_cypher(pat.get('name', ''))
             desc = _escape_cypher(pat.get('description', ''))[:2000]
             domains = _escape_cypher(json.dumps(pat.get('domains', [])))
@@ -465,9 +486,8 @@ def sync_dream_narratives_to_ladybug(conn, dream_files: List[Path]) -> int:
                 PRIMARY KEY (id)
             )
         """)
-    except Exception:
-        pass
-    
+    except (OSError, RuntimeError) as e:
+        logger.debug("Sync operation failed silently: %s", e)
     for dream_file in dream_files:
         try:
             # SECURITY: Escape filename-derived IDs
@@ -480,10 +500,8 @@ def sync_dream_narratives_to_ladybug(conn, dream_files: List[Path]) -> int:
                 )
                 if r.get_next()[0] > 0:
                     continue
-            except Exception:
-                pass
-            
-            # SECURITY: Escape all external content
+            except (OSError, RuntimeError) as e:
+                logger.debug("DB operation skipped (SECURITY: Escape all external content): %s", e)
             content = dream_file.read_text()
             narrative = content.split("## Source Memories")[0].strip()
             narrative = _escape_cypher(narrative)[:2000]
@@ -625,7 +643,7 @@ def sync_all(verbose: bool = True) -> Dict:
         finally:
             sqlite_conn.close()
     elif verbose:
-        print("⚠️ SQLite not available")
+        logger.info("⚠️ SQLite not available")
     
     # Sync to LadybugDB
     lb_conn = _get_ladybug_conn()
@@ -643,22 +661,21 @@ def sync_all(verbose: bool = True) -> Dict:
                       f"{lb['dreams']} dreams, {lb['ghosted']} ghosted")
         except Exception as e:
             if verbose:
-                print(f"⚠️ LadybugDB sync error: {e}")
+                logger.info(f"⚠️ LadybugDB sync error: {e}")
         finally:
             try:
                 lb_conn.close()
-            except Exception:
-                pass
+            except (OSError, RuntimeError) as e:
+                logger.debug("Sync operation failed silently: %s", e)
     elif verbose:
-        print("⚠️ LadybugDB not available")
+        logger.info("⚠️ LadybugDB not available")
     
     # Auto-commit memory changes after sync completes
     try:
         from nima_core.memory_git import commit_memory
         commit_memory("dream", f"Synced {results['sqlite']['insights']} insights, {results['sqlite']['patterns']} patterns to databases")
-    except Exception:
-        pass
-    
+    except (OSError, RuntimeError) as e:
+        logger.debug("Sync operation failed silently: %s", e)
     return results
 
 
@@ -669,4 +686,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     results = sync_all(verbose=not args.quiet)
     if not args.quiet:
-        print(f"\n🌙 Dream DB sync complete")
+        logger.info("\n🌙 Dream DB sync complete")

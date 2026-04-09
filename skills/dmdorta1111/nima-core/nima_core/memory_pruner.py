@@ -12,20 +12,19 @@ Architecture:
 Environment Variables:
 - NIMA_DB_PATH: Path to LadybugDB (default: ~/.nima/memory/ladybug.lbug)
 - NIMA_DATA_DIR: Base data directory (default: ~/.nima/memory)
-- ANTHROPIC_API_KEY: Anthropic API key for LLM distillation (optional, falls back to extractive)
+- NIMA_LLM_PROVIDER / NIMA_LLM_API_KEY / NIMA_LLM_MODEL / NIMA_LLM_BASE_URL: LLM distillation config (optional, falls back to extractive)
 """
 import os
-import sys
 import json
-import math
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
 
 # ── Configuration via Environment ───────────────────────────────────────────────
 
-DATA_DIR = Path(os.environ.get('NIMA_DATA_DIR', str(Path.home() / '.nima' / 'memory')))
-DB_PATH = os.environ.get('NIMA_DB_PATH', str(DATA_DIR / 'ladybug.lbug'))
+from nima_core.config import NIMA_DATA_DIR, NIMA_DB_PATH as _cfg_db_path
+DATA_DIR = NIMA_DATA_DIR
+DB_PATH = str(_cfg_db_path)
 REGISTRY_PATH = DATA_DIR / 'suppression_registry.json'
 LOG_PATH = DATA_DIR / 'pruner_log.json'
 
@@ -229,11 +228,6 @@ def group_by_session(memories, gap_hours=4):
 
 # ── Semantic Distillation ──────────────────────────────────────────────────────
 
-def _get_anthropic_key():
-    """Get Anthropic API key from environment variable."""
-    return os.environ.get("ANTHROPIC_API_KEY", "")
-
-
 def distill_session_llm(session, dry_run=False):
     """
     Distill a session to a semantic gist via Claude Haiku.
@@ -266,43 +260,19 @@ Conversation:
 
 Summary:""".format(date_str=date_str, full_text=full_text)
 
-    # Try LLM distillation first
-    api_key = _get_anthropic_key()
-    if not api_key:
-        print("  Warning: No ANTHROPIC_API_KEY found — using extractive fallback")
-        return _extractive_distill(session, date_str)
-
+    # Try LLM distillation via unified client
     try:
-        import urllib.request
-        import urllib.error
-
-        distill_model = os.environ.get('NIMA_DISTILL_MODEL', 'claude-haiku-4-5')
-        payload = json.dumps({
-            "model": distill_model,
-            "max_tokens": 200,
-            "messages": [{"role": "user", "content": prompt}]
-        }).encode('utf-8')
-
-        http_req = urllib.request.Request(
-            "https://api.anthropic.com/v1/messages",
-            data=payload,
-            headers={
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "content-type": "application/json",
-            }
-        )
-        with urllib.request.urlopen(http_req, timeout=30) as r:
-            data = json.loads(r.read())
-            gist = data["content"][0]["text"].strip()
-            return gist if gist and len(gist) > 15 else _extractive_distill(session, date_str)
-
-    except urllib.error.HTTPError as e:
-        print("  Warning: HTTP error from Anthropic API ({code}) — using extractive fallback".format(code=e.code))
+        from nima_core.llm_client import llm_complete, extractive_distill as _ext_distill
+        gist = llm_complete(prompt, max_tokens=200)
+        if gist and len(gist) > 15:
+            return gist
+        print("  Warning: LLM returned empty/short — using extractive fallback")
+        return _ext_distill([m['text'] for m in session], date_str)
+    except ImportError:
+        print("  Warning: llm_client not available — using extractive fallback")
         return _extractive_distill(session, date_str)
     except Exception as e:
-        err_name = e.__class__.__name__
-        print("  Warning: LLM distill error ({err}) — using extractive fallback".format(err=err_name))
+        print("  Warning: LLM error ({err}) — using extractive fallback".format(err=e))
         return _extractive_distill(session, date_str)
 
 

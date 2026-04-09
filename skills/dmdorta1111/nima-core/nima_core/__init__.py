@@ -1,6 +1,6 @@
 """NIMA Core — Dynamic Affect System for AI agents."""
 
-__version__ = "3.2.0"
+__version__ = "2.3.0"
 
 from .cognition.dynamic_affect import DynamicAffectSystem, AffectVector, get_affect_system
 from .cognition.personality_profiles import PersonalityManager, get_profile, list_profiles
@@ -18,12 +18,6 @@ from .cognition.archetypes import (
 from .logging_config import get_logger
 from .metrics import get_metrics, Timer, RECALL_QUERY_MS, RECALL_CACHE_HITS, AFFECT_UPDATE_MS, MEMORY_STORE_MS
 from .connection_pool import get_pool
-
-# Dream consolidation
-from .dream_consolidation import (
-    DreamConsolidator, consolidate,
-    Insight, Pattern, DreamSession, blend_dream_vector,
-)
 
 __all__ = [
     "DynamicAffectSystem",
@@ -52,55 +46,11 @@ __all__ = [
     "AFFECT_UPDATE_MS",
     "MEMORY_STORE_MS",
     "get_pool",
-    # Dream consolidation
-    "DreamConsolidator",
-    "consolidate",
-    "Insight",
-    "Pattern",
-    "DreamSession",
-    "blend_dream_vector",
 ]
-
-# Dream DB sync (dual-database persistence)
-try:
-    from .dream_db_sync import sync_all, sync_pruner_to_ladybug
-    __all__.extend(["sync_all", "sync_pruner_to_ladybug"])
-except ImportError:
-    pass
-
 # Memory pruner (optional - may fail if ladybug not available)
 try:
     from .memory_pruner import run_pruner, status as pruner_status
     __all__.extend(["run_pruner", "pruner_status"])
-except ImportError:
-    pass
-
-
-# Hive Mind / Memory Entanglement (#7)
-try:
-    from .hive_mind import HiveMind, HiveBus
-    __all__.extend(["HiveMind", "HiveBus"])
-except ImportError:
-    pass
-
-# Precognitive Memory Injection (#4)
-try:
-    from .precognition import NimaPrecognition
-    __all__.extend(["NimaPrecognition"])
-except ImportError:
-    pass
-
-# Lucid Memory Moments (#8)
-try:
-    from .lucid_moments import LucidMoments
-    __all__.extend(["LucidMoments"])
-except ImportError:
-    pass
-
-# Memory Git (versioned memory tracking)
-try:
-    from .memory_git import commit_memory, get_log, setup_memory_repo
-    __all__.extend(["commit_memory", "get_log", "setup_memory_repo"])
 except ImportError:
     pass
 

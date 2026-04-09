@@ -414,67 +414,85 @@ class VoyageCachedClient:
             print(f"[voyage_cache] API error: {e}", file=sys.stderr)
             return None
     
-    def embed_batch(self, texts: List[str], 
-                    batch_size: int = 64) -> List[Optional[np.ndarray]]:
+    def _check_lru_cache(self, texts: List[str], results: list) -> List[Tuple[int, str]]:
         """
-        Batch embed texts with efficient caching.
-        
-        Checks caches first, only calls API for misses.
+        Check LRU cache for each text. Fills hits into results in-place.
+        Returns list of (index, text) pairs that were not in LRU cache.
         """
-        results = [None] * len(texts)
-        to_embed: List[Tuple[int, str]] = []  # (original_index, text)
-        
-        # Check caches
+        misses: List[Tuple[int, str]] = []
         for i, text in enumerate(texts):
             if not text or len(text.strip()) < 3:
                 continue
-            
-            cache_key = _text_hash(text)
-            
-            # Check LRU
-            cached = self._lru_get(cache_key)
+            cached = self._lru_get(_text_hash(text))
             if cached is not None:
                 results[i] = cached
-                continue
-            
-            # Check disk
-            cached = self.disk_cache.get(text)
+            else:
+                misses.append((i, text))
+        return misses
+
+    def _check_disk_cache(
+        self,
+        lru_misses: List[Tuple[int, str]],
+        results: list,
+    ) -> List[Tuple[int, str]]:
+        """
+        Batch-check disk cache for LRU misses. Fills hits into results in-place.
+        Returns list of (index, text) pairs still missing after disk check.
+        Uses a single SQLite connection instead of O(N) connections.
+        """
+        disk_texts = [text for _, text in lru_misses]
+        disk_results = self.disk_cache.get_batch(disk_texts)
+        to_embed: List[Tuple[int, str]] = []
+        for i, text in lru_misses:
+            cached = disk_results.get(text)
             if cached is not None:
                 self._stats['disk_hits'] += 1
-                self._lru_set(cache_key, cached)
+                self._lru_set(_text_hash(text), cached)
                 results[i] = cached
-                continue
-            
-            to_embed.append((i, text))
-        
-        # Batch embed cache misses
-        if to_embed:
-            for batch_start in range(0, len(to_embed), batch_size):
-                batch = to_embed[batch_start:batch_start + batch_size]
-                batch_texts = [t for _, t in batch]
-                
-                self.rate_limiter.wait()
-                
-                try:
-                    client = self._get_voyage_client()
-                    truncated = [t[:MAX_TEXT_CHARS] for t in batch_texts]
-                    result = client.embed(truncated, model=MODEL)
-                    
-                    self._stats['api_calls'] += 1
-                    
-                    # Store results
-                    for (orig_idx, text), emb in zip(batch, result.embeddings):
-                        embedding = np.array(emb, dtype=np.float32)
-                        results[orig_idx] = embedding
-                        
-                        cache_key = _text_hash(text)
-                        self._lru_set(cache_key, embedding)
-                        self.disk_cache.set(text, embedding)
-                    
-                except Exception as e:
-                    self._stats['api_errors'] += 1
-                    print(f"[voyage_cache] Batch API error: {e}", file=sys.stderr)
-        
+            else:
+                to_embed.append((i, text))
+        return to_embed
+
+    def _call_api_batch(self, batch: List[Tuple[int, str]], results: list) -> None:
+        """
+        Call Voyage API for a single batch, store embeddings in caches,
+        and fill results in-place. Logs errors but does not raise.
+        """
+        batch_texts = [t for _, t in batch]
+        self.rate_limiter.wait()
+        try:
+            client = self._get_voyage_client()
+            truncated = [t[:MAX_TEXT_CHARS] for t in batch_texts]
+            result = client.embed(truncated, model=MODEL)
+            self._stats['api_calls'] += 1
+            for (orig_idx, text), emb in zip(batch, result.embeddings):
+                embedding = np.array(emb, dtype=np.float32)
+                results[orig_idx] = embedding
+                self._lru_set(_text_hash(text), embedding)
+                self.disk_cache.set(text, embedding)
+        except Exception as e:
+            self._stats['api_errors'] += 1
+            print(f"[voyage_cache] Batch API error: {e}", file=sys.stderr)
+
+    def embed_batch(self, texts: List[str],
+                    batch_size: int = 64) -> List[Optional[np.ndarray]]:
+        """
+        Batch embed texts with efficient caching.
+
+        Checks caches first, only calls API for misses.
+        """
+        results: List[Optional[np.ndarray]] = [None] * len(texts)
+
+        # 1. LRU pass — O(n) dict lookups
+        lru_misses = self._check_lru_cache(texts, results)
+
+        # 2. Disk pass — single SQLite connection for all misses
+        to_embed = self._check_disk_cache(lru_misses, results) if lru_misses else []
+
+        # 3. API pass — chunked into batch_size requests
+        for batch_start in range(0, len(to_embed), batch_size):
+            self._call_api_batch(to_embed[batch_start:batch_start + batch_size], results)
+
         return results
     
     def stats(self) -> Dict[str, Any]:

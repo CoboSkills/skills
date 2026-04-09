@@ -2,9 +2,9 @@ from setuptools import setup, find_packages
 
 setup(
     name="nima-core",
-    version="3.2.0",
+    version="3.1.0",
     description="Biologically-inspired Dynamic Affect System for AI agents",
-    long_description=open("README.md").read() if __import__("os").path.exists("README.md") else "",
+    long_description=open("README.md", encoding="utf-8").read() if __import__("os").path.exists("README.md") else "",
     long_description_content_type="text/markdown",
     author="NIMA Project",
     url="https://github.com/nima-project/nima-core",
@@ -18,9 +18,6 @@ setup(
             "faiss-cpu>=1.7.4",
             "voyageai>=0.2.0",
         ],
-        "hive": [
-            "redis>=4.0.0",
-        ],
     },
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -31,10 +28,6 @@ setup(
     entry_points={
         'console_scripts': [
             'nima-core=nima_core:main',
-            'nima-dream=nima_core.dream_consolidation:main',
-            'nima-lucid=nima_core.lucid_moments:main',
-            'nima-darwin=nima_core.darwinism:main',
-            'nima-swarm=nima_core.hive_mind:_swarm_cli',
         ],
     },
 )

@@ -189,7 +189,12 @@ async function execPython(scriptPath, args = [], options = {}) {
   }
   await pythonSpawnLimiter.removeTokens(1);
   try {
-    const venvPython = join(os.homedir(), ".openclaw", "workspace", ".venv", "bin", "python3");
+    // Resolve Python: NIMA_PYTHON env var → NIMA_VENV_PATH/bin/python3 → platform venv default
+const venvPython = process.env.NIMA_PYTHON ||
+  (process.env.NIMA_VENV_PATH ? join(process.env.NIMA_VENV_PATH, "bin", "python3") : null) ||
+  (process.platform === "win32"
+    ? join(os.homedir(), ".openclaw", "workspace", ".venv", "Scripts", "python.exe")
+    : join(os.homedir(), ".openclaw", "workspace", ".venv", "bin", "python3"));
     let cmd, finalArgs;
     if (scriptPath.endsWith(".py") || scriptPath === "python3") {
       cmd = venvPython; finalArgs = scriptPath === "python3" ? args : [scriptPath, ...args];
@@ -548,8 +553,13 @@ function cleanInputText(text) {
   // This normalizes fullwidth chars (e.g., \uff07 → ') and other Unicode tricks
   let cleaned = text.normalize('NFKC');
 
-  // Remove NIMA RECALL blocks (multiline, non-greedy)
+  // Remove NIMA RECALL blocks (multiline, non-greedy) - both hyphen and em-dash
   cleaned = cleaned.replace(/\[NIMA RECALL[^\]]*\][\s\S]*?\[End recall[^\]]*\]\s*/gi, "");
+  // Remove standalone [NIMA RECALL — N memories] headers (em-dash variant)
+  cleaned = cleaned.replace(/\[NIMA RECALL\s*[—–-]\s*\d+\s*memor(?:y|ies)\]\s*/gi, "");
+
+  // Remove [sender name] prefixes like [David Dorta] or [self] at start of content
+  cleaned = cleaned.replace(/^\s*\[[A-Za-z][A-Za-z\s]{0,30}\]\s*/gm, "");
 
   // Remove 🎭 AFFECT STATE blocks (usually single-line or short multi-line)
   cleaned = cleaned.replace(/🎭\s*AFFECT STATE[^\n]*(\n[^\n]*){0,3}\n*/g, "");
@@ -564,11 +574,21 @@ function cleanInputText(text) {
   cleaned = cleaned.replace(/Conversation info \(untrusted metadata\)[^\n]*\n?```json[\s\S]*?```\s*/gi, "");
   cleaned = cleaned.replace(/Conversation info \(untrusted metadata\)[^\n]*\n/gi, "");
 
+  // Remove Sender (untrusted metadata) blocks
+  cleaned = cleaned.replace(/Sender \(untrusted metadata\)[^\n]*\n?```json[\s\S]*?```\s*/gi, "");
+
   // Remove inbound metadata JSON blocks
-  cleaned = cleaned.replace(/```json\s*\{\s*"(?:schema|message_id|sender)"[\s\S]*?\}\s*```\s*/g, "");
+  cleaned = cleaned.replace(/```json\s*\{\s*"(?:schema|message_id|sender|label)"[\s\S]*?\}\s*```\s*/g, "");
+
+  // Remove HIVE ROUTING blocks
+  cleaned = cleaned.replace(/\[HIVE ROUTING[^\]]*\][\s\S]*?━━[^\n]*\n*/gi, "");
 
   // Remove heartbeat instruction text (system mechanics)
   cleaned = cleaned.replace(/Read HEARTBEAT\.md if it exists[^\n]*\n*/gi, "");
+
+  // Remove Queued messages headers
+  cleaned = cleaned.replace(/\[Queued messages[^\]]*\]\s*/gi, "");
+  cleaned = cleaned.replace(/---\s*Queued #\d+\s*/gi, "");
 
   // Remove multiple consecutive blank lines
   cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
@@ -1550,8 +1570,14 @@ export default function nimaMemoryPlugin(api, config) {
         return;
       }
 
-      // Skip subagents and heartbeats
+      // Skip subagents, non-main agents, and heartbeats
       if (skipSubagents && ctx.sessionKey?.includes(":subagent:")) return;
+      const _memWorkspace = ctx.workspaceDir || "";
+      const _isSubagentMem = _memWorkspace.includes("workspace-");
+      if (skipSubagents && _isSubagentMem) {
+        log.info?.(`[nima-memory] SKIP: subagent workspace ${_memWorkspace}`);
+        return;
+      }
       if (skipHeartbeats && ctx.sessionKey?.includes("heartbeat")) {
         captureMetrics.filteredHeartbeat++;
         return;

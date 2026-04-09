@@ -1,5 +1,4 @@
-from typing import Dict, List, Optional, Union
-import re
+from typing import Dict, List, Optional
 
 # Panksepp 7-affect order: [SEEKING, RAGE, FEAR, LUST, CARE, PANIC, PLAY]
 
@@ -103,79 +102,79 @@ def baseline_from_archetype(name: str, modifiers: Optional[Dict[str, float]] = N
             
     return baseline
 
+_ARCHETYPE_KEYWORDS = {
+    "guardian": ["protective", "guard", "defend", "shield"],
+    "explorer": ["curious", "explore", "adventure", "seek"],
+    "trickster": ["mischief", "trick", "prank", "silly", "chaos"],
+    "stoic": ["calm", "stoic", "measure", "stable", "flat"],
+    "empath": ["feel", "empath", "sensitive", "emotion"],
+    "warrior": ["fight", "warrior", "battle", "combat", "aggressive"],
+    "sage": ["wise", "sage", "knowledge", "learn", "teach"],
+    "nurturer": ["nurture", "gentle", "mother", "father", "kind"],
+    "rebel": ["rebel", "defiant", "independent", "resist"],
+    "sentinel": ["watch", "vigilant", "sentry", "monitor"],
+}
+
+_DESCRIPTION_KEYWORD_MAP = {
+    "protective": [("CARE", 0.1)],
+    "caring": [("CARE", 0.2)],
+    "curious": [("SEEKING", 0.2)],
+    "playful": [("PLAY", 0.2)],
+    "fun": [("PLAY", 0.1)],
+    "fierce": [("RAGE", 0.2)],
+    "angry": [("RAGE", 0.2)],
+    "anxious": [("FEAR", 0.15)],
+    "worried": [("PANIC", 0.1)],
+    "calm": [("ALL", -0.1)],
+    "passionate": [("LUST", 0.2), ("SEEKING", 0.1)],
+    "excited": [("SEEKING", 0.1)],
+    "scared": [("FEAR", 0.2)],
+    "lonely": [("PANIC", 0.2)],
+}
+
+
+def _select_base_archetype(desc_lower: str) -> str:
+    """Select the best-matching archetype name from *desc_lower* via keyword scoring."""
+    base_name = "guardian"
+    best_score = 0
+    for arch, keywords in _ARCHETYPE_KEYWORDS.items():
+        score = sum(1 for k in keywords if k in desc_lower)
+        if arch in desc_lower:
+            score += 2
+        if score > best_score:
+            best_score = score
+            base_name = arch
+    return base_name
+
+
+def _build_description_modifiers(desc_lower: str) -> dict:
+    """Build an affect-modifier dict from keywords found in *desc_lower*."""
+    modifiers: dict = {}
+    for word, effects in _DESCRIPTION_KEYWORD_MAP.items():
+        if word not in desc_lower:
+            continue
+        for affect, delta in effects:
+            if affect == "ALL":
+                for k in AFFECT_MAP.keys():
+                    modifiers[k] = modifiers.get(k, 0.0) + delta
+            else:
+                modifiers[affect] = modifiers.get(affect, 0.0) + delta
+    return modifiers
+
+
 def baseline_from_description(description: str) -> List[float]:
     """
     Generate a baseline vector by parsing a natural language description.
-    
+
     Defaults to 'guardian' if no clear match, then applies modifiers.
-    
+
     Args:
         description: Text description (e.g., "protective and playful").
-        
+
     Returns:
         List of 7 floats.
     """
     desc_lower = description.lower()
-    
-    # 1. Determine base archetype
-    base_name = "guardian" # Default
-    
-    # Simple keyword scoring for base archetype selection
-    best_score = 0
-    
-    # Maps keywords to archetypes for selection
-    archetype_keywords = {
-        "guardian": ["protective", "guard", "defend", "shield"],
-        "explorer": ["curious", "explore", "adventure", "seek"],
-        "trickster": ["mischief", "trick", "prank", "silly", "chaos"],
-        "stoic": ["calm", "stoic", "measure", "stable", "flat"],
-        "empath": ["feel", "empath", "sensitive", "emotion"],
-        "warrior": ["fight", "warrior", "battle", "combat", "aggressive"],
-        "sage": ["wise", "sage", "knowledge", "learn", "teach"],
-        "nurturer": ["nurture", "gentle", "mother", "father", "kind"],
-        "rebel": ["rebel", "defiant", "independent", "resist"],
-        "sentinel": ["watch", "vigilant", "sentry", "monitor"]
-    }
-    
-    for arch, keywords in archetype_keywords.items():
-        score = sum(1 for k in keywords if k in desc_lower)
-        # Also check if the archetype name itself is in the description
-        if arch in desc_lower:
-            score += 2
-            
-        if score > best_score:
-            best_score = score
-            base_name = arch
-            
-    # 2. Determine modifiers
-    modifiers = {}
-    
-    # Keyword to affect mapping (list of tuples for multiple effects)
-    keyword_map = {
-        "protective": [("CARE", 0.1)],
-        "caring": [("CARE", 0.2)],
-        "curious": [("SEEKING", 0.2)],
-        "playful": [("PLAY", 0.2)],
-        "fun": [("PLAY", 0.1)],
-        "fierce": [("RAGE", 0.2)],
-        "angry": [("RAGE", 0.2)],
-        "anxious": [("FEAR", 0.15)],
-        "worried": [("PANIC", 0.1)],
-        "calm": [("ALL", -0.1)], # Special case
-        "passionate": [("LUST", 0.2), ("SEEKING", 0.1)],
-        "excited": [("SEEKING", 0.1)],
-        "scared": [("FEAR", 0.2)],
-        "lonely": [("PANIC", 0.2)]
-    }
-    
-    for word, effects in keyword_map.items():
-        if word in desc_lower:
-            for affect, delta in effects:
-                if affect == "ALL":
-                    # Dampen everything
-                    for k in AFFECT_MAP.keys():
-                        modifiers[k] = modifiers.get(k, 0.0) + delta
-                else:
-                    modifiers[affect] = modifiers.get(affect, 0.0) + delta
-                
+    base_name = _select_base_archetype(desc_lower)
+    modifiers = _build_description_modifiers(desc_lower)
     return baseline_from_archetype(base_name, modifiers)

@@ -61,8 +61,6 @@ logger = logging.getLogger(__name__)
 from .exceptions import (
     InvalidAffectNameError,
     AffectValueError,
-    BaselineValidationError,
-    StatePersistenceError,
 )
 from .affect_interactions import apply_cross_affect_interactions
 from .affect_history import AffectHistory
@@ -396,72 +394,70 @@ class DynamicAffectSystem:
         if not 0 <= intensity <= 1:
             raise ValueError(f"Intensity must be in [0, 1], got {intensity}")
     
+    def _build_input_vector(self, detected_affect: Dict[str, float]) -> "np.ndarray":
+        """Convert a {name: value} affect dict to a 7-D numpy array."""
+        input_vec = np.zeros(7, dtype=np.float32)
+        for name, value in detected_affect.items():
+            name_upper = name.upper()
+            if name_upper in AFFECT_INDEX:
+                input_vec[AFFECT_INDEX[name_upper]] = float(value)
+        return input_vec
+
+    def _apply_profile_amplifiers(self, input_vec: "np.ndarray", profile: str) -> "np.ndarray":
+        """Scale input vector values by personality profile amplifiers."""
+        from .personality_profiles import get_profile
+        p = get_profile(profile)
+        if not (p and 'amplifiers' in p):
+            return input_vec
+        for affect, amp in p['amplifiers'].items():
+            affect_upper = affect.upper()
+            if affect_upper in AFFECT_INDEX and input_vec[AFFECT_INDEX[affect_upper]] > 0:
+                input_vec[AFFECT_INDEX[affect_upper]] = min(
+                    1.0, input_vec[AFFECT_INDEX[affect_upper]] * amp
+                )
+        return input_vec
+
+    def _blend_state(self, input_vec: "np.ndarray", intensity: float) -> "np.ndarray":
+        """EMA blend, baseline pull, cross-affect, and clamp into [0,1]."""
+        effective_blend = self.blend_strength * intensity
+        shift = effective_blend * (input_vec - self._current.values)
+        new_values = self._current.values + (1 - self.momentum) * shift
+        baseline_pull = BASELINE_PULL_STRENGTH * (self.baseline.values - new_values)
+        new_values = new_values + baseline_pull
+        if self.cross_affect_enabled:
+            new_values = apply_cross_affect_interactions(new_values)
+        return np.clip(new_values, 0.0, 1.0)
+
     def process_input(self, detected_affect: Dict[str, float], intensity: float = 1.0, profile: Optional[str] = None) -> AffectVector:
         """
         Process new emotional input and update state.
-        
+
         Uses standard EMA (Exponential Moving Average) blending:
             new = current + blend_strength * (input - current)
-        
+
         Baseline pull is applied separately to maintain gentle drift toward identity.
-        
+
         Args:
             detected_affect: Dict mapping affect names to intensities (0-1)
                              e.g., {"CARE": 0.8, "SEEKING": 0.6}
             intensity: Overall intensity multiplier (0-1)
             profile: Optional personality profile name to apply amplifiers
-        
+
         Returns:
             Updated current affect state
         """
         with self._lock:  # Thread-safe state mutation
-            # Validate inputs
             self._validate_affect_dict(detected_affect)
             self._validate_intensity(intensity)
-            
-            # Convert detected to vector
-            input_vec = np.zeros(7, dtype=np.float32)
-            for name, value in detected_affect.items():
-                name_upper = name.upper()
-                if name_upper in AFFECT_INDEX:
-                    input_vec[AFFECT_INDEX[name_upper]] = float(value)
-            
-            # Apply personality profile amplifiers if specified
+
+            input_vec = self._build_input_vector(detected_affect)
             if profile:
-                from .personality_profiles import get_profile
-                p = get_profile(profile)
-                if p and 'amplifiers' in p:
-                    for affect, amp in p['amplifiers'].items():
-                        affect_upper = affect.upper()
-                        if affect_upper in AFFECT_INDEX and input_vec[AFFECT_INDEX[affect_upper]] > 0:
-                            input_vec[AFFECT_INDEX[affect_upper]] *= amp
-                            input_vec[AFFECT_INDEX[affect_upper]] = min(1.0, input_vec[AFFECT_INDEX[affect_upper]])
-            
-            # Apply intensity scaling
+                input_vec = self._apply_profile_amplifiers(input_vec, profile)
             input_vec = input_vec * intensity
-            
-            # Calculate effective blend with momentum
-            effective_blend = self.blend_strength * intensity
-            shift = effective_blend * (input_vec - self._current.values)
-            
-            # Apply shift with momentum (current state is sticky)
-            new_values = self._current.values + (1 - self.momentum) * shift
-            
-            # Soft pull toward baseline (always some gravity)
-            baseline_pull = BASELINE_PULL_STRENGTH * (self.baseline.values - new_values)
-            new_values = new_values + baseline_pull
-            
-            # Apply cross-affect interactions (if enabled)
-            if self.cross_affect_enabled:
-                new_values = apply_cross_affect_interactions(new_values)
-            
-            # Bound to [0, 1]
-            new_values = np.clip(new_values, 0.0, 1.0)
-            
-            # Record transition for correlation analysis
+
+            new_values = self._blend_state(input_vec, intensity)
+
             old_values = self._current.values.copy()
-            
-            # Update state
             self._current = AffectVector(new_values, source="blended")
         
         # Save state outside lock (I/O operation)

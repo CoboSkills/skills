@@ -3,7 +3,7 @@
 import sqlite3
 import threading
 from contextlib import contextmanager
-from typing import Dict, Optional
+from typing import Dict
 
 
 class SQLiteConnectionPool:
@@ -59,11 +59,9 @@ class SQLiteConnectionPool:
             RuntimeError: If pool is exhausted and waiters exceed max_connections
         """
         conn = None
-        acquired = False
         
         with self._lock:
             self._waiters += 1
-            acquired = True
             
             # Try to get from pool
             if self._pool:

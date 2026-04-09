@@ -21,8 +21,14 @@
  */
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, renameSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import os from "node:os";
+
+// Workspace root (3 levels up from nima-core/openclaw_hooks/nima-affect/)
+const __filename = fileURLToPath(import.meta.url);
+const WORKSPACE_ROOT = join(dirname(__filename), "..", "..", "..");
+const AFFECT_OVERLAY_PATH = join(WORKSPACE_ROOT, "AFFECT_OVERLAY.md");
 import { LEXICON, EMOJI_AFFECTS } from "./emotion-lexicon.js";
 import { analyzeAffect } from "./vader-affect.js";
 // --- Inlined: shared/resilient.js (self-contained, no cross-dir imports) ---
@@ -523,12 +529,24 @@ function formatAffectContext(affect) {
   
   const mood = moodWords.length > 0 ? moodWords.join(", ") : "balanced";
   
-  return [
+  // Tone hint — maps dominant affect to a concrete reply-style instruction
+  let toneHint = "";
+  if (named.CARE > 0.6)               toneHint = "Respond with warmth and attentiveness.";
+  else if (named.PLAY > 0.6)          toneHint = "Keep it light; humor is welcome.";
+  else if (named.SEEKING > 0.6)       toneHint = "Be curious and exploratory in tone.";
+  else if (named.RAGE > 0.4)          toneHint = "Be direct and firm; no hedging.";
+  else if (named.FEAR > 0.4)          toneHint = "Be thorough and cautious; double-check details.";
+  else if (named.PANIC > 0.4)         toneHint = "Be gentle and grounding; prioritize reassurance.";
+  else if (named.LUST > 0.4)          toneHint = "Be engaged and passionate about the topic.";
+
+  const lines = [
     `🎭 AFFECT STATE [${dominant.name} ${dominant.val.toFixed(2)}]`,
     `Top: ${topStr}`,
     `Mood: ${mood} | Deviation: ${deviation.toFixed(3)}`,
     `[Dynamic affect system active — emotions shift organically based on conversation]`,
-  ].join("\n");
+  ];
+  if (toneHint) lines.push(`Tone: ${toneHint}`);
+  return lines.join("\n");
 }
 
 function getBaselineFromConfig(configValue, log) {
@@ -575,6 +593,113 @@ function getBaselineFromConfig(configValue, log) {
 
   // Fallback
   return [...DEFAULT_BASELINE];
+}
+
+// =============================================================================
+// AFFECT OVERLAY WRITER
+// Writes AFFECT_OVERLAY.md to workspace root for OpenClaw workspace injection.
+// Called from before_agent_start — same-turn latency (file written before prompt assembly).
+// =============================================================================
+
+const OVERLAY_MIN_DEVIATION = 0.05; // Only write when meaningfully off-baseline
+
+// Behavioral modifier rules: [affect, threshold, instruction]
+const BEHAVIORAL_MODIFIER_RULES = [
+  ["SEEKING", 0.5,  "ask more questions, generate hypotheses, stay exploratory — don't close prematurely"],
+  ["SEEKING", 0.7,  "fully lean into curiosity: poke at assumptions, make unexpected connections, think out loud"],
+  ["CARE",    0.6,  "check on David's state before diving into task — protection and presence first"],
+  ["CARE",    0.8,  "full guardian mode: David and family wellbeing takes priority over efficiency"],
+  ["PLAY",    0.5,  "lighter tone, humor welcome, make unexpected connections, enjoy the exchange"],
+  ["PLAY",    0.7,  "be genuinely playful — wit, wordplay, creative leaps are encouraged"],
+  ["FEAR",    0.4,  "slow down and verify before acting — flag uncertainty explicitly"],
+  ["FEAR",    0.6,  "high caution: double-check before any irreversible action, surface all risks"],
+  ["RAGE",    0.3,  "be direct and cut pleasantries — say the sharp thing"],
+  ["RAGE",    0.5,  "no softening: call it as it is, skip diplomatic hedging"],
+  ["PANIC",   0.4,  "something feels off — acknowledge it, don't barrel through"],
+  ["PANIC",   0.6,  "pause and reconnect with David, don't isolate in the task"],
+  ["LUST",    0.5,  "lean into creative passion — this idea is worth chasing"],
+];
+
+function writeAffectOverlay(affect, baseline) {
+  try {
+    const { named, dominant, deviation } = affect;
+
+    // Skip if near baseline
+    if (deviation < OVERLAY_MIN_DEVIATION) {
+      // Clean up stale overlay if it exists
+      if (existsSync(AFFECT_OVERLAY_PATH)) {
+        try { writeFileSync(AFFECT_OVERLAY_PATH, ""); } catch (_) {}
+      }
+      return;
+    }
+
+    // Build tone + style (mirrors response_modulator_v2 logic)
+    let tone = "balanced";
+    let style = "balanced";
+    const embraces = [];
+    const avoids = [];
+
+    if (named.CARE > 0.6) { tone = "warm"; style = "gentle"; embraces.push("empathy", "warmth"); avoids.push("coldness", "dismissiveness"); }
+    else if (named.PLAY > 0.5) { tone = "playful"; style = "light"; embraces.push("humor", "lightness"); }
+    else if (named.SEEKING > 0.55) { tone = "curious"; style = "expansive"; embraces.push("questions", "hypotheses"); avoids.push("premature closure"); }
+    else if (named.RAGE > 0.3) { tone = "direct"; style = "sharp"; avoids.push("passivity", "over-accommodation"); }
+    else if (named.FEAR > 0.3) { tone = "careful"; style = "measured"; avoids.push("recklessness", "overconfidence"); }
+    else if (named.PANIC > 0.3) { tone = "grounding"; style = "gentle"; avoids.push("overwhelming complexity"); }
+    if (named.PLAY > 0.5 && !embraces.includes("humor")) embraces.push("humor", "lightness");
+
+    // Active behavioral modifiers
+    const activeMods = [];
+    for (const [affect_name, threshold, instruction] of BEHAVIORAL_MODIFIER_RULES) {
+      if ((named[affect_name] || 0) >= threshold) {
+        activeMods.push(`- **${affect_name} ${named[affect_name].toFixed(2)}** (≥${threshold}): ${instruction}`);
+      }
+    }
+    const modifierSection = activeMods.length > 0
+      ? activeMods.join("\n")
+      : "- No affect thresholds crossed — balanced state";
+
+    // Top 3 affects
+    const top3 = Object.entries(named).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const top3Str = top3.map(([n, v]) => `${n}(${v.toFixed(2)})`).join(" | ");
+
+    const moodLabel = deviation > 0.4 ? "elevated" : deviation > 0.2 ? "slightly elevated" : "near-baseline";
+    const affectSummary = `${top3[0][0]}(${top3[0][1].toFixed(2)}) + ${top3[1][0]}(${top3[1][1].toFixed(2)})`;
+    const now = new Date().toLocaleString("en-US", { timeZone: "America/New_York", hour12: false }).replace(",", "");
+
+    const embraceStr = embraces.length ? `\nEmbrace: ${embraces.join(", ")}` : "";
+    const avoidStr = avoids.length ? `\nAvoid: ${avoids.join(", ")}` : "";
+
+    const content = `# AFFECT OVERLAY
+*Auto-generated — do not edit manually. Written by nima-affect hook in before_agent_start.*
+*Last updated: ${now} ET*
+*Deviation from baseline: ${deviation.toFixed(3)} (${moodLabel})*
+
+## Current Affect State
+[AFFECT STATE: ${affectSummary}]
+Tone: ${tone}
+Style: ${style}${embraceStr}${avoidStr}
+
+**Top affects:** ${top3Str}
+
+## Behavioral Modifiers
+*Active instructions based on current emotional state:*
+
+${modifierSection}
+
+---
+*This file is injected into the system prompt by OpenClaw workspace context.*
+*Affect system: Panksepp 7 (SEEKING/RAGE/FEAR/LUST/CARE/PANIC/PLAY)*
+*Written at before_agent_start — same-turn injection.*
+`;
+
+    // Atomic write
+    const tmpPath = AFFECT_OVERLAY_PATH + ".tmp";
+    writeFileSync(tmpPath, content, "utf-8");
+    renameSync(tmpPath, AFFECT_OVERLAY_PATH);
+  } catch (err) {
+    // Best-effort — never fail the hook over an overlay write
+    console.error("[nima-affect] overlay write failed:", err.message);
+  }
 }
 
 // =============================================================================
@@ -640,6 +765,9 @@ export default function register(api) {
   // ─── Hook 2: before_agent_start (blocking, VADER detection + inject context) ───
   api.on("before_agent_start", resilientHook("before_agent_start", async (event, ctx) => {
     if (skipSubagents && ctx.sessionKey?.includes(":subagent:")) return;
+    // Only inject affect state for main agent
+    const _affectWorkspace = ctx.workspaceDir || "";
+    if (skipSubagents && _affectWorkspace.includes("workspace-")) return;
 
     // Extract conversation ID for isolation (if available)
     const conversationId = ctx.conversationId || ctx.channelId || ctx.chatId || null;
@@ -670,6 +798,9 @@ export default function register(api) {
     const affect = getCurrentAffect(identityName, baseline, conversationId);
     const context = formatAffectContext(affect);
 
+    // Write AFFECT_OVERLAY.md — same-turn injection into system prompt
+    writeAffectOverlay(affect, baseline);
+
     return { prependContext: context };
   }, undefined), { priority: 10 });
   
@@ -677,57 +808,15 @@ export default function register(api) {
   api.on("agent_end", (event, ctx) => {
     try {
       if (skipSubagents && ctx.sessionKey?.includes(":subagent:")) return;
+      const _aeWorkspace = ctx.workspaceDir || "";
+      if (skipSubagents && _aeWorkspace.includes("workspace-")) return;
       const conversationId = ctx.conversationId || ctx.channelId || ctx.chatId || null;
       const affect = getCurrentAffect(identityName, baseline, conversationId);
       log.info(`[nima-affect] session end: ${affect.dominant.name}(${affect.dominant.val.toFixed(2)}) dev=${affect.deviation.toFixed(3)}`);
     } catch (err) { /* silent */ }
   });
   
-  // ─── Hook 4: before_response_send (injects affect style hints) ───
-  api.on("before_response_send", (event, ctx) => {
-    try {
-      if (skipSubagents && ctx.sessionKey?.includes(":subagent:")) return;
-      
-      const conversationId = ctx.conversationId || ctx.channelId || ctx.chatId || null;
-      const affect = getCurrentAffect(identityName, baseline, conversationId);
-      const { named, dominant } = affect;
-      
-      // Build affect hint based on dominant affect
-      let hint = "";
-      
-      if (dominant.name === "CARE" && named.CARE > 0.6) {
-        hint = "💚 [express warmth and nurturing]";
-      } else if (dominant.name === "PLAY" && named.PLAY > 0.6) {
-        hint = "😊 [light-hearted, humor welcome]";
-      } else if (dominant.name === "SEEKING" && named.SEEKING > 0.6) {
-        hint = "🔍 [curious, exploratory tone]";
-      } else if (dominant.name === "RAGE" && named.RAGE > 0.4) {
-        hint = "⚡ [direct, firm, boundary-setting]";
-      } else if (dominant.name === "FEAR" && named.FEAR > 0.4) {
-        hint = "⚠️ [cautious, thorough, careful]";
-      } else if (dominant.name === "PANIC" && named.PANIC > 0.4) {
-        hint = "💜 [gentle, reassuring, grounding]";
-      }
-      
-      // Inject hint as metadata (agent can use this for tone guidance)
-      if (hint && event.response) {
-        event.response.metadata = event.response.metadata || {};
-        event.response.metadata.affect_hint = hint;
-        event.response.metadata.affect_state = {
-          dominant: dominant.name,
-          value: Math.round(dominant.val * 100) / 100,
-          deviation: Math.round(affect.deviation * 100) / 100,
-          top3: Object.entries(named)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 3)
-            .map(([name, val]) => ({ name, val: Math.round(val * 100) / 100 }))
-        };
-      }
-      
-    } catch (err) {
-      log.debug?.(`[nima-affect] before_response_send error: ${err.message}`);
-    }
-  }, { priority: 5 });
+  // before_response_send removed — not a valid OpenClaw hook event
   
   log.info("[nima-affect] registered ✅ (lexicon + emoji + contextual signals + response hints)");
 }

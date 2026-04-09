@@ -13,14 +13,22 @@ set -e
 
 # ── Config ────────────────────────────────────────────────────────────────────
 NIMA_HOME="${NIMA_HOME:-$HOME/.nima}"
+# Source user config to detect existing backend choice
+# Safely read NIMA_DB_BACKEND from .env (avoid sourcing arbitrary shell code)
+if [ -f "$NIMA_HOME/.env" ]; then
+    _env_val=$(grep -E "^NIMA_DB_BACKEND=" "$NIMA_HOME/.env" | tail -1 | cut -d= -f2-)
+    [ -n "$_env_val" ] && NIMA_DB_BACKEND="$_env_val"
+fi
 EXTENSIONS_DIR="$HOME/.openclaw/extensions"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKUP_DIR="$NIMA_HOME/backups/upgrade_$(date +%Y%m%d_%H%M%S)"
-VERSION="3.1.0"
+VERSION="3.3.3"
 DRY_RUN=false
 FORCE=false
 SKIP_HOOKS=false
 SKIP_DB=false
+UPDATE_ONLY=false
+BRANCH="main"
 
 for arg in "$@"; do
     case $arg in
@@ -28,6 +36,8 @@ for arg in "$@"; do
         --dry-run)   DRY_RUN=true ;;
         --skip-hooks) SKIP_HOOKS=true ;;
         --skip-db)   SKIP_DB=true ;;
+        --update)    UPDATE_ONLY=true ;;
+        --branch)    shift; BRANCH="$1" ;;
         --help|-h)
             echo "Usage: ./upgrade.sh [--force] [--dry-run] [--skip-hooks] [--skip-db]"
             echo ""
@@ -35,10 +45,25 @@ for arg in "$@"; do
             echo "  --force       Overwrite customized files (backs up first)"
             echo "  --skip-hooks  Don't touch hook files"
             echo "  --skip-db     Don't modify database schema"
+            echo "  --update      Pull latest code then run full upgrade"
+            echo "  --branch BR   Branch to pull when using --update (default: main)"
             exit 0
             ;;
     esac
 done
+
+# ── Helper: write/update a key in ~/.nima/.env ────────────────────────────────
+_set_env_var() {
+    local key="$1" val="$2" envfile="$3"
+    mkdir -p "$(dirname "$envfile")"
+    touch "$envfile"
+    if grep -q "^${key}=" "$envfile"; then
+        sed -i.bak "s|^${key}=.*|${key}=${val}|" "$envfile" && rm -f "${envfile}.bak"
+    else
+        echo "${key}=${val}" >> "$envfile"
+    fi
+}
+
 
 echo "🧠 NIMA Core Upgrade → v$VERSION"
 echo "================================="
@@ -219,16 +244,51 @@ echo ""
 if ! $SKIP_DB; then
     echo "📋 Step 5: Upgrading database schema..."
     
-    if $HAS_SQLITE; then
-        if ! $DRY_RUN; then
+    if ! $DRY_RUN; then
+        if $HAS_SQLITE; then
             # Run init_db.py — it only uses CREATE TABLE IF NOT EXISTS
             NIMA_HOME="$NIMA_HOME" python3 "$SCRIPT_DIR/scripts/init_db.py" --verbose 2>&1 | sed 's/^/   /'
-        else
+        fi
+        # Run init_ladybug.py — independent of SQLite; only when NIMA_DB_BACKEND=ladybug
+        if [ "${NIMA_DB_BACKEND:-sqlite}" = "ladybug" ]; then
+            _LADYBUG_PATH="${NIMA_LADYBUG_DB:-$LADYBUG_DB}"
+            if python3 -c "import real_ladybug" 2>/dev/null && [ -f "$_LADYBUG_PATH" ]; then
+                echo "   🗄️  Migrating LadybugDB schema (NIMA_DB_BACKEND=ladybug)..."
+                NIMA_HOME="$NIMA_HOME" python3 "$SCRIPT_DIR/scripts/init_ladybug.py" --db "$_LADYBUG_PATH" 2>&1 | sed 's/^/   /'
+            else
+                echo "   ⚠️  NIMA_DB_BACKEND=ladybug but real_ladybug not installed or .lbug not found — skipping"
+            fi
+        fi
+            # Migration offer: prompt to switch to LadybugDB if currently on SQLite
+            if [ "${NIMA_DB_BACKEND:-sqlite}" != "ladybug" ] && [ -t 0 ]; then
+                echo ""
+                echo "   💡 LadybugDB is available (not currently enabled)."
+                printf "   Migrate SQLite memories to LadybugDB? [y/N]: "
+                read -r _migrate_choice
+                case "$_migrate_choice" in
+                    [yY]|[yY][eE][sS])
+                        echo "   📦 Installing real-ladybug..."
+                        pip install real-ladybug --quiet || pip install real-ladybug --quiet --break-system-packages
+                        echo "   🗄️  Initialising LadybugDB schema..."
+                        NIMA_HOME="$NIMA_HOME" python3 "$SCRIPT_DIR/scripts/init_ladybug.py" --db "$LADYBUG_DB" 2>&1 | sed 's/^/   /'
+                        echo "   🔄 Running SQLite → LadybugDB migration..."
+                        NIMA_HOME="$NIMA_HOME" python3 "$SCRIPT_DIR/scripts/migrate_sqlite_to_ladybug.py" 2>&1 | sed 's/^/   /'
+                        _set_env_var "NIMA_DB_BACKEND" "ladybug" "$NIMA_HOME/.env"
+                        echo "   ✅ NIMA_DB_BACKEND=ladybug written to $NIMA_HOME/.env"
+                        ;;
+                    *)
+                        echo "   ⏭️  Skipped LadybugDB migration."
+                        ;;
+                esac
+            fi
+    else
+        if $HAS_SQLITE; then
             echo "   [dry-run] Would run: python3 scripts/init_db.py"
             echo "   All CREATE TABLE IF NOT EXISTS — safe on existing databases"
         fi
-    else
-        echo "   No SQLite database to upgrade"
+        if [ "${NIMA_DB_BACKEND:-sqlite}" = "ladybug" ]; then
+            echo "   [dry-run] Would run: python3 scripts/init_ladybug.py (LadybugDB column migrations)"
+        fi
     fi
 else
     echo "📋 Step 5: Skipping database (--skip-db)"

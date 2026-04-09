@@ -223,7 +223,6 @@ def detect_affect_from_text(text: str) -> Dict[str, float]:
 # ==============================================================================
 
 if __name__ == "__main__":
-    import json
     
     # Test 1: Map emotions to affects
     print("Test 1: Emotion mapping")

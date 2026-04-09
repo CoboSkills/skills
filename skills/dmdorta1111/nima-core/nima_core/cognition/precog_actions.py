@@ -22,23 +22,28 @@ API:
 """
 
 import json
-import os
+import logging
 import re
 import subprocess
 import sys
 import time
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
+
+from nima_core.config import NIMA_HOME, OPENCLAW_WORKSPACE, OPENCLAW_CONFIG
+
+logger = logging.getLogger(__name__)
 
 # ─── Config ───────────────────────────────────────────────────────────────────
-
-NIMA_HOME = Path(os.environ.get("NIMA_HOME", os.path.expanduser("~/.nima")))
+# (env var reads consolidated into nima_core/config.py)
 PREP_DIR = NIMA_HOME / "precog_prep"
 PRECOG_DB = NIMA_HOME / "memory" / "precognitions.sqlite"
 PREP_TTL = 3600 * 4  # 4 hours before prep goes stale
-WORKSPACE = Path(os.environ.get("OPENCLAW_WORKSPACE", os.path.expanduser("~/.openclaw/workspace")))
-OPENCLAW_CONFIG = Path(os.environ.get("OPENCLAW_CONFIG", os.path.expanduser("~/.openclaw/openclaw.json")))
+WORKSPACE = OPENCLAW_WORKSPACE
+MIN_PRECOG_COUNT = 1
+MIN_PRECOG_CONFIDENCE = 0.6
+MIN_ACTIONABLE_CATEGORIES = 1
+# OPENCLAW_CONFIG imported from nima_core.config above
 
 # ─── Model Tiers (capability-based, not provider-specific) ───────────────────
 #
@@ -101,7 +106,8 @@ def get_available_models() -> List[Dict]:
                     "cost_out": model.get("cost", {}).get("output", 0),
                 })
         return available
-    except Exception:
+    except (ValueError, KeyError, RuntimeError) as e:
+        logger.warning("Operation failed, returning empty list: %s", e)
         return []
 
 
@@ -282,7 +288,8 @@ def _run(cmd: List[str], timeout: int = 10) -> str:
     try:
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         return r.stdout.strip()[:500]  # Cap output
-    except Exception:
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
+        logger.warning("Command failed: %s", e)
         return ""
 
 
@@ -291,13 +298,14 @@ def _shell(cmd: str, timeout: int = 10) -> str:
     try:
         r = subprocess.run(["sh", "-c", cmd], capture_output=True, text=True, timeout=timeout)
         return r.stdout.strip()[:500]
-    except Exception:
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
+        logger.warning("Command failed: %s", e)
         return ""
 
 
 def _recall(topic: str, top: int = 3) -> str:
     """Quick recall from NIMA."""
-    recall_script = WORKSPACE / "lilu_core" / "cli" / "quick_recall.py"
+    recall_script = WORKSPACE / "nima_core" / "cli" / "quick_recall.py"
     if not recall_script.exists():
         return ""
     try:
@@ -307,14 +315,16 @@ def _recall(topic: str, top: int = 3) -> str:
         )
         # Extract just the results, skip the header
         lines = r.stdout.strip().split("\n")
-        results = [l for l in lines if l.strip() and not l.startswith("#") and not l.startswith("=")]
+        results = [line for line in lines if line.strip() and not line.startswith("#") and not line.startswith("=")]
         return "\n".join(results[:top])[:500]
-    except Exception:
+    except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError, FileNotFoundError) as e:
+        logger.warning("Command failed: %s", e)
         return ""
 
 
 # Action implementations
 def git_status() -> str:
+    """Return a short git status summary for each tracked workspace repo."""
     repos = [WORKSPACE]
     results = []
     for repo in repos:
@@ -329,27 +339,11 @@ def git_status() -> str:
 
 
 def open_prs() -> str:
+    """Return a list of the three most recent open pull requests via the ``gh`` CLI."""
     return _run(["gh", "pr", "list", "--limit", "3", "--json", "number,title", "--jq", '.[] | "#\\(.number) \\(.title)"'], timeout=10)
 
 
-def recall_coding() -> str:
-    return _recall("coding development bugs fixes")
-
-
-def recall_research() -> str:
-    return _recall("research papers neuroscience NIMA")
-
-
-def recall_marketing() -> str:
-    return _recall("marketing brand content campaign")
-
-
-def recall_ops() -> str:
-    return _recall("deploy server infrastructure")
-
-
-def recall_personal() -> str:
-    return _recall("David family personal")
+# recall_* functions -> see RECALL_TOPICS dict below for consolidated implementation
 
 
 def check_topics() -> str:
@@ -434,7 +428,8 @@ def recent_errors() -> str:
                     errors.append(line.strip()[:100])
                     if len(errors) >= 3:
                         break
-        except Exception:
+        except (ValueError, KeyError, TypeError) as e:
+            logger.debug("Skipping item due to error: %s", e)
             continue
         if len(errors) >= 3:
             break
@@ -504,43 +499,61 @@ def load_design_system() -> str:
     return " | ".join(f.name for f in files[:5]) if files else ""
 
 
-# ─── Recall functions for new categories ─────────────────────────────────────
+# Recall topic registry (replaces 17 identical one-liner functions)
 
-def recall_architecture() -> str:
-    return _recall("architecture system design API schema")
+RECALL_TOPICS: dict[str, str] = {
+    "coding":         "coding development bugs fixes",
+    "research":       "research papers neuroscience NIMA",
+    "marketing":      "marketing brand content campaign",
+    "ops":            "deploy server infrastructure",
+    "personal":       "David family personal",
+    "architecture":   "architecture system design API schema",
+    "debugging":      "debug error fix traceback exception",
+    "learning":       "learning tutorial concept explain",
+    "content":        "blog article content writing editorial",
+    "creative":       "design brand visual creative mockup",
+    "business":       "business strategy revenue product roadmap",
+    "finance":        "finance budget cost invoice expense",
+    "sales":          "sales deal pipeline prospect outreach",
+    "security":       "security auth vulnerability audit permission",
+    "data":           "data analytics dashboard SQL query report",
+    "communication":  "meeting email agenda presentation sync",
+    "philosophy":     "philosophy theology consciousness meaning soul",
+}
 
-def recall_debugging() -> str:
-    return _recall("debug error fix traceback exception")
 
-def recall_learning() -> str:
-    return _recall("learning tutorial concept explain")
+def recall_topic(topic: str) -> str:
+    """Recall memories by topic name. Replaces 17 identical one-liner functions."""
+    keywords = RECALL_TOPICS.get(topic, topic)
+    return _recall(keywords)
 
-def recall_content() -> str:
-    return _recall("blog article content writing editorial")
 
-def recall_creative() -> str:
-    return _recall("design brand visual creative mockup")
+def _make_recall(t: str):
+    """Generate a backward-compatible per-topic shim."""
+    def _recall_fn() -> str:
+        """Return recent memories for topic ``{t}``."""
+        return recall_topic(t)
+    _recall_fn.__name__ = f"recall_{t}"
+    return _recall_fn
 
-def recall_business() -> str:
-    return _recall("business strategy revenue product roadmap")
 
-def recall_finance() -> str:
-    return _recall("finance budget cost invoice expense")
-
-def recall_sales() -> str:
-    return _recall("sales deal pipeline prospect outreach")
-
-def recall_security() -> str:
-    return _recall("security auth vulnerability audit permission")
-
-def recall_data() -> str:
-    return _recall("data analytics dashboard SQL query report")
-
-def recall_communication() -> str:
-    return _recall("meeting email agenda presentation sync")
-
-def recall_philosophy() -> str:
-    return _recall("philosophy theology consciousness meaning soul")
+recall_coding        = _make_recall("coding")
+recall_research      = _make_recall("research")
+recall_marketing     = _make_recall("marketing")
+recall_ops           = _make_recall("ops")
+recall_personal      = _make_recall("personal")
+recall_architecture  = _make_recall("architecture")
+recall_debugging     = _make_recall("debugging")
+recall_learning      = _make_recall("learning")
+recall_content       = _make_recall("content")
+recall_creative      = _make_recall("creative")
+recall_business      = _make_recall("business")
+recall_finance       = _make_recall("finance")
+recall_sales         = _make_recall("sales")
+recall_security      = _make_recall("security")
+recall_data          = _make_recall("data")
+recall_communication = _make_recall("communication")
+recall_philosophy    = _make_recall("philosophy")
 
 
 ACTION_MAP = {
@@ -595,6 +608,59 @@ ACTION_MAP = {
 }
 
 
+def get_useful_precognitions() -> List[Dict]:
+    """Return only precognitions strong enough to justify prep work."""
+    useful = []
+    for precog in get_active_precognitions():
+        confidence = float(precog.get("confidence", 0.0) or 0.0)
+        if confidence < MIN_PRECOG_CONFIDENCE:
+            continue
+        useful.append(precog)
+    return useful
+
+
+def assess_prepare_readiness() -> Dict[str, Any]:
+    """Assess whether precognitive prep has enough useful signal to run."""
+    active = get_active_precognitions()
+    useful = get_useful_precognitions()
+    categories = set()
+    for precog in useful:
+        categories.update(classify(precog.get("prediction_text", "")))
+
+    if len(active) < MIN_PRECOG_COUNT:
+        return {
+            "ready": False,
+            "reason": f"no active precognitions ({len(active)}/{MIN_PRECOG_COUNT})",
+            "active_count": len(active),
+            "useful_count": len(useful),
+            "categories": [],
+        }
+    if not useful:
+        return {
+            "ready": False,
+            "reason": f"no precognitions above confidence threshold ({MIN_PRECOG_CONFIDENCE:.0%})",
+            "active_count": len(active),
+            "useful_count": 0,
+            "categories": [],
+        }
+    if len(categories) < MIN_ACTIONABLE_CATEGORIES:
+        return {
+            "ready": False,
+            "reason": f"no actionable preparation categories ({len(categories)}/{MIN_ACTIONABLE_CATEGORIES})",
+            "active_count": len(active),
+            "useful_count": len(useful),
+            "categories": sorted(categories),
+        }
+    return {
+        "ready": True,
+        "reason": "ok",
+        "active_count": len(active),
+        "useful_count": len(useful),
+        "categories": sorted(categories),
+        "precogs": useful,
+    }
+
+
 # ─── Core API ────────────────────────────────────────────────────────────────
 
 def get_active_precognitions() -> List[Dict]:
@@ -615,7 +681,8 @@ def get_active_precognitions() -> List[Dict]:
         """).fetchall()
         conn.close()
         return [dict(r) for r in rows]
-    except Exception:
+    except (ValueError, KeyError, RuntimeError) as e:
+        logger.warning("Operation failed, returning empty list: %s", e)
         return []
 
 
@@ -623,9 +690,18 @@ def prepare() -> Dict:
     """Run all preparation actions based on active precognitions."""
     PREP_DIR.mkdir(parents=True, exist_ok=True)
     
-    precogs = get_active_precognitions()
-    if not precogs:
-        return {"status": "no_predictions", "actions": []}
+    readiness = assess_prepare_readiness()
+    if not readiness.get("ready"):
+        return {
+            "status": "no_signal",
+            "reason": readiness.get("reason", "not ready"),
+            "active_count": readiness.get("active_count", 0),
+            "useful_count": readiness.get("useful_count", 0),
+            "categories": readiness.get("categories", []),
+            "actions": {},
+        }
+
+    precogs = readiness.get("precogs", [])
     
     # Classify all predictions
     all_categories = set()
@@ -684,6 +760,16 @@ def prepare() -> Dict:
         "precog_count": len(precogs),
     }
     
+    if not results:
+        return {
+            "status": "no_signal",
+            "reason": "no actionable preparation work produced output",
+            "active_count": readiness.get("active_count", 0),
+            "useful_count": readiness.get("useful_count", 0),
+            "categories": list(all_categories),
+            "actions": {},
+        }
+
     cache_path = PREP_DIR / "latest.json"
     cache_path.write_text(json.dumps(prep, indent=2))
     
@@ -698,7 +784,8 @@ def get_prep_context() -> Optional[str]:
     
     try:
         prep = json.loads(cache_path.read_text())
-    except Exception:
+    except (ValueError, KeyError, RuntimeError) as e:
+        logger.warning("Operation failed: %s", e)
         return None
     
     # Check TTL
@@ -725,7 +812,12 @@ def status() -> str:
     """Show current prep status."""
     cache_path = PREP_DIR / "latest.json"
     if not cache_path.exists():
-        return "No preparation cached."
+        readiness = assess_prepare_readiness()
+        return (
+            "No preparation cached. "
+            f"Current readiness: {readiness.get('reason')} "
+            f"(active={readiness.get('active_count', 0)}, useful={readiness.get('useful_count', 0)})."
+        )
     
     prep = json.loads(cache_path.read_text())
     age_min = (int(time.time()) - prep.get("timestamp", 0)) / 60
@@ -761,11 +853,13 @@ def clear():
 # ─── CLI ──────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
     cmd = sys.argv[1] if len(sys.argv) > 1 else "prepare"
     
     if cmd == "prepare":
         result = prepare()
-        print(json.dumps(result, indent=2))
+        if result.get("status") != "no_signal":
+            print(json.dumps(result, indent=2))
     elif cmd == "status":
         print(status())
     elif cmd == "clear":

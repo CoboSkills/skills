@@ -36,9 +36,11 @@ import logging
 import math
 import os
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
+
+from nima_core.llm_config import resolve_llm_config
 
 logger = logging.getLogger(__name__)
 
@@ -79,9 +81,9 @@ class LucidMoments:
     def __init__(
         self,
         db_path: Optional[str] = None,
-        llm_base_url: str = "https://api.openai.com/v1",
+        llm_base_url: Optional[str] = None,
         llm_api_key: Optional[str] = None,
-        llm_model: str = "gpt-4o-mini",
+        llm_model: Optional[str] = None,
         delivery_callback: Optional[Callable[[str], None]] = None,
         state_path: Optional[str] = None,
         suppression_path: Optional[str] = None,
@@ -92,13 +94,15 @@ class LucidMoments:
         warm_keywords: Optional[List[str]] = None,
         persona_prompt: Optional[str] = None,
         trauma_keywords: Optional[List[str]] = None,
+        min_total_memories: int = 25,
+        min_candidate_count: int = 3,
     ):
         """
         Args:
             db_path:            LadybugDB path (.lbug). Required for memory selection.
-            llm_base_url:       OpenAI-compatible LLM endpoint.
-            llm_api_key:        API key. Falls back to OPENAI_API_KEY env var.
-            llm_model:          Model for enrichment (a small/fast model is fine).
+            llm_base_url:       LLM endpoint override. Defaults to resolved NIMA_LLM_BASE_URL.
+            llm_api_key:        API key override. Defaults to the resolved canonical LLM API key.
+            llm_model:          Model override. Defaults to the resolved canonical LLM model.
             delivery_callback:  Function to call with the enriched flashback text.
                                 If None, the text is returned but not delivered.
             state_path:         Path to persist surfacing state (prevents repeats).
@@ -114,9 +118,10 @@ class LucidMoments:
             trauma_keywords:    Override the default list of keywords that block surfacing.
         """
         self.db_path = str(Path(db_path).expanduser()) if db_path else None
-        self.llm_base_url = llm_base_url.rstrip("/")
-        self.llm_api_key = llm_api_key or os.environ.get("OPENAI_API_KEY", "")
-        self.llm_model = llm_model
+        llm_config = resolve_llm_config(api_key=llm_api_key, model=llm_model, base_url=llm_base_url)
+        self.llm_base_url = llm_config.base_url
+        self.llm_api_key = llm_config.api_key
+        self.llm_model = llm_config.model
         self.delivery_callback = delivery_callback
         self.state_path = Path(state_path or self.DEFAULT_STATE_PATH).expanduser()
         self.suppression_path = Path(suppression_path).expanduser() if suppression_path else None
@@ -133,6 +138,8 @@ class LucidMoments:
             "You are an AI assistant with deep memory. A memory just surfaced spontaneously."
         )
         self.trauma_keywords = trauma_keywords or _TRAUMA_KEYWORDS
+        self.min_total_memories = max(1, int(min_total_memories))
+        self.min_candidate_count = max(1, int(min_candidate_count))
 
     # ── State ─────────────────────────────────────────────────────────────────
 
@@ -225,11 +232,20 @@ class LucidMoments:
 
     # ── Selection ─────────────────────────────────────────────────────────────
 
-    def select_candidate(self) -> Optional[dict]:
-        """Query LadybugDB and pick the best memory for a lucid moment."""
+    def inspect_candidate_pool(self) -> Dict[str, object]:
+        """Inspect lucid-memory readiness and candidate pool details."""
+        report: Dict[str, object] = {
+            "ready": False,
+            "reason": "unknown",
+            "total_memories": 0,
+            "eligible_candidates": 0,
+            "candidate": None,
+            "top_candidates": [],
+        }
+
         if not HAS_LADYBUG or not self.db_path:
-            logger.warning("LadybugDB not available")
-            return None
+            report["reason"] = "memory database unavailable"
+            return report
 
         suppressed = self._get_suppressed_ids()
         state = self._load_state()
@@ -243,16 +259,21 @@ class LucidMoments:
             pass
 
         try:
-            rows = conn.execute(
+            rows = list(conn.execute(
                 'MATCH (n:MemoryNode) '
                 'WHERE n.is_ghost = false AND n.layer IN ["contemplation", "episodic", "legacy_vsa"] '
                 'RETURN n.id, n.text, n.timestamp, n.layer '
                 'LIMIT 3000'
-            )
-            rows = list(rows)
+            ))
         except Exception as e:
             logger.error(f"Candidate query failed: {e}")
-            return None
+            report["reason"] = "candidate query failed"
+            return report
+
+        report["total_memories"] = len(rows)
+        if len(rows) < self.min_total_memories:
+            report["reason"] = f"insufficient memory history ({len(rows)}/{self.min_total_memories})"
+            return report
 
         candidates = []
         for row in rows:
@@ -269,24 +290,38 @@ class LucidMoments:
             if score > 0.1:
                 candidates.append({"id": int(mid), "text": str(text or ""), "timestamp": ts, "score": score})
 
-        if not candidates:
-            return None
+        report["eligible_candidates"] = len(candidates)
+        if len(candidates) < self.min_candidate_count:
+            report["reason"] = (
+                f"not enough eligible memories after filtering ({len(candidates)}/{self.min_candidate_count})"
+            )
+            report["top_candidates"] = sorted(candidates, key=lambda x: x["score"], reverse=True)[:3]
+            return report
 
         top = sorted(candidates, key=lambda x: x["score"], reverse=True)[:10]
         weights = [c["score"] for c in top]
         total = sum(weights)
-        weights = [w / total for w in weights]
-        return random.choices(top, weights=weights, k=1)[0]
+        if total <= 0:
+            report["reason"] = "candidate scores too weak"
+            report["top_candidates"] = top[:3]
+            return report
+
+        chosen = random.choices(top, weights=[w / total for w in weights], k=1)[0]
+        report["ready"] = True
+        report["reason"] = "ok"
+        report["candidate"] = chosen
+        report["top_candidates"] = top[:3]
+        return report
+
+    def select_candidate(self) -> Optional[dict]:
+        """Query LadybugDB and pick the best memory for a lucid moment."""
+        report = self.inspect_candidate_pool()
+        return report.get("candidate") if report.get("ready") else None
 
     # ── Enrichment ────────────────────────────────────────────────────────────
 
     def enrich(self, memory: dict) -> Optional[str]:
         """Transform a raw memory dict into a natural flashback message via LLM."""
-        import urllib.request
-
-        if not self.llm_api_key:
-            return memory.get("text", "")[:300]
-
         memory_date = datetime.fromtimestamp(
             float(memory.get("timestamp", 0)) / 1000
         ).strftime("%B %d, %Y")
@@ -299,31 +334,16 @@ class LucidMoments:
             "Be specific, warm, and genuine. No formal framing. Just the moment."
         )
 
-        payload = json.dumps(
-            {
-                "model": self.llm_model,
-                "max_tokens": 150,
-                "messages": [
-                    {"role": "system", "content": self.persona_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-            }
-        ).encode()
-        req = urllib.request.Request(
-            f"{self.llm_base_url}/chat/completions",
-            data=payload,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.llm_api_key}",
-            },
-            method="POST",
-        )
         try:
-            with urllib.request.urlopen(req, timeout=20) as r:
-                return json.loads(r.read())["choices"][0]["message"]["content"].strip()
+            from nima_core.llm_client import llm_complete
+            result = llm_complete(user_prompt, max_tokens=150, system=self.persona_prompt)
+            return result or memory.get("text", "")[:300]
+        except ImportError:
+            logger.info("LLM enrichment disabled: failed to import LLM client")
+            return memory.get("text", "")[:300]
         except Exception as e:
             logger.error(f"Enrichment failed: {e}")
-            return memory.get("text", "")[:300]
+        return memory.get("text", "")[:300]
 
     # ── Main Entry Point ──────────────────────────────────────────────────────
 
@@ -339,9 +359,10 @@ class LucidMoments:
             logger.debug(f"Lucid moment skipped: {reason}")
             return None
 
-        candidate = self.select_candidate()
+        candidate_report = self.inspect_candidate_pool()
+        candidate = candidate_report.get("candidate") if candidate_report.get("ready") else None
         if not candidate:
-            logger.debug("No suitable candidate found")
+            logger.debug(f"No lucid moment surfaced: {candidate_report.get('reason', 'no suitable candidate')}")
             return None
 
         enriched = self.enrich(candidate)
@@ -368,7 +389,8 @@ class LucidMoments:
 
     def force_surface(self) -> Optional[str]:
         """Surface a memory immediately, ignoring timing gates."""
-        candidate = self.select_candidate()
+        candidate_report = self.inspect_candidate_pool()
+        candidate = candidate_report.get("candidate") if candidate_report.get("ready") else None
         if not candidate:
             return None
         enriched = self.enrich(candidate)
@@ -383,8 +405,7 @@ __all__ = ["LucidMoments"]
 def main():
     """CLI entry point: nima-lucid-moments"""
     import argparse
-    import os
-
+    
     logging.basicConfig(level=logging.WARNING)
 
     parser = argparse.ArgumentParser(description="NIMA Lucid Memory Moments — surface memories spontaneously")
@@ -393,13 +414,15 @@ def main():
     parser.add_argument("--dry-run",  action="store_true", help="Select + enrich but don't deliver")
     parser.add_argument("--db",       default=None,        help="Path to LadybugDB file")
     parser.add_argument("--api-key",  default=None,        help="LLM API key")
-    parser.add_argument("--api-url",  default="https://api.openai.com/v1", help="LLM base URL")
-    parser.add_argument("--model",    default="gpt-4o-mini", help="LLM model for enrichment")
+    parser.add_argument("--api-url",  default=None, help="LLM base URL override (defaults to NIMA_LLM_BASE_URL)")
+    parser.add_argument("--model",    default=None, help="LLM model override (defaults to NIMA_LLM_MODEL)")
+    parser.add_argument("--min-total-memories", type=int, default=25, help="Minimum memory count required before surfacing")
+    parser.add_argument("--min-candidate-count", type=int, default=3, help="Minimum eligible candidate count required after filtering")
     args = parser.parse_args()
 
     nima_home = os.environ.get("NIMA_HOME", os.path.expanduser("~/.nima"))
     db_path   = args.db or os.path.join(nima_home, "memory", "ladybug.lbug")
-    api_key   = args.api_key or os.environ.get("OPENAI_API_KEY") or os.environ.get("NIMA_LLM_API_KEY")
+    api_key   = args.api_key
 
     delivered_text = []
 
@@ -420,17 +443,22 @@ def main():
         llm_api_key=api_key or "",
         llm_model=args.model,
         delivery_callback=capture_or_print,
+        min_total_memories=args.min_total_memories,
+        min_candidate_count=args.min_candidate_count,
     )
 
     if args.status:
         ok, reason = lm._is_good_timing()
-        print(f"{'Ready ✅' if ok else '⏸ Not ready'}: {reason}")
-        candidate = lm.select_candidate()
+        pool = lm.inspect_candidate_pool()
+        ready = ok and bool(pool.get("ready"))
+        print(f"{'Ready ✅' if ready else '⏸ Not ready'}: {reason if not ok else pool.get('reason', 'ok')}")
+        print(f"Memory pool: {pool.get('total_memories', 0)} total | {pool.get('eligible_candidates', 0)} eligible")
+        candidate = pool.get("candidate")
         if candidate:
             preview = (candidate.get("text") or "")[:80].replace("\n", " ")
             print(f"Candidate: [{candidate.get('id')}] {preview}...")
         else:
-            print("No suitable candidate found.")
+            print("No useful lucid signal yet.")
         return
 
     if args.force:
@@ -440,13 +468,14 @@ def main():
 
     if not result:
         if args.dry_run:
-            candidate = lm.select_candidate()
+            pool = lm.inspect_candidate_pool()
+            candidate = pool.get("candidate")
             if candidate:
                 print(f"[DRY RUN] Candidate: {candidate.get('text', '')[:120]}")
             else:
-                print("⏸ No suitable candidate found or timing not right.")
+                print("⏸ No lucid signal yet (timing gate or readiness threshold not met).")
         else:
-            print("⏸ No lucid moment surfaced (timing or no candidate).")
+            pass
     elif args.dry_run:
         preview = delivered_text[-1] if delivered_text else result
         print(f"[DRY RUN] Would deliver:\n{preview}")

@@ -18,6 +18,10 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import os from "node:os";
 
+// Process guard - prevent multiple gateways
+import { acquireGatewayLock } from "./process_guard.js";
+acquireGatewayLock();
+
 // ESM __dirname polyfill
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -32,6 +36,34 @@ const COOLDOWN_MS = 10000; // Reduced from 30s for more responsive conversations
 const MAX_QUERY_CHARS = 300;
 const FTS_ONLY_MODE = false; // Hybrid mode: FTS first, then Voyage if needed (uses pre-computed index)
 const USE_LADYBUG = true; // LadybugDB backend (13K+ memories) — multi-word CONTAINS bug fixed
+
+// ─── Adaptive Threshold (Trajectory Engineering) ──────────────────────────
+// As context fills toward compaction ("dumb zone"), lower the push trigger
+// threshold so relevant memories surface more aggressively.
+// Inspired by: "The 3 Levels of Context Engineering" (Roman, 2026)
+
+/**
+ * Compute effective push-trigger threshold based on context fill level.
+ * @param {number} base      - Configured base threshold (default 0.72)
+ * @param {number|null} pct  - Context fill 0–1 (null = unknown → use base)
+ */
+function adaptiveThreshold(base, pct) {
+  if (pct == null || pct < 0.50) return base;
+  if (pct >= 0.85) return Math.max(0.45, base - 0.27);
+  if (pct >= 0.70) return Math.max(0.52, base - 0.18);
+  if (pct >= 0.55) return Math.max(0.58, base - 0.12);
+  return base;
+}
+
+/**
+ * Compute effective max_surfaces based on context fill level.
+ * More surfaces as context approaches compaction.
+ */
+function adaptiveMaxSurfaces(base, pct) {
+  if (pct == null || pct < 0.70) return base;
+  if (pct >= 0.85) return base + 2;
+  return base + 1;
+}
 
 // Session-level memory tracking for deduplication and budget
 const SESSION_MEMORY_IDS = new Set();
@@ -608,6 +640,7 @@ export const metadata = {
 export default function nimaRecallLivePlugin(api, config) {
   const log = api.log || console;
   const skipSubagents = config?.skipSubagents !== false;
+  const allowSubagentRecall = config?.allowSubagentRecall === true;
   
   log.info?.("[nima-recall-live] Live recall hook loaded");
   
@@ -641,9 +674,21 @@ export default function nimaRecallLivePlugin(api, config) {
       console.error(`[nima-recall-live] event.prompt type: ${typeof event?.prompt}, length: ${event?.prompt?.length || 0}`);
       console.error(`[nima-recall-live] event.prompt first 200: ${String(event?.prompt || "").substring(0, 200)}`);
       
-      // Skip subagents and heartbeats
+      // Skip subagents, non-main agents, and heartbeats
       if (skipSubagents && ctx.sessionKey?.includes(":subagent:")) return;
       if (ctx.sessionKey?.includes("heartbeat")) return;
+      // Only inject NIMA memories for the main agent — sub-agents have their own identity
+      // Use sessionKey parsing as source of truth (ctx.agentId may be wrong for named agents)
+      const agentIdFromSession = ctx.sessionKey?.split(":")?.[1] || "main";
+      const agentId = agentIdFromSession;
+      // Use workspaceDir to identify subagents — more reliable than sessionKey/agentId
+      const workspaceDir = ctx.workspaceDir || "";
+      const isSubagent = workspaceDir.includes("workspace-");
+      console.error(`[nima-recall-live] agentId check: ctx.agentId=${ctx.agentId}, sessionKey=${ctx.sessionKey}, workspaceDir=${workspaceDir}, isSubagent=${isSubagent}`);
+      if (skipSubagents && isSubagent && !allowSubagentRecall) {
+        console.error(`[nima-recall-live] SKIP: subagent workspace detected: ${workspaceDir}`);
+        return;
+      }
       
       const userMessage = extractUserMessage(event.prompt);
       console.error(`[nima-recall-live] extracted userMessage (${userMessage.length}): ${userMessage.substring(0, 100)}`);
@@ -733,13 +778,28 @@ export default function nimaRecallLivePlugin(api, config) {
       const pushCfg = config?.push_triggers || {};
       if (pushCfg.enabled === false) return;
 
-      const threshold   = typeof pushCfg.threshold    === 'number' ? pushCfg.threshold    : 0.72;
-      const maxSurfaces = typeof pushCfg.max_surfaces === 'number' ? pushCfg.max_surfaces : 2;
-      const minAgeMs    = (typeof pushCfg.min_age_hours === 'number' ? pushCfg.min_age_hours : 1) * 60 * 60 * 1000;
+      const baseThreshold   = typeof pushCfg.threshold    === 'number' ? pushCfg.threshold    : 0.72;
+      const baseMaxSurfaces = typeof pushCfg.max_surfaces === 'number' ? pushCfg.max_surfaces : 2;
+      const minAgeMs        = (typeof pushCfg.min_age_hours === 'number' ? pushCfg.min_age_hours : 1) * 60 * 60 * 1000;
 
-      // Skip subagents and heartbeats
+      // Adaptive: lower threshold + raise surface count as context fills
+      const contextPct = event.contextPercent ?? event.context_percent ??
+        (event.tokenCount && event.maxTokens ? event.tokenCount / event.maxTokens : null);
+      const threshold   = adaptiveThreshold(baseThreshold, contextPct);
+      const maxSurfaces = adaptiveMaxSurfaces(baseMaxSurfaces, contextPct);
+
+      if (contextPct != null && threshold !== baseThreshold) {
+        console.error(`[nima-recall-live] 📈 Adaptive threshold: ${baseThreshold} → ${threshold.toFixed(2)} (context ${(contextPct*100).toFixed(0)}%)`);
+      }
+
+      // Skip subagents, non-main agents, and heartbeats
       if (ctx.sessionKey?.includes(":subagent:")) return;
       if (ctx.sessionKey?.includes("heartbeat")) return;
+      const _compWorkspace = ctx.workspaceDir || "";
+      if (_compWorkspace.includes("workspace-")) {
+        console.error(`[nima-recall-live] SKIP compaction: subagent workspace ${_compWorkspace}`);
+        return;
+      }
 
       const userMessage = extractUserMessage(event.prompt);
       if (!userMessage || userMessage.length < 20) return;
@@ -795,16 +855,39 @@ export default function nimaRecallLivePlugin(api, config) {
     }
   }, { priority: 16 }); // Runs right after recall hook (priority 15)
   
-  // Register before_compaction handler for memory flush
+  // Register before_compaction handler for memory flush + trajectory checkpoint
   api.on("before_compaction", async (event, ctx) => {
     console.error(`[nima-recall-live] 🔄 PRE-COMPACTION HOOK FIRED`);
-    console.error(`[nima-recall-live] event: ${JSON.stringify(event || {})}`);
-    
-    // Signal that the hook fired successfully
-    // The actual memory flush is handled by the HEARTBEAT.md workflow
-    // This hook ensures we have a chance to preserve context before compaction
-    return { 
-      message: "Pre-compaction memory flush. Store durable memories now (use memory/YYYY-MM-DD.md; create memory/ if needed). If nothing to store, reply with NO_REPLY."
+
+    // Build trajectory checkpoint: surface top memories for current topic
+    // so the model picks up with direction, not just history
+    let trajectoryBlock = '';
+    try {
+      const promptText = typeof event?.prompt === 'string' ? event.prompt : '';
+      const topic = extractUserMessage(promptText);
+
+      if (topic && topic.length > 15) {
+        const result = await quickRecall(topic);
+        const mems = Array.isArray(result) ? result : (result?.memories || []);
+        if (mems.length > 0) {
+          const topSnippets = mems.slice(0, 3)
+            .map(m => (m.content || m.text || m.summary || '').slice(0, 100).trim())
+            .filter(Boolean)
+            .join(' | ');
+          trajectoryBlock =
+            `\n\n[TRAJECTORY CHECKPOINT — pre-compaction]\n` +
+            `Current focus: ${topic.slice(0, 150)}\n` +
+            `Relevant memory: ${topSnippets}\n` +
+            `[Resume from this trajectory after compaction]`;
+        }
+      }
+    } catch (e) {
+      // Silent fail — never block compaction
+      console.error(`[nima-recall-live] trajectory checkpoint error (non-fatal): ${e.message}`);
+    }
+
+    return {
+      message: `Pre-compaction memory flush. Store durable memories now (use memory/YYYY-MM-DD.md; create memory/ if needed). IMPORTANT: If the file already exists, APPEND new content only and do not overwrite existing entries. If nothing to store, reply with NO_REPLY.${trajectoryBlock}`
     };
   }, { priority: 10 });
 }

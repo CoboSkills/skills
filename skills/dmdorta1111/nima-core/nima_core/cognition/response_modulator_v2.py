@@ -17,14 +17,14 @@ Author: NIMA Core Team
 Date: Feb 13, 2026
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Any
 from dataclasses import dataclass
 import numpy as np
 
 try:
-    from .dynamic_affect import DynamicAffectSystem, AffectVector, AFFECTS
+    from .dynamic_affect import DynamicAffectSystem
 except ImportError:
-    from dynamic_affect import DynamicAffectSystem, AffectVector, AFFECTS
+    from dynamic_affect import DynamicAffectSystem
 
 
 @dataclass
@@ -304,7 +304,6 @@ if __name__ == "__main__":
         from .dynamic_affect import DynamicAffectSystem
     except ImportError:
         from dynamic_affect import DynamicAffectSystem
-    import json
     
     print("Testing GenericResponseModulator\n")
     

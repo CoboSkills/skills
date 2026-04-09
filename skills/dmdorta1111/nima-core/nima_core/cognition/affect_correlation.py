@@ -11,13 +11,15 @@ Author: NIMA Core Team
 Date: Feb 13, 2026
 """
 
-import math
 import threading
 from collections import deque
 import numpy as np
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass
+from typing import Dict, List, Tuple, Any, TYPE_CHECKING
 from time import time as get_time
+
+if TYPE_CHECKING:
+    from .affect_history import AffectHistory
 
 
 # Panksepp 7-affect order
@@ -90,6 +92,41 @@ class AffectCorrelation:
         with self._lock:
             self._transitions.append(transition)
     
+    def _collect_trigger_correlations(
+        self,
+        transitions: list,
+        target_idx: int,
+    ) -> Dict[str, List[Tuple[float, float]]]:
+        """Collect (input_val, delta) pairs for each input affect from transitions."""
+        correlations: Dict[str, List[Tuple[float, float]]] = {}
+        for trans in transitions:
+            delta = trans.to_values[target_idx] - trans.from_values[target_idx]
+            if delta <= 0:
+                continue
+            for input_name, input_val in trans.input_affects.items():
+                if input_val < 0.1:
+                    continue
+                correlations.setdefault(input_name, []).append((input_val, delta))
+        return correlations
+
+    def _rank_correlations(
+        self,
+        correlations: Dict[str, List[Tuple[float, float]]],
+        min_samples: int,
+        min_correlation: float,
+    ) -> List[Tuple[str, float, int]]:
+        """Convert raw correlation buckets to ranked result tuples."""
+        results: List[Tuple[str, float, int]] = []
+        for input_name, pairs in correlations.items():
+            if len(pairs) < min_samples:
+                continue
+            avg_input = sum(p[0] for p in pairs) / len(pairs)
+            avg_delta = sum(p[1] for p in pairs) / len(pairs)
+            strength = avg_delta / (avg_input + 0.01)
+            if strength > min_correlation:
+                results.append((input_name, round(strength, 3), len(pairs)))
+        return sorted(results, key=lambda x: x[1], reverse=True)
+
     def analyze_triggers(
         self,
         target_affect: str,
@@ -98,12 +135,12 @@ class AffectCorrelation:
     ) -> List[Tuple[str, float, int]]:
         """
         Analyze which input patterns trigger a target affect.
-        
+
         Args:
             target_affect: Name of affect to analyze (e.g., "CARE", "FEAR")
             min_samples: Minimum samples needed for correlation
             min_correlation: Minimum correlation to include in results
-        
+
         Returns:
             List of (input_pattern, correlation_strength, sample_count)
             sorted by correlation strength
@@ -111,54 +148,12 @@ class AffectCorrelation:
         target_idx = AFFECT_INDEX.get(target_affect.upper())
         if target_idx is None:
             return []
-        
-        # Collect correlation data under lock
-        correlations: Dict[str, List[Tuple[float, float]]] = {}
-        
+
         with self._lock:
-            # Snapshot transitions for thread-safe iteration
             transitions = list(self._transitions)
-        
-        for trans in transitions:
-            # Calculate change in target affect
-            delta = trans.to_values[target_idx] - trans.from_values[target_idx]
-            
-            # Only analyze increases
-            if delta <= 0:
-                continue
-            
-            # Correlate each input affect with this change
-            for input_name, input_val in trans.input_affects.items():
-                if input_val < 0.1:  # Threshold for significance
-                    continue
-                
-                if input_name not in correlations:
-                    correlations[input_name] = []
-                
-                correlations[input_name].append((input_val, delta))
-        
-        # Calculate correlation strength for each input
-        results: List[Tuple[str, float, int]] = []
-        
-        for input_name, pairs in correlations.items():
-            if len(pairs) < min_samples:
-                continue
-            
-            inputs = [p[0] for p in pairs]
-            deltas = [p[1] for p in pairs]
-            
-            # Correlation: avg change / avg input intensity
-            avg_input = sum(inputs) / len(inputs)
-            avg_delta = sum(deltas) / len(deltas)
-            
-            # Normalized correlation strength
-            strength = avg_delta / (avg_input + 0.01)
-            
-            if strength > min_correlation:
-                results.append((input_name, round(strength, 3), len(pairs)))
-        
-        # Sort by strength
-        return sorted(results, key=lambda x: x[1], reverse=True)
+
+        correlations = self._collect_trigger_correlations(transitions, target_idx)
+        return self._rank_correlations(correlations, min_samples, min_correlation)
     
     def analyze_sensitivity(self) -> Dict[str, float]:
         """

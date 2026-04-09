@@ -1,375 +1,314 @@
 ---
 name: nima-core
-description: "Noosphere Integrated Memory Architecture — Complete cognitive stack for AI agents: persistent memory, emotional intelligence, dream consolidation, hive mind, precognitive recall, and lucid moments. 4 embedding providers, LadybugDB graph backend, zero-config install. nima-core.ai"
-version: 3.2.0
-metadata:
-  {
-    "openclaw": {
-      "emoji": "🧠",
-      "source": "https://github.com/lilubot/nima-core",
-      "homepage": "https://nima-core.ai",
-      "requires": { "bins": ["python3", "node"] },
-      "install": [
-        {
-          "id": "shell",
-          "kind": "shell",
-          "script": "install.sh",
-          "label": "Install NIMA Core (creates ~/.nima, pip-installs dependencies, copies OpenClaw hooks)"
-        }
-      ],
-      "permissions": {
-        "reads":   ["~/.nima/", "~/.openclaw/extensions/nima-*/"],
-        "writes":  ["~/.nima/", "~/.openclaw/extensions/nima-*/"],
-        "network": [
-          "voyage.ai (only if NIMA_EMBEDDER=voyage)",
-          "openai.com (only if NIMA_EMBEDDER=openai or ANTHROPIC_API_KEY set)",
-          "anthropic.com (only if ANTHROPIC_API_KEY set — memory pruner)"
-        ]
-      },
-      "optional_env": {
-        "NIMA_DATA_DIR":         "Override default ~/.nima data directory",
-        "NIMA_EMBEDDER":         "voyage|openai|ollama|local (default: local — zero external calls)",
-        "VOYAGE_API_KEY":        "Required when NIMA_EMBEDDER=voyage",
-        "OPENAI_API_KEY":        "Required when NIMA_EMBEDDER=openai",
-        "NIMA_OLLAMA_MODEL":     "Model name when NIMA_EMBEDDER=ollama",
-        "NIMA_VOICE_TRANSCRIBER":"whisper|local (for voice notes)",
-        "WHISPER_MODEL":         "tiny|base|small|medium|large",
-        "ANTHROPIC_API_KEY":     "For memory pruner LLM distillation (opt-in only)",
-        "HIVE_ENABLED":          "1 to enable multi-agent memory sharing via shared DB",
-        "HIVE_REDIS_URL":        "Redis URL for real-time hive pub/sub (optional, HIVE_ENABLED=1)"
-      },
-      "external_calls": "All external API calls are opt-in via explicit env vars. Default mode uses local embeddings with zero network calls. install.sh does pip install nima-core and optional real-ladybug; review before running in shared/production environments."
-    }
-  }
+description: Neural Integrated Memory Architecture — Persistent memory, emotional intelligence, and semantic recall for AI agents. Memory pruner, VADER affect, 5 embedding providers, zero-config install. Learn more at nima-core.ai
+version: 3.1.5
+metadata: {"clawdbot":{"emoji":"🧠","requires":{"bins":["python3","node"],"env":["NIMA_DATA_DIR"]},"optional_env":{"NIMA_EMBEDDER":"voyage|openai|local (default: local)","VOYAGE_API_KEY":"Required when NIMA_EMBEDDER=voyage","OPENAI_API_KEY":"Required when NIMA_EMBEDDER=openai"},"permissions":{"reads":["~/.openclaw/agents/*/sessions/*.jsonl"],"writes":["~/.nima/"],"network":["voyage.ai (conditional)","openai.com (conditional)"]}}}
 ---
 
-# NIMA Core 3.2
+# NIMA Core 2.3
 
-**Noosphere Integrated Memory Architecture** — A complete cognitive stack for AI agents: persistent memory, emotional intelligence, dream consolidation, hive mind, and precognitive recall.
+**Neural Integrated Memory Architecture** — A complete memory system for AI agents with emotional intelligence.
 
-**Website:** https://nima-core.ai · **GitHub:** https://github.com/lilubot/nima-core
+**Website:** https://nima-core.ai
+**GitHub:** https://github.com/lilubot/nima-core
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
-pip install nima-core && nima-core
+# Install
+pip install nima-core
+
+# Or with LadybugDB (recommended for production)
+pip install nima-core[vector]
+
+# Set embedding provider
+export NIMA_EMBEDDER=voyage
+export VOYAGE_API_KEY=your-key
+
+# Install hooks
+./install.sh --with-ladybug
+
+# Restart OpenClaw
+openclaw restart
 ```
 
-Your bot now has persistent memory. Zero config needed.
+## 🔒 Privacy & Permissions
 
-## What's New in v3.0
+**Data Access:**
+- ✅ Reads session transcripts from `~/.openclaw/agents/*/sessions/*.jsonl`
+- ✅ Writes to local storage at `~/.nima/` (databases, affect history, embeddings)
 
-### Complete Cognitive Stack
+**Network Calls (conditional on embedder choice):**
+- 🌐 **Voyage API** — Only when `NIMA_EMBEDDER=voyage` (sends text for embeddings)
+- 🌐 **OpenAI API** — Only when `NIMA_EMBEDDER=openai` (sends text for embeddings)
+- 🔒 **Local embeddings** — Default (`NIMA_EMBEDDER=local`), no external API calls
 
-NIMA evolved from a memory plugin into a full cognitive architecture:
-
-| Module | What It Does | Version |
-|--------|-------------|---------|
-| **Memory Capture** | 3-layer capture (input/contemplation/output), 4-phase noise filtering | v2.0 |
-| **Semantic Recall** | Vector + text hybrid search, ecology scoring, token-budgeted injection | v2.0 |
-| **Dynamic Affect** | Panksepp 7-affect emotional state (SEEKING, RAGE, FEAR, LUST, CARE, PANIC, PLAY) | v2.1 |
-| **VADER Analyzer** | Contextual sentiment — caps boost, negation, idioms, degree modifiers | v2.2 |
-| **Memory Pruner** | LLM distillation of old conversations → semantic gists, 30-day suppression limbo | v2.3 |
-| **Dream Consolidation** | Nightly synthesis — extracts insights and patterns from episodic memory | v2.4 |
-| **Hive Mind** | Multi-agent memory sharing via shared DB + optional Redis pub/sub | v2.5 |
-| **Precognition** | Temporal pattern mining → predictive memory pre-loading | v2.5 |
-| **Lucid Moments** | Spontaneous surfacing of emotionally-resonant memories | v2.5 |
-| **Darwinian Memory** | Clusters similar memories, ghosts duplicates via cosine + LLM verification | v3.0 |
-| **Installer** | One-command setup — LadybugDB, hooks, directories, embedder config | v3.0 |
-
-### v3.0 Highlights
-- All cognitive modules unified under a single package
-- Installer (`install.sh`) for zero-friction setup
-- All OpenClaw hooks bundled and ready to drop in
-- README rewritten, all versions aligned to `3.0.4`
-
-## Architecture
-
-```text
-OPENCLAW HOOKS
-├── nima-memory/          Capture hook (3-layer, 4-phase noise filter)
-│   ├── index.js          Hook entry point
-│   ├── ladybug_store.py  LadybugDB storage backend
-│   ├── embeddings.py     Multi-provider embedding (Voyage/OpenAI/Ollama/local)
-│   ├── backfill.py       Historical transcript import
-│   └── health_check.py   DB integrity checks
-├── nima-recall-live/     Recall hook (before_agent_start)
-│   ├── lazy_recall.py    Current recall engine
-│   └── ladybug_recall.py LadybugDB-native recall
-├── nima-affect/          Affect hook (message_received)
-│   ├── vader-affect.js   VADER sentiment analyzer
-│   └── emotion-lexicon.js Emotion keyword lexicon
-└── shared/               Resilient wrappers, error handling
-
-PYTHON CORE (nima_core/)
-├── cognition/
-│   ├── dynamic_affect.py         Panksepp 7-affect system
-│   ├── emotion_detection.py      Text emotion extraction
-│   ├── affect_correlation.py     Cross-affect analysis
-│   ├── affect_history.py         Temporal affect tracking
-│   ├── affect_interactions.py    Affect coupling dynamics
-│   ├── archetypes.py             Personality baselines (Guardian, Explorer, etc.)
-│   ├── personality_profiles.py   JSON personality configs
-│   └── response_modulator_v2.py  Affect → response modulation
-├── dream_consolidation.py        Nightly memory synthesis engine
-├── memory_pruner.py              Episodic distillation + suppression
-├── hive_mind.py                  Multi-agent memory sharing
-├── precognition.py               Temporal pattern mining
-├── lucid_moments.py              Spontaneous memory surfacing
-├── connection_pool.py            SQLite pool (WAL, thread-safe)
-├── logging_config.py             Singleton logger
-└── metrics.py                    Thread-safe counters/timings
-```
-
-## Privacy & Permissions
-
-- ✅ All data stored locally in `~/.nima/`
-- ✅ Default: local embeddings = **zero external calls**
-- ✅ No NIMA-owned servers, no proprietary tracking, no analytics sent to external services
-- ⚠️ Opt-in networking: HiveMind (Redis pub/sub), Precognition (LLM endpoints), LadybugDB migrations — see Optional Features below
-- 🔒 Embedding API calls only when explicitly enabling (VOYAGE_API_KEY, OPENAI_API_KEY, etc.)
-
-### Optional Features with Network Access
-
-| Feature | Env Var | Network Calls To | Default |
-|---------|----------|------------------|---------|
-| Cloud embeddings | `NIMA_EMBEDDER=voyage` | voyage.ai | Off |
-| Cloud embeddings | `NIMA_EMBEDDER=openai` | openai.com | Off |
-| Memory pruner | `ANTHROPIC_API_KEY` set | anthropic.com | Off |
-| Ollama embeddings | `NIMA_EMBEDDER=ollama` | localhost:11434 | Off |
-| HiveMind | `HIVE_ENABLED=true` | Redis pub/sub | Off |
-| Precognition | Using external LLM | Configured endpoint | Off |
-
-## Security
-
-### What Gets Installed
-
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| Python core (`nima_core/`) | `~/.nima/` | Memory, affect, cognition |
-| OpenClaw hooks | `~/.openclaw/extensions/nima-*/` | Capture, recall, affect |
-| SQLite database | `~/.nima/memory/graph.sqlite` | Persistent storage |
-| Logs | `~/.nima/logs/` | Debug logs (optional) |
-
-### Credential Handling
-
-| Env Var | Required? | Network Calls? | Purpose |
-|---------|-----------|----------------|---------|
-| `NIMA_EMBEDDER=local` | No | ❌ | Default — offline embeddings |
-| `VOYAGE_API_KEY` | Only if using Voyage | ✅ voyage.ai | Cloud embeddings |
-| `OPENAI_API_KEY` | Only if using OpenAI | ✅ openai.com | Cloud embeddings |
-| `ANTHROPIC_API_KEY` | Only if using pruner | ✅ anthropic.com | Memory distillation |
-| `NIMA_OLLAMA_MODEL` | Only if using Ollama | ❌ (localhost) | Local GPU embeddings |
-
-**Recommendation:** Start with `NIMA_EMBEDDER=local` (default). Only enable cloud providers when you need better embedding quality.
-
-### Safety Features
-
-- **Input filtering** — System messages, heartbeats, and duplicates are filtered before capture
-- **FTS5 injection prevention** — Parameterized queries prevent SQL injection
-- **Path traversal protection** — All file paths are sanitized
-- **Temp file cleanup** — Automatic cleanup of temporary files
-- **API timeouts** — Network calls have reasonable timeouts (30s Voyage, 10s local)
-
-### Best Practices
-
-1. **Review before installing** — Inspect `install.sh` and hook files before running
-2. **Backup config** — Backup `~/.openclaw/openclaw.json` before adding hooks
-3. **Don't run as root** — Installation writes to user home directories
-4. **Use containerized envs** — Test in a VM or container first if unsure
-5. **Rotate API keys** — If using cloud embeddings, rotate keys periodically
-6. **Monitor logs** — Check `~/.nima/logs/` for suspicious activity
-
-### Data Locations
-
-```text
-~/.nima/
-├── memory/
-│   ├── graph.sqlite       # SQLite backend (default)
-│   ├── ladybug.lbug       # LadybugDB backend (optional)
-│   ├── embedding_cache.db # Cached embeddings
-│   └── embedding_index.npy# Vector index
-├── affect/
-│   └── affect_state.json  # Current emotional state
-└── logs/                  # Debug logs (if enabled)
-
-~/.openclaw/extensions/
-├── nima-memory/           # Capture hook
-├── nima-recall-live/     # Recall hook
-└── nima-affect/          # Affect hook
-```
-
-**Controls:**
+**Opt-in Controls:**
 ```json
+// openclaw.json
 {
   "plugins": {
     "entries": {
       "nima-memory": {
-        "skip_subagents": true,
-        "skip_heartbeats": true,
-        "noise_filtering": { "filter_system_noise": true }
+        "enabled": true,
+        "skip_subagents": true,      // Exclude subagent sessions (default)
+        "skip_heartbeats": true,      // Exclude heartbeat checks (default)
+        "noise_filtering": {
+          "filter_heartbeat_mechanics": true,
+          "filter_system_noise": true
+        }
       }
     }
   }
 }
 ```
 
-## Configuration
+**Privacy Defaults:**
+- Subagent sessions excluded
+- Heartbeat/system noise filtered  
+- Local embeddings (no external calls)
+- All data stored locally
 
-### Embedding Providers
+**To disable:** Remove `nima-memory` from `plugins.allow` in `openclaw.json`
 
-| Provider | Setup | Dims | Cost |
-|----------|-------|------|------|
-| **Local** (default) | `NIMA_EMBEDDER=local` | 384 | Free |
-| **Voyage AI** | `NIMA_EMBEDDER=voyage` + `VOYAGE_API_KEY` | 1024 | $0.12/1M tok |
-| **OpenAI** | `NIMA_EMBEDDER=openai` + `OPENAI_API_KEY` | 1536 | $0.13/1M tok |
-| **Ollama** | `NIMA_EMBEDDER=ollama` + `NIMA_OLLAMA_MODEL` | 768 | Free |
+## What's New in 2.1
 
-### Database Backend
+### VADER Affect Analyzer
+- **Contextual Analysis**: Caps boost (1.5x), punctuation emphasis (`!!!`), negation handling, degree modifiers
+- **30+ Idiom Recognition**: Understands phrases like "not bad", "kind of", "sort of"
+- **Panksepp 7-Affect Mapping**: Direct mapping from VADER sentiment to SEEKING, RAGE, FEAR, LUST, CARE, PANIC, PLAY
+- **Guardian Archetype Transformation**: User anger → Agent concern/care response modulation
+- Replaces previous lexicon-based emotion detection
 
-| | SQLite (default) | LadybugDB (recommended) |
-|--|-----------------|------------------------|
-| Text Search | 31ms | **9ms** (3.4x faster) |
-| Vector Search | External | **Native HNSW** (18ms) |
-| Graph Queries | SQL JOINs | **Native Cypher** |
-| DB Size | ~91 MB | **~50 MB** (44% smaller) |
+### Noise Remediation (4-Phase)
+1. **Empty Validation** — Filters out null/empty messages
+2. **Heartbeat Filters** — Excludes system noise (`HEARTBEAT_OK`, polling messages)
+3. **Deduplication** — Removes duplicate content within sessions
+4. **Metrics Collection** — Tracks capture quality and filter effectiveness
 
-Upgrade: `pip install real-ladybug && python -c "from nima_core.storage import migrate; migrate()"`
+### Performance Improvements
+- **LadybugDB Circular Import Fix**: Resolved import issues in LadybugDB backend
+- **Increased Token Budget**: Recall budget increased from 500 to 3000 tokens
+- **Connection Pooling**: Improved connection management for LadybugDB backend
 
-### All Environment Variables
+## What's New in 2.0
 
-```bash
-# Embedding (default: local)
-NIMA_EMBEDDER=local|voyage|openai|ollama
-VOYAGE_API_KEY=pa-xxx
-OPENAI_API_KEY=sk-xxx
-NIMA_OLLAMA_MODEL=nomic-embed-text
+### LadybugDB Backend
+- **3.4x faster** text search (9ms vs 31ms)
+- **Native vector search** with HNSW (18ms)
+- **44% smaller** database (50MB vs 91MB)
+- **Graph traversal** with Cypher queries
 
-# Data paths
-NIMA_DATA_DIR=~/.nima
-NIMA_DB_PATH=~/.nima/memory/ladybug.lbug
+### Security Hardened
+- Query sanitization (FTS5, SQL injection prevention)
+- Path traversal protection
+- Temp file cleanup
+- Error handling throughout
 
-# Memory pruner
-NIMA_DISTILL_MODEL=claude-haiku-4-5
-ANTHROPIC_API_KEY=sk-ant-xxx
+### Thread Safe
+- Singleton pattern with double-checked locking
+- API timeouts (30s Voyage, 10s LadybugDB)
+- Connection pooling ready
 
-# Logging
-NIMA_LOG_LEVEL=INFO
-NIMA_DEBUG_RECALL=1
+### 348 Tests
+- Full unit test coverage
+- Thread safety verified
+- Edge cases covered
+
+## Architecture
+
+```text
+OPENCLAW HOOKS
+├── nima-memory      — Three-layer capture with 4-phase noise remediation
+├── nima-recall-live — Lazy recall injection (before_agent_start)
+└── nima-affect      — VADER-based real-time affect analysis
+
+PYTHON CORE
+├── nima_core/cognition/
+│   ├── dynamic_affect.py       — Panksepp 7-affect system
+│   ├── personality_profiles.py — JSON personality configs
+│   ├── vader_affect.py         — VADER sentiment analyzer (NEW v2.1)
+│   └── archetypes.py           — Baseline affect profiles
+└── scripts/
+    ├── nima_ladybug_backend.py — LadybugDB CLI
+    └── ladybug_parallel.py     — Parallel migration
+
+DATABASE (SQLite or LadybugDB)
+├── memory_nodes   — Messages with embeddings
+├── memory_edges   — Graph relationships
+└── memory_turns   — Conversation turns
 ```
 
-## Hooks
+## Performance
 
-| Hook | Fires | Does |
-|------|-------|------|
-| `nima-memory` | After save | Captures 3 layers → filters noise → stores in graph DB |
-| `nima-recall-live` | Before LLM | Searches memories → scores by ecology → injects as context (3000 token budget) |
-| `nima-affect` | On message | VADER sentiment → Panksepp 7-affect state → archetype modulation |
-
-### Installation
-
-```bash
-./install.sh
-openclaw gateway restart
-```
-
-Or manual:
-```bash
-cp -r openclaw_hooks/nima-memory ~/.openclaw/extensions/
-cp -r openclaw_hooks/nima-recall-live ~/.openclaw/extensions/
-cp -r openclaw_hooks/nima-affect ~/.openclaw/extensions/
-```
-
-## Advanced Features
-
-### Dream Consolidation
-Nightly synthesis extracts insights and patterns from episodic memory:
-```bash
-python -m nima_core.dream_consolidation
-# Or schedule via OpenClaw cron at 2 AM
-```
-
-### Memory Pruner
-Distills old conversations into semantic gists, suppresses raw noise:
-```bash
-python -m nima_core.memory_pruner --min-age 14 --live
-python -m nima_core.memory_pruner --restore 12345  # undo within 30 days
-```
-
-### Hive Mind
-Multi-agent memory sharing:
-```python
-from nima_core import HiveMind
-hive = HiveMind(db_path="~/.nima/memory/ladybug.lbug")
-context = hive.build_agent_context("research task", max_memories=8)
-hive.capture_agent_result("agent-1", "result summary", "model-name")
-```
-
-### Precognition
-Temporal pattern mining → predictive memory pre-loading:
-```python
-from nima_core import NimaPrecognition
-precog = NimaPrecognition(db_path="~/.nima/memory/ladybug.lbug")
-precog.run_mining_cycle()
-```
-
-### Lucid Moments
-Spontaneous surfacing of emotionally-resonant memories (with safety: trauma filtering, quiet hours, daily caps):
-```python
-from nima_core import LucidMoments
-lucid = LucidMoments(db_path="~/.nima/memory/ladybug.lbug")
-moment = lucid.surface_moment()
-```
-
-### Affect System
-Panksepp 7-affect emotional intelligence with personality archetypes:
-```python
-from nima_core import DynamicAffectSystem
-affect = DynamicAffectSystem(identity_name="my_bot", baseline="guardian")
-state = affect.process_input("I'm excited about this!")
-# Archetypes: guardian, explorer, trickster, empath, sage
-```
+| Metric | SQLite | LadybugDB |
+|--------|--------|-----------|
+| Text Search | 31ms | **9ms** (3.4x) |
+| Vector Search | External | **18ms** (native) |
+| Context Tokens | ~180 | **~30** (6x smaller) |
+| Recall Token Budget | 500 | **3000** (v2.1+) |
 
 ## API
 
 ```python
-from nima_core import (
-    DynamicAffectSystem,
-    get_affect_system,
-    HiveMind,
-    NimaPrecognition,
-    LucidMoments,
-)
+from nima_core import DynamicAffectSystem, get_affect_system
+from nima_core.cognition.vader_affect import VaderAffectAnalyzer
 
-# Affect (thread-safe singleton)
+# Get singleton instance (thread-safe)
 affect = get_affect_system(identity_name="lilu")
-state = affect.process_input("Hello!")
 
-# Hive Mind
-hive = HiveMind()
-context = hive.build_agent_context("task description")
+# Process input and get affect state
+state = affect.process_input("I'm so excited about this project!")
+print(state.current)  # {"SEEKING": 0.72, "PLAY": 0.65, ...}
 
-# Precognition
-precog = NimaPrecognition()
-precog.run_mining_cycle()
+# Use VADER analyzer directly
+analyzer = VaderAffectAnalyzer()
+result = analyzer.analyze("This is AMAZING!!!")
+print(result.affects)  # {'PLAY': 0.78, 'SEEKING': 0.71, ...}
 
-# Lucid Moments
-lucid = LucidMoments()
-moment = lucid.surface_moment()
+# Recall memories (via hooks - automatic)
+# Or manually via CLI:
+# nima-query who_search "David" --limit 5
+# nima-query text_search "project" --limit 5
 ```
+
+## Configuration
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NIMA_DATA_DIR` | `~/.nima` | Memory storage path |
+| `NIMA_EMBEDDER` | `voyage` | `voyage`, `openai`, or `local` |
+| `VOYAGE_API_KEY` | — | Required for Voyage |
+| `NIMA_LADYBUG` | `0` | Set `1` for LadybugDB backend |
+
+## Hooks
+
+### nima-memory (Capture)
+- Captures input, contemplation, output on every turn
+- 4-phase noise remediation (empty validation, heartbeat filters, dedup, metrics)
+- Stores to SQLite or LadybugDB
+- Computes and stores embeddings
+
+### nima-recall-live (Recall)
+- Injects relevant memories before agent starts
+- Lazy loading — only top N results
+- Deduplicates with injected context
+- Token budget: 3000 (increased from 500 in v2.1)
+
+### nima-affect (Emotion)
+- VADER-based real-time affect analysis from text
+- Contextual analysis (caps, punctuation, negation, degree modifiers)
+- 30+ idiom recognition
+- Maintains Panksepp 7-affect state
+- Guardian archetype transformation (user anger → agent care)
+
+## Installation Options
+
+### SQLite (Development)
+```bash
+pip install nima-core
+./install.sh
+```
+
+### LadybugDB (Production)
+```bash
+pip install nima-core[vector]
+./install.sh --with-ladybug
+```
+
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [README.md](./README.md) | Full system overview |
+| [SETUP_GUIDE.md](./SETUP_GUIDE.md) | Step-by-step installation |
+| [docs/DATABASE_OPTIONS.md](./docs/DATABASE_OPTIONS.md) | SQLite vs LadybugDB |
+| [docs/EMBEDDING_PROVIDERS.md](./docs/EMBEDDING_PROVIDERS.md) | Voyage, OpenAI, Local |
+| [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) | Migrate from old versions |
+| [CHANGELOG.md](./CHANGELOG.md) | Release history |
+
+## Security & Privacy
+
+### Data Access
+This plugin accesses:
+- `~/.openclaw/agents/.../*.jsonl` — Session transcripts (for memory capture)
+- `~/.nima/` — Local memory database (SQLite or LadybugDB)
+- `~/.openclaw/extensions/` — Hook installation
+
+### Network Calls
+Embeddings are sent to external APIs:
+- **Voyage AI** (`api.voyageai.com`) — Default embedding provider
+- **OpenAI** (`api.openai.com`) — Optional embedding provider
+- **Local** — No external calls when using sentence-transformers
+
+### Required Environment Variables
+
+| Variable | Purpose | Required |
+|----------|---------|----------|
+| `NIMA_EMBEDDER` | `voyage`, `openai`, or `local` | No (default: voyage) |
+| `VOYAGE_API_KEY` | Voyage AI authentication | If using Voyage |
+| `OPENAI_API_KEY` | OpenAI authentication | If using OpenAI |
+| `NIMA_DATA_DIR` | Memory storage path | No (default: ~/.nima) |
+| `NIMA_LADYBUG` | Use LadybugDB backend | No (default: 0) |
+
+### Installation Script
+The `install.sh` script:
+1. Checks for Python 3 and Node.js
+2. Creates `~/.nima/` directories
+3. Installs Python packages via pip
+4. Copies hooks to `~/.openclaw/extensions/`
+
+**No external downloads.** All packages come from PyPI.
+
+---
 
 ## Changelog
 
-See [CHANGELOG.md](./CHANGELOG.md) for full version history.
+### v2.1.0 — VADER Affect Analyzer (Feb 17, 2026)
+- **Added:** VADER-based affect analyzer replacing lexicon-based detection
+  - Contextual analysis: caps boost (1.5x), punctuation (!!!), negation, degree modifiers
+  - 30+ idiom recognition
+  - Panksepp 7-affect mapping (SEEKING, RAGE, FEAR, LUST, CARE, PANIC, PLAY)
+  - Guardian archetype transformation (user anger → agent concern/care)
+- **Added:** 4-phase noise remediation (empty validation, heartbeat filters, dedup, metrics)
+- **Fixed:** LadybugDB circular import issue
+- **Changed:** Recall token budget increased from 500 to 3000
+- **Improved:** Connection pooling for LadybugDB backend
 
-### Recent Releases
-- **v3.0.4** (Feb 23, 2026) — Darwinian memory engine, new CLIs, installer, bug fixes
-- **v2.5.0** (Feb 21, 2026) — Hive Mind, Precognition, Lucid Moments
-- **v2.4.0** (Feb 20, 2026) — Dream Consolidation engine
-- **v2.3.0** (Feb 19, 2026) — Memory Pruner, connection pool, Ollama support
-- **v2.2.0** (Feb 19, 2026) — VADER Affect, 4-phase noise remediation, ecology scoring
-- **v2.0.0** (Feb 13, 2026) — LadybugDB backend, security hardening, 348 tests
+### v2.0.3 — Security Hardening (Feb 15, 2026)
+- **Security:** Fixed path traversal vulnerability in affect_history.py (CRITICAL)
+- **Security:** Fixed temp file resource leaks in 3 files (HIGH)
+- **Fixed:** Corrected non-existent json.JSONEncodeError → TypeError/ValueError
+- **Improved:** Exception handling - replaced 5 generic catches with specific types
+- **Quality:** Better error visibility and debugging throughout
 
-## License
+### v2.0.1 — Thread Safety + Metadata
+- **Fixed:** Thread-safe singleton with double-checked locking
+- **Security:** Clarified metadata requirements (Node.js, env vars)
+- **Docs:** Added security disclosure for API key usage
 
-MIT — free for any AI agent, commercial or personal.
+### v2.0.0 — LadybugDB + Security
+- **Added:** LadybugDB backend with HNSW vector search
+- **Added:** Native graph traversal with Cypher
+- **Added:** nima-query CLI for unified queries
+- **Security:** SQL/FTS5 injection prevention
+- **Security:** Path traversal protection
+- **Security:** Temp file cleanup
+- **Fixed:** Thread-safe singleton initialization
+- **Fixed:** API timeouts (Voyage 30s, LadybugDB 10s)
+- **Tests:** 348 tests passing
+- **Performance:** 3.4x faster text search, 44% smaller DB
+
+### v1.2.1 — Consciousness Architecture
+- Added: 8 consciousness systems (Φ, Global Workspace, self-awareness)
+- Added: Sparse Block VSA memory
+- Added: ConsciousnessCore unified interface
+
+### v1.1.9 — Hook Efficiency Fix
+- Fixed: nima-recall hook spawning new Python process every bootstrap
+- Performance: ~50-250x faster hook recall
+
+### v1.2.0 — Affective Response Engines
+- Added: 4 Layer-2 composite affect engines
+- Added: Async affective processing
+- Added: Voyage AI embedding support

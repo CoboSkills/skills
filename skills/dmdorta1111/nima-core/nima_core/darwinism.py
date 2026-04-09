@@ -14,13 +14,12 @@ Strategy:
 Part of nima-core — Proposal 01: Living Memory Ecology (Phase 2)
 """
 
-import sys
 import os
 import time
 import json
 import logging
 import random
-from typing import List, Dict, Optional, Tuple, Set
+from typing import List, Dict, Optional, Set
 
 # Import real_ladybug (installed package or fallback)
 try:
@@ -33,17 +32,20 @@ except ImportError:
 logger = logging.getLogger("nima.darwinism")
 
 # --- Config (all overridable via env vars) ---
-NIMA_HOME      = os.environ.get("NIMA_HOME", os.path.expanduser("~/.nima"))
-DB_PATH        = os.environ.get("NIMA_DB", os.path.join(NIMA_HOME, "memory", "ladybug.lbug"))
-OPENCLAW_CFG   = os.environ.get("OPENCLAW_CONFIG", os.path.expanduser("~/.openclaw/openclaw.json"))
+from nima_core.config import NIMA_HOME, DARWIN_THRESHOLD, DARWIN_MAX_CLUSTER, DARWIN_MIN_TEXT, DARWIN_LLM_ENDPOINT, DARWIN_LLM_MODEL  # noqa: F401
+NIMA_HOME      = str(NIMA_HOME)
+from nima_core.config import NIMA_DB_PATH
+DB_PATH        = str(NIMA_DB_PATH)
+from nima_core.config import OPENCLAW_CONFIG
+OPENCLAW_CFG   = str(OPENCLAW_CONFIG)
 
-SIMILARITY_THRESHOLD = float(os.environ.get("DARWIN_THRESHOLD", "0.85"))
-MAX_CLUSTER_SIZE     = int(os.environ.get("DARWIN_MAX_CLUSTER", "5"))
-MIN_TEXT_LENGTH      = int(os.environ.get("DARWIN_MIN_TEXT", "20"))
+SIMILARITY_THRESHOLD = DARWIN_THRESHOLD
+MAX_CLUSTER_SIZE     = DARWIN_MAX_CLUSTER
+MIN_TEXT_LENGTH      = DARWIN_MIN_TEXT
 
 # LLM for merge verification — use cheap/fast model
-LLM_ENDPOINT = os.environ.get("DARWIN_LLM_ENDPOINT", "https://ollama.com/v1/chat/completions")
-LLM_MODEL    = os.environ.get("DARWIN_LLM_MODEL", "gemini-3-flash-preview")
+LLM_ENDPOINT = DARWIN_LLM_ENDPOINT
+LLM_MODEL    = DARWIN_LLM_MODEL
 
 
 def get_llm_api_key() -> Optional[str]:
@@ -56,7 +58,7 @@ def get_llm_api_key() -> Optional[str]:
     if not key and "ollama" in LLM_ENDPOINT.lower():
         key = os.environ.get("OLLAMA_API_KEY")
     if not key and "openai.com" in LLM_ENDPOINT:
-        key = os.environ.get("OPENAI_API_KEY")
+        key = os.environ.get("NIMA_LLM_API_KEY") or os.environ.get("OPENAI_API_KEY")
     if key:
         return key
     # Try openclaw.json
@@ -78,11 +80,6 @@ def llm_verify_duplicates(memories: List[Dict]) -> List[List[int]]:
     Returns groups of IDs that should be merged together.
     Falls back to cosine-only if LLM is unavailable.
     """
-    api_key = get_llm_api_key()
-    if not api_key:
-        logger.warning("No LLM API key — using cosine-only grouping")
-        return [[m["id"] for m in memories]]
-
     texts = [
         f'[ID:{m["id"]}] {m["text"][:200].replace(chr(10), " ").strip()}'
         for m in memories
@@ -105,33 +102,24 @@ If no true duplicates found, return: []
 Return ONLY the JSON, no explanation."""
 
     try:
-        import urllib.request
-        req = urllib.request.Request(
-            LLM_ENDPOINT,
-            data=json.dumps({
-                "model": LLM_MODEL,
-                "messages": [{"role": "user", "content": prompt}],
-                "max_tokens": 1000,
-                "temperature": 0.0,
-            }).encode(),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {api_key}",
-            },
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            data = json.loads(resp.read())
-            content = data["choices"][0]["message"]["content"].strip()
-            # Strip markdown code fences if present
-            if "```" in content:
-                content = content.split("```")[1]
-                if content.startswith("json"):
-                    content = content[4:]
-                content = content.strip()
-            groups = json.loads(content)
-            if isinstance(groups, list):
-                return [g for g in groups if isinstance(g, list) and len(g) > 1]
-            return []
+        from nima_core.llm_client import llm_complete
+        content = llm_complete(prompt, max_tokens=1000, timeout=15)
+        if not content:
+            logger.warning("No LLM provider configured — using cosine-only grouping")
+            return [[m["id"] for m in memories]]
+        # Strip markdown code fences if present
+        if "```" in content:
+            content = content.split("```")[1]
+            if content.startswith("json"):
+                content = content[4:]
+            content = content.strip()
+        groups = json.loads(content)
+        if isinstance(groups, list):
+            return [g for g in groups if isinstance(g, list) and len(g) > 1]
+        return []
+    except ImportError:
+        logger.warning("llm_client not available — using cosine-only grouping")
+        return [[m["id"] for m in memories]]
     except Exception as e:
         logger.warning(f"LLM verification failed ({e}) — falling back to cosine-only")
         return [[m["id"] for m in memories]]
@@ -293,21 +281,21 @@ class DarwinianEngine:
             survivor = max(group, key=lambda x: (x.get("strength", 1.0), len(x["text"])))
             losers = [m for m in group if m["id"] != survivor["id"]]
 
-            logger.info(f"Merge: survivor={survivor['id']} absorbs {[l['id'] for l in losers]}")
+            logger.info(f"Merge: survivor={survivor['id']} absorbs {[loser['id'] for loser in losers]}")
 
             if self.dry_run:
                 logger.info(f"  [DRY RUN] Keep {survivor['id']}: {survivor['text'][:60]}...")
-                for l in losers:
-                    logger.info(f"  [DRY RUN] Ghost {l['id']}: {l['text'][:60]}...")
+                for loser in losers:
+                    logger.info(f"  [DRY RUN] Ghost {loser['id']}: {loser['text'][:60]}...")
                 continue
 
             # Absorb 20% of each loser's strength
-            absorbed = sum(l.get("strength", 1.0) * 0.2 for l in losers)
+            absorbed = sum(loser.get("strength", 1.0) * 0.2 for loser in losers)
             new_strength = min(1.0, survivor.get("strength", 1.0) + absorbed)
 
             self.connect()
             try:
-                loser_ids_str = "[" + ",".join(str(l["id"]) for l in losers) + "]"
+                loser_ids_str = "[" + ",".join(str(loser["id"]) for loser in losers) + "]"
 
                 self.conn.execute(f"""
                     MATCH (n:MemoryNode)

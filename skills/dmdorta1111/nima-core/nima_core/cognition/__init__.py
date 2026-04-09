@@ -1,5 +1,29 @@
 """NIMA Core cognition module."""
 
+# Sparse Block VSA for memory efficiency
+from .sparse_block_vsa import SparseBlockHDVector
+
+# Sparse Block Memory - VSA episodic memory
+from .sparse_block_memory import (
+    SparseBlockMemory,
+    SparseBlockConfig,
+    BlockSelectionLearner,
+)
+
+# phi_estimator moved to nima_core.experimental
+
+
+# Schema Extractor - Knowledge extraction from memories
+from .schema_extractor import (
+    SchemaExtractor,
+    Schema,
+    Entity,
+    Relationship,
+    EventPattern,
+)
+
+# theory_of_mind moved to nima_core.experimental
+
 # Cross-affect interactions
 from .affect_interactions import (
     apply_cross_affect_interactions,
@@ -59,6 +83,18 @@ from .archetypes import (
 )
 
 __all__ = [
+    # Sparse Block VSA
+    "SparseBlockHDVector",
+    "SparseBlockConfig",
+    # Sparse Block Memory
+    "SparseBlockMemory",
+    "BlockSelectionLearner",
+    # Schema Extractor
+    "SchemaExtractor",
+    "Schema",
+    "Entity",
+    "Relationship",
+    "EventPattern",
     # Cross-affect interactions
     "apply_cross_affect_interactions",
     "get_interaction_effects",

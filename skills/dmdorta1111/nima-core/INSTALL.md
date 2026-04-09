@@ -511,12 +511,235 @@ FTS5 virtual table for full-text search.
 
 ---
 
+## Cron Jobs
+
+NIMA requires a set of scheduled cron jobs to run its full cognitive lifecycle — memory pruning, dream consolidation, embedding indexing, and precognitive context prep. These are **OpenClaw cron jobs** stored in `~/.openclaw/cron/jobs.json`.
+
+All jobs use the standard naming convention below. Running `./scripts/doctor.sh` will tell you which ones are missing.
+
+### Standard NIMA Cron Jobs
+
+| Job Name | Schedule | Priority | Purpose |
+|----------|----------|----------|---------|
+| `nima-dream-consolidation` | daily 2AM | **critical** | dream-consolidates memories → insights & patterns |
+| `nima-memory-pruner` | daily 2AM | **critical** | prunes low-value memories to keep DB lean |
+| `nima-embedding-index` | daily 3AM | **critical** | rebuilds FAISS/embedding index for semantic search |
+| `nima-precognition-miner` | daily 6AM | **critical** | mines patterns → generates precognitions |
+| `nima-precognitive-actions` | every 4h | **critical** | pre-warms context cache for session injection |
+| `nima-delta-scorer` | daily 3:30AM | recommended | scores memory deltas for importance/novelty |
+| `nima-deduplication` | weekly Sunday 4AM | recommended | deduplicates near-duplicate memories |
+| `lucid-memory-moments` | 4x/day (10AM/2PM/6PM/8PM) | recommended | spontaneous memory surfacing during active hours |
+
+### Adding All Cron Jobs
+
+Add the following to `~/.openclaw/cron/jobs.json` under the `"jobs"` array. Replace:
+- `YOUR_NIMA_REPO` → path to your nima-core clone (e.g. `~/.nima/repo`)
+- `YOUR_PYTHON` → path to your venv Python (e.g. `~/.nima/venv/bin/python3`)
+- `YOUR_TELEGRAM_ID` → your Telegram user ID for delivery notifications
+
+> **Windows (Jac-style):** Use forward-slash paths for Python and set `PYTHONPATH` explicitly:
+> `C:/Users/YourUser/.openclaw/workspace/.venv/Scripts/python.exe`
+
+```json
+[
+  {
+    "id": "nima-dream-consolidation",
+    "agentId": "main",
+    "name": "nima-dream-consolidation",
+    "enabled": true,
+    "schedule": { "kind": "cron", "expr": "0 2 * * *", "tz": "America/New_York" },
+    "sessionTarget": "isolated",
+    "wakeMode": "now",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Run NIMA dream consolidation. Execute: PYTHONPATH=YOUR_NIMA_REPO YOUR_PYTHON -c \"import sys; sys.path.insert(0,'YOUR_NIMA_REPO'); from nima_core.dream_consolidation import consolidate; r=consolidate(hours=24); print(f'Dreams: {r.get(\\\"memories_in\\\",0)} memories, {r.get(\\\"patterns\\\",0)} patterns, {r.get(\\\"insights\\\",0)} insights')\". Report the results.",
+      "model": "anthropic/claude-sonnet-4-6",
+      "timeoutSeconds": 600
+    },
+    "delivery": { "mode": "announce", "channel": "telegram", "to": "YOUR_TELEGRAM_ID" }
+  },
+  {
+    "id": "nima-memory-pruner",
+    "agentId": "main",
+    "name": "nima-memory-pruner",
+    "enabled": true,
+    "schedule": { "kind": "cron", "expr": "0 2 * * *", "tz": "America/New_York" },
+    "sessionTarget": "isolated",
+    "wakeMode": "now",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Run NIMA memory pruning. Execute: PYTHONPATH=YOUR_NIMA_REPO YOUR_PYTHON -m nima_core.memory_pruner prune --hours 24. Report the results.",
+      "model": "anthropic/claude-sonnet-4-6",
+      "timeoutSeconds": 300
+    },
+    "delivery": { "mode": "announce", "channel": "telegram", "to": "YOUR_TELEGRAM_ID" }
+  },
+  {
+    "id": "nima-embedding-index",
+    "agentId": "main",
+    "name": "nima-embedding-index",
+    "enabled": true,
+    "schedule": { "kind": "cron", "expr": "0 3 * * *", "tz": "America/New_York" },
+    "sessionTarget": "isolated",
+    "wakeMode": "now",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Run NIMA embedding index rebuild. Execute: PYTHONPATH=YOUR_NIMA_REPO YOUR_PYTHON -m nima_core.build_embedding_index. Report the results.",
+      "model": "anthropic/claude-sonnet-4-6",
+      "timeoutSeconds": 300
+    },
+    "delivery": { "mode": "announce", "channel": "telegram", "to": "YOUR_TELEGRAM_ID" }
+  },
+  {
+    "id": "nima-delta-scorer",
+    "agentId": "main",
+    "name": "nima-delta-scorer",
+    "enabled": true,
+    "schedule": { "kind": "cron", "expr": "30 3 * * *", "tz": "America/New_York" },
+    "sessionTarget": "isolated",
+    "wakeMode": "now",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Run NIMA delta scoring. Execute: PYTHONPATH=YOUR_NIMA_REPO YOUR_PYTHON -m nima_core.delta_scorer score. Report the results.",
+      "model": "anthropic/claude-sonnet-4-6",
+      "timeoutSeconds": 120
+    },
+    "delivery": { "mode": "announce", "channel": "telegram", "to": "YOUR_TELEGRAM_ID" }
+  },
+  {
+    "id": "nima-precognition-miner",
+    "agentId": "main",
+    "name": "nima-precognition-miner",
+    "enabled": true,
+    "schedule": { "kind": "cron", "expr": "0 6 * * *", "tz": "America/New_York" },
+    "sessionTarget": "isolated",
+    "wakeMode": "now",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Run NIMA precognition mining. Execute: PYTHONPATH=YOUR_NIMA_REPO YOUR_PYTHON -m nima_core.precognition mine. Report how many patterns and precognitions were generated.",
+      "model": "anthropic/claude-sonnet-4-6",
+      "timeoutSeconds": 120
+    },
+    "delivery": { "mode": "announce", "channel": "telegram", "to": "YOUR_TELEGRAM_ID" }
+  },
+  {
+    "id": "nima-precognitive-actions",
+    "agentId": "main",
+    "name": "nima-precognitive-actions",
+    "enabled": true,
+    "schedule": { "kind": "cron", "expr": "0 */4 * * *", "tz": "America/New_York", "staggerMs": 300000 },
+    "sessionTarget": "isolated",
+    "wakeMode": "now",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Run NIMA precognitive actions preparation. Execute: PYTHONPATH=YOUR_NIMA_REPO YOUR_PYTHON -m nima_core.cognition.precog_actions prepare. Report winning tier, recommended model, mood, and actions completed.",
+      "model": "anthropic/claude-sonnet-4-6",
+      "timeoutSeconds": 60
+    },
+    "delivery": { "mode": "announce", "channel": "telegram", "to": "YOUR_TELEGRAM_ID" }
+  },
+  {
+    "id": "nima-deduplication",
+    "agentId": "main",
+    "name": "nima-deduplication",
+    "enabled": true,
+    "schedule": { "kind": "cron", "expr": "0 4 * * 0", "tz": "America/New_York" },
+    "sessionTarget": "isolated",
+    "wakeMode": "now",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Run NIMA memory deduplication. Execute: PYTHONPATH=YOUR_NIMA_REPO YOUR_PYTHON -m nima_core.deduplication deduplicate. Report the results.",
+      "model": "anthropic/claude-sonnet-4-6",
+      "timeoutSeconds": 300
+    },
+    "delivery": { "mode": "announce", "channel": "telegram", "to": "YOUR_TELEGRAM_ID" }
+  },
+  {
+    "id": "lucid-memory-moments",
+    "agentId": "main",
+    "name": "lucid-memory-moments",
+    "enabled": true,
+    "schedule": { "kind": "cron", "expr": "0 10,14,18,20 * * *", "tz": "America/New_York" },
+    "sessionTarget": "isolated",
+    "wakeMode": "now",
+    "payload": {
+      "kind": "agentTurn",
+      "message": "Run NIMA lucid memory moments. Execute: PYTHONPATH=YOUR_NIMA_REPO YOUR_PYTHON -m nima_core.lucid_moments surface. Report any memories surfaced.",
+      "model": "anthropic/claude-sonnet-4-6",
+      "timeoutSeconds": 60
+    },
+    "delivery": { "mode": "announce", "channel": "telegram", "to": "YOUR_TELEGRAM_ID" }
+  }
+]
+```
+
+After editing `jobs.json`, restart the gateway: `openclaw gateway restart`
+
+---
+
+## Precognitive Actions (detail)
+
+NIMA can pre-warm context *before* your sessions start by predicting what topics are likely and preparing relevant data (model tier, git status, recent memories, mood). This is called **precognitive actions**.
+
+### How It Works
+
+```text
+Every 4 hours (cron):
+  1. Read active precognitions from precognitions.sqlite
+  2. Classify predictions into domains (coding, business, research, etc.)
+  3. Resolve best model tier (deep/fast/balanced/vision) from openclaw.json
+  4. Run preparation actions (git status, open PRs, memory recall, etc.)
+  5. Write ~/.nima/precog_prep/latest.json (TTL: 4 hours)
+
+At session start (before_agent_start hook):
+  6. get_prep_context() reads the cache → injects "🔮 Prep: ..." context
+```
+
+> See the **Cron Jobs** section above for the full set of required jobs including these two.
+> The precog jobs are already included in the complete job list.
+
+### Checking Precog Status
+
+```bash
+# Check what's cached
+python3 -m nima_core.cognition.precog_actions status
+
+# Run manually
+PYTHONPATH=~/.nima/repo python3 -m nima_core.cognition.precog_actions prepare
+
+# Get the context string that gets injected at session start
+python3 -m nima_core.cognition.precog_actions context
+
+# Clear the cache
+python3 -m nima_core.cognition.precog_actions clear
+```
+
+### Model Tiers
+
+Instead of hardcoding model names, precog resolves **capability tiers** from your `openclaw.json` providers:
+
+| Tier | Best for | Resolved by |
+|------|----------|-------------|
+| `deep` | Research, synthesis, architecture | Keywords: opus, o1, o3, pro, r1; prefers reasoning=true |
+| `fast` | Coding sprints, quick tasks | Keywords: haiku, flash, mini, nano, lite |
+| `balanced` | General work, marketing | Keywords: sonnet, gpt-4, gemini, qwen |
+| `vision` | Image-needed tasks | Requires image in model input |
+
+The winning tier is determined by vote across all active precognitions' detected domains.
+
+### Supported Domains
+
+`coding` · `architecture` · `debugging` · `research` · `learning` · `marketing` · `content` · `creative` · `business` · `finance` · `sales` · `ops` · `security` · `data` · `communication` · `personal` · `philosophy` · `general`
+
+---
+
 ## Next Steps
 
 1. **Configure your bot name** in `openclaw.json`
 2. **Restart OpenClaw**: `openclaw gateway restart`
 3. **Test memory**: Have a conversation, then ask "what do you remember?"
-4. **Check the dashboard**: `python3 -m nima_core.dashboard` (optional)
+4. **Set up NIMA cron jobs** (see [Cron Jobs](#cron-jobs) above) for full cognitive lifecycle
+5. **Check the dashboard**: `python3 -m nima_core.dashboard` (optional)
 
 ---
 

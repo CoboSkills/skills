@@ -5,151 +5,78 @@ All notable changes to NIMA Core will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.2.0] - 2026-03-04
+## [3.1.0] - 2026-03-20
 
 ### Added
-- **`storage/` module** — New cognitive memory primitives:
-  - `storage/temporal_decay.py` — ACT-R base-level activation scorer. Tracks per-memory access history and computes decay-weighted activation scores using formula `B_i = ln(Σ t_j^(−d))`. Enables time-aware memory retrieval (recently-accessed memories rank higher).
-  - `storage/hebbian_updater.py` — Hebbian edge-weight manager for the memory graph. Strengthens associations between co-activated memories ("neurons that fire together, wire together") and decays unused edges. Integrates with `lazy_recall.py` for graph-augmented re-ranking.
-  - `storage/__init__.py` — Clean module exports for both classes.
-- `lazy_recall.py` now fully activates ACT-R temporal decay and Hebbian boost (both previously imported but had no backing module).
-
-### Security
-- All SQL uses parameterised `?` placeholders throughout `storage/` — no user-controlled data is ever interpolated into SQL text.
-- `node_id` validated as non-empty string before any DB operation in `temporal_decay.py`.
-- Integer type enforcement for node IDs in `hebbian_updater.py` (graph node IDs are always SQLite row integers).
-
-### Changed
-- Default database paths now use `NIMA_HOME` env var (default `~/.nima`) for portability across bots and installations. Previously pointed to `lilu_core/storage/data/` (Lilu-specific).
-
-## [3.1.0] - 2026-02-26
+- **LadybugDB column migrations** (`init_ladybug.py`) — `MEMORYNODE_COLUMN_MIGRATIONS` list with idempotent `ALTER TABLE MemoryNode ADD IF NOT EXISTS` loop. Schema drift can no longer silently recur after install. Wired into `upgrade.sh` (Step 5) and `doctor.sh` (schema drift check).
+- **`scripts/migrate_sqlite_to_ladybug.py`** — Idempotent one-shot SQLite → LadybugDB migration. Supports `--dry-run`, `--force`, `--verbose`. Batch size 100; skips by `id` (safe to re-run).
+- **Canonical LLM env vars** (`nima_core/llm_config.py`) — `NIMA_LLM_PROVIDER`, `NIMA_LLM_API_KEY`, `NIMA_LLM_MODEL`, `NIMA_LLM_BASE_URL` as the single source of truth for all LLM config. Provider inferred from base URL when not set. Old provider-specific vars (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`) preserved as silent-only fallbacks.
+- **Readiness thresholds for cron jobs** — Lucid moments and precognition are now silent no-ops until sufficient data exists. Configurable via CLI flags:
+  - Lucid moments: `--min-total-memories` (default 25), `--min-candidate-count` (default 3)
+  - Precognition: `--min-memory-count` (default 25), `--min-pattern-count` (default 2), `--min-pattern-confidence` (default 0.35), `--min-prediction-confidence` (default 0.6)
+  - Precog actions: `MIN_PRECOG_COUNT` (default 1), `MIN_PRECOG_CONFIDENCE` (default 0.6)
+- **`allowSubagentRecall`** feature in `nima-recall-live` — sub-agents can read NIMA memories when flag is set; writes are always blocked for sub-agents.
+- **Updated `.env.example`** — fully documents all current env vars with inline defaults and grouped sections.
 
 ### Fixed
-- **CRITICAL: LadybugDB SIGSEGV on SET/CREATE/DELETE** — Root cause identified: `LOAD VECTOR` extension must be called before any mutation on tables with `FLOAT[512]` columns (like MemoryNode). Without it, Kùzu crashes with SIGSEGV. Added `LOAD VECTOR` calls to: `memory_pruner.py`, `lucid_moments.py`, `dream_db_sync.py`, and all LadybugDB connection helpers.
-
-### Added
-- **`nima_core/dream_db_sync.py`** — New module that syncs dream consolidation outputs (insights, patterns, dream runs, narratives) from JSON files to both SQLite and LadybugDB. Called automatically after dream consolidation and pruning.
-- **Ghost-marking pipeline** — Memory pruner now syncs suppression registry → LadybugDB ghost marks after each pruning run. Batched in groups of 200 IDs.
-- **SQLite dual-write in `ladybug_store.py`** — Every memory stored to LadybugDB is also written to SQLite with optional Voyage embedding for semantic search (requires `VOYAGE_API_KEY` env var).
-- **Dream system SQLite tables** in `scripts/init_db.py`:
-  - `nima_insights` — Dream-generated insights with confidence scores
-  - `nima_patterns` — Cross-domain recurring patterns
-  - `nima_dream_runs` — Dream consolidation run history
-  - `nima_suppressed_memories` — Pruned memory records
-  - `nima_pruner_runs` — Pruner execution log
-  - `nima_lucid_moments` — Surfaced memory moments
+- `ProtocolNode` schema: `INTEGER` → `INT64` (Kùzu does not accept `INTEGER` type).
+- `INSTALL.md`: venv path corrected from `~/.nima/.venv` → `~/.nima/venv`.
+- `before_response_send` hook removed from `nima-affect` (hook does not exist in OpenClaw); tone hint injection moved to `before_agent_start` via `formatAffectContext()`.
+- Shell quoting bug in safe `.env` parser — replaced `source`/`.` with `grep | cut` to prevent arbitrary shell execution.
+- `python3 -m pip` used throughout scripts instead of bare `pip`.
+- Bare `except` blocks replaced with specific exception types; `print()` debug calls replaced with proper `logging` calls.
+- Ghost export, recall dict, connection leak, and composite index issues.
+- N+1 queries in `hebbian_updater` — `executemany` UPSERT + batch `IN` query.
 
 ### Changed
-- **`dream_consolidation.py`** — Now calls `dream_db_sync.sync_all()` after each consolidation run to persist results to both databases.
-- **`memory_pruner.py`** — After pruning, syncs ghost marks to LadybugDB via `dream_db_sync.sync_pruner_to_ladybug()`.
-
-## [3.0.8] - 2026-02-24
-
-### Added
-- **Security section in SKILL.md** — Comprehensive security documentation covering:
-  - What gets installed and where
-  - Credential handling table (which env vars make network calls)
-  - Safety features (input filtering, injection prevention, timeouts)
-  - Best practices (review before install, don't run as root, use containers)
-  - Data location reference
-- **`.nimaignore` file** — Specification for excluding content from memory capture
-  - Supports glob patterns (like .gitignore)
-  - Defines filters for system messages, heartbeats, passwords/secrets
-  - Note: Pattern matching implementation in hook is pending
-- **`scripts/init_db.py`** — Extracted database initialization from install.sh
-  - Standalone script with argparse
-  - Verbose mode for debugging
-  - Proper error handling
-
-### Changed
-- **`install.sh` refactored** — Cleaner, more verbose output
-  - Uses `scripts/init_db.py` instead of inline Python
-  - Shows each step clearly
-  - Data directory configurable via `NIMA_DATA_DIR`
-
-### Security
-- **Transparency** — All install actions logged, no hidden operations
-- **Defense in depth** — Multiple layers of input filtering
-- **Minimal permissions** — No root required, user home only
-
-## [3.0.7] - 2026-02-23
-
-## [3.0.6] - 2026-02-23
-
-### Fixed
-- **CRITICAL:** SyntaxError in lucid_moments.py line 447 — unterminated f-string with literal newline, preventing NIMA from loading
-
-## [3.0.5] - 2026-02-23
-
-### Changed
-- SKILL.md: remove internal post-mortem language, fix NIMA_DATA_DIR example (~/.nima/memory → ~/.nima), update changelog to v3.0.4, add Darwinian Memory + Installer to module table
+- `NIMA_DB_BACKEND` is now the canonical backend selector (`sqlite` | `ladybug`). Legacy vars `NIMA_STORE` and `NIMA_LADYBUG_ENABLED=true` map via fallback chain.
+- `upgrade.sh` — `init_ladybug.py` gated on `NIMA_DB_BACKEND=ladybug`; decoupled from `HAS_SQLITE` gate.
+- `doctor.sh` — schema drift now increments `ISSUES` counter; `NIMA_STORE` refs replaced with `NIMA_DB_BACKEND`.
+- `install.sh` — added `--sqlite` / `--ladybug` / `--no-interactive` flags + interactive LadybugDB prompt (skipped when stdin is not a TTY).
+- All LLM-using modules refactored to use `resolve_llm_config()` from `nima_core/llm_config.py`: `llm_client.py`, `lucid_moments.py`, `precognition.py`, `memory_pruner.py`, `dream/*`, `darwinism.py`, `config.py`.
 
 ## [3.0.4] - 2026-02-23
 
 ### Fixed
-- **Version alignment:** Synced `__init__.py`, `README.md` badge, and all three OpenClaw hook `package.json` files to match canonical `setup.py` version `3.0.4`
-- **nima-affect missing package.json:** Added `package.json` to `openclaw_hooks/nima-affect/` — consistent with `nima-memory` and `nima-recall-live` hook format
-- Hook versions were scattered across `2.0.2`, `2.0.3`, `2.0.11` — all unified to `3.0.4`
-
-## [3.0.3] - 2026-02-22
-
-### Changed
-- Minor internal refinements post `3.0.2` publish
-- `setup.py` bumped to `3.0.3` → `3.0.4` for subsequent release
-
-## [3.0.2] - 2026-02-22
-
-### Fixed
-- **CRITICAL:** ClawHub package was missing entire `nima_core/cognition/` directory (10 files) due to `.clawhubignore` glob pattern bug — `*` excluded subdirectory contents even when parent was re-included
-- **CRITICAL:** All OpenClaw hook files missing from package (`openclaw_hooks/nima-memory/*.py`, `openclaw_hooks/nima-recall-live/*.py`, `openclaw_hooks/nima-affect/*`) — same `.clawhubignore` root cause
-- Fixed `.clawhubignore` to use `!dir/**` pattern for recursive re-inclusion
+- Darwinian memory — ghost verification LLM call stability under high load
+- nima-query CLI — correct handling of empty result sets
+- install.sh — idempotent directory creation on fresh installs
+- Various README and documentation alignment fixes
 
 ### Changed
-- README.md fully rewritten — consolidated all features (v2.0–v3.0), added package contents tree, simplified configuration docs, removed outdated sections
-- Version badges updated to 3.0.2
+- Version bump: 3.0.0 → 3.0.4
+- All versions in README and SKILL.md aligned to 3.0.4
 
-## [3.0.0] - 2026-02-22
+## [3.0.0] - 2026-02-23
+
+### Added
+- **Darwinian Memory** (`nima_core/darwinism.py`) — Clusters similar memories via cosine similarity, marks duplicates as ghosts via LLM verification. Survival-of-the-fittest approach: semantically redundant memories fade out over time.
+- **Installer** (`install.sh`) — One-command setup: LadybugDB, hooks, directories, embedder config.
+- **OpenClaw hooks bundled** — All three hooks (`nima-memory`, `nima-recall-live`, `nima-affect`) ship with `index.js` entry points in `openclaw_hooks/`.
+- **nima-query CLI** — Unified database query interface across SQLite and LadybugDB backends.
 
 ### Changed
-- Version alignment across all modules to 3.0.0
-- Package audit and dependency cleanup
-- SKILL.md version bump
-
-### Known Issues
-- Package published to ClawHub was incomplete (fixed in 3.0.2)
+- All cognitive modules unified under single package import surface.
+- README rewritten with full architecture diagram and configuration reference.
+- Version bump: 2.5.0 → 3.0.0 (major — signals stable cognitive stack)
 
 ## [2.5.0] - 2026-02-21
 
 ### Added
-- **Hive Mind** (`nima_core/hive_mind.py`) — Proposal #7: Memory Entanglement.
-  - `HiveMind` class: inject shared memory context into sub-agent prompts + capture results back to LadybugDB.
-  - `HiveBus` class: Redis pub/sub message bus for real-time agent-to-agent communication. Channels: `hive` (broadcast), `role:{role}`, `agent:{id}`, `results:{swarm_id}`.
-  - Optional: requires `redis-py` (`pip install nima-core[hive]`).
-- **Precognition** (`nima_core/precognition.py`) — Proposal #4: Precognitive Memory Injection.
-  - `NimaPrecognition` class: mine temporal patterns from LadybugDB, generate predictions via any OpenAI-compatible LLM, inject relevant precognitions into agent prompts.
-  - Configurable: `db_path`, `llm_base_url`, `llm_model`, `voyage_api_key`, `lookback_days`.
-  - Full cycle: `run_mining_cycle()` → `mine_patterns()` → `generate_precognitions()` → `store_precognitions()`.
-  - Semantic dedup via SHA-256 pattern hashing; optional Voyage embeddings.
-- **Lucid Moments** (`nima_core/lucid_moments.py`) — Proposal #8: Spontaneous Memory Surfacing.
-  - `LucidMoments` class: surface emotionally-resonant memories unbidden via any delivery callback.
-  - Scoring: age window (3–30 days), layer bonus, content richness, warm keywords.
-  - Safety: trauma keyword filter, quiet hours, min gap, daily cap.
-  - Enrichment: LLM transforms raw memories into natural "this just came to me" messages.
-  - Fully configurable: quiet hours, `min_gap_hours`, `max_per_day`, `warm_keywords`, `persona_prompt`.
+- **Hive Mind** (`nima_core/hive_mind.py`) — Multi-agent memory sharing via shared DB + optional Redis pub/sub. `build_agent_context()` aggregates memories across agents; `capture_agent_result()` stores agent outputs.
+- **Precognition** (`nima_core/precognition.py`) — Temporal pattern mining → predictive memory pre-loading. Mines recurring patterns from episodic memory; generates predictions for upcoming contexts.
+- **Lucid Moments** (`nima_core/lucid_moments.py`) — Spontaneous surfacing of emotionally-resonant memories. Safety features: trauma filtering, quiet hours, daily caps.
 
 ### Changed
-- `setup.py`: version 2.4.0 → 2.5.0, added `[hive]` extra for `redis>=4.0.0`.
-- `__init__.py`: lazy-imports for all three new modules (graceful if LadybugDB/redis unavailable).
+- Version bump: 2.4.0 → 2.5.0
 
 ## [2.4.0] - 2026-02-20
 
 ### Added
-- **Dream Consolidation** (`nima_core/dream_consolidation.py`) — nightly memory synthesis engine.
-  - Extracts `Insight` and `Pattern` objects from episodic memories via LLM.
-  - VSA-style `blend_dream_vector` for semantic compression.
-  - `DreamConsolidator` class with configurable LLM endpoint, lookback window, temperature.
-  - `nima-dream` CLI entry point for scripted/cron usage.
-- **Dream session state** — `DreamSession` dataclass tracks what was consolidated.
+- **Dream Consolidation** (`nima_core/dream_consolidation.py`) — Nightly synthesis engine. Extracts insights and patterns from episodic memory via LLM; writes structured dream logs to `~/.nima/dreams/`.
+
+### Changed
+- Version bump: 2.3.0 → 2.4.0
 
 ## [2.3.0] - 2026-02-19
 

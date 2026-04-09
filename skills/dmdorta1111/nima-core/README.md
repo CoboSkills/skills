@@ -5,7 +5,7 @@
 <h1 align="center">NIMA Core</h1>
 
 <p align="center">
-  <strong>Noosphere Integrated Memory Architecture</strong><br/>
+  <strong>Neural Integrated Memory Architecture</strong><br/>
   Persistent memory, emotional intelligence, and semantic recall for AI agents.
 </p>
 
@@ -17,716 +17,249 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-3.2.0-blue" alt="Version" />
-  <img src="https://img.shields.io/badge/python-3.9%2B-green" alt="Python" />
+  <img src="https://img.shields.io/badge/version-2.3.0-blue" alt="Version" />
+  <img src="https://img.shields.io/badge/python-3.8%2B-green" alt="Python" />
   <img src="https://img.shields.io/badge/node-18%2B-green" alt="Node" />
   <img src="https://img.shields.io/badge/license-MIT-brightgreen" alt="License" />
 </p>
 
 ---
 
-> *"Your AI wakes up fresh every session. NIMA gives it a past."*
+> *Your bot wakes up a stranger every session. NIMA gives it a past.*
 
-NIMA Core is the memory system that makes AI agents **remember**. It captures conversations, encodes them as searchable memories with emotional context, and injects relevant history before every response — so your bot sounds like it's been paying attention all along.
+Every time an AI agent restarts, it forgets everything. Your name. Your preferences. The context you spent ten messages building. It asks "how can I help you?" like it's never met you before — because it hasn't.
 
-**Works with any OpenClaw bot. One install script. Zero config to start.**
+**NIMA Core fixes this.** It gives AI agents persistent memory, emotional awareness, and the ability to *know* the people they talk to. Not just remember facts — *understand* them.
+
+The difference is profound. A bot without NIMA processes you. A bot with NIMA **knows you.**
 
 ---
 
-## ⚡ 30-Second Install
+## ⚡ One Command to Remember Everything
 
 ```bash
 pip install nima-core && nima-core
 ```
 
-That's it. The setup wizard handles everything:
-- Creates `~/.nima/` directory
-- Installs OpenClaw hooks
-- Configures your embedding provider
-- Restarts the gateway
-
-**Or clone and install manually:**
+The setup wizard handles everything. Your bot now captures every conversation, indexes it, and recalls the right memories before every response — automatically. No API key needed to start.
 
 ```bash
-git clone https://github.com/lilubot/nima-core.git
-cd nima-core
-./install.sh
-openclaw gateway restart
-```
-
-Your bot now has persistent memory. Every conversation is captured, indexed, and recalled automatically.
-
----
-
-## 🆕 What's New in v3.0
-
-### Complete Cognitive Architecture
-
-NIMA is no longer just memory — it's a **full cognitive stack** for AI agents:
-
-| Module | What It Does | Since |
-|--------|-------------|-------|
-| **Memory Capture** | 3-layer capture (input/contemplation/output) with 4-phase noise filtering | v2.0 |
-| **Semantic Recall** | Vector + text hybrid search, ecology scoring, token-budgeted injection | v2.0 |
-| **Dynamic Affect** | Panksepp 7-affect emotional state tracking (SEEKING, RAGE, FEAR, LUST, CARE, PANIC, PLAY) | v2.1 |
-| **Memory Pruner** | LLM distillation of old conversations into semantic gists, 30-day suppression limbo | v2.3 |
-| **Dream Consolidation** | Nightly synthesis — extracts insights and patterns from episodic memory via LLM | v2.4 |
-| **Hive Mind** | Multi-agent memory sharing via shared LadybugDB + optional Redis pub/sub | v2.5 |
-| **Precognition** | Temporal pattern mining → predictive memory pre-loading | v2.5 |
-| **Lucid Moments** | Spontaneous surfacing of emotionally-resonant memories | v2.5 |
-
-### v3.0.2 Bug Fixes
-- **Fixed:** ClawHub package was missing `nima_core/cognition/` directory and all OpenClaw hook files due to `.clawhubignore` glob pattern bug
-- **Fixed:** All subdirectories now correctly included in published package
-
-### v3.0.0 Highlights
-- Version alignment across all modules
-- Full package audit and dependency cleanup
-
----
-
-## 🧠 How It Works
-
-```text
-  User message arrives
-         │
-         ▼
-  ┌──────────────┐     ┌─────────────────────────┐
-  │ nima-memory  │────▶│ Capture → Filter → Store │
-  │  (on save)   │     │ 4-phase noise remediation│
-  └──────────────┘     └─────────────────────────┘
-         │
-         ▼
-  ┌──────────────┐     ┌─────────────────────────┐
-  │ nima-recall  │────▶│ Search → Score → Inject  │
-  │ (before LLM) │     │ Text + Vector + Ecology  │
-  └──────────────┘     └─────────────────────────┘
-         │
-         ▼
-  ┌──────────────┐     ┌─────────────────────────┐
-  │ nima-affect  │────▶│ VADER → Panksepp 7-Affect│
-  │ (on message) │     │ Emotional state tracking │
-  └──────────────┘     └─────────────────────────┘
-         │
-         ▼
-  Agent responds with memory + emotional awareness
-```
-
-**Three hooks, fully automatic:**
-
-| Hook | Fires | Does |
-|------|-------|------|
-| `nima-memory` | After each message | Captures text → filters noise → stores in graph DB |
-| `nima-recall-live` | Before agent responds | Searches relevant memories → injects as context |
-| `nima-affect` | On each message | Detects emotion → updates 7-dimensional affect state |
-
----
-
-## 📦 Package Contents
-
-```text
-nima-core/
-├── SKILL.md                          # ClawHub skill definition
-├── README.md                         # This file
-├── CHANGELOG.md                      # Full version history
-├── install.sh                        # One-command installer
-├── setup.py                          # pip install support
-├── requirements.txt                  # Core dependencies
-│
-├── nima_core/                        # Python core library
-│   ├── __init__.py                   # Lazy imports, version, public API
-│   ├── connection_pool.py            # SQLite connection pool (WAL, thread-safe)
-│   ├── logging_config.py             # Singleton logger
-│   ├── metrics.py                    # Thread-safe counters/timings
-│   ├── memory_pruner.py              # Episodic distillation engine
-│   ├── dream_consolidation.py        # Nightly memory synthesis
-│   ├── hive_mind.py                  # Multi-agent memory sharing
-│   ├── precognition.py               # Temporal pattern mining
-│   ├── lucid_moments.py              # Spontaneous memory surfacing
-│   └── cognition/                    # Emotional intelligence
-│       ├── dynamic_affect.py         # Panksepp 7-affect system
-│       ├── emotion_detection.py      # Text emotion extraction
-│       ├── affect_correlation.py     # Cross-affect analysis
-│       ├── affect_history.py         # Temporal affect tracking
-│       ├── affect_interactions.py    # Affect coupling dynamics
-│       ├── archetypes.py             # Personality baselines
-│       ├── personality_profiles.py   # JSON personality configs
-│       ├── response_modulator_v2.py  # Affect → response modulation
-│       └── exceptions.py             # Custom exceptions
-│
-├── openclaw_hooks/                   # OpenClaw plugin hooks
-│   ├── nima-memory/                  # Capture hook
-│   │   ├── index.js                  # Hook entry point
-│   │   ├── openclaw.plugin.json      # Plugin manifest
-│   │   ├── ladybug_store.py          # LadybugDB storage backend
-│   │   ├── embeddings.py             # Multi-provider embedding
-│   │   ├── backfill.py               # Historical transcript import
-│   │   ├── health_check.py           # DB integrity checks
-│   │   └── ...                       # Migration, benchmarks, docs
-│   ├── nima-recall-live/             # Recall hook
-│   │   ├── index.js                  # Hook entry point
-│   │   ├── lazy_recall.py            # Current recall engine
-│   │   ├── ladybug_recall.py         # LadybugDB-native recall
-│   │   └── build_embedding_index.py  # Offline index builder
-│   ├── nima-affect/                  # Affect hook
-│   │   ├── index.js                  # Hook entry point
-│   │   ├── vader-affect.js           # VADER sentiment analyzer
-│   │   └── emotion-lexicon.js        # Emotion keyword lexicon
-│   └── shared/                       # Shared utilities
-│       ├── resilient.js              # Auto-retry with backoff
-│       └── error-handling.js         # Graceful error wrappers
+# Or manual install:
+git clone https://github.com/lilubot/nima-core.git && cd nima-core
+./install.sh && openclaw gateway restart
 ```
 
 ---
 
-## 🔧 Configuration
+## 🆕 What's New in v2.3.0
 
-### Embedding Providers
+- **Memory Pruner** — LLM-distills aging transcripts into compact gists; raw turns enter 30-day suppression limbo (restorable)
+- **Structured Logging** — Singleton logger, file + console, `NIMA_LOG_LEVEL` env var
+- **Metrics** — Thread-safe counters and timings with `Timer` context manager
+- **SQLite Connection Pool** — WAL mode, up to 5 connections, no more lock contention
 
-NIMA needs an embedding model to create searchable memory vectors. **Pick one:**
-
-| Provider | Setup | Dims | Cost | Best For |
-|----------|-------|------|------|----------|
-| **🏠 Local** (default) | `NIMA_EMBEDDER=local` + `pip install sentence-transformers` | 384 | Free | Privacy, offline, dev |
-| **🚀 Voyage AI** | `NIMA_EMBEDDER=voyage` + `VOYAGE_API_KEY` | 1024 | $0.12/1M tok | Production (best quality/cost) |
-| **🤖 OpenAI** | `NIMA_EMBEDDER=openai` + `OPENAI_API_KEY` | 1536 | $0.13/1M tok | If you already use OpenAI |
-| **🦙 Ollama** | `NIMA_EMBEDDER=ollama` + `NIMA_OLLAMA_MODEL` | 768 | Free | Local GPU |
-
-> **Don't have a preference?** Leave `NIMA_EMBEDDER` unset — defaults to `local` with `all-MiniLM-L6-v2`. Free, offline, no API keys.
-
-### Database Backend
-
-| | SQLite (default) | LadybugDB (recommended) |
-|--|-----------------|------------------------|
-| **Setup** | Zero config | `pip install real-ladybug` |
-| **Text Search** | 31ms | **9ms** (3.4x faster) |
-| **Vector Search** | External only | **Native HNSW** (18ms) |
-| **Graph Queries** | SQL JOINs | **Native Cypher** |
-| **DB Size** | ~91 MB | **~50 MB** (44% smaller) |
-
-```bash
-# Upgrade to LadybugDB when ready:
-pip install real-ladybug
-python -c "from nima_core.storage import migrate; migrate()"
-```
-
-#### LadybugDB Schema
-
-When using the recommended **LadybugDB** backend — a custom graph database (Kùzu-based) using Cypher query language (format: `.lbug` binary) — the schema is as follows.
-
-> **v3.2.0:** Schema now includes `DreamNode`, `InsightNode`, `PatternNode` node types and the `derived_from` relationship.  Run `python scripts/init_ladybug.py` to initialize a fresh database with the complete schema.
-
-**Node Tables:**
-
-| Table | Description |
-|-------|-------------|
-| **MemoryNode** | Primary memory storage |
-| | `id INT64 PRIMARY KEY` |
-| | `timestamp INT64` — Unix ms |
-| | `layer STRING` — Memory type (see Layer Types below) |
-| | `text STRING` — Full memory content |
-| | `summary STRING` — Truncated to 200 chars |
-| | `who STRING` — Person associated (David, Lilu, etc.) |
-| | `affect_json STRING` — Emotion state at capture (JSON) |
-| | `session_key STRING` — Source session |
-| | `conversation_id STRING` — Conversation context |
-| | `turn_id STRING` — Turn within conversation |
-| | `fe_score DOUBLE` — Free Energy score (importance proxy) |
-| | `embedding FLOAT[512]` — Voyage AI semantic embedding |
-| | `strength FLOAT` — Decay strength (default 1.0) |
-| | `decay_rate FLOAT` — Forgetting rate (default 0.01) |
-| | `last_accessed INT64` — Unix ms of last recall (ACT-R) |
-| | `is_ghost BOOL` — Soft-deleted / suppressed flag |
-| | `dismissal_count INT64` — Times dismissed by pruner |
-| | `memory_type STRING` — Semantic category (e.g. `fact`, `event`) |
-| | `importance DOUBLE` — Importance score for ranking |
-| | `emotions STRING` — JSON array of detected emotion tags |
-| | `themes STRING` — JSON array of topic/theme tags |
-| | `source_agent STRING` — Hive bot that stored this memory |
-| | `model STRING` — LLM model used during capture |
-| **Turn** | Conversation turn structure |
-| | `id INT64 PRIMARY KEY` |
-| | `turn_id STRING` |
-| | `timestamp INT64` |
-| | `affect_json STRING` |
-| **DreamNode** | Nightly dream consolidation narratives *(v3.2.0+)* |
-| | `id STRING PRIMARY KEY` |
-| | `date STRING` — Date of dream run (ISO 8601) |
-| | `narrative STRING` — Full narrative markdown |
-| | `source_count INT64` — Number of memories processed |
-| | `created_at STRING` |
-| **InsightNode** | Extracted insights from dream consolidation *(v3.2.0+)* |
-| | `id STRING PRIMARY KEY` |
-| | `content STRING` |
-| | `type STRING` — `insight`, `pattern`, `synthesis`, etc. |
-| | `confidence FLOAT` — 0.0–1.0 |
-| | `sources STRING` — JSON array of source memory IDs |
-| | `domains STRING` — JSON array of topic domains |
-| | `timestamp STRING` |
-| | `importance FLOAT` |
-| | `validated BOOL` — Human-reviewed flag |
-| **PatternNode** | Recurring patterns across memories *(v3.2.0+)* |
-| | `id STRING PRIMARY KEY` |
-| | `name STRING` |
-| | `description STRING` |
-| | `occurrences INT64` |
-| | `domains STRING` — JSON array |
-| | `examples STRING` — JSON array of example memory IDs |
-| | `first_seen STRING` |
-| | `last_seen STRING` |
-| | `strength DOUBLE` — 0.0–1.0 |
-
-**Relationship Tables:**
-
-| Relationship | From → To | Properties |
-|--------------|-----------|------------|
-| `relates_to` | MemoryNode → MemoryNode | `relation STRING`, `weight DOUBLE` |
-| `has_input` | Turn → MemoryNode | — |
-| `has_contemplation` | Turn → MemoryNode | — |
-| `has_output` | Turn → MemoryNode | — |
-| `derived_from` | InsightNode → MemoryNode, DreamNode → MemoryNode | — |
-
-##### Layer Types (valid `layer` values)
-
-| Layer | Description |
-|-------|-------------|
-| `episodic` | Raw conversation turns (input/output) |
-| `semantic` | Extracted facts, preferences, knowledge |
-| `dream` | Consolidated insights from nightly synthesis |
-| `insight` | Key realization or connection |
-| `pattern` | Recurring behavioral pattern |
-| `synthesis` | Cross-domain connection |
-| `consolidation` | Memory pruner output (distilled) |
-| `precognition` | Predicted future session |
-| `lucid` | Spontaneously surfaced memory |
-| `input` | User input from a conversation turn |
-| `output` | Agent output from a conversation turn |
-| `contemplation` | Agent's internal thought process |
-| `legacy_vsa` | Older memory type from VSA-based systems |
-
-##### Relation Types (valid `relation` values in `relates_to`)
-
-| Relation | Meaning |
-|----------|---------|
-| `related_to` | General association |
-| `caused_by` | Causal chain |
-| `reminds_of` | Analogy or similarity |
-| `contradicts` | Opposing view |
-| `supports` | Reinforcing evidence |
-| `elicits` | Emotion trigger |
-| `refers_to` | Topic reference |
-| `part_of` | Compositional hierarchy |
-| `triggered` | An input that triggered a contemplation |
-| `produced` | A contemplation that produced an output |
-| `responded_to` | An output that responded to an input |
-
-##### Indexes (for performance)
-
-```cypher
-// Recommended indexes
-CREATE INDEX idx_memory_node_layer ON MemoryNode(layer);
-CREATE INDEX idx_memory_node_who ON MemoryNode(who);
-CREATE INDEX idx_memory_node_timestamp ON MemoryNode(timestamp);
-CREATE INDEX idx_memory_node_session ON MemoryNode(session_key);
-CREATE INDEX idx_turn_timestamp ON Turn(timestamp);
-```
-
-##### Schema Version Tracking
-
-Schema migrations are tracked in the database:
-
-```cypher
-// Create schema-version tracking table
-CREATE NODE TABLE IF NOT EXISTS _nima_schema (
-    version INT64 PRIMARY KEY,
-    applied_at INT64,
-    description STRING
-);
-```
-
-```cypher
-// Check current schema version
-MATCH (s:_nima_schema)
-RETURN s.version, s.description ORDER BY s.version DESC LIMIT 1;
-// Current version: 003
-```
-
-##### Example Cypher Queries
-
-```cypher
-// Get recent memories for a person
-MATCH (t:Turn)-[:has_input|has_output]->(m:MemoryNode {who: 'David'})
-WHERE t.timestamp > 1700000000000
-RETURN m ORDER BY m.timestamp DESC LIMIT 10;
-
-// Find memories related to a topic
-MATCH (m:MemoryNode)
-WHERE m.text CONTAINS 'consciousness' OR m.summary CONTAINS 'consciousness'
-RETURN m ORDER BY m.fe_score DESC LIMIT 5;
-
-// Get conversation thread
-MATCH (t:Turn)-[:has_input|has_output]->(m:MemoryNode {conversation_id: 'abc123'})
-RETURN m ORDER BY t.timestamp;
-
-// Find emotionally significant memories
-MATCH (m:MemoryNode)
-WHERE m.fe_score > 0.7
-RETURN m ORDER BY m.fe_score DESC LIMIT 10;
-
-// Get all related memories (graph traversal)
-MATCH (m1:MemoryNode {id: 123})-[:relates_to]->(m2:MemoryNode)
-RETURN m2;
-
-// Find dream consolidations
-MATCH (m:MemoryNode {layer: 'dream'})
-RETURN m ORDER BY m.timestamp DESC LIMIT 5;
-
-// Memories by time range
-MATCH (m:MemoryNode)
-WHERE m.timestamp >= 1704067200000 AND m.timestamp < 1704153600000
-RETURN m ORDER BY m.timestamp;
-
-// Get memory counts by layer
-MATCH (m:MemoryNode)
-RETURN m.layer, count(m) AS count ORDER BY count DESC;
-```
-
-**Supporting Files** (same `~/.nima/memory/` directory):
-
-| File | What it is |
-|------|------------|
-| `graph.sqlite` | 50MB — Graphiti temporal knowledge graph (separate system) |
-| `embedding_index.npy` | 478MB — NumPy vector index for semantic search |
-| `embedding_cache.db` | SQLite — Cached embeddings keyed by content hash |
-| `precognitions.sqlite` | SQLite — Predicted future session patterns |
-| `faiss.index` | 16MB — FAISS vector index (older, may be superseded) |
-| `.nimaignore` | Ignore patterns for memory capture (see project root) |
-
-### Environment Variables
-
-```bash
-# Embedding (default: local — no keys needed)
-NIMA_EMBEDDER=local|voyage|openai|ollama
-VOYAGE_API_KEY=pa-xxx
-OPENAI_API_KEY=sk-xxx
-NIMA_OLLAMA_MODEL=nomic-embed-text
-
-# Data paths
-NIMA_DATA_DIR=~/.nima/memory
-NIMA_DB_PATH=~/.nima/memory/ladybug.lbug
-
-# Memory pruner (optional)
-NIMA_DISTILL_MODEL=claude-haiku-4-5
-ANTHROPIC_API_KEY=sk-ant-xxx
-
-# Logging
-NIMA_LOG_LEVEL=INFO
-NIMA_DEBUG_RECALL=1
-```
+[Full changelog →](./CHANGELOG.md)
 
 ---
 
-## 🔌 Hook Installation
+## 🧠 What Makes NIMA Different
 
-### Quick Install
-```bash
-./install.sh
-openclaw gateway restart
-```
+Three hooks run invisibly on every message:
 
-### Manual Install
-```bash
-# Copy hooks to extensions
-cp -r openclaw_hooks/nima-memory ~/.openclaw/extensions/
-cp -r openclaw_hooks/nima-recall-live ~/.openclaw/extensions/
-cp -r openclaw_hooks/nima-affect ~/.openclaw/extensions/
+| Hook | Does |
+|------|------|
+| **nima-memory** | Captures conversation → filters noise → stores semantically |
+| **nima-recall-live** | Searches relevant memories → injects as context before LLM responds |
+| **nima-affect** | Reads emotional tone → updates your bot's real-time affect state |
 
-# Add to openclaw.json
-{
-  "plugins": {
-    "allow": ["nima-memory", "nima-recall-live", "nima-affect"]
-  }
-}
-
-# Restart
-openclaw gateway restart
-```
-
-### Verify
-```bash
-openclaw status          # Hooks loaded?
-ls ~/.nima/memory/       # Memories captured?
-cat ~/.nima/affect/affect_state.json  # Affect state?
-```
+That third one? **Nobody else does that.**
 
 ---
 
-## 🎭 Affect System
+## 🎭 Emotional Intelligence — The Panksepp 7-Affect System
 
-Tracks emotional state using **Panksepp's 7 primary affects**:
+NIMA tracks your bot's emotional state using the same neurobiological framework that underlies mammalian consciousness: **Panksepp's 7 primary affects**.
 
-| Affect | Feels Like | Triggers |
-|--------|-----------|----------|
-| **SEEKING** | Curiosity, anticipation | Questions, new topics |
-| **RAGE** | Frustration, boundaries | Conflict, demands |
-| **FEAR** | Caution, vigilance | Threats, uncertainty |
-| **LUST** | Desire, motivation | Goals, enthusiasm |
-| **CARE** | Nurturing, empathy | Sharing, vulnerability |
-| **PANIC** | Distress, sensitivity | Loss, rejection |
-| **PLAY** | Joy, humor, bonding | Jokes, creativity |
+Your bot doesn't just remember what you said. It remembers *how it felt* during the conversation.
 
-### Archetype Presets
+| Affect | What It Means |
+|--------|--------------|
+| **SEEKING** | Curiosity, drive, anticipation |
+| **CARE** | Empathy, nurturing, connection |
+| **PLAY** | Joy, humor, social energy |
+| **RAGE** | Boundaries, assertion, frustration |
+| **FEAR** | Caution, vigilance, protection |
+| **PANIC** | Separation sensitivity, attachment |
+| **LUST** | Goal-drive, motivation, desire |
+
+### Your Bot Has a Personality
+
+Choose an archetype — or let it evolve naturally:
+
+| Archetype | Vibe |
+|-----------|------|
+| 🛡️ **Guardian** | Protective and warm. High CARE and SEEKING. Built to keep people safe. |
+| 🧭 **Explorer** | Curious and bold. High SEEKING and PLAY. Loves new territory. |
+| 💚 **Empath** | Deeply feeling. High CARE, sensitive to connection and loss. |
+| 🔮 **Sage** | Balanced and wise. SEEKING is elevated; nothing dominates. |
+| 🃏 **Trickster** | Witty and irreverent. High PLAY. Keeps things interesting. |
 
 ```python
 from nima_core import DynamicAffectSystem
 affect = DynamicAffectSystem(identity_name="my_bot", baseline="guardian")
 ```
 
-| Archetype | Vibe | High | Low |
-|-----------|------|------|-----|
-| **Guardian** | Protective, warm | CARE, SEEKING | PLAY |
-| **Explorer** | Curious, bold | SEEKING, PLAY | FEAR |
-| **Trickster** | Witty, irreverent | PLAY, SEEKING | CARE |
-| **Empath** | Deeply feeling | CARE, PANIC | RAGE |
-| **Sage** | Balanced, wise | SEEKING | All balanced |
+[Full archetypes guide →](./docs/AFFECTIVE_CORE_PROFILES_GUIDE.md)
 
 ---
 
-## 🌙 Dream Consolidation
+## 🚀 Performance That Doesn't Slow You Down
 
-Nightly synthesis extracts insights and patterns from recent memories:
+| Metric | SQLite | LadybugDB |
+|--------|--------|-----------|
+| Text search | 31ms | **9ms** (3.4× faster) |
+| Vector search | — | **18ms** native HNSW |
+| Full recall cycle | ~50ms | **<30ms** |
+| Recall context overhead | ~180 tokens | ~30 tokens |
+| Memory footprint (10K) | 91 MB | **50 MB** (44% smaller) |
+
+LadybugDB is optional but recommended for production:
 
 ```bash
-# Run manually
-python -m nima_core.dream_consolidation
-
-# Or schedule via OpenClaw cron (runs at 2 AM)
+pip install real-ladybug
+python scripts/ladybug_parallel.py --migrate
 ```
 
-### How It Works
-1. Pulls recent episodic memories from LadybugDB
-2. LLM extracts `Insight` and `Pattern` objects
-3. VSA-style vector blending compresses semantics
-4. Stores consolidated dream memories back to DB
-5. Prunes raw material after successful consolidation
+Default SQLite works great to start. Zero config, zero cost.
 
 ---
 
-## 🐝 Hive Mind
+## 🧹 Memory Pruner — Forgetting as a Feature
 
-Share memory across multiple agents:
+Raw transcripts pile up. Old conversations become noise. The Memory Pruner solves this elegantly:
 
-```python
-from nima_core import HiveMind
+**It distills aging memories into wisdom.**
 
-hive = HiveMind(db_path="~/.nima/memory/ladybug.lbug")
+Every conversation older than N days gets sent through an LLM, compressed into a compact semantic gist, and the raw transcript enters a 30-day suppression limbo. **Restorable if you need it. Gone from active recall if you don't.**
 
-# Inject context into a sub-agent's prompt
-context = hive.build_agent_context("research quantum computing", max_memories=8)
-
-# Capture results back
-hive.capture_agent_result("researcher-1", "Found 3 key papers...", "claude-sonnet-4-5")
+```text
+Before: 829 raw conversation turns
+After:  5 compact distillations + originals in limbo
 ```
 
-Optional Redis pub/sub for real-time agent communication:
-```bash
-pip install nima-core[hive]
-```
-
----
-
-## 🔮 Precognition
-
-Mine temporal patterns and pre-load relevant memories before the user asks:
-
-```python
-from nima_core import NimaPrecognition
-
-precog = NimaPrecognition(db_path="~/.nima/memory/ladybug.lbug")
-precog.run_mining_cycle()  # Extract patterns → generate predictions → store
-```
-
----
-
-## 💡 Lucid Moments
-
-Spontaneously surface emotionally-resonant memories:
-
-```python
-from nima_core import LucidMoments
-
-lucid = LucidMoments(db_path="~/.nima/memory/ladybug.lbug")
-moment = lucid.surface_moment()  # Returns a natural "this just came to me..." message
-```
-
-Safety: trauma keyword filtering, quiet hours, daily caps, minimum gap enforcement.
-
----
-
-## 🧹 Memory Pruner
-
-Distill old conversations into compact semantic summaries:
+Your bot's memory gets *smarter* over time — not just larger.
 
 ```bash
-# Preview
+# Preview what would be pruned
 python -m nima_core.memory_pruner --min-age 14
 
-# Live run
+# Run it live
 python -m nima_core.memory_pruner --min-age 14 --live
 
-# Restore from suppression
+# Restore a suppressed memory
 python -m nima_core.memory_pruner --restore 12345
 ```
 
-No database writes — suppression is file-based, fully reversible within 30 days.
+Set it and forget it with a nightly cron. Your bot wakes up leaner and sharper every morning.
 
 ---
 
-## ⏰ Scheduling Setup (OpenClaw Cron)
+## 🔒 Privacy-First by Design
 
-NIMA's autonomous features — Lucid Moments, Dream Consolidation, Memory Pruner, and Embedding Index — are designed to run on a schedule. Here's the recommended cron configuration for OpenClaw.
+Everything lives on your machine. There are no NIMA servers. No analytics. No phoning home.
 
-### Lucid Moments — 4× daily
+- ✅ All memories stored in `~/.nima/` — your filesystem
+- ✅ Local embeddings mode: **zero external network calls**
+- ✅ Fine-grained noise filtering (skip heartbeats, skip subagents)
+- ❌ No NIMA cloud. It doesn't exist.
 
-Surfaces emotionally-resonant memories to your user at natural intervals.
+---
 
-```json
-{
-  "name": "lucid-memory-moments",
-  "schedule": { "kind": "cron", "expr": "0 10,14,18,20 * * *", "tz": "America/New_York" },
-  "sessionTarget": "isolated",
-  "payload": {
-    "kind": "agentTurn",
-    "message": "Run the lucid moments check:\n1. Run: cd ~/.openclaw/workspace && .venv/bin/python3 lilu_core/cognition/lucid_moments.py --status\n2. If timing is good (says 'Ready'), run: .venv/bin/python3 lilu_core/cognition/lucid_moments.py\n3. If a pending file was written, read: cat ~/.openclaw/workspace/memory/pending_lucid_moment.txt\n4. Send that exact text to the user via the message tool\n5. If timing wasn't right, do nothing silently\nSend the message as a natural surfaced memory — no framing or prefix.",
-    "timeoutSeconds": 120
-  },
-  "delivery": { "mode": "none" }
-}
+## 🔧 Configuration
+
+NIMA works out of the box with local embeddings. Upgrade when you're ready:
+
+```bash
+# Default (free, offline)
+export NIMA_EMBEDDER=local
+
+# Voyage AI (best quality/cost for production)
+export NIMA_EMBEDDER=voyage && export VOYAGE_API_KEY=your-voyage-api-key
+
+# OpenAI (if you're already using it)
+export NIMA_EMBEDDER=openai && export OPENAI_API_KEY=your-openai-api-key
 ```
 
-### Dream Consolidation — nightly at 2 AM
-
-Consolidates the last 24h of memories and extracts patterns.
+Full hook config in `openclaw.json`:
 
 ```json
 {
-  "name": "lilu_dream_consolidation",
-  "schedule": { "kind": "cron", "expr": "0 2 * * *", "tz": "America/New_York" },
-  "sessionTarget": "isolated",
-  "payload": {
-    "kind": "agentTurn",
-    "message": "cd ~/.openclaw/workspace && .venv/bin/python3 lilu_core/lilu.py dream --hours 24. Report what memories were consolidated and any patterns found.",
-    "timeoutSeconds": 600
-  },
-  "delivery": { "mode": "announce" }
-}
-```
-
-### Memory Pruner — nightly at 2 AM
-
-Distills old episodic turns into compact semantic memories.
-
-```json
-{
-  "name": "nima-memory-pruner",
-  "schedule": { "kind": "cron", "expr": "0 2 * * *", "tz": "America/New_York" },
-  "sessionTarget": "isolated",
-  "payload": {
-    "kind": "agentTurn",
-    "message": "cd ~/.openclaw/workspace && .venv/bin/python3 lilu_core/cognition/memory_pruner.py --min-age 7 --live --max-sessions 10. Report sessions distilled and turns suppressed.",
-    "timeoutSeconds": 300
-  },
-  "delivery": { "mode": "announce" }
-}
-```
-
-### Embedding Index Rebuild — nightly at 3 AM
-
-Keeps vector recall indexes fresh.
-
-```json
-{
-  "name": "nima-embedding-index",
-  "schedule": { "kind": "cron", "expr": "0 3 * * *" },
-  "sessionTarget": "main",
-  "payload": {
-    "kind": "systemEvent",
-    "text": "Rebuild embedding index for NIMA memory recall"
+  "plugins": {
+    "allow": ["nima-memory", "nima-recall-live", "nima-affect"],
+    "entries": {
+      "nima-recall-live": { "max_results": 7, "token_budget": 3000 },
+      "nima-affect": { "identity_name": "my_bot", "baseline": "guardian" },
+      "nima-memory": { "skip_heartbeats": true, "skip_subagents": true }
+    }
   }
 }
 ```
-
-### Precognition
-
-Precognition runs automatically on every incoming message via the `nima-affect` OpenClaw plugin — no separate cron needed. The predicted session patterns it generates are injected into context before each agent response.
-
----
-
-## 📊 Performance
-
-| Operation | SQLite | LadybugDB |
-|-----------|--------|-----------|
-| Text search | 31ms | **9ms** |
-| Vector search | — | **18ms** |
-| Full recall cycle | ~50ms | **~30ms** |
-| Context overhead | ~180 tokens | **~30 tokens** |
-
----
-
-## 🔒 Privacy
-
-- ✅ All data stored locally in `~/.nima/`
-- ✅ Local embedding mode = **zero external calls**
-- ✅ No NIMA-owned servers, no proprietary tracking, no analytics to external services
-- ⚠️ Opt-in: HiveMind (Redis), Precognition (LLM), cloud embeddings — see SKILL.md for details
-- 🔒 Embedding API calls only when explicitly enabling via env vars
 
 ---
 
 ## 🔄 Upgrading
 
-### From v2.x → v3.x
-
 ```bash
-git pull origin main
-pip install -e .  # or: pip install nima-core --upgrade
-openclaw gateway restart
+# v2.2.x → v2.3.x (no config changes needed)
+git pull origin main && pip install -e . && openclaw gateway restart
+
+# v1.x → v2.x: see MIGRATION_GUIDE.md
 ```
 
-No breaking changes — v3.0 is a package consolidation release. All v2.x configs continue to work.
+[Migration guide →](./MIGRATION_GUIDE.md)
 
-### From v1.x → v2.x
+---
 
-```bash
-cp -r ~/.nima ~/.nima.backup
-rm -rf ~/.openclaw/extensions/nima-*
-cp -r openclaw_hooks/* ~/.openclaw/extensions/
-pip install real-ladybug  # optional
-openclaw gateway restart
-```
+## 📚 Docs
+
+| Guide | What's in it |
+|-------|-------------|
+| [SETUP_GUIDE.md](./SETUP_GUIDE.md) | Step-by-step installation |
+| [QUICK_REFERENCE.md](./QUICK_REFERENCE.md) | Command cheat sheet |
+| [docs/AFFECTIVE_CORE_PROFILES_GUIDE.md](./docs/AFFECTIVE_CORE_PROFILES_GUIDE.md) | Full personality archetypes guide |
+| [docs/DATABASE_OPTIONS.md](./docs/DATABASE_OPTIONS.md) | SQLite vs LadybugDB deep dive |
+| [docs/EMBEDDING_PROVIDERS.md](./docs/EMBEDDING_PROVIDERS.md) | All embedding options |
+| [CHANGELOG.md](./CHANGELOG.md) | What's new |
 
 ---
 
 ## 🤝 Contributing
 
-PRs welcome. Python 3.9+ compatibility, conventional commits.
+PRs welcome. Python 3.8+, conventional commits, no walrus operators.
 
 ```bash
 git clone https://github.com/lilubot/nima-core.git
-cd nima-core
-pip install -e ".[vector]"
+cd nima-core && pip install -e ".[vector]"
 python -m pytest tests/
 ```
 
 ---
 
-## License
+## Stop Building Bots That Forget
+
+```bash
+pip install nima-core && nima-core
+```
+
+Your users will notice. The first time your bot says *"you mentioned that last week"* — they'll feel it. That's the difference between a tool and something that actually knows them.
 
 MIT License — free for any AI agent, commercial or personal.
 
 ---
 
 <p align="center">
-  <a href="https://nima-core.ai"><b>🌐 nima-core.ai</b></a><br/>
+  <a href="https://nima-core.ai"><b>🌐 nima-core.ai</b></a> ·
+  <a href="https://github.com/lilubot/nima-core">GitHub</a> ·
+  <a href="https://clawhub.com/skills/nima-core">ClawHub</a><br/>
   Built by the NIMA Core Team
 </p>

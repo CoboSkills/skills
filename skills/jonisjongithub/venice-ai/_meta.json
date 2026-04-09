@@ -1,13 +1,18 @@
 {
   "owner": "jonisjongithub",
   "slug": "venice-ai",
-  "displayName": "Venice AI",
+  "displayName": "Venice Ai",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1770492339635,
-    "commit": "https://github.com/openclaw/skills/commit/ee8f3c92b65aad42ed2e6f22a7f888b7fd24c547"
+    "version": "2.1.1",
+    "publishedAt": 1775504365677,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1770492339635,
+      "commit": "https://github.com/openclaw/skills/commit/ee8f3c92b65aad42ed2e6f22a7f888b7fd24c547"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1770445273865,

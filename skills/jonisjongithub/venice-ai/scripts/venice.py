@@ -273,6 +273,10 @@ def cmd_chat(args):
         venice_params["strip_thinking_response"] = True
     if args.character:
         venice_params["character_slug"] = args.character
+    if args.x_search:
+        venice_params["enable_x_search"] = True
+    if args.enable_e2ee:
+        venice_params["enable_e2ee"] = True
 
     if venice_params:
         payload["venice_parameters"] = venice_params
@@ -469,6 +473,85 @@ def cmd_transcribe(args):
         print(resp)
 
 
+def cmd_analyze(args):
+    """Analyze images (and optionally audio/video) using vision models."""
+    key = require_key()
+
+    # Parse positional: first arg is image path/URL, rest is prompt
+    all_args = args.media_and_prompt
+    if not all_args:
+        print("Error: provide an image path/URL and optional prompt", file=sys.stderr)
+        print("Usage: venice analyze <image> [prompt] [--model MODEL]", file=sys.stderr)
+        sys.exit(1)
+
+    image_src = all_args[0]
+    prompt_text = " ".join(all_args[1:]) if len(all_args) > 1 else "Describe this in detail."
+
+    # Resolve image to URL or data URL
+    if image_src.startswith(("http://", "https://", "data:")):
+        image_url = image_src
+    else:
+        fp = Path(image_src).expanduser()
+        if not fp.exists():
+            print(f"Error: file not found: {fp}", file=sys.stderr)
+            sys.exit(1)
+        suffix = fp.suffix.lower().lstrip(".")
+        mime_map = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+                    "webp": "image/webp", "gif": "image/gif", "bmp": "image/bmp"}
+        mime = mime_map.get(suffix, "image/jpeg")
+        b64 = base64.b64encode(fp.read_bytes()).decode()
+        image_url = f"data:{mime};base64,{b64}"
+        print(f"Loaded: {fp.name} ({len(fp.read_bytes()) // 1024}KB → data URL)", file=sys.stderr)
+
+    # Build multimodal message content
+    content = [
+        {"type": "image_url", "image_url": {"url": image_url}},
+        {"type": "text", "text": prompt_text},
+    ]
+
+    messages = []
+    if args.system:
+        messages.append({"role": "system", "content": args.system})
+    messages.append({"role": "user", "content": content})
+
+    model = args.model or "qwen3-vl-235b-a22b"
+    payload = {
+        "model": model,
+        "messages": messages,
+    }
+    if args.max_tokens:
+        payload["max_tokens"] = args.max_tokens
+    if args.stream:
+        payload["stream"] = True
+    if args.temperature is not None:
+        payload["temperature"] = args.temperature
+
+    venice_params = {}
+    if args.no_venice_system_prompt:
+        venice_params["include_venice_system_prompt"] = False
+    if venice_params:
+        payload["venice_parameters"] = venice_params
+
+    print(f"Model: {model}", file=sys.stderr)
+    print(f"Prompt: {prompt_text[:80]}{'...' if len(prompt_text) > 80 else ''}", file=sys.stderr)
+    print(file=sys.stderr)
+
+    if args.stream:
+        api_request("/chat/completions", method="POST", payload=payload,
+                    api_key=key, stream=True, timeout=120)
+    else:
+        resp = api_request("/chat/completions", method="POST", payload=payload,
+                           api_key=key, timeout=120)
+        if not resp or not isinstance(resp, dict):
+            print("Error: empty response", file=sys.stderr)
+            sys.exit(1)
+        choices = resp.get("choices", [])
+        if choices:
+            print(choices[0].get("message", {}).get("content", ""))
+        if args.show_usage:
+            _print_usage(resp.get("usage", {}))
+
+
 def cmd_balance(args):
     """Check account balance via a minimal inference call."""
     key = require_key()
@@ -523,12 +606,18 @@ def main():
     p_chat.add_argument("--web-scrape", action="store_true", help="Enable URL scraping")
     p_chat.add_argument("--no-venice-system-prompt", action="store_true", help="Disable Venice system prompts")
     p_chat.add_argument("--character", help="Venice character slug")
-    p_chat.add_argument("--reasoning-effort", choices=["low", "medium", "high"], help="Reasoning effort level")
+    p_chat.add_argument("--reasoning-effort",
+                        choices=["none", "minimal", "low", "medium", "high", "xhigh", "max"],
+                        help="Reasoning effort level (none/minimal/low/medium/high/xhigh/max)")
     p_chat.add_argument("--strip-thinking", action="store_true", help="Strip thinking blocks from output")
     p_chat.add_argument("--disable-thinking", action="store_true", help="Disable reasoning entirely")
     p_chat.add_argument("--cache-key", help="Prompt cache routing key")
     p_chat.add_argument("--show-usage", action="store_true", help="Show token usage stats")
     p_chat.add_argument("--timeout", type=int, help="Request timeout in seconds")
+    p_chat.add_argument("--x-search", action="store_true", dest="x_search",
+                        help="Enable X/Twitter search via Grok (grok-* models only)")
+    p_chat.add_argument("--enable-e2ee", action="store_true", dest="enable_e2ee",
+                        help="Enable End-to-End Encryption for supported models")
 
     # embed
     p_embed = sub.add_parser("embed", help="Generate embeddings")
@@ -550,6 +639,19 @@ def main():
     p_trans.add_argument("--url", help="Audio URL")
     p_trans.add_argument("--timestamps", action="store_true", help="Include word timestamps")
 
+    # analyze (vision)
+    p_analyze = sub.add_parser("analyze", help="Analyze images with vision models")
+    p_analyze.add_argument("media_and_prompt", nargs="+",
+                           help="Image path/URL followed by optional prompt text")
+    p_analyze.add_argument("--model", "-m", help="Vision model (default: qwen3-vl-235b-a22b)")
+    p_analyze.add_argument("--system", "-s", help="System prompt")
+    p_analyze.add_argument("--stream", action="store_true", help="Stream output")
+    p_analyze.add_argument("--temperature", "-t", type=float, help="Sampling temperature")
+    p_analyze.add_argument("--max-tokens", type=int, help="Max output tokens")
+    p_analyze.add_argument("--no-venice-system-prompt", action="store_true",
+                           help="Disable Venice system prompts")
+    p_analyze.add_argument("--show-usage", action="store_true", help="Show token usage")
+
     # balance
     sub.add_parser("balance", help="Check account balance")
 
@@ -562,6 +664,7 @@ def main():
     cmds = {
         "models": cmd_models,
         "chat": cmd_chat,
+        "analyze": cmd_analyze,
         "embed": cmd_embed,
         "tts": cmd_tts,
         "transcribe": cmd_transcribe,

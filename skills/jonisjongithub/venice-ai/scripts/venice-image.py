@@ -207,6 +207,75 @@ def write_gallery(out_dir: Path, items: list[dict]) -> None:
     (out_dir / "index.html").write_text(html, encoding="utf-8")
 
 
+def background_remove(api_key: str, image_src: str) -> bytes:
+    """
+    Remove background from an image via Venice API.
+    Accepts local file path, HTTP URL, or data URL.
+    Returns PNG bytes with transparent background.
+    """
+    url = "https://api.venice.ai/api/v1/image/background-remove"
+
+    if image_src.startswith(("http://", "https://")):
+        # JSON payload with URL
+        payload = {"image": image_src}
+        body = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+                "User-Agent": USER_AGENT,
+            },
+            data=body,
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                return resp.read()
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Venice API error ({e.code}): {error_body}") from e
+    else:
+        # Multipart upload for local files
+        import io as _io
+        filepath = Path(image_src).expanduser()
+        if not filepath.exists():
+            raise FileNotFoundError(f"Image not found: {filepath}")
+
+        image_data = filepath.read_bytes()
+        filename = filepath.name
+        suffix = filepath.suffix.lower()
+        mime_map = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+                    ".webp": "image/webp", ".gif": "image/gif"}
+        mime = mime_map.get(suffix, "image/jpeg")
+
+        boundary = "----VeniceBgRemoveBoundary"
+        body = _io.BytesIO()
+        body.write(f"--{boundary}\r\n".encode())
+        body.write(f'Content-Disposition: form-data; name="image"; filename="{filename}"\r\n'.encode())
+        body.write(f"Content-Type: {mime}\r\n\r\n".encode())
+        body.write(image_data)
+        body.write(b"\r\n")
+        body.write(f"--{boundary}--\r\n".encode())
+
+        req = urllib.request.Request(
+            url,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": f"multipart/form-data; boundary={boundary}",
+                "User-Agent": USER_AGENT,
+            },
+            data=body.getvalue(),
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                return resp.read()
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8", errors="replace")
+            raise RuntimeError(f"Venice API error ({e.code}): {error_body}") from e
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Generate images via Venice AI API.")
     ap.add_argument("--prompt", help="Image description. If omitted, generates random prompts.")
@@ -232,9 +301,38 @@ def main() -> int:
     ap.add_argument("--list-models", action="store_true", help="List available image models and exit")
     ap.add_argument("--list-styles", action="store_true", help="List available style presets and exit")
     ap.add_argument("--no-validate", action="store_true", help="Skip model validation")
+    ap.add_argument("--background-remove", metavar="IMAGE",
+                    help="Remove background from image (local path or URL); outputs PNG with transparency")
+    ap.add_argument("--output", "-o", help="Output path for --background-remove (default: <name>-nobg.png)")
     args = ap.parse_args()
 
     api_key = require_api_key()
+
+    # Handle --background-remove
+    if args.background_remove:
+        print(f"Removing background from: {args.background_remove}")
+        try:
+            result = background_remove(api_key, args.background_remove)
+        except (RuntimeError, FileNotFoundError) as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+
+        if args.output:
+            out_path = Path(args.output).expanduser()
+        else:
+            src = args.background_remove
+            if src.startswith(("http://", "https://")):
+                base_name = src.split("/")[-1].split("?")[0]
+                stem = Path(base_name).stem or "image"
+            else:
+                stem = Path(src).stem
+            out_path = Path(f"{stem}-nobg.png")
+
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        out_path.write_bytes(result)
+        print(f"Saved: {out_path.as_posix()} ({len(result) // 1024}KB)")
+        print_media_line(out_path)
+        return 0
 
     # Handle --list-models
     if args.list_models:

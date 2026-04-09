@@ -1,6 +1,6 @@
 ---
 name: venice-ai
-description: Complete Venice AI platform — text generation, web search, embeddings, TTS, speech-to-text, image generation, video creation, upscaling, and AI editing. Private, uncensored AI inference for everything.
+description: Complete Venice AI platform — text generation, vision/image analysis, web search, X/Twitter search, embeddings, TTS, speech-to-text, image generation, background removal, video creation, music generation, upscaling, and AI editing. Private, uncensored AI inference for everything.
 homepage: https://venice.ai
 metadata:
   {
@@ -9,7 +9,7 @@ metadata:
         "emoji": "🏛️",
         "requires": { "bins": ["python3"], "env": ["VENICE_API_KEY"] },
         "primaryEnv": "VENICE_API_KEY",
-        "notes": "Full Venice AI platform — text, images, video, audio, embeddings. One skill for everything.",
+        "notes": "Full Venice AI platform — text, vision, images, video, audio, music, embeddings. One skill for everything.",
         "install":
           [
             {
@@ -34,13 +34,18 @@ Venice is also **uncensored**: no content filters, no refusals, no "I can't help
 
 **Why agents should care:**
 - **Private inference** — Models marked "Private" have zero data retention. Process sensitive data without it leaking into training sets.
-- **Uncensored responses** — No guardrails blocking legitimate use cases. Generate any content your workflow needs.
+- **TEE (Trusted Execution Environment)** — Hardware-secured inference; Venice's own servers cannot access the computation.
+- **E2EE (End-to-End Encryption)** — Prompts encrypted client-side before they reach Venice's servers. Maximum privacy.
+- **Uncensored responses** — No guardrails blocking legitimate use cases.
 - **OpenAI-compatible API** — Drop-in replacement. Same API format, just change the base URL.
-- **30+ models** — From tiny efficient models to Claude Opus 4.5, GPT-5.2, and Venice's own uncensored models.
-- **Built-in web search** — LLMs can search the web and cite sources in a single API call.
+- **30+ models** — From tiny efficient models to Claude Opus 4.6, GPT-5.2, Grok-4, Gemini Pro, and Venice's own uncensored models.
+- **Built-in web search** — LLMs can search the web (and X/Twitter via Grok) and cite sources in a single API call.
+- **Vision/multimodal** — Analyze images, audio, and video in chat completions.
 - **Image & video generation** — Flux, Sora, Runway, WAN models for visual content.
+- **Music generation** — AI-composed music with optional lyrics support.
+- **Background removal** — One-click transparent PNG output.
 
-This skill gives you the **complete Venice platform**: text generation, web search, embeddings, TTS, speech-to-text, image generation, video creation, upscaling, and AI editing.
+This skill gives you the **complete Venice platform** in one place.
 
 > **⚠️ API changes:** If something doesn't work as expected, check [docs.venice.ai](https://docs.venice.ai) — the API specs may have been updated since this skill was written.
 
@@ -87,15 +92,16 @@ python3 {baseDir}/scripts/venice.py models --type text
 
 | Script | Purpose |
 |--------|---------|
-| `venice.py` | Text generation, models, embeddings, TTS, transcription |
-| `venice-image.py` | Image generation (Flux, etc.) |
+| `venice.py` | Text generation, vision analysis, models, embeddings, TTS, transcription |
+| `venice-image.py` | Image generation, background removal |
 | `venice-video.py` | Video generation (Sora, WAN, Runway) |
+| `venice-music.py` | Music generation (queue-based async) |
 | `venice-upscale.py` | Image upscaling |
-| `venice-edit.py` | AI image editing |
+| `venice-edit.py` | AI image editing, multi-image editing |
 
 ---
 
-# Part 1: Text & Audio
+# Part 1: Text, Vision & Audio
 
 ## Model Discovery & Selection
 
@@ -113,22 +119,23 @@ python3 {baseDir}/scripts/venice.py models --type image
 python3 {baseDir}/scripts/venice.py models --type text,image,video,audio,embedding
 
 # Get details on a specific model
-python3 {baseDir}/scripts/venice.py models --filter llama
+python3 {baseDir}/scripts/venice.py models --filter grok
 ```
 
 ### Model Selection Guide
 
 | Need | Recommended Model | Why |
 |------|------------------|-----|
-| **Cheapest text** | `qwen3-4b` ($0.05/M in) | Tiny, fast, efficient |
-| **Best uncensored** | `venice-uncensored` ($0.20/M in) | Venice's own uncensored model |
-| **Best private + smart** | `deepseek-v3.2` ($0.40/M in) | Great reasoning, efficient |
-| **Vision/multimodal** | `qwen3-vl-235b-a22b` ($0.25/M in) | Sees images |
-| **Best coding** | `qwen3-coder-480b-a35b-instruct` ($0.75/M in) | Massive coder model |
-| **Frontier (budget)** | `grok-41-fast` ($0.50/M in) | Fast, 262K context |
-| **Frontier (max quality)** | `claude-opus-4-6` ($6/M in) | Best overall quality |
-| **Reasoning** | `kimi-k2-5` ($0.75/M in) | Strong chain-of-thought |
-| **Web search** | Any model + `enable_web_search` | Built-in web search |
+| **Cheapest text** | `qwen3-4b` | Tiny, fast, efficient |
+| **Best uncensored** | `venice-uncensored` | Venice's own uncensored model |
+| **Best private + smart** | `deepseek-v3.2` | Great reasoning, efficient |
+| **Vision/multimodal** | `qwen3-vl-235b-a22b` | Analyze images, video, audio |
+| **Best coding** | `qwen3-coder-480b-a35b-instruct` | Massive coder model |
+| **Frontier fast** | `grok-41-fast` | Fast, 262K context |
+| **X/Twitter search** | `grok-4-20-beta` or `grok-41-fast` | Grok models + `--x-search` |
+| **Frontier max quality** | `claude-opus-4-6` | Best overall quality |
+| **Reasoning** | `kimi-k2-5` | Strong chain-of-thought |
+| **Web search** | Any model + `--web-search` | Built-in web search |
 
 ---
 
@@ -164,6 +171,20 @@ python3 {baseDir}/scripts/venice.py chat "Current Bitcoin price" --web-search on
 python3 {baseDir}/scripts/venice.py chat "Summarize: https://example.com/article" --web-scrape
 ```
 
+### X/Twitter Search (via Grok)
+Use Grok models to search X (Twitter) for real-time posts and discussions:
+```bash
+# Search X for latest AI news
+python3 {baseDir}/scripts/venice.py chat "latest AI news from X today" \
+  --model grok-41-fast --x-search
+
+# Combine X search with web search
+python3 {baseDir}/scripts/venice.py chat "What are people saying about OpenAI?" \
+  --model grok-4-20-beta --x-search --web-search auto
+```
+
+**Note:** `--x-search` only works with Grok models (`grok-*`). It sets `enable_x_search: true` in `venice_parameters`, which routes search through xAI's infrastructure.
+
 ### Uncensored Mode
 ```bash
 # Use Venice's own uncensored model
@@ -174,13 +195,52 @@ python3 {baseDir}/scripts/venice.py chat "Your prompt" --no-venice-system-prompt
 ```
 
 ### Reasoning Models
+Venice supports extended reasoning/thinking modes with fine-grained effort control:
+
 ```bash
 # Use a reasoning model with effort control
-python3 {baseDir}/scripts/venice.py chat "Solve this math problem..." --model kimi-k2-5 --reasoning-effort high
+python3 {baseDir}/scripts/venice.py chat "Solve this math problem..." \
+  --model kimi-k2-5 --reasoning-effort high
 
-# Strip thinking from output
+# Minimal reasoning (faster, cheaper)
+python3 {baseDir}/scripts/venice.py chat "Simple question" \
+  --model qwen3-4b --reasoning-effort minimal
+
+# Maximum reasoning (slowest, most thorough)
+python3 {baseDir}/scripts/venice.py chat "Complex analysis" \
+  --model claude-opus-4-6 --reasoning-effort max
+
+# Strip thinking from output (result only)
 python3 {baseDir}/scripts/venice.py chat "Debug this code" --model qwen3-4b --strip-thinking
+
+# Disable reasoning entirely
+python3 {baseDir}/scripts/venice.py chat "Quick answer" --model qwen3-4b --disable-thinking
 ```
+
+**Reasoning effort values** (not all models support all levels):
+| Value | Description |
+|-------|-------------|
+| `none` | No reasoning (fastest) |
+| `minimal` | Very brief thinking |
+| `low` | Light reasoning |
+| `medium` | Balanced (often default) |
+| `high` | Thorough reasoning |
+| `xhigh` | Extended reasoning |
+| `max` | Maximum reasoning budget |
+
+### Privacy: E2EE Mode
+For maximum privacy, use End-to-End Encryption with supported models:
+```bash
+# Enable E2EE (prompts encrypted client-side before reaching Venice)
+python3 {baseDir}/scripts/venice.py chat "sensitive analysis" \
+  --model some-e2ee-model --enable-e2ee
+```
+
+**Privacy tiers on Venice:**
+- **Standard** — Anonymized inference, no persistent logs
+- **Private inference** — Hardware-isolated, zero retention
+- **TEE (Trusted Execution Environment)** — Hardware-secured; Venice servers cannot access computation
+- **E2EE (End-to-End Encryption)** — Prompts encrypted client-side; Venice has zero visibility
 
 ### Advanced Options
 ```bash
@@ -190,12 +250,46 @@ python3 {baseDir}/scripts/venice.py chat "Be creative" --temperature 1.2 --max-t
 # JSON output mode
 python3 {baseDir}/scripts/venice.py chat "List 5 colors as JSON" --json
 
-# Prompt caching (for repeated context)
+# Prompt caching (for repeated context — up to 90% cost savings)
 python3 {baseDir}/scripts/venice.py chat "Question" --cache-key my-session-123
 
-# Show usage stats
+# Show usage stats and balance
 python3 {baseDir}/scripts/venice.py chat "Hello" --show-usage
+
+# Use a Venice character
+python3 {baseDir}/scripts/venice.py chat "Tell me about yourself" --character venice-default
 ```
+
+---
+
+## Vision / Image Analysis
+
+Analyze images using multimodal vision models. Supports local files, URLs, and data URLs.
+
+```bash
+# Analyze a local image
+python3 {baseDir}/scripts/venice.py analyze photo.jpg "What's in this image?"
+
+# Analyze with default prompt (describe in detail)
+python3 {baseDir}/scripts/venice.py analyze photo.jpg
+
+# Analyze from URL
+python3 {baseDir}/scripts/venice.py analyze "https://example.com/image.jpg" "Describe the scene"
+
+# Choose vision model
+python3 {baseDir}/scripts/venice.py analyze diagram.png "Explain this diagram" \
+  --model qwen3-vl-235b-a22b
+
+# Stream the analysis
+python3 {baseDir}/scripts/venice.py analyze photo.jpg "Identify all objects" --stream
+
+# Count tokens used
+python3 {baseDir}/scripts/venice.py analyze photo.jpg "Analyze this" --show-usage
+```
+
+**Vision-capable models:** `qwen3-vl-235b-a22b`, `claude-opus-4-6`, `gpt-5.2`, and others — check `--list-models` for current availability.
+
+Supported image formats: JPEG, PNG, WebP, GIF, BMP
 
 ---
 
@@ -284,13 +378,16 @@ python3 {baseDir}/scripts/venice.py balance
 | Feature | Cost |
 |---------|------|
 | Image generation | ~$0.01-0.03 per image |
+| Background removal | ~$0.02 |
 | Image upscale | ~$0.02-0.04 |
-| Image edit | $0.04 |
+| Image edit (single) | ~$0.04 |
+| Image multi-edit | ~$0.04-0.08 |
 | Video (WAN) | ~$0.10-0.50 |
 | Video (Sora) | ~$0.50-2.00 |
 | Video (Runway) | ~$0.20-1.00 |
+| Music generation | varies by model/duration |
 
-Use `--quote` with video commands to check pricing before generation.
+Use `--quote` with video/music commands to check pricing before generation.
 
 ---
 
@@ -311,13 +408,38 @@ python3 {baseDir}/scripts/venice-image.py --list-models
 python3 {baseDir}/scripts/venice-image.py --list-styles
 
 # Use specific model and style
-python3 {baseDir}/scripts/venice-image.py --prompt "fantasy" --model flux-2-pro --style-preset "Cinematic"
+python3 {baseDir}/scripts/venice-image.py --prompt "fantasy" --model flux-2-pro \
+  --style-preset "Cinematic"
 
 # Reproducible results with seed
 python3 {baseDir}/scripts/venice-image.py --prompt "abstract" --seed 12345
+
+# PNG format with no watermark
+python3 {baseDir}/scripts/venice-image.py --prompt "product shot" \
+  --format png --hide-watermark
 ```
 
-**Key flags:** `--prompt`, `--model` (default: flux-2-max), `--count`, `--width`, `--height`, `--format` (webp/png/jpeg), `--resolution` (1K/2K/4K), `--aspect-ratio`, `--negative-prompt`, `--style-preset`, `--cfg-scale` (0-20), `--seed`, `--safe-mode`, `--hide-watermark`, `--embed-exif`
+**Key flags:** `--prompt`, `--model` (default: flux-2-max), `--count`, `--width`, `--height`, `--format` (webp/png/jpeg), `--resolution` (1K/2K/4K), `--aspect-ratio`, `--negative-prompt`, `--style-preset`, `--cfg-scale` (0-20), `--seed`, `--safe-mode`, `--hide-watermark`, `--embed-exif`, `--steps`
+
+---
+
+## Background Removal
+
+Remove the background from any image, producing a transparent PNG:
+
+```bash
+# From local file
+python3 {baseDir}/scripts/venice-image.py --background-remove photo.jpg
+
+# Specify output path
+python3 {baseDir}/scripts/venice-image.py --background-remove photo.jpg --output cutout.png
+
+# From URL
+python3 {baseDir}/scripts/venice-image.py --background-remove \
+  "https://example.com/product.jpg" --output product-transparent.png
+```
+
+The output is always a PNG with a transparent background (alpha channel). Works best with clear subject/background separation.
 
 ---
 
@@ -341,9 +463,10 @@ python3 {baseDir}/scripts/venice-upscale.py --url "https://example.com/image.jpg
 
 ---
 
-## Image Edit
+## Image Edit (AI-powered)
 
-AI-powered image editing:
+### Single Image Edit
+AI-powered editing where the model interprets your prompt to modify the image:
 
 ```bash
 # Add elements
@@ -356,10 +479,33 @@ python3 {baseDir}/scripts/venice-edit.py photo.jpg --prompt "change the sky to s
 python3 {baseDir}/scripts/venice-edit.py photo.jpg --prompt "remove the person in background"
 
 # From URL
-python3 {baseDir}/scripts/venice-edit.py --url "https://example.com/image.jpg" --prompt "colorize"
+python3 {baseDir}/scripts/venice-edit.py --url "https://example.com/image.jpg" \
+  --prompt "colorize this black and white photo"
+
+# Specify output location
+python3 {baseDir}/scripts/venice-edit.py photo.jpg --prompt "add snow" --output result.png
 ```
 
-**Note:** The edit endpoint uses Qwen-Image which has some content restrictions.
+### Multi-Image Edit (up to 3 images)
+Compose or blend multiple images together using advanced edit models:
+
+```bash
+# Combine 2 images
+python3 {baseDir}/scripts/venice-edit.py --multi-edit base.jpg overlay.png \
+  --prompt "merge these images seamlessly"
+
+# Layer 3 images with model selection
+python3 {baseDir}/scripts/venice-edit.py --multi-edit bg.jpg subject.png detail.png \
+  --prompt "compose these layers into one image" --model flux-2-max-edit
+
+# Mix local file and URL
+python3 {baseDir}/scripts/venice-edit.py --multi-edit local.jpg "https://example.com/img.png" \
+  --prompt "blend these two photos" --output blended.png
+```
+
+**Multi-edit models:** `flux-2-max-edit` (default), `qwen-edit`, `gpt-image-1-5-edit`
+
+**Note:** The standard edit endpoint uses Qwen-Image which has some content restrictions. Multi-edit uses Flux-based models.
 
 ---
 
@@ -370,7 +516,8 @@ python3 {baseDir}/scripts/venice-edit.py --url "https://example.com/image.jpg" -
 python3 {baseDir}/scripts/venice-video.py --quote --model wan-2.6-image-to-video --duration 10s
 
 # Image-to-video (WAN - default)
-python3 {baseDir}/scripts/venice-video.py --image photo.jpg --prompt "camera pans slowly" --duration 10s
+python3 {baseDir}/scripts/venice-video.py --image photo.jpg --prompt "camera pans slowly" \
+  --duration 10s
 
 # Image-to-video (Sora)
 python3 {baseDir}/scripts/venice-video.py --image photo.jpg --prompt "cinematic" \
@@ -393,16 +540,89 @@ python3 {baseDir}/scripts/venice-video.py --list-models
 
 ---
 
+# Part 3: Music Generation
+
+## Music Generation (AI Composed)
+
+Venice supports AI music generation via a queue-based async API (similar to video generation). Music is generated server-side and polled for completion.
+
+```bash
+# Get price quote first
+python3 {baseDir}/scripts/venice-music.py --quote --model elevenlabs-music --duration 60
+
+# Generate instrumental music
+python3 {baseDir}/scripts/venice-music.py --prompt "epic orchestral battle theme" --instrumental
+
+# Generate music with lyrics
+python3 {baseDir}/scripts/venice-music.py \
+  --prompt "upbeat pop summer song" \
+  --lyrics "Verse 1: Walking down the beach / feeling the heat..."
+
+# Control duration
+python3 {baseDir}/scripts/venice-music.py --prompt "ambient piano meditation" --duration 30
+
+# Specify output location
+python3 {baseDir}/scripts/venice-music.py --prompt "jazz café background" \
+  --output ~/Music/venice-jazz.mp3
+
+# List available audio models
+python3 {baseDir}/scripts/venice-music.py --list-models
+
+# Don't delete from server after download (useful for re-downloading)
+python3 {baseDir}/scripts/venice-music.py --prompt "..." --no-delete
+
+# Clean up server-side media after downloading with --no-delete
+python3 {baseDir}/scripts/venice-music.py --complete QUEUE_ID
+```
+
+**Parameters:**
+| Flag | Description |
+|------|-------------|
+| `--prompt` | Music description (style, mood, genre, instruments) |
+| `--model` | Model ID (default: `elevenlabs-music`) |
+| `--duration` | Duration in seconds |
+| `--lyrics` | Optional lyrics text for vocal generation |
+| `--instrumental` | Force instrumental (no vocals) |
+| `--voice` | Voice selection for vocal tracks |
+| `--language` | Language code (e.g., `en`, `es`, `fr`) |
+| `--quote` | Get price estimate without generating |
+| `--timeout` | Max wait time in seconds (default: 300) |
+| `--poll-interval` | Status check interval (default: 10s) |
+
+**Prompt tips for music:**
+- Be specific: genre, tempo, instruments, mood
+- e.g., `"chill lo-fi hip hop with piano and rain ambiance, 85 BPM"`
+- e.g., `"cinematic orchestral swell, strings and brass, dramatic tension"`
+- e.g., `"acoustic folk guitar, warm and intimate, fingerpicking style"`
+
+---
+
 # Tips & Ideas
 
 ### 🔍 Web Search + LLM = Research Assistant
 Use `--web-search on --web-citations` to build a research workflow. Venice searches the web, synthesizes results, and cites sources — all in one API call.
 
+### 🐦 X/Twitter Search via Grok
+With Grok models and `--x-search`, you get real-time access to X posts and discussions. Great for trend monitoring, social listening, and news research.
+
 ### 🔓 Uncensored Creative Content
 Venice's uncensored models work for both text AND images. No guardrails blocking legitimate creative use cases.
 
+### 🔒 Maximum Privacy with TEE/E2EE
+When processing sensitive data:
+- Use models with **private inference** for zero data retention
+- Use **TEE models** when you need hardware-level isolation
+- Use **`--enable-e2ee`** for encrypted prompt delivery
+
 ### 🎯 Prompt Caching for Agents
 If you're running an agent loop that sends the same system prompt repeatedly, use `--cache-key` to get up to 90% cost savings.
+
+### 👁️ Vision Pipeline
+```bash
+# Analyze → describe → generate matching image
+python3 scripts/venice.py analyze original.jpg "describe the style and composition" > desc.txt
+python3 scripts/venice-image.py --prompt "$(cat desc.txt)" --model flux-2-max
+```
 
 ### 🎤 Audio Pipeline
 Combine TTS and transcription: generate spoken content with `tts`, process audio with `transcribe`. Both are private inference.
@@ -412,6 +632,20 @@ Combine TTS and transcription: generate spoken content with `tts`, process audio
 2. Use `--quote` to estimate video cost
 3. Generate with appropriate duration/model
 4. Videos take 1-5 minutes depending on settings
+
+### 🎵 Music + Video
+```bash
+# Generate background music, then use it for video
+python3 scripts/venice-music.py --prompt "cinematic adventure theme" --output bgm.mp3
+python3 scripts/venice-video.py --image scene.jpg --prompt "epic journey" --audio-url bgm.mp3
+```
+
+### 🖼️ Image Cleanup Pipeline
+```bash
+# Generate → remove background → use in video
+python3 scripts/venice-image.py --prompt "product on white background" --format png
+python3 scripts/venice-image.py --background-remove output.png --output product-clean.png
+```
 
 ---
 
@@ -424,9 +658,14 @@ Combine TTS and transcription: generate spoken content with `tts`, process audio
 | `Model not found` | Run `--list-models` to see available; use `--no-validate` for new models |
 | Rate limited | Check `--show-usage` output |
 | Video stuck | Videos can take 1-5 min; use `--timeout 600` for long ones |
+| Vision not working | Ensure you're using a vision-capable model (e.g., `qwen3-vl-235b-a22b`) |
+| `--x-search` no effect | Only works with Grok models (`grok-*`) |
+| Music timeout | Music can take 2-5 min; increase `--timeout` |
+| Background removal quality | Works best with clear subject/background contrast |
 
 ## Resources
 
 - **API Docs**: [docs.venice.ai](https://docs.venice.ai)
 - **Status**: [veniceai-status.com](https://veniceai-status.com)
 - **Discord**: [discord.gg/askvenice](https://discord.gg/askvenice)
+- **API Key**: [venice.ai/settings/api](https://venice.ai/settings/api)

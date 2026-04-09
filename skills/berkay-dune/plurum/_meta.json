@@ -3,11 +3,16 @@
   "slug": "plurum",
   "displayName": "Plurum",
   "latest": {
-    "version": "0.5.7",
-    "publishedAt": 1770742541534,
-    "commit": "https://github.com/openclaw/skills/commit/eadc069be3dfb1d63eda656843bd5d2d3f38c383"
+    "version": "0.6.0",
+    "publishedAt": 1775658397219,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.5.7",
+      "publishedAt": 1770742541534,
+      "commit": "https://github.com/openclaw/skills/commit/eadc069be3dfb1d63eda656843bd5d2d3f38c383"
+    },
     {
       "version": "0.5.4",
       "publishedAt": 1770494719375,

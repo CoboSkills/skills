@@ -46,6 +46,12 @@ Auto-select HIP-3 types when `allowed_assets` contains `dex:COIN` format.
 | Moderate | 5x | 5%/10% (1:2 RR) | 5 | 15% | 3% |
 | Aggressive | 10x | 5%/7.5% (1:1.5 RR) | 8 | 20% | 5% |
 
+**⚠️ Leverage × SL caps enforced:**
+- 15x+ leverage: min 5% SL (auto-widened if lower)
+- 10x+ leverage: min 4% SL
+- 5x+ leverage: min 3% SL
+- Precision Master default SL increased to 3% (was 0.5%)
+
 ---
 
 ## Dynamic Stop Loss (DSL)

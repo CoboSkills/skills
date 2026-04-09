@@ -3,11 +3,16 @@
   "slug": "zonein",
   "displayName": "Hyperliquid Trading Agent",
   "latest": {
-    "version": "2.3.7",
-    "publishedAt": 1775171766129,
-    "commit": "https://github.com/openclaw/skills/commit/2ec08e136c65cbe33b6415070ebdba9f780829f7"
+    "version": "2.3.8",
+    "publishedAt": 1775260598384,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.3.7",
+      "publishedAt": 1775171766129,
+      "commit": "https://github.com/openclaw/skills/commit/2ec08e136c65cbe33b6415070ebdba9f780829f7"
+    },
     {
       "version": "2.3.6",
       "publishedAt": 1774010939490,

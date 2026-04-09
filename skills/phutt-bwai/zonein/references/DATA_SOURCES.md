@@ -18,7 +18,11 @@ Tracks ~500+ categorized Hyperliquid wallets. For each coin:
 
 **Per-timeframe** (tf: `1h`, `4h`, `24h`): `sm.{tf}.long_count`, `sm.{tf}.short_count`, `sm.{tf}.wallet_count`, `sm.{tf}.long_volume`, `sm.{tf}.short_volume`
 
-**Direction detection:** `sm.long_ratio >= 60` = bullish, `sm.short_ratio >= 60` = bearish.
+**Direction detection:** 
+- With TA confirmation: `sm.long_ratio >= 50` = bullish, `sm.short_ratio >= 50` = bearish
+- Standalone SM: `sm.long_ratio >= 55` = bullish, `sm.short_ratio >= 55` = bearish
+
+> ⚠️ **Real market data:** SM long_ratio averages 44-46% and rarely exceeds 55%. Use >=50 when combined with TA, >=55 for SM-only strategies.
 
 > **Note:** `sm.long_ratio` and `sm.short_ratio` are percentages (0-100), NOT decimals. 65% → `sm.long_ratio >= 65` (not 0.65).
 

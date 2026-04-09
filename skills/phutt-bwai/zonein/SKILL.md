@@ -34,7 +34,7 @@ Use this skill when the user asks about:
 
 The platform makes trading decisions by combining **3 real-time data sources** into a composite AI signal:
 
-1. **Smart Money (SM)** — Tracks ~500+ categorized wallets. Key fields: `sm.long_ratio` (0-100%), `sm.short_ratio`, `sm.wallet_count`, `sm.long_count`, `sm.short_count`. Per-timeframe: `sm.{1h|4h|24h}.{field}`. Direction: `sm.long_ratio >= 60` = bullish.
+1. **Smart Money (SM)** — Tracks ~500+ categorized wallets. Key fields: `sm.long_ratio` (0-100%), `sm.short_ratio`, `sm.wallet_count`, `sm.long_count`, `sm.short_count`. Per-timeframe: `sm.{1h|4h|24h}.{field}`. Direction: `sm.long_ratio >= 50` = bullish (with TA), `>=55` = bullish (standalone).
 2. **Technical Analysis (TA)** — Multi-timeframe (15m/1h/4h/1d) via TAAPI.io. Key fields: `ta.{tf}.supertrend_advice` ("buy"/"sell"), `ta.{tf}.rsi`, `ta.{tf}.adx`, `ta.{tf}.macd_hist`, `ta.{tf}.ema_9/21/55`, `ta.{tf}.bb_upper/lower`.
 3. **Market Data** — Derivatives via CoinGlass. Key fields: `market.funding_current`, `market.oi_change_4h`, `market.long_ratio`, `market.short_ratio`, `market.liquidation_long_4h/short_4h`.
 
@@ -258,6 +258,8 @@ HIP-3 = builder-deployed perpetuals on Hyperliquid — stocks (TSLA, NVDA), comm
 - **`agent-plan-action reject` does NOT need `--confirm`.** Only `approve` and `edit` do.
 - **PM agents not supported yet.** PM data reading (signals, leaderboard, consensus) works. Agent creation is perp-only.
 - **HIP-3 fees are 2x standard.** Always mention this when creating HIP-3 agents. Factor into TP.
+- **High leverage needs wide SL.** 15x+ leverage requires min 5% SL, 10x+ needs 4%, 5x+ needs 3%. Tight SL with high leverage = instant stop-out.
+- **Minimum hold times enforced.** Scalping agents: 1h minimum hold. Others: 3h minimum hold. Prevents rapid cycling.
 - **Withdrawal requires disable first.** `agent-disable` before `agent-withdraw`.
 - **No withdrawal whitelist = ANY address accepted.** If user didn't set `--withdrawal-addresses` during create, warn them to add one via `agent-update` before funding.
 - **Deploy errors return `fix_hint`.** Read and execute it — don't guess.

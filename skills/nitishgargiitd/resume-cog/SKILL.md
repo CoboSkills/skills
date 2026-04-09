@@ -153,3 +153,4 @@ Showcase your work:
 4. **Specify design preferences**: "Modern and minimal", "traditional corporate", "creative with color" — or let CellCog choose based on your industry.
 
 5. **Choose your format**: PDF is the default for polished, presentation-ready resumes. Request DOCX when you need to edit or when ATS systems require Word format.
+

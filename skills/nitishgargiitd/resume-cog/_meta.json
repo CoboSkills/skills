@@ -3,11 +3,16 @@
   "slug": "resume-cog",
   "displayName": "Resume Cog",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1775180649219,
-    "commit": "https://github.com/openclaw/skills/commit/c9a895711fe8745b5f2d73b10fdd938d7f055c12"
+    "version": "1.0.7",
+    "publishedAt": 1775627921540,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1775180649219,
+      "commit": "https://github.com/openclaw/skills/commit/c9a895711fe8745b5f2d73b10fdd938d7f055c12"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774585080578,

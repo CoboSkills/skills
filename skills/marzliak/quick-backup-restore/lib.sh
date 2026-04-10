@@ -34,6 +34,17 @@ tc_load_config() {
     TG_ENABLED=$(_cfg '.notifications.telegram.enabled')
     TG_TOKEN=$(_cfg '.notifications.telegram.bot_token')
     TG_CHAT_ID=$(_cfg '.notifications.telegram.chat_id')
+    TG_DAILY_DIGEST=$(_cfg '.notifications.telegram.daily_digest')
+
+    CHECK_EVERY=$(_cfg '.integrity.check_every')
+    MIN_DISK_MB=$(_cfg '.safety.min_disk_mb')
+    UPDATE_CHECK=$(_cfg '.updates.check')
+
+    # Defaults for optional fields
+    [[ -z "$CHECK_EVERY"    || "$CHECK_EVERY"    == "null" ]] && CHECK_EVERY=0
+    [[ -z "$MIN_DISK_MB"    || "$MIN_DISK_MB"    == "null" ]] && MIN_DISK_MB=0
+    [[ -z "$TG_DAILY_DIGEST" || "$TG_DAILY_DIGEST" == "null" ]] && TG_DAILY_DIGEST=false
+    [[ -z "$UPDATE_CHECK"   || "$UPDATE_CHECK"   == "null" ]] && UPDATE_CHECK=true
 
     # Validate critical config values
     _require_cfg() {
@@ -63,6 +74,57 @@ tc_load_config() {
     for ex in "${_BASE_EX[@]}" "${_EXTRA_EX[@]}"; do
         [[ -n "$ex" && "$ex" != "null" ]] && EXCLUDES+=("--exclude=$ex")
     done
+
+    # Validate config types
+    tc_validate_config
+}
+
+# --- Config schema validation ------------------------------------------------
+tc_validate_config() {
+    local errors=()
+
+    # retention.keep_last must be a positive integer
+    if ! [[ "$KEEP_LAST" =~ ^[0-9]+$ ]] || [[ "$KEEP_LAST" -le 0 ]]; then
+        errors+=("retention.keep_last must be a positive integer (got: '$KEEP_LAST')")
+    fi
+
+    # safety.min_disk_mb must be a non-negative integer
+    if ! [[ "$MIN_DISK_MB" =~ ^[0-9]+$ ]]; then
+        errors+=("safety.min_disk_mb must be a non-negative integer (got: '$MIN_DISK_MB')")
+    fi
+
+    # integrity.check_every must be a non-negative integer
+    if ! [[ "$CHECK_EVERY" =~ ^[0-9]+$ ]]; then
+        errors+=("integrity.check_every must be a non-negative integer (got: '$CHECK_EVERY')")
+    fi
+
+    # schedule.cron must look like a cron expression (5 fields)
+    if [[ -n "$CRON_EXPR" && "$CRON_EXPR" != "null" ]]; then
+        local field_count
+        field_count=$(echo "$CRON_EXPR" | awk '{print NF}')
+        if [[ "$field_count" -ne 5 ]]; then
+            errors+=("schedule.cron must have 5 fields (got $field_count: '$CRON_EXPR')")
+        fi
+    fi
+
+    # backup.paths must have at least one entry
+    if [[ ${#BACKUP_PATHS[@]} -eq 0 ]]; then
+        errors+=("backup.paths must have at least one path")
+    fi
+
+    # telegram: if enabled, token and chat_id must be set
+    if [[ "$TG_ENABLED" == "true" ]]; then
+        [[ -z "$TG_TOKEN" || "$TG_TOKEN" == "null" ]] && \
+            errors+=("notifications.telegram.bot_token is required when enabled: true")
+        [[ -z "$TG_CHAT_ID" || "$TG_CHAT_ID" == "null" ]] && \
+            errors+=("notifications.telegram.chat_id is required when enabled: true")
+    fi
+
+    if [[ ${#errors[@]} -gt 0 ]]; then
+        echo "[quick-backup-restore] CONFIG VALIDATION ERRORS:"
+        for e in "${errors[@]}"; do echo "  ✗ $e"; done
+        exit 1
+    fi
 }
 
 # --- Logging -----------------------------------------------------------------
@@ -104,7 +166,7 @@ tg_failure() {
     local safe_msg
     safe_msg=$(head -c 800 <<< "$error_msg")
     [[ ${#error_msg} -gt 800 ]] && safe_msg+=$'\n[...truncated]'
-    tg_send "🔴 *Quick Backup and Restore (time machine) — Backup FALHOU*
+    tg_send "🔴 *Time Clawshine — Backup FALHOU*
 🖥 \`$hostname\`
 🕐 $(timestamp)
 
@@ -142,4 +204,48 @@ tc_check_deps() {
         echo "Run: sudo bin/setup.sh"
         exit 1
     fi
+}
+
+# --- Version -----------------------------------------------------------------
+tc_current_version() {
+    local skill_json="$TC_ROOT/skill.json"
+    if [[ -f "$skill_json" ]] && command -v jq &>/dev/null; then
+        jq -r '.version' "$skill_json" 2>/dev/null || echo "unknown"
+    else
+        echo "unknown"
+    fi
+}
+
+# --- Telegram digest ---------------------------------------------------------
+tg_digest() {
+    local snapshot_count="$1"
+    local repo_size="$2"
+    local disk_free="$3"
+    local hostname; hostname=$(hostname)
+    tg_send "📊 *Time Clawshine — Resumo diário*
+🖥 \`$hostname\`
+🕐 $(timestamp)
+
+📸 Snapshots: $snapshot_count
+💾 Repositório: $repo_size
+💿 Disco livre: $disk_free"
+}
+
+# --- Disk space check --------------------------------------------------------
+tc_check_disk() {
+    local min_mb="$1"
+    [[ "$min_mb" -le 0 ]] 2>/dev/null && return 0
+    local repo_dir; repo_dir=$(dirname "$REPO")
+    local avail_kb; avail_kb=$(df --output=avail "$repo_dir" 2>/dev/null | tail -1 | tr -d ' ')
+    if [[ -z "$avail_kb" || "$avail_kb" == "Avail" ]]; then
+        log_warn "Could not determine free disk space — skipping disk guard"
+        return 0
+    fi
+    local avail_mb=$(( avail_kb / 1024 ))
+    if [[ $avail_mb -lt $min_mb ]]; then
+        log_error "Disk space too low: ${avail_mb}MB free < ${min_mb}MB minimum"
+        tg_failure "Disco quase cheio: ${avail_mb}MB livre, mínimo configurado: ${min_mb}MB. Backup abortado."
+        return 1
+    fi
+    return 0
 }

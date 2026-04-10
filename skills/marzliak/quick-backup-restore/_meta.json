@@ -1,11 +1,17 @@
 {
   "owner": "marzliak",
   "slug": "quick-backup-restore",
-  "displayName": "Quick Backup and Restore (time machine)",
+  "displayName": "Time Clawshine",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1772754574973,
-    "commit": "https://github.com/openclaw/skills/commit/c3463698bb8c4c8fe12eb325a778c4e7cb53f862"
+    "version": "2.0.2",
+    "publishedAt": 1775766389094,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1772754574973,
+      "commit": "https://github.com/openclaw/skills/commit/c3463698bb8c4c8fe12eb325a778c4e7cb53f862"
+    }
+  ]
 }

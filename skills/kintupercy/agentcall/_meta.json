@@ -1,13 +1,18 @@
 {
   "owner": "kintupercy",
   "slug": "agentcall",
-  "displayName": "AgentCall",
+  "displayName": "Clawhub Skill",
   "latest": {
-    "version": "2.0.2",
-    "publishedAt": 1772877617655,
-    "commit": "https://github.com/openclaw/skills/commit/121cc65f90df66ed2855b0f3a746c46d2778af2c"
+    "version": "2.0.3",
+    "publishedAt": 1775709360268,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.2",
+      "publishedAt": 1772877617655,
+      "commit": "https://github.com/openclaw/skills/commit/121cc65f90df66ed2855b0f3a746c46d2778af2c"
+    },
     {
       "version": "2.0.0",
       "publishedAt": 1772210747299,

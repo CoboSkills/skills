@@ -22,7 +22,9 @@ Patch OpenClaw's Telegram reply pipeline to append a one-line footer in private 
 
 ## Validated version boundary
 - **Live-validated:** OpenClaw **2026.3.22**
-- **Live-validated bundle path:** `/usr/lib/node_modules/openclaw/dist/agent-runner.runtime-BWpOtdxK.js`
+- **Live-validated bundle path (2026.3.22):** `/usr/lib/node_modules/openclaw/dist/agent-runner.runtime-BWpOtdxK.js`
+- **Live-validated:** OpenClaw **2026.4.5**
+- **Live-validated bundle path (2026.4.5):** `/usr/lib/node_modules/openclaw/dist/agent-runner.runtime-UIIO4kss.js`
 - **Not live-validated:** other OpenClaw versions/builds
 - **Claim boundary:** for untested versions, say “may be compatible” / “compatibility logic added”, not “supported”
 

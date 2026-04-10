@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.10
+- Add a second live validation boundary: OpenClaw `2026.4.5` is now real-world verified via Telegram private-chat acceptance.
+- Document the current live-validated bundle path on `2026.4.5`: `agent-runner.runtime-UIIO4kss.js`.
+- Update README/SKILL wording so published support claims distinguish between live-validated versions (`2026.3.22`, `2026.4.5`) and merely compatibility-targeted versions.
+
 ## 1.0.9
 - Clarify version-support wording: live-validated on OpenClaw `2026.3.22` only; untested versions must not be described as “supported”.
 - Document the exact live-validated bundle path: `agent-runner.runtime-BWpOtdxK.js`.

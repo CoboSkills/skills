@@ -26,7 +26,9 @@ spdx: MIT
 ## 版本支持 / Validation Boundary
 
 - **已实测通过（live Telegram 私聊验收）**：OpenClaw **2026.3.22**
-- **当前实际验证的 bundle 路径**：`/usr/lib/node_modules/openclaw/dist/agent-runner.runtime-BWpOtdxK.js`
+- **对应实际验证的 bundle 路径（2026.3.22）**：`/usr/lib/node_modules/openclaw/dist/agent-runner.runtime-BWpOtdxK.js`
+- **已实测通过（live Telegram 私聊验收）**：OpenClaw **2026.4.5**
+- **对应实际验证的 bundle 路径（2026.4.5）**：`/usr/lib/node_modules/openclaw/dist/agent-runner.runtime-UIIO4kss.js`
 - **已完成的静态验证**：`--dry-run`、`--auto-discover --verify`、smoke test、`node --check`
 - **未实测覆盖**：其它 OpenClaw 版本、其它 dist 命名/布局、其它未命中的真实 reply path
 - **发布口径**：除非做过真实 Telegram 私聊验收，否则只能写“可能兼容/已做兼容处理”，不能写“已支持”

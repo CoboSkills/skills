@@ -3,11 +3,16 @@
   "slug": "okx-cex-market",
   "displayName": "okx-cex-market",
   "latest": {
-    "version": "1.2.8",
-    "publishedAt": 1775199039879,
-    "commit": "https://github.com/openclaw/skills/commit/fee533913ff5b1e78e97df31dfb279d19a23305d"
+    "version": "1.3.0",
+    "publishedAt": 1775654849348,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.8",
+      "publishedAt": 1775199039879,
+      "commit": "https://github.com/openclaw/skills/commit/fee533913ff5b1e78e97df31dfb279d19a23305d"
+    },
     {
       "version": "1.2.7",
       "publishedAt": 1774622927572,

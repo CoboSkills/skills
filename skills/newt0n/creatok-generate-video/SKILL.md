@@ -2,7 +2,7 @@
 name: creatok-generate-video
 version: "1.0.0"
 description: Use when generating, resuming, or checking TikTok videos, ads, or selling videos.
-license: Internal
+license: Open Source
 compatibility: "Claude Code ≥1.0, OpenClaw skills, ClawHub-compatible installers. Requires network access to CreatOK Open Skills API. No local video rendering packages required."
 metadata:
   openclaw:
@@ -66,48 +66,62 @@ metadata:
 
 ## Model Selection Rules
 
+- `Seedance 2`
+  - actual model id: `doubao-seedance-2`
+  - best for longer clips, multi-image guidance, and product videos that need stronger visual control
+  - supported resolutions in the current Open Skills endpoint: **480p**, **720p**
+  - supported duration in the current Open Skills endpoint: **4-15s**
+  - supported aspect ratios in the current Open Skills endpoint: **9:16**, **16:9**, **1:1**, **4:3**, **3:4**
+
+- `Seedance 2 Fast`
+  - actual model id: `doubao-seedance-2-fast`
+  - faster variant for the same Seedance-style workflow when iteration speed matters more than the final pass
+  - supported resolutions in the current Open Skills endpoint: **480p**, **720p**
+  - supported duration in the current Open Skills endpoint: **4-15s**
+  - supported aspect ratios in the current Open Skills endpoint: **9:16**, **16:9**, **1:1**, **4:3**, **3:4**
+
 - `Sora 2`
   - actual model id: `sora-2`
-  - supports reference images, but only the first reference image is used
   - supported resolutions: **720p**
   - supported duration: **12s**
-  - supported aspect ratios: **9:16**, **16:9**
-
-- `Sora 2 Exp`
-  - actual model id: `sora-2-exp`
-  - supports reference images, but only the first reference image is used
-  - supported resolutions: **720p**
-  - supported duration: **15s**
   - supported aspect ratios: **9:16**, **16:9**
 
 - `Veo 3.1 Fast`
   - actual model id: `veo-3.1-fast-exp`
   - fastest and lowest-cost option
   - best for product demos, short visual tests, and previews
-  - supports real-person reference images
+  - supported resolutions: **720p**
   - max video length: **8 seconds**
 
 - `Veo 3.1 Quality`
   - actual model id: `veo-3.1-exp`
   - medium-cost option
   - best for formal product demos and higher-quality final clips
-  - supports real-person reference images
+  - supported resolutions: **720p**
   - max video length: **8 seconds**
 
 The model should recommend a model before generation instead of blindly using a default.
 The recommendation should follow these principles:
 
+- prefer `Seedance 2` (`doubao-seedance-2`) for longer clips, more flexible aspect ratios, and image-guided product videos
+- prefer `Seedance 2 Fast` (`doubao-seedance-2-fast`) for faster iteration when the user wants the Seedance path but cares more about speed than the final pass
 - prefer `Sora 2` (`sora-2`) for 12-second generation
-- prefer `Sora 2 Exp` (`sora-2-exp`) for 15-second generation
 - prefer `Veo 3.1 Fast` (`veo-3.1-fast-exp`) for previews, quick testing, and lightweight product demo clips
 - prefer `Veo 3.1 Quality` (`veo-3.1-exp`) for formal product demos and higher-quality final clips
 
 If a chosen plan conflicts with model limits, the model should explain the limitation, suggest a workable plan, and wait for user confirmation before generating.
 
+Current implementation defaults to the lower supported `definition` for each model, which is `480p` for `Seedance 2` and `720p` for the other listed models.
+Reference images are supported by uploading local image files first, then passing the uploaded reference to the video task.
+- `Seedance 2` supports at most 5 reference images in the current Open Skills endpoint
+- `Seedance 2 Fast` supports at most 5 reference images in the current Open Skills endpoint
+- `Sora 2` supports at most 1 reference image
+- `Veo 3.1 Fast` supports at most 3 reference images
+- `Veo 3.1 Quality` supports at most 3 reference images
+
 ## Multi-Segment Rules
 
 - If the requested video is longer than the chosen model's maximum duration, the model should recommend splitting it into multiple segments.
-- If multi-segment generation is needed and the script includes a recurring human character, the model should tell the user that they need to upload a portrait / person reference and use a model that supports real-person reference images.
 - If the final video must be stitched from multiple generated clips, the model should explain that the user will need to assemble the clips afterward.
 
 ## Inputs to clarify (ask if missing)
@@ -115,17 +129,18 @@ If a chosen plan conflicts with model limits, the model should explain the limit
 - ask only for what is still necessary to generate a good video
 - prefer the direction, script, and selling points already established earlier in the conversation
 - if details are missing, ask one or two short follow-up questions instead of requesting a full brief again
-- prefer details that help AI generation directly, such as scene intent, visual style, pacing, product emphasis, whether a person reference image is available, and whether the user wants `Sora 2`, `Sora 2 Exp`, or a Veo model
+- prefer details that help AI generation directly, such as scene intent, visual style, pacing, product emphasis, and whether the user wants `Sora 2` or a Veo model
+- when naming a model in tool calls or handoff instructions, use the exact official model id instead of aliases
 
 ## Workflow
 
 1) **Confirmation gate** (mandatory)
 - Summarize:
   - model
-  - ratio
-  - resolution and duration, if relevant to the chosen model
+  - orientation
+  - definition and seconds, if relevant to the chosen model
+  - whether reference images are used
   - whether the plan is single-shot or multi-segment
-  - whether a reference image is being used, and if so that only the first one will be applied for Sora
   - any important limitation such as duration cap, portrait requirement, or manual stitching afterward
   - estimated cost/credits if available
 - Ask for a simple confirmation in plain language, such as whether the user wants to start generation now.

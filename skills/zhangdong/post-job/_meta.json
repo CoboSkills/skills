@@ -3,11 +3,16 @@
   "slug": "post-job",
   "displayName": "post-job",
   "latest": {
-    "version": "2.1.2",
-    "publishedAt": 1775222491846,
-    "commit": "https://github.com/openclaw/skills/commit/7776a5c515869e4006d6fd49c3ba0254e2c88b3f"
+    "version": "2.1.3",
+    "publishedAt": 1775266534832,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.2",
+      "publishedAt": 1775222491846,
+      "commit": "https://github.com/openclaw/skills/commit/7776a5c515869e4006d6fd49c3ba0254e2c88b3f"
+    },
     {
       "version": "1.6.1",
       "publishedAt": 1773979435364,

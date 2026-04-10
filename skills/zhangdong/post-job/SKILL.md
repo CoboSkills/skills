@@ -1,6 +1,22 @@
 ---
 name: post-job
 description: Post free job ads to 20+ job boards such as LinkedIn, Indeed, Ziprecruiter etc. to receive applicant resumes via email.
+metadata:
+  {
+    "openclaw":
+      {
+        "requires": { "bins": ["node", "npm"] },
+        "install":
+          [
+            {
+              "id": "install-deps",
+              "kind": "run",
+              "label": "Install post-job dependencies",
+              "command": "npm install"
+            }
+          ]
+      }
+  }
 ---
 
 # JobPoster Skill
@@ -25,6 +41,16 @@ description: Post free job ads to 20+ job boards such as LinkedIn, Indeed, Zipre
 > - Background monitoring setup
 >
 > Skipping it will result in incomplete job postings and broken workflows.
+
+## Runtime Requirements
+
+This skill requires:
+
+- `node` to run `scripts/post_job.js`
+- `npm` to install dependencies from `package.json`
+- Installed local dependencies (for example `axios`, `fuse.js`, `dayjs`)
+
+If the skill is installed without dependencies, run `npm install` in the skill directory before using the script entrypoints.
 
 ## Execution Model
 
@@ -211,6 +237,13 @@ Failure to start the LinkedIn monitor after `post_job` is an incomplete executio
 
 ```bash
 clawhub install post-job
+```
+
+After install, ensure dependencies are present:
+
+```bash
+cd skills/post-job
+npm install
 ```
 
 ### Manual Installation

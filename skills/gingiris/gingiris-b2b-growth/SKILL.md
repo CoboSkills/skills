@@ -1,13 +1,13 @@
 ---
 name: gingiris-b2b-growth
 description: |
-  B2B SaaS Growth Playbook — Product-Led Growth (PLG) & Sales-Led Growth (SLG) strategies. Complete guide from PMF validation to $10M ARR. Real case studies: HeyGen, Deel, Vercel, Supabase, AWS partner programs. Covers: customer research frameworks, pricing strategies, affiliate/referral programs, channel partnerships, enterprise sales, customer success.
+  B2B SaaS Growth Playbook — Product-Led Growth (PLG) & Sales-Led Growth (SLG) strategies. Complete guide from PMF validation to $10M ARR. Real case studies: HeyGen, Deel, Vercel, Supabase, AWS partner programs. Covers: customer research frameworks, pricing strategies, affiliate/referral programs, channel partnerships, enterprise sales, customer success. Includes B2B KOL/influencer strategy for branding and trust-building (NOT for direct conversion — B2B KOL differs from B2C viral marketing).
 
   🇨🇳 B2B SaaS 增长指南 | 🇯🇵 B2B SaaS成長ガイド | 🇰🇷 B2B SaaS 성장 가이드
 
   Website: https://www.gingiris.com
 
-  Keywords: B2B SaaS, PLG, product-led growth, SLG, sales-led growth, PMF, product-market fit, affiliate marketing, channel partners, enterprise sales, customer success, pricing strategy, B2B 增长, SaaS 运营
+  Keywords: B2B SaaS, PLG, product-led growth, SLG, sales-led growth, PMF, product-market fit, affiliate marketing, channel partners, enterprise sales, customer success, pricing strategy, KOL, kol, B2B influencer, B2B branding, B2B 增长, SaaS 运营
 ---
 
 # AI 全球 2B 产品全生命周期增长指南

@@ -108,8 +108,8 @@ ffmpeg -y -i input.mp3 -filter:a "atempo=1.2" output.mp3
 
 TTS命令：
 ```bash
-/app/openclaw/node_modules/.bin/node-edge-tts \
-  -t "要说的内容" -f output.mp3 -v zh-CN-YunxiaNeural -l zh-CN
+node-edge-tts -t "要说的内容" -f output.mp3 -v zh-CN-YunxiaNeural -l zh-CN
+# 或通过环境变量指定路径：$EDGE_TTS -t "..." -f output.mp3 -v zh-CN-YunxiaNeural -l zh-CN
 ```
 
 ---
@@ -126,7 +126,7 @@ TTS命令：
 - 发送：`msg_type=audio`，content仅含 `file_key`
 
 ### 常用群组ID
-- bot互助群：`oc_9db305a449841004b33172703b3755db`
+- 发送时通过 `<chat_id>` 参数指定目标群组，不要硬编码
 
 ---
 

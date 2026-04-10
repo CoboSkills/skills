@@ -1,6 +1,12 @@
 #!/bin/bash
 # send_video.sh - Upload and send a video as a Feishu media bubble
 # Usage: bash send_video.sh <video.mp4> <cover.jpg> <chat_id>
+#
+# Required env vars:
+#   FEISHU_APP_ID     - Feishu app ID
+#   FEISHU_APP_SECRET - Feishu app secret
+# Optional env vars:
+#   FFPROBE           - Path to ffprobe (default: ffprobe in PATH)
 
 set -e
 
@@ -13,11 +19,11 @@ if [ -z "$VIDEO_FILE" ] || [ -z "$COVER_FILE" ] || [ -z "$CHAT_ID" ]; then
   exit 1
 fi
 
-CONFIG_FILE="/root/.openclaw/openclaw.json"
-APP_ID=$(python3 -c "import json; d=json.load(open('$CONFIG_FILE')); print(d['channels']['feishu']['accounts']['main']['appId'])")
-APP_SECRET=$(python3 -c "import json; d=json.load(open('$CONFIG_FILE')); print(d['channels']['feishu']['accounts']['main']['appSecret'])")
+# Read credentials from environment variables
+APP_ID="${FEISHU_APP_ID:?Error: FEISHU_APP_ID not set}"
+APP_SECRET="${FEISHU_APP_SECRET:?Error: FEISHU_APP_SECRET not set}"
 
-echo "🔑 Token OK"
+echo "🔑 Getting token..."
 TOKEN=$(curl -sf -X POST "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal" \
   -H "Content-Type: application/json" \
   -d "{\"app_id\": \"$APP_ID\", \"app_secret\": \"$APP_SECRET\"}" | python3 -c "import sys,json; print(json.load(sys.stdin)['tenant_access_token'])")
@@ -38,9 +44,10 @@ FILE_KEY=$(curl -sf -X POST "https://open.feishu.cn/open-apis/im/v1/files" \
 echo "   file_key: $FILE_KEY"
 
 FILENAME=$(basename "$VIDEO_FILE")
+FFPROBE_BIN="${FFPROBE:-ffprobe}"
 DURATION=$(python3 -c "
 import subprocess, sys
-r = subprocess.run(['/workspace/bin/ffprobe','-v','quiet','-show_entries','format=duration','-of','csv=p=0','$VIDEO_FILE'], capture_output=True, text=True)
+r = subprocess.run(['$FFPROBE_BIN','-v','quiet','-show_entries','format=duration','-of','csv=p=0','$VIDEO_FILE'], capture_output=True, text=True)
 print(int(float(r.stdout.strip())*1000) if r.stdout.strip() else 0)
 " 2>/dev/null || echo 0)
 

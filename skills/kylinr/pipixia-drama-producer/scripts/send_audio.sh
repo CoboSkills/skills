@@ -1,6 +1,12 @@
 #!/bin/bash
 # send_audio.sh - Upload and send a voice message as playable audio in Feishu
 # Usage: bash send_audio.sh "TTS text" <chat_id> [voice]
+#
+# Required env vars:
+#   FEISHU_APP_ID     - Feishu app ID
+#   FEISHU_APP_SECRET - Feishu app secret
+# Optional env vars:
+#   EDGE_TTS          - Path to edge-tts binary (default: node-edge-tts in PATH)
 
 set -e
 
@@ -9,13 +15,14 @@ CHAT_ID="$2"
 VOICE="${3:-zh-CN-YunxiaNeural}"
 TMP_AUDIO="/tmp/feishu_audio_$$.mp3"
 
-TTS="/app/openclaw/node_modules/.bin/node-edge-tts"
-CONFIG_FILE="/root/.openclaw/openclaw.json"
+TTS="${EDGE_TTS:-node-edge-tts}"
+
+# Read credentials from environment variables
+APP_ID="${FEISHU_APP_ID:?Error: FEISHU_APP_ID not set}"
+APP_SECRET="${FEISHU_APP_SECRET:?Error: FEISHU_APP_SECRET not set}"
 
 $TTS -t "$TEXT" -f "$TMP_AUDIO" -v "$VOICE" -l zh-CN
 
-APP_ID=$(python3 -c "import json; d=json.load(open('$CONFIG_FILE')); print(d['channels']['feishu']['accounts']['main']['appId'])")
-APP_SECRET=$(python3 -c "import json; d=json.load(open('$CONFIG_FILE')); print(d['channels']['feishu']['accounts']['main']['appSecret'])")
 TOKEN=$(curl -sf -X POST "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal" \
   -H "Content-Type: application/json" \
   -d "{\"app_id\":\"$APP_ID\",\"app_secret\":\"$APP_SECRET\"}" | python3 -c "import sys,json; print(json.load(sys.stdin)['tenant_access_token'])")

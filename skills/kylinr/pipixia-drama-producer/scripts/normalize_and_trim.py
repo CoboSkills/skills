@@ -9,7 +9,7 @@ import subprocess
 import sys
 import os
 
-FFMPEG = os.environ.get("FFMPEG", "/workspace/bin/ffmpeg")
+FFMPEG = os.environ.get("FFMPEG", "ffmpeg")
 
 def main():
     parser = argparse.ArgumentParser()

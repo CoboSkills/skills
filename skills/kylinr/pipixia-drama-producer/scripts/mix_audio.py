@@ -12,8 +12,8 @@ import subprocess
 import sys
 import os
 
-FFMPEG = os.environ.get("FFMPEG", "/workspace/bin/ffmpeg")
-FFPROBE = os.environ.get("FFPROBE", "/workspace/bin/ffprobe")
+FFMPEG = os.environ.get("FFMPEG", "ffmpeg")
+FFPROBE = os.environ.get("FFPROBE", "ffprobe")
 
 def get_duration(f):
     r = subprocess.run([FFPROBE, "-v", "quiet", "-show_entries", "format=duration",

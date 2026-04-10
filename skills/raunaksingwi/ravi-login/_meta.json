@@ -3,11 +3,16 @@
   "slug": "ravi-login",
   "displayName": "Ravi login",
   "latest": {
-    "version": "1.7.1",
-    "publishedAt": 1772960992731,
-    "commit": "https://github.com/openclaw/skills/commit/0e3b7ec7e7d33cfdb4935e04ccab3481fa3e18ed"
+    "version": "2.1.1",
+    "publishedAt": 1775627187692,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.7.1",
+      "publishedAt": 1772960992731,
+      "commit": "https://github.com/openclaw/skills/commit/0e3b7ec7e7d33cfdb4935e04ccab3481fa3e18ed"
+    },
     {
       "version": "1.7.0",
       "publishedAt": 1772783523330,

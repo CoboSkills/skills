@@ -14,6 +14,9 @@
  * Both normalize to the same internal shape: { instances: Record<name, config>, defaultInstance }.
  */
 
+import { hostname } from "node:os";
+import { randomUUID } from "node:crypto";
+
 // ── Grafana instance types ────────────────────────────────────────────
 
 /** A single Grafana instance (parsed — fields may still be missing). */
@@ -44,6 +47,7 @@ export type GrafanaLensConfig = {
     endpoint?: string;
     headers?: Record<string, string>;
     exportIntervalMs?: number;
+    instanceId?: string;
     logs?: boolean;
     traces?: boolean;
     captureContent?: boolean;
@@ -63,6 +67,19 @@ export type GrafanaLensConfig = {
     maxLabelsPerMetric?: number;
     maxLabelValues?: number;
     defaultTtlDays?: number;
+  };
+  alloy?: {
+    enabled?: boolean;
+    url?: string;
+    configDir?: string;
+    filePrefix?: string;
+    maxPipelines?: number;
+    lgtm?: {
+      prometheusRemoteWriteUrl?: string;
+      lokiUrl?: string;
+      otlpEndpoint?: string;
+      pyroscopeUrl?: string;
+    };
   };
 };
 
@@ -273,6 +290,10 @@ export function parseConfig(raw?: Record<string, unknown>): GrafanaLensConfig & 
       endpoint: otlpEndpoint,
       headers: otlpHeaders,
       exportIntervalMs: otlpRaw.exportIntervalMs as number | undefined,
+      instanceId:
+        (otlpRaw.instanceId as string | undefined)
+        ?? process.env.OTEL_SERVICE_INSTANCE_ID
+        ?? (hostname() || randomUUID()),
       logs: otlpRaw.logs !== false,
       traces: otlpRaw.traces !== false,
       captureContent: otlpRaw.captureContent !== false,
@@ -300,6 +321,35 @@ export function parseConfig(raw?: Record<string, unknown>): GrafanaLensConfig & 
       defaultTtlDays:
         (raw?.customMetrics as Record<string, unknown>)?.defaultTtlDays as number | undefined,
     },
+    alloy: parseAlloyConfig(raw?.alloy as Record<string, unknown> | undefined),
     ...(warnings.length > 0 ? { _warnings: warnings } : {}),
+  };
+}
+
+// ── Alloy config parsing ────────────────────────────────────────────
+
+function parseAlloyConfig(raw: Record<string, unknown> | undefined): GrafanaLensConfig["alloy"] {
+  if (!raw) return undefined;
+
+  const enabled = raw.enabled === true;
+  if (!enabled) return { enabled: false };
+
+  const url = (raw.url as string | undefined) ?? process.env.ALLOY_URL ?? "http://localhost:12345";
+  const configDir = (raw.configDir as string | undefined) ?? process.env.ALLOY_CONFIG_DIR;
+
+  const lgtmRaw = raw.lgtm as Record<string, unknown> | undefined;
+
+  return {
+    enabled: true,
+    url: url.replace(/\/+$/, ""),
+    configDir,
+    filePrefix: (raw.filePrefix as string | undefined) ?? "lens-",
+    maxPipelines: (raw.maxPipelines as number | undefined) ?? 20,
+    lgtm: lgtmRaw ? {
+      prometheusRemoteWriteUrl: lgtmRaw.prometheusRemoteWriteUrl as string | undefined,
+      lokiUrl: lgtmRaw.lokiUrl as string | undefined,
+      otlpEndpoint: lgtmRaw.otlpEndpoint as string | undefined,
+      pyroscopeUrl: lgtmRaw.pyroscopeUrl as string | undefined,
+    } : undefined,
   };
 }

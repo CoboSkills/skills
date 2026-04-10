@@ -1,10 +1,10 @@
 ---
 name: memory-never-forget
-description: "Memory system v3.1: Atkinson-Shiffrin temporal layering + 4-type taxonomy (User/Feedback/Project/Reference) + auto-extract + Dream consolidation + memory drift handling. Merges cognitive psychology with Claude Code's memory architecture."
+description: "Memory system v3.2: Atkinson-Shiffrin temporal layering + 4-type taxonomy (User/Feedback/Project/Reference) + auto-extract + Dream consolidation + memory drift handling + Memory Sublimation System. Merges cognitive psychology with Claude Code's memory architecture."
 metadata: { "openclaw": { "emoji": "🧠" } }
 ---
 
-# 🧠 Memory Never Forget v3.1
+# 🧠 Memory Never Forget v3.2
 
 Two orthogonal dimensions working together:
 
@@ -216,17 +216,58 @@ memory/
 - Project memories decay fast, so **why** helps future-you judge if the memory is still load-bearing
 - Always convert relative dates to absolute dates
 
+## Memory → Knowledge Sublimation (升华)
+
+Not all mature memories should decay. Some **evolve into knowledge**.
+
+### When to Sublimate
+
+| Trigger | Detection Signal | Result |
+|---------|-----------------|--------|
+| **Project complete** | All tasks marked done, 3+ related project memories | Merge into `knowledge/project-postmortem.md` |
+| **Feedback patterns** | 3+ related feedback entries (e.g., all about reply style) | Merge into `knowledge/user-work-style-guide.md` |
+| **User depth** | User memory accumulates role, preferences, habits over time | Expand to `knowledge/user-playbook.md` |
+| **Periodic review** | Dream detects high density of related memories in one category | Suggest: "Found 5 related feedback entries → merge into knowledge?" |
+
+### Sublimation vs Pruning
+
+| Decision | Criteria | Action |
+|----------|----------|--------|
+| **Prune (forget)** | No longer relevant, isolated, no connections | Remove from MEMORY.md index |
+| **Sublimate (promote)** | Still relevant, mature, interconnected, frequently referenced | Create detailed document in `knowledge/` |
+
+### Sublimation Flow
+```
+memory/project/task-A.md         │
+memory/project/task-B.md         │
+memory/project/task-C.md         │  ← Project complete, 3+ related
+    ↓ ── Dream detects pattern ──┤
+knowledge/project-A-postmortem.md  │  ← Sublimated: detailed lessons
+    ↓                             │
+MEMORY.md index updated           │  ← Points to knowledge document
+
+Original memories PRESERVED (first-hand records) + knowledge/ (detailed version)
+```
+
+### Sublimation Rules
+- **Always preserve original memories** (they are first-hand records)
+- Create the knowledge document in `knowledge/`
+- Update MEMORY.md to point to the knowledge document
+- Log the sublimation (when and why)
+- After sublimation, update the **knowledge document** going forward (not the individual memories)
+
 ---
 
 ## Dream Consolidation (Periodic, Automated)
 
-Triggered daily via cron. Acts as the **Working → Long-term promotion gateway**.
+Triggered daily via cron. Acts as the **Working → Long-term promotion + Sublimation detection gateway**.
 
 ### Phases
 1. **Orient** — browse existing memory files and index
 2. **Gather** — scan working memory (daily logs) for new signal
 3. **Consolidate** — promote to classified long-term (4 types), merge, deduplicate
 4. **Prune** — remove outdated entries, update index, let daily logs decay naturally
+5. **★ Sublimate** — detect maturation patterns and promote memory → knowledge
 
 ### Rules
 - Merge new signal into existing files, not near-duplicates
@@ -319,4 +360,4 @@ workspace/
 
 ---
 
-*Version: v3.1 | Updated: 2026-04-03 | Merges Atkinson-Shiffrin temporal layering with Claude Code 4-type taxonomy*
+*Version: v3.2 | Updated: 2026-04-07 | Merges Atkinson-Shiffrin temporal layering with Claude Code 4-type taxonomy + Memory Sublimation System*

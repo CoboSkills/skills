@@ -3,11 +3,16 @@
   "slug": "okx-cex-bot",
   "displayName": "okx-cex-bot",
   "latest": {
-    "version": "1.2.8",
-    "publishedAt": 1775199192384,
-    "commit": "https://github.com/openclaw/skills/commit/b31d43efe44420f1b7a9056f38fc02852e401339"
+    "version": "1.3.0",
+    "publishedAt": 1775654743148,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.8",
+      "publishedAt": 1775199192384,
+      "commit": "https://github.com/openclaw/skills/commit/b31d43efe44420f1b7a9056f38fc02852e401339"
+    },
     {
       "version": "1.2.7",
       "publishedAt": 1774622840211,

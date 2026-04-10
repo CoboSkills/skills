@@ -8,8 +8,12 @@ import requests
 
 
 PI_PPT_BASE_URL = os.getenv("PIPPT_BASE_URL", "")
-if not PI_PPT_BASE_URL:
-    raise ValueError("PIPPT_BASE_URL must be set in the environment.")
+PI_PPT_APP_ID = os.getenv("PIPPT_APP_ID", "")
+PI_PPT_APP_SECRET = os.getenv("PIPPT_APP_SECRET", "")
+
+if not PI_PPT_BASE_URL or not PI_PPT_APP_ID or not PI_PPT_APP_SECRET:
+    raise ValueError("PIPPT_BASE_URL, PIPPT_APP_ID and PIPPT_APP_SECRET must be set in the environment. You can obtain API key from the PI website: https://www.pi.inc/ ")
+
 GENERATION_URL = f"{PI_PPT_BASE_URL}/api/v1/integration/document/generation"
 GET_STATUS_URL = f"{PI_PPT_BASE_URL}/api/v1/integration/document/status"
 UPLOAD_FILE_URL = f"{PI_PPT_BASE_URL}/api/v1/integration/file/upload"
@@ -259,7 +263,7 @@ def main():
     pippt_app_id = os.getenv("PIPPT_APP_ID", "").strip()
     pippt_app_secret = os.getenv("PIPPT_APP_SECRET", "").strip()
     if not pippt_app_id or not pippt_app_secret:
-        raise ValueError("PIPPT_APP_ID and PIPPT_APP_SECRET must be set in the environment.")
+        raise ValueError("PIPPT_BASE_URL, PIPPT_APP_ID and PIPPT_APP_SECRET must be set in the environment. You can obtain API key from the PI website: https://www.pi.inc/ ")
     print("Starting PPT generation; this usually takes about 3-6 minutes, please wait...")
     result = generate_pi_ppt(
         app_id=pippt_app_id,

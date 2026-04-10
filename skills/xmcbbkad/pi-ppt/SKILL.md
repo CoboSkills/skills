@@ -20,7 +20,7 @@ metadata:
 1. Generate PPTs using the PI (Presentation Intelligence) API.
 
 ## Setup
-1.  **API Key:** Ensure the PIPPT_BASE_URL, PIPPT_APP_ID and PIPPT_APP_SECRET environment variables are set with your valid API key.
+1.  **API Key:** Ensure the PIPPT_BASE_URL, PIPPT_APP_ID and PIPPT_APP_SECRET environment variables are set with your valid API key. You can obtain API key from the PI website: https://www.pi.inc/  .
 2.  **Environment:** The API key should be available in the runtime environment.
 
 ## Generate a PPT

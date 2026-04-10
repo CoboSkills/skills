@@ -76,3 +76,18 @@ echo "🤝 Discuss with your agent:"
 echo "   - Are the decay rates right for you?"
 echo "   - Is the importance hierarchy correct?"
 echo "   - What actions actually satisfy each need?"
+
+# Optional social-boundary recommendation
+# Only suggest this if the current config actually includes connection actions.
+CONNECTION_ACTIONS=$(jq '(.needs.connection.actions // []) | length' "$SKILL_DIR/assets/needs-config.json" 2>/dev/null || echo 0)
+if [[ "$CONNECTION_ACTIONS" -gt 0 ]]; then
+    echo ""
+    echo "🌐 Optional public-boundary recommendation (for social presets):"
+    echo "   Your current config includes connection/social actions."
+    echo "   Consider adding a public-reference rule for the human steward:"
+    echo "   - In public/semi-public communication, refer to the human only as 'steward'"
+    echo "   - Do not reveal real name, handles, Telegram/GitHub/email, or identifying details"
+    echo ""
+    echo "   Suggested locations: SECURITY.md and AGENTS.md"
+    echo "   This is optional and should be approved by the steward for the current setup."
+fi

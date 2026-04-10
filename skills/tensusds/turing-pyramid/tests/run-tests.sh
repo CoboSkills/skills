@@ -26,11 +26,12 @@ run_test() {
         return
     fi
     
-    # Clear stale lock files and gate state before each test
+    # Reset needs state + clear lock files and gate state before each test
+    [[ -f "$SKILL_DIR/assets/needs-state.template.json" ]] && cp "$SKILL_DIR/assets/needs-state.template.json" "$SKILL_DIR/assets/needs-state.json" 2>/dev/null || true
     rm -f "$SKILL_DIR"/assets/*.lock 2>/dev/null || true
     rm -f "$SKILL_DIR"/assets/pending_actions.json "$SKILL_DIR"/assets/gate.lock 2>/dev/null || true
     
-    if WORKSPACE="$SKILL_DIR" SKIP_GATE=true "$test_file" >/dev/null 2>&1; then
+    if WORKSPACE="$SKILL_DIR" SKIP_GATE=true SKIP_DAEMON_FORCE=true "$test_file" >/dev/null 2>&1; then
         echo -e "${GREEN}PASS${NC} $test_name"
         ((PASSED++)) || true
     else

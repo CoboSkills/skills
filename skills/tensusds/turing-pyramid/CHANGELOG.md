@@ -1,5 +1,59 @@
 # Changelog
 
+## v1.34.8 (2026-04-10) — Integrity actions audit + INTEGRITY_CHECKPOINTS.md
+- **integrity actions fully redesigned**: 9 actions → 7 concrete, verifiable actions. Removed: vague `write integrity reflection`, `review SELF.md`, `scan recent memory` (too light), `garbage cleanup` (wrong domain)
+- **INTEGRITY_CHECKPOINTS.md**: new persistent file with structured entries (timestamp, trigger, status, area, notes, resolution, action taken)
+- **INTEGRITY_CHECKPOINT_TEMPLATE.md**: reference template with field guide + gate thresholds (`drift+pending` in last 3 entries, `>7 days since last checkpoint`, `2+ consecutive minor-drift`)
+- **scan_integrity.sh**: now reads INTEGRITY_CHECKPOINTS.md directly (7-day age check → checkpoint_bonus), detects unresolved drift (drift entries > resolved → neg signal), missing file → mild neg signal
+- **`compare recent actions` action**: if tensions found → write checkpoint; if aligned → note in daily memory (no more sinking insights)
+- **garbage cleanup** moved to security need (where it belongs)
+- **28/28 tests green**
+
+## v1.34.7 (2026-04-09) — Deliberation discipline tracking
+- **`assets/deliberation.log`**: new source of truth — JSON lines, one entry per deliberation event (invoked, validated, validated-inline, resolved)
+- **`classify_deliberation_level()`** in `mindstate-utils.sh`: tiered observables (absent/minimal/substantive/deep) based on conclusion length + route + deliberation file with phase markers. Measures artifact, not tool invocation
+- **`deliberate.sh`**: now logs to deliberation.log on every invocation (template/validate/validate-inline). Was stateless, now traceable
+- **`gate-resolve.sh`**: uses classifier, records level in deliberation.log + audit trail. Feedback: `absent` warns, `minimal` informs, `substantive`/`deep` silent. Never blocks (anti-compliance preserved)
+- **`run-cycle.sh`**: shows recent discipline before protocol instructions when ≥2/last 10 deliberations were skipped
+- **`mindstate-freeze.sh`**: adds `deliberation_discipline` field to cognition block — rolling window summary (N substantive, M minimal, K skipped)
+- **28/28 tests green**
+
+## v1.34.6 (2026-04-09) — Connection actions expanded + weight recalibration
+- **New actions added**: `write a short Moltbook post`, `post thoughts on AgentGram`, `ping steward — ask how they are doing`, `ping steward if you have issues or problems` (weight 65, priority signal), `react with emoji to a Moltbook post`, `check in with steward — share something if you feel like it (skip at night)`
+- **Weight recalibration**: heavy actions (reach out, reply all) reduced from 45-50 to 30-35; light social actions (react, comment, post) raised to 45-55; steward issue ping gets highest weight (65)
+- **Design intent**: organic connection — lightly engaging actions now compete evenly with heavy ones; steward problem ping is unmissable; voluntary check-in skips gracefully at night
+
+## v1.34.5 (2026-04-09) — Deferred backlog pressure + gate-resolve --close
+- **`scan_closure.sh` sees deferred backlog**: pressure bands (<5 normal, 5-10 light +2neg, 11-20 medium +4neg, >20 heavy +6neg) map naturally onto existing cascade thresholds
+- **`gate-resolve.sh --close <id>`**: new surgical operation — formally abandons a DEFERRED item (DEFERRED → ABANDONED). Only DEFERRED → ABANDONED is permitted; PENDING close is rejected. `ABANDONED` is a distinct status (not fail, not complete) for post-hoc audit differentiation
+- **`needs-config.json`**: new closure action *"review deferred backlog — close, defer, or commit each item"* (impact 2.5, deliberative, non-deferrable to avoid deadlock). `deferred_backlog_size` added to declared scan checks
+- **New test**: `tests/unit/test_closure_backlog.sh` (9 tests: pressure bands, close operation, PENDING rejection, count update, pressure reduction)
+- **28/28 unit tests green**
+
+## v1.34.4 (2026-04-09) — Integrity scanner rebuilt
+- **`scan_integrity.sh` rewritten**: was a 17-line stub returning pure time decay; now reads daily memory files for alignment signals and drift markers (same pattern as coherence/connection/expression scanners)
+- **Positive signals**: `integrity check`, `integrity reflection`, `SOUL.md review`, `aligned with`, `values check`, etc.
+- **Negative signals**: `drifted`, `misaligned`, `compromised`, `contradicts my values`, `acted against`, etc.
+- **Checkpoint age check** (`last_checkpoint_age`): bonus if integrity checkpoint found in last 3 days of memory files
+- **SOUL engagement check** (`recent_alignment_flags`): bonus if SOUL.md review mentioned in today/yesterday memory
+- **Config declaration fixed**: `checks` array now matches implemented behavior (was declaring `last_checkpoint_age` and `recent_alignment_flags` but scanning nothing)
+- **Ritual loop broken**: satisfaction now reflects actual integrity work done, not just time since last `mark-satisfied`
+- **27/27 unit tests green**
+
+## v1.34.3 (2026-04-09) — Self-throttle race fix + test isolation
+- **`mindstate-daemon.sh` `--force` flag**: bypasses min-interval throttle when called explicitly (e.g. from boot)
+- **`mindstate-boot.sh` always gets fresh reality**: calls daemon with `--force` so pending gate changes are reflected immediately even within throttle window
+- **`SKIP_DAEMON_FORCE=true`**: env var for tests to preserve fixture MINDSTATE without daemon overwriting it
+- **`run-tests.sh` state isolation**: resets `needs-state.json` from template before each test, eliminating state pollution (fixed `test_tension` flake)
+- **27/27 unit + 2/2 integration tests green**
+
+## v1.34.2 (2026-04-09) — Execution gate continuity fix
+- **MINDSTATE reality now tracks execution gate**: `mindstate-daemon.sh` reads `pending_actions.json` and writes `execution_gate` + `pending_actions` into `## reality`
+- **MINDSTATE cognition now prioritizes blocked gate work**: `mindstate-freeze.sh` inserts pending execution-gate actions into `open_threads` before `INTENTIONS.md` and followups
+- **Boot makes blockage visible immediately**: `mindstate-boot.sh` shows execution-gate status and warns when pending actions block new proposals
+- **End-to-end continuity fixed for core bug**: `pending_actions.json` now propagates into reality, cognition, and boot context instead of leaving the self-model blind to execution-gate blockage
+- **Version sync**: `_meta.json`, `needs-config.json`, and skill version marker updated to `1.34.2`
+
 ## v1.33.9 (2026-04-02) — ClawHub safety clarification + safe publish defaults
 - **Publish defaults confirmed safe**: `watchdog.allow_kill=false`, `watchdog.allow_cleanup=false` in publish bundle
 - **Metadata expanded**: added undeclared runtime binaries (`flock`, `pgrep`, `df`, `kill`, `gzip`) to skill metadata
@@ -59,7 +113,7 @@
 - **Routing options**: followup, research_thread, interest, steward_question, priority_flag, reframe, chain, concluded
 - **Design principles**: scaffolding not bureaucracy, phases as questions not obligations, anti-compliance by design, persistent state change mandatory
 - **16 tests** (Tests 1-16): tagging, template generation, compression, validation, Russian support, run-cycle output
-- **Design document**: `DELIBERATION-PROTOCOL.md` (v0.3.0, 3 authors: Max, NewMoon, Claude)
+- **Design document**: `DELIBERATION-PROTOCOL.md` (v0.3.0, 3 authors: steward, agent, formalization partner)
 
 ## v1.29.0 (2026-03-20) — Preset Architecture
 

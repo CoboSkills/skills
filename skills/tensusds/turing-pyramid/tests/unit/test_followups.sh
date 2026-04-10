@@ -61,11 +61,11 @@ assert "need=competence" "$(head -1 "$FOLLOWUPS" | jq -r '.need')" "competence"
 # ─── Test 2: Create steward follow-up ───
 echo ""
 echo "=== Test 2: Create steward follow-up ==="
-OUTPUT=$(bash "$SCRIPTS/create-followup.sh" --what "review PR CI" --in 4h --need competence --source steward --parent "Max asked" 2>&1)
+OUTPUT=$(bash "$SCRIPTS/create-followup.sh" --what "review PR CI" --in 4h --need competence --source steward --parent "steward asked" 2>&1)
 assert_contains "steward follow-up created" "$OUTPUT" "Follow-up created"
 assert "2 entries" "$(wc -l < "$FOLLOWUPS")" "2"
 assert "source=steward" "$(tail -1 "$FOLLOWUPS" | jq -r '.source')" "steward"
-assert "parent recorded" "$(tail -1 "$FOLLOWUPS" | jq -r '.parent_action')" "Max asked"
+assert "parent recorded" "$(tail -1 "$FOLLOWUPS" | jq -r '.parent_action')" "steward asked"
 
 # ─── Test 3: Dedup blocks duplicate ───
 echo ""

@@ -727,6 +727,6 @@ Summary: 3 action(s), 0 noticed
 
 ---
 
-**Version:** 1.33.9 — ClawHub safety clarification, safe publish defaults, watchdog detect-only by default.
+**Version:** 1.34.8 — Self-throttle race fix: daemon --force flag, boot always gets fresh reality, test isolation improved (state reset + SKIP_DAEMON_FORCE).
 
 Full changelog: `CHANGELOG.md` | Tuning guide: `references/TUNING.md`

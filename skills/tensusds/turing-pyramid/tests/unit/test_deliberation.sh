@@ -328,7 +328,7 @@ bash "$SCRIPTS/gate-propose.sh" --need understanding --action "re-read recent le
 # Mark satisfied first so evidence verification passes
 bash "$SCRIPTS/mark-satisfied.sh" understanding 0.2 --reason "test" >/dev/null 2>&1 || true
 output=$(bash "$SCRIPTS/gate-resolve.sh" --need understanding --evidence "test resolve" 2>&1)
-if echo "$output" | grep -q "Deliberative action resolved without --conclusion"; then
+if echo "$output" | grep -qE "(Deliberative action resolved without|marked as 'absent')"; then
     echo "  Warning emitted for deliberative without conclusion — OK"
 else
     echo "  FAIL: Expected deliberative warning"
@@ -396,7 +396,7 @@ cleanup_gate
 # ─── Test 23: mark-satisfied --conclusion with sensitive data → scrubbed ───
 echo "Test 23: Conclusion with sensitive data is scrubbed"
 AUDIT_LINES_BEFORE=$(wc -l < "$AUDIT_LOG" 2>/dev/null || echo 0)
-bash "$SCRIPTS/mark-satisfied.sh" security 0.3 --reason "test scrub" --conclusion "found open port on 192.168.1.100 at /home/max/.ssh/key" >/dev/null 2>&1 || true
+bash "$SCRIPTS/mark-satisfied.sh" security 0.3 --reason "test scrub" --conclusion "found open port on 192.168.1.100 at /home/user/.ssh/key" >/dev/null 2>&1 || true
 NEW_ENTRY=$(tail -n +$((AUDIT_LINES_BEFORE + 1)) "$AUDIT_LOG" | grep "test scrub" | tail -1)
 if echo "$NEW_ENTRY" | grep -q "192.168.1.100"; then
     echo "  FAIL: IP address should be scrubbed"
@@ -453,7 +453,7 @@ cleanup_gate
 bash "$SCRIPTS/gate-propose.sh" --need understanding --action "re-read recent learning notes" --impact 0.2 >/dev/null 2>&1
 bash "$SCRIPTS/mark-satisfied.sh" understanding 0.2 --reason "test" >/dev/null 2>&1 || true
 output=$(bash "$SCRIPTS/gate-resolve.sh" --need understanding --evidence "test" --conclusion "" 2>&1)
-if echo "$output" | grep -q "Deliberative action resolved without --conclusion"; then
+if echo "$output" | grep -qE "(Deliberative action resolved without|marked as 'absent')"; then
     echo "  Empty conclusion triggers warning — OK"
 else
     echo "  FAIL: Empty conclusion should trigger warning for deliberative"

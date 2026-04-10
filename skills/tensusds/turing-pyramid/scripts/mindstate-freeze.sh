@@ -99,8 +99,18 @@ fi
 # ─── 2. Open threads: active incomplete items (max 3) ───
 open_threads=()
 
-# From INTENTIONS.md: items under Active section
-if [[ -f "$WORKSPACE/INTENTIONS.md" ]]; then
+# PRIORITY 1: Pending actions from execution gate (these block everything else)
+GATE_FILE="$(_ms_assets)/pending_actions.json"
+if [[ -f "$GATE_FILE" ]]; then
+    while IFS= read -r pending_line; do
+        [[ -z "$pending_line" ]] && continue
+        open_threads+=("[PENDING GATE] $pending_line")
+        (( ${#open_threads[@]} >= 3 )) && break
+    done < <(jq -r '.actions[]? | select(.status == "PENDING") | "\(.need): \(.action_name)"' "$GATE_FILE" 2>/dev/null)
+fi
+
+# PRIORITY 2: From INTENTIONS.md: items under Active section
+if (( ${#open_threads[@]} < 3 )) && [[ -f "$WORKSPACE/INTENTIONS.md" ]]; then
     in_active=false
     while IFS= read -r line; do
         # Detect Active section
@@ -123,7 +133,7 @@ if [[ -f "$WORKSPACE/INTENTIONS.md" ]]; then
     done < "$WORKSPACE/INTENTIONS.md"
 fi
 
-# From followups if we have fewer than 3
+# PRIORITY 3: Followups if we still have fewer than 3
 if (( ${#open_threads[@]} < 3 )); then
     followups_file="$SKILL_DIR/assets/followups.jsonl"
     if [[ -f "$followups_file" ]]; then
@@ -285,6 +295,20 @@ if (( ${#DELIB_RESIDUALS[@]} > 0 )); then
     done
 fi
 
+# ─── Deliberation discipline summary ───
+delib_summary="no recent deliberations"
+DELIB_LOG="$(_ms_assets)/deliberation.log"
+if [[ -f "$DELIB_LOG" ]]; then
+    recent=$(tail -50 "$DELIB_LOG" | grep '"event":"resolved"' | tail -10)
+    if [[ -n "$recent" ]]; then
+        _d_substantive=$(echo "$recent" | grep -c '"level":"substantive"' || echo 0)
+        _d_deep=$(echo "$recent" | grep -c '"level":"deep"' || echo 0)
+        _d_minimal=$(echo "$recent" | grep -c '"level":"minimal"' || echo 0)
+        _d_absent=$(echo "$recent" | grep -c '"level":"absent"' || echo 0)
+        delib_summary="$((_d_substantive + _d_deep)) substantive, $_d_minimal minimal, $_d_absent skipped (last 10)"
+    fi
+fi
+
 COGNITION_BLOCK="## cognition
 # [frozen by mindstate-freeze.sh — READ-ONLY until next freeze]
 frozen_at: $NOW_ISO
@@ -292,7 +316,8 @@ trajectory: $trajectory
 open_threads:
 ${OT_LINES}deliberation_residuals:
 ${DR_LINES:-  - (none)
-}momentum: $momentum
+}deliberation_discipline: $delib_summary
+momentum: $momentum
 cognitive_temperature: $cognitive_temperature"
 
 FORECAST_BLOCK="## forecast

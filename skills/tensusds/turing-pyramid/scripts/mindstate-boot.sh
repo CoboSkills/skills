@@ -33,8 +33,13 @@ if [[ ! -f "$MINDSTATE_FILE" ]]; then
     exit 0
 fi
 
-# ─── Force fresh reality before reconciliation ───
-bash "$SCRIPT_DIR/mindstate-daemon.sh" 2>/dev/null || true
+# ─── Force fresh reality before reconciliation (--force bypasses throttle) ───
+# SKIP_DAEMON_FORCE=true lets tests control MINDSTATE without interference
+if [[ "${SKIP_DAEMON_FORCE:-false}" == "true" ]]; then
+    bash "$SCRIPT_DIR/mindstate-daemon.sh" 2>/dev/null || true
+else
+    bash "$SCRIPT_DIR/mindstate-daemon.sh" --force 2>/dev/null || true
+fi
 
 NOW_EPOCH=$(now_epoch)
 
@@ -47,6 +52,8 @@ trajectory=$(mindstate_get "trajectory")
 critical=$(mindstate_get "critical_needs")
 momentum=$(mindstate_get "momentum")
 surplus_gate=$(mindstate_get "surplus_gate")
+exec_gate_status=$(mindstate_get "execution_gate")
+pending_count=$(mindstate_get "pending_actions")
 phase=$(grep "phase:" "$MINDSTATE_FILE" 2>/dev/null | head -1 | sed 's/.*phase: *//' || true)
 
 # ─── 2. Staleness check ───
@@ -185,8 +192,14 @@ echo "Momentum: ${momentum:-(none)}"
 echo "Temperature: $merged_temperature"
 echo "Critical: ${critical:-none}"
 echo "Surplus gate: ${surplus_gate:-unknown}"
+echo "Execution gate: ${exec_gate_status:-unknown} (${pending_count:-0} pending)"
 echo "Phase: ${phase:-unknown}"
 echo ""
+
+if [[ "${exec_gate_status:-unknown}" == "BLOCKED" ]]; then
+    echo "⚠ EXECUTION GATE BLOCKED: ${pending_count:-0} pending action(s) — resolve before new proposals"
+    echo ""
+fi
 
 if (( ${#confirmations[@]} > 0 || ${#prediction_errors[@]} > 0 )); then
     echo "Forecast reconciliation:"

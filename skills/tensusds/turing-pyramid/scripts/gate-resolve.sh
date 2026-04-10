@@ -29,9 +29,14 @@ while [[ $# -gt 0 ]]; do
         --self-report) SELF_REPORT=true; shift ;;
         --defer) DEFER=true; ACTION_ID="$2"; shift 2 ;;
         --reason) DEFER_REASON="$2"; shift 2 ;;
+        --close) CLOSE=true; ACTION_ID="$2"; shift 2 ;;
+        --close-reason) CLOSE_REASON="$2"; shift 2 ;;
         *) [[ -z "$ACTION_ID" ]] && ACTION_ID="$1"; shift ;;
     esac
 done
+
+CLOSE=${CLOSE:-false}
+CLOSE_REASON=${CLOSE_REASON:-}
 
 NOW_ISO=$(now_iso)
 
@@ -49,6 +54,29 @@ _scrub_sensitive() {
 }
 CONCLUSION_SCRUBBED=$(_scrub_sensitive "${CONCLUSION:-}")
 
+
+# ─── Close path: formally abandon a deferred item (DEFERRED → ABANDONED) ───
+if $CLOSE; then
+    [[ -z "$ACTION_ID" ]] && { echo "--close requires action_id" >&2; exit 1; }
+
+    current_status=$(jq -r --arg id "$ACTION_ID" \
+        '.actions[] | select(.id == $id) | .status' "$GATE_FILE")
+    if [[ "$current_status" != "DEFERRED" ]]; then
+        echo "[GATE] --close only valid for DEFERRED actions (current: $current_status)" >&2
+        exit 1
+    fi
+
+    REASON_SCRUBBED=$(_scrub_sensitive "${CLOSE_REASON:-abandoned during backlog cleanup}")
+
+    jq --arg id "$ACTION_ID" --arg ts "$NOW_ISO" --arg reason "$REASON_SCRUBBED" \
+        '(.actions[] | select(.id == $id and .status == "DEFERRED")) |=
+        (.status = "ABANDONED" | .closed_at = $ts | .close_reason = $reason) |
+        .deferred_count = ([.actions[] | select(.status == "DEFERRED")] | length)' \
+        "$GATE_FILE" > "$GATE_FILE.tmp.$$" && mv "$GATE_FILE.tmp.$$" "$GATE_FILE"
+
+    echo "[GATE] Closed: $ACTION_ID \u2192 ABANDONED ($REASON_SCRUBBED)"
+    exit 0
+fi
 
 # ─── Defer path ───
 if $DEFER; then
@@ -146,22 +174,51 @@ if [[ "$verification_result" == UNVERIFIED* && -n "$EVIDENCE" ]]; then
     verification_result="agent-provided: $EVIDENCE"
 fi
 
-# ─── Deliberation conclusion handling ───
-# Read action_mode from gate file (stored at propose time, not from config)
+# ─── Deliberation level classification + logging ───
+# Read action_mode and proposed_at from gate file
 action_mode=$(jq -r --arg id "$ACTION_ID" \
     '.actions[] | select(.id == $id) | .action_mode // "operative"' "$GATE_FILE" 2>/dev/null || echo "operative")
+proposed_at=$(jq -r --arg id "$ACTION_ID" \
+    '.actions[] | select(.id == $id) | .timestamp // ""' "$GATE_FILE" 2>/dev/null || echo "")
+
+# Classify deliberation level (uses classify_deliberation_level from mindstate-utils.sh)
+delib_level=$(classify_deliberation_level "${CONCLUSION:-}" "${ROUTE:-}" "$action_mode" "$proposed_at")
+
+# Record to deliberation.log
+if [[ "$action_mode" == "deliberative" ]]; then
+    DELIB_LOG="$(_ms_assets)/deliberation.log"
+    jq -cn --arg ts "$NOW_ISO" --arg aid "$ACTION_ID" --arg need "$need" \
+        --arg level "$delib_level" --argjson clen "${#CONCLUSION}" \
+        --arg route "${ROUTE:-}" \
+        '{timestamp: $ts, event: "resolved", action_id: $aid, need: $need,
+          level: $level, conclusion_length: $clen,
+          route: (if $route == "" then null else $route end)}' \
+        >> "$DELIB_LOG" 2>/dev/null || true
+fi
 
 # Scrub conclusion if provided
 if [[ -n "$CONCLUSION" ]]; then
     verification_result="${verification_result} | conclusion: ${CONCLUSION_SCRUBBED}"
 fi
 
-# Warn if deliberative action resolved without conclusion
-if [[ "$action_mode" == "deliberative" && -z "$CONCLUSION" ]]; then
-    echo "⚠️  Deliberative action resolved without --conclusion."
-    echo "   Recommended: gate-resolve.sh --need $need --evidence '...' --conclusion '...'"
-    echo "   (Resolving anyway — outcome is recommended, not required)"
+# Append deliberation level to verification_result for audit visibility
+if [[ "$action_mode" == "deliberative" ]]; then
+    verification_result="${verification_result} | deliberation: ${delib_level}"
 fi
+
+# User-facing feedback, scaled by level (warn never block)
+case "$delib_level" in
+    absent)
+        echo "⚠️  Deliberative action resolved without conclusion — marked as 'absent'."
+        echo "   Pattern visible at next boot. Consider: deliberate.sh --template next time."
+        ;;
+    minimal)
+        echo "ℹ️  Minimal deliberation recorded (short conclusion or no route)."
+        ;;
+    substantive|deep|n/a)
+        # No noise for good path
+        ;;
+esac
 
 # ─── Update status ───
 final_status="COMPLETED"

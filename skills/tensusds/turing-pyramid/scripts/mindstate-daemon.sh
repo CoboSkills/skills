@@ -15,6 +15,10 @@ source "$SCRIPT_DIR/mindstate-utils.sh"
 # Validate environment
 mindstate_validate_workspace || exit 1
 
+# Parse --force flag (bypass throttle for boot-time freshness)
+FORCE=false
+[[ "${1:-}" == "--force" ]] && FORCE=true
+
 MINDSTATE_FILE=$(mindstate_file)
 STATE_FILE=$(mindstate_state_file)
 CONFIG_FILE=$(mindstate_config_file)
@@ -39,13 +43,15 @@ trap _daemon_cleanup EXIT SIGTERM SIGINT SIGHUP
 # Daemon only cleans its own process's tmp files via trap.
 # Broader orphan cleanup is handled by watchdog when allow_cleanup=true.
 
-# ─── Self-throttle: skip if last update too recent ───
-MIN_INTERVAL=$(jq -r '.daemon.min_interval_seconds // 240' "$MS_CONFIG" 2>/dev/null || echo 240)
-if [[ -f "$MINDSTATE_FILE" ]]; then
-    last_update=$(stat -c %Y "$MINDSTATE_FILE" 2>/dev/null || echo 0)
-    seconds_since=$((NOW_EPOCH - last_update))
-    if (( seconds_since < MIN_INTERVAL )); then
-        exit 0
+# ─── Self-throttle: skip if last update too recent (—bypass with --force)───
+if ! $FORCE; then
+    MIN_INTERVAL=$(jq -r '.daemon.min_interval_seconds // 240' "$MS_CONFIG" 2>/dev/null || echo 240)
+    if [[ -f "$MINDSTATE_FILE" ]]; then
+        last_update=$(stat -c %Y "$MINDSTATE_FILE" 2>/dev/null || echo 0)
+        seconds_since=$((NOW_EPOCH - last_update))
+        if (( seconds_since < MIN_INTERVAL )); then
+            exit 0
+        fi
     fi
 fi
 
@@ -143,6 +149,20 @@ for need in $needs_list; do
         break
     fi
 done
+
+# Execution Gate Status
+GATE_FILE="$(_ms_assets)/pending_actions.json"
+exec_gate_status="CLEAR"
+pending_count=0
+if [[ -f "$GATE_FILE" ]]; then
+    pending_count=$(jq -r '[.actions[]? | select(.status == "PENDING")] | length' "$GATE_FILE" 2>/dev/null || echo 0)
+    if [[ -z "$pending_count" || "$pending_count" == "null" ]]; then
+        pending_count=0
+    fi
+    if (( pending_count > 0 )); then
+        exec_gate_status="BLOCKED"
+    fi
+fi
 
 # ─── 4. Environment delta (filesystem only — zero API calls) ───
 files_changed=0
@@ -279,6 +299,8 @@ temporal:
 pyramid_snapshot:
 ${PYRAMID_BLOCK}critical_needs: ${critical_needs:-none}
 surplus_gate: $surplus_gate
+execution_gate: $exec_gate_status
+pending_actions: $pending_count
 environment_delta:
   files_changed: $files_changed
   memory_activity: $memory_activity

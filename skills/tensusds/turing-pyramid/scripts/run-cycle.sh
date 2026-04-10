@@ -759,6 +759,14 @@ echo "======================================"
 check_followups
 cleanup_followups
 
+# Periodic housekeeping (every ~20 cycles via audit.log line count mod)
+if [[ -x "$SCRIPTS_DIR/housekeep.sh" ]]; then
+    audit_lines=$(wc -l < "$SKILL_DIR/assets/audit.log" 2>/dev/null || echo 0)
+    if (( audit_lines % 20 == 0 && audit_lines > 0 )); then
+        "$SCRIPTS_DIR/housekeep.sh" >> "$SKILL_DIR/assets/audit.log" 2>/dev/null
+    fi
+fi
+
 # Apply cross-need deprivation effects first
 if [[ -x "$SCRIPTS_DIR/apply-deprivation.sh" ]]; then
     "$SCRIPTS_DIR/apply-deprivation.sh"
@@ -971,6 +979,18 @@ for need in "${top_needs_array[@]}"; do
             
             # Output execution instructions based on action mode
             if [[ "${action_mode:-operative}" == "deliberative" ]]; then
+                # Show recent deliberation discipline (rolling window, last 10)
+                DELIB_LOG="$SCRIPTS_DIR/../assets/deliberation.log"
+                if [[ -f "$DELIB_LOG" ]]; then
+                    recent_resolved=$(tail -30 "$DELIB_LOG" 2>/dev/null | grep '"event":"resolved"' | tail -10)
+                    if [[ -n "$recent_resolved" ]]; then
+                        recent_skipped=$(echo "$recent_resolved" | grep -c '"level":"absent"' || echo 0)
+                        recent_total=$(echo "$recent_resolved" | wc -l | tr -d ' ')
+                        if (( recent_skipped >= 2 && recent_total > 0 )); then
+                            echo "  ⚠  recent discipline: $recent_skipped/$recent_total deliberations skipped"
+                        fi
+                    fi
+                fi
                 echo "  Protocol: Think → conclude → route. Options:"
                 echo "    deliberate.sh --template --need $need --action \"$selected_action\""
                 echo "    deliberate.sh --validate <your-file>"

@@ -47,6 +47,52 @@ iso_to_epoch() {
     date -d "$iso" +%s 2>/dev/null || echo 0
 }
 
+# ─── Deliberation log path ───
+mindstate_deliberation_log() { echo "$(_ms_assets)/deliberation.log"; }
+
+# ─── classify_deliberation_level <conclusion> <route> <mode> <action_proposed_at> ───
+# Returns: absent / minimal / substantive / deep / n/a
+classify_deliberation_level() {
+    local conclusion="${1:-}" route="${2:-}" mode="${3:-operative}" proposed_at="${4:-}"
+
+    # Non-deliberative actions — not tracked
+    if [[ "$mode" != "deliberative" ]]; then
+        echo "n/a"
+        return
+    fi
+
+    local conc_len=${#conclusion}
+
+    # Check for deep tier: deliberation file with phase markers created after action was proposed
+    if [[ -n "$proposed_at" && -d "${WORKSPACE:-}/research/deliberations" ]]; then
+        local proposed_epoch
+        proposed_epoch=$(iso_to_epoch "$proposed_at" 2>/dev/null || echo 0)
+        if (( proposed_epoch > 0 )); then
+            local recent_delib_file
+            recent_delib_file=$(find -P "${WORKSPACE}/research/deliberations" -name "*.md" -type f \
+                -newermt "@$proposed_epoch" 2>/dev/null | head -1)
+            if [[ -n "$recent_delib_file" ]]; then
+                local phase_count
+                phase_count=$(grep -ciE '^(##|###)\s*(REPRESENT|RELATE|GENERATE|EVALUATE|CONCLUDE|ROUTE)' \
+                    "$recent_delib_file" 2>/dev/null || echo 0)
+                if (( phase_count >= 3 )); then
+                    echo "deep"
+                    return
+                fi
+            fi
+        fi
+    fi
+
+    # Tier by conclusion length + route
+    if (( conc_len < 10 )); then
+        echo "absent"
+    elif (( conc_len < 50 )) || [[ -z "$route" ]]; then
+        echo "minimal"
+    else
+        echo "substantive"
+    fi
+}
+
 hours_since() {
     local past_iso="$1"
     local now=${2:-$(now_epoch)}

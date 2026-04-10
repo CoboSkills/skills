@@ -169,6 +169,14 @@ EOF
         echo "$template_content" > "$delib_file"
         echo "📝 Template saved: $delib_file"
     fi
+
+    # Log invocation to deliberation.log
+    local DELIB_LOG="$SKILL_DIR/assets/deliberation.log"
+    local mode_label; $COMPRESSED && mode_label="compressed" || mode_label="full"
+    jq -cn --arg ts "$now_iso" --arg need "$NEED" --arg action "$ACTION" \
+        --arg mode "$mode_label" \
+        '{timestamp: $ts, event: "invoked", deliberation_mode: $mode, need: $need, action: $action}' \
+        >> "$DELIB_LOG" 2>/dev/null || true
 }
 
 # ─── Validate mode (file) ───
@@ -224,6 +232,13 @@ do_validate() {
     fi
     echo "[$status] Validation complete: $VALIDATE_FILE"
 
+    # Log validation to deliberation.log
+    local DELIB_LOG="$SKILL_DIR/assets/deliberation.log"
+    jq -cn --arg ts "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" --arg file "$VALIDATE_FILE" \
+        --arg status "$status" \
+        '{timestamp: $ts, event: "validated", file: $file, status: $status}' \
+        >> "$DELIB_LOG" 2>/dev/null || true
+
     # Exit code: 0 for PASS/WARN, 1 for FAIL
     [[ "$status" != "FAIL" ]]
 }
@@ -266,6 +281,14 @@ do_validate_inline() {
         echo -e "$warnings"
     fi
     echo "[$status] Inline validation complete"
+
+    # Log inline validation to deliberation.log
+    local DELIB_LOG="$SKILL_DIR/assets/deliberation.log"
+    jq -cn --arg ts "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+        --arg status "$status" --arg route "${ROUTE:-}" \
+        --argjson clen "${#CONCLUSION}" \
+        '{timestamp: $ts, event: "validated-inline", status: $status, conclusion_length: $clen, route: $route}' \
+        >> "$DELIB_LOG" 2>/dev/null || true
 
     [[ "$status" != "FAIL" ]]
 }

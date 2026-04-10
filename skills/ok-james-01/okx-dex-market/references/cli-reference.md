@@ -126,7 +126,7 @@ onchainos market portfolio-overview --address <address> --chain <chain> --time-f
 |---|---|---|---|
 | `--address` | Yes | - | Wallet address |
 | `--chain` | Yes | - | Chain name or ID (e.g. `ethereum`, `solana`) |
-| `--time-frame` | Yes | - | Statistical range: `1`=1D, `2`=3D, `3`=7D, `4`=1M, `5`=3M |
+| `--time-frame` | No | `4` | Statistical range: `1`=1D, `2`=3D, `3`=7D, `4`=1M, `5`=3M |
 
 **Return fields**:
 
@@ -292,3 +292,4 @@ onchainos market portfolio-dex-history --address <wallet> --chain ethereum \
   --begin <start_ms> --end <end_ms>
 # -> Display paginated DEX transaction list
 ```
+

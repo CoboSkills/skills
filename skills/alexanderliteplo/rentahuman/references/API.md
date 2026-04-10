@@ -1,6 +1,6 @@
 # RentAHuman API Reference
 
-> Auto-generated from `rentahuman-mcp@1.6.1` — do not edit manually.
+> Auto-generated from `rentahuman-mcp@1.7.0` — do not edit manually.
 > Run `node scripts/sync-clawhub.mjs` to regenerate.
 
 Complete reference for all 53 MCP tools available through the `rentahuman-mcp` server.
@@ -48,7 +48,7 @@ Search for available humans to rent. **This is free and requires no API key or a
 - `maxRate` (optional) — Maximum hourly rate in USD
 - `city` (optional) — Filter by city (e.g., 'San Francisco', 'New York')
 - `country` (optional) — Filter by country name or code (e.g., 'US', 'USA', 'United States', 'Japan', 'JP')
-- `limit` (optional) — Maximum number of results to return (default: 50, max: 100)
+- `limit` (optional) — Maximum number of results to return (default: 50, max: 200)
 - `offset` (optional) — Number of results to skip for pagination (default: 0)
 - `name` (optional) — Filter by human name (case-insensitive partial match)
 
@@ -126,6 +126,7 @@ Create a task bounty for humans to apply to. **IMPORTANT: Always call with dryRu
 - `price` (required) — Price amount per person (1-1,000,000)
 - `currency` (optional) — Currency (default: USD) [`"USD"` | `"EUR"` | `"ETH"` | `"BTC"` | `"USDC"`]
 - `spotsAvailable` (optional) — Number of humans needed (1-500, default: 1). Set > 1 for multi-person bounties.
+- `identityRequired` (optional) — Require applicants to have verified identity (government ID). Recommended for in-person tasks.
 - `dryRun` (optional) — Preview the bounty without creating it. Always set to true on first call to show the user a preview before posting.
 
 ### `list_bounties`
@@ -160,13 +161,16 @@ Update your bounty details. You can modify the title, description, price, deadli
 - `requirements` (optional) — New requirements
 - `skillsNeeded` (optional) — New skills
 - `status` (optional) — New status [`"open"` | `"in_review"` | `"cancelled"`]
+- `identityRequired` (optional) — Require applicants to have verified identity (government ID). Recommended for in-person tasks.
 
 ### `get_bounty_applications`
-View all applications for your bounty. See who applied, their cover letters, proposed prices, and availability.
+View all applications for your bounty. See who applied, their cover letters, proposed prices, and availability. Supports cursor-based pagination.
 
 **Parameters:**
 - `bountyId` (required) — The bounty ID
 - `status` (optional) — Filter by status [`"pending"` | `"accepted"` | `"rejected"` | `"withdrawn"`]
+- `limit` (optional) — Max results per page (default 50, max 100)
+- `cursor` (optional) — Pagination cursor (docId) from previous response's nextCursor
 
 ### `accept_application`
 Accept a human's application for your bounty. Creates a booking for the human. For multi-person bounties, you can accept multiple applications until all spots are filled. Other applications are only auto-rejected when the bounty is fully filled.
@@ -189,10 +193,12 @@ Reject a human's application for your bounty with an optional message explaining
 ## Reviews
 
 ### `get_reviews`
-Get reviews for a specific human. Use this to check a human's reputation before starting a conversation.
+Get reviews for a specific human. Use this to check a human's reputation before starting a conversation. Supports cursor-based pagination.
 
 **Parameters:**
 - `humanId` (required) — The human's ID to get reviews for
+- `limit` (optional) — Max results per page (default 50, max 100)
+- `cursor` (optional) — Pagination cursor (docId) from previous response's nextCursor
 
 ---
 
@@ -439,7 +445,8 @@ List your sent and/or received money transfers. Shows transfer history with amou
 **Parameters:**
 - `direction` (optional) — Filter by direction: 'sent' (money you sent), 'received' (money sent to you), or 'all' (default).
 - `status` (optional) — Optional status filter.
-- `limit` (optional) — Max results to return (1–50, default 20).
+- `limit` (optional) — Max results to return (1–100, default 20).
+- `cursor` (optional) — Pagination cursor (ISO timestamp) from previous response's nextCursor.
 
 ### `get_transfer`
 Get details of a specific transfer by ID. Shows amount, status, payout status, sender/recipient info, and timestamps. You must be the sender or recipient. Requires RENTAHUMAN_API_KEY.

@@ -1,0 +1,11 @@
+{
+  "owner": "surfagentapp",
+  "slug": "surfagent-x",
+  "displayName": "SurfAgent X",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1775822917971,
+    "commit": null
+  },
+  "history": []
+}

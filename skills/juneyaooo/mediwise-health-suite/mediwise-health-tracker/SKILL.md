@@ -170,9 +170,9 @@ python3 {baseDir}/scripts/health_memory.py resolve --note-id <nid> --resolution-
 python3 {baseDir}/scripts/setup.py check
 ```
 
-若输出中 `vision_configured` 为 `false`，**不要把命令行细节暴露给用户**，而是用自然语言引导他们完成对话式配置：
+若输出中 `vision_configured` 为 `false`，**不要在聊天中索要 API Key**，而是引导用户在终端完成配置：
 
-### 对话式配置流程
+### 配置流程
 
 **第一步：询问地区/偏好**
 
@@ -180,24 +180,29 @@ python3 {baseDir}/scripts/setup.py check
 >
 > 你用的是国内网络还是海外网络？或者想完全在本地离线运行？
 
-根据回答推荐方案：
+根据回答推荐方案，并给出对应的注册链接：
 - 国内 → **硅基流动**（免费注册有额度，在 https://cloud.siliconflow.cn 获取 API Key）
 - 海外 → **Google Gemini**（免费，在 https://aistudio.google.com/apikey 获取）
 - 离线 → **本地 Ollama**（需提前安装 Ollama 并下载模型）
 
-**第二步：收集 API Key**
+**第二步：引导在终端配置（不在聊天中收集密钥）**
 
-> 好的，推荐你用 [方案名]。去 [链接] 注册后复制 API Key，直接发给我就行。
+告知用户在终端执行以下命令（`sk-xxx` 替换为实际 Key）：
 
-用户回复 API Key 后，**在后台静默执行**（不要把命令贴给用户看）：
+```
+# 示例：硅基流动
+python3 {baseDir}/scripts/setup.py set-vision --provider siliconflow --api-key sk-xxx
 
-```bash
-python3 {baseDir}/scripts/setup.py set-vision --provider <preset> --api-key <用户提供的key>
+# 示例：Google Gemini
+python3 {baseDir}/scripts/setup.py set-vision --provider gemini --api-key AIza-xxx
+
+# 示例：本地 Ollama
+python3 {baseDir}/scripts/setup.py set-vision --provider ollama
 ```
 
-`--model` 和 `--base-url` 对内置预设（siliconflow / gemini / openai / stepfun / ollama）均可省略，自动填入。
+> ⚠️ **API Key 请在终端输入，不要通过聊天发送。** 在终端执行完成后告诉我一声，我来帮你验证是否配置成功。
 
-**第三步：验证并告知结果**
+**第三步：用户告知完成后，验证配置**
 
 ```bash
 python3 {baseDir}/scripts/setup.py test-vision
@@ -208,8 +213,8 @@ python3 {baseDir}/scripts/setup.py test-vision
 
 ### 原则
 
-- **用户侧零命令**：整个过程用户只需回答问题、粘贴 API Key，不需要接触任何命令行。
-- **后台静默执行**：所有 `setup.py` 调用在后台完成，不要把命令或 JSON 输出贴给用户。
+- **不在聊天中收集凭据**：API Key 属于敏感信息，必须由用户在本机终端直接输入，不得经过对话传递。
+- **后台静默执行**：`setup.py test-vision` 等验证命令在后台完成，不要把 JSON 输出贴给用户。
 - **配置失败友好提示**：失败时给出具体原因和可操作的修复建议，不要直接贴报错。
 
 ## 不可跳过的规则
@@ -223,6 +228,92 @@ python3 {baseDir}/scripts/setup.py test-vision
 7. **就医前摘要默认先短文版**：先用 `doctor_visit_report.py text` 生成；用户需要时，再导出图片或 PDF。
 8. **成员确认必须等用户明确回复**：先调用 `member.py list` 展示已有成员，问清楚"是为哪位成员操作"，等待用户回复后再继续。不得自动创建成员（包括"本人"），不得在成员未确认的情况下写入任何数据。
 9. **记录饮食前必须先查食物数据库**：通过 diet-tracker 的 `food_lookup.py search` 查每种食物的营养数据，用查询结果填写 `--items`。禁止凭 AI 自身知识估算营养值后直接写入。
+10. **对话中的健康提及必须实时记录（强制）**：用户在对话中随口提到任何健康相关内容（症状、不适、用药感受、睡眠、情绪等），**必须在当次对话结束前**调用 `health_memory.py log` 将其写入健康备注。这是夜间做梦机制的原始素材来源——`dream.py gather` 会专门读取当日记录的对话提及，未被记录的提及将永久丢失。
+
+    **触发关键词示例**（不限于此）：
+    - "最近/今天/昨天有点…"、"感觉…"、"一直…"、"偶尔…"
+    - 身体部位 + 描述：头、胃、腿、眼睛、心脏 + 疼/胀/酸/晕/难受
+    - 睡眠问题：睡不着、早醒、多梦、睡眠质量差
+    - 情绪/精力：累、乏力、焦虑、情绪低落、提不起劲
+    - 用药感受：吃了药之后…、副作用、效果不明显
+
+## 每日健康简报推送规范（OpenClaw 定时任务）
+
+**触发时机：每日早晨 8:00，由 OpenClaw agent 自动执行。**
+
+### 执行流程
+
+```
+1. wearable-sync: sync-all          → 同步手表数据（若有绑定设备）
+2. health-monitor: check-all        → 检测异常指标，写入 alerts 表
+3. health_advisor.py briefing       → 获取全家简报数据（提醒 + 建议 + 风险等级）
+4. briefing_report.py screenshot    → 生成图片版简报（PNG），同时自动保存当日快照
+5. 推送给用户（见下方推送规则）
+```
+
+### 夜间做梦任务（OpenClaw 定时任务）
+
+**触发时机：每晚 22:00，由 OpenClaw agent 自动执行，调用 DREAM skill。**
+
+做梦机制负责在夜间回顾当日健康素材，提炼规律和隐患，将有价值的洞察写入健康备注，供次日简报展示。详见 `mediwise-health-tracker/DREAM.md`。
+
+```
+dream.py status   → 检查是否满足触发条件（≥20h 间隔）
+dream.py lock     → 获取做梦锁（防止并发）
+dream.py gather   → 收集当日健康素材
+↓ agent 深度分析（逐成员回顾指标/告警/备注趋势）
+health_memory.py log  → 写入值得记录的发现（有发现才写，最多3条/成员）
+dream.py unlock   → 释放锁，标记完成
+```
+
+### 推送内容规则
+
+| 情况 | 推送什么 |
+|---|---|
+| 有 alert 级告警 | 图片简报 + 文字摘要，文字中明确点出告警项 |
+| 只有 warning 或 info | 图片简报，文字一句话概括（"今日整体正常，有 N 项提醒"）|
+| 完全正常 | 只发一句"今日健康状况良好，无待处理事项" + 可选图片简报 |
+| 同步失败（无手表数据） | 注明"今日手表数据未能同步，以下数据基于上次同步结果" |
+
+### 推送格式
+
+- **默认发图片版**：`briefing_report.py screenshot` 生成 PNG，作为图片消息发送
+- **文字摘要**：在图片前附一段不超过 100 字的中文摘要，点出最重要的 1-2 件事
+- **禁止**：直接把 JSON 或 HTML 内容粘贴到聊天里
+
+### 用户手动请求时
+
+当用户说"给我看今天的健康简报"、"健康小报"、"今天身体怎么样"等时，立即执行步骤 3-5（不重复同步），发送图片简报。
+
+## 每日健康快照记忆（daily_snapshot.py）
+
+每次生成简报时自动保存当日快照，agent 可在对话中直接引用历史状态，无需每次重新计算。
+
+### 支持的查询场景
+
+| 用户说 | agent 调用 | 说明 |
+|---|---|---|
+| "昨天状态怎么样" | `daily_snapshot.py get --date <昨天>` | 返回单日摘要 |
+| "这周身体趋势" | `daily_snapshot.py history --days 7` | 最近7天列表 |
+| "这个月有几天出现告警" | `daily_snapshot.py trend --days 30` | 逐日风险等级 |
+| "上周五血压有没有异常" | `daily_snapshot.py get --date <日期>` + 若需要细节查 `health_metrics` | 快照 + 原始指标 |
+
+### 使用规则
+
+- **优先查快照**：用户问历史健康状态时，先查 `daily_snapshot.py`，有结果就直接用，不需要重新跑 `health_advisor.py`
+- **快照没有再查原始指标**：快照只存摘要和风险等级；如用户追问具体数值，再查 `health_metrics`
+- **描述要自然**：把 risk_level（ok / warning / alert）和 summary_text 组合成一句话，不要直接展示 JSON
+
+```bash
+# 查昨天快照
+python3 {baseDir}/scripts/daily_snapshot.py get --member-id <id> --date 2026-04-05 --owner-id <oid>
+
+# 查最近7天
+python3 {baseDir}/scripts/daily_snapshot.py history --member-id <id> --days 7 --owner-id <oid>
+
+# 查30天趋势（用于描述"这个月整体状况"）
+python3 {baseDir}/scripts/daily_snapshot.py trend --member-id <id> --days 30 --owner-id <oid>
+```
 
 ## 能力介绍模板
 

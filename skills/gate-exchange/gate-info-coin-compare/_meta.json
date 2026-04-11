@@ -3,11 +3,16 @@
   "slug": "gate-info-coin-compare",
   "displayName": "gate-info-coincompare",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775184672832,
-    "commit": "https://github.com/openclaw/skills/commit/feae541c0836fd429bc0cc4c54673e1a15edec71"
+    "version": "1.0.3",
+    "publishedAt": 1775558048259,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775184672832,
+      "commit": "https://github.com/openclaw/skills/commit/feae541c0836fd429bc0cc4c54673e1a15edec71"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773388308222,

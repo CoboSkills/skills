@@ -1,11 +1,17 @@
 {
   "owner": "zaneniu",
   "slug": "uos-packager",
-  "displayName": "UOS/deepin 应用打包工具",
+  "displayName": "Uos Packager",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773926345329,
-    "commit": "https://github.com/openclaw/skills/commit/514a7678339bb0b7117d4479f9e019589ae0b5aa"
+    "version": "2.0.0",
+    "publishedAt": 1775655004564,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773926345329,
+      "commit": "https://github.com/openclaw/skills/commit/514a7678339bb0b7117d4479f9e019589ae0b5aa"
+    }
+  ]
 }

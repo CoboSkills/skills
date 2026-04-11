@@ -1,7 +1,17 @@
 ---
 name: x-profile-deep-dive
 version: 1.0.0
-description: "Deep-analyze X/Twitter user profiles — fetch tweets, followings, and followers via tweety-ns, then generate a comprehensive Chinese-language dossier with thematic classification. Use when: (1) user says '深挖 @xxx' or 'analyze @xxx', (2) user wants to understand a Twitter blogger's content, style, network, or relevance, (3) user asks for a profile/dossier of an X account. Requires tweety-ns and Twitter cookies."
+description: >
+  深度分析 X/Twitter 用户画像——通过 tweety-ns 抓取推文、关注和粉丝，
+  生成中文深度档案（主题分类、内容风格、社交网络）。
+  Use when: (1) 用户说"深挖 @xxx"/"分析这个博主"/"analyze @xxx",
+  (2) 用户说"看看他都发了什么"/"这个人什么水平"/"值不值得关注",
+  (3) 用户说"扒一扒 @xxx"/"做个 X 账号档案",
+  (4) 用户要求了解某个 Twitter 博主的内容、风格、影响力。
+  NOT for: 单条推文翻译/讨论（直接处理）、
+  X 信息流日报/digest（用 x-digest cron 任务）、
+  发推/点赞/互动操作（用浏览器手动）。
+  Requires tweety-ns and Twitter cookies.
 ---
 
 # X Profile Deep Dive
@@ -159,3 +169,15 @@ collections/x-profiles/@{handle}/
 - **t.co 链接**：国内网络无法解析 t.co 短链接，推文全文已在数据中，不需要追踪外链
 - **Python 版本**：系统 Python 3.14 可能有 SSL 兼容问题，确保 tweety-ns 对应的 httpx 版本兼容
 - **followers API**：部分用户的 followers 数据会返回 "elevated authorization" 错误，这是非关键数据，跳过即可
+
+---
+
+## 下一步建议（条件触发）
+
+画像完成后，根据结果判断是否推荐下一步。
+
+| 触发条件 | 推荐 |
+|---------|------|
+| 博主有高质量内容值得长期追踪 | 「这个博主值得加入 X 信息源列表。要加到 x-info-sources 吗？」 |
+| 博主的某些推文/文章值得收藏 | 「有几条内容值得单独收藏，用 content-collector 存一下？」 |
+| 画像发现博主的方法论可用于公众号选题 | 「这个博主的观点可以做一期公众号文章，用 wemp-ops 写？」 |

@@ -3,11 +3,16 @@
   "slug": "chainstream-data",
   "displayName": "Chainstream Data",
   "latest": {
-    "version": "3.1.5",
-    "publishedAt": 1775071535399,
-    "commit": "https://github.com/openclaw/skills/commit/a9c0b84abd379bc4bc1c91d2991bace5a2ba98aa"
+    "version": "3.1.8",
+    "publishedAt": 1775654513682,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.1.5",
+      "publishedAt": 1775071535399,
+      "commit": "https://github.com/openclaw/skills/commit/a9c0b84abd379bc4bc1c91d2991bace5a2ba98aa"
+    },
     {
       "version": "3.1.2",
       "publishedAt": 1774713324938,

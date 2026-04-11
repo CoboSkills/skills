@@ -23,21 +23,30 @@ npx @chainstream-io/cli wallet pricing
 
 CLI always shows all plans and prompts the user to choose — there is no default plan.
 
-## CLI: Transparent Payment
+## CLI: x402 Payment Flow
 
-When using the CLI, x402 payment is completely transparent:
+Purchase a subscription using `plan purchase`. This involves a **real USDC payment** — an EIP-3009 `signTypedData` that authorizes fund transfer from the user's wallet.
+
+`plan purchase` uses the configured `walletChain` for payment. **Default is `base`**. If USDC is on Solana, set `walletChain` to `sol` first.
 
 ```bash
-# Agent calls API — CLI handles everything
-npx @chainstream-io/cli token search --keyword BTC --chain eth
+# 1. Show plans — present ALL to user, let them choose
+npx @chainstream-io/cli wallet pricing --json
 
-# If no subscription exists:
-# [chainstream] No active subscription. Auto-purchasing nano plan...
-# [chainstream] Subscription activated: nano (expires: 2026-04-19T...)
-# { data: [...] }
+# 2. Check wallet balance to find USDC
+npx @chainstream-io/cli wallet balance --chain base --json   # check Base
+npx @chainstream-io/cli wallet balance --chain sol --json    # check Solana
+
+# 3. Set payment chain if USDC is on Solana (default is base)
+npx @chainstream-io/cli config set --key walletChain --value sol
+
+# 4. Purchase (signs EIP-3009 authorization, pays USDC, returns API Key)
+npx @chainstream-io/cli plan purchase --plan <USER_CHOSEN> --json
+# Output: { "plan": "nano", "apiKey": "cs_live_...", "expiresAt": "..." }
+# API Key auto-saved to config.
 ```
 
-Agent never sees the 402. CLI detects it → signs EIP-3009 USDC authorization → purchases plan → retries.
+If a data command returns 402 without a subscription, the CLI shows an error guiding you to run `plan purchase`. Always present plans and get user confirmation before purchasing.
 
 ## SDK: `@x402/fetch`
 
@@ -47,19 +56,23 @@ When using the SDK with your own wallet:
 import { x402Client } from "@x402/core/client";
 import { wrapFetchWithPayment } from "@x402/fetch";
 import { ExactEvmScheme } from "@x402/evm/exact/client";
+import { ExactSvmScheme } from "@x402/svm/exact/client";
 
 const x402 = new x402Client();
-// Base
+
+// Register ONE payment scheme based on your wallet's chain:
+// Base (USDC)
 x402.register("eip155:8453", new ExactEvmScheme(yourViemAccount));
-// OR Solana
-// x402.register("solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", new ExactSvmScheme(solanaSigner));
+// Solana (USDC)
+x402.register("solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", new ExactSvmScheme(solanaSigner));
+
 const x402Fetch = wrapFetchWithPayment(fetch, x402);
 
-// GET request — 402 is handled transparently
-const resp = await x402Fetch("https://api.chainstream.io/x402/purchase?plan=nano");
+// Purchase — plan name MUST come from user's explicit selection
+const resp = await x402Fetch("https://api.chainstream.io/x402/purchase?plan=<USER_CHOSEN_PLAN>");
 ```
 
-Base payment requires `signTypedData` (EIP-712). Solana payment requires a `@solana/kit` signer.
+Base payment requires `signTypedData` (EIP-712). Solana payment requires a `@solana/kit` signer. Both involve **real USDC transfer** — always confirm with user first.
 
 ## Authentication After Purchase
 

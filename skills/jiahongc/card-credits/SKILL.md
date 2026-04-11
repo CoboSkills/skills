@@ -15,6 +15,12 @@ metadata:
 
 Return the credits view of one exact card variant in compact format.
 
+## What Counts as a Credit
+
+A "credit" is a statement credit, cash-back rebate, or complimentary subscription with a concrete dollar value that directly offsets cost. Examples: "$300 travel credit," "$50 hotel credit," "complimentary DashPass membership ($120 value)."
+
+**Not credits**: enhanced earning rates (e.g., "5x on Lyft"), bonus point multipliers, anniversary point bonuses, or any benefit that only increases points earned per dollar. Those belong in card-rate, not card-credits.
+
 ## When To Use
 
 When the user asks about a card's statement credits, annual credits, or cash-back credits. Trigger phrases: "card-credits", "statement credits", "what credits", "annual credits", "perks".
@@ -22,9 +28,11 @@ When the user asks about a card's statement credits, annual credits, or cash-bac
 ## Workflow
 
 1. **Resolve card identity** — normalize the input and match to one exact card variant.
-2. **Search issuer only** — run one Brave Search API call scoped to the issuer domain. Do NOT search secondary sources.
-3. **Compile** — combine search snippets with knowledge to fill all required sections.
-4. **Confidence** — flag uncertain or conflicting claims.
+2. **Search** — run one Brave Search API call. Classify results as issuer or secondary by domain.
+3. **Fetch pages** — fetch the top issuer URL and top 1 secondary URL from results.
+4. **Pace any follow-up searches** — if another Brave search is needed, wait briefly instead of bursting requests.
+5. **Compile** — combine fetched page content + search snippets + training knowledge.
+6. **Confidence** — flag uncertain or conflicting claims.
 
 ## Step 1: Card Identity Resolution
 
@@ -86,14 +94,34 @@ Both personal and business credit cards are supported. If the user specifies "bu
 
 American Express, Bank of America, Barclays, Bilt, Capital One, Chase, Citi, Discover, Robinhood, U.S. Bank, Wells Fargo.
 
-## Step 2: Search (Issuer Only)
+## Step 2: Search
 
 ```bash
-curl -sS "https://api.search.brave.com/res/v1/web/search?q=CARD+NAME+credits+benefits+site:ISSUER_DOMAIN&count=5" \
+curl -sS "https://api.search.brave.com/res/v1/web/search?q=CARD+NAME+credits+benefits&count=10" \
   -H "X-Subscription-Token: $BRAVE_API_KEY"
 ```
 
-Use up to 1 secondary source (prefer Bankrate) for credit trigger details if needed. Combine the issuer search snippets with training knowledge.
+Parse the JSON response — results are in `.web.results[]` with `.title`, `.url`, `.description` fields. Classify results by domain: issuer pages (use Issuer Domains table below) vs approved secondary sources. Use up to 1 secondary source (prefer thepointsguy.com, then bankrate.com) for credit trigger details.
+
+### Search Budget Rule
+
+Brave may rate-limit after only a few closely spaced requests. Treat search as scarce and paced.
+
+- Start with one search.
+- Fetch the issuer and approved secondary pages before deciding whether any additional search is needed.
+- If an extra search is needed, wait about **2 to 5 seconds** first.
+- If Brave returns **429**, wait about **8 to 15 seconds** and retry once.
+- If it still fails, continue with the best evidence already gathered and note the limitation in `## 📋 Confidence Notes`.
+
+## Step 3: Fetch Pages
+
+Pick the top issuer URL and top 1 secondary URL from the search results. Fetch both in parallel:
+
+```bash
+curl -sS -L "URL" | sed 's/<[^>]*>//g' | tr -s '\n' | head -200
+```
+
+Search snippets are too shallow for credits — the full page has the complete credit list. Combine the fetched page content + search snippets + training knowledge.
 
 ## Required Output Sections
 
@@ -109,12 +137,17 @@ Enrollment requirements, expiration, stacking rules, clawback conditions.
 ### `## 📋 Confidence Notes`
 Flag any detail that may have changed since training data.
 
+### `## 🔗 Sources`
+Numbered list of URLs fetched, as markdown hyperlinks with short "Site - Topic" labels.
+
 ## Output Rules
 
-- Use one emoji per section heading and numbered lists for credits.
+- Use one emoji per section heading and numbered lists
+- When listing credits, fees, or any monetary amounts, sort from highest to lowest dollar value. for credits.
 - Keep content to condensed facts — no prose padding.
 - Omit the Card Identity section when the match is confident.
-- Do not show inline links, sources footer, or YAML blocks in output.
+- Do not show YAML blocks in output.
+- End every report with a `## 🔗 Sources` section listing each URL fetched during research as a markdown hyperlink with a short "Site - Topic" label, e.g. `[Chase - Sapphire Preferred](https://...)`.
 
 ## Confidence Definitions
 

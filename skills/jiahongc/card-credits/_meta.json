@@ -3,9 +3,15 @@
   "slug": "card-credits",
   "displayName": "Card Credits",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1773368982781,
-    "commit": "https://github.com/openclaw/skills/commit/5411abfee9d980877101dcda7460c41539c822aa"
+    "version": "1.0.3",
+    "publishedAt": 1775662445476,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1773368982781,
+      "commit": "https://github.com/openclaw/skills/commit/5411abfee9d980877101dcda7460c41539c822aa"
+    }
+  ]
 }

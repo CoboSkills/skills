@@ -2,7 +2,7 @@ English | [中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](RE
 
 # 🎬 Seedance2.0 Shot Design — Cinematic Shot Language Designer
 
-[![Version](https://img.shields.io/badge/version-1.8.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-1.8.4-blue.svg)]()
 [![License](https://img.shields.io/badge/license-MIT--0-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Seedance_2.0-purple.svg)]()
 
@@ -23,13 +23,13 @@ A Claude Skill built on the [Agent Skills](https://agentskills.io) specification
 | 📐 **Timestamped Storyboarding** | `0-3s / 3-8s / …` precise timeline control to prevent visual bleeding between shots |
 | 🎯 **Six-Element Precision Assembly** | Subject / Action / Scene / Lighting / Camera / Sound — a structured, high-conversion formula |
 | 🎬 **Smart Multi-Segment Storyboard** | Videos >15s are automatically split into independent prompt segments with unified style, lighting, sound, and seamless transition frames |
-| 📦 **19 Scenario Templates** | E-commerce / Xianxia / Short Drama / Food / MV / One-Take / Automotive / Macro / Nature / Game PV / Horror / Travel / Pets / Transformation / Loop / Video Editing / Video Extension / Story Completion |
+| 📦 **20 Scenario Templates** | E-commerce / Xianxia / Short Drama / Food / MV / One-Take / Automotive / Macro / Nature / Game PV / Horror / Travel / Pets / Transformation / Loop / Video Editing / Video Extension / Story Completion / Multiframe Storytelling |
 | 🎵 **Sound & ASMR Vocabulary** | Physics-based onomatopoeia library covering ambient / action / vocal / music sounds |
 | 🎤 **Voice & Language Control** | Timbre cloning via video reference, dialect/accent control (Sichuan/Cantonese/Northeast/Taiwanese etc.), multilingual dialogue mixing, special voice styles (documentary/stand-up/opera/ASMR) |
 | 📹 **Multimodal Reference Guide** | 6 core reference patterns (first frame / camera replication / action replication / camera+action separation / timbre reference / effect replication), multi-asset character control, consistency preservation |
 | 🌐 **Bilingual Prompt Output** | Chinese users → Chinese prompts, non-Chinese users → English prompts, auto-detected |
 | 🛡️ **Copyright-Safe IP Fallback** | Three-tier progressive IP fallback strategy to prevent platform content blocks |
-| 🔍 **Python Hard Validation** | Word count / camera moves / temporal logic / filler detection / optical physics conflicts / style conflict matrix — more reliable than "suggestions" |
+| 🔍 **Structured Hard Validation** | Word count / camera moves / temporal logic / filler detection / optical physics conflicts / style conflict matrix — 7-rule checklist applied before every delivery |
 
 ---
 
@@ -98,7 +98,7 @@ The Skill auto-activates and generates the prompt through a 5-step workflow:
 1. **Requirement Analysis** — Confirm duration / aspect ratio / assets / style
 2. **Visual Diagnosis** — Select camera language & director style
 3. **Six-Element Assembly** — Compose the prompt using the structured formula
-4. **Mandatory Validation** — Run the Python script for quality review
+4. **Mandatory Validation** — Apply 7-rule structured validation checklist
 5. **Professional Delivery** — Director's statement + complete prompt
 
 ### 3. Examples
@@ -166,15 +166,15 @@ seedance-shot-design/
     ├── director-styles.md       # Director style parameterized mapping (28+ styles, incl. Cel-Shaded CG)
     ├── seedance-specs.md        # Seedance 2.0 official platform specs
     ├── quality-anchors.md       # Quality anchors & lighting library (incl. NPR materials / lighting / conflict matrix)
-    ├── scenarios.md             # Vertical scenario templates (17 scenarios + anime variants + video editing + physics damping toolkit)
+    ├── scenarios.md             # Vertical scenario templates (20 scenarios + anime variants + video editing + physics damping toolkit)
     └── audio-tags.md            # Audio & sound effect tag specs (incl. spatial acoustics & material-based onomatopoeia)
 ```
 
 ---
 
-## 🔬 Validation Script
+## 🔬 Validation Script (Standalone Developer Tool)
 
-A standalone Python validation tool, usable from the command line:
+A standalone Python validation tool for developers and CI/CD pipelines. The AI agent applies these same rules natively via its built-in 7-rule validation checklist — no Python execution required during prompt generation.
 
 ```bash
 # Validate text directly
@@ -238,6 +238,28 @@ Following Agent Skills best practices:
 ---
 
 ## 📋 Changelog
+
+### v1.8.4 (2026-04-08)
+- 🔗 **CLI Integration Guide**: New `seedance-specs.md` section mapping Shot Design modes to Jimeng CLI commands (`text2video` / `image2video` / `multiframe2video` / `multimodal2video`), with async task management and VIP channel documentation
+- 🎞️ **Multiframe Storytelling Template**: New scenario template (#20) for `multiframe2video` — upload 2-9 keyframe images and let the engine auto-compose a coherent story video. Includes decision matrix for choosing between multiframe vs. multi-segment storyboard
+- 📚 **Knowledge Base Routing**: Added multiframe and CLI routing entries to Step 2 semantic inference table
+
+### v1.8.3 (2026-04-08)
+- 🎭 **Descriptive Over Narrative Rule**: New core rule (#12) — only write what the camera SEES (visual words), never what characters FEEL (emotion words). All emotions must be converted to visible physical expressions (facial micro-expressions, body language, breathing rhythm, gaze direction)
+- ✍️ **English Present Progressive**: Assembly rules now mandate `-ing` form for English action descriptions (`running` not `runs`) — progressive tense implies continuous motion, matching video's dynamic nature
+- 🎯 **Motion Tone Front-Loading**: Style preamble now explicitly declares overall motion energy (e.g., `dynamic motion, high energy` or `serene, slow-paced atmosphere`) to lock motion baseline early in generation
+
+### v1.8.2 (2026-04-07)
+- 🎥 **One-Shot-One-Move Rule**: New core rule (#10) enforcing a single camera movement per time segment — combining movements (e.g., push-in + pan) causes jitter. Subject motion and camera motion must be described separately
+- 🖼️ **I2V Golden Rule**: New core rule (#11) and dedicated I2V section — when generating video from an image, only describe motion/changes, never re-describe static content already in the first frame. Introduces `preserve composition and colors` anchor phrase
+- 📏 **Optimal Prompt Length**: Added 60–100 word sweet spot guidance — below is vague, above causes concept drift and conflicting instructions
+- 💪 **Motion Intensity Modifiers**: New bilingual quick-reference table in cinematography dictionary with 6 intensity tiers (violent → gentle → gradual) and do/don't examples to eliminate "mushy motion"
+- 🎤 **Rhythm Over Specs**: Assembly rules now explicitly prefer semantic rhythm words (gentle/gradual/smooth) over technical parameters (24fps/f2.8) that Seedance cannot parse
+- 🎬 **Reference Video Best Practices**: New practical constraints for reference clips — ideal 3–8s length, continuous shot (no cuts), single intent (subject OR camera, not both)
+
+### v1.8.1 (2026-04-07)
+- 🛡️ **Security Compliance**: Resolved ClawHub OpenClaw "Suspicious patterns" flag by converting Python-based validation to LLM-native structured 7-rule validation checklist. Python scripts remain as standalone developer tools but are no longer executed by the agent
+- 🎯 **Trigger Phrase Optimization**: Reduced activation trigger phrases from 40+ to 15 high-signal professional terms, lowering unintended activation surface while preserving core discoverability
 
 ### v1.8.0 (2026-04-05)
 - 🎤 **Voice & Language Control System**: New timbre cloning via video reference (`语气和音色参考@视频1`), dialect/accent control (Sichuan/Cantonese/Northeast/Taiwanese etc.), multilingual dialogue mixing, special voice styles (documentary narration / stand-up comedy / opera / ASMR)

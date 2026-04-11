@@ -3,11 +3,16 @@
   "slug": "gate-info-risk-check",
   "displayName": "gate-info-riskcheck",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775184711630,
-    "commit": "https://github.com/openclaw/skills/commit/0c97cbd1e930debe763603ce80f953e433a262ff"
+    "version": "1.0.3",
+    "publishedAt": 1775558088595,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775184711630,
+      "commit": "https://github.com/openclaw/skills/commit/0c97cbd1e930debe763603ce80f953e433a262ff"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1773375206697,

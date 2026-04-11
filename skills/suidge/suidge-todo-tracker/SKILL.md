@@ -1,8 +1,14 @@
 ---
 name: Todo Tracker
-version: 1.0.0
+version: 1.1.0
 description: Manage follow-up items and remind users at appropriate times via heartbeat checks.
-metadata: {"clawdbot":{"emoji":"📋","requires":{"bins":[]},"os":["linux","darwin","win32"]}}
+changelog: v1.1.0 - Added cleanup script (scripts/todo-cleaner.py) for auto-deleting completed items after 24h
+metadata:
+  clawdbot:
+    emoji: "📋"
+    requires:
+      bins: []
+    os: ["linux", "darwin", "win32"]
 ---
 
 ## Setup
@@ -20,6 +26,7 @@ User mentions reminders, follow-ups, or todos. Agent proactively checks pending 
 | Installation steps | `setup.md` |
 | Data structure | `data-structure.md` |
 | Usage examples | `examples.md` |
+| Cleanup script | `scripts/todo-cleaner.py` |
 
 ## Core Rules
 
@@ -27,10 +34,19 @@ User mentions reminders, follow-ups, or todos. Agent proactively checks pending 
 Single source of truth. Each item has: id, description, follow_up_time, status, priority, context.
 
 ### 2. Check During Heartbeat
-Every heartbeat (30 min), check `status=pending` items. If `follow_up_time` reached and `reminded=false`, remind user.
+Every heartbeat (30 min), check `status=pending` items. If `follow_up_time` reached, remind user (regardless of `reminded` flag — pending items should be reminded repeatedly until completed).
 
 ### 3. Clean Up Completed Items
 Items with `status=completed` or `status=cancelled` are deleted after 24 hours.
+
+**Cleanup Script**: Run `scripts/todo-cleaner.py` to auto-delete old completed items.
+```bash
+# Dry run (preview)
+python3 ~/.openclaw/workspace/skills/todo-tracker/scripts/todo-cleaner.py --dry-run
+
+# Execute cleanup
+python3 ~/.openclaw/workspace/skills/todo-tracker/scripts/todo-cleaner.py
+```
 
 ### 4. Time Precision is ~30 Minutes
 Reminders trigger at heartbeat intervals, not exact times. Plan accordingly.

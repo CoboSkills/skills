@@ -1,6 +1,7 @@
 # 小红书笔记：去 AI 味检查清单
 
 > 来源：WikiProject AI Cleanup 24 条模式 + 实战积累，针对小红书平台裁剪。
+> 通用 Anti-Pattern 清单：`~/.openclaw/workspace/references/writing-anti-patterns.md`（跨平台通用，本文件是小红书特化版）
 > 
 > 使用时机：正文定稿后、发布前。逐条扫描，命中则改。
 

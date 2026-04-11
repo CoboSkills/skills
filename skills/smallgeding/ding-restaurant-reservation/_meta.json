@@ -3,11 +3,16 @@
   "slug": "ding-restaurant-reservation",
   "displayName": "DINGs 托管式 AI 电话助手（中国、日本餐厅预订）",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1775188162071,
-    "commit": "https://github.com/openclaw/skills/commit/f34125ec5621f1a7c05dbcc67bbc693487765c84"
+    "version": "1.0.8",
+    "publishedAt": 1775790171431,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1775188162071,
+      "commit": "https://github.com/openclaw/skills/commit/f34125ec5621f1a7c05dbcc67bbc693487765c84"
+    },
     {
       "version": "1.0.6",
       "publishedAt": 1774591849971,

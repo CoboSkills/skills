@@ -20,7 +20,7 @@ Prompt caching saves cost by reusing previously processed context. Most provider
 ### Keep system prompts stable
 Put static instructions at the top of your system prompt. They get cached after the first request and reused on every call — avoid injecting dynamic values (timestamps, session IDs) into the system prompt.
 
-```
+```text
 [CACHED] System prompt with rules, persona, tools
 [NOT CACHED] Current user message
 ```
@@ -28,7 +28,7 @@ Put static instructions at the top of your system prompt. They get cached after 
 ### Large document analysis
 Load the document once, then ask questions in follow-up turns.
 
-```
+```text
 Turn 1: "Here is the codebase: [large content]" → cache miss, full price
 Turn 2: "What does the auth module do?"         → cache hit, ~90% cheaper
 Turn 3: "Find all API endpoints"                → cache hit, ~90% cheaper
@@ -37,7 +37,7 @@ Turn 3: "Find all API endpoints"                → cache hit, ~90% cheaper
 ### Sub-agent prompts
 When spawning many sub-agents with the same base prompt, put shared context first — it gets cached across all of them.
 
-```
+```text
 [SHARED — gets cached across all agents]
 You are a test fixer. Rules: never comment out tests...
 
@@ -53,7 +53,7 @@ Always put static content before dynamic content. Providers cache from the begin
 Cache writes cost ~25% **more** than regular input tokens, but cache reads cost 90% **less**. It pays off after just 1–2 reuses.
 
 **Formula:**
-```
+```text
 break_even_reads = cache_write_cost / (regular_cost - cache_read_cost)
 ```
 

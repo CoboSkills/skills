@@ -1,7 +1,7 @@
 ---
 name: agent-cost-strategy
 description: Tiered model selection and cost optimization for multi-agent AI workflows. Use this skill whenever you are choosing a model for a task, spinning up a sub-agent, setting up cron jobs or heartbeats, or trying to reduce API spend. Also use when the user says "save costs", "which model should I use", "optimize model usage", "this is getting expensive", or when delegating any task to a sub-agent. Works with any AI provider.
-metadata: {"clawdbot":{"emoji":"💰","requires":{"bins":[]},"os":["linux","darwin","win32"]}}
+metadata: {"clawdbot":{"emoji":"💰","requires":{"bins":[]},"os":["linux","darwin","win32"],"version":"1.3.6"}
 ---
 
 # Agent Cost Strategy
@@ -18,7 +18,7 @@ Use the cheapest model that can reliably do the job. Most tasks don't need your 
 
 ## Task → Tier Routing
 
-```
+```text
 Fix failing tests          → Fast/Cheap
 Write boilerplate          → Fast/Cheap
 Research / search          → Fast/Cheap
@@ -55,11 +55,11 @@ For cron jobs, scheduled analysis, or anything that doesn't need an immediate re
 
 **Always explicitly set the model when spawning sub-agents.** Never rely on defaults — the default inherits the parent session model (expensive mid-tier). One month of sub-agents defaulting to Sonnet = 96% of costs going to Sonnet when it should be split ~80/20 Haiku/Sonnet.
 
-```
+```text
 sessions_spawn → always include model: "claude-haiku-4-5-20251001" (or equivalent fast-cheap)
 ```
 
-Every sub-agent task that can be done by Haiku must use Haiku. No exceptions.
+Default sub-agent tasks to Haiku for cost efficiency. Override with a stronger model when task complexity or accuracy requirements justify it.
 
 ## New Session / Machine Cold Start Cost
 
@@ -76,20 +76,22 @@ When starting a fresh session (new machine, new session after `/new`), the cache
 
 ## Session & Cache Management
 
-**Never delete or end sessions to "save money" — it backfires.**
+**Keep sessions alive when possible — longer sessions build cache and reduce costs. Only end sessions when context is genuinely full or for privacy reasons.**
 
 Anthropic's prompt cache builds from repeated context within a live session. When a session starts fresh, all context (system prompt, workspace files, skills) loads cold — typically 400-600k tokens at full cost. Once cached, subsequent messages cost ~10% of that.
 
 **The math:**
 - Cold session start: 600k tokens × full price = expensive
 - After cache warms up: 600k tokens × 10% cache price = ~90% cheaper per message
-- Deleting a session destroys the cache and forces a full cold reload next time
+- Ending a session destroys the cache and forces a full cold reload next time
 
 **Rules:**
-- Let sessions run as long as possible
-- Only start a new session (`/new`) when context is genuinely full (>80%)
-- Never tell a user to delete conversations — it spikes costs
+- Let sessions run as long as possible for cost efficiency
+- Only start a new session (`/new`) when context is genuinely full (>80%) or when you need a fresh privacy boundary
+- Ending sessions should be intentional — for privacy/data-retention reasons, not routine cost management
 - The longer a session runs, the cheaper each message gets
+
+**Privacy & Cache Note:** Cached context may include workspace files and memory — avoid caching sessions containing secrets or sensitive PII. If a session will cache sensitive data, plan to end it when done.
 
 **Delegation rule (keep main agent lean):**
 - Main agent (Sonnet/mid-tier) = conversational only: planning, coordination, reviewing results

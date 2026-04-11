@@ -1,6 +1,6 @@
 ---
 name: Skywork Search
-description: Search the web for real-time information using the Skywork web search API. Use this skill whenever the user needs up-to-date information from the internet — for example, researching a topic, looking up recent events, finding facts or statistics, gathering material for a document or presentation, or answering questions that require current data. Also trigger when the user says things like "search for" / "搜索" / "検索" / "검색", "look up" / "查询" / "調べる" / "조회하다", "find information about" / "查找关于……的信息" / "……に関する情報を探す" / "…에 대한 정보를 찾다", "what's the latest on" / "……最新进展" / "……の最新情報" / "…의 최신 소식", or any request that implies needing information beyond your training data.
+description: Skywork Search (skywork) - Search the web for real-time information using the Skywork Search API. Use this skill whenever the user needs up-to-date information from the internet — for example, researching a topic, looking up recent events, finding facts or statistics, gathering material for a document or presentation, or answering questions that require current data. Also trigger when the user says things like "search for" / "搜索" / "検索" / "검색", "look up" / "查询" / "調べる" / "조회하다", "find information about" / "查找关于……的信息" / "……に関する情報を探す" / "…에 대한 정보를 찾다", "what's the latest on" / "……最新进展" / "……の最新情報" / "…의 최신 소식", or any request that implies needing information beyond your training data.
 metadata:
   openclaw:
     requires:
@@ -25,7 +25,7 @@ Search the web for real-time information via the Skywork search API. This skill 
 ## Prerequisites
 
 ### API Key Configuration (Required First)
-This skill requires a **SKYWORK_API_KEY** to be configured in OpenClaw.
+This skill requires a **SKYWORK_API_KEY** to be configured before use.
 
 If you don't have an API key yet, please visit:
 **https://skywork.ai**

@@ -82,6 +82,6 @@ python <RUN_PY> stock-prices --stock 000001.XSHG --since_ts_ms 1735689600000
 - stock 为必填；since 与 since_ts_ms 二选一，必须提供其一
 - 股票代码需携带市场后缀：沪市 .XSHG、深市 .SZ、北交所 .BJ
 - since 为 TRADE_DAYS_AGO(n) 时需带括号和数字，如 TRADE_DAYS_AGO(10)
-- 所有接口请求需携带 X-Client-Name: ft-web 请求头
+- 所有接口请求需携带 X-Client-Name: ft-claw 请求头
 - 执行方式：脚本在输出前将 `prices` 中每条记录的 `tm`（毫秒）转为北京时间 ISO 字符串（YYYY-MM-DDTHH:mm:ss）；`since` 与 `since_ts_ms` 二选一，两个都不传或两个都传时报 `ValueError` 并退出。
 - 接口返回的是前复权数据，且不支持选择复权

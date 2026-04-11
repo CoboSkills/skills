@@ -104,3 +104,4 @@ GET https://market.ft.tech/data/api/v1/market/data/cb/cb-base-data?symbol_code=1
 - 数据为前一交易日可转债基础数据，具体以接口返回为准
 - 日期字段（value_date、maturity_date、listed_date 等）为 YYYYMMDD 整数，展示时按需格式化为可读日期
 - 发行总规模、转股金额等大数字展示时可按需换算单位（如万、亿）
+- 若用户只给转债名称，建议先用 `cb-lists` 查到对应 `cb_id`/交易所，再拼成 `symbol_code`（如 `110070.SH`）调用本接口

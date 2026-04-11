@@ -91,6 +91,6 @@ python <RUN_PY> stock-ohlcs --stock 000001.SZ --span MONTH1 --limit 24 --until_t
 - 不传 `limit` 时可能返回超过 2000 条数据，建议指定 `limit` 且不超过 2000
 - `prev_close` 可为 null（无昨收数据时）
 - 均线 `p` 字段在不足周期时为 null，展示时需做空值处理
-- 所有接口请求需携带 `X-Client-Name: ft-web` 请求头
+- 所有接口请求需携带 `X-Client-Name: ft-claw` 请求头
 - 执行方式：脚本在输出前将接口返回的毫秒时间戳（ohlcs 的 otm/ctm、ma5/ma10/ma20 的 ctm）转为北京时间 ISO 字符串（YYYY-MM-DDTHH:mm:ss），便于大模型与用户直接阅读时间。
 - 接口返回的是前复权数据，且不支持选择复权

@@ -1,6 +1,6 @@
 ---
 name: FTShare-market-data
-description: 非凸科技金融数据技能集。覆盖 A 股股票列表、行情、IPO、大宗交易、融资融券、单股行情估值、k线相关、etf相关、宏观经济数据等所有股票相关的接口（market.ft.tech / ftai.chat）。用户询问 A 股代码列表、行情排序、新股上市、大宗交易、融资融券明细或单只股票股价/估值、宏观经济数据等任何与A股相关的问题时使用。
+description: 非凸科技金融数据技能集。覆盖 A 股股票列表、行情、IPO、大宗交易、融资融券、单股行情估值、可转债、ETF、基金、指数（含分页指数描述、下载描述 PDF、权重汇总/成份明细、下载权重 xlsx、详情/K 线/分时）、宏观经济，以及港股公司介绍/估值分析/基础视图/K线等接口（market.ft.tech / ftai.chat）。用户询问 A 股或港股的代码、行情、估值、K线、指数权重/描述、新闻与宏观数据时使用。
 ---
 
 # FT AI Market Data Skills
@@ -29,6 +29,7 @@ python <RUN_PY> block-trades
 python <RUN_PY> margin-trading-details --page 1 --page_size 20
 python <RUN_PY> margin-trading-details --all
 python <RUN_PY> semantic-search-news --query 人工智能
+python <RUN_PY> semantic-search-news --query 人工智能 --limit 10 --year 2026 --start_time 2026-03-01T00:00:00+08:00 --end_time 2026-03-15T23:59:59+08:00
 python <RUN_PY> cb-lists
 python <RUN_PY> cb-base-data --symbol_code 110070.SH
 python <RUN_PY> etf-pcfs --date 20260309
@@ -39,6 +40,15 @@ python <RUN_PY> fund-nav-single-fund-paginated --institution-code 000001 --page 
 python <RUN_PY> fund-overview-all-funds-paginated --page 1 --page-size 20
 python <RUN_PY> fund-support-symbols-all-funds-paginated --page 1 --page-size 20
 python <RUN_PY> get-nth-trade-date --n 5
+python <RUN_PY> company-hk --trade_code 00700.HK
+python <RUN_PY> hk-valuatnanalyd --trade_code 00700.HK --page 1 --page_size 20
+python <RUN_PY> hk-view --hk_code 00700.HK
+python <RUN_PY> hk-candlesticks --trade-code 00700.HK --interval-unit day --until-date 2026-03-24 --since-date 2026-03-01 --limit 20
+python <RUN_PY> index-description-paginated --page 1 --page-size 20
+python <RUN_PY> index-description-download --url-hash <url_hash> --output ./index-desc.pdf
+python <RUN_PY> index-weight-summary --page 1 --page-size 20
+python <RUN_PY> index-weight-list --index-code 000300 --page 1 --page-size 20
+python <RUN_PY> index-weight-download --url-hash <url_hash> --output ./index-weights.xlsx
 ```
 
 > `run.py` 内部通过 `__file__` 自定位，无论安装在何处都能正确找到各子 skill 的脚本。
@@ -55,7 +65,7 @@ python <RUN_PY> get-nth-trade-date --n 5
 
 - **`stock-list-all-stocks`**：获取全部 A 股股票的代码和名称列表（沪深京），自动返回最新交易日数据。无需任何参数。
 
-- **`stock-quotes-list`**：查询 A 股行情列表（分页），支持按板块筛选、多字段排序。必填参数：`--order_by`、`--page_no`、`--page_size`；可选 `--filter`、`--masks`。请求头需携带 `X-Client-Name: ft-web`（脚本已内置）。
+- **`stock-quotes-list`**：查询 A 股行情列表（分页），支持按板块筛选、多字段排序。必填参数：`--order_by`、`--page_no`、`--page_size`；可选 `--filter`、`--masks`。请求头需携带 `X-Client-Name: ft-claw`（脚本已内置）。
 
 - **`stock-ipos`**：获取 A 股 IPO 列表，含发行价格、发行数量、申购日期、上市日期等，支持分页查询。必填参数：`--page`、`--page_size`；支持 `--all` 自动翻页拉取全量数据。
 
@@ -63,25 +73,32 @@ python <RUN_PY> get-nth-trade-date --n 5
 
 - **`margin-trading-details`**：获取 A 股融资融券明细列表，含融资余额、融资买入额、融资偿还额、融券余量等，按融资净买入额降序排列，支持分页查询。必填参数：`--page`、`--page_size`；支持 `--all` 自动翻页拉取全量数据。
 
-- **`stock-security-info`**：查询单只股票的实时行情与估值指标，含开高低收、多周期涨跌幅、市盈率、市净率、每股净资产等。必填参数：`--symbol`（带市场后缀，如 `600519.SH`）。接口域名为 `https://ftai.chat`。
+- **`stock-security-info`**：查询单只股票的实时行情与估值指标，含开高低收、多周期涨跌幅、市盈率、市净率、每股净资产等。必填参数：`--symbol`（带市场后缀，如 `600519.SH`）。接口域名为 `https://ftai.chat`（脚本内 URL 校验已允许该域名）。
 
 ### 2. 新闻 / 可转债 / ETF PCF
 
 - **`semantic-search-news`**：语义搜索新闻，数据仅支持当年、最近半个月。必填：`--query`；可选 `--limit`、`--year`。展示时需含来源（source_site）与文章链接，并提示数据仅半个月内。
 - **`cb-lists`**：可转债全量列表，无参数，数据为前一交易日。
-- **`cb-base-data`**：单只可转债基础信息（转股价、转股价值、到期日等）。必填：`--symbol_code`（如 110070.SH）。
+- **`cb-base-data`**：单只可转债基础信息（转股价、转股价值、到期日等）。必填：`--symbol_code`（如 110070.SH）。若用户仅给名称，先通过 `cb-lists` 映射代码再查。
 - **`etf-pcfs`**：指定日期 ETF PCF 列表。必填：`--date`（YYYYMMDD）；可选 `--page`、`--page_size`。
-- **`etf-pcf-download`**：按文件名下载 PCF XML。必填：`--filename`；可选：`--output`（仅允许当前工作目录下路径）。
+- **`etf-pcf-download`**：按文件名下载 PCF XML。必填：`--filename`；可选：`--output`（仅允许当前工作目录下路径）。**filename 须先由 `etf-pcfs` 列表接口取得**，勿在自动化测试中硬编码。
 - **`etf-component`**：查询单只 ETF 成份股列表（代码与名称）。必填：`--symbol`（如 510300.XSHG）；接口报错或未找到时将接口返回的错误信息原样输出到 stderr。
-- **`etf-pre-single`**：查询单只 ETF 盘前数据（申购赎回单位、净值、现金差额等）。必填：`--symbol`；可选：`--date`（YYYYMMDD，不传为当日 CST）；接口报错或未找到时将接口返回的错误信息原样输出到 stderr。
+- **`etf-pre-single`**：查询单只 ETF 盘前数据（申购赎回单位、净值、现金差额等）。必填：`--symbol`；可选：`--date`（YYYYMMDD，不传为当日 CST）；接口报错或未找到时将接口返回的错误信息原样输出到 stderr。非盘前时段可能失败，**冒烟测试建议传已知交易日 `--date`**。
 
 ### 3. 基金
 
-- **`fund-basicinfo-single-fund`**：查询指定基金基础信息（名称、管理人、经理、类型、投资目标等）。必填：`--institution-code`（6 位基金代码）。
-- **`fund-cal-return-single-fund-specific-period`**：查询指定基金在指定区间的累计收益率时间序列。必填：`--institution-code`、`--cal-type`（1M/3M/6M/1Y/3Y/5Y/YTD）。
-- **`fund-nav-single-fund-paginated`**：查询指定基金净值历史（分页）。必填：`--institution-code`；可选：`--page`、`--page-size`。
+- **`fund-basicinfo-single-fund`**：查询指定基金基础信息（名称、管理人、经理、类型、投资目标等）。必填：`--institution-code`（6 位基金代码）。若用户仅给基金名称，先通过 `fund-support-symbols-all-funds-paginated` 或 `fund-overview-all-funds-paginated` 映射代码再查。
+- **`fund-cal-return-single-fund-specific-period`**：查询指定基金在指定区间的累计收益率时间序列。必填：`--institution-code`、`--cal-type`（1M/3M/6M/1Y/3Y/5Y/YTD）。建议先完成名称到代码映射后再调用。
+- **`fund-nav-single-fund-paginated`**：查询指定基金净值历史（分页）。必填：`--institution-code`；可选：`--page`、`--page-size`。建议先完成名称到代码映射后再调用。
 - **`fund-overview-all-funds-paginated`**：查询所有基金概览信息（分页）。可选：`--page`、`--page-size`。
 - **`fund-support-symbols-all-funds-paginated`**：查询所有支持基金的标的列表（分页）。可选：`--page`、`--page-size`。
+
+### 4. 港股
+
+- **`company-hk`**：按港股交易代码查询公司介绍（名称、成立日期、注册资本、主营业务等）。必填：`--trade_code`（如 `00700.HK`）。
+- **`hk-valuatnanalyd`**：分页查询港股估值分析（PE/PB/PS、股息率、换手率等）。可选：`--trade_code`、`--page`、`--page_size`。
+- **`hk-view`**：按港股代码查询单票基础视图（板块、上市状态、股本、市值、估值指标）。必填：`--hk_code`。
+- **`hk-candlesticks`**：按港股代码查询日/月/季/年 K 线。必填：`--trade-code`、`--interval-unit`、`--until-date`；可选：`--since-date`、`--adjust-kind`、`--interval-value`、`--limit`。
 
 ---
 
@@ -129,6 +146,13 @@ python <RUN_PY> get-nth-trade-date --n 5
 | 「基金净值」「单位净值/累计净值」「日增长率」「基金净值历史」 | `fund-nav-single-fund-paginated` |
 | 「基金概览」「所有基金信息」「基金列表概况」 | `fund-overview-all-funds-paginated` |
 | 「支持的基金列表」「基金代码清单」「所有基金标的」 | `fund-support-symbols-all-funds-paginated` |
+| 「港股公司简介」「00700 公司介绍」 | `company-hk` |
+| 「港股估值」「港股市盈率/市净率」 | `hk-valuatnanalyd` |
+| 「港股基础视图」「主板/上市状态/总市值」 | `hk-view` |
+| 「港股K线」「00700 日线/月线/季线/年线」 | `hk-candlesticks` |
+| 「指数描述分页」「指数简介列表」「下载指数描述 PDF（先有 url_hash）」 | `index-description-paginated` / `index-description-download` |
+| 「指数权重汇总」「成份权重明细」「下载权重 Excel（先有 url_hash）」 | `index-weight-summary` / `index-weight-list` / `index-weight-download` |
+| 「某只指数详情/K 线/分时」 | `index-detail` / `index-ohlcs` / `index-prices`（见下文「FT 指数数据 Skills」） |
 
 # FT A-share 公告与研报数据 Skills
 
@@ -389,7 +413,7 @@ python <RUN_PY> stock-balance-all-stocks-specific-period --year 2025 --report-ty
 
 根据用户问题，从下方「能力总览」或「询问方式与子 skill 对应表」匹配对应子 skill，然后通过 `run.py` 执行并解析响应。
 
-> 所有接口均以 `https://market.ft.tech` 为基础域名，请求头需携带 `X-Client-Name: ft-web`（各子 skill 脚本已内置）。
+> 所有接口均以 `https://market.ft.tech` 为基础域名，请求头需携带 `X-Client-Name: ft-claw`（各子 skill 脚本已内置）。
 
 ---
 
@@ -403,6 +427,7 @@ python <RUN_PY> stock-balance-all-stocks-specific-period --year 2025 --report-ty
 ```bash
 # 示例（<RUN_PY> 为实际绝对路径）
 python <RUN_PY> etf-detail --etf 510050.XSHG
+python <RUN_PY> etf-description-all
 python <RUN_PY> etf-list-paginated --order_by "change_rate desc" --page_size 20 --page_no 1
 python <RUN_PY> etf-ohlcs --etf 510050.XSHG --span DAY1 --limit 50
 python <RUN_PY> etf-prices --etf 510050.XSHG --since TODAY
@@ -417,6 +442,7 @@ python <RUN_PY> etf-prices --etf 510050.XSHG --since TODAY
 | 询问方式（用户常说的词） | 子 skill |
 |------------------------|----------|
 | 某只 **ETF 详情**、**510050 行情**、**上证50ETF** 涨跌幅、ETF **跟踪指数/市值**、某只 ETF 名称/盘口 | `etf-detail` |
+| **全部 ETF 基础信息**、**ETF 代码与名称映射**、**按名称找 ETF 代码**、ETF **symbol 对照表** | `etf-description-all` |
 | **ETF 列表**、**全市场 ETF**、**按涨跌幅排序的 ETF**、**筛选某类 ETF** | `etf-list-paginated` |
 | 某只 ETF 的 **K 线**、**510050 日线/周线/月线/年线**、ETF **开高低收**、**MA5/MA10/MA20** | `etf-ohlcs` |
 | 某只 ETF **分时**、**510050 当日分时**、ETF **一分钟行情**、**多日分时走势** | `etf-prices` |
@@ -426,6 +452,7 @@ python <RUN_PY> etf-prices --etf 510050.XSHG --since TODAY
 ## 能力总览
 
 - **`etf-detail`**：查询单只 ETF 详情（名称、行情、盘口、市值、涨跌幅、跟踪指数、投资类型等）。必填：`--etf`；可选 `--masks`。
+- **`etf-description-all`**：查询全部 ETF 基础信息（symbol/name/asset_class 等）。无参数。用户仅给名称时，先用本接口将名称映射到唯一 `symbol` 再查详情/指标。
 - **`etf-list-paginated`**：ETF 分页列表，支持分页、排序、筛选。可选：`--order_by`/`--ob`、`--filter`、`--masks`、`--page_size`、`--page_no`、`--filter_index`。
 - **`etf-ohlcs`**：查询单只 ETF OHLC K 线（开高低收、成交量、成交额），附带 MA5/MA10/MA20。必填：`--etf`、`--span`（DAY1/WEEK1/MONTH1/YEAR1）；可选 `--limit`、`--until_ts_ms`。
 - **`etf-prices`**：查询单只 ETF 分钟级分时价格。必填：`--etf`；时间范围二选一：`--since`（TODAY、FIVE_DAYS_AGO、TRADE_DAYS_AGO(n)）或 `--since_ts_ms`。
@@ -436,17 +463,18 @@ python <RUN_PY> etf-prices --etf 510050.XSHG --since TODAY
 
 1. **记录本文件绝对路径**，将 `/SKILL.md` 替换为 `/run.py` 得到 `<RUN_PY>`。
 2. **理解用户意图**，从「询问方式与子 skill 对应表」或「能力总览」匹配子 skill 名称。
-3. （可选）读取 `sub-skills/<子skill名>/SKILL.md` 了解接口与参数。
-4. **执行**：`python <RUN_PY> <子skill名> [参数...]`，获取 JSON 输出。
-5. **解析并输出**：以表格或要点形式展示给用户。
+3. **若用户给的是 ETF 名称/简称**：先调用 `etf-description-all`（或 `etf-list-paginated`）获取候选，确定标准代码（如 `510050.XSHG`）。
+4. （可选）读取 `sub-skills/<子skill名>/SKILL.md` 了解接口与参数。
+5. **执行**：`python <RUN_PY> <子skill名> [参数...]`，获取 JSON 输出（详情/K 线/分时等统一使用代码参数）。
+6. **解析并输出**：以表格或要点形式展示给用户；若候选代码不唯一，先让用户确认再查询指标。
 
 # FT 指数数据 Skills
 
-本 skill 是 `FTShare-index-data` 的**统一路由入口**。
+以下指数相关子 skill 由 **`FTShare-market-data`** 同目录 `run.py` 统一调度（与股票、港股等子 skill 共用入口）。
 
 根据用户问题，从下方「能力总览」或「询问方式与子 skill 对应表」匹配对应子 skill，然后通过 `run.py` 执行并解析响应。
 
-> 所有接口均以 `https://market.ft.tech` 为基础域名，请求头需携带 `X-Client-Name: ft-web`（各子 skill 脚本已内置）。
+> 所有接口均以 `https://market.ft.tech` 为基础域名，请求头需携带 `X-Client-Name: ft-claw`（各子 skill 脚本已内置）。
 
 ---
 
@@ -459,10 +487,17 @@ python <RUN_PY> etf-prices --etf 510050.XSHG --since TODAY
 
 ```bash
 # 示例（<RUN_PY> 为实际绝对路径）
+python <RUN_PY> index-description-all
+python <RUN_PY> index-description-paginated --page 1 --page-size 20
+python <RUN_PY> index-description-download --url-hash <从列表接口取得的url_hash> --output ./index-desc.pdf
+python <RUN_PY> index-weight-summary --page 1 --page-size 20
+python <RUN_PY> index-weight-list --index-code 000300 --date 20250320 --page 1 --page-size 20
+python <RUN_PY> index-weight-download --url-hash <url_hash> --output ./index-weights.xlsx
 python <RUN_PY> index-detail --index 000001.XSHG
 python <RUN_PY> index-list-paginated --order_by "change_rate desc" --page_size 20 --page_no 1
 python <RUN_PY> index-ohlcs --index 000001.XSHG --span DAY1 --limit 50
 python <RUN_PY> index-prices --index 000001.XSHG --since TODAY
+python <RUN_PY> get-nth-trade-date --n 5
 ```
 
 > `run.py` 内部通过 `__file__` 自定位，无论安装在何处都能正确找到各子 skill 的脚本。
@@ -473,29 +508,80 @@ python <RUN_PY> index-prices --index 000001.XSHG --since TODAY
 
 | 询问方式（用户常说的词） | 子 skill |
 |------------------------|----------|
+| **全部指数基础信息**、**指数列表（PB/PE）**、**有哪些指数**、指数 **简称/全称**、**市净率/市盈率 TTM**、**指数名称查代码**（带交易所后缀） | `index-description-all` |
+| **指数描述分页**、**指数简介列表**、**url_hash**（下载描述文件前查列表）、**指数名称查代码**（纯 6 位代码） | `index-description-paginated` |
+| **下载指数描述**、**指数说明 PDF**、**指数简介文件**（需先有 url_hash） | `index-description-download` |
+| **指数权重汇总**、**权重期数**、**权重 date/url_hash**（下载权重文件前查列表） | `index-weight-summary` |
+| **指数成份权重**、**权重明细**、**沪深300 成份权重**、单期权重列表 | `index-weight-list` |
+| **下载指数权重**、**权重 xlsx**、**成份权重 Excel**（需先有 url_hash） | `index-weight-download` |
 | 某只 **指数详情**、**上证指数行情**、**沪深300** 点位/涨跌幅、指数名称/成交 | `index-detail` |
 | **指数列表**、**全市场指数**、**按涨跌幅排序的指数**、**筛选某类指数** | `index-list-paginated` |
 | 某只指数的 **K 线**、**上证指数日线/周线/月线/年线**、指数 **开高低收**、**MA5/MA10/MA20** | `index-ohlcs` |
 | 某只指数 **分时**、**上证指数当日分时**、指数 **一分钟行情**、**多日分时走势** | `index-prices` |
+| **前 N 个交易日**、**近 N 天交易日**、**往前推 N 个交易日**（查近几天 K 线时先调此接口再转时间戳） | `get-nth-trade-date` |
 
 ---
 
 ## 能力总览
 
-- **`index-detail`**：查询单只指数详情（名称、行情点位、成交、涨跌幅、多周期涨跌幅等）。必填：`--index`；可选 `--masks`。
+- **`get-nth-trade-date`**：获取当前日期的前 N 个交易日。必填：`--n`（≥1）。查「近 N 天」K 线时先调本接口得到 `nth_trade_date`，再按东八区转为毫秒时间戳用于 index-ohlcs 等。
+- **`index-description-all`**：查询全部指数基础信息（symbol、全称、简称、pb、pe_ttm）。无需参数；`GET /data/api/v1/market/data/index-description-all`。
+- **`index-description-paginated`**（描述链 ①）：分页查询指数描述列表（`index_code`、`index_name`、`index_intro`、`url_hash` 等）。可选：`--page`（默认 1）、`--page-size`（默认 20，最大 100）；`GET /data/api/v1/market/data/index/index_description`。
+- **`index-description-download`**（描述链 ②）：按 `url_hash` 下载指数描述 PDF。必填：`--url-hash`；可选：`--output`（须在当前工作目录下）；`GET /data/api/v1/market/data/index/index_description/{url_hash}`。**须先用 `index-description-paginated` 取得 `url_hash`**。
+- **`index-weight-summary`**（权重链 ①）：分页查询指数权重汇总（按 `index_code` 列出各期 `date` 与 `url_hash`）。可选：`--page`、`--page-size`（默认 20，最大 100）；`GET /data/api/v1/market/data/index/index_weight_summary`。
+- **`index-weight-list`**（权重链 ②）：分页查询指数成份权重明细。必填：`--index-code`；可选：`--date`（YYYYMMDD）、`--page`、`--page-size`（默认 20，最大 100）；`GET /data/api/v1/market/data/index/index_weight`。可先通过 `index-weight-summary` 确认期数与日期。
+- **`index-weight-download`**（权重链 ③）：按 `url_hash` 下载指数权重 xlsx。必填：`--url-hash`；可选：`--output`（须在当前工作目录下）；`GET /data/api/v1/market/data/index/index_weight/{url_hash}`。**须先用 `index-weight-list` 或 `index-weight-summary` 取得 `url_hash`**。
+- **`index-detail`**：查询单只指数详情（名称、行情点位、成交、涨跌幅、多周期涨跌幅等）。必填：`--index`；可选 `--masks`。若用户仅给名称，先通过 `index-description-all` 或 `index-list-paginated` 确认代码再查。
 - **`index-list-paginated`**：指数分页列表，支持分页、排序、筛选。可选：`--order_by`/`--ob`、`--filter`、`--masks`、`--page_size`、`--page_no`。
-- **`index-ohlcs`**：查询单只指数 OHLC K 线（开高低收、成交量、成交额），附带 MA5/MA10/MA20。必填：`--index`、`--span`（DAY1/WEEK1/MONTH1/YEAR1）；可选 `--limit`、`--until_ts_ms`。
-- **`index-prices`**：查询单只指数分钟级分时价格。必填：`--index`；时间范围二选一：`--since`（TODAY、FIVE_DAYS_AGO、TRADE_DAYS_AGO(n)）或 `--since_ts_ms`。
+- **`index-ohlcs`**：查询单只指数 OHLC K 线（开高低收、成交量、成交额），附带 MA5/MA10/MA20。必填：`--index`、`--span`（DAY1/WEEK1/MONTH1/YEAR1）；可选 `--limit`、`--until_ts_ms`。建议先完成名称到代码映射后再调用。
+- **`index-prices`**：查询单只指数分钟级分时价格。必填：`--index`；时间范围二选一：`--since`（TODAY、FIVE_DAYS_AGO、TRADE_DAYS_AGO(n)）或 `--since_ts_ms`。建议先完成名称到代码映射后再调用。
 
 ---
 
-## 使用流程
+## 典型调用流程
+
+### 指数描述链（查简介 → 下载 PDF）
+
+```
+index-description-paginated  ──取 url_hash──▸  index-description-download
+```
+
+1. `index-description-paginated --page 1 --page-size 20` → 获取 `url_hash`
+2. `index-description-download --url-hash <上一步的 url_hash> --output ./desc.pdf`
+
+### 指数权重链（查期数 → 查明细 → 下载 xlsx）
+
+```
+index-weight-summary  ──取 index_code/date/url_hash──▸  index-weight-list  ──取 url_hash──▸  index-weight-download
+```
+
+1. `index-weight-summary --page 1 --page-size 20` → 获取 `index_code` + 各期 `date` 与 `url_hash`
+2. `index-weight-list --index-code 000300 --page 1 --page-size 20` → 获取成份明细，每条含 `url_hash`
+3. `index-weight-download --url-hash <上一步的 url_hash> --output ./weights.xlsx`
+
+> `index-weight-download` 的 `url_hash` 也可直接从 `index-weight-summary` 的 `periods[].url_hash` 取得，跳过第 2 步。
+
+### 名称→代码映射（重要）
+
+用户经常给出中文名称（如"沪深300""上证指数"）而非代码。**描述分页、权重列表等接口只接受代码参数**时，需先完成映射。
+
+| 目标 skill | 需要的代码格式 | 推荐映射源 | 映射源返回的字段 |
+|---|---|---|---|
+| `index-weight-list` | 纯 6 位代码（`000300`） | `index-description-paginated` | `index_code` + `index_name` |
+| `index-detail` / `index-ohlcs` / `index-prices` | 带交易所后缀（`000300.XSHG`） | `index-description-all` | `symbol` + `name` / `full_name` |
+
+**映射步骤**（以"查沪深300成份权重"为例）：先 `index-description-paginated --page 1 --page-size 100` 按 `index_name` 匹配 → 取 `index_code` → 再 `index-weight-list --index-code <code>`。
+
+> 若 `index-description-all` 已有结果，也可从 `symbol` 截取前 6 位（去掉 `.XSHG` / `.XSHE` / `.BJSE`）作为 `index_code`。
+
+### 通用流程
 
 1. **记录本文件绝对路径**，将 `/SKILL.md` 替换为 `/run.py` 得到 `<RUN_PY>`。
 2. **理解用户意图**，从「询问方式与子 skill 对应表」或「能力总览」匹配子 skill 名称。
-3. （可选）读取 `sub-skills/<子skill名>/SKILL.md` 了解接口与参数。
-4. **执行**：`python <RUN_PY> <子skill名> [参数...]`，获取 JSON 输出。
-5. **解析并输出**：以表格或要点形式展示给用户。
+3. **若用户给的是指数名称/简称**：按上方「名称→代码映射」表格选择合适的映射源，先获取代码，再调用目标 skill。若候选代码不唯一，让用户确认后再继续。
+4. （可选）读取 `sub-skills/<子skill名>/SKILL.md` 了解接口与参数。
+5. **执行**：`python <RUN_PY> <子skill名> [参数...]`，获取 JSON 输出。
+6. **解析并输出**：以表格或要点形式展示给用户。
 
 # FT AI A 股 K 线数据 Skills
 
@@ -503,7 +589,7 @@ python <RUN_PY> index-prices --index 000001.XSHG --since TODAY
 
 根据用户问题，从下方「能力总览」匹配对应子 skill，然后通过 `run.py` 执行并解析响应。
 
-> 所有接口均以 `https://market.ft.tech/app` 为基础域名，使用 HTTP GET，并携带请求头 `X-Client-Name: ft-web`。
+> 所有接口均以 `https://market.ft.tech/app` 为基础域名，使用 HTTP GET，并携带请求头 `X-Client-Name: ft-claw`。
 
 ---
 

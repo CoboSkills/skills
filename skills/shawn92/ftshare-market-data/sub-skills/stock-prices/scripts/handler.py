@@ -27,7 +27,7 @@ def safe_urlopen(req_or_url):
 
 ENDPOINT = "/api/v2/stocks/{stock}/prices"
 HEADERS = {
-    "X-Client-Name": "ft-web",
+    "X-Client-Name": "ft-claw",
     "Content-Type": "application/json",
 }
 

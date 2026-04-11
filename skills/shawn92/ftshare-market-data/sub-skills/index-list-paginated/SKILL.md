@@ -102,7 +102,7 @@ python <RUN_PY> index-list-paginated --order_by "name asc" --masks name,symkey,l
 python <RUN_PY> index-list-paginated --filter "change_rate >= 0 AND change_rate <= 0.05"
 ```
 
-或在子 skill 目录下执行：`python scripts/handler.py` 加上上述参数。脚本输出 JSON，请求头已内置 `X-Client-Name: ft-web`。
+或在子 skill 目录下执行：`python scripts/handler.py` 加上上述参数。脚本输出 JSON，请求头已内置 `X-Client-Name: ft-claw`。
 
 ## 5. 请求示例
 
@@ -114,7 +114,7 @@ GET https://market.ft.tech/app/api/v2/indices?order_by=change_rate%20desc&page_s
 
 ```bash
 curl -X GET 'https://market.ft.tech/app/api/v2/indices?order_by=change_rate%20desc&page_size=20&page_no=1' \
-  -H 'X-Client-Name: ft-web' \
+  -H 'X-Client-Name: ft-claw' \
   -H 'Content-Type: application/json'
 ```
 

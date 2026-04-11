@@ -80,7 +80,7 @@ python <RUN_PY> index-detail --index 000001.XSHG
 python <RUN_PY> index-detail --index 399001.XSHE --masks name,symkey,latest,change_rate,volume,turnover
 ```
 
-或在子 skill 目录下执行：`python scripts/handler.py --index 000001.XSHG`（可选 `--masks`）。`<RUN_PY>` 为主 SKILL.md 同级的 `run.py` 绝对路径。脚本输出 JSON，请求头已内置 `X-Client-Name: ft-web`。
+或在子 skill 目录下执行：`python scripts/handler.py --index 000001.XSHG`（可选 `--masks`）。`<RUN_PY>` 为主 SKILL.md 同级的 `run.py` 绝对路径。脚本输出 JSON，请求头已内置 `X-Client-Name: ft-claw`。
 
 ## 5. 请求示例
 
@@ -92,7 +92,7 @@ GET https://market.ft.tech/app/api/v2/indices/000001.XSHG
 
 ```bash
 curl -X GET 'https://market.ft.tech/app/api/v2/indices/000001.XSHG' \
-  -H 'X-Client-Name: ft-web' \
+  -H 'X-Client-Name: ft-claw' \
   -H 'Content-Type: application/json'
 ```
 
@@ -102,3 +102,4 @@ curl -X GET 'https://market.ft.tech/app/api/v2/indices/000001.XSHG' \
 - 涨跌幅 `change_rate` 等比率字段在接口中可能为小数形式，展示时按需乘以 100 转为百分比。
 - 成交量、成交额等大数字展示时可按需换算单位（如万、亿）。
 - 完整字段以代码 `Index` 为准；未传 `masks` 时返回全部可用字段。
+- 若用户输入的是指数名称/简称而非代码，建议先调用 `index-description-all` 或 `index-list-paginated` 映射出唯一 `symkey`，再调用本接口。

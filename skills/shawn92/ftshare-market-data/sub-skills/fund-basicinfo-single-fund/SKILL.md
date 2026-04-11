@@ -25,3 +25,4 @@ python <RUN_PY> fund-basicinfo-single-fund --institution-code 000001
 
 - `institution_code` 必须是 6 位数字
 - 响应为对象，不是分页列表
+- 若用户只给基金名称，建议先用 `fund-support-symbols-all-funds-paginated` 或 `fund-overview-all-funds-paginated` 查到对应 6 位 `institution-code` 再调用本接口。

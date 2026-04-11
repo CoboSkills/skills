@@ -76,7 +76,7 @@ python <RUN_PY> etf-prices --etf 510050.XSHG --since "TRADE_DAYS_AGO(10)"
 python <RUN_PY> etf-prices --etf 510050.XSHG --since_ts_ms 1735689600000
 ```
 
-`<RUN_PY>` 为主 SKILL.md 同级的 `run.py` 绝对路径。脚本输出 JSON，请求头已内置 `X-Client-Name: ft-web`。
+`<RUN_PY>` 为主 SKILL.md 同级的 `run.py` 绝对路径。脚本输出 JSON，请求头已内置 `X-Client-Name: ft-claw`。
 
 ## 5. 请求示例
 

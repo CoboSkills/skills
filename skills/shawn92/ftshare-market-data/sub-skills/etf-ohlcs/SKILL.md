@@ -81,7 +81,7 @@ python <RUN_PY> etf-ohlcs --etf 159915.XSHE --span WEEK1 --limit 100
 python <RUN_PY> etf-ohlcs --etf 510050.XSHG --span DAY1 --limit 20 --until_ts_ms 1735689600000
 ```
 
-`<RUN_PY>` 为主 SKILL.md 同级的 `run.py` 绝对路径。脚本输出 JSON，请求头已内置 `X-Client-Name: ft-web`。
+`<RUN_PY>` 为主 SKILL.md 同级的 `run.py` 绝对路径。脚本输出 JSON，请求头已内置 `X-Client-Name: ft-claw`。
 
 ## 5. 请求示例
 

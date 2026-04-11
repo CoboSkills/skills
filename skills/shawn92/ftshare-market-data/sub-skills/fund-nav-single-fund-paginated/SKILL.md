@@ -27,3 +27,4 @@ python <RUN_PY> fund-nav-single-fund-paginated --institution-code 000001 --page 
 
 - `unitnv_grw`、`annurtn_7d` 单位为 %
 - 需要全量历史时，循环请求直到 `page > total_pages`
+- 若用户只给基金名称，建议先用 `fund-support-symbols-all-funds-paginated` 或 `fund-overview-all-funds-paginated` 查到对应 6 位 `institution-code` 再查询净值。

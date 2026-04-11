@@ -51,3 +51,4 @@ GET https://market.ft.tech/data/api/v1/market/data/etf-pcf/etf-pcfs/pcf_159003_2
 
 - `filename` 须与列表接口返回的 `filename` 一致，且不得包含路径分隔符（如 `/`、`\`）
 - 使用 `--output` 时仅可写入当前工作目录及其子目录，不可使用绝对路径或 `..` 穿越目录
+- **自动化/端到端测试**：不要硬编码 `filename`。应**先**调用 `etf-pcfs --date YYYYMMDD`，从响应 `items[].filename` 取真实文件名（上交所/深交所前缀不同），**再**调用本 skill；否则易 404 或文件不存在。

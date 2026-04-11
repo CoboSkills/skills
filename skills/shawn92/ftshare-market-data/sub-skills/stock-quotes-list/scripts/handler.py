@@ -44,7 +44,7 @@ def main():
         params["masks"] = args.masks
 
     url = f"{BASE_URL}{ENDPOINT}?{urllib.parse.urlencode(params)}"
-    req = urllib.request.Request(url, headers={"X-Client-Name": "ft-web"})
+    req = urllib.request.Request(url, headers={"X-Client-Name": "ft-claw"})
 
     try:
         with safe_urlopen(req) as resp:

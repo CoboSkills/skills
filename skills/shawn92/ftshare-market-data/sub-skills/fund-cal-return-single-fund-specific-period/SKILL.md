@@ -27,3 +27,4 @@ python <RUN_PY> fund-cal-return-single-fund-specific-period --institution-code 1
 - 响应为数组，不是分页结构
 - `return` 为小数（如 0.0234 表示 2.34%），展示时可乘以 100 转为百分比
 - 区间选项：`1M`（近1月）、`3M`（近3月）、`6M`（近6月）、`1Y`（近1年）、`3Y`（近3年）、`5Y`（近5年）、`YTD`（今年来）
+- 若用户只给基金名称，建议先用 `fund-support-symbols-all-funds-paginated` 或 `fund-overview-all-funds-paginated` 查到对应 6 位 `institution-code` 再查询收益。

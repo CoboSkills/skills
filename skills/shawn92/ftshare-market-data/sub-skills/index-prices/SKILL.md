@@ -75,7 +75,7 @@ python <RUN_PY> index-prices --index 000001.XSHG --since "TRADE_DAYS_AGO(10)"
 python <RUN_PY> index-prices --index 000001.XSHG --since_ts_ms 1735689600000
 ```
 
-或在子 skill 目录下执行：`python scripts/handler.py --index 000001.XSHG --since TODAY`。脚本输出 JSON，请求头已内置 `X-Client-Name: ft-web`。
+或在子 skill 目录下执行：`python scripts/handler.py --index 000001.XSHG --since TODAY`。脚本输出 JSON，请求头已内置 `X-Client-Name: ft-claw`。
 
 ## 5. 请求示例
 
@@ -87,7 +87,7 @@ GET https://market.ft.tech/app/api/v2/indices/000001.XSHG/prices?since=TODAY
 
 ```bash
 curl -X GET 'https://market.ft.tech/app/api/v2/indices/000001.XSHG/prices?since=TODAY' \
-  -H 'X-Client-Name: ft-web' \
+  -H 'X-Client-Name: ft-claw' \
   -H 'Content-Type: application/json'
 ```
 

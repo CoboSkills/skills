@@ -69,7 +69,7 @@ def main():
     url = BASE_URL + path
 
     req = urllib.request.Request(url, method="GET")
-    req.add_header("X-Client-Name", "ft-web")
+    req.add_header("X-Client-Name", "ft-claw")
     req.add_header("Content-Type", "application/json")
 
     try:

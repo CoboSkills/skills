@@ -10,17 +10,15 @@ SAFE_URLOPENER = urllib.request.build_opener()
 
 BASE_URL = "https://ftai.chat"
 
-ALLOWED_HOSTS = {"market.ft.tech", "ftai.chat"}
-
-
 def safe_urlopen(req_or_url):
+    """本接口域名固定为 ftai.chat，与 market.ft.tech 白名单区分。"""
     if isinstance(req_or_url, urllib.request.Request):
         url = req_or_url.full_url
     else:
         url = str(req_or_url)
     parsed = urllib.parse.urlparse(url)
-    if parsed.scheme != "https" or parsed.netloc not in ALLOWED_HOSTS:
-        print(f"Invalid URL for safe_urlopen: {url}", file=sys.stderr)
+    if parsed.scheme != "https" or parsed.hostname != "ftai.chat":
+        print(f"Invalid URL for stock-security-info (expected https://ftai.chat): {url}", file=sys.stderr)
         sys.exit(1)
     return SAFE_URLOPENER.open(req_or_url)
 

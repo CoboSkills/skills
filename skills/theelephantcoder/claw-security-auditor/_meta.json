@@ -1,0 +1,11 @@
+{
+  "owner": "theelephantcoder",
+  "slug": "claw-security-auditor",
+  "displayName": "Security Auditor for OpenClaw",
+  "latest": {
+    "version": "1.1.3",
+    "publishedAt": 1775839309257,
+    "commit": null
+  },
+  "history": []
+}

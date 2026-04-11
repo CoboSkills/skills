@@ -9,7 +9,8 @@ If needed, use this longer fallback prompt:
 
 Install/apply **dr-memory-foundation** as your baseline file-based memory layout.
 
-1) Ensure these files exist (create from templates if missing):
+1) Run `python3 ./skills/dr-memory-foundation/scripts/install_memory_foundation.py` from the workspace root to copy any missing templates.
+2) Ensure these files exist (and customize them):
 - `MEMORY.md` (preferences + indexes only)
 - `memory/always_on.md` (policy header + topic catalog)
 - `memory/now.md`, `memory/open-loops.md`, `memory/automation.md`

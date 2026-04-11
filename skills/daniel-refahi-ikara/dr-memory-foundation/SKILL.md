@@ -18,6 +18,16 @@ When the user asks to **apply** this skill (for example: `Apply dr-memory-founda
 
 This apply flow should be idempotent: if the structure already exists, do not duplicate sections or overwrite user content blindly.
 
+## Quick install commands (copy/paste)
+Run this from the workspace root when you want the templates created automatically:
+```bash
+cd ~/.openclaw/workspace
+python3 ./skills/dr-memory-foundation/scripts/install_memory_foundation.py
+tree -L 2 memory | head -n 40
+```
+If files already exist the script skips them; otherwise it copies the templates from `references/templates/`.
+
+
 ## Template layout
 - `MEMORY.md` (small): preferences + indexes only.
 - `memory/always_on.md`: tiny policy header + topic catalog (with keywords).

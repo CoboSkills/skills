@@ -9,6 +9,8 @@ Use this when the user says things like:
 Install/normalize the file-based memory layout with minimal user effort.
 
 ## Steps
+0) Optional fast path: `python3 ./skills/dr-memory-foundation/scripts/install_memory_foundation.py` to copy missing templates.
+
 1) Inspect existing files:
 - `MEMORY.md`
 - `memory/always_on.md`

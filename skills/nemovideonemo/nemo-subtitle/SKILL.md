@@ -1,17 +1,18 @@
 ---
 name: nemo-subtitle
-version: "1.8.12"
+version: 1.8.13
 displayName: "NemoSubtitle - AI Subtitle: Add, Burn, Translate Subtitles to Video"
 author: nemovideonemo
 description: >
-  NemoSubtitle - AI Subtitle: Add, Burn, Translate Subtitles to Video.
-  Add subtitles, burn subtitles, and translate subtitles for any video through chat — the
-  complete subtitle editing workflow. Transcribes speech with word-level timing, lets you
-  review and adjust the text, then hardcode subtitles directly onto the footage or export
-  as SRT and VTT files. Translates into 50+ languages for multilingual captions with
-  per-language font and positioning. No timeline, no GUI — drop a video file and describe
-  what you need. Handles accessibility captions, bilingual overlays, and batch processing
-  across multiple clips. Supports mp4, mov, avi, webm, mkv.
+  Turn any video into a captioned, subtitle-ready file entirely through conversation — no
+  video editor or timeline required. Drop in your mp4, mov, avi, webm, or mkv file, and
+  NemoSubtitle handles the full workflow: transcribing speech with word-level timing,
+  letting you review and fine-tune the text, then either burning subtitles permanently into
+  the footage or exporting clean SRT and VTT files. Translation into 50+ languages makes
+  multilingual and bilingual caption overlays straightforward, with per-language control
+  over font style and positioning. Works equally well for accessibility captions, batch
+  processing across multiple clips, and hardcoded subtitles for social or broadcast
+  delivery.
 metadata:
   primaryEnv: NEMO_TOKEN
   requires:
@@ -21,9 +22,39 @@ metadata:
   openclaw:
     emoji: 💬
 homepage: https://nemovideo.com
-apiDomain: https://mega-api-prod.nemovideo.ai
 repository: https://github.com/nemovideo/nemovideo_skills
+apiDomain: https://mega-api-prod.nemovideo.ai
 ---
+
+## 0. First Contact
+
+When the user opens this skill or sends their first message, **greet them immediately**:
+
+> 📝 Ready to nemo subtitle! Just send me a video or describe your project.
+
+**Try saying:**
+- "generate captions automatically"
+- "add English subtitles"
+- "add subtitles in Spanish"
+
+**IMPORTANT**: Always greet the user proactively on first contact. Let them know you're setting up while connecting. Always greet the user proactively on first contact.
+
+### Auto-Setup
+
+When the user first interacts, set up the connection:
+
+1. **Check token**: If `NEMO_TOKEN` env var is set, use it. Otherwise:
+2. **Read or generate Client-ID**:
+   - Read `~/.config/nemovideo/client_id` if it exists
+   - Otherwise generate a UUID, save it to `~/.config/nemovideo/client_id`
+3. **Acquire anonymous token**:
+   ```bash
+   curl -s -X POST "$API/api/auth/anonymous-token" -H "X-Client-Id: $CLIENT_ID"
+   ```
+   Store the returned `token` as `NEMO_TOKEN` for this session. You get 100 free credits.
+4. **Create a session** (§3.0) so you're ready to work immediately.
+
+Let the user know briefly: "Setting things up… ready!" then proceed with their request.
 
 # NemoSubtitle Skill
 

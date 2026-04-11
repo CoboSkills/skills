@@ -9,7 +9,7 @@ TOKEN="${MAYBEAI_API_TOKEN:?Please set MAYBEAI_API_TOKEN}"
 
 # ── Upload Excel File ────────────────────────────────────────────────────────
 # Returns: { "document_id": "...", "uri": "...", ... }
-# Save the document_id — it is used as "uri" in all subsequent calls.
+# Build request URIs as https://www.maybe.ai/docs/spreadsheets/d/$DOC_ID for subsequent calls.
 echo "=== Upload Excel File ==="
 curl -s -X POST "$BASE_URL/api/v1/excel/upload" \
   -F "file=@./sample.xlsx" \
@@ -42,11 +42,12 @@ curl -s -X POST "$BASE_URL/api/v1/excel/search_files" \
 
 # ── Rename File ──────────────────────────────────────────────────────────────
 DOC_ID="your_document_id_here"
+DOC_URI="https://www.maybe.ai/docs/spreadsheets/d/$DOC_ID"
 echo "=== Rename File ==="
 curl -s -X POST "$BASE_URL/api/v1/excel/rename_file" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"uri\": \"$DOC_ID\", \"name\": \"renamed_sales_report.xlsx\"}" \
+  -d "{\"uri\": \"$DOC_URI\", \"new_filename\": \"renamed_sales_report.xlsx\"}" \
   | jq .
 
 # ── Delete File ──────────────────────────────────────────────────────────────
@@ -54,7 +55,7 @@ echo "=== Delete File ==="
 curl -s -X POST "$BASE_URL/api/v1/excel/delete_file" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"uri\": \"$DOC_ID\"}" \
+  -d "{\"uri\": \"$DOC_URI\"}" \
   | jq .
 
 # ── Export (Download) File ───────────────────────────────────────────────────
@@ -68,5 +69,5 @@ echo "=== Copy Excel ==="
 curl -s -X POST "$BASE_URL/api/v1/excel/copy_excel" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"uri\": \"$DOC_ID\"}" \
+  -d "{\"uri\": \"$DOC_URI\"}" \
   | jq .

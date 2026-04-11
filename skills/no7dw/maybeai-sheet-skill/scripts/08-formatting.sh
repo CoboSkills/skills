@@ -7,6 +7,7 @@
 BASE_URL="https://play-be.omnimcp.ai"
 TOKEN="${MAYBEAI_API_TOKEN:?Please set MAYBEAI_API_TOKEN}"
 DOC_ID="${DOC_ID:?Please set DOC_ID}"
+DOC_URI="https://www.maybe.ai/docs/spreadsheets/d/$DOC_ID"
 
 # ── Freeze Panes ──────────────────────────────────────────────────────────────
 # freeze_rows=1 locks the header row; freeze_columns=0 means no column freeze
@@ -15,7 +16,7 @@ curl -s -X POST "$BASE_URL/api/v1/excel/freeze_panes" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uri\": \"$DOC_ID\",
+    \"uri\": \"$DOC_URI\",
     \"worksheet_name\": \"Sheet1\",
     \"freeze_rows\": 1,
     \"freeze_columns\": 0
@@ -28,7 +29,7 @@ curl -s -X POST "$BASE_URL/api/v1/excel/freeze_panes" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uri\": \"$DOC_ID\",
+    \"uri\": \"$DOC_URI\",
     \"worksheet_name\": \"Sheet1\",
     \"freeze_rows\": 1,
     \"freeze_columns\": 1
@@ -41,7 +42,7 @@ curl -s -X POST "$BASE_URL/api/v1/excel/set_auto_filter" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uri\": \"$DOC_ID\",
+    \"uri\": \"$DOC_URI\",
     \"worksheet_name\": \"Sheet1\",
     \"auto_filter\": {
       \"ref\": \"A1:F100\",
@@ -55,7 +56,7 @@ echo "=== Remove Auto Filter ==="
 curl -s -X POST "$BASE_URL/api/v1/excel/remove_auto_filter" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"uri\": \"$DOC_ID\", \"worksheet_name\": \"Sheet1\"}" \
+  -d "{\"uri\": \"$DOC_URI\", \"worksheet_name\": \"Sheet1\"}" \
   | jq .
 
 # ── Set Conditional Formats ───────────────────────────────────────────────────
@@ -65,7 +66,7 @@ curl -s -X POST "$BASE_URL/api/v1/excel/set_conditional_formats" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uri\": \"$DOC_ID\",
+    \"uri\": \"$DOC_URI\",
     \"worksheet_name\": \"Sheet1\",
     \"formats\": [
       {
@@ -88,7 +89,7 @@ curl -s -X POST "$BASE_URL/api/v1/excel/set_conditional_formats" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uri\": \"$DOC_ID\",
+    \"uri\": \"$DOC_URI\",
     \"worksheet_name\": \"Sheet1\",
     \"formats\": [
       {

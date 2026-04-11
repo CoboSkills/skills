@@ -7,6 +7,8 @@
 BASE_URL="https://play-be.omnimcp.ai"
 TOKEN="${MAYBEAI_API_TOKEN:?Please set MAYBEAI_API_TOKEN}"
 DOC_ID="${DOC_ID:?Please set DOC_ID}"
+DOC_URI="https://www.maybe.ai/docs/spreadsheets/d/$DOC_ID"
+DOC_URI_GID0="${DOC_URI}?gid=0"
 
 # ── Update Range ──────────────────────────────────────────────────────────────
 echo "=== Update Range ==="
@@ -14,9 +16,9 @@ curl -s -X POST "$BASE_URL/api/v1/excel/update_range" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uri\": \"$DOC_ID\",
-    \"sheet\": \"Sheet1\",
-    \"range\": \"A1:C3\",
+    \"uri\": \"$DOC_URI\",
+    \"worksheet_name\": \"Sheet1\",
+    \"range_address\": \"A1:C3\",
     \"values\": [
       [\"Name\", \"Score\", \"Grade\"],
       [\"Alice\",  95,      \"A\"],
@@ -26,17 +28,19 @@ curl -s -X POST "$BASE_URL/api/v1/excel/update_range" \
   | jq .
 
 # ── Update Range by Lookup ────────────────────────────────────────────────────
-# Finds the row where lookup_column == lookup_value and updates the given fields
+# Updates or appends rows by key on the worksheet selected from uri
 echo "=== Update Range by Lookup ==="
 curl -s -X POST "$BASE_URL/api/v1/excel/update_range_by_lookup" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uri\": \"$DOC_ID\",
-    \"sheet\": \"Sheet1\",
-    \"lookup_column\": \"Name\",
-    \"lookup_value\": \"Alice\",
-    \"updates\": {\"Score\": 98, \"Grade\": \"A+\"}
+    \"uri\": \"$DOC_URI_GID0\",
+    \"data\": [
+      {\"Name\": \"Alice\", \"Score\": 98, \"Grade\": \"A+\"}
+    ],
+    \"on\": [\"Name\"],
+    \"override\": false,
+    \"skip_recalculation\": false
   }" \
   | jq .
 
@@ -45,7 +49,7 @@ echo "=== Clear Range ==="
 curl -s -X POST "$BASE_URL/api/v1/excel/clear_range" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d "{\"uri\": \"$DOC_ID\", \"sheet\": \"Sheet1\", \"range\": \"D1:F10\"}" \
+  -d "{\"uri\": \"$DOC_URI\", \"worksheet_name\": \"Sheet1\", \"range_address\": \"D1:F10\"}" \
   | jq .
 
 # ── Append Rows ───────────────────────────────────────────────────────────────
@@ -54,27 +58,26 @@ curl -s -X POST "$BASE_URL/api/v1/excel/append_rows" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uri\": \"$DOC_ID\",
-    \"sheet\": \"Sheet1\",
-    \"rows\": [
-      [\"Charlie\", 77, \"C\"],
-      [\"Diana\",   91, \"A-\"]
+    \"uri\": \"$DOC_URI_GID0\",
+    \"data\": [
+      {\"Name\": \"Charlie\", \"Score\": 77, \"Grade\": \"C\"},
+      {\"Name\": \"Diana\", \"Score\": 91, \"Grade\": \"A-\"}
     ]
   }" \
   | jq .
 
-# ── Write New Sheet (full data at once) ───────────────────────────────────────
-echo "=== Write New Sheet ==="
-curl -s -X POST "$BASE_URL/api/v1/excel/write_new_sheet" \
+# ── Write New Worksheet (full data at once) ──────────────────────────────────
+echo "=== Write New Worksheet ==="
+curl -s -X POST "$BASE_URL/api/v1/excel/write_new_worksheet" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uri\": \"$DOC_ID\",
-    \"sheet\": \"Summary\",
-    \"data\": [
+    \"uri\": \"$DOC_URI\",
+    \"worksheet_name\": \"Summary\",
+    \"values\": [
       [\"Category\", \"Total\"],
-      [\"Sales\",    12000],
-      [\"Returns\",  300]
+      [\"Sales\", \"12000\"],
+      [\"Returns\", \"300\"]
     ]
   }" \
   | jq .
@@ -85,10 +88,11 @@ curl -s -X POST "$BASE_URL/api/v1/excel/copy_range_with_formulas" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uri\": \"$DOC_ID\",
-    \"sheet\": \"Sheet1\",
-    \"src_range\": \"A1:D10\",
-    \"dst_range\": \"F1\"
+    \"uri\": \"$DOC_URI\",
+    \"worksheet_name\": \"Sheet1\",
+    \"from_range\": \"A1:D10\",
+    \"to_range\": \"F1\",
+    \"auto_fill\": false
   }" \
   | jq .
 
@@ -98,10 +102,10 @@ curl -s -X POST "$BASE_URL/api/v1/excel/copy_range_by_lookup" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d "{
-    \"uri\": \"$DOC_ID\",
-    \"sheet\": \"Sheet1\",
-    \"lookup_column\": \"Status\",
-    \"lookup_value\": \"Done\",
-    \"dst_sheet\": \"Archive\"
+    \"uri\": \"$DOC_URI_GID0\",
+    \"from_range\": \"A2:C2\",
+    \"lookup_column\": \"Name\",
+    \"on\": [\"Name\"],
+    \"skip_if_exists\": true
   }" \
   | jq .

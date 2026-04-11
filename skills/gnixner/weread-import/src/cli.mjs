@@ -2,15 +2,15 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
-import { WereadAuthError } from './errors.mjs';
 import { sanitizeFileName } from './utils.mjs';
 import { getNotebookBooks, getBookmarks, getReviews } from './api.mjs';
-import { getCookieForApi, extractCookieFromBrowser } from './cookie.mjs';
 import { buildBookmarkEntries, buildReviewEntries, comparableBookmarkEntry, comparableReviewEntry, collectBookmarkIds, collectReviewIds } from './entries.mjs';
 import { buildMarkdownFromApi, writeBook } from './render.mjs';
 import { extractComparableMapsFromMarkdown, extractIds } from './markdown-parser.mjs';
 import { computeMergeStats } from './merge.mjs';
 import { loadState, saveState } from './state.mjs';
+import { runWithApiSessionRetry } from './session.mjs';
+import { normalizeCookieSource } from './browser-mode.mjs';
 
 const DEFAULT_OUTPUT = process.env.WEREAD_OUTPUT || path.resolve(process.cwd(), 'out', 'weread');
 const DEFAULT_CDP = process.env.WEREAD_CDP_URL || 'http://127.0.0.1:9222';
@@ -46,12 +46,15 @@ function parseArgs(argv) {
     else if (arg === '--cookie-from') args.cookieFrom = argv[++i] || 'manual';
     else if (arg === '--mode') args.mode = argv[++i] || 'api';
   }
+  args.cookieFrom = normalizeCookieSource(args.cookieFrom);
   if (!args.all && !args.book && !args.bookId) throw new Error('请指定 --all、--book <标题> 或 --book-id <ID>');
   return args;
 }
 
 async function importOneBookByApi(book, outputDir, cookie, options = {}) {
-  const [bookmarks, reviews] = await Promise.all([getBookmarks(cookie, book.bookId), getReviews(cookie, book.bookId)]);
+  const detailFetchOptions = options.detailFetchJson ? { fetchJson: options.detailFetchJson } : {};
+  const bookmarks = await getBookmarks(cookie, book.bookId, detailFetchOptions);
+  const reviews = await getReviews(cookie, book.bookId, detailFetchOptions);
   const fileName = `${sanitizeFileName(book.title)}.md`;
   const filePath = path.join(outputDir, fileName);
   let existing = '';
@@ -119,10 +122,13 @@ async function resolveBooksForImport(args, cookie) {
   throw new Error('无法确定要导入的书籍，请使用 --all、--book 或 --book-id');
 }
 
-async function importViaApi(args) {
-  const cookie = await getCookieForApi(args);
+async function importViaApi(args, session, sessionManager) {
   const state = await loadState(args.output);
-  const books = await resolveBooksForImport(args, cookie);
+  const books = await resolveBooksForImport(args, session.cookie);
+  sessionManager?.markBasicValidated();
+  if (books.length) {
+    await sessionManager?.ensureDetailReady(books[0].bookId);
+  }
   const results = [];
   let skipped = 0;
   for (const book of books) {
@@ -133,7 +139,10 @@ async function importViaApi(args) {
       console.log(`Skipped [api]: ${book.title} (unchanged)`);
       continue;
     }
-    const res = await importOneBookByApi(book, args.output, cookie, { tags: args.tags });
+    const res = await importOneBookByApi(book, args.output, session.cookie, {
+      tags: args.tags,
+      detailFetchJson: session.detailFetchJson,
+    });
     const prevBookmarkIds = Array.isArray(prev?.bookmarkIds) ? prev.bookmarkIds : [];
     const prevReviewIds = Array.isArray(prev?.reviewIds) ? prev.reviewIds : [];
     const addedBookmarkIds = res.bookmarkIds.filter((id) => !prevBookmarkIds.includes(id));
@@ -165,26 +174,7 @@ async function importViaApi(args) {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  try {
-    return await importViaApi(args);
-  } catch (err) {
-    if (err instanceof WereadAuthError && args.cookieFrom === 'browser') {
-      console.warn('[warn] API cookie 已过期，正在从浏览器刷新...');
-      try {
-        args.cookie = await extractCookieFromBrowser(args.cdp);
-        return await importViaApi(args);
-      } catch (retryErr) {
-        if (retryErr instanceof WereadAuthError) {
-          throw new Error('浏览器中的微信读书登录已过期，请在 Chrome 中重新登录后重试');
-        }
-        throw retryErr;
-      }
-    }
-    if (err instanceof WereadAuthError) {
-      throw new Error('cookie 已过期，请更新 WEREAD_COOKIE 或使用 --cookie-from browser');
-    }
-    throw err;
-  }
+  return runWithApiSessionRetry(args, (session, sessionManager) => importViaApi(args, session, sessionManager));
 }
 
 main().catch((err) => {

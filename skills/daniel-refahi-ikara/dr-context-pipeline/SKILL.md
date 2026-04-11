@@ -41,6 +41,10 @@ All commands assume you’ve set `WORKSPACE=${WORKSPACE:-~/.openclaw/workspace}`
 
 This apply flow must be idempotent: if the files already match and `AGENTS.md` already contains the section, the diff should be empty but you still run the installer + validator and show their outputs.
 
+## Memory commit / continue workflow
+- When Daniel says “memorize this” (or similar), run the checklist in `references/MEMORY_COMMIT.md` (daily log, now, open-loops, topic file, MEMORY.md) and confirm which files changed.
+- When he says “let’s continue” after a reset, reload `memory/now.md`, `open-loops`, and the relevant topic files so you can summarize where things left off before acting.
+
 ## Runtime evidence contract (non-optional)
 Every single task must follow the Runtime Evidence Checklist in `references/RUNTIME_CHECKLIST.md`:
 

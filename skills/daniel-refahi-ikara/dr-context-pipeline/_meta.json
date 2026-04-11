@@ -3,11 +3,16 @@
   "slug": "dr-context-pipeline",
   "displayName": "dr-context-pipeline",
   "latest": {
-    "version": "1.7.0",
-    "publishedAt": 1775297317846,
-    "commit": "https://github.com/openclaw/skills/commit/ab5ea5f261c26267540308c32be062bc6ed35871"
+    "version": "1.8.0",
+    "publishedAt": 1775609583480,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.7.0",
+      "publishedAt": 1775297317846,
+      "commit": "https://github.com/openclaw/skills/commit/ab5ea5f261c26267540308c32be062bc6ed35871"
+    },
     {
       "version": "1.6.0",
       "publishedAt": 1775297047774,

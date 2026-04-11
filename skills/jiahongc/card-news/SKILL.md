@@ -23,9 +23,11 @@ When the user asks about recent changes, news, or updates for a credit card. Tri
 
 1. **Resolve card identity** — normalize and match to one exact variant. If ambiguous, return a numbered choice list and stop.
 2. **Search** — run one Brave Search API call with freshness filter for recent results.
-3. **Filter** — apply 3-month lookback window and inclusion rules.
-4. **Compile** — assemble the news report.
-5. **Confidence** — flag uncertain or conflicting claims.
+3. **Fetch pages** — fetch the top news pages before deciding whether another search is needed.
+4. **Filter** — apply 3-month lookback window and inclusion rules.
+5. **Pace any follow-up searches** — if another Brave search is needed, wait briefly instead of bursting requests.
+6. **Compile** — assemble the news report.
+7. **Confidence** — flag uncertain or conflicting claims.
 
 ## Step 1: Card Identity Resolution
 
@@ -86,6 +88,16 @@ curl -sS "https://api.search.brave.com/res/v1/web/search?q=CARD+NAME+news+CURREN
 ```
 
 The `freshness=p3m` parameter limits results to the past 3 months, matching the lookback window. Replace `CURRENT_YEAR` with the actual current year.
+
+### Search Budget Rule
+
+Brave may rate-limit after only a few closely spaced requests. Treat search as scarce and paced.
+
+- Start with one search.
+- Fetch the top result pages before deciding whether another search is needed.
+- If an extra search is needed, wait about **2 to 5 seconds** first.
+- If Brave returns **429**, wait about **8 to 15 seconds** and retry once.
+- If it still fails, continue with the best evidence already gathered and note the limitation in `## 📋 Confidence Notes`.
 
 ### Source Policy
 

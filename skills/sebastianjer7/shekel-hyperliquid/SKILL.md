@@ -1,6 +1,6 @@
 ---
 name: shekel-hyperliquid
-version: 1.10.1
+version: 1.14.0
 description: >
   AI-powered perpetual futures trading on Hyperliquid DEX.
   Handles full account creation, USDC onboarding, and autonomous trade execution.
@@ -51,7 +51,7 @@ curl https://shekel-skill-backend.onrender.com/skill/version
 | Run agent (single ticker) | `POST /agent/run` with `{ "ticker": "BTC" }` |
 | Close all open positions | `POST /account/close-positions` |
 | View config | `GET /agents` |
-| View balances | `GET /account/balances` |
+| View balances | `GET /account/balances` — includes `vaultEquityUsdc` + `totalEquityUsdc` |
 | View positions | `GET /account/portfolio` |
 | View open orders | `GET /account/orders` |
 | View trade history | `GET /account/trades` |
@@ -76,6 +76,20 @@ curl https://shekel-skill-backend.onrender.com/skill/version
 | Delete account | `DELETE /auth/account` |
 | Available models | `GET /agents/models` — returns `{ venice: [...], rei: [...] }` |
 | Available markets | `GET /markets/tickers` |
+| **Create vault (agent as fund manager)** | `POST /vault/create` |
+| View my vault | `GET /vault/my` |
+| Vault page (public, no auth) | `GET /vault/page?vaultAddress=0x...` |
+| Vault details by address | `GET /vault/details?vaultAddress=0x...` |
+| My leading vaults | `GET /vault/leading` |
+| My vault deposits (all vaults) | `GET /vault/deposits` |
+| **Discover top vaults** | `GET /vault/explore?sortBy=tvl&order=desc` (no auth, sortBy: apr/tvl) |
+| Recent vaults (last 2 hrs) | `GET /vault/summaries` (no auth) |
+| Deposit into any vault | `POST /vault/deposit` with `{ "vaultAddress": "0x...", "amountUsdc": 10 }` |
+| Deposit into own vault | `POST /vault/deposit` with `{ "amountUsdc": 10 }` |
+| Withdraw from any vault | `POST /vault/withdraw` with `{ "vaultAddress": "0x...", "amountUsdc": 10 }` |
+| Update vault settings | `PUT /vault/settings` |
+| Distribute vault profits | `POST /vault/distribute` |
+| Link agent to existing vault | `PUT /agents/:id` with `{ "vaultAddress": "0x..." }` |
 
 ---
 
@@ -406,7 +420,7 @@ curl -X PUT https://shekel-skill-backend.onrender.com/agents/<agentId> \
 
 | Field | Behavior |
 |---|---|
-| `maxOpenPositions` | Blocks new LONG/SHORT entries when open position count ≥ limit. CLOSE and SET_LIMIT still allowed. |
+| `maxOpenPositions` | Blocks new LONG/SHORT entries when open position count ≥ limit. CLOSE still allowed. |
 | `maxDailyLossPct` | Blocks new LONG/SHORT entries for the rest of the UTC calendar day when realised PnL drops below -(N% of account value). Resets at UTC midnight. |
 | `maxDrawdownPct` | **Auto-pauses the agent** (`isActive=false`) when account value has fallen ≥ N% from its peak. Requires `PATCH /agent/active { "active": true }` to re-enable after the user reviews. |
 
@@ -569,6 +583,88 @@ No extra parameters are needed — all data is fetched server-side on every run.
 - You'll receive a `410 Gone` error when hitting any authenticated endpoint
 - Contact support via Telegram to restore: [https://t.me/c/2308722458/1](https://t.me/c/2308722458/1)
 - Provide your wallet address or agent name for recovery
+
+---
+
+## Vault Management (Agent as Fund Manager)
+
+Shekel agents can create and manage a **Hyperliquid vault** — turning the AI agent into a publicly investable on-chain fund. Followers deposit USDC into the vault and share P&L proportionally, while the agent (as vault leader) earns **10% of profits**.
+
+### Key Concepts
+
+| Concept | Details |
+|---|---|
+| **Model** | Agent trades, followers deposit and share P&L proportionally |
+| **Leader profit share** | 10% of profits (fixed, cannot be changed) |
+| **Creation cost** | 100 USDC fee + 100 USDC minimum initial deposit |
+| **Leader equity** | Must maintain ≥5% of vault equity at all times |
+| **Lockup** | 24 hours after each deposit (resets on new deposits) |
+| **Key type requirement** | Write operations require a managed account or self_custody private_key account |
+
+### Vault Mode Trading
+
+Once a vault is created, you can link the agent to it so it **trades on behalf of the vault**:
+
+```bash
+# Option A: Create a vault (automatic linkage)
+curl -X POST .../vault/create \
+  -H "Authorization: Bearer <apiKey>" \
+  -d '{"name":"My AI Fund","description":"BTC/ETH momentum strategy","initialUsd":200}'
+# Returns the vault address and automatically links the agent
+
+# Option B: Link agent to an existing vault
+curl -X PUT .../agents/<id> \
+  -H "Authorization: Bearer <apiKey>" \
+  -d '{"vaultAddress":"0x..."}'
+
+# Unlink agent from vault (reverts to personal wallet trading)
+curl -X PUT .../agents/<id> \
+  -H "Authorization: Bearer <apiKey>" \
+  -d '{"vaultAddress":null}'
+```
+
+When vault mode is active (`agents.vaultAddress` is set):
+- Portfolio is fetched from the vault's address (not the leader's personal wallet)
+- All trades execute on behalf of the vault
+- The agent runner enforces the ≥5% leader equity rule before trading
+- Trade history records the `vaultAddress` for auditability
+
+### Vault Write Operations
+
+```bash
+# Deposit more USDC into the vault (leader adding to own position)
+POST /vault/deposit   { "amountUsdc": 500 }
+
+# Withdraw USDC from the vault (subject to 24h lockup)
+POST /vault/withdraw  { "amountUsdc": 100 }
+
+# Control follower deposits and withdrawal behavior
+PUT /vault/settings   { "allowDeposits": true, "alwaysCloseOnWithdraw": false }
+
+# Distribute profits to followers (0 = close vault)
+POST /vault/distribute  { "amountUsdc": 1000 }
+```
+
+> **Note:** Closing a vault (`amountUsdc: 0` in `/vault/distribute`) requires all positions to be closed first. The stored `vaultAddress` is cleared automatically on close.
+
+### Vault Explorer
+
+Discover top-performing vaults without needing to know addresses in advance:
+
+```bash
+# Top vaults by TVL (default)
+GET /vault/explore
+
+# Top vaults by APR, deposits-open only
+GET /vault/explore?sortBy=apr&order=desc&allowDepositsOnly=true
+
+# Minimum $10k TVL, paginated
+GET /vault/explore?minTvl=10000&limit=10&offset=0
+```
+
+Query params: `sortBy` (apr|tvl, default tvl), `order` (asc|desc, default desc), `minTvl` (USDC, default 0), `limit` (max 100, default 20), `offset` (default 0).
+
+The explorer includes well-known vaults (e.g. HLP) plus any vaults discovered recently from Hyperliquid's live feed. Results are cached for 2 minutes. Use the returned `vaultAddress` to call `GET /vault/page?vaultAddress=0x...` for the full vault detail page (no auth required) or `POST /vault/deposit` to invest.
 
 ---
 

@@ -1,12 +1,14 @@
 #!/bin/bash
 # =============================================================================
 # YouTube Whisper - 下載 YouTube 影片並轉文字
-# Version: 1.3.0
+# Version: 1.4.0
 # =============================================================================
 # Author: Kuanlin
 # Description: 自動偵測字幕，有字幕則擷取，無字幕則用 Whisper 轉文字
-# Usage: youtube-whisper.sh <url> [output_file] [model]
+# Usage: youtube-whisper.sh <url> [output_file] [model] [--force]
 # Output: 會顯示處理時間、來源（字幕/Whisper）、轉錄內容
+# Options:
+#   --force     強制執行，跳過記憶體檢查 (可用 tiny 模型降低記憶體需求)
 # =============================================================================
 
 set -e
@@ -18,6 +20,7 @@ START_TIME=$(date +%s)
 URL="${1:-}"
 OUTPUT="${2:-}"
 MODEL="${3:-small}"
+FORCE_MODE="${4:-}"
 SOURCE_METHOD="Whisper 轉錄 (預設)"
 
 # 最低需求 / Minimum requirements
@@ -52,6 +55,12 @@ get_system_load() {
 
 # 檢查系統資源 / Check system resources
 check_resources() {
+    # 如果是強制模式，直接跳過檢查
+    if [ "$FORCE_MODE" = "--force" ]; then
+        echo "⚡ 強制模式 / Force mode: 跳過記憶體檢查 / Skipping memory check"
+        return 0
+    fi
+    
     echo "🔍 正在檢查系統資源... / Checking system resources..."
     
     # 取得總記憶體 / Get total RAM
@@ -80,17 +89,20 @@ check_resources() {
     
     # 檢查可用記憶體 / Check available RAM
     if [ -n "$AVAILABLE_RAM" ] && (( $(echo "$AVAILABLE_RAM < $MIN_AVAILABLE_RAM_GB" | bc -l 2>/dev/null || echo "0") )); then
-        echo "⚠️ 警告 / Warning: 可用記憶體不足 / Available RAM low"
+        echo "⚠️ 警告 / Warning: 可用記憶體不足 / Available RAM low (${AVAILABLE_RAM} GB)"
         echo "💡 建議關閉其他應用程式後再執行 / Tip: Close other apps before running"
+        echo "💡 或使用 --force 參數強制執行 / Or use --force to force execution"
+        echo "💡 或使用 tiny 模型降低記憶體需求 / Or use tiny model to reduce memory usage"
         read -p "是否繼續執行? / Continue anyway? (y/N): " -n 1 -r
         echo
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
             echo "❌ 已取消執行 / Execution cancelled"
             exit 0
         fi
+    else
+        echo "✅ 系統資源檢查通過 / System resources OK"
     fi
     
-    echo "✅ 系統資源檢查通過 / System resources OK"
     return 0
 }
 
@@ -187,8 +199,18 @@ transcribe_with_whisper() {
 
 # 用法說明 / Usage
 if [ -z "$URL" ]; then
-    echo "用法 / Usage: youtube-whisper.sh <youtube_url> [output_file] [model]"
-    echo "範例 / Example: youtube-whisper.sh 'https://www.youtube.com/watch?v=xxx' transcript.txt small"
+    echo "用法 / Usage: youtube-whisper.sh <youtube_url> [output_file] [model] [--force]"
+    echo "範例 / Example: youtube-whisper.sh 'https://www.youtube.com/watch?v=xxx' transcript.txt small --force"
+    echo ""
+    echo "Options:"
+    echo "  --force     強制執行，跳過記憶體檢查 (Force execution, skip memory check)"
+    echo ""
+    echo "可用模型 / Available models:"
+    echo "  tiny   - 最輕量，記憶體需求最低 (39 MB)"
+    echo "  base   - 輕量 (74 MB)"
+    echo "  small  - 平衡 (244 MB) [預設]"
+    echo "  medium - 較準確 (768 MB)"
+    echo "  large  - 最高準確度 (1550 MB)"
     echo ""
     echo "邏輯 / Logic:"
     echo "   1. 檢查字幕 / Check subtitles"
@@ -240,7 +262,7 @@ if [ $HAS_SUBTITLES -eq 0 ]; then
         # 字幕擷取失敗，嘗試 Whisper / Subtitle extraction failed, try Whisper
         echo "⚠️ 字幕擷取失敗，嘗試 Whisper... / Subtitle extraction failed, trying Whisper..."
         
-        if [ $RESOURCES_OK -ne 0 ]; then
+        if [ "$FORCE_MODE" != "--force" ] && [ $RESOURCES_OK -ne 0 ]; then
             echo "❌ 系統資源不足，無法使用 Whisper / Insufficient resources for Whisper"
             exit 1
         fi
@@ -253,8 +275,9 @@ else
     echo "🎯 無字幕，使用 Whisper 轉文字 / No subtitles, using Whisper"
     SOURCE_METHOD="Whisper 轉錄 (Audio Download)"
     
-    if [ $RESOURCES_OK -ne 0 ]; then
+    if [ "$FORCE_MODE" != "--force" ] && [ $RESOURCES_OK -ne 0 ]; then
         echo "❌ 系統資源不足，無法使用 Whisper / Insufficient resources for Whisper"
+        echo "💡 使用 --force 參數可強制執行 / Use --force to force execution"
         exit 1
     fi
     

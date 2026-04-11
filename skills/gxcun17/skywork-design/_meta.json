@@ -3,11 +3,16 @@
   "slug": "skywork-design",
   "displayName": "Skywork Design",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1775098200946,
-    "commit": "https://github.com/openclaw/skills/commit/e646ecd1b1c3870a920b55d0df1f1182ba70fe9e"
+    "version": "1.0.8",
+    "publishedAt": 1775828164630,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1775098200946,
+      "commit": "https://github.com/openclaw/skills/commit/e646ecd1b1c3870a920b55d0df1f1182ba70fe9e"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1773927083642,

@@ -1,6 +1,6 @@
 ---
 name: Skywork Design
-description: Generate or edit images via backend Skywork Image API. Use for any image creation, poster design, logo design, visual asset generation, or image modification request. Supports text-to-image and image-to-image editing with aspect ratio and resolution control.
+description: Skywork Design (skywork) - Generate or edit images via the Skywork Image API. Use for image creation, poster design, logo design, visual asset generation, or image modification requests. Supports text-to-image and image-to-image editing with aspect ratio and resolution control.
 metadata:
   openclaw:
     requires:
@@ -21,7 +21,7 @@ Be patient, it takes about 2 minutes to generate an image each time.
 ## Prerequisites
 
 ### API Key Configuration (Required First)
-This skill requires a **SKYWORK_API_KEY** to be configured in OpenClaw.
+This skill requires a **SKYWORK_API_KEY** to be configured before use.
 
 If you don't have an API key yet, please visit:
 **https://skywork.ai**

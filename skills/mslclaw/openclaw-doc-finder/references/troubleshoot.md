@@ -155,6 +155,63 @@ openclaw config get gateway.host
 
 ---
 
+### 8. image_generate 报 "No image-generation provider registered"
+
+**症状：** `image_generate` 工具报错 `No image-generation provider registered for <provider>`
+
+**排查：**
+```bash
+# 确认 provider 插件是否完整加载
+openclaw config get plugins.allow
+openclaw config get plugins.entries.<provider>.enabled
+
+# 确认 API key 是否在 .env
+cat ~/.openclaw/.env | grep -i API_KEY
+
+# 确认 imageGenerationModel 配置
+openclaw config get agents.defaults.imageGenerationModel
+```
+
+**根因：** `plugins.allow` 是白名单机制——当非空时，只有列表内的插件会完整加载（包括 image generation provider 注册）。即使 `entries.<provider>.enabled: true` 也会被 allow 列表覆盖。
+
+**修复步骤（以 Google 为例）：**
+
+1. **添加 API key 到 `.env`**（daemon 环境不读 openclaw.json 的 env 块）：
+   ```bash
+   echo 'GEMINI_API_KEY=your_key' >> ~/.openclaw/.env
+   ```
+
+2. **把 provider 加入 `plugins.allow`**：
+   ```bash
+   openclaw config set plugins.allow '["telegram","discord","openclaw-weixin","firecrawl","tavily","exa","openclaw-lark","google"]'
+   ```
+
+3. **配置 imageGenerationModel**：
+   ```bash
+   openclaw config set agents.defaults.imageGenerationModel.primary 'google/gemini-3.1-flash-image-preview'
+   ```
+
+4. **重启 gateway**：
+   ```bash
+   openclaw gateway restart
+   ```
+
+**坑点：**
+- `gemini-3-flash-image-preview` 不存在，正确模型名是 `gemini-3.1-flash-image-preview`
+- `BUILTIN_IMAGE_GENERATION_PROVIDERS` 为空数组，所有 image gen provider 由插件 `register()` 注册
+- Google 插件的 image generation 源码位于 `extensions/google/image-generation-provider.ts`
+
+**验证：**
+```bash
+# 测试生图
+openclaw config get agents.defaults.imageGenerationModel
+# 然后调用 image_generate 工具测试
+```
+
+→ 详细：[Configuration Reference - plugins.allow](https://docs.openclaw.ai/gateway/configuration-reference) | [Google Provider](https://docs.openclaw.ai/providers/google)
+
+---
+
 ## 诊断决策树
 
 ```

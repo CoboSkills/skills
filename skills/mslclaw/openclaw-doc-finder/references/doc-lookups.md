@@ -93,6 +93,48 @@ meta, env, wizard, update, browser, auth, models, agents, tools, messages, comma
 
 ---
 
+## Cron 调度任务
+
+### Discord 频道 announce 投递失败（delivery.to 格式错误）
+
+**问题**：cron 任务配置了 `delivery.mode: "announce"` 和 `delivery.channel: "discord"`，但消息未投递到 Discord 频道。
+
+**官方文档结论**：
+
+**根因一**：`sessionTarget` 与 `payload.kind` 不匹配
+- `systemEvent` payload **只能**配合 `sessionTarget: "main"` 使用，main 任务**不支持 announce 投递**
+- `agentTurn` payload **必须**配合 `sessionTarget: "isolated"` 使用，isolated 任务才支持 announce 投递
+- 因此 `"main" + "systemEvent"` 的组合无法 announce 到任何频道
+
+**根因二**：`delivery.to` 缺少前缀
+- Discord 频道 ID 必须加 `channel:` 前缀，写成 `"channel:1485158622370467902"`
+- 直接写 `"1485158622370467902"` 会导致投递目标解析失败
+
+**正确配置示例**：
+```json
+{
+  "id": "安全审查",
+  "sessionTarget": "isolated",
+  "wakeMode": "now",
+  "payload": {
+    "kind": "agentTurn",
+    "message": "执行openclaw security audit --deep..."
+  },
+  "delivery": {
+    "mode": "announce",
+    "channel": "discord",
+    "to": "channel:1485158622370467902",
+    "bestEffort": false
+  }
+}
+```
+
+**相关文档**：`automation/cron-jobs.md`（搜索 "announce delivery" 和 "Discord"）
+
+**查阅时间**：2026-03-30
+
+---
+
 ## 如何追加新条目
 
 在对应分类下按以下格式追加：
@@ -110,3 +152,27 @@ meta, env, wizard, update, browser, auth, models, agents, tools, messages, comma
 
 **查阅时间**：YYYY-MM-DD
 ```
+
+---
+
+## 图像生成配置
+
+### image_generate 报 "No image-generation provider registered"
+
+**问题**：`image_generate` 工具报错 `No image-generation provider registered for google`，如何修复？
+
+**官方文档结论**：
+- `plugins.allow` 是白名单机制，非空时**只有列表内插件完整加载**
+- 即使 `entries.<provider>.enabled: true` 也会被 allow 列表覆盖
+- image generation provider 由插件 `register()` 注册，非内置
+- Daemon 环境下 API key 需写入 `~/.openclaw/.env`，不读 `openclaw.json` 的 `env` 块
+- Google image gen 正确模型名：`gemini-3.1-flash-image-preview`（非 `gemini-3-flash-image-preview`）
+
+**修复三步**：
+1. `~/.openclaw/.env` 添加 `GEMINI_API_KEY=xxx`
+2. `plugins.allow` 添加 `"google"`
+3. `agents.defaults.imageGenerationModel.primary` 设为 `google/gemini-3.1-flash-image-preview`
+
+**相关文档**：`gateway/configuration-reference.md` (plugins.allow 段) | `providers/google.md`
+
+**查阅时间**：2026-03-30

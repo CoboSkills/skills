@@ -3,11 +3,16 @@
   "slug": "openclaw-doc-finder",
   "displayName": "OpenClaw Doc Finder",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1774409334630,
-    "commit": "https://github.com/openclaw/skills/commit/e4e87b4dcf1f0ea535104b417018ef75da1266dd"
+    "version": "1.2.0",
+    "publishedAt": 1775404030603,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1774409334630,
+      "commit": "https://github.com/openclaw/skills/commit/e4e87b4dcf1f0ea535104b417018ef75da1266dd"
+    },
     {
       "version": "2026.3.13",
       "publishedAt": 1773969428124,

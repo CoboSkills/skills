@@ -1,13 +1,18 @@
 {
   "owner": "drumrobot",
   "slug": "fix",
-  "displayName": "Fix Behavior",
+  "displayName": "fix",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1775194389355,
-    "commit": "https://github.com/openclaw/skills/commit/f988a17880847e8909f59dbc4e83760fdeecbf3c"
+    "version": "0.1.2",
+    "publishedAt": 1775913136695,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1775194389355,
+      "commit": "https://github.com/openclaw/skills/commit/f988a17880847e8909f59dbc4e83760fdeecbf3c"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1775019654612,

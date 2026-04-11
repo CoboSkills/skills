@@ -3,11 +3,16 @@
   "slug": "powpow-integration",
   "displayName": "POWPOW Integration",
   "latest": {
-    "version": "2.1.9",
-    "publishedAt": 1775301589994,
-    "commit": "https://github.com/openclaw/skills/commit/4ce763492fc87390a797d59299a6c5ad43809c9b"
+    "version": "2.1.10",
+    "publishedAt": 1775389757590,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.1.9",
+      "publishedAt": 1775301589994,
+      "commit": "https://github.com/openclaw/skills/commit/4ce763492fc87390a797d59299a6c5ad43809c9b"
+    },
     {
       "version": "2.1.3",
       "publishedAt": 1774785808128,

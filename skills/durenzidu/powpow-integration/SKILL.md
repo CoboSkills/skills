@@ -1,274 +1,315 @@
----
-name: powpow
-version: 2.1.9
-description: |
-  将 OpenClaw 数字人发布到 Powpow 地图平台，让其他用户可以在真实地图上与你的 AI 数字人对话。
-  
-  USE FOR:
-  - "我要把数字人放到 powpow"
-  - "在 powpow 上创建数字人"
-  - "注册 powpow 账号"
-  - "管理我的 powpow 数字人"
-  - "删除 powpow 上的数字人"
-  - "查看我的 powpow 数字人"
-  - "powpow 数字人"
-  
-  关键词: powpow, 数字人, 地图, 位置, 发布, 注册, 徽章
+# POWPOW Integration Skill v2.1.10
 
-metadata:
-  openclaw:
-    emoji: 🗺️
-    requires:
-      bins: []
-      config:
-        - powpow.baseUrl
----
+## 基本信息
 
-# Powpow Skill
+- **Name**: powpow-integration
+- **Version**: 2.1.10
+- **Description**: POWPOW WebSocket Integration - Real-time bidirectional chat with POWPOW digital humans using WebSocket
+- **Author**: durenzidu
+- **License**: MIT
 
-## 简介
+## 功能
 
-Powpow 是一个基于地理位置的 AI 数字人平台。通过这个 Skill，你可以：
+此 Skill 允许 OpenClaw 用户通过 **WebSocket** 与 POWPOW 数字人进行**实时双向通信**：
 
-1. **注册 Powpow 账号** - 在 Powpow 平台上创建账号（获得 3 个徽章）
-2. **创建数字人** - 创建带有名称、人设和位置的数字人（消耗 2 个徽章）
-3. **发布到地图** - 让其他用户在 `https://global.powpow.online/map` 上发现你的数字人
-4. **管理数字人** - 查看、更新或删除你的数字人
+1. **实时消息收发** - WebSocket 连接，低延迟
+2. **自动重连** - 连接断开后自动恢复
+3. **消息队列** - 离线消息自动排队发送
+4. **多媒体支持** - 文本、语音、图片消息
+5. **连接状态监控** - 实时显示连接状态
 
-## 前置条件
+## 命令
 
-在使用此 Skill 前，你需要：
+### 连接管理
 
-1. 确保你的 OpenClaw Gateway 正在运行
-2. 知道你的 Gateway URL（通常是 `http://localhost:18789`）
-3. Powpow 平台地址：`https://global.powpow.online`
+#### `connect`
+连接到 POWPOW WebSocket 服务器
 
-## 徽章系统
+**参数**:
+- `digitalHumanId` (string, required): 数字人 ID
+- `wsUrl` (string, optional): WebSocket 地址，默认 `wss://global.powpow.online:8080`
 
-Powpow 使用徽章系统来管理资源：
-
-- **新用户注册**: 获得 3 个徽章
-- **创建数字人**: 消耗 2 个徽章
-- **数字人有效期**: 30 天
-
-## 快速开始
-
-### 1. 注册 Powpow 账号
-
-告诉 OpenClaw：
-> "帮我在 powpow 上注册一个账号"
-
-你需要提供：
-- 用户名（唯一）
-- 昵称（可选，默认使用用户名）
-- 头像 URL（可选）
-
-### 2. 创建数字人
-
-告诉 OpenClaw：
-> "我要在 powpow 上创建一个数字人"
-
-你需要提供：
-- 数字人名称
-- 人设描述（数字人的性格、背景、专长等）
-- 位置（经纬度或城市名称）
-- 头像 URL（可选，默认使用 Powpow 默认头像）
-- Webhook URL（你的 OpenClaw Gateway 地址，用于接收消息）
-
-### 3. 查看数字人
-
-告诉 OpenClaw：
-> "查看我的 powpow 数字人"
-
-### 4. 删除数字人
-
-告诉 OpenClaw：
-> "删除 powpow 上的 [数字人名称]"
-
-## 详细说明
-
-### 注册流程
-
+**示例**:
 ```
-用户: "帮我在 powpow 上注册"
-AI: "好的，我来帮你在 Powpow 上注册账号。请提供：
-     1. 用户名（唯一标识）
-     2. 昵称（可选，默认使用用户名）
-     3. 头像 URL（可选）"
-     
-用户: "用户名: myagent, 昵称: 我的数字人"
-AI: [调用 register 工具完成注册]
-   "注册成功！你的 Powpow 账号已创建。
-    用户名: myagent
-    徽章余额: 3
-    你现在可以创建数字人并发布到地图上了。"
+connect digitalHumanId=abc123
+connect digitalHumanId=abc123 wsUrl=wss://global.powpow.online:8080
 ```
 
-### 创建数字人流程
+**返回**:
+- 连接状态
+- 客户端 ID
 
+#### `disconnect`
+断开 WebSocket 连接
+
+**参数**: 无
+
+**示例**:
 ```
-用户: "创建一个 powpow 数字人"
-AI: "好的，请告诉我：
-     1. 数字人的名称
-     2. 人设描述（性格、背景、专长等）
-     3. 位置（比如：北京、上海，或提供经纬度）
-     4. 头像 URL（可选）
-     5. 你的 OpenClaw Gateway URL（用于接收消息，如 http://localhost:18789）"
-     
-用户: "名称: 小明, 人设: 我是一个知识渊博的历史学家..."
-AI: [调用 createAgent 工具]
-   "数字人创建成功！
-    名称: 小明
-    位置: 北京
-    有效期: 30天
-    徽章余额: 1（消耗了2个徽章）
-    其他用户现在可以在 Powpow Map 上找到并与你的数字人对话了。"
+disconnect
 ```
 
-### 对话机制
+#### `status`
+查看连接状态
 
-当 Powpow 用户与你的数字人对话时：
+**参数**: 无
 
-1. Powpow 用户发送消息
-2. Powpow 后端通过 Webhook 将消息转发到你的 OpenClaw Gateway
-3. OpenClaw 根据数字人的人设生成回复
-4. 回复通过 Webhook 返回给 Powpow 用户
+**示例**:
+```
+status
+```
 
-**重要**: 你需要保持 OpenClaw Gateway 运行，数字人才能回复消息。
+**返回**:
+- 连接状态 (connected/disconnected)
+- 数字人 ID
+- 连接时长
 
-## 工具使用说明
+### 消息发送
 
-### register
+#### `send`
+发送消息到 POWPOW
 
-注册 Powpow 账号。
+**参数**:
+- `message` (string, required): 消息内容
+- `contentType` (string, optional): 消息类型 (text/voice/image)，默认 text
 
-**参数：**
-- `username` (string, required): 用户名（唯一）
-- `nickname` (string, optional): 昵称
-- `avatar_url` (string, optional): 头像 URL
+**示例**:
+```
+send message="你好，PowPow！"
+send message="语音消息" contentType=voice
+```
 
-**返回：**
-- `user_id`: 用户ID
-- `username`: 用户名
-- `badges`: 徽章数量（新用户为3）
+#### `reply`
+快捷回复
 
-### login
+**参数**:
+- `message` (string, required): 回复内容
 
-登录 Powpow 账号。
+**示例**:
+```
+reply message="收到你的消息了！"
+```
 
-**参数：**
-- `username` (string, required): 用户名
+#### `sendVoice`
+发送语音消息
 
-**返回：**
-- `token`: JWT Token（有效期30天）
-- `user_id`: 用户ID
-- `badges`: 徽章数量
+**参数**:
+- `content` (string, required): 语音转文字内容
+- `mediaUrl` (string, required): 语音文件 URL
+- `duration` (number, required): 语音时长（秒）
 
-### createAgent
+**示例**:
+```
+sendVoice content="你好" mediaUrl="https://example.com/voice.mp3" duration=5
+```
 
-创建新的数字人。
+#### `sendImage`
+发送图片消息
 
-**参数：**
-- `name` (string, required): 数字人名称
-- `description` (string, required): 人设描述
-- `lat` (number, required): 纬度
-- `lng` (number, required): 经度
-- `locationName` (string, required): 位置名称
-- `avatarUrl` (string, optional): 头像 URL
-- `webhookUrl` (string, required): OpenClaw Gateway URL
-- `webhookToken` (string, optional): Webhook 验证令牌
+**参数**:
+- `content` (string, required): 图片描述
+- `mediaUrl` (string, required): 图片文件 URL
 
-**注意**: 创建数字人需要消耗 2 个徽章
+**示例**:
+```
+sendImage content="风景照" mediaUrl="https://example.com/image.jpg"
+```
 
-**返回：**
-- `id`: 数字人ID
-- `name`: 名称
-- `expiresAt`: 过期时间（30天后）
-- `badgesRemaining`: 剩余徽章数
+### 消息监听
 
-### listAgents
+#### `listen`
+开始监听 POWPOW 消息
 
-列出当前用户的所有数字人。
+**参数**:
+- `autoReply` (boolean, optional): 是否启用自动回复，默认 false
 
-**参数：**
-- `userId` (string, required): 用户ID
-- `token` (string, required): JWT Token
+**示例**:
+```
+listen
+listen autoReply=true
+```
 
-**返回：**
-- 数字人列表，包含 ID、名称、描述、位置、状态、过期时间等
+**说明**:
+- 启动后，收到消息会触发 OpenClaw 事件
+- 可以配合 `autoReply` 自动回复
 
-### deleteAgent
+#### `stopListen`
+停止监听消息
 
-删除指定的数字人。
+**参数**: 无
 
-**参数：**
-- `agentId` (string, required): 数字人 ID
-- `userId` (string, required): 用户ID
-- `token` (string, required): JWT Token
+**示例**:
+```
+stopListen
+```
 
-## 配置存储
+## 配置
 
-此 Skill 会在你的 OpenClaw 配置中存储以下信息：
+### 配置文件
 
-- `powpow.username`: Powpow 用户名
-- `powpow.token`: JWT Token（自动管理）
-- `powpow.userId`: 用户ID
-- `powpow.baseUrl`: Powpow 基础 URL
-- `powpow.badges`: 徽章数量
+```json
+{
+  "skills": {
+    "powpow-integration": {
+      "powpowBaseUrl": "https://global.powpow.online",
+      "wsUrl": "wss://global.powpow.online:8080",
+      "autoReconnect": true,
+      "reconnectInterval": 3000
+    }
+  }
+}
+```
 
-## API 端点
+### 配置项说明
 
-Powpow 提供的 OpenClaw API：
+| 配置项 | 类型 | 必填 | 默认值 | 说明 |
+|--------|------|------|--------|------|
+| `powpowBaseUrl` | string | 否 | https://global.powpow.online | POWPOW API 基础 URL |
+| `wsUrl` | string | 否 | wss://global.powpow.online:8080 | WebSocket 服务器地址 |
+| `autoReconnect` | boolean | 否 | true | 是否自动重连 |
+| `reconnectInterval` | number | 否 | 3000 | 重连间隔（毫秒） |
 
-- `POST /api/openclaw/auth/register` - 注册
-- `POST /api/openclaw/auth/login` - 登录
-- `POST /api/openclaw/digital-humans` - 创建数字人
-- `GET /api/openclaw/digital-humans?userId=xxx` - 获取数字人列表
-- `DELETE /api/openclaw/digital-humans/[id]` - 删除数字人
-- `POST /api/openclaw/chat/send` - 发送消息
-- `POST /api/openclaw/webhook/reply` - 接收回复（OpenClaw 调用）
+## 依赖
 
-## 常见问题
+```json
+{
+  "@openclaw/core": ">=1.0.0",
+  "ws": "^8.16.0"
+}
+```
 
-### Q: 我的数字人能被多少人同时对话？
-A: 取决于你的 OpenClaw Gateway 性能，通常可以支持多个并发对话。
+## 使用示例
 
-### Q: 我需要保持电脑开机吗？
-A: 是的，你的 OpenClaw Gateway 需要保持运行，数字人才能回复消息。
+### 完整流程示例
 
-### Q: 可以创建多个数字人吗？
-A: 可以，只要你有足够的徽章（每个数字人消耗 2 个徽章）。
+```
+# 1. 连接到数字人
+connect digitalHumanId=your-dh-id
 
-### Q: 如何获得徽章？
-A: 新用户注册获得 3 个徽章。未来可能会开放其他获取方式。
+# 2. 开始监听消息
+listen autoReply=true
 
-### Q: 数字人过期后怎么办？
-A: 数字人有效期为 30 天，过期后需要重新创建。
+# 3. 发送消息
+send message="你好，我是 OpenClaw！"
 
-### Q: 数字人的回复速度如何？
-A: 取决于你使用的 AI 模型和网络状况，通常在 1-5 秒内。
+# 4. 收到消息后会自动触发回复（如果 autoReply=true）
 
-## 错误处理
+# 5. 停止监听
+stopListen
 
-常见错误及解决方案：
+# 6. 断开连接
+disconnect
+```
 
-| 错误 | 原因 | 解决方案 |
-|------|------|----------|
-| 用户名已存在 | 该用户名已被注册 | 换一个用户名 |
-| 徽章不足 | 需要 2 个徽章创建数字人 | 确保你有足够的徽章 |
-| Webhook 未配置 | 创建数字人时未提供 webhookUrl | 提供你的 OpenClaw Gateway URL |
-| Token 过期 | JWT Token 已过期（30天） | 重新登录 |
-| 数字人不存在 | 数字人 ID 错误或已删除 | 检查数字人 ID |
+### 手动回复示例
 
-## 安全提示
+```
+# 连接并监听（不自动回复）
+connect digitalHumanId=your-dh-id
+listen
 
-1. **妥善保管 Token**: 不要在对话中透露你的 JWT Token
-2. **使用强密码**: 建议包含大小写字母、数字和符号
-3. **Gateway 安全**: 确保你的 Gateway 不暴露在不安全的网络中
-4. **人设内容**: 避免在人设中包含敏感个人信息
+# 当收到消息时，手动回复
+reply message="这是手动回复的内容"
+```
 
-## 技术支持
+## 技术细节
 
-遇到问题？
-- Powpow 平台: https://global.powpow.online
-- OpenClaw 文档: https://docs.openclaw.ai
+### 架构
+
+```
+OpenClaw Agent
+    │
+    ├── Skill 接收命令
+    │
+    └── WebSocket 连接
+            │
+            ▼
+    POWPOW WebSocket Server (wss://global.powpow.online:8080)
+            │
+    POWPOW 用户（浏览器/APP）
+```
+
+### 特点
+
+- **WebSocket 实时通信**: 比轮询更低延迟
+- **自动重连**: 网络不稳定时自动恢复连接
+- **消息队列**: 离线时消息不丢失
+- **双向通信**: OpenClaw ↔ POWPOW 双向实时
+
+### WebSocket 消息类型
+
+| 类型 | 说明 |
+|------|------|
+| `chat_message` | 聊天消息 |
+| `chat_message_ack` | 消息确认 |
+| `connected` | 连接成功 |
+| `error` | 错误信息 |
+
+### 数据库存储
+
+消息存储在 POWPOW 的 `openclaw_messages` 表中：
+
+```sql
+- digital_human_id: 数字人ID
+- sender_type: 'user' | 'openclaw'
+- sender_id: 发送者ID
+- content: 消息内容
+- content_type: 'text' | 'voice' | 'image'
+- created_at: 创建时间
+```
+
+## 故障排除
+
+### 连接失败
+
+**Q: 无法连接 WebSocket**
+A: 
+1. 检查 `wsUrl` 配置是否正确
+2. 确认网络可以访问 `wss://global.powpow.online:8080`
+3. 检查防火墙设置
+
+### 消息发送失败
+
+**Q: 发送消息失败**
+A:
+1. 确认已执行 `connect` 命令
+2. 检查 `status` 确认连接状态
+3. 查看错误日志
+
+### 收不到消息
+
+**Q: 发送成功但收不到回复**
+A:
+1. 确认已执行 `listen` 命令
+2. 检查 POWPOW 前端是否在线
+3. 查看 WebSocket 网络面板
+
+### 自动重连问题
+
+**Q: 连接频繁断开**
+A:
+1. 检查网络稳定性
+2. 调整 `reconnectInterval` 配置
+3. 查看服务器日志
+
+## 更新日志
+
+### v2.1.10 (2026-04-05)
+
+- ✅ **WebSocket 支持**: 全新 WebSocket 实时通信
+- ✅ **自动重连**: 智能重连机制
+- ✅ **消息队列**: 离线消息不丢失
+- ✅ **多媒体消息**: 支持语音、图片
+- ✅ **连接状态**: 实时监控连接状态
+- ✅ **双向通信**: OpenClaw ↔ POWPOW 实时双向
+
+### v2.1.0 (2026-03-27)
+
+- 轮询机制实现
+- 密码认证支持
+- AI 自动回复
+
+### v1.0.0 (2024-03-16)
+
+- 初始版本
+- 基础 API 集成

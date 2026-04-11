@@ -1,34 +1,40 @@
 /**
  * 常量定义
- * 集中管理所有魔法数字和配置
+ * 集中管理所有配置参数
  */
-export declare const RECONNECT_CONFIG: {
-    readonly MAX_ATTEMPTS: 5;
-    readonly BASE_DELAY: 5000;
-    readonly MAX_DELAY: 60000;
+export declare const WS_CONFIG: {
+    readonly DEFAULT_URL: "wss://global.powpow.online:8080";
+    readonly RECONNECT_INTERVAL: 3000;
+    readonly MAX_RECONNECT_ATTEMPTS: 10;
+    readonly HEARTBEAT_INTERVAL: 30000;
+    readonly CONNECTION_TIMEOUT: 10000;
 };
-export declare const SESSION_CONFIG: {
-    readonly TIMEOUT: number;
-    readonly CLEANUP_INTERVAL: number;
-};
-export declare const TIMEOUT_CONFIG: {
-    readonly DEFAULT: 30000;
-    readonly REGISTRATION: 10000;
-    readonly LOGIN: 10000;
-    readonly CHAT: 60000;
-    readonly BADGE_CHECK: 5000;
+export declare const MESSAGE_CONFIG: {
+    readonly MAX_LENGTH: 2000;
+    readonly QUEUE_SIZE: 100;
+    readonly BATCH_SIZE: 10;
 };
 export declare const VALIDATION_CONFIG: {
-    readonly USERNAME_MIN: 3;
-    readonly USERNAME_MAX: 50;
-    readonly PASSWORD_MIN: 8;
-    readonly PASSWORD_MAX: 128;
-    readonly NAME_MIN: 1;
-    readonly NAME_MAX: 100;
-    readonly DESCRIPTION_MAX: 500;
+    readonly DIGITAL_HUMAN_ID_MIN: 1;
+    readonly DIGITAL_HUMAN_ID_MAX: 100;
+    readonly USER_ID_MIN: 1;
+    readonly USER_ID_MAX: 100;
 };
-export declare const RATE_LIMIT_CONFIG: {
-    readonly MAX_ATTEMPTS: 5;
-    readonly WINDOW_MS: 60000;
+export declare const CONTENT_TYPES: {
+    readonly TEXT: "text";
+    readonly VOICE: "voice";
+    readonly IMAGE: "image";
+};
+export declare const SENDER_TYPES: {
+    readonly USER: "user";
+    readonly OPENCLAW: "openclaw";
+};
+export declare const WS_MESSAGE_TYPES: {
+    readonly CHAT_MESSAGE: "chat_message";
+    readonly CHAT_MESSAGE_ACK: "chat_message_ack";
+    readonly CONNECTED: "connected";
+    readonly ERROR: "error";
+    readonly PING: "ping";
+    readonly PONG: "pong";
 };
 //# sourceMappingURL=constants.d.ts.map

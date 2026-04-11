@@ -1,28 +1,31 @@
 {
-  "name": "openclaw-powpow-skill",
-  "version": "2.1.9",
-  "description": "OpenClaw Skill for Powpow - Digital human management on map",
-  "main": "scripts/powpow-client.ts",
+  "name": "openclaw-powpow-integration",
+  "version": "2.1.10",
+  "description": "OpenClaw Skill for POWPOW WebSocket real-time integration",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "dev": "tsx scripts/powpow-client.ts",
     "build": "tsc",
-    "lint": "eslint . --ext .ts"
+    "dev": "tsc --watch",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts"
   },
   "keywords": [
     "openclaw",
-    "powpow",
     "skill",
+    "powpow",
     "digital-human",
-    "map"
+    "websocket",
+    "real-time-chat"
   ],
-  "author": "",
+  "author": "durenzidu",
   "license": "MIT",
   "dependencies": {
-    "axios": "^1.6.0"
+    "ws": "^8.16.0"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "tsx": "^4.7.0",
-    "typescript": "^5"
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.0.0"
   }
 }

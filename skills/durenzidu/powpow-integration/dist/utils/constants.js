@@ -1,42 +1,49 @@
 "use strict";
 /**
  * 常量定义
- * 集中管理所有魔法数字和配置
+ * 集中管理所有配置参数
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RATE_LIMIT_CONFIG = exports.VALIDATION_CONFIG = exports.TIMEOUT_CONFIG = exports.SESSION_CONFIG = exports.RECONNECT_CONFIG = void 0;
-// 重连配置
-exports.RECONNECT_CONFIG = {
-    MAX_ATTEMPTS: 5,
-    BASE_DELAY: 5000, // 5秒
-    MAX_DELAY: 60000, // 60秒
+exports.WS_MESSAGE_TYPES = exports.SENDER_TYPES = exports.CONTENT_TYPES = exports.VALIDATION_CONFIG = exports.MESSAGE_CONFIG = exports.WS_CONFIG = void 0;
+// WebSocket 配置
+exports.WS_CONFIG = {
+    DEFAULT_URL: 'wss://global.powpow.online:8080',
+    RECONNECT_INTERVAL: 3000, // 3秒
+    MAX_RECONNECT_ATTEMPTS: 10,
+    HEARTBEAT_INTERVAL: 30000, // 30秒心跳
+    CONNECTION_TIMEOUT: 10000, // 10秒连接超时
 };
-// 会话配置
-exports.SESSION_CONFIG = {
-    TIMEOUT: 24 * 60 * 60 * 1000, // 24小时
-    CLEANUP_INTERVAL: 60 * 60 * 1000, // 1小时清理一次
-};
-// 请求超时配置
-exports.TIMEOUT_CONFIG = {
-    DEFAULT: 30000, // 30秒
-    REGISTRATION: 10000, // 10秒
-    LOGIN: 10000, // 10秒
-    CHAT: 60000, // 60秒（AI响应较慢）
-    BADGE_CHECK: 5000, // 5秒
+// 消息配置
+exports.MESSAGE_CONFIG = {
+    MAX_LENGTH: 2000, // 最大消息长度
+    QUEUE_SIZE: 100, // 消息队列最大长度
+    BATCH_SIZE: 10, // 批量发送大小
 };
 // 验证配置
 exports.VALIDATION_CONFIG = {
-    USERNAME_MIN: 3,
-    USERNAME_MAX: 50,
-    PASSWORD_MIN: 8,
-    PASSWORD_MAX: 128,
-    NAME_MIN: 1,
-    NAME_MAX: 100,
-    DESCRIPTION_MAX: 500,
+    DIGITAL_HUMAN_ID_MIN: 1,
+    DIGITAL_HUMAN_ID_MAX: 100,
+    USER_ID_MIN: 1,
+    USER_ID_MAX: 100,
 };
-// 速率限制配置
-exports.RATE_LIMIT_CONFIG = {
-    MAX_ATTEMPTS: 5,
-    WINDOW_MS: 60000, // 1分钟
+// 内容类型
+exports.CONTENT_TYPES = {
+    TEXT: 'text',
+    VOICE: 'voice',
+    IMAGE: 'image',
+};
+// 发送者类型
+exports.SENDER_TYPES = {
+    USER: 'user',
+    OPENCLAW: 'openclaw',
+};
+// WebSocket 消息类型
+exports.WS_MESSAGE_TYPES = {
+    CHAT_MESSAGE: 'chat_message',
+    CHAT_MESSAGE_ACK: 'chat_message_ack',
+    CONNECTED: 'connected',
+    ERROR: 'error',
+    PING: 'ping',
+    PONG: 'pong',
 };
 //# sourceMappingURL=constants.js.map

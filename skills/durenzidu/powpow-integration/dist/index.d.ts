@@ -1,259 +1,234 @@
 /**
- * OpenClaw POWPOW Integration Skill
+ * OpenClaw POWPOW Integration Skill v2.1.10
  *
- * 功能：
- * 1. POWPOW用户注册/登录
- * 2. 数字人创建与管理
- * 3. 与数字人实时通信
- *
- * 修复内容：
- * 1. 添加输入验证和XSS防护
- * 2. 添加速率限制
- * 3. 添加会话过期清理
- * 4. 优化错误处理
- * 5. 添加结构化日志
- *
- * @author OpenClaw Team
- * @version 1.1.0
+ * WebSocket-based real-time bidirectional chat with POWPOW digital humans
  */
-export interface PowpowSkillConfig {
-    powpowBaseUrl: string;
-    powpowApiKey?: string;
-    defaultLocation?: {
-        lat: number;
-        lng: number;
-        name: string;
-    };
+import { EventEmitter } from 'events';
+import { logger } from './utils/logger';
+interface PowPowConfig {
+    wsUrl: string;
+    digitalHumanId: string;
+    openclawUserId: string;
+    autoReconnect?: boolean;
+    reconnectInterval?: number;
+    maxReconnectAttempts?: number;
 }
-export declare class PowpowSkill implements Skill {
-    name: string;
-    description: string;
-    version: string;
-    private client;
+declare class PowPowSkill extends EventEmitter {
+    private ws;
     private config;
-    private userSessions;
-    private rateLimiter;
-    private cleanupInterval?;
-    private logger;
-    capabilities: ({
-        name: string;
-        description: string;
-        parameters: {
-            username: {
-                type: string;
-                required: boolean;
-                description: string;
-            };
-            email: {
-                type: string;
-                required: boolean;
-                description: string;
-            };
-            password: {
-                type: string;
-                required: boolean;
-                description: string;
-            };
-            name?: undefined;
-            description?: undefined;
-            lat?: undefined;
-            lng?: undefined;
-            locationName?: undefined;
-            dhId?: undefined;
-            message?: undefined;
-        };
-        handler: (params: {
-            username: string;
-            email: string;
-            password: string;
-        }, context: SkillContext) => Promise<string>;
-    } | {
-        name: string;
-        description: string;
-        parameters: {
-            username: {
-                type: string;
-                required: boolean;
-                description?: undefined;
-            };
-            password: {
-                type: string;
-                required: boolean;
-                description?: undefined;
-            };
-            email?: undefined;
-            name?: undefined;
-            description?: undefined;
-            lat?: undefined;
-            lng?: undefined;
-            locationName?: undefined;
-            dhId?: undefined;
-            message?: undefined;
-        };
-        handler: (params: {
-            username: string;
-            password: string;
-        }, context: SkillContext) => Promise<string>;
-    } | {
-        name: string;
-        description: string;
-        parameters: {
-            name: {
-                type: string;
-                required: boolean;
-                description: string;
-            };
-            description: {
-                type: string;
-                required: boolean;
-                description: string;
-            };
-            lat: {
-                type: string;
-                required: boolean;
-                description: string;
-            };
-            lng: {
-                type: string;
-                required: boolean;
-                description: string;
-            };
-            locationName: {
-                type: string;
-                required: boolean;
-                description: string;
-            };
-            username?: undefined;
-            email?: undefined;
-            password?: undefined;
-            dhId?: undefined;
-            message?: undefined;
-        };
-        handler: (params: {
-            name: string;
-            description: string;
-            lat?: number;
-            lng?: number;
-            locationName?: string;
-        }, context: SkillContext) => Promise<string>;
-    } | {
-        name: string;
-        description: string;
-        parameters: {
-            username?: undefined;
-            email?: undefined;
-            password?: undefined;
-            name?: undefined;
-            description?: undefined;
-            lat?: undefined;
-            lng?: undefined;
-            locationName?: undefined;
-            dhId?: undefined;
-            message?: undefined;
-        };
-        handler: (params: {}, context: SkillContext) => Promise<string>;
-    } | {
-        name: string;
-        description: string;
-        parameters: {
-            dhId: {
-                type: string;
-                required: boolean;
-                description: string;
-            };
-            message: {
-                type: string;
-                required: boolean;
-                description: string;
-            };
-            username?: undefined;
-            email?: undefined;
-            password?: undefined;
-            name?: undefined;
-            description?: undefined;
-            lat?: undefined;
-            lng?: undefined;
-            locationName?: undefined;
-        };
-        handler: (params: {
-            dhId: string;
-            message: string;
-        }, context: SkillContext) => Promise<string>;
-    } | {
-        name: string;
-        description: string;
-        parameters: {
-            dhId: {
-                type: string;
-                required: boolean;
-                description: string;
-            };
-            username?: undefined;
-            email?: undefined;
-            password?: undefined;
-            name?: undefined;
-            description?: undefined;
-            lat?: undefined;
-            lng?: undefined;
-            locationName?: undefined;
-            message?: undefined;
-        };
-        handler: (params: {
-            dhId: string;
-        }, context: SkillContext) => Promise<string>;
-    })[];
+    private isConnected;
+    private reconnectTimer;
+    private heartbeatTimer;
+    private messageQueue;
+    private connectionStartTime;
+    private reconnectAttempts;
+    private connectionTimeout;
+    constructor(config: PowPowConfig);
     /**
-     * Skill初始化
+     * Connect to POWPOW WebSocket server
      */
-    initialize(context: SkillContext): Promise<void>;
+    connect(): Promise<void>;
     /**
-     * 获取或创建用户会话
+     * Disconnect from WebSocket server
      */
-    private getSession;
+    disconnect(): void;
     /**
-     * 清理过期会话
+     * Cleanup resources
      */
-    private cleanupExpiredSessions;
+    private cleanup;
     /**
-     * 检查速率限制
+     * Start heartbeat
      */
-    private checkRateLimit;
+    private startHeartbeat;
     /**
-     * 处理用户注册
+     * Send chat message
      */
-    private handleRegister;
+    sendMessage(content: string, contentType?: 'text' | 'voice' | 'image', options?: {
+        mediaUrl?: string;
+        duration?: number;
+    }): boolean;
     /**
-     * 处理用户登录
+     * Quick reply
      */
-    private handleLogin;
+    reply(content: string): boolean;
     /**
-     * 处理创建数字人
+     * Send voice message
      */
-    private handleCreateDigitalHuman;
+    sendVoice(content: string, mediaUrl: string, duration: number): boolean;
     /**
-     * 处理列出数字人
+     * Send image message
      */
-    private handleListDigitalHumans;
+    sendImage(content: string, mediaUrl: string): boolean;
     /**
-     * 处理聊天
+     * Get connection status
      */
-    private handleChat;
+    getConnectionStatus(): {
+        connected: boolean;
+        digitalHumanId: string;
+        duration?: number;
+        reconnectAttempts: number;
+    };
     /**
-     * 处理续期
+     * Handle incoming messages
      */
-    private handleRenew;
+    private handleMessage;
     /**
-     * 处理检查徽章
+     * Flush queued messages
      */
-    private handleCheckBadges;
+    private flushMessageQueue;
     /**
-     * 处理帮助
+     * Schedule reconnection
      */
-    private handleHelp;
-    /**
-     * Skill清理
-     */
-    destroy(): Promise<void>;
+    private scheduleReconnect;
 }
-export default PowpowSkill;
+interface OpenClawContext {
+    userId: string;
+    config: any;
+    powpowSkill?: PowPowSkill;
+    emit: (event: string, data: any) => void;
+}
+declare const powpowSkillPlugin: {
+    name: string;
+    version: string;
+    description: string;
+    init(context: any): void;
+    destroy(): void;
+    commands: {
+        /**
+         * Connect to POWPOW
+         */
+        connect(params: {
+            digitalHumanId: string;
+            wsUrl?: string;
+        }, context: OpenClawContext): Promise<{
+            success: boolean;
+            error: string | undefined;
+            message?: undefined;
+            digitalHumanId?: undefined;
+        } | {
+            success: boolean;
+            message: string;
+            digitalHumanId: string;
+            error?: undefined;
+        }>;
+        /**
+         * Disconnect from POWPOW
+         */
+        disconnect(params: {}, context: OpenClawContext): {
+            success: boolean;
+            message: string;
+            error?: undefined;
+        } | {
+            success: boolean;
+            error: string;
+            message?: undefined;
+        };
+        /**
+         * Get connection status
+         */
+        status(params: {}, context: OpenClawContext): {
+            success: boolean;
+            status: string;
+            message: string;
+            digitalHumanId?: undefined;
+            duration?: undefined;
+            reconnectAttempts?: undefined;
+        } | {
+            success: boolean;
+            status: string;
+            digitalHumanId: string;
+            duration: number | undefined;
+            reconnectAttempts: number;
+            message: string;
+        };
+        /**
+         * Send message
+         */
+        send(params: {
+            message: string;
+            contentType?: string;
+        }, context: OpenClawContext): {
+            success: boolean;
+            error: string;
+            message?: undefined;
+        } | {
+            success: boolean;
+            message: string;
+            error?: undefined;
+        };
+        /**
+         * Quick reply
+         */
+        reply(params: {
+            message: string;
+        }, context: OpenClawContext): {
+            success: boolean;
+            error: string;
+            message?: undefined;
+        } | {
+            success: boolean;
+            message: string;
+            error?: undefined;
+        };
+        /**
+         * Send voice message
+         */
+        sendVoice(params: {
+            content: string;
+            mediaUrl: string;
+            duration: number;
+        }, context: OpenClawContext): {
+            success: boolean;
+            error: string;
+            message?: undefined;
+        } | {
+            success: boolean;
+            message: string;
+            error?: undefined;
+        };
+        /**
+         * Send image message
+         */
+        sendImage(params: {
+            content: string;
+            mediaUrl: string;
+        }, context: OpenClawContext): {
+            success: boolean;
+            error: string;
+            message?: undefined;
+        } | {
+            success: boolean;
+            message: string;
+            error?: undefined;
+        };
+        /**
+         * Start listening for messages
+         */
+        listen(params: {
+            autoReply?: boolean;
+        }, context: OpenClawContext): {
+            success: boolean;
+            error: string;
+            message?: undefined;
+        } | {
+            success: boolean;
+            message: string;
+            error?: undefined;
+        };
+        /**
+         * Stop listening for messages
+         */
+        stopListen(params: {}, context: OpenClawContext): {
+            success: boolean;
+            message: string;
+            error?: undefined;
+        } | {
+            success: boolean;
+            error: string;
+            message?: undefined;
+        };
+    };
+};
+export { PowPowSkill, powpowSkillPlugin, logger };
+export default powpowSkillPlugin;
 //# sourceMappingURL=index.d.ts.map

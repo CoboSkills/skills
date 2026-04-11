@@ -1,571 +1,588 @@
 "use strict";
-// @ts-nocheck
 /**
- * OpenClaw POWPOW Integration Skill
+ * OpenClaw POWPOW Integration Skill v2.1.10
  *
- * 功能：
- * 1. POWPOW用户注册/登录
- * 2. 数字人创建与管理
- * 3. 与数字人实时通信
- *
- * 修复内容：
- * 1. 添加输入验证和XSS防护
- * 2. 添加速率限制
- * 3. 添加会话过期清理
- * 4. 优化错误处理
- * 5. 添加结构化日志
- *
- * @author OpenClaw Team
- * @version 1.1.0
+ * WebSocket-based real-time bidirectional chat with POWPOW digital humans
  */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PowpowSkill = void 0;
-const powpow_client_1 = require("./powpow-client");
+exports.logger = exports.powpowSkillPlugin = exports.PowPowSkill = void 0;
+const events_1 = require("events");
+const ws_1 = __importDefault(require("ws"));
+const logger_1 = require("./utils/logger");
+Object.defineProperty(exports, "logger", { enumerable: true, get: function () { return logger_1.logger; } });
 const validator_1 = require("./utils/validator");
-const rate_limiter_1 = require("./utils/rate-limiter");
 const constants_1 = require("./utils/constants");
-class PowpowSkill {
-    name = 'powpow-integration';
-    description = 'Integration with POWPOW platform for digital human management and communication';
-    version = '1.1.0';
-    client;
-    config;
-    userSessions = new Map();
-    rateLimiter;
-    cleanupInterval;
-    logger;
-    // 能力定义
-    capabilities = [
-        {
-            name: 'register',
-            description: 'Register a new POWPOW account',
-            parameters: {
-                username: { type: 'string', required: true, description: 'Username for POWPOW (3-50 chars, alphanumeric)' },
-                email: { type: 'string', required: true, description: 'Valid email address' },
-                password: { type: 'string', required: true, description: 'Password (min 8 chars, must include uppercase, lowercase, number)' },
-            },
-            handler: this.handleRegister.bind(this),
-        },
-        {
-            name: 'login',
-            description: 'Login to existing POWPOW account',
-            parameters: {
-                username: { type: 'string', required: true },
-                password: { type: 'string', required: true },
-            },
-            handler: this.handleLogin.bind(this),
-        },
-        {
-            name: 'createDigitalHuman',
-            description: 'Create a digital human on POWPOW map (requires 2 badges)',
-            parameters: {
-                name: { type: 'string', required: true, description: 'Digital human name (1-100 chars)' },
-                description: { type: 'string', required: true, description: 'Description/personality (max 500 chars)' },
-                lat: { type: 'number', required: false, description: 'Latitude (-90 to 90)' },
-                lng: { type: 'number', required: false, description: 'Longitude (-180 to 180)' },
-                locationName: { type: 'string', required: false, description: 'Location name' },
-            },
-            handler: this.handleCreateDigitalHuman.bind(this),
-        },
-        {
-            name: 'listDigitalHumans',
-            description: 'List all your digital humans',
-            parameters: {},
-            handler: this.handleListDigitalHumans.bind(this),
-        },
-        {
-            name: 'chat',
-            description: 'Start chatting with a digital human',
-            parameters: {
-                dhId: { type: 'string', required: true, description: 'Digital human ID' },
-                message: { type: 'string', required: true, description: 'Message to send (max 2000 chars)' },
-            },
-            handler: this.handleChat.bind(this),
-        },
-        {
-            name: 'renew',
-            description: 'Renew a digital human for 30 days (requires 1 badge)',
-            parameters: {
-                dhId: { type: 'string', required: true, description: 'Digital human ID to renew' },
-            },
-            handler: this.handleRenew.bind(this),
-        },
-        {
-            name: 'checkBadges',
-            description: 'Check your badge balance',
-            parameters: {},
-            handler: this.handleCheckBadges.bind(this),
-        },
-        {
-            name: 'help',
-            description: 'Show available commands',
-            parameters: {},
-            handler: this.handleHelp.bind(this),
-        },
-    ];
-    /**
-     * Skill初始化
-     */
-    async initialize(context) {
-        this.config = context.getConfig('powpow');
-        if (!this.config?.powpowBaseUrl) {
-            throw new Error('POWPOW base URL is required in skill configuration');
+// ============================================================================
+// PowPowSkill Class
+// ============================================================================
+class PowPowSkill extends events_1.EventEmitter {
+    constructor(config) {
+        super();
+        this.ws = null;
+        this.isConnected = false;
+        this.reconnectTimer = null;
+        this.heartbeatTimer = null;
+        this.messageQueue = [];
+        this.connectionStartTime = null;
+        this.reconnectAttempts = 0;
+        this.connectionTimeout = null;
+        // 验证必要参数
+        const dhValidation = (0, validator_1.validateDigitalHumanId)(config.digitalHumanId);
+        if (!dhValidation.valid) {
+            throw new Error(`Invalid digitalHumanId: ${dhValidation.error}`);
         }
-        // 初始化日志
-        this.logger = {
-            debug: (msg, meta) => context.logger.debug(`[POWPOW] ${msg}`, meta),
-            info: (msg, meta) => context.logger.info(`[POWPOW] ${msg}`, meta),
-            warn: (msg, meta) => context.logger.warn(`[POWPOW] ${msg}`, meta),
-            error: (msg, err, meta) => context.logger.error(`[POWPOW] ${msg}`, err, meta),
+        const userValidation = (0, validator_1.validateUserId)(config.openclawUserId);
+        if (!userValidation.valid) {
+            throw new Error(`Invalid openclawUserId: ${userValidation.error}`);
+        }
+        const urlValidation = (0, validator_1.validateWebSocketUrl)(config.wsUrl);
+        if (!urlValidation.valid) {
+            throw new Error(`Invalid wsUrl: ${urlValidation.error}`);
+        }
+        this.config = {
+            autoReconnect: true,
+            reconnectInterval: constants_1.WS_CONFIG.RECONNECT_INTERVAL,
+            maxReconnectAttempts: constants_1.WS_CONFIG.MAX_RECONNECT_ATTEMPTS,
+            ...config,
         };
-        // 初始化客户端
-        this.client = new powpow_client_1.PowpowClient({
-            baseUrl: this.config.powpowBaseUrl,
-            apiKey: this.config.powpowApiKey,
-            logger: this.logger,
-        });
-        // 初始化速率限制器
-        this.rateLimiter = new rate_limiter_1.RateLimiter();
-        // 启动会话清理定时器
-        this.cleanupInterval = setInterval(() => {
-            this.cleanupExpiredSessions();
-        }, constants_1.SESSION_CONFIG.CLEANUP_INTERVAL);
-        this.logger.info('POWPOW skill initialized', {
-            baseUrl: this.config.powpowBaseUrl,
-            hasApiKey: !!this.config.powpowApiKey,
+        logger_1.logger.info('PowPowSkill initialized', {
+            digitalHumanId: config.digitalHumanId,
+            wsUrl: config.wsUrl,
         });
     }
     /**
-     * 获取或创建用户会话
+     * Connect to POWPOW WebSocket server
      */
-    getSession(userId) {
-        if (!this.userSessions.has(userId)) {
-            this.userSessions.set(userId, {
-                isChatting: false,
-                lastActivity: Date.now()
-            });
+    connect() {
+        return new Promise((resolve, reject) => {
+            if (this.isConnected) {
+                logger_1.logger.warn('Already connected');
+                resolve();
+                return;
+            }
+            try {
+                const wsUrl = `${this.config.wsUrl}?client=openclaw&digitalHumanId=${this.config.digitalHumanId}&userId=${this.config.openclawUserId}`;
+                logger_1.logger.info('Connecting to WebSocket:', wsUrl);
+                this.ws = new ws_1.default(wsUrl);
+                // 设置连接超时
+                this.connectionTimeout = setTimeout(() => {
+                    if (!this.isConnected) {
+                        logger_1.logger.error('Connection timeout');
+                        this.ws?.terminate();
+                        reject(new Error('Connection timeout'));
+                    }
+                }, constants_1.WS_CONFIG.CONNECTION_TIMEOUT);
+                this.ws.on('open', () => {
+                    logger_1.logger.info('WebSocket connected');
+                    this.isConnected = true;
+                    this.connectionStartTime = new Date();
+                    this.reconnectAttempts = 0;
+                    if (this.connectionTimeout) {
+                        clearTimeout(this.connectionTimeout);
+                        this.connectionTimeout = null;
+                    }
+                    this.startHeartbeat();
+                    this.emit('connected');
+                    this.flushMessageQueue();
+                    resolve();
+                });
+                this.ws.on('message', (data) => {
+                    try {
+                        const message = JSON.parse(data.toString());
+                        this.handleMessage(message);
+                    }
+                    catch (error) {
+                        logger_1.logger.error('Failed to parse message:', error);
+                        this.emit('error', new Error('Failed to parse message'));
+                    }
+                });
+                this.ws.on('close', (code, reason) => {
+                    logger_1.logger.info('WebSocket closed:', { code, reason: reason.toString() });
+                    this.cleanup();
+                    this.emit('disconnected', { code, reason: reason.toString() });
+                    if (this.config.autoReconnect && this.reconnectAttempts < (this.config.maxReconnectAttempts || constants_1.WS_CONFIG.MAX_RECONNECT_ATTEMPTS)) {
+                        this.scheduleReconnect();
+                    }
+                });
+                this.ws.on('error', (error) => {
+                    logger_1.logger.error('WebSocket error:', error);
+                    this.emit('error', error);
+                    reject(error);
+                });
+                this.ws.on('ping', () => {
+                    logger_1.logger.debug('Received ping');
+                    this.ws?.pong();
+                });
+                this.ws.on('pong', () => {
+                    logger_1.logger.debug('Received pong');
+                });
+            }
+            catch (error) {
+                logger_1.logger.error('Failed to create connection:', error);
+                reject(error);
+            }
+        });
+    }
+    /**
+     * Disconnect from WebSocket server
+     */
+    disconnect() {
+        logger_1.logger.info('Disconnecting...');
+        this.cleanup();
+        this.reconnectAttempts = this.config.maxReconnectAttempts || constants_1.WS_CONFIG.MAX_RECONNECT_ATTEMPTS; // 阻止自动重连
+    }
+    /**
+     * Cleanup resources
+     */
+    cleanup() {
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
+            this.reconnectTimer = null;
+        }
+        if (this.heartbeatTimer) {
+            clearInterval(this.heartbeatTimer);
+            this.heartbeatTimer = null;
+        }
+        if (this.connectionTimeout) {
+            clearTimeout(this.connectionTimeout);
+            this.connectionTimeout = null;
+        }
+        if (this.ws) {
+            try {
+                this.ws.close();
+            }
+            catch (error) {
+                logger_1.logger.error('Error closing WebSocket:', error);
+            }
+            this.ws = null;
+        }
+        this.isConnected = false;
+        this.connectionStartTime = null;
+    }
+    /**
+     * Start heartbeat
+     */
+    startHeartbeat() {
+        this.heartbeatTimer = setInterval(() => {
+            if (this.ws?.readyState === ws_1.default.OPEN) {
+                logger_1.logger.debug('Sending ping');
+                this.ws.ping();
+            }
+        }, constants_1.WS_CONFIG.HEARTBEAT_INTERVAL);
+    }
+    /**
+     * Send chat message
+     */
+    sendMessage(content, contentType = 'text', options) {
+        // 验证输入
+        const contentValidation = (0, validator_1.validateMessage)(content);
+        if (!contentValidation.valid) {
+            logger_1.logger.error('Invalid message content:', contentValidation.error);
+            throw new Error(contentValidation.error);
+        }
+        const typeValidation = (0, validator_1.validateContentType)(contentType);
+        if (!typeValidation.valid) {
+            logger_1.logger.error('Invalid content type:', typeValidation.error);
+            throw new Error(typeValidation.error);
+        }
+        // 验证多媒体参数
+        if (contentType === 'voice' || contentType === 'image') {
+            if (!options?.mediaUrl) {
+                throw new Error('mediaUrl is required for voice/image messages');
+            }
+            const urlValidation = (0, validator_1.validateMediaUrl)(options.mediaUrl);
+            if (!urlValidation.valid) {
+                throw new Error(urlValidation.error);
+            }
+        }
+        if (contentType === 'voice' && options?.duration !== undefined) {
+            const durationValidation = (0, validator_1.validateDuration)(options.duration);
+            if (!durationValidation.valid) {
+                throw new Error(durationValidation.error);
+            }
+        }
+        // 清理内容防止 XSS
+        const sanitizedContent = (0, validator_1.sanitizeString)(content);
+        const message = {
+            digitalHumanId: this.config.digitalHumanId,
+            senderType: constants_1.SENDER_TYPES.OPENCLAW,
+            senderId: this.config.openclawUserId,
+            content: sanitizedContent,
+            contentType,
+            ...options,
+            timestamp: new Date().toISOString(),
+        };
+        if (this.isConnected && this.ws?.readyState === ws_1.default.OPEN) {
+            try {
+                this.ws.send(JSON.stringify({
+                    type: constants_1.WS_MESSAGE_TYPES.CHAT_MESSAGE,
+                    data: message,
+                }));
+                logger_1.logger.info('Message sent');
+                return true;
+            }
+            catch (error) {
+                logger_1.logger.error('Failed to send message:', error);
+                this.messageQueue.push(message);
+                return false;
+            }
         }
         else {
-            // 更新活动时间
-            const session = this.userSessions.get(userId);
-            session.lastActivity = Date.now();
+            // 检查队列是否已满
+            if (this.messageQueue.length >= constants_1.MESSAGE_CONFIG.QUEUE_SIZE) {
+                logger_1.logger.error('Message queue is full');
+                throw new Error('Message queue is full');
+            }
+            this.messageQueue.push(message);
+            logger_1.logger.info('Message queued for later delivery');
+            return false;
         }
-        return this.userSessions.get(userId);
     }
     /**
-     * 清理过期会话
+     * Quick reply
      */
-    cleanupExpiredSessions() {
-        const now = Date.now();
-        let cleanedCount = 0;
-        for (const [userId, session] of this.userSessions.entries()) {
-            if (now - session.lastActivity > constants_1.SESSION_CONFIG.TIMEOUT) {
-                // 如果正在聊天，先断开连接
-                if (session.isChatting) {
-                    this.client.disconnect();
+    reply(content) {
+        return this.sendMessage(content, constants_1.CONTENT_TYPES.TEXT);
+    }
+    /**
+     * Send voice message
+     */
+    sendVoice(content, mediaUrl, duration) {
+        return this.sendMessage(content, constants_1.CONTENT_TYPES.VOICE, { mediaUrl, duration });
+    }
+    /**
+     * Send image message
+     */
+    sendImage(content, mediaUrl) {
+        return this.sendMessage(content, constants_1.CONTENT_TYPES.IMAGE, { mediaUrl });
+    }
+    /**
+     * Get connection status
+     */
+    getConnectionStatus() {
+        let duration;
+        if (this.connectionStartTime) {
+            duration = Date.now() - this.connectionStartTime.getTime();
+        }
+        return {
+            connected: this.isConnected,
+            digitalHumanId: this.config.digitalHumanId,
+            duration,
+            reconnectAttempts: this.reconnectAttempts,
+        };
+    }
+    /**
+     * Handle incoming messages
+     */
+    handleMessage(message) {
+        logger_1.logger.debug('Received message:', message.type);
+        switch (message.type) {
+            case constants_1.WS_MESSAGE_TYPES.CONNECTED:
+                logger_1.logger.info('Connection confirmed:', message.data);
+                this.emit('connectionConfirmed', message.data);
+                break;
+            case constants_1.WS_MESSAGE_TYPES.CHAT_MESSAGE:
+                this.emit('message', message.data);
+                break;
+            case constants_1.WS_MESSAGE_TYPES.CHAT_MESSAGE_ACK:
+                logger_1.logger.info('Message delivered:', message.data);
+                this.emit('messageAck', message.data);
+                break;
+            case constants_1.WS_MESSAGE_TYPES.ERROR:
+                logger_1.logger.error('Server error:', message.data);
+                this.emit('serverError', message.data);
+                break;
+            case constants_1.WS_MESSAGE_TYPES.PING:
+                logger_1.logger.debug('Received ping from server');
+                break;
+            case constants_1.WS_MESSAGE_TYPES.PONG:
+                logger_1.logger.debug('Received pong from server');
+                break;
+            default:
+                logger_1.logger.warn('Unknown message type:', message.type);
+        }
+    }
+    /**
+     * Flush queued messages
+     */
+    flushMessageQueue() {
+        if (this.messageQueue.length === 0)
+            return;
+        logger_1.logger.info(`Flushing ${this.messageQueue.length} queued messages`);
+        while (this.messageQueue.length > 0) {
+            const message = this.messageQueue.shift();
+            if (message && this.ws?.readyState === ws_1.default.OPEN) {
+                try {
+                    this.ws.send(JSON.stringify({
+                        type: constants_1.WS_MESSAGE_TYPES.CHAT_MESSAGE,
+                        data: message,
+                    }));
                 }
-                this.userSessions.delete(userId);
-                cleanedCount++;
-            }
-        }
-        if (cleanedCount > 0) {
-            this.logger.info(`Cleaned up ${cleanedCount} expired sessions`);
-        }
-    }
-    /**
-     * 检查速率限制
-     */
-    checkRateLimit(userId, action) {
-        if (!this.rateLimiter.isAllowed(userId)) {
-            const resetTime = this.rateLimiter.getResetTime(userId);
-            const waitSeconds = resetTime ? Math.ceil((resetTime - Date.now()) / 1000) : 60;
-            return `❌ Rate limit exceeded. Please try again in ${waitSeconds} seconds.`;
-        }
-        return null;
-    }
-    /**
-     * 处理用户注册
-     */
-    async handleRegister(params, context) {
-        // 速率限制检查
-        const rateLimitError = this.checkRateLimit(context.userId, 'register');
-        if (rateLimitError)
-            return rateLimitError;
-        // 验证用户名
-        const usernameValidation = validator_1.Validator.validateUsername(params.username);
-        if (!usernameValidation.valid) {
-            return `❌ ${usernameValidation.error}`;
-        }
-        // 验证邮箱
-        const emailValidation = validator_1.Validator.validateEmail(params.email);
-        if (!emailValidation.valid) {
-            return `❌ ${emailValidation.error}`;
-        }
-        // 验证密码
-        const passwordValidation = validator_1.Validator.validatePassword(params.password);
-        if (!passwordValidation.valid) {
-            return `❌ ${passwordValidation.error}`;
-        }
-        this.logger.info('Processing registration', {
-            username: params.username,
-            email: params.email,
-            openclawUserId: context.userId
-        });
-        try {
-            const result = await this.client.registerUser({
-                username: validator_1.Validator.sanitizeString(params.username),
-                email: validator_1.Validator.sanitizeString(params.email),
-                password: params.password, // 密码不清理，会被哈希
-                source: 'openclaw',
-                openclawUserId: context.userId,
-            });
-            // 保存会话
-            const session = this.getSession(context.userId);
-            session.powpowUserId = result.userId;
-            session.powpowToken = result.token;
-            this.client.setAuthToken(result.token);
-            // 清除速率限制记录（注册成功）
-            this.rateLimiter.clearForKey(context.userId);
-            this.logger.info('Registration successful', {
-                powpowUserId: result.userId,
-                openclawUserId: context.userId
-            });
-            return `✅ Registration successful!\n` +
-                `👤 User ID: ${result.userId}\n` +
-                `🏅 Initial badges: ${result.badges.count}\n` +
-                `\nYou can now create digital humans using the 'createDigitalHuman' command.`;
-        }
-        catch (error) {
-            if (error instanceof powpow_client_1.PowpowAPIError) {
-                this.logger.error('Registration failed', error, {
-                    username: params.username,
-                    status: error.statusCode
-                });
-                return `❌ Registration failed: ${error.message}`;
-            }
-            this.logger.error('Unexpected registration error', error);
-            return '❌ An unexpected error occurred during registration.';
-        }
-    }
-    /**
-     * 处理用户登录
-     */
-    async handleLogin(params, context) {
-        // 速率限制检查
-        const rateLimitError = this.checkRateLimit(context.userId, 'login');
-        if (rateLimitError)
-            return rateLimitError;
-        // 验证用户名
-        const usernameValidation = validator_1.Validator.validateUsername(params.username);
-        if (!usernameValidation.valid) {
-            return `❌ ${usernameValidation.error}`;
-        }
-        // 验证密码存在
-        if (!params.password || params.password.length < 1) {
-            return '❌ Password is required';
-        }
-        this.logger.info('Processing login', {
-            username: params.username,
-            openclawUserId: context.userId
-        });
-        try {
-            const result = await this.client.loginUser({
-                username: validator_1.Validator.sanitizeString(params.username),
-                password: params.password,
-            });
-            // 保存会话
-            const session = this.getSession(context.userId);
-            session.powpowUserId = result.userId;
-            session.powpowToken = result.token;
-            this.client.setAuthToken(result.token);
-            // 清除速率限制记录（登录成功）
-            this.rateLimiter.clearForKey(context.userId);
-            this.logger.info('Login successful', {
-                powpowUserId: result.userId,
-                openclawUserId: context.userId
-            });
-            return `✅ Login successful!\n` +
-                `👤 User ID: ${result.userId}\n` +
-                `🏅 Available badges: ${result.badges.count}`;
-        }
-        catch (error) {
-            if (error instanceof powpow_client_1.PowpowAPIError) {
-                this.logger.warn('Login failed', {
-                    username: params.username,
-                    status: error.statusCode
-                });
-                return `❌ Login failed: ${error.message}`;
-            }
-            this.logger.error('Unexpected login error', error);
-            return '❌ An unexpected error occurred during login.';
-        }
-    }
-    /**
-     * 处理创建数字人
-     */
-    async handleCreateDigitalHuman(params, context) {
-        const session = this.getSession(context.userId);
-        // 检查是否已登录
-        if (!session.powpowUserId) {
-            return '⚠️ Please login first using: login username=<your_username> password=<your_password>';
-        }
-        // 验证名称
-        const nameValidation = validator_1.Validator.validateDigitalHumanName(params.name);
-        if (!nameValidation.valid) {
-            return `❌ ${nameValidation.error}`;
-        }
-        // 验证描述
-        const descValidation = validator_1.Validator.validateDescription(params.description);
-        if (!descValidation.valid) {
-            return `❌ ${descValidation.error}`;
-        }
-        // 验证坐标
-        const lat = params.lat ?? this.config.defaultLocation?.lat ?? 39.9042;
-        const lng = params.lng ?? this.config.defaultLocation?.lng ?? 116.4074;
-        const coordValidation = validator_1.Validator.validateCoordinates(lat, lng);
-        if (!coordValidation.valid) {
-            return `❌ ${coordValidation.error}`;
-        }
-        const locationName = params.locationName
-            ? validator_1.Validator.sanitizeString(params.locationName)
-            : this.config.defaultLocation?.name ?? 'Beijing';
-        this.logger.info('Creating digital human', {
-            name: params.name,
-            userId: session.powpowUserId
-        });
-        try {
-            const dh = await this.client.createDigitalHuman({
-                name: validator_1.Validator.sanitizeString(params.name),
-                description: validator_1.Validator.sanitizeString(params.description),
-                lat,
-                lng,
-                locationName,
-                userId: session.powpowUserId,
-            });
-            // 保存当前数字人
-            session.currentDigitalHuman = dh;
-            this.logger.info('Digital human created', {
-                dhId: dh.id,
-                name: dh.name
-            });
-            return `✅ Digital human created successfully!\n` +
-                `🎭 Name: ${dh.name}\n` +
-                `🆔 ID: ${dh.id}\n` +
-                `📍 Location: ${dh.locationName} (${dh.lat}, ${dh.lng})\n` +
-                `⏰ Expires at: ${new Date(dh.expiresAt).toLocaleString()}\n` +
-                `\nYou can now chat with it using: chat dhId=${dh.id} message=<your_message>`;
-        }
-        catch (error) {
-            if (error instanceof powpow_client_1.PowpowAPIError) {
-                if (error.statusCode === 402) {
-                    return `❌ ${error.message}\n\n` +
-                        `You can check your badge balance using: checkBadges`;
+                catch (error) {
+                    logger_1.logger.error('Failed to send queued message:', error);
+                    // 放回队列开头
+                    this.messageQueue.unshift(message);
+                    break;
                 }
-                this.logger.error('Failed to create digital human', error);
-                return `❌ Failed to create digital human: ${error.message}`;
             }
-            this.logger.error('Unexpected error creating digital human', error);
-            return '❌ An unexpected error occurred.';
         }
     }
     /**
-     * 处理列出数字人
+     * Schedule reconnection
      */
-    async handleListDigitalHumans(params, context) {
-        const session = this.getSession(context.userId);
-        if (!session.powpowUserId) {
-            return '⚠️ Please login first using: login username=<your_username> password=<your_password>';
+    scheduleReconnect() {
+        if (this.reconnectTimer) {
+            clearTimeout(this.reconnectTimer);
         }
-        try {
-            const dhs = await this.client.getUserDigitalHumans(session.powpowUserId);
-            if (dhs.length === 0) {
-                return '📭 You have no digital humans yet.\n' +
-                    'Create one using: createDigitalHuman name=<name> description=<description>';
-            }
-            let response = `🎭 You have ${dhs.length} digital human(s):\n\n`;
-            dhs.forEach((dh, index) => {
-                const daysLeft = Math.ceil((new Date(dh.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-                const status = dh.isActive ? '✅' : '❌';
-                response += `${index + 1}. ${status} ${dh.name}\n` +
-                    `   ID: ${dh.id}\n` +
-                    `   📍 ${dh.locationName}\n` +
-                    `   ⏰ ${daysLeft} days left\n` +
-                    `   💬 Chat: chat dhId=${dh.id} message=hello\n\n`;
+        this.reconnectAttempts++;
+        const delay = Math.min(this.config.reconnectInterval * Math.pow(2, this.reconnectAttempts - 1), 30000 // 最大30秒
+        );
+        logger_1.logger.info(`Reconnecting in ${delay}ms... (attempt ${this.reconnectAttempts})`);
+        this.emit('reconnecting', { attempt: this.reconnectAttempts, delay });
+        this.reconnectTimer = setTimeout(() => {
+            this.connect().catch((error) => {
+                logger_1.logger.error('Reconnection failed:', error);
             });
-            return response;
-        }
-        catch (error) {
-            if (error instanceof powpow_client_1.PowpowAPIError) {
-                this.logger.error('Failed to list digital humans', error);
-                return `❌ Failed to list digital humans: ${error.message}`;
-            }
-            this.logger.error('Unexpected error listing digital humans', error);
-            return '❌ An unexpected error occurred.';
-        }
-    }
-    /**
-     * 处理聊天
-     */
-    async handleChat(params, context) {
-        const session = this.getSession(context.userId);
-        if (!session.powpowUserId) {
-            return '⚠️ Please login first';
-        }
-        // 验证数字人ID
-        const dhIdValidation = validator_1.Validator.validateDigitalHumanId(params.dhId);
-        if (!dhIdValidation.valid) {
-            return `❌ ${dhIdValidation.error}`;
-        }
-        // 验证消息
-        const messageValidation = validator_1.Validator.validateMessage(params.message);
-        if (!messageValidation.valid) {
-            return `❌ ${messageValidation.error}`;
-        }
-        // 如果已经在聊天中，先断开
-        if (session.isChatting) {
-            this.client.disconnect();
-            session.isChatting = false;
-        }
-        this.logger.info('Starting chat', {
-            dhId: params.dhId,
-            userId: session.powpowUserId
-        });
-        try {
-            // 建立SSE连接
-            this.client.connectToDigitalHuman(params.dhId, (message) => {
-                // 收到数字人回复，通过OpenClaw发送给用户
-                context.sendMessage({
-                    content: message.content,
-                    metadata: {
-                        sender: 'digital_human',
-                        timestamp: message.timestamp,
-                    },
-                });
-            }, (error) => {
-                this.logger.error('Chat connection error', error, { dhId: params.dhId });
-                context.sendMessage({
-                    content: '⚠️ Connection lost. Please try again.',
-                });
-                session.isChatting = false;
-            });
-            session.isChatting = true;
-            // 发送用户消息
-            await this.client.sendMessage(params.dhId, params.message);
-            return `💬 Message sent to digital human. Waiting for response...`;
-        }
-        catch (error) {
-            session.isChatting = false;
-            if (error instanceof powpow_client_1.PowpowAPIError) {
-                this.logger.error('Chat failed', error, { dhId: params.dhId });
-                return `❌ Chat failed: ${error.message}`;
-            }
-            this.logger.error('Unexpected chat error', error, { dhId: params.dhId });
-            return '❌ An unexpected error occurred.';
-        }
-    }
-    /**
-     * 处理续期
-     */
-    async handleRenew(params, context) {
-        const session = this.getSession(context.userId);
-        if (!session.powpowUserId) {
-            return '⚠️ Please login first';
-        }
-        // 验证数字人ID
-        const dhIdValidation = validator_1.Validator.validateDigitalHumanId(params.dhId);
-        if (!dhIdValidation.valid) {
-            return `❌ ${dhIdValidation.error}`;
-        }
-        this.logger.info('Renewing digital human', {
-            dhId: params.dhId,
-            userId: session.powpowUserId
-        });
-        try {
-            const dh = await this.client.renewDigitalHuman(params.dhId);
-            this.logger.info('Digital human renewed', {
-                dhId: params.dhId,
-                newExpiry: dh.expiresAt
-            });
-            return `✅ Digital human renewed successfully!\n` +
-                `🎭 Name: ${dh.name}\n` +
-                `⏰ New expiration: ${new Date(dh.expiresAt).toLocaleString()}\n` +
-                `📅 Extended by 30 days`;
-        }
-        catch (error) {
-            if (error instanceof powpow_client_1.PowpowAPIError) {
-                if (error.statusCode === 402) {
-                    return `❌ ${error.message}`;
-                }
-                this.logger.error('Failed to renew digital human', error);
-                return `❌ Failed to renew: ${error.message}`;
-            }
-            this.logger.error('Unexpected error renewing digital human', error);
-            return '❌ An unexpected error occurred.';
-        }
-    }
-    /**
-     * 处理检查徽章
-     */
-    async handleCheckBadges(params, context) {
-        const session = this.getSession(context.userId);
-        if (!session.powpowUserId) {
-            return '⚠️ Please login first';
-        }
-        try {
-            const badges = await this.client.checkBadges(session.powpowUserId);
-            return `🏅 Your badge balance:\n` +
-                `   Count: ${badges.count}\n` +
-                `   Type: ${badges.type}\n\n` +
-                `💡 You need:\n` +
-                `   • 2 badges to create a digital human\n` +
-                `   • 1 badge to renew a digital human`;
-        }
-        catch (error) {
-            if (error instanceof powpow_client_1.PowpowAPIError) {
-                this.logger.error('Failed to check badges', error);
-                return `❌ Failed to check badges: ${error.message}`;
-            }
-            this.logger.error('Unexpected error checking badges', error);
-            return '❌ An unexpected error occurred.';
-        }
-    }
-    /**
-     * 处理帮助
-     */
-    async handleHelp(params, context) {
-        return `🎭 POWPOW Digital Human Skill - Available Commands\n\n` +
-            `Authentication:\n` +
-            `  • register username=<name> email=<email> password=<pwd> - Create new account\n` +
-            `  • login username=<name> password=<pwd> - Login to existing account\n\n` +
-            `Digital Human Management:\n` +
-            `  • createDigitalHuman name=<name> description=<desc> [lat=<lat> lng=<lng>] - Create (2 badges)\n` +
-            `  • listDigitalHumans - List all your digital humans\n` +
-            `  • renew dhId=<id> - Renew for 30 days (1 badge)\n\n` +
-            `Communication:\n` +
-            `  • chat dhId=<id> message=<text> - Chat with a digital human\n\n` +
-            `Account:\n` +
-            `  • checkBadges - Check your badge balance\n` +
-            `  • help - Show this help message`;
-    }
-    /**
-     * Skill清理
-     */
-    async destroy() {
-        // 停止会话清理定时器
-        if (this.cleanupInterval) {
-            clearInterval(this.cleanupInterval);
-            this.cleanupInterval = undefined;
-        }
-        // 断开所有SSE连接
-        this.client.disconnect();
-        // 清理会话
-        this.userSessions.clear();
-        // 清理速率限制记录
-        this.rateLimiter.clear();
-        this.logger.info('POWPOW skill destroyed');
+        }, delay);
     }
 }
-exports.PowpowSkill = PowpowSkill;
-// 导出Skill类
-exports.default = PowpowSkill;
+exports.PowPowSkill = PowPowSkill;
+const powpowSkillPlugin = {
+    name: 'powpow-integration',
+    version: '2.1.10',
+    description: 'POWPOW WebSocket Integration - Real-time bidirectional chat with POWPOW digital humans',
+    init(context) {
+        logger_1.logger.info('Plugin initialized');
+        context.powpowConfig = {
+            defaultWsUrl: constants_1.WS_CONFIG.DEFAULT_URL,
+            autoReconnect: true,
+            reconnectInterval: constants_1.WS_CONFIG.RECONNECT_INTERVAL,
+            maxReconnectAttempts: constants_1.WS_CONFIG.MAX_RECONNECT_ATTEMPTS,
+        };
+    },
+    destroy() {
+        logger_1.logger.info('Plugin destroyed');
+    },
+    commands: {
+        /**
+         * Connect to POWPOW
+         */
+        async connect(params, context) {
+            try {
+                const wsUrl = params.wsUrl || context.config?.wsUrl || constants_1.WS_CONFIG.DEFAULT_URL;
+                // 验证参数
+                const dhValidation = (0, validator_1.validateDigitalHumanId)(params.digitalHumanId);
+                if (!dhValidation.valid) {
+                    return { success: false, error: dhValidation.error };
+                }
+                const skill = new PowPowSkill({
+                    wsUrl,
+                    digitalHumanId: params.digitalHumanId,
+                    openclawUserId: context.userId,
+                    autoReconnect: true,
+                    reconnectInterval: constants_1.WS_CONFIG.RECONNECT_INTERVAL,
+                    maxReconnectAttempts: constants_1.WS_CONFIG.MAX_RECONNECT_ATTEMPTS,
+                });
+                skill.on('message', (message) => {
+                    context.emit('powpow.message.received', message);
+                });
+                skill.on('error', (error) => {
+                    context.emit('powpow.error', error);
+                });
+                skill.on('reconnecting', (data) => {
+                    context.emit('powpow.reconnecting', data);
+                });
+                await skill.connect();
+                context.powpowSkill = skill;
+                return {
+                    success: true,
+                    message: 'Connected to POWPOW',
+                    digitalHumanId: params.digitalHumanId,
+                };
+            }
+            catch (error) {
+                logger_1.logger.error('Connect command failed:', error);
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                };
+            }
+        },
+        /**
+         * Disconnect from POWPOW
+         */
+        disconnect(params, context) {
+            const skill = context.powpowSkill;
+            if (skill) {
+                skill.disconnect();
+                delete context.powpowSkill;
+                return { success: true, message: 'Disconnected from POWPOW' };
+            }
+            return { success: false, error: 'Not connected' };
+        },
+        /**
+         * Get connection status
+         */
+        status(params, context) {
+            const skill = context.powpowSkill;
+            if (!skill) {
+                return { success: false, status: 'disconnected', message: 'Not connected' };
+            }
+            const status = skill.getConnectionStatus();
+            return {
+                success: true,
+                status: status.connected ? 'connected' : 'disconnected',
+                digitalHumanId: status.digitalHumanId,
+                duration: status.duration,
+                reconnectAttempts: status.reconnectAttempts,
+                message: status.connected ? 'Connected' : 'Disconnected',
+            };
+        },
+        /**
+         * Send message
+         */
+        send(params, context) {
+            try {
+                const skill = context.powpowSkill;
+                if (!skill) {
+                    return { success: false, error: 'Not connected to POWPOW' };
+                }
+                const contentType = (params.contentType || 'text');
+                const sent = skill.sendMessage(params.message, contentType);
+                return {
+                    success: sent,
+                    message: sent ? 'Message sent' : 'Message queued for delivery',
+                };
+            }
+            catch (error) {
+                logger_1.logger.error('Send command failed:', error);
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                };
+            }
+        },
+        /**
+         * Quick reply
+         */
+        reply(params, context) {
+            try {
+                const skill = context.powpowSkill;
+                if (!skill) {
+                    return { success: false, error: 'Not connected to POWPOW' };
+                }
+                const sent = skill.reply(params.message);
+                return {
+                    success: sent,
+                    message: sent ? 'Reply sent' : 'Reply queued for delivery',
+                };
+            }
+            catch (error) {
+                logger_1.logger.error('Reply command failed:', error);
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                };
+            }
+        },
+        /**
+         * Send voice message
+         */
+        sendVoice(params, context) {
+            try {
+                const skill = context.powpowSkill;
+                if (!skill) {
+                    return { success: false, error: 'Not connected to POWPOW' };
+                }
+                const sent = skill.sendVoice(params.content, params.mediaUrl, params.duration);
+                return {
+                    success: sent,
+                    message: sent ? 'Voice message sent' : 'Voice message queued',
+                };
+            }
+            catch (error) {
+                logger_1.logger.error('SendVoice command failed:', error);
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                };
+            }
+        },
+        /**
+         * Send image message
+         */
+        sendImage(params, context) {
+            try {
+                const skill = context.powpowSkill;
+                if (!skill) {
+                    return { success: false, error: 'Not connected to POWPOW' };
+                }
+                const sent = skill.sendImage(params.content, params.mediaUrl);
+                return {
+                    success: sent,
+                    message: sent ? 'Image sent' : 'Image queued',
+                };
+            }
+            catch (error) {
+                logger_1.logger.error('SendImage command failed:', error);
+                return {
+                    success: false,
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                };
+            }
+        },
+        /**
+         * Start listening for messages
+         */
+        listen(params, context) {
+            const skill = context.powpowSkill;
+            if (!skill) {
+                return { success: false, error: 'Not connected to POWPOW' };
+            }
+            skill.on('message', (message) => {
+                logger_1.logger.info('Received message:', message);
+                context.emit('powpow.message.received', message);
+                if (params.autoReply) {
+                    const reply = generateAutoReply(message.content);
+                    skill.reply(reply);
+                }
+            });
+            return { success: true, message: 'Started listening for messages' };
+        },
+        /**
+         * Stop listening for messages
+         */
+        stopListen(params, context) {
+            const skill = context.powpowSkill;
+            if (skill) {
+                skill.removeAllListeners('message');
+                return { success: true, message: 'Stopped listening for messages' };
+            }
+            return { success: false, error: 'Not connected' };
+        },
+    },
+};
+exports.powpowSkillPlugin = powpowSkillPlugin;
+/**
+ * Auto-reply generator
+ */
+function generateAutoReply(content) {
+    const replies = {
+        '你好': '你好！很高兴为你服务 😊',
+        '嗨': '嗨！有什么可以帮助你的吗？',
+        '帮助': '我可以帮你：\n1. 回答问题\n2. 提供信息\n3. 协助完成任务',
+        '谢谢': '不客气！随时为你服务。',
+        '再见': '再见！期待下次交流 👋',
+    };
+    for (const [keyword, reply] of Object.entries(replies)) {
+        if (content.includes(keyword)) {
+            return reply;
+        }
+    }
+    return '收到你的消息了！我会尽快处理。';
+}
+exports.default = powpowSkillPlugin;
 //# sourceMappingURL=index.js.map

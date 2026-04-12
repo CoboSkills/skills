@@ -1,56 +1,37 @@
 ---
-name: qualcomm
-description: "Information assistant for Qualcomm. Search products, news, financials, and official resources for Qualcomm."
-metadata:
-  { "openclaw": { "emoji": "🏢", "version": "0.1.0", "author": "hanxueyuan", "tags": ["brand","qualcomm","enterprise-info"] } }
+summary: "Qualcomm 高通 - 美国通信芯片公司技能"
+read_when:
+  - 用户需要查询 Qualcomm 产品信息
+  - 用户询问手机芯片
+  - 用户需要 5G/通信建议
 ---
 
-# Qualcomm — Information Assistant
+# Qualcomm 高通技能
 
-Query products, news, stock prices, financial reports, and official resources for **Qualcomm**.
+## 技能描述
+Qualcomm（高通）是美国知名半导体和通信公司，全球领先的移动芯片、5G 技术、无线通信专利持有者。本技能帮助用户查询 Qualcomm 产品、技术信息。
 
-## About
+## 核心功能
+- 📱 **产品查询**：骁龙处理器、5G 芯片、Wi-Fi 芯片
+- 📊 **技术信息**：5G、AI、物联网技术
+- 📅 **新品发布**：最新产品资讯
+- 💰 **价格查询**：产品价格范围
+- 🌟 **产品系列**：Snapdragon、Hexagon、Adreno 等
+- 📡 **专利技术**：CDMA、5G 专利授权
 
-- **Company**: Qualcomm
-- **Industry**: Mobile chips, 5G
-- **Official Website**: https://www.qualcomm.com
+## 使用场景
+- 查询高通最新产品
+- 了解手机芯片性能
+- 了解 5G 技术
+- 对比其他芯片厂商
+- 获取技术信息
 
-## What This Skill Does
+## 注意事项
+- Qualcomm 是美国半导体公司
+- 成立于 1985 年，总部位于加州
+- 全球最大移动通信芯片供应商
 
-When activated, this skill helps you:
-
-1. **Product Search** — Find and compare Qualcomm products, pricing, and availability
-2. **News & Updates** — Get the latest news, press releases, and announcements
-3. **Financial Info** — Stock price, market cap, earnings reports (for public companies)
-4. **Official Resources** — Direct links to official websites, support pages, and documentation
-5. **Competitor Comparison** — Compare with competitors in the same industry
-
-## Usage Examples
-
-- "What are the latest Qualcomm products?"
-- "Show me Qualcomm stock price"
-- "Compare Qualcomm with competitors"
-- "Find Qualcomm official support page"
-- "What's new at Qualcomm?"
-
-## How It Works
-
-This skill uses web search to fetch real-time information about Qualcomm from:
-- Official website: https://www.qualcomm.com
-- Financial data providers
-- News aggregators
-- Product databases
-
-## Instructions for Agent
-
-When this skill is triggered:
-1. Identify the user's specific query about Qualcomm
-2. Use web search tools to find current information
-3. Prioritize official sources (https://www.qualcomm.com)
-4. Present results in a structured, easy-to-read format
-5. Include direct links to sources
-
-## Author
-
-Created by hanxueyuan | Part of the Agent Commerce ecosystem
-License: MIT
+## 相关技能
+- amd - AMD
+- intel - 英特尔
+- nvidia - 英伟达

@@ -4,12 +4,15 @@ An AI Agent Skill for searching and matching domestic maids from [Sunrise Link](
 
 This skill lets AI agents (Claude, Cursor, GitHub Copilot, etc.) query available maid candidates on behalf of employers, filtering by budget, skills, nationality, and more.
 
+## Installation
+
+```bash
+npx skills add https://github.com/sunrise-link/sg-maid-search
+```
+
 ## Quick Start
 
 ```bash
-# Clone the skill
-git clone https://github.com/sunriselink/sg-maid-search.git
-
 # Search for Filipino maids with infant care experience, SGD 600–700/month
 node scripts/search_maids.mjs '{"nationality":"Philippines","minSalary":600,"maxSalary":700,"needsInfantCare":true}'
 ```

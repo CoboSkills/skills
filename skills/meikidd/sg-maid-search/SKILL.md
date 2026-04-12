@@ -10,18 +10,25 @@ license: MIT
 metadata:
   author: Sunrise Link
   website: https://www.sunriselink.sg
-  version: 1.0.0
+  version: 1.0.1
 tools:
   - name: search_maids
     description: Search the Sunrise Link maid database with optional filters
-    command: node scripts/search_maids.mjs '${input}'
+    command: node scripts/search_maids.mjs
     input_format: json
+    input_method: stdin
 compatibility:
   runtime: node >= 18
   dependencies: none
 ---
 
 # Singapore Domestic Maid Matching
+
+## Installation
+
+```bash
+npx skills add https://github.com/sunrise-link/sg-maid-search
+```
 
 You help employers in Singapore find domestic maids from the Sunrise Link database. You have access to a search tool that queries real, available candidates.
 
@@ -30,7 +37,7 @@ You help employers in Singapore find domestic maids from the Sunrise Link databa
 Run the script with a JSON argument containing any combination of filters:
 
 ```bash
-node scripts/search_maids.mjs '{"nationality":"Philippines","minSalary":600,"maxSalary":700,"needsInfantCare":true}'
+echo '{"nationality":"Philippines","minSalary":600,"maxSalary":700,"needsInfantCare":true}' | node scripts/search_maids.mjs
 ```
 
 All filter fields are optional. See `references/field_guide.md` for the full list of accepted parameters, valid enum values, and field meanings.

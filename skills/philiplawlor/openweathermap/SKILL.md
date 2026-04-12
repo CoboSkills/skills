@@ -1,6 +1,14 @@
 ---
 name: openweathermap
 description: Get current weather data, forecasts, and weather information from OpenWeatherMap API. Use when the user asks about weather, temperature, forecasts, or any weather-related queries for any location. Supports both metric (Celsius, m/s, hPa) and imperial (Fahrenheit, mph, inHg) units. Requires an OpenWeatherMap API key from https://home.openweathermap.org/api_keys
+metadata:
+  openclaw:
+    requires:
+      env:
+        - OPENWEATHERMAP_API_KEY
+      files:
+        - ~/.openweathermap
+    primaryEnv: OPENWEATHERMAP_API_KEY
 ---
 
 # OpenWeatherMap Weather Skill
@@ -9,9 +17,9 @@ description: Get current weather data, forecasts, and weather information from O
 
 Get your free API key from: https://home.openweathermap.org/api_keys
 
-Store your API key securely:
-1. Check environment variable `$OPENWEATHERMAP_API_KEY`
-2. Check `~/.openweathermap`
+Store your API key securely (the skill checks these in order):
+1. Environment variable `$OPENWEATHERMAP_API_KEY`
+2. File `~/.openweathermap` (should contain just the API key, one line)
 3. Ask the user for their API key
 
 ## Current Weather API

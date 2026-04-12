@@ -3,11 +3,16 @@
   "slug": "markdown-ai-rewriter",
   "displayName": "Markdown Ai Rewriter Skill",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1775466844447,
-    "commit": "https://github.com/openclaw/skills/commit/775fd1d37915c56c42545bc0edd9f4ea05f144c5"
+    "version": "1.2.2",
+    "publishedAt": 1775874327310,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1775466844447,
+      "commit": "https://github.com/openclaw/skills/commit/775fd1d37915c56c42545bc0edd9f4ea05f144c5"
+    },
     {
       "version": "0.3.6",
       "publishedAt": 1774956220488,

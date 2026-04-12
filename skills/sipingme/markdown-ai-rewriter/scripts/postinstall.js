@@ -12,7 +12,7 @@ const RESET = '\x1b[0m';
 const BOLD = '\x1b[1m';
 
 console.log(`
-${BOLD}${GREEN}✅ markdown-ai-rewriter@^1.0.0 安装成功！${RESET}
+${BOLD}${GREEN}✅ markdown-ai-rewriter@1.2.3 安装成功！${RESET}
 
 ${BOLD}📋 可用功能：${RESET}
    ${CYAN}--rewrite${RESET}         启用文章改写（润色、降重、换风格）

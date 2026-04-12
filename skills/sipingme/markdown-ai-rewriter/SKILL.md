@@ -1,7 +1,7 @@
 ---
 name: markdown-ai-rewriter
-description: 基于 markdown-ai-rewriter 的 Markdown AI 改写 Skill（保留结构、章节/全文模式、多模型、图片生成、视频生成）
-version: 1.1.0
+description: 基于 markdown-ai-rewriter 的 Markdown AI 改写 Skill（保留结构、章节/全文模式、多模型、图片生成、视频生成、音乐生成）
+version: 1.2.3
 author: Ping Si <sipingme@gmail.com>
 user-invocable: true
 requires:
@@ -42,12 +42,13 @@ tags:
   - minimax
   - video
   - image
+  - music
 repository: https://github.com/sipingme/markdown-ai-rewriter
 ---
 
 # Markdown AI Rewriter Skill
 
-本 Skill 对应 npm 包 **[markdown-ai-rewriter](https://www.npmjs.com/package/markdown-ai-rewriter)**（当前对齐 **v1.1.0**）：在 **尽量保留标题、代码块、表格、图片等结构** 的前提下，用大模型改写正文（润色、降重、换风格等），并支持 **图片生成**（图生图）和 **视频生成**（文生视频）。
+本 Skill 对应 npm 包 **[markdown-ai-rewriter](https://www.npmjs.com/package/markdown-ai-rewriter)**（当前对齐 **v1.2.3**）：在 **尽量保留标题、代码块、表格、图片等结构** 的前提下，用大模型改写正文（润色、降重、换风格等），并支持 **图片生成**（图生图）、**视频生成**（文生视频）和 **音乐生成**（文生音乐）。
 
 ## 🚀 安装后快速开始
 
@@ -81,6 +82,7 @@ md-rewrite rewrite -i article.md -o out.md -p openai -v
 - **多模型一套命令**：同一 CLI 只换 `-p` 和环境变量，就能切换 11 个 Provider。
 - **图片生成**：支持 MiniMax、OpenAI、Gemini、豆包等图片生成。
 - **视频生成**：支持 MiniMax Hailuo、豆包 Seedance、可灵、Runway 等视频生成。
+- **音乐生成**：支持 MiniMax Music 2.5+ 音乐生成（纯音乐/带歌词）。
 - **可落地到流水线**：适合接在抓取、清洗、发布前的"内容标准化"环节。
 
 ## 最适合的使用场景
@@ -88,7 +90,7 @@ md-rewrite rewrite -i article.md -o out.md -p openai -v
 - 你已经有 Markdown 初稿，要做润色/降重/统一风格；
 - 你在做批量内容处理，希望速度和费用可控；
 - 你需要兼顾国内外多个模型平台，在可用性和成本之间灵活切换；
-- 你需要为文章自动生成配图或视频。
+- 你需要为文章自动生成配图、视频或背景音乐。
 
 ---
 
@@ -101,6 +103,7 @@ md-rewrite rewrite -i article.md -o out.md -p openai -v
 | 模型 | **OpenAI**、**Anthropic**、**Azure OpenAI**、**Gemini**、**DeepSeek**、**OpenRouter**、**Qwen**、**GLM**、**豆包**、**文心**、**MiniMax**。 |
 | 图片生成 | 支持 MiniMax、OpenAI、Gemini、豆包、Nano-Banana 等。 |
 | 视频生成 | 支持 MiniMax Hailuo、豆包 Seedance 2.0/1.5/1.0、可灵、Runway Gen-4.5。 |
+| 音乐生成 | 支持 MiniMax Music 2.5+（纯音乐/带歌词/自动歌词）。 |
 | 章节模式 | 按标题分章并行改写；**`-c / --concurrency` 对章节模式生效**。 |
 | CLI 版本号 | 从安装的包的 `package.json` 读取，与 npm 版本一致。 |
 
@@ -257,6 +260,26 @@ export RUNWAY_API_KEY="..."
 md-rewrite rewrite -i input.md -o out.md -p openai --generate-video --video-provider runway
 ```
 
+### 音乐生成
+
+```bash
+# 纯音乐（无人声）- 从 prompt 生成
+export MINIMAX_API_KEY="..."
+md-rewrite music --prompt "Indie folk, melancholic, introspective" --instrumental -o bgm.mp3
+
+# 带歌词的歌曲
+md-rewrite music --prompt "Pop, upbeat, energetic" --lyrics "[verse]\nHello world\n[chorus]\nLa la la" -o song.mp3
+
+# 从文件读取歌词
+md-rewrite music --prompt "Rock, powerful" --lyrics-file lyrics.txt -o song.mp3
+
+# 自动生成歌词（从 prompt 自动生成）
+md-rewrite music --prompt "Jazz, smooth, romantic" --auto-lyrics -o song.mp3
+
+# 从 Markdown 生成背景音乐
+md-rewrite music -i article.md --instrumental -o bgm.mp3 -v
+```
+
 ### 组合使用
 
 ```bash
@@ -354,7 +377,7 @@ markdown-ai-rewrite rewrite -i article.md -o article-rewritten.md -p openai -s c
 
 | 项目 | 值 |
 |------|-----|
-| 对齐包版本 | 0.5.2 |
+| 对齐包版本 | 1.2.3 |
 | 仓库 | https://github.com/sipingme/markdown-ai-rewriter |
 | npm | https://www.npmjs.com/package/markdown-ai-rewriter |
 | 许可证 | MIT |

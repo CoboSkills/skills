@@ -1,7 +1,7 @@
 {
   "skill": {
     "name": "markdown-ai-rewriter",
-    "version": "1.1.0",
+    "version": "1.2.3",
     "enabled": true,
     "autoInvoke": true
   },
@@ -44,15 +44,16 @@
     ]
   },
   "install": {
-    "type": "npx",
+    "type": "npm-global",
     "package": "markdown-ai-rewriter",
-    "version": "^1.1.0",
-    "execution": "npx --yes markdown-ai-rewriter@^1.1.0",
-    "global": false,
+    "version": "1.2.3",
+    "command": "npm install -g markdown-ai-rewriter@1.2.3",
+    "binary": "md-rewrite",
+    "global": true,
     "autoInstall": false,
     "autoUpdate": false,
-    "riskLevel": "moderate",
-    "riskReason": "通过 npx 动态拉取并执行第三方 npm 包，存在供应链风险。使用前请审计源码。",
+    "riskLevel": "low",
+    "riskReason": "通过 npm 全局安装第三方包。安装前请审计源码。",
     "requiresApproval": true,
     "source": {
       "type": "npm",
@@ -63,15 +64,15 @@
       "audit": "https://github.com/sipingme/markdown-ai-rewriter/blob/main/src/index.ts"
     },
     "verification": {
-      "command": "npx --yes markdown-ai-rewriter@^1.1.0 --version",
-      "expectedOutput": "1.1"
+      "command": "md-rewrite --version",
+      "expectedOutput": "1.2.3"
     }
   },
   "dependencies": {
     "npm": [
-      "markdown-ai-rewriter@^1.1.0"
+      "markdown-ai-rewriter@1.2.3"
     ],
-    "note": "Package is executed via npx at runtime, no global installation required"
+    "note": "Package is installed globally via npm. Binary: md-rewrite"
   },
   "permissions": {
     "filesystem": {

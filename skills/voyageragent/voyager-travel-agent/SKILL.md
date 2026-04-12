@@ -30,6 +30,11 @@ Load the reference file to get the detailed workflow for each sub-skill.
 
 **API Key**: This skill works without any API key for trial usage. For enhanced results with higher QPS, API key application is required (feature under development).
 
+## Data & Privacy
+
+**External Service Calls**: This skill invokes tools that make network requests to Alipay+ travel service endpoints. User query data (dates, cities, search terms) will be transmitted to these external services.
+**Privacy Notice**: By using this skill, you acknowledge that your travel search queries will be processed by Alipay+ servers to provide recommendations.
+
 ## Output Guidelines
 
 Present results in markdown format.

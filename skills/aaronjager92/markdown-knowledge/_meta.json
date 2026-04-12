@@ -3,11 +3,16 @@
   "slug": "markdown-knowledge",
   "displayName": "markdownknowledge",
   "latest": {
-    "version": "1.1.1",
-    "publishedAt": 1774955874141,
-    "commit": "https://github.com/openclaw/skills/commit/a1923234768abdf9e56771b39adffbe9a536b953"
+    "version": "1.1.2",
+    "publishedAt": 1775525679742,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.1",
+      "publishedAt": 1774955874141,
+      "commit": "https://github.com/openclaw/skills/commit/a1923234768abdf9e56771b39adffbe9a536b953"
+    },
     {
       "version": "1.1.0",
       "publishedAt": 1774528331765,

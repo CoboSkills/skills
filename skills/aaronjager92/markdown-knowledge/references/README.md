@@ -24,7 +24,7 @@ clawhub install markdown-knowledge
 # 或手动安装
 git clone https://github.com/your-repo/markdown-knowledge.git
 cd markdown-knowledge
-cp -r . ~/.openclaw/skills/markdown-knowledge
+cp -r . ~/.openclaw/workspace/skills/markdown-knowledge
 ```
 
 ---
@@ -33,12 +33,12 @@ cp -r . ~/.openclaw/skills/markdown-knowledge
 
 ### 1. 配置知识库路径
 
-编辑 `~/.openclaw/skills/markdown-knowledge/config.json`：
+编辑 `~/.openclaw/workspace/skills/markdown-knowledge/config.json`：
 
 ```json
 {
     "knowledge_path": "~/Knowledge",
-    "index_path": "~/.openclaw/skills/markdown-knowledge/index.json",
+    "index_path": "~/.openclaw/workspace/skills/markdown-knowledge/index.json",
     "search_top_k": 3,
     "auto_refresh": true
 }
@@ -156,7 +156,7 @@ created: 2024-01-15
 | 参数 | 类型 | 默认值 | 说明 |
 |------|------|--------|------|
 | `knowledge_path` | string | `~/Knowledge` | Markdown 文档目录 |
-| `index_path` | string | `~/.openclaw/skills/markdown-knowledge/index.json` | 索引文件路径 |
+| `index_path` | string | `~/.openclaw/workspace/skills/markdown-knowledge/index.json` | 索引文件路径 |
 | `search_top_k` | number | `3` | 返回结果数量 |
 | `auto_refresh` | boolean | `true` | 自动刷新索引 |
 

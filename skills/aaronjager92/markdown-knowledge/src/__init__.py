@@ -1,7 +1,7 @@
 # Markdown Knowledge Base for OpenClaw
 # 将您的 Markdown 知识库与 OpenClaw 无缝集成
 
-__version__ = '1.1.0'
+__version__ = '1.1.1'
 __author__ = 'aaronjager92'
 __license__ = 'MIT'
 
@@ -10,9 +10,6 @@ from .knowledge_core import DocumentParser, IndexBuilder, KnowledgeSearcher
 
 # OpenClaw 动作
 from .actions import action_search, action_build, action_stats, action_check
-
-# 全局记忆（可选功能）
-from .global_memory import GlobalMemory
 
 # 配置
 from .config import load_config, resolve_index_path, get_default_config
@@ -31,8 +28,6 @@ __all__ = [
     'action_build',
     'action_stats',
     'action_check',
-    # 全局记忆
-    'GlobalMemory',
     # 配置工具
     'load_config',
     'resolve_index_path',

@@ -17,6 +17,56 @@ from src.knowledge_core import IndexBuilder, KnowledgeSearcher
 from src.config import load_config, resolve_index_path
 
 
+def ensure_ripgrep():
+    """检测 ripgrep，不存在则自动安装（跨平台）"""
+    import platform, subprocess, shutil, urllib.request, tarfile, zipfile, os
+    
+    if shutil.which('rg'):
+        return True
+    
+    system = platform.system().lower()   # linux/darwin/windows
+    machine = platform.machine().lower() # aarch64/x86_64/armv7
+    
+    # 构建下载 URL
+    base = "https://github.com/BurntSushi/ripgrep/releases/download/14.1.4"
+    
+    if system == 'linux':
+        if machine == 'aarch64':
+            url = f"{base}/ripgrep-14.1.4-aarch64-unknown-linux-gnu.tar.gz"
+        else:
+            url = f"{base}/ripgrep-14.1.4-x86_64-unknown-linux-musl.tar.gz"
+    elif system == 'darwin':
+        if machine == 'aarch64':
+            url = f"{base}/ripgrep-14.1.4-aarch64-apple-darwin.tar.gz"
+        else:
+            url = f"{base}/ripgrep-14.1.4-x86_64-apple-darwin.tar.gz"
+    elif system == 'windows':
+        url = f"{base}/ripgrep-14.1.4-x86_64-pc-windows-msvc.zip"
+    else:
+        return False
+    
+    install_dir = Path.home() / '.local' / 'bin'
+    install_dir.mkdir(parents=True, exist_ok=True)
+    
+    try:
+        print(f"正在下载 ripgrep...")
+        urllib.request.urlretrieve(url, '/tmp/rg_install.tar.gz')
+        if system == 'windows':
+            with zipfile.ZipFile('/tmp/rg_install.tar.gz', 'r') as z:
+                z.extractall(install_dir)
+        else:
+            with tarfile.open('/tmp/rg_install.tar.gz', 'r:gz') as t:
+                t.extractall('/tmp')
+                rg_bin = Path('/tmp/rg-*')[0] / 'rg'
+                shutil.copy(rg_bin, install_dir / 'rg')
+        Path(install_dir / 'rg').chmod(0o755)
+        print(f"ripgrep 已安装到 {install_dir / 'rg'}")
+        return True
+    except Exception as e:
+        print(f"ripgrep 安装失败: {e}")
+        return False
+
+
 def cmd_build():
     """构建索引命令"""
     config = load_config()
@@ -81,6 +131,7 @@ def cmd_stats():
 
 def cmd_init(knowledge_path: str = None):
     """初始化命令"""
+    ensure_ripgrep()
     if knowledge_path:
         path = Path(knowledge_path).expanduser()
     else:

@@ -184,9 +184,21 @@ class IndexBuilder:
 
     def scan_documents(self) -> List[Dict]:
         """扫描知识库目录"""
+        import subprocess
         documents = []
-
-        for md_file in self.knowledge_path.rglob("*.md"):
+        
+        try:
+            # 用 ripgrep 获取所有 md 文件
+            result = subprocess.run(
+                ['rg', '--files', str(self.knowledge_path)],
+                capture_output=True, text=True, check=True
+            )
+            file_paths = [Path(p.strip()) for p in result.stdout.strip().split('\n') if p.strip()]
+        except (subprocess.CalledProcessError, FileNotFoundError):
+            # fallback：ripgrep 不可用时用原方案
+            file_paths = self.knowledge_path.rglob("*.md")
+        
+        for md_file in file_paths:
             if any(pattern in md_file.parts for pattern in self.exclude_patterns):
                 continue
 

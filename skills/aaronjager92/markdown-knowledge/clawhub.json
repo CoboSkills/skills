@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/openclaw/clawhub/main/schemas/skill.json",
   "name": "markdown-knowledge",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "display_name": {
     "zh_CN": "Markdown 知识库",
     "en_US": "Markdown Knowledge Base"
@@ -145,6 +145,13 @@
   ],
   "screenshots": [],
   "changelog": {
+    "1.1.2": {
+      "date": "2026-04-04",
+      "changes": {
+        "zh_CN": "【BUG修复】移除 global_memory 模块（未打包导致 import 报错）\n【路径修复】SKILL_DIR 改为动态检测，解决 clawhub 安装到 workspace/skills 后路径失效问题\n【索引优化】build 时改用 ripgrep 扫描文件列表，加速索引构建\n【自动安装】init 命令新增 ripgrep 自动检测和安装（跨平台支持 Linux/macOS/Windows）",
+        "en_US": "【BUG Fix】Removed global_memory module (missing file caused import error)\n【Path Fix】SKILL_DIR now auto-detects actual install path, fixing workspace/skills installation issue\n【Index Optimize】build uses ripgrep for file scanning, faster indexing\n【Auto Install】init now auto-detects and installs ripgrep (cross-platform: Linux/macOS/Windows)"
+      }
+    },
     "1.1.0": {
       "date": "2026-03-26",
       "changes": {

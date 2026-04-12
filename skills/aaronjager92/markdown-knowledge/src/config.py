@@ -9,15 +9,18 @@ import json
 from pathlib import Path
 from typing import Dict, List
 
-# 固定路径常量
-SKILL_DIR = Path.home() / '.openclaw' / 'skills' / 'markdown-knowledge'
+# 动态检测实际安装路径（兼容 clawhub 安装到 workspace/skills）
+_SELF_DIR = Path(__file__).parent.parent
+SKILL_DIR = _SELF_DIR
 OLD_SKILL_DIR = Path.home() / '.openclaw' / 'knowledge-base'
+WORKSPACE_SKILL_DIR = Path.home() / '.openclaw' / 'workspace' / 'skills' / 'markdown-knowledge'
 
 
 def get_config_paths() -> List[Path]:
     """返回配置文件的搜索路径列表（按优先级）"""
     return [
         SKILL_DIR / 'config.json',
+        WORKSPACE_SKILL_DIR / 'config.json',
         OLD_SKILL_DIR / 'config.json',
     ]
 
@@ -26,6 +29,7 @@ def get_index_paths() -> List[Path]:
     """返回索引文件的搜索路径列表（按优先级）"""
     return [
         SKILL_DIR / 'index.json',
+        WORKSPACE_SKILL_DIR / 'index.json',
         OLD_SKILL_DIR / 'index.json',
     ]
 
@@ -50,7 +54,7 @@ def load_config() -> Dict:
     """
     for config_path in get_config_paths():
         if config_path.exists():
-            if 'knowledge-base' in str(config_path):
+            if config_path == OLD_SKILL_DIR / 'config.json':
                 print(f"⚠️ 检测到旧版配置路径: {config_path}")
                 print(f"   建议迁移至: {SKILL_DIR / 'config.json'}")
             with open(config_path, 'r', encoding='utf-8') as f:

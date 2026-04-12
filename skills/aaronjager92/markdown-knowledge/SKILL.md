@@ -3,7 +3,7 @@ name: markdown-knowledge
 description: 将本地 Markdown 知识库与 OpenClaw 集成，支持语义检索和上下文注入。仅在用户触发时检索（搜索知识库、查一下知识库等），不主动注入。
 description_zh: 将本地 Markdown 知识库与 OpenClaw 集成，支持语义检索和上下文注入。仅在用户触发时检索，不主动注入。
 author: aaronjager92
-version: 1.1.1
+version: 1.1.2
 license: MIT
 homepage: 
 tags:
@@ -84,18 +84,18 @@ results = action_search("用户问题关键词")
 
 ```bash
 clawhub install markdown-knowledge
-python3 ~/.openclaw/skills/markdown-knowledge/scripts/knowledge_base.py init
-python3 ~/.openclaw/skills/markdown-knowledge/scripts/knowledge_base.py build
+python3 ~/.openclaw/workspace/skills/markdown-knowledge/scripts/knowledge_base.py init
+python3 ~/.openclaw/workspace/skills/markdown-knowledge/scripts/knowledge_base.py build
 ```
 
 ## 配置
 
-编辑 `~/.openclaw/skills/markdown-knowledge/config.json`：
+编辑 `~/.openclaw/workspace/skills/markdown-knowledge/config.json`：
 
 ```json
 {
     "knowledge_path": "~/Knowledge",
-    "index_path": "~/.openclaw/skills/markdown-knowledge/index.json",
+    "index_path": "~/.openclaw/workspace/skills/markdown-knowledge/index.json",
     "search_top_k": 3,
     "auto_refresh": false
 }
@@ -112,15 +112,15 @@ python3 ~/.openclaw/skills/markdown-knowledge/scripts/knowledge_base.py build
 ```
 markdown-knowledge/
 ├── SKILL.md
+├── clawhub.json            # clawhub 元数据
 ├── scripts/
-│   ├── knowledge_base.py    # CLI 入口
-│   └── knowledge_base.py     # 主脚本
+│   └── knowledge_base.py   # CLI 入口
 ├── src/
 │   ├── __init__.py
 │   ├── config.py           # 配置加载
 │   ├── actions.py          # OpenClaw 动作
 │   └── knowledge_core.py   # 核心检索逻辑
 ├── references/
-│   └── PROJECT.md          # 详细文档
+│   └── README.md          # 详细文档
 └── assets/
 ```

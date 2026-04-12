@@ -3,11 +3,16 @@
   "slug": "dexatel",
   "displayName": "Dexatel",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775167960983,
-    "commit": "https://github.com/openclaw/skills/commit/2fa1415c762aa48f8426b09ad0d66e23df997e60"
+    "version": "1.0.2",
+    "publishedAt": 1775167962776,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775167960983,
+      "commit": "https://github.com/openclaw/skills/commit/2fa1415c762aa48f8426b09ad0d66e23df997e60"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774553043837,

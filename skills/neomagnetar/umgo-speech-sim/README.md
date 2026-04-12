@@ -24,12 +24,23 @@ This is a style layer inspired by the conversational warmth, cadence, readabilit
 
 It is not affiliated with or endorsed by OpenAI.
 
-## Activation
-Use:
+## Invocation
+Recommended invocation:
+
+```text
+/skill umgo-sim
+```
+
+Direct alias:
 
 ```text
 /umgo-sim
 ```
+
+Compatibility note:
+- some OpenClaw surfaces may not expose or dispatch dedicated per-skill slash aliases consistently
+- if the direct alias does not trigger, use `/skill umgo-sim`
+- this is usually a surface/runtime dispatch difference, not a packaging defect
 
 ## Style target
 This skill leans into a strong user-preferred speech simulation by reinforcing:
@@ -48,5 +59,5 @@ This skill leans into a strong user-preferred speech simulation by reinforcing:
 - Slug: `umgo-speech-sim`
 - Internal skill name / slash command: `umgo-sim`
 - Skill key: `umgo-speech-sim`
-- Version: `3.0.0`
+- Version: `3.0.2`
 - Tag: `latest`

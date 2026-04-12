@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.2
+- Clarified invocation guidance across OpenClaw surfaces
+- Documented `/skill umgo-sim` as the recommended invocation path
+- Documented `/umgo-sim` as a direct alias that may depend on surface support
+- Clarified that direct alias failures are usually surface/runtime dispatch differences, not a packaging defect
+- No intended functional behavior change; documentation and release metadata only
+
 ## 3.0.0
 - Renamed package to `umgo-speech-sim`
 - Updated public display name to `UMGo Speech Sim`

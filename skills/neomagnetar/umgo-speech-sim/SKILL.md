@@ -1,7 +1,7 @@
 ---
 name: umgo-sim
 description: Invoke a strong UMGo speech simulation surface with explicit slash activation, affirmation-led cadence, readable flow, and GPT-4o-inspired conversational polish.
-version: 3.0.0
+version: "3.0.2"
 user-invocable: true
 disable-model-invocation: true
 metadata: {"openclaw":{"emoji":"💬","skillKey":"umgo-speech-sim"}}

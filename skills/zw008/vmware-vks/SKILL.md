@@ -4,7 +4,8 @@ description: >
   Use this skill whenever the user needs to manage Tanzu Kubernetes (VKS) on vSphere — Supervisor clusters, vSphere Namespaces, and TKC cluster lifecycle.
   Directly handles: check VKS compatibility, create/delete namespaces, create/scale/upgrade/delete TKC clusters, get kubeconfig, check Harbor registry.
   Always use this skill for "create Kubernetes cluster", "scale workers", "upgrade K8s version", "create namespace", "get kubeconfig", or any Tanzu/VKS/TKC task.
-  For VM operations use vmware-aiops, for networking use vmware-nsx. For load balancing/AVI/AKO use vmware-avi.
+  Do NOT use for vanilla VM operations (use vmware-aiops), non-Tanzu Kubernetes (e.g., kubeadm, EKS, AKS), or AVI/AKO load balancing (use vmware-avi).
+  For networking use vmware-nsx.
 installer:
   kind: uv
   package: vmware-vks
@@ -121,7 +122,7 @@ Supervisor Cluster → vSphere Namespaces → TanzuKubernetesCluster
 | Cloud models (Claude, GPT-4o) | Either | MCP gives structured JSON I/O |
 | Automated pipelines | **MCP** | Type-safe parameters, structured output |
 
-## MCP Tools (20)
+## MCP Tools (20 — 12 read, 8 write)
 
 All accept optional `target` parameter to specify a named vCenter.
 

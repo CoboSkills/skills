@@ -3,11 +3,16 @@
   "slug": "vmware-vks",
   "displayName": "Vmware Vks",
   "latest": {
-    "version": "1.4.9",
-    "publishedAt": 1775914349824,
-    "commit": "https://github.com/openclaw/skills/commit/013c44a40d05d2f6534ca867ee3424d2dfec7708"
+    "version": "1.5.0",
+    "publishedAt": 1775969817803,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.9",
+      "publishedAt": 1775914349824,
+      "commit": "https://github.com/openclaw/skills/commit/013c44a40d05d2f6534ca867ee3424d2dfec7708"
+    },
     {
       "version": "1.4.6",
       "publishedAt": 1775440493502,

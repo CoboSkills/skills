@@ -2,7 +2,7 @@
 
 This folder contains a publishable skill package for the AlphaLens API.
 
-**Note:** This skill requires an active [AlphaLens subscription](https://alphalens.ai) with API access. Contact sales@alphalens.ai for pricing.
+**Note:** This skill requires an active [AlphaLens subscription](https://alphalens.ai) with API access. Contact contact@alphalens.ai for pricing.
 
 ## Contents
 

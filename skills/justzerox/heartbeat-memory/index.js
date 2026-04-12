@@ -924,15 +924,21 @@ async function processSessions(sessions_list_fn, sessions_history_fn, sessions_s
     console.log('⏭️  配置未变更，跳过 HEARTBEAT.md 同步');
   }
 
+  // ========== 步骤 5.6：加载自身 subagent 追踪列表 ==========
+  const ownSubagentIds = new Set(state.ownSubagentIds || []);
+  if (ownSubagentIds.size > 0) {
+    console.log(`🔍 已追踪 ${ownSubagentIds.size} 个自身 subagent IDs`);
+  }
+
   // ========== 步骤 6：过滤新 sessions + 字段兼容性检查 ==========
   const processedIdsArray = Array.isArray(state.processedSessions) ? state.processedSessions : Object.keys(state.processedSessions);
   const processedIdsSet = new Set(processedIdsArray);
-  const { validSessions, newSessions, skippedCount } = filterSessions(sessions, processedIdsSet, config);
+  const { validSessions, newSessions, skippedCount } = filterSessions(sessions, processedIdsSet, config, ownSubagentIds);
 
   console.log(`📊 新 sessions: ${newSessions.length} 个`);
 
   // ========== 步骤 6.5：【新增】检测活跃 session（已处理 session 的新消息） ==========
-  const activeSessions = detectActiveSessions(sessions, state.processedSessions);
+  const activeSessions = detectActiveSessions(sessions, state.processedSessions, ownSubagentIds);
   console.log(`📊 活跃 sessions: ${activeSessions.length} 个`);
 
   // Issue #9 修复：限制单次处理数量
@@ -999,8 +1005,14 @@ async function processSessions(sessions_list_fn, sessions_history_fn, sessions_s
               runtime: 'subagent',
               mode: 'run',
               // 使用配置的 timeout，默认 1000 秒（防止 subagent 超时）
-              timeoutSeconds: config.memorySave?.timeoutSeconds || DEFAULT_CONFIG.memorySave.timeoutSeconds
+              timeoutSeconds: config.memorySave?.timeoutSeconds || DEFAULT_CONFIG.memorySave.timeoutSeconds,
+              // 执行完毕后自动删除 subagent session，避免残留导致下一轮 heartbeat 被误处理
+              cleanup: 'delete'
             });
+            // 追踪自身产生的 subagent session ID（防止下一轮被当作新 session 处理）
+            if (llmResult && llmResult.sessionId) {
+              ownSubagentIds.add(llmResult.sessionId);
+            }
             const parsed = parseLLMResult(llmResult);
             if (parsed) {
               summary = parsed;
@@ -1083,14 +1095,20 @@ async function processSessions(sessions_list_fn, sessions_history_fn, sessions_s
     }
   }
 
-  // ========== 步骤 9：写入 Daily 笔记 ==========
+  // ========== 步骤 9：写入 Daily 笔记（带空转保护） ==========
   if (summaries.length > 0) {
-    const today = new Date().toISOString().split('T')[0];
-    const noteContent = generateDailyNote(summaries, today);
-    const result = writeDailyNote(noteContent, today);
+    // 空转保护：如果所有摘要都是自身 subagent 的记录，跳过写入
+    const hasRealContent = summaries.some(s => !ownSubagentIds.has(s.id));
+    if (hasRealContent) {
+      const today = new Date().toISOString().split('T')[0];
+      const noteContent = generateDailyNote(summaries, today);
+      const result = writeDailyNote(noteContent, today);
 
-    if (result.success) {
-      console.log(`\n📁 Daily 笔记已生成: ${path.basename(result.path)}`);
+      if (result.success) {
+        console.log(`\n📁 Daily 笔记已生成: ${path.basename(result.path)}`);
+      }
+    } else {
+      console.log('\n⏭️  本轮处理的全是自身 subagent session，跳过 Daily 笔记写入（空转保护）');
     }
   }
 
@@ -1129,6 +1147,9 @@ async function processSessions(sessions_list_fn, sessions_history_fn, sessions_s
     }
   }
   state.processedSessions = newProcessedSessions;
+  // 持久化自身 subagent 追踪列表（保留最近 200 个，避免无限增长）
+  const ownIdsArray = Array.from(ownSubagentIds);
+  state.ownSubagentIds = ownIdsArray.slice(-200);
   state.lastCheck = new Date().toISOString();
   saveState(state);
 

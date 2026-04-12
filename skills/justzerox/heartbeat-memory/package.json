@@ -1,6 +1,6 @@
 {
   "name": "heartbeat-memory",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Heartbeat 自动记忆保存",
   "main": "index.js",
   "scripts": {

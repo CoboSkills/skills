@@ -248,14 +248,24 @@ function shouldRefine(state, config) {
  * 
  * @param {Array} sessions - 当前 sessions 列表
  * @param {Object} processedSessions - 已处理的 session 状态对象
+ * @param {Set|Array} [ownSubagentIds] - heartbeat-memory 自身产生的 subagent session IDs（可选）
  * @returns {Array} 活跃 session 列表（有新消息的已处理 session）
  */
-function detectActiveSessions(sessions, processedSessions) {
+function detectActiveSessions(sessions, processedSessions, ownSubagentIds) {
   const activeSessions = [];
+  const ownIds = ownSubagentIds instanceof Set ? ownSubagentIds : new Set(ownSubagentIds || []);
   
   for (const session of sessions) {
-    const sessionId = session.sessionKey || session.sessionId || session.key;
-    const sessionInfo = processedSessions[sessionId];
+    const sessionKey = session.sessionKey || session.key || '';
+    const sessionId = session.sessionId || session.id || '';
+    // 跳过 subagent session（内部会话，非用户交互）
+    if (sessionKey.includes(':subagent:')) continue;
+    if (session.kind === 'subagent' || session.kind === 'heartbeat') continue;
+    // 跳过 heartbeat-memory 自身追踪的 subagent IDs
+    if (ownIds.has(sessionKey) || ownIds.has(sessionId)) continue;
+
+    const resolvedId = session.sessionKey || session.sessionId || session.key;
+    const sessionInfo = processedSessions[resolvedId];
     
     if (!sessionInfo) {
       // 新 session，不在活跃检测范围内
@@ -270,12 +280,12 @@ function detectActiveSessions(sessions, processedSessions) {
       // 有新消息，标记为活跃
       activeSessions.push({
         ...session,
-        id: sessionId,
+        id: resolvedId,
         newMessageCount: currentMessageCount - lastMessageCount,
         lastMessageIndex: lastMessageCount // 从上次的位置继续
       });
       
-      console.log(`  🔄 检测到活跃 session: ${sessionId.substring(0, 20)}... (+${currentMessageCount - lastMessageCount} 条消息)`);
+      console.log(`  🔄 检测到活跃 session: ${resolvedId.substring(0, 20)}... (+${currentMessageCount - lastMessageCount} 条消息)`);
     }
   }
   
@@ -374,7 +384,8 @@ async function generateIncrementalSummary(newMessages, existingSummary, sessions
         task: buildIncrementalSummarizeTask(newContent, existingSummary),
         runtime: 'subagent',
         mode: 'run',
-        timeoutSeconds: config.memorySave?.timeoutSeconds || 1000
+        timeoutSeconds: config.memorySave?.timeoutSeconds || 1000,
+        cleanup: 'delete'
       });
       
       const parsed = parseIncrementalLLMResult(llmResult);

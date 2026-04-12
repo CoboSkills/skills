@@ -10,11 +10,14 @@
 - ✅ 代码模块化 - 4 个 utils 模块职责清晰
 - ✅ 渐进式披露 - references/ 文档按需加载
 - ✅ 多工作区支持 - workspace-<NAME> 通配符
+- ✅ 增量更新支持 - 检测活跃 session 的新内容并生成增量摘要
+- ✅ 错误处理稳定性 - 模块加载失败时优雅退出
+- ✅ Subagent 智能过滤 - 自动过滤自身产生的 session，避免重复处理
 
 <!-- Badge Row 1: Core Info -->
 [![ClawHub](https://img.shields.io/badge/ClawHub-heartbeat--memory-E75C46?logo=clawhub)](https://clawhub.ai/JustZeroX/heartbeat-memory)
 [![GitHub](https://img.shields.io/badge/GitHub-JustZeroX-181717?logo=github)](https://github.com/JustZeroX/skill-heartbeat-memory)
-[![Version](https://img.shields.io/badge/version-0.0.6-orange)](https://github.com/JustZeroX/skill-heartbeat-memory)
+[![Version](https://img.shields.io/badge/version-0.0.7-orange)](https://github.com/JustZeroX/skill-heartbeat-memory)
 
 <!-- Badge Row 2: Platforms -->
 [![macOS](https://img.shields.io/badge/macOS-000000?logo=apple&logoColor=white)](https://openclaw.ai) 
@@ -118,6 +121,8 @@ AI 会在主会话中直接执行，无需额外配置。
 - **⚙️ 配置自动同步** - HEARTBEAT.md 自动更新（仅配置变更时）
 - **🧩 代码模块化** - 4 个 utils 模块，职责清晰
 - **🌍 多工作区支持** - workspace-<NAME> 通配符
+- **🔒 Subagent 智能过滤** - 自动过滤自身产生的 session，保留最近 200 个追踪记录
+- **💪 错误处理稳定性** - 模块加载失败时优雅退出，防止程序崩溃
 
 ---
 
@@ -125,18 +130,18 @@ AI 会在主会话中直接执行，无需额外配置。
 
 ```
 heartbeat-memory/
-├── SKILL.md (319 行)              # Skill 核心文档（精简 61%）
-├── index.js (1,169 行)            # 主入口文件（模块化优化）
+├── SKILL.md                       # Skill 核心文档
+├── index.js                       # 主入口文件（包含 Subagent 过滤、状态追踪）
 ├── README.md                      # 项目文档
 ├── references/                    # 渐进式披露文档
-│   ├── config.md (249 行)         # 配置详解
-│   ├── troubleshooting.md (400 行)# 故障排查
-│   └── api.md (394 行)            # API 参考
+│   ├── config.md                  # 配置详解
+│   ├── troubleshooting.md         # 故障排查
+│   └── api.md                     # API 参考
 ├── utils/                         # 工具模块
-│   ├── config-sync.js (121 行)    # HEARTBEAT.md 同步 + 配置 hash
-│   ├── date-detector.js (77 行)   # 日期自动检测
-│   ├── session-filters.js (80 行) # Session 过滤逻辑
-│   └── memory-refiner.js (338 行) # MEMORY.md 提炼
+│   ├── config-sync.js             # HEARTBEAT.md 同步 + 配置 hash
+│   ├── date-detector.js           # 日期自动检测
+│   ├── session-filters.js         # Session 过滤逻辑
+│   └── memory-refiner.js          # MEMORY.md 提炼 + 增量更新
 ├── assets/                        # 资源文件
 │   ├── config.example.json        # 配置示例
 │   └── daily-note-sample.md       # Daily 笔记示例
@@ -280,10 +285,11 @@ vim ~/.openclaw/workspace/memory/heartbeat-memory-config.json
 ```
 
 **技术细节：**
-- **消息数获取**：优先从 `session.messageCount` 获取，降级到 `session.lastMessageIndex`
+- **消息数获取**：优先从 `session.messageCount` 获取，降级到 `session.lastMessageIndex`（使用 ?? 操作符）
 - **动态处理数量**：根据消息长度自动调整（短消息 20 条，长消息 8 条）
 - **消息优先级**：70% 用户消息 + 30% AI 回复，确保关键信息不遗漏
 - **Prompt 优化**：完整上下文 + 严格 JSON 格式 + 12 个推荐标签
+- **Subagent 过滤**：自动过滤自身产生的 session，保留最近 200 个追踪记录，避免重复处理
 
 **Daily 笔记格式：**
 ```markdown
@@ -640,15 +646,24 @@ openclaw gateway restart
 - 📅 Auto date detection
 - ⚙️ Config auto-sync
 - 🌍 Multi-workspace support with workspace-<NAME> wildcard
+- 🔒 Subagent smart filtering - Auto-filters own subagent sessions, keeps last 200 tracking records
+- 💪 Error handling stability - Graceful exit on module load failure, prevents crashes
 
 ### 📦 Project Structure
 
 ```
 heartbeat-memory/
-├── SKILL.md (319 lines)
-├── index.js (1,169 lines)
-├── references/ (3 files)
-├── utils/ (4 modules)
+├── SKILL.md
+├── index.js                       # Main entry with Subagent filtering, state tracking
+├── references/
+│   ├── config.md
+│   ├── troubleshooting.md
+│   └── api.md
+├── utils/
+│   ├── config-sync.js             # HEARTBEAT.md sync + config hash
+│   ├── date-detector.js           # Auto date detection
+│   ├── session-filters.js         # Session filtering logic
+│   └── memory-refiner.js          # MEMORY.md refinement + incremental updates
 └── assets/
 ```
 

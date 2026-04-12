@@ -2,7 +2,7 @@
 name: git-batch-commit
 homepage: https://github.com/cat-xierluo/legal-skills
 author: 杨卫薪律师（微信ywxlaw）
-version: "1.2.0"
+version: "1.2.4"
 license: MIT
 description: 智能 Git 批量提交工具。当用户说 "git 提交"、"git commit"、"批量提交"、"拆分提交"、"整理提交" 时使用，或者当用户暂存了多个不同类型的文件需要分开提交时使用。自动将混合的文件修改按类型分类（依赖管理、文档更新、license 文件、配置、源代码等），并创建多个清晰聚焦的提交，使用标准化的提交信息格式。帮助保持清晰的 Git 历史，确保每个提交都有单一、明确的目的。使用英文前缀（docs:、feat:、fix: 等）加中文内容，支持 GitHub 彩色标签显示。
 ---
@@ -133,7 +133,11 @@ fix: svg-article-illustrator 修复 PNG 导出问题
 2. **运行交互式脚本** - 查看分类结果
 3. **审核** - 检查提议的提交分组
 4. **确认** - 创建提交或取消以调整
-5. **完成** - 获得清晰历史的聚焦提交
+5. **ClawHub 同步检查** - 检查本次提交是否需要同步到 ClawHub（详见下方「提交后检查：ClawHub 同步」章节）
+   - **前置条件**：仅在项目目录下存在 `skills/clawhub-sync/` 时才执行此步骤
+   - 如果 `skills/clawhub-sync/` 不存在，**直接跳到第6步，不提示、不输出任何信息**
+   - 存在时：按触发条件检查，如有需要同步的 skill 则提示用户
+6. **完成** - 获得清晰历史的聚焦提交
 
 ## 实现说明
 
@@ -218,14 +222,23 @@ Git 批量提交工具
 ============================================================
 ```
 
-## ClawHub 同步工作流（可选）
+## 工作流第5步参考：ClawHub 同步检查
 
-完成 Git 提交后，如果满足以下条件，自动触发 ClawHub 同步：
+> 本节是工作流第5步的详细参考。**核心规则：仅当项目目录下存在 `skills/clawhub-sync/` 时才执行——不存在则静默跳过，不输出任何提示。**
 
-### 触发条件（全部满足才执行）
+完成 Git 提交后，执行以下检查。
+
+### 触发条件
+
+完成提交后，依次执行以下**三类检测**。任一命中即提示用户是否同步。
+
+#### 检测 A：已有技能版本升级
+
+全部满足时触发：
 
 1. **本地存在 clawhub-sync 技能**
    - 检查 `skills/clawhub-sync/` 目录是否存在
+   - **不存在则静默跳过，不提示用户**
 
 2. **提交涉及 skills 目录**
    - 提交的文件中包含 `skills/<skill-name>/` 下的文件
@@ -238,6 +251,45 @@ Git 批量提交工具
 4. **在白名单中**
    - 检查 `skills/clawhub-sync/config/sync-allowlist.yaml`
    - skill 必须在白名单中（未被 `#` 注释）
+
+#### 检测 B：新增 MIT 技能首次同步
+
+当提交新增了 `skills/<skill-name>/` 目录时触发：
+
+1. **识别新增技能**：检查提交中是否有 `skills/<skill-name>/SKILL.md` 为新文件（untracked → committed）
+
+2. **许可证为 MIT**：读取新技能 `SKILL.md` frontmatter 中的 `license` 字段，判断是否为 MIT
+
+3. **未在白名单中**：`sync-allowlist.yaml` 中无此 skill 的条目（无论是否被注释）
+
+4. **未在同步记录中**：`sync-records.yaml` 中无此 skill 的条目
+
+满足全部条件时，向用户提示：
+```
+🆕 发现新增 MIT 技能：<skill-name>
+该技能尚未加入 ClawHub 同步白名单。是否将其加入白名单并同步到 ClawHub？
+
+选项：
+  y - 加入白名单并同步
+  n - 跳过，暂不发布
+  s - 加入白名单但暂不同步
+```
+
+用户选择 `y` 时：
+- 在 `sync-allowlist.yaml` 中添加该 skill（添加到对应分类区域）
+- 执行 prepare-publish → publish → 更新 sync-records 流程
+- **注意**：发布前检查临时目录，确保不含 `.env`、密钥等敏感文件
+
+用户选择 `s` 时：
+- 仅在 `sync-allowlist.yaml` 中添加该 skill（被注释），下次版本更新时再同步
+
+#### 检测 C：白名单新增但未同步
+
+当白名单中有未被注释的 skill，但 `sync-records.yaml` 中没有对应记录时：
+
+1. 遍历 `sync-allowlist.yaml` 中未被注释的 skill
+2. 检查 `sync-records.yaml` 中是否有该 skill 的记录
+3. 如果白名单有但记录中没有，且 `SKILL.md` 存在，提示用户执行首次同步
 
 ### 执行步骤
 
@@ -252,12 +304,14 @@ bash skills/clawhub-sync/scripts/prepare-publish.sh skills/<skill-name>
 ```bash
 clawhub publish /tmp/clawhub-publish-<skill-name> \
   --slug <skill-name> \
+  --name "<Display Name>" \
   --version "<新版本号>" \
   --changelog "<变更说明>"
 ```
 
-> **⚠️ 必须指定 --slug**
-> 临时目录名可能包含前缀，使用 `--slug` 确保正确的 skill 标识符。
+> **⚠️ 必须指定 --slug 和 --name**
+> - 临时目录名可能包含前缀，使用 `--slug` 确保正确的 skill 标识符
+> - 使用 `--name` 确保 ClawHub 上显示正确的名称
 
 > **为什么用 `publish` 而不是 `sync`？**
 > - `clawhub sync` 会扫描所有目录的 skills，可能遇到 slug 冲突
@@ -292,10 +346,12 @@ if new_version > recorded_version:
 
 ### 示例场景
 
-| 场景 | 版本变化 | 白名单 | 结果 |
-|------|----------|--------|------|
-| 版本升级 | "1.0.0" → "1.1.0" | 在白名单 | ✅ 执行同步 |
-| 无版本变化 | "1.1.0" → "1.1.0" | 在白名单 | ❌ 跳过 |
-| 不在白名单 | 任意 | 被注释 | ❌ 跳过 |
-| 首次发布 | "1.0.0" | 在白名单 | ✅ 执行同步（记录中无版本） |
-| clawhub-sync 不存在 | - | - | ❌ 静默跳过整个工作流 |
+| 场景 | 版本变化 | 白名单 | 同步记录 | 结果 |
+|------|----------|--------|----------|------|
+| 版本升级（检测A） | "1.0.0" → "1.1.0" | 在白名单 | 有记录 | ✅ 执行同步 |
+| 无版本变化（检测A） | "1.1.0" → "1.1.0" | 在白名单 | 有记录 | ❌ 跳过 |
+| 不在白名单（检测A） | 任意 | 被注释 | - | ❌ 跳过 |
+| 白名单内首次发布（检测A/C） | "1.0.0" | 在白名单 | 无记录 | ✅ 执行同步 |
+| 新增 MIT 技能（检测B） | "0.1.0" | 无条目 | 无记录 | ✅ 提示用户选择 |
+| 新增 CC 技能（检测B） | "0.1.0" | 无条目 | 无记录 | ❌ 非 MIT 跳过 |
+| clawhub-sync 不存在 | - | - | - | ❌ 静默跳过整个工作流 |

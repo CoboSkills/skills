@@ -119,13 +119,21 @@ def search_semantic_scholar(query, limit=10):
 def search_arxiv(query, limit=10):
     """Search papers from arXiv (computer science category)"""
     url = "http://export.arxiv.org/api/query"
-    
-    # Search in computer science category with query
-    search_query = f"cat:cs.* AND {query}"
-    
+
+    # arXiv API doesn't support wildcards (cs.*), use a different approach
+    # arXiv API defaults to OR for space-separated terms
+    # We need to explicitly AND all terms for correct semantics
+    query_terms = query.split()
+    if len(query_terms) > 1:
+        # Build AND query: all:term1 AND all:term2 AND ...
+        search_query = " AND ".join([f"all:{term}" for term in query_terms])
+    else:
+        # Single term, just use all:query
+        search_query = f"all:{query}"
+
     params = {
         "search_query": search_query,
-        "max_results": limit,
+        "max_results": limit * 2,  # Get extra results for filtering
         "sortBy": "submittedDate",  # Sort by submission date
         "sortOrder": "descending"    # Newest first
     }
@@ -137,12 +145,27 @@ def search_arxiv(query, limit=10):
         # Parse XML response
         import xml.etree.ElementTree as ET
         root = ET.fromstring(res.content)
-        
+
         papers = []
+        query_terms = query.lower().split()
         for entry in root.findall('{http://www.w3.org/2005/Atom}entry'):
             title = entry.find('{http://www.w3.org/2005/Atom}title').text
             abstract = entry.find('{http://www.w3.org/2005/Atom}summary').text
-            
+
+            # Filter: only keep papers that have ALL query terms in title or abstract (AND semantics)
+            # This removes irrelevant papers that got through due to API limitations
+            text = (title + " " + abstract).lower()
+            # Only check terms longer than 3 characters (skip stop words like "a", "the", "of")
+            filtered_terms = [term for term in query_terms if len(term) > 3]
+            # If no terms to check, accept all
+            if not filtered_terms:
+                has_match = True
+            else:
+                # Require ALL terms to be present (AND semantics)
+                has_match = all(term in text for term in filtered_terms)
+            if not has_match:
+                continue
+
             # Extract authors
             authors = []
             for author in entry.findall('{http://www.w3.org/2005/Atom}author'):
@@ -213,10 +236,12 @@ def search_arxiv(query, limit=10):
                 "source": "arxiv",
                 "raw_data": raw_data  # Store original data
             })
-        
+        # Trim to requested limit after filtering
+        papers = papers[:limit]
+
         if not papers:
             print("arXiv returned no results")
-        
+
         return papers
     except requests.exceptions.RequestException as e:
         print(f"Error searching arXiv: {e}")

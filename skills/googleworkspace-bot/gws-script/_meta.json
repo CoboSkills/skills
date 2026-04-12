@@ -3,9 +3,15 @@
   "slug": "gws-script",
   "displayName": "Gws Script",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774551032379,
-    "commit": "https://github.com/openclaw/skills/commit/586ff0ac9fd3e9365ea8474ce778e56ef8b0069c"
+    "version": "1.0.2",
+    "publishedAt": 1774982078268,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774551032379,
+      "commit": "https://github.com/openclaw/skills/commit/586ff0ac9fd3e9365ea8474ce778e56ef8b0069c"
+    }
+  ]
 }

@@ -1,11 +1,17 @@
 {
   "owner": "polnikale",
   "slug": "sequenzy",
-  "displayName": "sequenzy",
+  "displayName": "Sequenzy",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1774193744389,
-    "commit": "https://github.com/openclaw/skills/commit/5a9335faf38fb368eb4ff6e3ed12d9f3dfbc4f7e"
+    "version": "1.1.2",
+    "publishedAt": 1775921063524,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1774193744389,
+      "commit": "https://github.com/openclaw/skills/commit/5a9335faf38fb368eb4ff6e3ed12d9f3dfbc4f7e"
+    }
+  ]
 }

@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "kvdb",
+  "displayName": "Kvdb",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1775169587209,
+    "commit": null
+  },
+  "history": []
+}

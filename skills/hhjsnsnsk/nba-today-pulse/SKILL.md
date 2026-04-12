@@ -1,15 +1,15 @@
 ---
 name: nba-today-pulse
-description: Timezone-aware NBA daily intelligence using bundled public ESPN/NBA fetchers plus official NBA injury-report PDFs, with compact day view, same-day stats, phase-specific game routes, play-by-play-driven recaps, and compact key-player cards with direct tool-output delivery.
+description: Timezone-aware NBA daily intelligence using bundled public ESPN/NBA fetchers plus official NBA injury-report PDFs, with compact day fast path, same-day stats, phase-specific game routes, play-by-play-driven recaps, compact key-player cards, and refresh-safe follow-ups with direct tool-output delivery.
 user-invocable: true
 metadata: {"openclaw":{"skillKey":"nba-today-pulse","requires":{"bins":["python3"]}}}
 ---
 
-# NBA Today Pulse v10
+# NBA Today Pulse v11
 
-Version: `1.0.10`
+Version: `1.0.11`
 
-Get a compact mixed-status NBA day view, same-day stat leaders, dedicated pregame/live/post reports, and independent injury reports in one skill. This public `1.0.10` bundle keeps the compact day/live cards and carries forward the NBA_TR live boxscore participant tracking, the new `activeParticipants` handoff into live injury rendering, and the postgame auto-render routing updates.
+Get a compact mixed-status NBA day view, same-day stat leaders, dedicated pregame/live/post reports, and independent injury reports in one skill. This public `1.0.11` bundle keeps the compact day/live cards, carries forward the NBA_TR live boxscore participant tracking and postgame auto-render routing updates, and adds the faster day path plus refresh-safe follow-up handling.
 
 Do not invent scores, injuries, lineups, player stats, matchup reasons, or turning-point narratives that are not supported by the bundled tool output.
 
@@ -54,6 +54,7 @@ Injury requests take priority over preview phrasing. Explicit preview phrasing t
 
 - If the previous turn only asked the user for timezone and the next reply is just a city or IANA timezone, continue the same NBA request silently
 - If the user says `更新`, `刷新`, `再看一下`, or `比分不对` while the conversation is already about one NBA matchup, rerun the same request silently and return only the latest tool output
+- If the user says `只看关键球员`, `只看回合摘要`, `只看第四节`, or `只看伤病` while the conversation is already about one NBA matchup, keep the same matchup and append the focus phrase to the reconstructed full request
 - Refresh follow-ups must not add commentary, score explanations, or rewritten summaries
 
 ## Fixed Output Shapes
@@ -72,6 +73,7 @@ Injury requests take priority over preview phrasing. Explicit preview phrasing t
 - If no timezone can be resolved, ask once for a city or IANA timezone and stop there
 - If the request already carries relative-date semantics, do not invent a conflicting external `--date`
 - Never explain internal runtime provenance or inspect memory files
+- If timezone still cannot be resolved after checking the current message and runtime preference, return the short city/IANA prompt once and stop
 
 ## Parameter Mapping Examples
 

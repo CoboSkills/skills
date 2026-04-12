@@ -1,19 +1,19 @@
-# NBA Today Pulse v10
+# NBA Today Pulse v11
 
-Version: `1.0.10`
+Version: `1.0.11`
 
-`nba-today-pulse-v10` packages the latest `NBA_TR` skill-only runtime into a public ClawHub bundle with compact mixed-status day view, same-day stat leaders, dedicated pregame/live/post routes, independent injury reports, and timezone-aware local-date routing. This `1.0.10` release carries forward the compact output refinements for both the `day` and `live` views, plus the newer NBA_TR live boxscore and postgame rendering updates, without touching the public skill identity.
+`nba-today-pulse-v11` packages the latest `NBA_TR` skill-only runtime into a public ClawHub bundle with compact mixed-status day view, same-day stat leaders, dedicated pregame/live/post routes, independent injury reports, and timezone-aware local-date routing. This `1.0.11` release keeps the compact day/live output, adds the day fast path, hardens refresh-friendly follow-up handling, and expands bilingual player alias coverage without changing the public skill identity.
 
 This release keeps the stable public skill key `nba-today-pulse` rather than registering a new skill identity.
 
-## What Changed in 1.0.10
+## What Changed in 1.0.11
 
-`1.0.10` is not a layout rewrite. It carries forward the `1.0.9` compact day/live presentation and updates the runtime details underneath it:
+`1.0.11` is still a compact release rather than a layout rewrite. It carries forward the `1.0.10` runtime and adds the newer routing and response-path improvements underneath it:
 
-- `provider_nba.py` now captures `minutesCalculated` as part of boxscore player stats, which lets the runtime tell who actually saw the floor in live boxscore data
-- `nba_pulse_core.py` now exports `activeParticipants` from live boxscore augmentation and passes that list into live injury rendering instead of relying only on verified roster names
-- `nba_pulse_core.py` also builds postgame player lines directly from the structured player payload, keeping postgame output aligned with the new live boxscore shape
-- `render_game_scene_markdown()` now auto-selects the final scene renderer from the actual game `statusState`, so postgame and live paths are chosen more explicitly than in `1.0.9`
+- `day` now prefers a fast path that parallelizes `scoreboard + summary` and keeps short-lived day cache reuse hot
+- short follow-ups like `更新`, `刷新`, `只看关键球员`, `只看回合摘要`, and `只看第四节` now stay anchored to the same single-game context instead of falling back to a generic day slate
+- generic pregame prompts without explicit teams route into the pregame collection instead of drifting toward `day`
+- player alias coverage has been widened so common Chinese and English nicknames resolve to the same canonical player identity
 
 What stayed the same:
 
@@ -36,7 +36,7 @@ What stayed the same:
 ## Bundle Layout
 
 ```text
-nba-today-pulse-v10/
+nba-today-pulse-v11/
   README.md
   SKILL.md
   TOOLS.md
@@ -142,5 +142,6 @@ Notes:
 - `stats_day` is day-level only: it summarizes completed games for the resolved local date and is not a season leaderboard
 - live-score corrections are performed only through bundled ESPN/NBA providers; the public bundle must not estimate scores from boxscore fragments or improvise them in the skill layer
 - postgame turning points are derived from bundled play-by-play or structured fallbacks; the public bundle must not fabricate recap logic outside the tool chain
+- day-level routing now prefers the fast path when the request is a mixed-status slate, while single-game follow-ups still stay on their original matchup context
 - The public bundle contains no private deployment paths, host addresses, SSH commands, or internal memory-file references
 - The public bundle does not request or require credentials, secrets, or host-specific API keys

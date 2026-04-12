@@ -15,6 +15,7 @@ from nba_pulse_core import (
     build_pregame_collection,
     command_has_explicit_date,
     command_options,
+    infer_matchup_from_players,
     render_day_stats_markdown,
     render_day_scene,
     render_game_scene_markdown,
@@ -58,6 +59,17 @@ def main(argv: list[str] | None = None) -> int:
         zh_locale = args.zh_locale or (str(detected["zh_locale"]) if detected.get("zh_locale") else None)
         scope = str(detected.get("scope") or "single")
         matchups = list(detected.get("matchups") or [])
+        players = list(detected.get("players") or [])
+        focus_section = detected.get("focus_section")
+        followup_action = detected.get("followup_action")
+        day_phase_filter = detected.get("day_phase_filter")
+
+        if not team and players:
+            inferred = infer_matchup_from_players(tz=tz, date_text=date_text, player_names=players)
+            team = team or (str(inferred.get("team")) if inferred.get("team") else None)
+            opponent = opponent or (str(inferred.get("opponent")) if inferred.get("opponent") else None)
+            if team and intent == "day" and not day_phase_filter:
+                intent = "scene"
 
         if intent == "injury":
             payload = build_injury_report(tz=tz, date_text=date_text, team=team, opponent=opponent, lang=lang)
@@ -121,11 +133,14 @@ def main(argv: list[str] | None = None) -> int:
         elif intent == "post":
             analysis_mode = "post"
 
+        if not team and (focus_section or followup_action):
+            raise SystemExit("当前请求是单场 follow-up，但缺少可识别的球队或对局；请带上球队/对局，或在同一会话中由 skill 复用上一场比赛上下文。")
+
         if not team and intent == "day":
             if args.format == "json":
-                print(json.dumps(build_day_view(tz=tz, date_text=date_text, lang=lang, zh_locale=zh_locale), ensure_ascii=False, indent=2))
+                print(json.dumps(build_day_view(tz=tz, date_text=date_text, lang=lang, zh_locale=zh_locale, phase_filter=day_phase_filter), ensure_ascii=False, indent=2))
             else:
-                print(render_day_scene(tz=tz, date_text=date_text, lang=lang, zh_locale=zh_locale))
+                print(render_day_scene(tz=tz, date_text=date_text, lang=lang, zh_locale=zh_locale, phase_filter=day_phase_filter))
             return 0
 
         if not team:
@@ -138,6 +153,10 @@ def main(argv: list[str] | None = None) -> int:
         scene = build_game_scene(tz=tz, date_text=date_text, team=team, lang=lang, analysis_mode=analysis_mode, zh_locale=zh_locale)
         if intent in {"pregame", "live", "post"}:
             scene["intent"] = intent
+        if focus_section:
+            scene["focusSection"] = str(focus_section)
+        if players:
+            scene["playerFocus"] = players[0]
         if args.format == "json":
             print(json.dumps(scene_payload(scene), ensure_ascii=False, indent=2))
         else:

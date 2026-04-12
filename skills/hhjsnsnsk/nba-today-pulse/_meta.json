@@ -3,11 +3,16 @@
   "slug": "nba-today-pulse",
   "displayName": "NBA Today Pulse",
   "latest": {
-    "version": "1.0.10",
-    "publishedAt": 1775028056189,
-    "commit": "https://github.com/openclaw/skills/commit/8e4d4203669f5e423d5da05721c344ea87db4d48"
+    "version": "1.0.11",
+    "publishedAt": 1775982376132,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.10",
+      "publishedAt": 1775028056189,
+      "commit": "https://github.com/openclaw/skills/commit/8e4d4203669f5e423d5da05721c344ea87db4d48"
+    },
     {
       "version": "1.0.7",
       "publishedAt": 1774853178048,

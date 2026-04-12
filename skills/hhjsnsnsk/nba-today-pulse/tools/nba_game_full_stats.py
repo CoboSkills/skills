@@ -14,7 +14,7 @@ CURRENT_DIR = Path(__file__).resolve().parent
 if str(CURRENT_DIR) not in sys.path:
     sys.path.insert(0, str(CURRENT_DIR))
 
-from entity_guard import normalize_player_name  # noqa: E402
+from entity_guard import normalize_player_identity  # noqa: E402
 from nba_common import NBAReportError  # noqa: E402
 from nba_teams import canonicalize_team_abbr  # noqa: E402
 from nba_today_report import build_report_payload, safe_int, validate_args  # noqa: E402
@@ -126,7 +126,7 @@ def _canonical_player_stats(stat_map: dict[str, Any]) -> dict[str, Any]:
 def _player_allowed(name: str, allowed_names: set[str] | None) -> bool:
     if not allowed_names:
         return True
-    return normalize_player_name(name) in allowed_names
+    return normalize_player_identity(name) in allowed_names
 
 
 def _players_from_summary(boxscore: dict[str, Any], allowed_names: set[str] | None) -> dict[str, list[dict[str, Any]]]:
@@ -201,8 +201,6 @@ def _players_from_nba_live(payload: dict[str, Any], allowed_names: set[str] | No
         aggregate.update({"PTS": 0, "REB": 0, "AST": 0, "STL": 0, "BLK": 0, "TOV": 0, "OREB": 0, "DREB": 0, "PF": 0})
         for player in team.get("players") or []:
             name = player.get("name") or player.get("familyName") or ""
-            if not name or not _player_allowed(str(name), allowed_names):
-                continue
             raw_stats = player.get("statistics") or {}
             stat_map = {
                 "minutes": raw_stats.get("minutes"),
@@ -223,6 +221,10 @@ def _players_from_nba_live(payload: dict[str, Any], allowed_names: set[str] | No
                 "freeThrowsAttempted": raw_stats.get("freeThrowsAttempted"),
             }
             canonical = _canonical_player_stats(stat_map)
+            for key in ("PTS", "REB", "AST", "STL", "BLK", "TOV", "OREB", "DREB", "PF"):
+                aggregate[key] += canonical.get(key) or 0
+            if not name or not _player_allowed(str(name), allowed_names):
+                continue
             team_players.append(
                 {
                     "playerName": str(name),
@@ -230,8 +232,6 @@ def _players_from_nba_live(payload: dict[str, Any], allowed_names: set[str] | No
                     "stats": canonical,
                 }
             )
-            for key in ("PTS", "REB", "AST", "STL", "BLK", "TOV", "OREB", "DREB", "PF"):
-                aggregate[key] += canonical.get(key) or 0
         players_by_team[abbr] = team_players
         aggregate["FG"] = None
         aggregate["3PT"] = None
@@ -263,7 +263,7 @@ def build_full_stats(
 ) -> dict[str, Any]:
     if game.get("statusState") not in {"in", "post"}:
         return {"available": False, "source": "unavailable", "teams": {}, "players": {}}
-    normalized_allowed = {normalize_player_name(name) for name in allowed_names or set() if name}
+    normalized_allowed = {normalize_player_identity(name) for name in allowed_names or set() if name}
     summary_boxscore = game.get("summaryBoxscore") or {}
     teams = _teams_from_summary(summary_boxscore)
     players = _players_from_summary(summary_boxscore, normalized_allowed or None)

@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -14,7 +15,7 @@ CURRENT_DIR = Path(__file__).resolve().parent
 if str(CURRENT_DIR) not in sys.path:
     sys.path.insert(0, str(CURRENT_DIR))
 
-from entity_guard import normalize_player_name  # noqa: E402
+from entity_guard import normalize_player_identity  # noqa: E402
 from nba_common import NBAReportError  # noqa: E402
 from nba_pulse_core import _reference_now, _target_date, resolve_requested_game  # noqa: E402
 from nba_team_form_snapshot import build_team_form_snapshot  # noqa: E402
@@ -47,13 +48,19 @@ def _team_player_averages(team_abbr: str) -> dict[str, dict[str, float | None]]:
     return extract_team_player_averages(payload)
 
 
-def _attach_season_averages(items: list[dict[str, Any]], team_abbr: str) -> list[dict[str, Any]]:
-    averages = _team_player_averages(team_abbr)
+def _attach_season_averages(
+    items: list[dict[str, Any]],
+    team_abbr: str,
+    *,
+    averages: dict[str, dict[str, float | None]] | None = None,
+) -> list[dict[str, Any]]:
+    if averages is None:
+        averages = _team_player_averages(team_abbr)
     if not averages:
         return items
-    lookup = {normalize_player_name(name): stats for name, stats in averages.items()}
+    lookup = {normalize_player_identity(name): stats for name, stats in averages.items()}
     for item in items:
-        stats = lookup.get(normalize_player_name(item.get("playerName")))
+        stats = lookup.get(normalize_player_identity(item.get("playerName")))
         if stats:
             item["seasonAverages"] = stats
     return items
@@ -261,18 +268,23 @@ def build_injury_report(
     side = "away" if game["away"]["abbr"] == team_abbr else "home"
     opponent_side = "home" if side == "away" else "away"
     reference_time = _reference_now(tz)
-    injury_resolution = resolve_team_injury_sources(
-        team_abbr=team_abbr,
-        team_id=game[side].get("id") or provider_team_id(team_abbr, "espn"),
-        team_display_name=game[side].get("displayName") or "",
-        summary_lines=(game.get("injuries") or {}).get(team_abbr, []),
-        start_time_utc=game.get("startTimeUtc") or "",
-        away_abbr=game["away"]["abbr"],
-        home_abbr=game["home"]["abbr"],
-        reference_time=reference_time,
-        espn_base_url=base_url,
-    )
-    merged = _attach_season_averages(injury_resolution["items"], team_abbr)
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        injury_future = executor.submit(
+            resolve_team_injury_sources,
+            team_abbr=team_abbr,
+            team_id=game[side].get("id") or provider_team_id(team_abbr, "espn"),
+            team_display_name=game[side].get("displayName") or "",
+            summary_lines=(game.get("injuries") or {}).get(team_abbr, []),
+            start_time_utc=game.get("startTimeUtc") or "",
+            away_abbr=game["away"]["abbr"],
+            home_abbr=game["home"]["abbr"],
+            reference_time=reference_time,
+            espn_base_url=base_url,
+        )
+        averages_future = executor.submit(_team_player_averages, team_abbr)
+        injury_resolution = injury_future.result()
+        team_player_averages = averages_future.result()
+    merged = _attach_season_averages(injury_resolution["items"], team_abbr, averages=team_player_averages)
     sources = list(injury_resolution["sources"])
     if any(item.get("seasonAverages") for item in merged):
         sources.append("nba_team_player_averages")

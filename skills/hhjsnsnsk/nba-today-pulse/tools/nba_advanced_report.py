@@ -14,7 +14,7 @@ if str(CURRENT_DIR) not in sys.path:
     sys.path.insert(0, str(CURRENT_DIR))
 
 from nba_common import NBAReportError  # noqa: E402
-from entity_guard import extract_primary_name, normalize_player_name  # noqa: E402
+from entity_guard import extract_primary_name, normalize_player_identity  # noqa: E402
 from nba_today_report import (  # noqa: E402
     I18N,
     build_report_payload,
@@ -160,7 +160,7 @@ def _injury_status_by_team(game: dict[str, Any], side: str) -> dict[str, str]:
     abbr = game[side]["abbr"]
     statuses: dict[str, str] = {}
     for item in (game.get("injuryItems", {}) or {}).get(abbr) or []:
-        name = normalize_player_name(item.get("playerName"))
+        name = normalize_player_identity(item.get("playerName"))
         status = str(item.get("status") or "").strip()
         if name and status:
             statuses[name] = status
@@ -179,7 +179,7 @@ def _matchup_candidate_lines(game: dict[str, Any], side: str) -> list[str]:
 
 def _is_matchup_eligible(line: str, *, allowed_names: set[str], status_by_player: dict[str, str]) -> bool:
     primary_name = extract_primary_name(line)
-    normalized_name = normalize_player_name(primary_name)
+    normalized_name = normalize_player_identity(primary_name)
     if not normalized_name:
         return False
     if allowed_names and normalized_name not in allowed_names:
@@ -191,7 +191,7 @@ def _is_matchup_eligible(line: str, *, allowed_names: set[str], status_by_player
 
 
 def matchup_candidate_text(game: dict[str, Any], side: str) -> str | None:
-    allowed_names = {normalize_player_name(name) for name in (game.get("verifiedPlayers") or []) if name}
+    allowed_names = {normalize_player_identity(name) for name in (game.get("verifiedPlayers") or []) if name}
     status_by_player = _injury_status_by_team(game, side)
     for line in _matchup_candidate_lines(game, side):
         if _is_matchup_eligible(line, allowed_names=allowed_names, status_by_player=status_by_player):
@@ -1340,117 +1340,54 @@ def build_post_analysis(game: dict[str, Any], labels: dict[str, str]) -> dict[st
     winner_side = "home" if home_score > away_score else "away"
     loser_side = "away" if winner_side == "home" else "home"
     margin = abs(home_score - away_score)
-    winner_abbr = game[winner_side]["abbr"]
-    loser_abbr = game[loser_side]["abbr"]
-    decisive_period = decisive_period_info(game, winner_side, labels)
-    streak = _best_scoring_streak(game, winner_side)
-    turning_point_info = _select_turning_point_narrative(game, winner_side, loser_side, labels)
-    turning_point = turning_point_info.get("text") or ""
-    selected_sequence_meta = turning_point_info.get("selectedSequenceMeta") or {}
-    sequence_period = selected_sequence_meta.get("period")
-    sequence_points = int(selected_sequence_meta.get("points") or 0)
-    reasons: list[str] = []
+    decisive_period = decisive_period_text(game, winner_side, labels)
+    turning_point = biggest_swing_text(game, winner_side=winner_side)
+    reasons = [
+        (
+            f"最终比分差 {margin} 分，{game[winner_side]['abbr']} 收下比赛。"
+            if labels["timezone"] == "请求方时区"
+            else f"{game[winner_side]['abbr']} won by {margin} points."
+        )
+    ]
     if decisive_period:
         if labels["timezone"] == "请求方时区":
-            reasons.append(f"分水岭出现在第 {decisive_period['period']} 节，{winner_abbr} 单节净胜{decisive_period['margin']}分。")
+            reasons.append(f"决定性阶段: {decisive_period}")
         else:
-            reasons.append(
-                f"The game swung in {_ordinal_period(int(decisive_period['period']))}, when {winner_abbr} won the quarter by {decisive_period['margin']}."
-            )
-    if streak and not turning_point_info.get("usedSequenceReason"):
-        reasons.append(_streak_reason_text(game, streak, winner_side, labels))
+            reasons.append(f"Decisive stretch: {decisive_period}")
     winner_key_player = top_full_stats_player(game, winner_side) or (game.get("keyPlayers", {}).get(game[winner_side]["abbr"]) or [None])[0]
     if winner_key_player:
         if labels["timezone"] == "请求方时区":
-            reasons.append(f"{winner_abbr} 这边最直接的主攻点是 {winner_key_player}。")
+            reasons.append(f"关键球员: {game[winner_side]['abbr']} {winner_key_player}")
         else:
-            reasons.append(f"The clearest offensive driver for {winner_abbr} was {winner_key_player}.")
+            reasons.append(f"Lead performer: {game[winner_side]['abbr']} {winner_key_player}")
     full_stats_reason = team_totals_edge_reason(game, winner_side, labels)
     if full_stats_reason:
-        reasons.append(f"{full_stats_reason}。")
-    reasons = reasons[:3]
+        reasons.append(full_stats_reason)
+    article = game.get("article") or {}
+    if article.get("headline"):
+        reasons.append(str(article["headline"]))
 
-    if labels["timezone"] == "请求方时区":
-        if turning_point_info.get("forcedOvertime") and sequence_period and sequence_points:
-            summary = (
-                f"{winner_abbr} 在第 {sequence_period} 节曾借一波连得{sequence_points}分拉开比赛，"
-                f"但{loser_abbr} 末节还是追平并把比赛拖进加时，最后{winner_abbr} 以{margin}分拿下比赛。"
-            )
-        elif turning_point_info.get("leadBroken") and sequence_period and sequence_points:
-            summary = (
-                f"{winner_abbr} 在第 {sequence_period} 节靠一波连得{sequence_points}分把比赛带向自己这一边，"
-                f"但{loser_abbr} 末段又把悬念追了回来，最后还是{winner_abbr} 以{margin}分收下比赛。"
-            )
-        elif decisive_period and streak and _period_value(streak.get("startPlay") or {}) == int(decisive_period["period"]):
-            summary = f"{winner_abbr} 把分水岭打在了第 {decisive_period['period']} 节，期间一波连得{streak['points']}分，最终以{margin}分拿下比赛。"
-        elif decisive_period:
-            summary = f"{winner_abbr} 把分水岭打在了第 {decisive_period['period']} 节，单节净胜{decisive_period['margin']}分，最终以{margin}分拿下比赛。"
-        elif streak:
-            summary = f"{winner_abbr} 靠着{_stage_label(streak.get('startPlay') or {}, labels)}一波连得{streak['points']}分拉开差距，最终以{margin}分赢下比赛。"
-        else:
-            summary = f"{winner_abbr} 最终以{margin}分赢下了这场比赛。"
-        if turning_point:
-            trend = turning_point
-        elif streak:
-            trend = f"真正把比赛带向 {winner_abbr} 的，是{_stage_label(streak.get('startPlay') or {}, labels)}那波连得{streak['points']}分。"
-        elif decisive_period:
-            trend = f"真正拉开差距的是第 {decisive_period['period']} 节，{winner_abbr} 单节净胜{decisive_period['margin']}分。"
-        else:
-            trend = f"{winner_abbr} 在比分上一直保有优势，但比赛过程缺少足够的回合细节支撑更强判断。"
-    else:
-        if turning_point_info.get("forcedOvertime") and sequence_period and sequence_points:
-            summary = (
-                f"{winner_abbr} opened the game up with a {sequence_points}-0 burst in "
-                f"{_ordinal_period(int(sequence_period))}, but {loser_abbr} forced overtime before {winner_abbr} still closed out a {margin}-point win."
-            )
-        elif turning_point_info.get("leadBroken") and sequence_period and sequence_points:
-            summary = (
-                f"{winner_abbr} tilted the game with a {sequence_points}-0 burst in "
-                f"{_ordinal_period(int(sequence_period))}, but {loser_abbr} pulled the game back into doubt before {winner_abbr} still finished a {margin}-point win."
-            )
-        elif decisive_period and streak and _period_value(streak.get("startPlay") or {}) == int(decisive_period["period"]):
-            summary = (
-                f"{winner_abbr} made {_ordinal_period(int(decisive_period['period']))} the turning stretch, "
-                f"including a {streak['points']}-0 burst, and finished off a {margin}-point win."
-            )
-        elif decisive_period:
-            summary = (
-                f"{winner_abbr} made {_ordinal_period(int(decisive_period['period']))} the swing quarter, "
-                f"winning it by {decisive_period['margin']} and closing out a {margin}-point victory."
-            )
-        elif streak:
-            summary = f"{winner_abbr} created the separation with a {streak['points']}-0 burst { _stage_label(streak.get('startPlay') or {}, labels) }, and won by {margin}."
-        else:
-            summary = f"{winner_abbr} closed out a {margin}-point win."
-        if turning_point:
-            trend = turning_point
-        elif streak:
-            trend = f"The game started to tilt for {winner_abbr} once it strung together a {streak['points']}-0 run { _stage_label(streak.get('startPlay') or {}, labels) }."
-        elif decisive_period:
-            trend = f"The separation came in {_ordinal_period(int(decisive_period['period']))}, when {winner_abbr} won the quarter by {decisive_period['margin']}."
-        else:
-            trend = f"{winner_abbr} stayed in front on the scoreboard, but the play-by-play trail is too thin for a stronger game-flow claim."
+    summary = (
+        f"{game[winner_side]['abbr']} 从整体走向上更稳定地掌控了比赛。"
+        if labels["timezone"] == "请求方时区"
+        else f"{game[winner_side]['abbr']} controlled the broader game flow more consistently."
+    )
+    trend = (
+        f"{game[winner_side]['abbr']} 在关键时段压住了 {game[loser_side]['abbr']}。"
+        if labels["timezone"] == "请求方时区"
+        else f"{game[winner_side]['abbr']} separated during the decisive stretch against {game[loser_side]['abbr']}."
+    )
     return {
         "mode": "post",
         "summary": summary,
-        "reasons": reasons,
+        "reasons": reasons[:4],
         "trend": trend,
         "turningPoint": turning_point,
-        "leadSummary": summary,
-        "flowSummary": trend,
-        "supportingReasons": reasons,
         "keyMatchup": matchup_text(game, labels) or "",
         "signals": {
-            "winner": winner_abbr,
+            "winner": game[winner_side]["abbr"],
             "margin": margin,
-            "decisivePeriod": decisive_period["text"] if decisive_period else "",
-            "decisivePeriodNumber": decisive_period["period"] if decisive_period else None,
-            "turningPointPlay": turning_point,
-            "streakPoints": int(streak["points"]) if streak else 0,
-            "turningPointType": turning_point_info.get("type") or "",
-            "leadBroken": bool(turning_point_info.get("leadBroken")),
-            "forcedOvertime": bool(turning_point_info.get("forcedOvertime")),
-            "selectedSequenceWindow": turning_point_info.get("selectedSequenceWindow") or {},
+            "decisivePeriod": decisive_period,
         },
     }
 

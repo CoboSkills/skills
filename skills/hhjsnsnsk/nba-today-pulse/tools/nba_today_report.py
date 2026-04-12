@@ -5,8 +5,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -20,6 +22,9 @@ from nba_player_names import display_player_name, localize_player_line, localize
 from nba_teams import TEAM_DISPLAY, canonicalize_team_abbr, extract_teams_from_text, format_matchup_display, infer_zh_locale, normalize_team_input, team_display_name  # noqa: E402
 from provider_espn import fetch_scoreboard, fetch_summary, fetch_team_schedule, fetch_team_statistics  # noqa: E402
 from timezone_resolver import ResolvedTimezone, resolve_timezone  # noqa: E402
+
+DEFAULT_SCOREBOARD_WORKERS = 3
+DEFAULT_SUMMARY_WORKERS = 6
 
 I18N = {
     "zh": {
@@ -677,6 +682,7 @@ def enrich_game(
     labels: dict[str, str],
     team_statistics: dict[str, dict[str, str]],
     team_schedule_context: dict[str, dict[str, Any]],
+    team_schedule_payloads: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     competition = (event.get("competitions") or [{}])[0]
     competitors = competition.get("competitors") or []
@@ -746,6 +752,10 @@ def enrich_game(
             canonicalize_team_abbr((away.get("team") or {}).get("abbreviation")): team_schedule_context.get(away_team_id) or {},
             canonicalize_team_abbr((home.get("team") or {}).get("abbreviation")): team_schedule_context.get(home_team_id) or {},
         },
+        "teamSchedulePayloads": {
+            canonicalize_team_abbr((away.get("team") or {}).get("abbreviation")): (team_schedule_payloads or {}).get(away_team_id) or {},
+            canonicalize_team_abbr((home.get("team") or {}).get("abbreviation")): (team_schedule_payloads or {}).get(home_team_id) or {},
+        },
         "playTimeline": extract_play_timeline(summary),
         "winProbabilityTimeline": extract_win_probability(summary),
         "analysisSignals": {},
@@ -769,11 +779,52 @@ def enrich_game(
     return game
 
 
-def load_candidate_events(target_date: date, resolved_tz: ResolvedTimezone, base_url: str | None) -> list[dict[str, Any]]:
+def _scoreboard_workers() -> int:
+    raw_value = os.environ.get("NBA_TR_SCOREBOARD_WORKERS", "").strip()
+    try:
+        return max(1, min(int(raw_value), DEFAULT_SCOREBOARD_WORKERS))
+    except ValueError:
+        return DEFAULT_SCOREBOARD_WORKERS
+
+
+def _summary_workers() -> int:
+    raw_value = os.environ.get("NBA_TR_SUMMARY_WORKERS", "").strip()
+    try:
+        return max(1, min(int(raw_value), 12))
+    except ValueError:
+        return DEFAULT_SUMMARY_WORKERS
+
+
+def load_candidate_events(
+    target_date: date,
+    resolved_tz: ResolvedTimezone,
+    base_url: str | None,
+    *,
+    persistent_cache: bool = False,
+) -> list[dict[str, Any]]:
     candidates: dict[str, dict[str, Any]] = {}
-    for offset in (-1, 0, 1):
-        provider_date = (target_date + timedelta(days=offset)).strftime("%Y%m%d")
-        payload = fetch_scoreboard(provider_date, base_url=base_url)["data"]
+    provider_dates = [(target_date + timedelta(days=offset)).strftime("%Y%m%d") for offset in (-1, 0, 1)]
+    payloads: list[dict[str, Any]] = []
+    max_workers = min(len(provider_dates), _scoreboard_workers())
+    if max_workers <= 1:
+        for provider_date in provider_dates:
+            payloads.append(fetch_scoreboard(provider_date, base_url=base_url, persistent_cache=persistent_cache)["data"])
+    else:
+        ordered_payloads: dict[str, dict[str, Any]] = {}
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_map = {
+                executor.submit(
+                    fetch_scoreboard,
+                    provider_date,
+                    base_url=base_url,
+                    persistent_cache=persistent_cache,
+                ): provider_date
+                for provider_date in provider_dates
+            }
+            for future in as_completed(future_map):
+                ordered_payloads[future_map[future]] = future.result()["data"]
+        payloads = [ordered_payloads[provider_date] for provider_date in provider_dates]
+    for payload in payloads:
         for event in payload.get("events") or []:
             event_id = str(event.get("id"))
             if not event_id:
@@ -784,6 +835,62 @@ def load_candidate_events(target_date: date, resolved_tz: ResolvedTimezone, base
             if local_date == target_date:
                 candidates[event_id] = event
     return list(candidates.values())
+
+
+def fetch_event_summaries(
+    events: list[dict[str, Any]],
+    *,
+    base_url: str | None,
+    persistent_cache: bool = False,
+) -> dict[str, dict[str, Any]]:
+    event_ids = [str(event.get("id") or "") for event in events if str(event.get("id") or "")]
+    if not event_ids:
+        return {}
+    max_workers = min(len(event_ids), _summary_workers())
+    if max_workers <= 1:
+        return {
+            event_id: fetch_summary(event_id, base_url=base_url, persistent_cache=persistent_cache)["data"]
+            for event_id in event_ids
+        }
+    results: dict[str, dict[str, Any]] = {}
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_map = {
+            executor.submit(
+                fetch_summary,
+                event_id,
+                base_url=base_url,
+                persistent_cache=persistent_cache,
+            ): event_id
+            for event_id in event_ids
+        }
+        for future in as_completed(future_map):
+            results[future_map[future]] = future.result()["data"]
+    return results
+
+
+def _fetch_game_team_details(
+    team_id: str,
+    *,
+    event_id: str,
+    start_time_utc: datetime,
+    base_url: str | None,
+) -> tuple[str, dict[str, str], dict[str, Any], dict[str, Any]]:
+    team_statistics: dict[str, str] = {}
+    team_schedule_context: dict[str, Any] = {}
+    team_schedule_payload: dict[str, Any] = {}
+    if not team_id:
+        return team_id, team_statistics, team_schedule_context, team_schedule_payload
+    try:
+        team_statistics = flatten_team_statistics_payload(fetch_team_statistics(team_id, base_url=base_url)["data"])
+    except NBAReportError:
+        team_statistics = {}
+    try:
+        team_schedule_payload = fetch_team_schedule(team_id, base_url=base_url)["data"]
+        team_schedule_context = extract_schedule_context(team_schedule_payload, event_id, start_time_utc)
+    except NBAReportError:
+        team_schedule_payload = {}
+        team_schedule_context = {}
+    return team_id, team_statistics, team_schedule_context, team_schedule_payload
 
 
 def build_report_payload(args: argparse.Namespace) -> dict[str, Any]:
@@ -797,40 +904,19 @@ def build_report_payload(args: argparse.Namespace) -> dict[str, Any]:
     target_date = datetime.strptime(args.date, "%Y-%m-%d").date() if args.date else datetime.now(resolved_tz.tzinfo).date()
     team_filter = normalize_team_input(args.team)
     target_view = "game" if team_filter else args.view
-    events = load_candidate_events(target_date, resolved_tz, args.base_url)
+    detail_level = str(getattr(args, "detail_level", "full") or "full")
+    persistent_cache = target_view == "day"
+    events = load_candidate_events(target_date, resolved_tz, args.base_url, persistent_cache=persistent_cache)
+    summaries_by_event = fetch_event_summaries(events, base_url=args.base_url, persistent_cache=persistent_cache)
     games: list[dict[str, Any]] = []
-    team_statistics_cache: dict[str, dict[str, str]] = {}
-    team_schedule_cache: dict[str, dict[str, Any]] = {}
+    selected_events: dict[str, dict[str, Any]] = {}
     for event in events:
         event_id = str(event.get("id"))
-        summary_payload = fetch_summary(event_id, base_url=args.base_url)["data"]
-        if target_view == "game":
-            competition = (event.get("competitions") or [{}])[0]
-            start_time_utc = parse_iso_datetime(competition.get("date") or event.get("date"))
-            for competitor in competition.get("competitors") or []:
-                team = competitor.get("team") or {}
-                team_id = str(team.get("id") or "")
-                if not team_id:
-                    continue
-                if team_id not in team_statistics_cache:
-                    try:
-                        team_statistics_cache[team_id] = flatten_team_statistics_payload(
-                            fetch_team_statistics(team_id, base_url=args.base_url)["data"]
-                        )
-                    except NBAReportError:
-                        team_statistics_cache[team_id] = {}
-                if team_id not in team_schedule_cache:
-                    try:
-                        team_schedule_cache[team_id] = extract_schedule_context(
-                            fetch_team_schedule(team_id, base_url=args.base_url)["data"],
-                            event_id,
-                            start_time_utc,
-                        )
-                    except NBAReportError:
-                        team_schedule_cache[team_id] = {}
-        game = enrich_game(event, summary_payload, resolved_tz, labels, team_statistics_cache, team_schedule_cache)
+        summary_payload = summaries_by_event.get(event_id) or {}
+        game = enrich_game(event, summary_payload, resolved_tz, labels, {}, {}, {})
         game.setdefault("meta", {})["zhLocale"] = zh_locale
         games.append(game)
+        selected_events[event_id] = event
 
     games.sort(key=lambda item: item["startTimeUtc"])
     if team_filter:
@@ -842,6 +928,62 @@ def build_report_payload(args: argparse.Namespace) -> dict[str, Any]:
             raise NBAReportError("当前条件下未找到对应比赛。", kind="not_found")
         if len(games) > 1 and not team_filter:
             raise NBAReportError("单场视图需要指定球队，否则当天存在多场比赛。", kind="invalid_arguments")
+        if detail_level == "full":
+            selected_game = games[0]
+            selected_event = selected_events.get(selected_game["eventId"])
+            if selected_event:
+                competition = (selected_event.get("competitions") or [{}])[0]
+                start_time_utc = parse_iso_datetime(competition.get("date") or selected_event.get("date"))
+                team_ids = [
+                    str((competitor.get("team") or {}).get("id") or "")
+                    for competitor in competition.get("competitors") or []
+                    if str((competitor.get("team") or {}).get("id") or "")
+                ]
+                unique_team_ids = list(dict.fromkeys(team_ids))
+                team_statistics_cache: dict[str, dict[str, str]] = {}
+                team_schedule_cache: dict[str, dict[str, Any]] = {}
+                team_schedule_payload_cache: dict[str, dict[str, Any]] = {}
+                if unique_team_ids:
+                    max_workers = min(len(unique_team_ids), 2)
+                    if max_workers <= 1:
+                        for team_id in unique_team_ids:
+                            fetched_team_id, team_stats, team_schedule_context, team_schedule_payload = _fetch_game_team_details(
+                                team_id,
+                                event_id=selected_game["eventId"],
+                                start_time_utc=start_time_utc,
+                                base_url=args.base_url,
+                            )
+                            team_statistics_cache[fetched_team_id] = team_stats
+                            team_schedule_cache[fetched_team_id] = team_schedule_context
+                            team_schedule_payload_cache[fetched_team_id] = team_schedule_payload
+                    else:
+                        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                            future_map = {
+                                executor.submit(
+                                    _fetch_game_team_details,
+                                    team_id,
+                                    event_id=selected_game["eventId"],
+                                    start_time_utc=start_time_utc,
+                                    base_url=args.base_url,
+                                ): team_id
+                                for team_id in unique_team_ids
+                            }
+                            for future in as_completed(future_map):
+                                fetched_team_id, team_stats, team_schedule_context, team_schedule_payload = future.result()
+                                team_statistics_cache[fetched_team_id] = team_stats
+                                team_schedule_cache[fetched_team_id] = team_schedule_context
+                                team_schedule_payload_cache[fetched_team_id] = team_schedule_payload
+                selected_game = enrich_game(
+                    selected_event,
+                    summaries_by_event.get(selected_game["eventId"]) or {},
+                    resolved_tz,
+                    labels,
+                    team_statistics_cache,
+                    team_schedule_cache,
+                    team_schedule_payload_cache,
+                )
+                selected_game.setdefault("meta", {})["zhLocale"] = zh_locale
+                games = [selected_game]
         games = [games[0]]
 
     game_counts = build_game_counts(games)

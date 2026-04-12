@@ -25,6 +25,12 @@ def resolve_base_url(base_url: str | None = None) -> str:
     return (base_url or os.environ.get("NBA_TR_ESPN_BASE_URL") or DEFAULT_BASE_URL).rstrip("/")
 
 
+def _cache_identity(resolved_base: str, key: str) -> str:
+    if os.environ.get("NBA_PULSE_CACHE_DIR", "").strip():
+        return key
+    return f"{resolved_base}|{key}"
+
+
 def _request_json(url: str, timeout_seconds: int) -> dict[str, Any]:
     request = urllib.request.Request(
         url,
@@ -103,6 +109,7 @@ def _cached_response(
     params: dict[str, str],
     timeout_seconds: int,
     ttl_seconds: int,
+    use_disk: bool | None = None,
 ) -> dict[str, Any]:
     url = build_url(base_url, endpoint, params)
     payload, freshness = cached_json_fetch(
@@ -110,6 +117,7 @@ def _cached_response(
         key=cache_key,
         ttl_seconds=ttl_seconds,
         fetcher=lambda: _fetch_json(url, timeout_seconds=timeout_seconds),
+        use_disk=use_disk,
     )
     return {
         "baseUrl": base_url,
@@ -120,29 +128,43 @@ def _cached_response(
     }
 
 
-def fetch_scoreboard(date_text: str, *, base_url: str | None = None, timeout_seconds: int = 20) -> dict[str, Any]:
+def fetch_scoreboard(
+    date_text: str,
+    *,
+    base_url: str | None = None,
+    timeout_seconds: int = 20,
+    persistent_cache: bool = False,
+) -> dict[str, Any]:
     resolved_base = resolve_base_url(base_url)
     return _cached_response(
         namespace="espn:scoreboard",
-        cache_key=date_text,
+        cache_key=_cache_identity(resolved_base, date_text),
         base_url=resolved_base,
         endpoint="scoreboard",
         params={"dates": date_text},
         timeout_seconds=timeout_seconds,
         ttl_seconds=120,
+        use_disk=True if persistent_cache else None,
     )
 
 
-def fetch_summary(event_id: str, *, base_url: str | None = None, timeout_seconds: int = 20) -> dict[str, Any]:
+def fetch_summary(
+    event_id: str,
+    *,
+    base_url: str | None = None,
+    timeout_seconds: int = 20,
+    persistent_cache: bool = False,
+) -> dict[str, Any]:
     resolved_base = resolve_base_url(base_url)
     return _cached_response(
         namespace="espn:summary",
-        cache_key=event_id,
+        cache_key=_cache_identity(resolved_base, event_id),
         base_url=resolved_base,
         endpoint="summary",
         params={"event": event_id},
         timeout_seconds=timeout_seconds,
         ttl_seconds=45,
+        use_disk=True if persistent_cache else None,
     )
 
 
@@ -150,7 +172,7 @@ def fetch_team_statistics(team_id: str, *, base_url: str | None = None, timeout_
     resolved_base = resolve_base_url(base_url)
     return _cached_response(
         namespace="espn:team_statistics",
-        cache_key=team_id,
+        cache_key=_cache_identity(resolved_base, team_id),
         base_url=resolved_base,
         endpoint=f"teams/{team_id}/statistics",
         params={},
@@ -163,7 +185,7 @@ def fetch_team_schedule(team_id: str, *, base_url: str | None = None, timeout_se
     resolved_base = resolve_base_url(base_url)
     return _cached_response(
         namespace="espn:team_schedule",
-        cache_key=team_id,
+        cache_key=_cache_identity(resolved_base, team_id),
         base_url=resolved_base,
         endpoint=f"teams/{team_id}/schedule",
         params={},
@@ -176,7 +198,7 @@ def fetch_news(*, base_url: str | None = None, timeout_seconds: int = 20) -> dic
     resolved_base = resolve_base_url(base_url)
     return _cached_response(
         namespace="espn:news",
-        cache_key="latest",
+        cache_key=_cache_identity(resolved_base, "latest"),
         base_url=resolved_base,
         endpoint="news",
         params={},
@@ -189,7 +211,7 @@ def fetch_teams(*, base_url: str | None = None, timeout_seconds: int = 20) -> di
     resolved_base = resolve_base_url(base_url)
     return _cached_response(
         namespace="espn:teams",
-        cache_key="teams",
+        cache_key=_cache_identity(resolved_base, "teams"),
         base_url=resolved_base,
         endpoint="teams",
         params={},
@@ -202,7 +224,7 @@ def fetch_team_roster(team_id: str, *, base_url: str | None = None, timeout_seco
     resolved_base = resolve_base_url(base_url)
     return _cached_response(
         namespace="espn:team_roster",
-        cache_key=team_id,
+        cache_key=_cache_identity(resolved_base, team_id),
         base_url=resolved_base,
         endpoint=f"teams/{team_id}/roster",
         params={},
@@ -215,7 +237,7 @@ def fetch_team_injuries(team_id: str, *, base_url: str | None = None, timeout_se
     resolved_base = resolve_base_url(base_url)
     return _cached_response(
         namespace="espn:team_injuries",
-        cache_key=team_id,
+        cache_key=_cache_identity(resolved_base, team_id),
         base_url=resolved_base,
         endpoint=f"teams/{team_id}/injuries",
         params={},

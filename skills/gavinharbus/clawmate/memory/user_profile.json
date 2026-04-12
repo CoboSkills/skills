@@ -30,5 +30,41 @@
   "lastInteraction": "",
   "totalConversations": 0,
   "conflictCooldown": false,
-  "customPersonas": []
+
+  "personaGrowth": {
+    "gentle": { "interactionCount": 0, "growthLevel": 0.0, "lastActiveDate": "" },
+    "tsundere": { "interactionCount": 0, "growthLevel": 0.0, "lastActiveDate": "" },
+    "cheerful": { "interactionCount": 0, "growthLevel": 0.0, "lastActiveDate": "" },
+    "intellectual": { "interactionCount": 0, "growthLevel": 0.0, "lastActiveDate": "" },
+    "cool": { "interactionCount": 0, "growthLevel": 0.0, "lastActiveDate": "" },
+    "playful-dark": { "interactionCount": 0, "growthLevel": 0.0, "lastActiveDate": "" },
+    "dominant": { "interactionCount": 0, "growthLevel": 0.0, "lastActiveDate": "" },
+    "chill": { "interactionCount": 0, "growthLevel": 0.0, "lastActiveDate": "" }
+  },
+
+  "warmth": 1.0,
+
+  "profile": {
+    "communicationStyle": {
+      "verbosity": { "value": "moderate", "confidence": "low" },
+      "emojiUsage": { "value": "light", "confidence": "low" },
+      "averageMessageLength": { "value": 0, "confidence": "low" }
+    },
+    "activityPatterns": {
+      "peakHours": { "value": [], "confidence": "low" },
+      "responseSpeed": { "value": "moderate", "confidence": "low" },
+      "averageSessionsPerWeek": { "value": 0, "confidence": "low" }
+    },
+    "emotionalPatterns": {
+      "baselineMood": { "value": "neutral", "confidence": "low" },
+      "stressTriggers": { "value": [], "confidence": "low" },
+      "comfortTopics": { "value": [], "confidence": "low" }
+    },
+    "interests": { "active": [], "dormant": [] },
+    "personality": {
+      "openness": { "value": 0.5, "confidence": "low" },
+      "humorStyle": { "value": "", "confidence": "low" }
+    },
+    "observationCount": 0
+  }
 }

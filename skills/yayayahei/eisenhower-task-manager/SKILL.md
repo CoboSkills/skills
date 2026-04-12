@@ -229,6 +229,38 @@ When assigning task to team member:
 3. Add to corresponding quadrant per normal process
 4. Remove from Delegation List
 
+### Check and Fix Task Numbering
+
+When the user asks to check task numbering issues (e.g., "check task numbering", "fix sequence numbers", "序号问题"), you MUST:
+
+1. **Read the task file** (`tasks/tasks.md`)
+2. **Scan for numbering issues**:
+   - Duplicate numbers (e.g., two tasks with `### 7.`)
+   - Missing numbers (gaps in sequence)
+   - Incorrect quadrant transitions (Q1 ends with 6, Q2 should start with 7)
+3. **Automatically fix all issues**:
+   - Reassign sequential numbers starting from 1
+   - Ensure no duplicates or gaps
+   - Update quadrant headers if counts changed
+4. **Re-read and re-verify**: After fixing, read the file again to confirm all numbering is correct
+5. **Repeat if necessary**: If issues remain, repeat steps 2-4 until the entire file has correct sequential numbering with no duplicates or gaps
+
+**Numbering Rules**:
+- Task numbers must be sequential: 1, 2, 3, 4... with no gaps
+- No duplicate numbers within the same file
+- When moving tasks between quadrants, renumber all affected tasks
+- Q1 tasks: 1-N, Q2 tasks: (N+1)-M, Q3 tasks: (M+1)-P, Q4 tasks: (P+1)-Q
+
+**Verification Checklist**:
+- [ ] Q1 tasks are numbered 1 to N sequentially
+- [ ] Q2 tasks are numbered (N+1) to M sequentially
+- [ ] Q3 tasks are numbered (M+1) to P sequentially
+- [ ] Q4 tasks are numbered (P+1) to Q sequentially
+- [ ] No duplicate numbers exist anywhere in the file
+- [ ] No gaps in the sequence
+
+**IMPORTANT**: After EVERY task operation (add, delete, update, move, complete, etc.), you MUST check and fix numbering issues automatically. Do not wait for the user to ask.
+
 ### Complete Task
 
 See [references/task-complete.md](references/task-complete.md)
@@ -376,5 +408,5 @@ Healthy task distribution should be:
 
 ---
 
-*Version: 5.0 (Added comprehensive task merge and split mechanism)*
-*Last Updated: 2026-03-25*
+*Version: 5.1 (Added automatic task numbering check and fix)*
+*Last Updated: 2026-04-09*

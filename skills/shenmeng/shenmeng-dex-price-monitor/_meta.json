@@ -3,11 +3,16 @@
   "slug": "shenmeng-dex-price-monitor",
   "displayName": "DEX Price Monitor DEX价格监控",
   "latest": {
-    "version": "2026.4.6",
-    "publishedAt": 1775360717117,
-    "commit": "https://github.com/openclaw/skills/commit/a06501e6d0104223f6c1f20af869b707ab8a5f41"
+    "version": "2025.4.12",
+    "publishedAt": 1775974371528,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2026.4.6",
+      "publishedAt": 1775360717117,
+      "commit": "https://github.com/openclaw/skills/commit/a06501e6d0104223f6c1f20af869b707ab8a5f41"
+    },
     {
       "version": "1.3.1",
       "publishedAt": 1774666417009,

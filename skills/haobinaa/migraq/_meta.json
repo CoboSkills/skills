@@ -3,11 +3,16 @@
   "slug": "migraq",
   "displayName": "MigraQ",
   "latest": {
-    "version": "1.0.8",
-    "publishedAt": 1775382611362,
-    "commit": "https://github.com/openclaw/skills/commit/de985f8dde803103a563a8a7e0a9efc930ebc2e1"
+    "version": "1.10.0",
+    "publishedAt": 1775718162288,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.8",
+      "publishedAt": 1775382611362,
+      "commit": "https://github.com/openclaw/skills/commit/de985f8dde803103a563a8a7e0a9efc930ebc2e1"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1775010270415,

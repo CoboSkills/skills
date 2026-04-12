@@ -3,7 +3,7 @@ name: MigraQ
 description: 腾讯云迁移平台（CMG/MSP）全流程能力。触发词：资源扫描、扫描阿里云/AWS/华为云/GCP资源、生成云资源清单、选型推荐、对标腾讯云、推荐规格、帮我推荐、给我推荐、ECS对应什么腾讯云产品、成本分析、TCO、迁移报价、询价、价格计算器、cmg-scan、cmg-recommend、cmg-tco
 description_zh: "腾讯云迁移服务专家，支持跨云资源扫描、选型推荐、TCO 分析与迁移方案规划"
 description_en: "Tencent Cloud Migration expert with cross-cloud resource scanning, spec matching, TCO analysis, and migration planning"
-version: 1.0.8
+version: 1.0.10
 allowed-tools:
   - Read
   - Write
@@ -235,7 +235,7 @@ python3 {baseDir}/scripts/migrateq_sse_api.py --clear-session
     "content": "完整回答内容（Markdown 格式）",
     "is_final": true,
     "session_id": "uuid-xxx",
-    "usage": {"input_tokens": 100, "output_tokens": 200, "total_tokens": 300}
+    "usage": {"prompt_tokens": 100, "completion_tokens": 200, "total_tokens": 300}
   },
   "requestId": "resp_xxx"
 }

@@ -14,9 +14,14 @@ MigraQ ChatCompletions SSE 流式调用脚本
     {"Input": "...", "Stream": true}
 
 响应格式（SSE，text/event-stream）：
-    data: {"Response": {"Choices": [{"Delta": {"Content": "..."}, "FinishReason": ""}], ...}}
-    ...
-    data: {"Response": {"Choices": [{"Delta": {"Content": ""}, "FinishReason": "stop"}], ...}}
+    event: run.started
+    data: {"type":"run.started","session_id":"..."}
+
+    event: message.delta
+    data: {"type":"message.delta","delta":"..."}
+
+    event: message.completed
+    data: {"type":"message.completed","reply":"...","usage":{...}}
 
 纯 Python 标准库实现，无外部依赖，支持 Windows / Linux / macOS。
 
@@ -259,7 +264,7 @@ def parse_sse_line(line: str):
 # SSE 流式 API 调用
 # ---------------------------------------------------------------------------
 
-def call_sse_api(question: str, session_id: str,
+def call_sse_api(question: str, session_id: str = None,
                  region: str = None,
                  secret_id: str = None, secret_key: str = None,
                  on_delta=None, timeout: int = 600) -> dict:
@@ -268,7 +273,9 @@ def call_sse_api(question: str, session_id: str,
 
     Args:
         question:    用户问题（必填）
-        session_id:  会话 ID（同一对话必须保持不变，透传至结果）
+        session_id:  会话 ID（必传，首次调用不传则自动生成 UUID v4）。
+                     作为 SessionKey 传入服务端，服务端按此字段隔离对话上下文。
+                     多轮对话时必须传入上次返回的 session_id 以保持上下文。
         region:      地域，不传则从 CMG_REGION 环境变量读取，默认 ap-shanghai
         secret_id:   腾讯云 SecretId，不传则从环境变量读取
         secret_key:  腾讯云 SecretKey，不传则从环境变量读取
@@ -285,7 +292,11 @@ def call_sse_api(question: str, session_id: str,
     if cred_err:
         return cred_err
 
-    payload = {"Input": question, "Stream": True}
+    # 首次调用未传入 session_id 时自动生成，多轮对话时沿用上次返回的值
+    if not session_id:
+        session_id = generate_session_id()
+
+    payload = {"Input": question, "Stream": True, "SessionKey": session_id}
     payload_str = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 
     now = datetime.datetime.now(datetime.timezone.utc)
@@ -364,14 +375,18 @@ def _parse_sse_stream(resp, session_id: str, on_delta) -> dict:
     """
     解析 ChatCompletions SSE 流并构建结果。
 
-    实际响应格式（OpenAI Responses API 格式）：
-        event: response.output_text.delta
-        data: {"type":"response.output_text.delta","delta":"..."}
+    实际响应格式：
+        event: run.started
+        data: {"type":"run.started","session_id":"..."}
 
-        event: response.completed
-        data: {"type":"response.completed","response":{"id":"resp_...","usage":{"input_tokens":N,"output_tokens":N,"total_tokens":N}}}
+        event: run.progress
+        data: {"type":"run.progress","stage":"...","summary":"..."}
 
-        data: [DONE]
+        event: message.delta
+        data: {"type":"message.delta","delta":"..."}
+
+        event: message.completed
+        data: {"type":"message.completed","reply":"...","usage":{...}}
     """
     content_parts = []
     request_id = ""
@@ -424,7 +439,7 @@ def _parse_sse_stream(resp, session_id: str, on_delta) -> dict:
             event_type = data.get("type", "")
 
             # 流式文本增量
-            if event_type == "response.output_text.delta":
+            if event_type == "message.delta":
                 delta = data.get("delta", "")
                 if delta:
                     if not first_delta_received:
@@ -434,11 +449,16 @@ def _parse_sse_stream(resp, session_id: str, on_delta) -> dict:
                     if on_delta:
                         on_delta(delta)
 
-            # 完成事件：提取 request_id 和 usage
-            elif event_type == "response.completed":
-                response_obj = data.get("response", {})
-                request_id = response_obj.get("id", "")
-                usage = response_obj.get("usage", {})
+            # 完成事件：提取完整回复和 usage
+            elif event_type == "message.completed":
+                # 若流式 delta 已拼接内容则保留，否则用 reply 字段兜底
+                if not content_parts:
+                    reply = data.get("reply", "")
+                    if reply:
+                        content_parts.append(reply)
+                        if on_delta:
+                            on_delta(reply)
+                usage = data.get("usage", {})
                 break
 
             # 失败事件：后端通过 SSE 流返回的业务错误
@@ -516,7 +536,7 @@ def main():
         sys.exit(1)
 
     question = args[0]
-    session_id = args[1] if len(args) > 1 else generate_session_id()
+    session_id = args[1] if len(args) > 1 else None  # 首次调用由 call_sse_api 内部生成
 
     if dry_run:
         region, secret_id, secret_key = (
@@ -527,7 +547,9 @@ def main():
         if cred_err:
             print(_output_json(cred_err))
             sys.exit(1)
-        payload = {"Input": question, "Stream": True}
+        if not session_id:
+            session_id = generate_session_id()
+        payload = {"Input": question, "Stream": True, "SessionKey": session_id}
         payload_str = json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
         timestamp = int(datetime.datetime.now(datetime.timezone.utc).timestamp())
         headers = _tc3_sign(secret_key, secret_id, _HOST, payload_str,

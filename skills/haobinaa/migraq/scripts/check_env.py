@@ -318,8 +318,13 @@ def check_gateway_connectivity(gateway_url: str, secret_key: str,
 
                 event_type = data.get("type", "")
 
-                # 收到文本增量或完成事件 → 鉴权通过，连通正常
-                if event_type in ("response.output_text.delta", "response.completed"):
+                # 收到任意进度/增量/完成事件 → 鉴权通过，连通正常
+                if event_type in (
+                    "run.started", "run.progress",
+                    "message.delta", "message.completed",
+                    # 兼容旧格式
+                    "response.output_text.delta", "response.completed",
+                ):
                     return {"ok": True, "code": "OK", "message": "CMG API 连通正常"}
 
                 # 失败事件 → 提取错误信息

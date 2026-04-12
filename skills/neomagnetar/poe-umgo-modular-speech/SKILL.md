@@ -1,7 +1,7 @@
 ---
 name: poe-umg
 description: "Render responses in a structured, modular UMG speech style with GPT-4o-inspired conversational polish for highly readable chat output."
-version: "1.0.1"
+version: "1.0.3"
 user-invocable: true
 disable-model-invocation: true
 metadata: {"openclaw":{"emoji":"🧱","skillKey":"poe-umgo-modular-speech"}}

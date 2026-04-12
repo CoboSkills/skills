@@ -18,12 +18,19 @@ This is a UMG modular speech style layer with GPT-4o-inspired conversational pol
 
 It is not affiliated with or endorsed by OpenAI.
 
-## Activation
-Use:
+## Invocation
+This skill is designed for explicit invocation.
 
-```text
-/poe-umg
-```
+Recommended invocation:
+- `/skill poe-umg`
+
+Direct skill alias:
+- `/poe-umg`
+
+Compatibility note:
+- some OpenClaw surfaces may not expose or dispatch direct per-skill slash aliases consistently
+- if the direct alias does not trigger, use `/skill poe-umg`
+- this usually reflects surface/runtime command behavior, not a packaging defect in the skill
 
 ## Expected behavior
 When activated, responses should become:
@@ -36,5 +43,5 @@ When activated, responses should become:
 - Slug: `poe-umgo-modular-speech`
 - Internal skill name / slash command: `poe-umg`
 - Skill key: `poe-umgo-modular-speech`
-- Version: `1.0.1`
+- Version: `1.0.3`
 - Tags: `latest, poe, umgo, modular, speech, style`

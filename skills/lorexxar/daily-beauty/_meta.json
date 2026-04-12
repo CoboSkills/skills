@@ -3,11 +3,16 @@
   "slug": "daily-beauty",
   "displayName": "Daily Beauty",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1775360142046,
-    "commit": "https://github.com/openclaw/skills/commit/0e8f31a4cb160eafbdb17ed6d371eaa48f1e7d21"
+    "version": "1.0.9",
+    "publishedAt": 1775964978883,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1775360142046,
+      "commit": "https://github.com/openclaw/skills/commit/0e8f31a4cb160eafbdb17ed6d371eaa48f1e7d21"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774928145943,

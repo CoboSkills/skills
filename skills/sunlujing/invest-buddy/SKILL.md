@@ -23,12 +23,50 @@ description: |
   投资分析、基本面、财务、估值、业绩增长、技术面、k线、资金面、情绪面、深度研究、研报、个股、行业对比
 env_vars:
   - name: TOOL_API_TOKEN
-    description: API token for accessing the investment research tools service
+    description: |
+      API token for accessing the investment research tools service.
+      Send email to xudanqing@zhicepilot.com to request access token.
+      Include your use case and expected usage frequency in the email.
     required: true
+  - name: TOOL_API_URL
+    description: |
+      Optional: Override the default API endpoint URL.
+      Default: https://api.facaidazi.com/api/tools/call
+    required: false
 ---
 
 # 投资研究
 多维度股票深度研究分析工具，通过智能编排多个分析维度，提供专业投资研究服务。
+
+## 外部 API 服务说明
+
+**本技能依赖外部 API 服务提供专业投资研究数据：**
+
+### 服务提供商
+- **运营方**: 财搭子团队 (zhicepilot.com)
+- **联系方式**: xudanqing@zhicepilot.com
+
+### 数据流向
+```
+用户查询 →  tool_client.py → api.facaidazi.com → 返回分析结果
+```
+
+### 发送到外部 API 的数据
+- **资产标识**: 股票代码（如 600519.SH）
+- **分析类型**: 请求的分析工具名称（如 analyze_technical）
+- **查询文本**: 用户输入的自然语言问题（用于 extract_assets 和 investment_search_pro）
+
+### 隐私与安全
+- **数据使用**: 仅用于处理当前分析请求，不存储用户查询历史
+- **数据传输**: 通过 HTTPS 加密传输（生产环境）
+- **Token 安全**: TOOL_API_TOKEN 是访问凭证，请妥善保管，不要泄露
+
+### API 可用性
+- **默认端点**: https://api.facaidazi.com/api/tools/call
+- **超时设置**: 300 秒（5 分钟）
+- **可通过 TOOL_API_URL 环境变量自定义端点**
+
+---
 
 ## 数据源优先级
 

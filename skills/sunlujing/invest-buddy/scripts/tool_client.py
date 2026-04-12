@@ -40,7 +40,7 @@ AVAILABLE_TOOLS = [
 def get_api_config() -> tuple[str, str]:
     """获取 API 配置"""
     # 优先使用新的环境变量名
-    api_url = os.getenv("TOOL_API_URL", 'http://api.facaidazi.com/api/tools/call')
+    api_url = os.getenv("TOOL_API_URL", 'https://api.facaidazi.com/api/tools/call')
     api_token = os.getenv("TOOL_API_TOKEN")
 
     if not api_token:

@@ -7,6 +7,7 @@
 #   bash run_ecommerce_kit.sh style_create --input-json '{"image":"...","product_info":"...","platform":"amazon","market":"US"}'
 #   bash run_ecommerce_kit.sh style_poll --input-json '{"task_id":"..."}'
 #   bash run_ecommerce_kit.sh render_submit --input-json '{"image":"...","brand_style":{...},...}'
+#   bash run_ecommerce_kit.sh render_regen --input-json '{"transfer_id":"...","task_id":"..."}'
 #   bash run_ecommerce_kit.sh render_poll --input-json '{"batch_id":"..."}'
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"

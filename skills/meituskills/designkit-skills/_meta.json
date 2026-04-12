@@ -3,11 +3,16 @@
   "slug": "designkit-skills",
   "displayName": "DesignKit Ecommerce AI Studio",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1775086411354,
-    "commit": "https://github.com/openclaw/skills/commit/b90bdd76c51b4a171a9e1408cf829bb81e62d1b4"
+    "version": "1.0.5",
+    "publishedAt": 1775867677811,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1775086411354,
+      "commit": "https://github.com/openclaw/skills/commit/b90bdd76c51b4a171a9e1408cf829bb81e62d1b4"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774496146601,

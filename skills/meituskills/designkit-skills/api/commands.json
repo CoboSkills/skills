@@ -95,7 +95,7 @@
   },
   "ecommerce_product_kit_workflow": {
     "name": "电商商品套图",
-    "description": "多步工作流：商品图 → 核心卖点 → 平台/国家/语言/尺寸 → 爆款风格（ai_text + k2_query）→ 生图（task_submit + hackathon/query）。执行：bash __SKILL_DIR__/scripts/run_ecommerce_kit.sh style_create|style_poll|render_submit|render_poll --input-json '...'（__SKILL_DIR__ 为仓库根）。详见 skills/designkit-ecommerce-product-kit/SKILL.md。",
+    "description": "多步工作流：商品图 → 核心卖点 → 平台/国家/语言/尺寸 → 爆款风格（ai_text + k2_query）→ 生图（task_submit + hackathon/query）。支持指定某张已生成图重生成（regen + hackathon/query）。执行：bash __SKILL_DIR__/scripts/run_ecommerce_kit.sh style_create|style_poll|render_submit|render_regen|render_poll --input-json '...'（__SKILL_DIR__ 为仓库根）。详见 skills/designkit-ecommerce-product-kit/SKILL.md。",
     "skill": "designkit-ecommerce-product-kit",
     "status": "reserved",
     "workflow": true,
@@ -114,6 +114,11 @@
         "method": "POST",
         "url": "https://openclaw-designkit-api.meitu.com/v1/hackathon/ai_product/task_submit",
         "note": "创建商品套图生图任务，请求体待 curl 补充"
+      },
+      "create_regen_task": {
+        "method": "POST",
+        "url": "https://openclaw-designkit-api.meitu.com/v1/hackathon/regen",
+        "note": "指定 task_id 进行重生成"
       },
       "poll_render_result": {
         "method": "POST",

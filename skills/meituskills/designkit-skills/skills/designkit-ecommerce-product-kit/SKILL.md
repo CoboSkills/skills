@@ -78,6 +78,8 @@ After the staged inputs are complete:
 3. download the generated images locally
 4. show the result images and tell the user where they were saved
 
+If the user points to a specific generated image and asks for regeneration, call `render_regen` with `transfer_id` and `task_id`, then continue with `render_poll`.
+
 ## API Value Mapping
 
 | User-facing choice | API value |
@@ -104,6 +106,7 @@ After the staged inputs are complete:
 bash __SKILL_DIR__/scripts/run_ecommerce_kit.sh style_create --input-json '<json>'
 bash __SKILL_DIR__/scripts/run_ecommerce_kit.sh style_poll --input-json '<json>'
 bash __SKILL_DIR__/scripts/run_ecommerce_kit.sh render_submit --input-json '<json>'
+bash __SKILL_DIR__/scripts/run_ecommerce_kit.sh render_regen --input-json '<json>'
 bash __SKILL_DIR__/scripts/run_ecommerce_kit.sh render_poll --input-json '<json>'
 ```
 

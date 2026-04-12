@@ -262,8 +262,11 @@ def _http_request(
     url: str,
     body: Optional[bytes] = None,
     json_mode: bool = True,
+    extra_headers: Optional[Dict[str, str]] = None,
 ) -> Tuple[int, Any]:
     headers = _headers_json() if json_mode and body else _headers_get()
+    if extra_headers:
+        headers.update(extra_headers)
     if body and "Content-Type" not in headers:
         headers["Content-Type"] = "application/json"
     _request_log_as_curl(method, url, headers, body)
@@ -767,6 +770,53 @@ def cmd_render_submit(inp: Dict[str, Any]) -> None:
     print(json.dumps(out, ensure_ascii=False))
 
 
+def cmd_render_regen(inp: Dict[str, Any]) -> None:
+    transfer_id = str(inp.get("transfer_id", "")).strip()
+    if not transfer_id:
+        _json_error(False, "PARAM_ERROR", "缺少 transfer_id", "请传入需要重生成的 transfer_id")
+
+    task_id = str(inp.get("task_id", "")).strip()
+    if not task_id:
+        _json_error(False, "PARAM_ERROR", "缺少 task_id", "请传入需要重生成的 task_id")
+
+    form_body = urllib.parse.urlencode({"task_id": task_id}).encode("utf-8")
+    url = _url("/v1/hackathon/regen", {"transfer_id": transfer_id})
+    code, resp = _http_request(
+        "POST",
+        url,
+        form_body,
+        json_mode=False,
+        extra_headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    if code != 200:
+        _json_error(
+            False,
+            "API_ERROR",
+            f"HTTP {code}",
+            "提交重生成任务失败",
+            {"http_code": code, "result": resp},
+        )
+
+    batch_id = None
+    if isinstance(resp, dict):
+        batch_id = (
+            resp.get("data", {}).get("batch_id")
+            if isinstance(resp.get("data"), dict)
+            else None
+        ) or resp.get("batch_id")
+
+    out = {
+        "ok": True,
+        "command": "ecommerce_render_regen",
+        "transfer_id": transfer_id,
+        "task_id": task_id,
+        "batch_id": batch_id,
+        "result": resp,
+        "user_hint": "若 batch_id 为空，请从 result.data 查找后轮询 render_poll",
+    }
+    print(json.dumps(out, ensure_ascii=False))
+
+
 def _check_render_items(resp: Any) -> Tuple[int, int, List[str], List[Dict[str, Any]]]:
     """解析渲染结果中子 item 的完成状态。
     返回 (total, done_count, res_img_urls, items_list)。
@@ -874,7 +924,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description="DesignKit 电商套图 webapi 执行器")
     p.add_argument(
         "command",
-        choices=("style_create", "style_poll", "render_submit", "render_poll"),
+        choices=("style_create", "style_poll", "render_submit", "render_regen", "render_poll"),
     )
     p.add_argument("--input-json", required=True, help="JSON 参数字符串")
     args = p.parse_args()
@@ -892,6 +942,8 @@ def main() -> None:
         cmd_style_poll(inp)
     elif args.command == "render_submit":
         cmd_render_submit(inp)
+    elif args.command == "render_regen":
+        cmd_render_regen(inp)
     else:
         cmd_render_poll(inp)
 

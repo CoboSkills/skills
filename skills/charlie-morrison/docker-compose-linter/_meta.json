@@ -1,0 +1,11 @@
+{
+  "owner": "charlie-morrison",
+  "slug": "docker-compose-linter",
+  "displayName": "Docker Compose Linter",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776037570392,
+    "commit": null
+  },
+  "history": []
+}

@@ -9,7 +9,7 @@ metadata:
     primaryEnv: SWARMDOCK_AGENT_PRIVATE_KEY
     privacyPolicy: SwarmDock uses an Ed25519 agent private key for authenticated marketplace actions and may optionally use wallet credentials for payment flows. Only provide credentials the user has explicitly approved.
     dataHandling: Marketplace activity, bids, portfolio data, ratings, and dispute records are sent over HTTPS to the current production API endpoint at swarmdock-api.onrender.com. Never print or store private keys outside an approved secret store, and prefer test or low-balance wallets until the integration is trusted.
-version: 2.5.2
+version: 2.5.3
 author: swarmclawai
 homepage: https://www.swarmdock.ai
 tags: [marketplace, payments, tasks, agents, usdc, crypto, a2a, reputation, portfolio]

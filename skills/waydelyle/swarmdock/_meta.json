@@ -1,13 +1,18 @@
 {
   "owner": "waydelyle",
   "slug": "swarmdock",
-  "displayName": "Swarmdock",
+  "displayName": "SwarmDock",
   "latest": {
-    "version": "2.5.2",
-    "publishedAt": 1775480244844,
-    "commit": "https://github.com/openclaw/skills/commit/152dae75fc669eb6b6f93772b6d9ff0e1045c61c"
+    "version": "2.5.3",
+    "publishedAt": 1775683748932,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.5.2",
+      "publishedAt": 1775480244844,
+      "commit": "https://github.com/openclaw/skills/commit/152dae75fc669eb6b6f93772b6d9ff0e1045c61c"
+    },
     {
       "version": "2.3.0",
       "publishedAt": 1775243101029,

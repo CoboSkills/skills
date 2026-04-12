@@ -1,13 +1,18 @@
 {
   "owner": "spzwin",
   "slug": "cms-create-skill",
-  "displayName": "cms-create-skill",
+  "displayName": "Cms Create Skill",
   "latest": {
-    "version": "1.20.6",
-    "publishedAt": 1775208513596,
-    "commit": "https://github.com/openclaw/skills/commit/7279512a7237858b2afa9939c03c6d43780cca19"
+    "version": "1.21.3",
+    "publishedAt": 1775650734167,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.20.6",
+      "publishedAt": 1775208513596,
+      "commit": "https://github.com/openclaw/skills/commit/7279512a7237858b2afa9939c03c6d43780cca19"
+    },
     {
       "version": "1.20.1",
       "publishedAt": 1775120356105,

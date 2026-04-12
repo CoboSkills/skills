@@ -6,9 +6,13 @@
 
 """Parse cache-trace.jsonl to extract real system prompts by session ID."""
 
+from __future__ import annotations
+
 import json
 import os
 from typing import Optional
+
+from .dag import detect_file_encoding
 
 
 def _normalize_system_prompt(system) -> Optional[str]:
@@ -70,7 +74,7 @@ def build_session_system_prompt_index(cache_trace_path: str) -> dict[str, str]:
         return index
 
     try:
-        with open(cache_trace_path, "r", encoding="utf-8", errors="replace") as f:
+        with open(cache_trace_path, "r", encoding=detect_file_encoding(cache_trace_path), errors="replace") as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -108,7 +112,7 @@ def get_system_prompt_for_session(
         return None
 
     try:
-        with open(cache_trace_path, "r", encoding="utf-8", errors="replace") as f:
+        with open(cache_trace_path, "r", encoding=detect_file_encoding(cache_trace_path), errors="replace") as f:
             for line in f:
                 line = line.strip()
                 if not line:

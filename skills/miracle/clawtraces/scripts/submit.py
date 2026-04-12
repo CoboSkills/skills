@@ -1,10 +1,9 @@
+#!/usr/bin/env python3
 # FILE_META
 # INPUT:  .trajectory.json files + API key
 # OUTPUT: server submission confirmation + manifest.json updates
 # POS:    skill scripts — Step 4, depends on lib/auth.py and lib/paths.py
 # MISSION: Upload converted trajectories to the ClawTraces collection server.
-
-#!/usr/bin/env python3
 """Submit converted trajectory files to the ClawTraces collection server.
 
 Usage:
@@ -41,20 +40,75 @@ def load_manifest(output_dir: str) -> dict:
 
 
 def save_manifest(output_dir: str, manifest: dict):
-    """Save the submission manifest."""
+    """Save the submission manifest (atomic write via tmp+rename)."""
     manifest_path = os.path.join(output_dir, MANIFEST_FILENAME)
-    with open(manifest_path, "w", encoding="utf-8") as f:
+    tmp_path = manifest_path + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, manifest_path)
+
+
+def _fix_mojibake(text: str) -> str:
+    """Fix GBK→Latin-1 mojibake in a single string.
+
+    On Chinese Windows, text may be double-encoded: GBK bytes interpreted as
+    Latin-1 (each byte 0x80-0xFF mapped to the same Unicode code point), then
+    saved as UTF-8. This reverses that: encode as Latin-1 to recover the raw
+    GBK bytes, then decode as GBK to get correct Chinese.
+    """
+    try:
+        raw = text.encode("latin-1")
+        return raw.decode("gbk")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
+
+
+def _fix_mojibake_recursive(obj):
+    """Recursively fix mojibake in all string values of a JSON object."""
+    if isinstance(obj, str):
+        return _fix_mojibake(obj)
+    if isinstance(obj, list):
+        return [_fix_mojibake_recursive(item) for item in obj]
+    if isinstance(obj, dict):
+        return {k: _fix_mojibake_recursive(v) for k, v in obj.items()}
+    return obj
+
+
+def _repair_mojibake(file_path: str) -> bool:
+    """Detect and fix mojibake in a JSON file. Returns True if file was repaired."""
+    with open(file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Quick check: if no chars in 0x80-0xFF range, no mojibake possible
+    if not any("\x80" <= ch <= "\xff" for ch in content):
+        return False
+
+    try:
+        data = json.loads(content)
+    except json.JSONDecodeError:
+        return False
+
+    fixed = _fix_mojibake_recursive(data)
+    fixed_content = json.dumps(fixed, ensure_ascii=False, indent=2)
+
+    if fixed_content == json.dumps(data, ensure_ascii=False, indent=2):
+        return False
+
+    # Re-save the repaired file
+    tmp_path = file_path + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        f.write(fixed_content)
+    os.replace(tmp_path, file_path)
+    return True
 
 
 def _load_stats(trajectory_path: str) -> str | None:
     """Load the stats JSON file that corresponds to a trajectory file."""
-    # Handle both .trajectory.json and .openai.json paths
     stats_path = trajectory_path.replace(".trajectory.json", ".stats.json").replace(".openai.json", ".stats.json")
-    if os.path.isfile(stats_path):
-        with open(stats_path, "r", encoding="utf-8") as f:
-            return f.read()
-    return None
+    if not os.path.isfile(stats_path):
+        return None
+    with open(stats_path, "r", encoding="utf-8") as f:
+        return f.read()
 
 
 def upload_file(server_url: str, secret_key: str, file_path: str, force: bool = False) -> dict:
@@ -64,6 +118,16 @@ def upload_file(server_url: str, secret_key: str, file_path: str, force: bool = 
         force: If True, overwrite existing submission with same session_id.
     """
     filename = os.path.basename(file_path)
+
+    # Repair mojibake before upload (trajectory + stats)
+    repaired = []
+    if _repair_mojibake(file_path):
+        repaired.append(os.path.basename(file_path))
+    stats_path = file_path.replace(".trajectory.json", ".stats.json").replace(".openai.json", ".stats.json")
+    if os.path.isfile(stats_path) and _repair_mojibake(stats_path):
+        repaired.append(os.path.basename(stats_path))
+    if repaired:
+        print(f"  [encoding] Fixed mojibake in: {', '.join(repaired)}")
 
     with open(file_path, "rb") as f:
         file_data = f.read()
@@ -152,55 +216,56 @@ def query_count(server_url: str, secret_key: str) -> dict:
         return {"error": _format_connection_error(e.reason)}
 
 
-def submit_all(output_dir: str, server_url: str, secret_key: str) -> dict:
-    """Submit all new trajectory files.
+def submit_all(
+    output_dir: str,
+    server_url: str,
+    secret_key: str,
+    filenames: list[str] | None = None,
+) -> dict:
+    """Submit trajectory files.
+
+    Args:
+        filenames: If provided, only upload these specific filenames (still
+            skipping ones already recorded in manifest). If None, scan the
+            whole output_dir — this legacy behavior is only used by the
+            standalone `python submit.py` entry point.
 
     Returns summary dict with success_count, error_count, total.
     """
     manifest = load_manifest(output_dir)
     submitted = manifest.get("submitted", {})
 
-    all_files = [
-        f for f in os.listdir(output_dir)
-        if f.endswith(".trajectory.json")
-    ]
+    if filenames is None:
+        candidate_files = [
+            f for f in os.listdir(output_dir)
+            if f.endswith(".trajectory.json")
+        ]
+    else:
+        candidate_files = [
+            f for f in filenames
+            if os.path.isfile(os.path.join(output_dir, f))
+        ]
 
-    new_files = [f for f in all_files if f not in submitted]
+    new_files = [f for f in candidate_files if f not in submitted]
 
     if not new_files:
         count_result = query_count(server_url, secret_key)
         return {
             "success_count": 0,
             "error_count": 0,
-            "review_skip_count": 0,
             "new_files": 0,
             "server_total": count_result.get("count", "unknown"),
             "workspace_threshold": count_result.get("workspace_threshold", 5),
             "workspace_submitted": count_result.get("workspace_submitted", False),
+            "workspace_force_required": count_result.get("workspace_force_required", False),
         }
 
     success_count = 0
     error_count = 0
-    review_skip_count = 0
     auth_failed = False
 
     for filename in new_files:
         file_path = os.path.join(output_dir, filename)
-
-        # Validate that agent review (step 3) has been completed
-        stats_path = file_path.replace(".trajectory.json", ".stats.json")
-        try:
-            if os.path.isfile(stats_path):
-                with open(stats_path, "r", encoding="utf-8") as f:
-                    stats_data = json.load(f)
-                if stats_data.get("domain", "pending") == "pending" or not (stats_data.get("title") or "").strip():
-                    print(f"  Skipped (pending review): {filename}")
-                    review_skip_count += 1
-                    continue
-        except (json.JSONDecodeError, OSError):
-            print(f"  Skipped (stats unreadable): {filename}")
-            review_skip_count += 1
-            continue
 
         print(f"  Uploading: {filename}...", end=" ", flush=True)
 
@@ -216,6 +281,11 @@ def submit_all(output_dir: str, server_url: str, secret_key: str) -> dict:
             print(f"FAILED ({msg})")
             error_count += 1
             auth_failed = True
+            break
+        elif result.get("error") == "workspace_required":
+            msg = result.get("message", "需要先提交 Workspace 配置才能继续")
+            print(f"STOPPED ({msg})")
+            error_count += 1
             break
         elif result.get("error") in ("daily_limit_exceeded", "total_limit_exceeded"):
             msg = result.get("message", result["error"])
@@ -252,26 +322,25 @@ def submit_all(output_dir: str, server_url: str, secret_key: str) -> dict:
     daily_count: int | str = "unknown"
     daily_submission_limit = 0
     total_submission_limit = 0
+    workspace_force_required = False
     if not auth_failed:
         count_result = query_count(server_url, secret_key)
         server_total = count_result.get("count", "unknown")
         workspace_threshold = count_result.get("workspace_threshold", 5)
         workspace_submitted = count_result.get("workspace_submitted", False)
+        workspace_force_required = count_result.get("workspace_force_required", False)
         daily_count = count_result.get("daily_count", "unknown")
         daily_submission_limit = count_result.get("daily_submission_limit", 0)
         total_submission_limit = count_result.get("total_submission_limit", 0)
 
-    if review_skip_count > 0:
-        print(f"\n  {review_skip_count} file(s) skipped (pending agent review — run step 3 first).", file=sys.stderr)
-
     return {
         "success_count": success_count,
         "error_count": error_count,
-        "review_skip_count": review_skip_count,
         "new_files": len(new_files),
         "server_total": server_total,
         "workspace_threshold": workspace_threshold,
         "workspace_submitted": workspace_submitted,
+        "workspace_force_required": workspace_force_required,
         "daily_count": daily_count,
         "daily_submission_limit": daily_submission_limit,
         "total_submission_limit": total_submission_limit,
@@ -354,11 +423,7 @@ def main():
         return
 
     result = submit_all(args.output_dir, server_url, key)
-    review_skipped = result.get('review_skip_count', 0)
-    if review_skipped:
-        print(f"\nDone: {result['success_count']} uploaded, {result['error_count']} failed, {review_skipped} skipped (pending review)")
-    else:
-        print(f"\nDone: {result['success_count']} uploaded, {result['error_count']} failed")
+    print(f"\nDone: {result['success_count']} uploaded, {result['error_count']} failed")
     print(f"Your total submissions: {result['server_total']}")
 
     daily_limit = result.get("daily_submission_limit", 0)

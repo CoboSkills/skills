@@ -9,12 +9,14 @@
 These are fast, offline checks run before the agent's semantic quality judgment.
 """
 
+from __future__ import annotations
+
 from .metadata_stripper import strip_metadata_prefix, is_system_startup_message
 
 # Thresholds
-MIN_AVG_USER_MSG_LENGTH = 20  # characters
-MIN_LONG_USER_MESSAGES = 1  # messages > LONG_MESSAGE_THRESHOLD chars
-LONG_MESSAGE_THRESHOLD = 50  # characters
+MIN_AVG_USER_MSG_LENGTH = 5   # characters
+MIN_LONG_USER_MESSAGES = 1    # messages > LONG_MESSAGE_THRESHOLD chars
+LONG_MESSAGE_THRESHOLD = 10   # characters
 
 
 def check_quality(message_nodes: list[dict]) -> tuple[bool, str]:
@@ -51,7 +53,7 @@ def check_quality(message_nodes: list[dict]) -> tuple[bool, str]:
     if avg_length < MIN_AVG_USER_MSG_LENGTH:
         return False, f"avg user message length {avg_length:.0f} < {MIN_AVG_USER_MSG_LENGTH}"
 
-    # Check 2: at least 1 user message > 50 chars
+    # Check 2: at least MIN_LONG_USER_MESSAGES messages > LONG_MESSAGE_THRESHOLD chars
     long_msgs = sum(1 for t in user_texts if len(t) > LONG_MESSAGE_THRESHOLD)
     if long_msgs < MIN_LONG_USER_MESSAGES:
         return False, f"long user messages ({long_msgs}) < {MIN_LONG_USER_MESSAGES}"

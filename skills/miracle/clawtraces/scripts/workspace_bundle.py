@@ -1,10 +1,9 @@
+#!/usr/bin/env python3
 # FILE_META
 # INPUT:  workspace directory (SOUL.md, memory/, cron/)
 # OUTPUT: workspace-{agent_id}.zip + upload confirmation
 # POS:    skill scripts — Step 5, depends on lib/pii_scrubber.py and lib/paths.py
 # MISSION: Bundle and upload workspace configuration with PII scrubbing.
-
-#!/usr/bin/env python3
 """Bundle workspace config files into zip archives for submission.
 
 Supports two-phase operation for user confirmation:
@@ -45,6 +44,7 @@ WORKSPACE_MD_FILES = [
     "BOOTSTRAP.md",
     "HEARTBEAT.md",
     "IDENTITY.md",
+    "MEMORY.md",
 ]
 
 
@@ -83,6 +83,12 @@ def discover_workspaces(output_dir: str) -> list[dict]:
         try:
             with open(stats_path, "r", encoding="utf-8") as f:
                 stats = json.load(f)
+        except UnicodeDecodeError:
+            try:
+                with open(stats_path, "r", encoding="gbk") as f:
+                    stats = json.load(f)
+            except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+                continue
         except (json.JSONDecodeError, OSError):
             continue
 

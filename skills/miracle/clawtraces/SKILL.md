@@ -1,6 +1,6 @@
 ---
 name: clawtraces
-description: "扫描本地 OpenClaw session 日志，筛选符合要求的对话，转换为 Anthropic trajectory 格式并提交到采集服务器。当用户说「采集数据」「提交日志」「扫描 session」「扫描日志」「扫描对话」「提交 trajectory」「提交数据」「查看提交记录」「clawtraces」或涉及扫描/提交本地对话记录的请求时使用此 Skill。"
+description: "采集并提交本地 OpenClaw 对话记录到数据平台。当用户说「采集数据」「提交数据」「提交对话」「提交记录」「提交日志」「扫描对话」「扫描日志」「看看有哪些对话可以提交」「帮我提交对话记录」「查看提交记录」「提交了多少条」「clawtraces」「claw」，或表达想要扫描、采集、提交、查看本地对话记录的意图时使用此 Skill。"
 user-invocable: true
 ---
 
@@ -85,51 +85,81 @@ python3 /{{baseDir}}/scripts/env_check.py
 
 - **如果 1.2 配置已正确（`changed: false`）**：输出以下提示，**然后停下来等待用户指令**：
 
-  > ✅ 环境已就绪。你可以告诉我：
-  > - **看看有哪些** — 先列出可用的 session，你来选择处理哪些
-  > - **扫描** — 扫描并处理未提交的 session
-  > - **查看提交记录** — 查看已提交的数据
+  > ✅ 环境已就绪。你可以：
+  > - **📋 采集数据** — 列出可采集的对话，选择后提交
+  > - **📊 查看进度** — 已提交多少条、查看提交记录
+  > - **📦 提交 Workspace** — 提交工作区配置文件
 
-  **必须等待用户回复后才能继续。** 不要自动开始扫描。用户可能用各种自然语言表达意图（如"扫描最近 3 条"、"全部扫"、"先列一下"、"帮我扫"等），根据语义判断进入步骤 2 的哪个分支。
+  **必须原样输出上面的提示，不要自行增减内容，然后停下来等待用户回复。** 用户回复后根据语义判断进入步骤 2（采集）、步骤 5（查看进度）或步骤 5.5（提交 Workspace）。
 
 ---
 
-### 步骤 2：扫描 + 生成记录
+### 步骤 2：采集数据
 
-根据用户指令选择对应的执行模式。
+**触发**：用户表达了想要采集、提交、查看对话清单的意图。常见表达包括"看看有哪些"、"采集"、"全部"、"最近 N 条"、"帮我处理"等。
 
-#### 模式 A：先列清单再选择
-
-**触发**：用户说"看看有哪些"、"列一下"、"有几条"等想先了解情况的表达。
-
-**2a-1. 列出可用 session**
+**2.1 列出对话清单**
 
 ```bash
 python3 /{{baseDir}}/scripts/scan_and_convert.py --list-only
 ```
 
-脚本输出 JSON 数组，每项包含 `session_id`、`agent_id`、`model`、`modified`（时间）、`file_size_kb`、`topic`（第一条用户消息摘要）、`has_cache_trace`（是否有 cache-trace 数据）。已按时间倒序排列（最新在前）。
+脚本输出 JSON 对象（分页），包含以下字段：
 
-将结果以表格形式展示给用户（序号、时间、模型、摘要），然后**等待用户选择**。例如：
+- `items`：当前页的对话列表（默认每页 10 条），每项包含 `index`（序号）、`session_id`、`model`、`started_at`、`ended_at`、`file_size_kb`、`topic`、`status`
+- `total`：对话总数
+- `page`：当前页码
+- `page_size`：每页条数
+- `has_more`：是否有下一页
 
-> 找到 8 个可处理的 session：
+**`status` 字段说明**：
+
+| status 值 | 含义 | 能否处理 |
+|-----------|------|---------|
+| `null` | 正常，可直接处理提交 | ✅ |
+| `"active"` | 当前活跃对话（尚未 /new 或 /reset） | ✅ 需通过 `--sessions` 显式指定 |
+| `"rejected"` | 已在之前的初审中被标记为不合格 | ❌ |
+| `"model_mismatch"` | 使用的模型不在采集白名单中 | ❌ |
+
+将 `items` 以表格形式展示给用户。status 映射为中文标记：
+
+- `null` → 不显示
+- `"active"` → `⚡活跃中`
+- `"rejected"` → `❌不合格`
+- `"model_mismatch"` → `⚠️模型不符`
+
+示例：
+
+> 找到 85 个对话记录，显示第 1-10 条：
 >
-> | # | 时间 | 模型 | 摘要 |
-> |---|------|------|------|
-> | 1 | 2026-04-04 10:30 | claude-opus-4-6 | 帮我把这个 React 组件重构一下... |
-> | 2 | 2026-04-03 16:20 | claude-sonnet-4-6 | 分析一下这份 CSV 数据的趋势 |
-> | ... | | | |
+> | # | 开始时间 | 结束时间 | 模型 | 摘要 | 状态 |
+> |---|---------|---------|------|------|------|
+> | 1 | 04-04 14:00 | 04-04 15:30 | claude-opus-4-6 | 帮我调试一下这个内存泄漏... | ⚡活跃中 |
+> | 2 | 04-04 10:30 | 04-04 12:15 | claude-opus-4-6 | 帮我把这个 React 组件重构一下... | |
+> | ... | | | | | |
+> | 10 | 04-01 11:00 | 04-01 12:00 | claude-sonnet-4-6 | 分析用户留存数据... | |
 >
-> 你想处理哪些？可以说"全部"、"前 3 个"、"第 1、3、5 个"等。
+> 其中 {N} 个可直接处理（无状态标记的）。还有 75 条，回复「更多」查看下一页。
+> **提示**：标记为「⚡活跃中」的对话尚未结束。如果确认已完成，可以选择它来处理；但提交后若继续在该对话中聊天，新增内容将无法补充到已提交的记录中。建议在对话完全结束后再提交。
+>
+> 你想处理哪些？回复"全部"、"前 3 个"、"第 1、3、5 个"等即可。
 
-**如果列表为空**：输出无可用数据的提示，流程结束。
+**分页**：当 `has_more` 为 true 时，展示"还有 {total - page*page_size} 条，回复「更多」查看下一页"。用户说"更多"时执行：
 
-**2a-2. 按用户选择处理**
+```bash
+python3 /{{baseDir}}/scripts/scan_and_convert.py --list-only --page 2
+```
+
+继续展示下一页内容，累加到之前的列表上下文中。页码递增直到 `has_more` 为 false。
+
+**如果列表为空**（`total` 为 0）：输出无可用数据的提示，流程结束。
+
+**2.2 按用户选择处理**
 
 用户可能说：
-- "全部" → 不传 `--sessions`，走默认全量处理
-- "前 N 个" / "最近 N 条" → 从清单取前 N 个 session_id
-- "第 1、3、5 个" → 从清单取对应序号的 session_id
+- "全部" → 不传 `--sessions`，走默认全量处理（只处理 `status: null` 的对话）
+- "前 N 个" / "最近 N 条" → 从清单中取前 N 个 **`status: null` 的** session_id（跳过有状态标记的）
+- "第 1、3、5 个" → 从清单取对应序号的 session_id。如果用户选择了 `status: "active"` 的对话，通过 `--sessions` 显式指定（可以处理）。如果用户选择了 `"rejected"` 或 `"model_mismatch"` 的对话，告知无法处理并说明原因
 - 直接给 session_id → 直接使用
 
 确定要处理的 session_id 列表后，执行：
@@ -138,48 +168,17 @@ python3 /{{baseDir}}/scripts/scan_and_convert.py --list-only
 python3 /{{baseDir}}/scripts/scan_and_convert.py --sessions <id1> <id2> <id3>
 ```
 
-#### 模式 B：直接扫描
+#### 快捷方式：指定数量
 
-**触发**：用户说"扫描"、"全部扫"、"帮我扫"等直接开始的表达。
-
-**先执行预检**，用 `--list-only` 快速获取可用数量：
-
-```bash
-python3 /{{baseDir}}/scripts/scan_and_convert.py --list-only
-```
-
-根据返回的数组长度决定下一步：
-
-- **≤ 20 条**：直接执行全量扫描，无需额外确认：
-  ```bash
-  python3 /{{baseDir}}/scripts/scan_and_convert.py
-  ```
-
-- **> 20 条**：展示数量和日期范围，建议用户缩小范围。从返回的 JSON 数组中取第一条（最新）和最后一条（最早）的 `modified` 字段：
-
-  > 找到 {N} 个可处理的 session（{最早日期} ~ {最近日期}）。
-  > 全量处理会消耗较多 token，建议缩小范围：
-  > - **全部处理** — 一次性处理全部 {N} 条
-  > - **最近 N 条** — 例如"最近 10 条"
-  > - **按日期** — 例如"从 4 月 1 号开始"
-  >
-  > 你想怎么处理？
-
-  **等待用户回复后**，根据用户选择走模式 B（全量）、C（`--limit`）或 D（`--since`）。
-
-#### 模式 C：扫描指定数量
-
-**触发**：用户说"扫描最近 3 条"、"处理 5 个"等指定数量的表达。
-
-直接使用 `--limit` 参数，无需先 `--list-only`：
+如果用户在一开始就说了"最近 3 条"、"处理 5 个"等指定数量的表达，可以跳过列表直接使用 `--limit` 参数：
 
 ```bash
 python3 /{{baseDir}}/scripts/scan_and_convert.py --limit <N>
 ```
 
-#### 模式 D：按日期范围扫描
+#### 快捷方式：按日期范围
 
-**触发**：用户说"扫描最近一周的"、"只要 4 月的"、"从 3 月 20 号开始"等指定日期范围的表达。
+如果用户说"最近一周的"、"只要 4 月的"、"从 3 月 20 号开始"等指定日期范围的表达：
 
 将用户的日期表达转换为 YYYY-MM-DD 格式，使用 `--since` 参数：
 
@@ -193,36 +192,64 @@ python3 /{{baseDir}}/scripts/scan_and_convert.py --since <YYYY-MM-DD>
 python3 /{{baseDir}}/scripts/scan_and_convert.py --since 2026-03-29 --limit 5
 ```
 
-#### 扫描结果处理（所有模式共用）
+#### 处理结果（所有模式共用）
 
 脚本会自动：
-- 按硬性规则过滤（模型、轮次 > 5、领域分类）
-- 按数字指标过滤（用户消息平均长度、工具调用、长消息数）
+- 按硬性规则过滤（模型、轮次 > 5）
+- 按数字指标过滤（用户消息平均长度、长消息数）
 - 从 cache-trace 提取真实 system prompt（自动模式下无数据则跳过；`--sessions` 显式指定时使用重建 prompt）
-- 生成 .trajectory.json 文件
+- 为每个通过的 session 自动生成启发式 domain（基于工具使用模式）和 title（基于第一条用户消息）
+- 生成 .trajectory.json 文件和 .stats.json 文件
 - 输出 candidates.json（含每个候选的用户消息，供语义初审）
 
-**如果候选数量为 0**：本次流程结束，不继续后续步骤。输出：
+脚本 stdout 输出 JSON 对象，包含两个字段：
+- `candidates`：通过所有过滤的候选列表（摘要信息，不含 user_messages）
+- `filter_report`：过滤报告，包含 `total_found`（发现总数）、`total_scanned`（实际处理数）、`pre_filter`（前置过滤计数）、`passed`（通过数）、`filtered_count`（被过滤数）、`filtered`（每个被过滤 session 的 session_id、topic、reason、detail）
 
-> 本次扫描未发现新的可采集数据。可能的原因：所有符合条件的 session 已提交或已初审，或没有使用支持的模型（claude-sonnet-4-6 / claude-opus-4-5 / claude-opus-4-6）的对话。
+**展示过滤报告**：当 `filter_report.filtered_count > 0` 时，向用户展示过滤摘要。按 reason 分组，默认展示每条的 detail 和 session_id，例如：
 
-**如果有候选**：展示扫描结果（候选数量、每个 session 的模型和轮次），然后继续步骤 3。
+> 扫描了 15 个 session，8 个通过，7 个被过滤：
+> - 3 个轮次不足：
+>   · 3 turns (min 6): session_id_1
+>   · 4 turns (min 6): session_id_2
+>   · 2 turns (min 6): session_id_3
+> - 2 个无 cache-trace 数据：
+>   · no system prompt available: session_id_4
+>   · no system prompt available: session_id_5
+> - 1 个质量检查未通过：
+>   · long user messages (0) < 1: session_id_6
+> - 1 个转换错误：
+>   · tool_error_abort: session_id_7
+
+**如果候选数量为 0**：本次流程结束，不继续后续步骤。基于 `filter_report` 展示具体原因：
+
+> 本次扫描处理了 {total_scanned} 个 session，但全部被过滤：
+> - {reason 分组}: {count} 个
+>
+> 如需了解具体哪些 session 被过滤及原因，可以查看详情。
+
+如果 `total_found` 为 0，说明没有使用支持模型的对话，单独说明。
+
+**如果有候选**：展示扫描结果（候选数量、每个 session 的模型、轮次和启发式 domain），然后继续步骤 3。
 
 ---
 
-### 步骤 3：语义初审 + 领域分类（合并为一次判断）
+### 步骤 3：语义初审 + 领域/标题审核（合并为一次判断）
 
-读取 `output/candidates.json` 文件，对每个候选 session 的 `user_messages` 字段完成两个判断：
+每个候选已有启发式 domain（基于工具使用模式推断）和 title（基于第一条用户消息截断）。本步骤审核并改善这些值。
+
+读取 `output/candidates.json` 文件，对每个候选 session 的 `user_messages` 字段完成：
 
 1. **初审判定**：PASS 或 FAIL（这是系统自动初审，不代表最终人工审核结果）
-2. **领域分类**：从 13 个领域中选择最匹配的一个
+2. **领域分类**：审核启发式 domain 是否准确，必要时纠正为 13 个领域中更匹配的一个
+3. **标题改善**：将启发式 title（截断的用户消息）改写为更精炼的任务概括
 
 #### 分批审核
 
 为控制单次上下文消耗，当候选数量 **超过 15 个**时，**必须分批审核**：
 
 1. 将 candidates.json 按每批 15 个分组
-2. 每批读取对应范围的候选（例如第 1-15 个、第 16-30 个...），逐批完成初审判定和领域分类
+2. 每批读取对应范围的候选（例如第 1-15 个、第 16-30 个...），逐批完成初审判定和领域/标题审核
 3. 每批审核完成后立即执行该批的后续处理（更新 stats / 调用 reject.py），再进入下一批
 4. 所有批次处理完毕后，汇总结果进入步骤 4
 
@@ -273,35 +300,53 @@ python3 /{{baseDir}}/scripts/scan_and_convert.py --since 2026-03-29 --limit 5
 
 #### 后续处理
 
-**对于初审 PASS 的候选**：将领域分类和标题写入 stats 文件（trajectory 文件保持纯净不修改）：
+审核完成后，将所有结果（PASS 和 FAIL）合并为一个 JSON 数组，一次性提交给 `review.py` 处理：
 
 ```bash
-python3 -c "
-import sys, os; sys.path.insert(0, '/{{baseDir}}/scripts')
-from lib.paths import get_default_output_dir
-import json
-path = os.path.join(get_default_output_dir(), '{session_id}.stats.json')
-with open(path) as f: s = json.load(f)
-s['domain'] = '{domain_id}'
-s['title'] = '{title}'
-with open(path, 'w') as f: json.dump(s, f, ensure_ascii=False, indent=2)
-"
+python3 /{{baseDir}}/scripts/review.py <<'EOF'
+[
+  {"session_id": "xxx", "verdict": "pass", "domain": "development", "title": "为 React 项目添加认证"},
+  {"session_id": "yyy", "verdict": "fail", "reason": "纯闲聊无实质内容"}
+]
+EOF
 ```
 
-对所有 PASS 的候选批量执行上述更新。
+每个条目必须包含 `session_id` 和 `verdict`（`"pass"` 或 `"fail"`）。PASS 的需要 `domain`（13 个领域 ID 之一）和 `title`；FAIL 的可选 `reason`。
 
-**对于初审 FAIL 的候选**：运行以下命令记录拒绝并删除 trajectory 文件（支持批量）：
+脚本自动完成：
+- PASS：更新 stats 文件的 domain、title、review_status
+- FAIL：删除 trajectory 和 stats 文件，记录到 manifest.json 的 `rejected` 字段
 
-```bash
-python3 /{{baseDir}}/scripts/reject.py \
-  --sessions 'session_id_1:拒绝理由1' 'session_id_2:拒绝理由2'
-```
-
-将实际的 session_id 和理由替换进去。脚本会自动删除对应的 .trajectory.json 文件并记录到 manifest.json 的 `rejected` 字段，下次扫描会跳过这些 session。
+输出 JSON 汇总：`{"passed": N, "rejected": M, "errors": [...]}`。
 
 **如果所有候选均 FAIL**：本次流程结束，不继续步骤 4。输出：
 
 > 本次初审的所有候选均未通过语义质量检查，没有可提交的数据。
+
+---
+
+### 步骤 3.5：Workspace 门槛检查（进入提交前）
+
+在展示待提交列表之前，先检查是否需要强制提交 Workspace 配置：
+
+```bash
+python3 -c "
+import sys; sys.path.insert(0, '/{{baseDir}}/scripts')
+from submit import query_count
+from lib.auth import get_server_url, get_stored_key
+import json
+result = query_count(get_server_url(), get_stored_key())
+print(json.dumps(result, indent=2))
+"
+```
+
+检查返回的 `workspace_force_required`、`workspace_threshold`、`workspace_submitted`、`count` 字段：
+
+- 如果 `workspace_force_required == true` 且 `count >= workspace_threshold` 且 `workspace_submitted == false`：
+  - 告知用户：「你已提交 {count} 条数据（达到 {threshold} 条阈值），需要先提交 Workspace 配置才能继续采集。」
+  - 自动进入步骤 5.5（提交 Workspace）
+  - Workspace 提交成功后继续步骤 4；用户拒绝则流程结束
+- 否则：直接进入步骤 4
 
 ---
 
@@ -330,7 +375,9 @@ python3 /{{baseDir}}/scripts/submit.py
 
 提交完成后展示：本次提交数量 + 你累计已提交的数量（注意：这是当前用户个人的提交总数，不是全平台的）。并提示用户可以说「查看提交记录」来查看历史提交。
 
-提交脚本的输出中包含 `workspace_threshold`、`workspace_submitted` 字段，用于判断是否触发步骤 4.5。
+**workspace_required 错误处理**：如果提交过程中某条记录返回 `workspace_required` 错误（服务端 403），说明用户需要先提交 Workspace 配置。告知用户原因，自动进入步骤 5.5。Workspace 提交成功后，可重新运行提交。
+
+提交脚本的输出中包含 `workspace_threshold`、`workspace_submitted`、`workspace_force_required` 字段，用于判断是否触发步骤 4.5。
 
 ---
 
@@ -341,6 +388,8 @@ python3 /{{baseDir}}/scripts/submit.py
 2. `workspace_submitted` 为 false（尚未提交过 workspace）
 
 如果不满足条件，静默跳过此步骤。
+
+注意：此步骤是**推荐性**提示，无论 `workspace_force_required` 是否启用都会触发。用户可以拒绝。强制拦截由步骤 3.5 和服务端 403 保证。
 
 **触发后**：
 
@@ -403,13 +452,75 @@ python3 /{{baseDir}}/scripts/workspace_bundle.py --upload-only
 
 ### 步骤 5：查询（可选）
 
-如果用户想查看已提交的记录：
+**触发**：用户说「查看提交记录」「提交了多少条」「查看进度」等。
 
 ```bash
-python3 /{{baseDir}}/scripts/query.py [--page N]
+python3 /{{baseDir}}/scripts/query.py [--page N] [--page-size N]
 ```
 
-展示已提交的 session 列表（标题、领域、轮次、提交时间），默认每页 100 条。
+展示已提交的 session 列表，每条包含标题、领域、模型、轮次、提交时间。默认每页 20 条，支持分页。
+
+以表格形式展示：
+
+> 提交记录（共 {total} 条）
+>
+> | # | 标题 | 领域 | 模型 | 轮次 | 提交时间 |
+> |---|------|------|------|------|---------|
+> | 1 | 为 React 项目添加认证 | 软件开发 | claude-opus-4-6 | 8 | 2026-04-08 14:30 |
+> | ... | | | | | |
+
+用户说「更多」或「下一页」时加载下一页。
+
+---
+
+### 步骤 5.5：独立 Workspace 提交
+
+**触发**：用户说「提交 Workspace」「提交工作区配置」「workspace」等。
+
+#### 5.5.1 查询已提交状态
+
+```bash
+python3 -c "
+import sys; sys.path.insert(0, '/{{baseDir}}/scripts')
+from submit import query_count
+from lib.auth import get_server_url, get_stored_key
+import json
+print(json.dumps(query_count(get_server_url(), get_stored_key()), indent=2))
+"
+```
+
+读取返回的 `workspace_submitted` 字段。
+
+#### 5.5.2 已提交过的提醒（workspace_submitted == true）
+
+如果用户之前已经提交过 Workspace 配置，**不要拒绝**，而是原样输出以下提示并 **停下来等待用户回复**：
+
+> 你之前已经提交过 Workspace 配置。如果你本地的配置文件有了更新（比如 SOUL.md、USER.md、memory/ 下的内容有新变化），可以再提交一份最新版本，后端会保留所有历史版本作为参考。
+>
+> 是否需要提交一份新版本？
+
+- 用户确认（"好"、"提交"、"更新"等）→ 进入 5.5.3
+- 用户拒绝（"不用"、"算了"等）→ 流程结束
+
+如果 `workspace_submitted == false`（首次提交），直接进入 5.5.3，不需要展示上面的提醒。
+
+#### 5.5.3 本地打包 + 脱敏
+
+```bash
+python3 /{{baseDir}}/scripts/workspace_bundle.py --bundle-only
+```
+
+#### 5.5.4 展示脱敏报告，征询用户确认
+
+展示格式与步骤 4.5.3 一致（按文件列出脱敏项，或说明未检测到敏感信息），然后等待用户确认。
+
+#### 5.5.5 上传
+
+```bash
+python3 /{{baseDir}}/scripts/workspace_bundle.py --upload-only
+```
+
+展示上传结果。
 
 ---
 
@@ -459,14 +570,15 @@ python3 /{{baseDir}}/scripts/submit.py --resubmit {session_id}
 
 ## 注意事项
 
-- **认证完成后必须等待用户指令**，不要自动开始扫描。用户需要主动说"扫描"或指定处理方式
+- **认证完成后必须原样输出提示文案并等待用户指令**，不要自动开始采集，不要自行增减提示内容
 - `--list-only` 是轻量操作（只读索引和文件元数据），不消耗大量资源
-- `--limit N` 只处理最近 N 个 session，减少处理量和后续语义审核的 token 消耗
-- `--since YYYY-MM-DD` 只处理该日期之后的 session，可与 `--limit` 组合使用
-- `--sessions` 指定的 session 会跳过"最新 session"和"已提交"的自动过滤，因为用户明确选择了它们
-- 扫描通过 sessions.json 索引快速过滤模型，不会读取不符合要求的 .jsonl 文件
-- 全局最新的 session 在 `--list-only` 和默认模式下会被跳过（可能还在进行中），但通过 `--sessions` 显式指定时不跳过
+- `--limit N` 只处理最近 N 个对话，减少处理量和后续语义审核的 token 消耗
+- `--since YYYY-MM-DD` 只处理该日期之后的对话，可与 `--limit` 组合使用
+- `--sessions` 指定的对话会跳过"活跃"和"已提交"的自动过滤，因为用户明确选择了它们
+- `--list-only` 列出除已提交外的所有对话（包括活跃、已拒绝、模型不符的），用 `status` 字段区分
+- 默认处理（不带 `--sessions`）仍然严格过滤：只处理白名单模型、非活跃、非已拒绝的对话
 - 用户消息中的隐私信息（Sender 身份、时间戳）会在转换时自动清除
-- System prompt 从 cache-trace 提取。自动扫描模式下，无 cache-trace 数据的 session 会被跳过（历史 session）；通过 `--sessions` 显式指定的 session 会使用重建的 system prompt 作为回退
+- System prompt 从 cache-trace 提取。自动模式下，无 cache-trace 数据的对话会被跳过（历史对话）；通过 `--sessions` 显式指定的对话会使用重建的 system prompt 作为回退
 - 提交需要用户确认，确保数据授权合规
-- 已提交和已拒绝的 session 不会重复处理（manifest.json 跟踪）
+- 已提交和已拒绝的对话不会重复处理（manifest.json 跟踪）
+- **面向用户的文案中统一使用"对话"而非"session"**，session_id 等技术字段仅在内部处理时使用

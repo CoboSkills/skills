@@ -82,7 +82,7 @@ def _load_env_file() -> dict[str, str]:
     """Load key=value pairs from the skill .env file."""
     env = {}
     if os.path.isfile(ENV_FILE_PATH):
-        with open(ENV_FILE_PATH, "r") as f:
+        with open(ENV_FILE_PATH, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith("#"):
@@ -99,7 +99,7 @@ def _save_to_env_file(key: str, value: str):
     found = False
 
     if os.path.isfile(ENV_FILE_PATH):
-        with open(ENV_FILE_PATH, "r") as f:
+        with open(ENV_FILE_PATH, "r", encoding="utf-8") as f:
             for line in f:
                 if line.strip().startswith(f"{key}="):
                     lines.append(f"{key}={value}\n")
@@ -111,7 +111,7 @@ def _save_to_env_file(key: str, value: str):
         lines.append(f"{key}={value}\n")
 
     os.makedirs(os.path.dirname(ENV_FILE_PATH), exist_ok=True)
-    with open(ENV_FILE_PATH, "w") as f:
+    with open(ENV_FILE_PATH, "w", encoding="utf-8") as f:
         f.writelines(lines)
 
 
@@ -120,11 +120,11 @@ def _remove_from_env_file(key: str):
     if not os.path.isfile(ENV_FILE_PATH):
         return
     lines = []
-    with open(ENV_FILE_PATH, "r") as f:
+    with open(ENV_FILE_PATH, "r", encoding="utf-8") as f:
         for line in f:
             if not line.strip().startswith(f"{key}="):
                 lines.append(line)
-    with open(ENV_FILE_PATH, "w") as f:
+    with open(ENV_FILE_PATH, "w", encoding="utf-8") as f:
         f.writelines(lines)
 
 

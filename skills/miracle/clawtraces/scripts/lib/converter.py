@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+import json
+
 from .session_index import is_allowed_model
 from .tool_registry import get_tool_schemas
 
@@ -50,7 +52,6 @@ def _convert_assistant_content(content: list) -> list[dict]:
             # arguments may be a JSON string instead of dict in some OpenClaw versions
             if isinstance(arguments, str):
                 try:
-                    import json
                     arguments = json.loads(arguments)
                 except (json.JSONDecodeError, ValueError):
                     arguments = {}
@@ -66,6 +67,30 @@ def _convert_assistant_content(content: list) -> list[dict]:
     return result
 
 
+def _clean_garbled_text(text: str) -> str:
+    """Strip garbled chars from tool output (Windows GBK→UTF-8 corruption).
+
+    On Chinese Windows, PowerShell outputs GBK-encoded text which OpenClaw
+    may read as UTF-8, producing U+FFFD and stray Unicode characters.
+    This replaces consecutive garbled characters with (?) while keeping
+    ASCII and normal CJK Chinese intact.
+    """
+    result = []
+    in_garble = False
+    for ch in text:
+        cp = ord(ch)
+        if cp < 0x80 or 0x4E00 <= cp <= 0x9FFF:  # ASCII or CJK
+            if in_garble:
+                result.append("(?)")
+                in_garble = False
+            result.append(ch)
+        else:
+            in_garble = True
+    if in_garble:
+        result.append("(?)")
+    return "".join(result)
+
+
 def _convert_tool_result(message: dict) -> dict:
     """Convert a toolResult message to Anthropic tool_result content block."""
     content_blocks = message.get("content", [])
@@ -76,10 +101,14 @@ def _convert_tool_result(message: dict) -> dict:
         elif isinstance(block, str):
             text_parts.append(block)
 
+    content = "\n".join(text_parts)
+    if "\ufffd" in content:
+        content = _clean_garbled_text(content)
+
     result = {
         "type": "tool_result",
         "tool_use_id": message.get("toolCallId", ""),
-        "content": "\n".join(text_parts),
+        "content": content,
     }
 
     if message.get("isError"):

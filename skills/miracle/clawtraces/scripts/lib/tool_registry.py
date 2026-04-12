@@ -11,6 +11,10 @@ and OpenClaw extension tools). Parameter names use Claude-compatible aliases
 (file_path, old_string, new_string) to match actual tool_use calls in trajectories.
 """
 
+from __future__ import annotations
+
+import json
+
 # Built-in tool schemas (Anthropic format with input_schema)
 # Source: pi-coding-agent/dist/core/tools/*.js + openclaw/src/agents/*.ts
 BUILTIN_TOOLS: dict[str, dict] = {
@@ -265,7 +269,6 @@ def _infer_schema_from_calls(calls: list[dict]) -> dict:
         # arguments may be a JSON string in some OpenClaw versions
         if isinstance(args, str):
             try:
-                import json
                 args = json.loads(args)
             except (json.JSONDecodeError, ValueError):
                 continue

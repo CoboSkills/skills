@@ -1,10 +1,9 @@
+#!/usr/bin/env python3
 # FILE_META
 # INPUT:  OpenClaw config file (openclaw.json)
 # OUTPUT: JSON status report (fixes applied, restart flag)
 # POS:    skill scripts — Step 1, called first in workflow
 # MISSION: Validate and auto-fix OpenClaw configuration for data collection.
-
-#!/usr/bin/env python3
 """Check and auto-fix OpenClaw environment for ClawTraces.
 
 Ensures:
@@ -58,7 +57,7 @@ def load_config(config_path: str) -> dict:
             return json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         print(f"Warning: Failed to parse {config_path}: {e}", file=sys.stderr)
-        return {}
+        return {"_parse_error": str(e)}
 
 
 def save_config(config_path: str, config: dict):
@@ -83,6 +82,17 @@ def check_and_fix(config_path: str | None = None) -> dict:
         config_path = get_openclaw_config_path()
 
     config = load_config(config_path)
+
+    if "_parse_error" in config:
+        return {
+            "ok": False,
+            "changed": False,
+            "needs_restart": False,
+            "fixes": [],
+            "message": f"openclaw.json 解析失败：{config['_parse_error']}。请手动检查文件格式。",
+            "parse_error": config["_parse_error"],
+        }
+
     fixes = []
 
     # ── 1. Ensure diagnostics.cacheTrace ──────────────────────
@@ -170,7 +180,7 @@ def check_and_fix(config_path: str | None = None) -> dict:
     }
 
 
-MIN_PYTHON_VERSION = (3, 10)
+MIN_PYTHON_VERSION = (3, 9)
 
 
 def check_python_version() -> dict | None:

@@ -10,20 +10,48 @@ OpenClaw logs are append-only JSONL where nodes form a DAG via id + parentId.
 To extract the final conversation, trace back from the last message node to root.
 """
 
+from __future__ import annotations
+
 import json
 import sys
 from typing import Optional
 
-from .metadata_stripper import is_system_startup_message
+from .metadata_stripper import is_system_startup_message, strip_metadata_prefix
+
+
+def detect_file_encoding(file_path: str) -> str:
+    """Detect file encoding: try UTF-8 strict first, fall back to GBK.
+
+    On Chinese Windows, OpenClaw may write .jsonl files in GBK encoding.
+    Reading GBK as UTF-8 with errors='replace' destroys Chinese text
+    irreversibly (replaces bytes with U+FFFD). Instead, we detect the
+    actual encoding and read with the correct one.
+    """
+    with open(file_path, "rb") as f:
+        raw = f.read()
+    try:
+        raw.decode("utf-8")
+        return "utf-8"
+    except UnicodeDecodeError:
+        pass
+    try:
+        raw.decode("gbk")
+        return "gbk"
+    except UnicodeDecodeError:
+        pass
+    return "utf-8"  # fallback, will use errors="replace"
 
 
 def parse_jsonl(file_path: str) -> list[dict]:
     """Parse a .jsonl file into a list of JSON objects.
 
-    Skips lines with invalid JSON or encoding errors.
+    Detects encoding automatically (UTF-8 or GBK) to avoid destroying
+    Chinese text on Windows systems where files may be GBK-encoded.
+    Skips lines with invalid JSON.
     """
+    encoding = detect_file_encoding(file_path)
     nodes = []
-    with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+    with open(file_path, "r", encoding=encoding, errors="replace") as f:
         for line_num, line in enumerate(f, 1):
             line = line.strip()
             if not line:
@@ -112,6 +140,144 @@ def extract_conversation_chain(nodes: list[dict]) -> list[dict]:
     return result
 
 
+def extract_richest_segment(
+    nodes: list[dict],
+) -> tuple[list[dict], Optional[dict]]:
+    """Split a multi-compaction session by compaction boundaries and return the
+    single richest segment's DAG chain (plus the compaction node immediately
+    before it, if any).
+
+    OpenClaw compacts context when it fills up, so a heavily-used session is
+    split into several "context eras" separated by compaction nodes. The last
+    era can be as small as one short follow-up ("继续"), even when earlier eras
+    contain the actual task. `extract_conversation_chain` only returns the last
+    era's tail and loses the rest.
+
+    This function:
+      1. Walks the file in order and splits nodes into segments separated by
+         `type=compaction` nodes (with a non-empty `summary`).
+      2. For each segment, runs a bounded DAG walk from the segment's last
+         message backward via `parentId`, stopping when the parent leaves the
+         segment (which means it hit the prior compaction boundary).
+      3. Scores each segment by user content: (long_msg_count, total_chars,
+         msg_count), all computed after metadata stripping.
+      4. Returns the chain of the highest-scoring segment and the compaction
+         node that immediately precedes it (for context-from-prior injection).
+
+    The caller should prepend the returned compaction node (if not None) to
+    the chain before passing to the converter — the converter's existing
+    compaction-summary injection path (`converter.py:224-237`) handles it.
+    """
+    # id -> node index for DAG walks
+    index: dict[str, dict] = {}
+    for node in nodes:
+        nid = node.get("id")
+        if nid:
+            index[nid] = node
+
+    # Pass 1: split into segments separated by compaction nodes.
+    # A segment is (prior_compaction_node_or_None, set_of_ids_in_segment,
+    # last_message_node_in_segment).
+    #
+    # seg_ids must include ALL non-compaction node ids in the segment (not just
+    # messages), because the parentId chain can pass through intermediate
+    # non-message nodes like `thinking`, `model_change`, `custom`, etc. If we
+    # only put message ids in the set, the walk breaks prematurely when it hits
+    # one of these intermediate nodes. We filter to actual messages only at the
+    # very end of walk_segment via `n.get("type") == "message"`.
+    segments: list[tuple[Optional[dict], set[str], Optional[dict]]] = []
+    current_ids: set[str] = set()
+    current_last: Optional[dict] = None
+    prior_comp: Optional[dict] = None
+
+    for node in nodes:
+        ntype = node.get("type")
+        if ntype == "compaction":
+            if node.get("summary") is None or node.get("summary") == "":
+                # Ignore empty/placeholder compactions
+                continue
+            # Close current segment
+            if current_last is not None:
+                segments.append((prior_comp, current_ids, current_last))
+            # Start new segment
+            current_ids = set()
+            current_last = None
+            prior_comp = node
+            continue
+        # All non-compaction nodes with an id are tracked so the DAG walk can
+        # transparently pass through thinking / model_change / custom nodes.
+        nid = node.get("id")
+        if nid:
+            current_ids.add(nid)
+        if ntype == "message" and nid:
+            current_last = node
+
+    if current_last is not None:
+        segments.append((prior_comp, current_ids, current_last))
+
+    if not segments:
+        return [], None
+
+    def walk_segment(seg_ids: set[str], last_msg: dict) -> list[dict]:
+        """Walk parentId backward from last_msg, staying inside seg_ids."""
+        chain: list[dict] = []
+        visited: set[str] = set()
+        current: Optional[dict] = last_msg
+        while current is not None:
+            cid = current.get("id")
+            if not cid or cid in visited:
+                break
+            visited.add(cid)
+            if cid not in seg_ids:
+                break
+            chain.append(current)
+            pid = current.get("parentId")
+            if pid is None:
+                break
+            current = index.get(pid)
+        chain.reverse()
+        return [n for n in chain if n.get("type") == "message"]
+
+    def score_chain(chain: list[dict]) -> tuple[int, int, int]:
+        long_count = 0
+        total_chars = 0
+        msg_count = 0
+        for node in chain:
+            msg = node.get("message", {})
+            if msg.get("role") != "user":
+                continue
+            for block in msg.get("content", []):
+                if not isinstance(block, dict) or block.get("type") != "text":
+                    continue
+                raw = block.get("text", "")
+                if is_system_startup_message(raw):
+                    continue
+                cleaned = strip_metadata_prefix(raw)
+                if not cleaned:
+                    continue
+                msg_count += 1
+                total_chars += len(cleaned)
+                if len(cleaned) > 10:
+                    long_count += 1
+        return (long_count, total_chars, msg_count)
+
+    best_chain: list[dict] = []
+    best_prior: Optional[dict] = None
+    best_score: tuple[int, int, int] = (-1, -1, -1)
+
+    for seg_prior, seg_ids, seg_last in segments:
+        chain = walk_segment(seg_ids, seg_last)
+        if not chain:
+            continue
+        s = score_chain(chain)
+        if s > best_score:
+            best_score = s
+            best_chain = chain
+            best_prior = seg_prior
+
+    return best_chain, best_prior
+
+
 def count_turns(messages: list[dict]) -> int:
     """Count conversation turns. One turn = one assistant reply (including tool calls).
 
@@ -136,7 +302,7 @@ def get_model_from_nodes(nodes: list[dict]) -> Optional[str]:
     Only returns values that pass is_allowed_model() to avoid picking up
     gateway-internal names like 'delivery-mirror'.
     """
-    from lib.session_index import is_allowed_model
+    from .session_index import is_allowed_model
 
     for node in nodes[:10]:
         if node.get("type") == "model_change":

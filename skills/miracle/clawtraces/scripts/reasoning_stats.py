@@ -1,10 +1,9 @@
+#!/usr/bin/env python3
 # FILE_META
 # INPUT:  .openai.json files
 # OUTPUT: table of reasoning_content coverage per session
 # POS:    skill scripts — utility, standalone
 # MISSION: Analyze reasoning content usage ratios across trajectories.
-
-#!/usr/bin/env python3
 """Calculate reasoning_content ratio for all OpenAI format trajectory files.
 
 Reads .openai.json files from output directory and reports reasoning ratio.

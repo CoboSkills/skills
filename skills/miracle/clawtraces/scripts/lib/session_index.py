@@ -6,10 +6,14 @@
 
 """Parse OpenClaw sessions.json index for quick model filtering."""
 
+from __future__ import annotations
+
 import json
 import os
 import re
 from typing import Optional
+
+from .dag import detect_file_encoding
 
 # Models accepted for trajectory collection
 # Match loosely — different providers may use varying naming conventions
@@ -73,18 +77,20 @@ def load_sessions_index(sessions_dir: str) -> dict:
     return {}
 
 
-def _read_model_from_jsonl_head(file_path: str) -> Optional[str]:
+def _read_model_from_jsonl_head(file_path: str, any_model: bool = False) -> Optional[str]:
     """Read model ID from the first few lines of a .jsonl file.
 
     Checks two sources (first 10 lines):
     1. type=model_change → modelId field
     2. First assistant message containing "model:" → extract from text
 
-    Only returns values that pass is_allowed_model() to avoid picking up
-    gateway-internal names like 'delivery-mirror'.
+    When any_model=False (default), only returns values that pass
+    is_allowed_model() to avoid picking up gateway-internal names.
+    When any_model=True, returns any model found (for display purposes).
     """
+    fallback_model = None
     try:
-        with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+        with open(file_path, "r", encoding=detect_file_encoding(file_path), errors="replace") as f:
             for i, line in enumerate(f):
                 if i >= 10:  # only check first 10 lines
                     break
@@ -95,8 +101,11 @@ def _read_model_from_jsonl_head(file_path: str) -> Optional[str]:
                     node = json.loads(line)
                     if node.get("type") == "model_change":
                         mid = node.get("modelId")
-                        if mid and is_allowed_model(mid):
-                            return mid
+                        if mid:
+                            if is_allowed_model(mid):
+                                return mid
+                            if fallback_model is None:
+                                fallback_model = mid
                     # Fallback: extract from "New session started · model: xxx"
                     if node.get("type") == "message":
                         msg = node.get("message", {})
@@ -110,23 +119,30 @@ def _read_model_from_jsonl_head(file_path: str) -> Optional[str]:
                                             candidate = text.split("model:")[-1].strip()
                                             if is_allowed_model(candidate):
                                                 return candidate
+                                            if fallback_model is None:
+                                                fallback_model = candidate
                 except (json.JSONDecodeError, UnicodeDecodeError):
                     continue
     except OSError:
         pass
-    return None
+    return fallback_model if any_model else None
 
 
 _RESET_RE = re.compile(r"^(?P<sid>[0-9a-f\-]+)\.jsonl(?:\.reset\..+)?$")
 
 
-def _discover_sessions_from_files(sessions_dir: str) -> list[dict]:
+def _discover_sessions_from_files(sessions_dir: str, include_all_models: bool = False, verbose: bool = False) -> list[dict]:
     """Discover sessions by scanning .jsonl and .jsonl.reset.* files.
 
     Used when sessions.json is missing or incomplete, and also used to
     supplement the index with reset (archived) sessions that are no longer
     tracked in sessions.json.
     Only reads the first few lines of each file to check the model.
+
+    When include_all_models=True, includes sessions with non-whitelisted
+    models (for display in --list-only).
+    When verbose=True, prints discovery log to stderr (used when this is the
+    sole discovery method, i.e. sessions.json is empty/missing).
     """
     import sys
     agent_id = os.path.basename(os.path.dirname(sessions_dir))
@@ -138,9 +154,10 @@ def _discover_sessions_from_files(sessions_dir: str) -> list[dict]:
             continue
 
         file_path = os.path.join(sessions_dir, filename)
-        model = _read_model_from_jsonl_head(file_path)
+        model = _read_model_from_jsonl_head(file_path, any_model=include_all_models)
 
-        if not is_allowed_model(model):
+        model_ok = is_allowed_model(model) if model else False
+        if not include_all_models and not model_ok:
             continue
 
         session_id = m.group("sid")
@@ -149,24 +166,31 @@ def _discover_sessions_from_files(sessions_dir: str) -> list[dict]:
             "session_id": session_id,
             "session_key": "",
             "agent_id": agent_id,
-            "model": model or "",
+            "model": model or "unknown",
             "model_provider": "",
             "file_path": file_path,
+            "model_allowed": model_ok,
         })
 
-    if qualifying:
-        print(f"  Fallback: found {len(qualifying)} qualifying session(s) from .jsonl files in {sessions_dir}", file=sys.stderr)
+    if qualifying and verbose:
+        print(f"  Fallback: found {len(qualifying)} session(s) from .jsonl files in {sessions_dir}", file=sys.stderr)
 
     return qualifying
 
 
-def get_qualifying_sessions(sessions_dir: str) -> list[dict]:
-    """Get sessions that use an allowed model.
+def get_qualifying_sessions(sessions_dir: str, include_all_models: bool = False) -> list[dict]:
+    """Get sessions, optionally including non-whitelisted models.
 
     First tries sessions.json index for fast filtering.
     Falls back to scanning .jsonl file headers if index is missing.
 
-    Returns list of dicts with session_id, model, file_path, agent_id.
+    When include_all_models=False (default), only returns sessions with
+    whitelisted models (existing behavior).
+    When include_all_models=True, returns all sessions with a
+    model_allowed flag indicating whitelist status.
+
+    Returns list of dicts with session_id, model, file_path, agent_id,
+    and model_allowed (bool).
     """
     index = load_sessions_index(sessions_dir)
     agent_id = os.path.basename(os.path.dirname(sessions_dir))
@@ -179,7 +203,8 @@ def get_qualifying_sessions(sessions_dir: str) -> list[dict]:
 
             model = entry.get("model") or entry.get("modelOverride") or ""
 
-            if not is_allowed_model(model):
+            model_ok = is_allowed_model(model)
+            if not include_all_models and not model_ok:
                 continue
 
             session_id = entry.get("sessionId", "")
@@ -196,12 +221,13 @@ def get_qualifying_sessions(sessions_dir: str) -> list[dict]:
                 "model": model,
                 "model_provider": entry.get("modelProvider", ""),
                 "file_path": file_path,
+                "model_allowed": model_ok,
             })
 
     # Always scan files to pick up reset (archived) sessions not in the index.
-    # When index is empty this is the sole discovery method.
+    # When index is empty this is the sole discovery method — log in that case.
     seen_ids = {q["session_id"] for q in qualifying}
-    for extra in _discover_sessions_from_files(sessions_dir):
+    for extra in _discover_sessions_from_files(sessions_dir, include_all_models, verbose=not index):
         if extra["session_id"] not in seen_ids:
             qualifying.append(extra)
             seen_ids.add(extra["session_id"])

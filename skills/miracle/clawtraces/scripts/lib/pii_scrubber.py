@@ -10,6 +10,8 @@ Replaces common PII patterns with placeholders before bundling.
 Zero token consumption — pure regex, runs locally.
 """
 
+from __future__ import annotations
+
 import re
 
 # (label, regex, replacement_tag)
@@ -18,7 +20,7 @@ _PATTERNS: list[tuple[str, re.Pattern, str]] = [
     ("手机号", re.compile(r"(?<!\d)1[3-9]\d{9}(?!\d)"), "[PHONE]"),
     ("邮箱", re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}"), "[EMAIL]"),
     ("身份证号", re.compile(r"(?<!\d)[1-9]\d{5}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx](?!\d)"), "[ID_CARD]"),
-    ("银行卡号", re.compile(r"(?<!\d)[3-6]\d{15,18}(?!\d)"), "[BANK_CARD]"),
+    ("银行卡号", re.compile(r"(?<!\d)(?<![a-fA-F])[4-6]\d{15,17}(?!\d)(?![a-fA-F])"), "[BANK_CARD]"),
     ("IP 地址", re.compile(r"(?<![\d.])\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?![\d.])"), "[IP]"),
     ("API Key", re.compile(r"sk-[a-zA-Z0-9\-_]{20,}"), "[API_KEY]"),
     ("API Key", re.compile(r"ghp_[a-zA-Z0-9]{36,}"), "[API_KEY]"),

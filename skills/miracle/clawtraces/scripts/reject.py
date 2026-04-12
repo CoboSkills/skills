@@ -1,16 +1,17 @@
+#!/usr/bin/env python3
 # FILE_META
 # INPUT:  session_id + reason pairs
 # OUTPUT: manifest.json updates + trajectory file deletions
 # POS:    skill scripts — utility, depends on lib/paths.py
 # MISSION: Mark sessions as rejected and clean up trajectory files.
-
-#!/usr/bin/env python3
 """Reject sessions and record them in manifest to avoid re-processing.
 
 Usage:
     python reject.py --output-dir PATH --session SESSION_ID --reason "reason"
     python reject.py --output-dir PATH --sessions 'id1:reason1' 'id2:reason2'
 """
+
+from __future__ import annotations
 
 import argparse
 import json
@@ -35,9 +36,12 @@ def load_manifest(output_dir: str) -> dict:
 
 
 def save_manifest(output_dir: str, manifest: dict):
+    """Save manifest (atomic write via tmp+rename)."""
     manifest_path = os.path.join(output_dir, MANIFEST_FILENAME)
-    with open(manifest_path, "w", encoding="utf-8") as f:
+    tmp_path = manifest_path + ".tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(manifest, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, manifest_path)
 
 
 def reject_sessions(output_dir: str, rejections: list[tuple[str, str]]) -> int:
@@ -61,10 +65,11 @@ def reject_sessions(output_dir: str, rejections: list[tuple[str, str]]) -> int:
             "reason": reason,
         }
 
-        # Delete trajectory file if it exists
-        trajectory_path = os.path.join(output_dir, f"{session_id}.trajectory.json")
-        if os.path.isfile(trajectory_path):
-            os.remove(trajectory_path)
+        # Delete trajectory and stats files if they exist
+        for suffix in (".trajectory.json", ".stats.json"):
+            path = os.path.join(output_dir, f"{session_id}{suffix}")
+            if os.path.isfile(path):
+                os.remove(path)
 
         count += 1
 

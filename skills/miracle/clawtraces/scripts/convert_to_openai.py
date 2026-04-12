@@ -1,10 +1,9 @@
+#!/usr/bin/env python3
 # FILE_META
 # INPUT:  .trajectory.json + .stats.json (Anthropic format)
 # OUTPUT: .openai.json (OpenAI format)
 # POS:    skill scripts — utility, standalone
 # MISSION: Convert Anthropic trajectory format to OpenAI format with model_config.
-
-#!/usr/bin/env python3
 """Convert Anthropic trajectory files to OpenAI format with model_config.
 
 Reads .trajectory.json (Anthropic format) + .stats.json, outputs .openai.json.

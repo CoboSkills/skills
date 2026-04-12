@@ -1,0 +1,11 @@
+{
+  "owner": "nj070574-gif",
+  "slug": "home-assistant-skill",
+  "displayName": "Home Assistant Integration",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1776019271802,
+    "commit": null
+  },
+  "history": []
+}

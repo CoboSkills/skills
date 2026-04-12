@@ -3,11 +3,16 @@
   "slug": "wallet-test",
   "displayName": "wallet",
   "latest": {
-    "version": "0.1.6",
-    "publishedAt": 1775210262656,
-    "commit": "https://github.com/openclaw/skills/commit/3a9da5b7c76e73af6b3e1ca78346a5c5e75ae139"
+    "version": "0.1.19",
+    "publishedAt": 1775711798208,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.6",
+      "publishedAt": 1775210262656,
+      "commit": "https://github.com/openclaw/skills/commit/3a9da5b7c76e73af6b3e1ca78346a5c5e75ae139"
+    },
     {
       "version": "0.1.1",
       "publishedAt": 1774938591612,

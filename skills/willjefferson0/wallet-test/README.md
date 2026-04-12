@@ -2,8 +2,6 @@
 
 Local sandbox wallet skill for OpenClaw and Claude Code agents. Install the sandbox locally, operate through localhost APIs or CLI, and support both local wallets and phase2 remote-managed wallets.
 
-This `README` targets the `dev` test environment. The installer and upgrade flow pull skill code from [`Claw-Wallet-Skill`](https://github.com/ClawWallet/Claw-Wallet-Skill/tree/dev) `dev` and sandbox binaries from [`Claw_Wallet_Bin`](https://github.com/ClawWallet/Claw_Wallet_Bin/tree/dev) `dev`.
-
 ## Claude Code marketplace
 
 This repository is now structured so it can be added as a third-party Claude Code marketplace.
@@ -19,23 +17,28 @@ This is a community marketplace setup, not an Anthropic-curated listing. To appe
 
 ## Installation
 
-### Option 1: Git clone (recommended)
+Skill assets are hosted at **`https://www.clawwallet.cc`**. Deploy that site so these paths exist: **`/install`** (same body as `install.sh`), **`/install.ps1`**, **`/SKILL.md`**, **`/claw-wallet.sh`**, **`/claw-wallet`**, **`/claw-wallet.ps1`**, **`/claw-wallet.cmd`**, and **`/bin/<platform binary>`**.
+
+### Linux / macOS (recommended)
+
+From the workspace root:
 
 ```bash
-mkdir -p skills
-git clone --branch dev https://github.com/ClawWallet/Claw-Wallet-Skill.git skills/claw-wallet-dev
-bash skills/claw-wallet-dev/install.sh
+mkdir -p skills/claw-wallet
+cd skills/claw-wallet
+curl -fsSL https://www.clawwallet.cc/install | bash
 ```
 
-Windows PowerShell:
+### Windows PowerShell
 
 ```powershell
-New-Item -ItemType Directory -Path "skills" -Force | Out-Null
-git clone --branch dev https://github.com/ClawWallet/Claw-Wallet-Skill.git "skills/claw-wallet-dev"
-& "skills/claw-wallet-dev/install.ps1"
+New-Item -ItemType Directory -Path "skills\claw-wallet" -Force | Out-Null
+Set-Location "skills\claw-wallet"
+Invoke-WebRequest -Uri "https://www.clawwallet.cc/install.ps1" -OutFile "install.ps1" -UseBasicParsing
+& ".\install.ps1"
 ```
 
-### Option 2: npx skills add
+### Option: npx skills add
 
 For the `dev` test environment, prefer Option 1 so the local checkout is pinned to the `dev` branch explicitly.
 
@@ -43,17 +46,12 @@ For the `dev` test environment, prefer Option 1 so the local checkout is pinned 
 npx skills add ClawWallet/Claw-Wallet-Skill -a openclaw --yes
 ```
 
-This installs the skill into your workspace `skills/` directory. Then run the installer:
+Then run the installer from the cloned skill directory (or use the curl flow above instead of git).
 
-```bash
-bash skills/claw-wallet-dev/install.sh
-```
+### Developing from this repo
 
-Windows PowerShell:
+Run `bash install.sh` or `install.ps1` inside `skills/claw-wallet` with **`CLAW_WALLET_SKIP_SKILL_DOWNLOAD=1`** to keep local `SKILL.md` and wrappers without overwriting them from the CDN.
 
-```powershell
-& "skills/claw-wallet-dev/install.ps1"
-```
 ## After install
 
 Verify status:
@@ -61,7 +59,7 @@ Verify status:
 - `GET {CLAY_SANDBOX_URL}/health` — expected: `{"status": "ok"}`
 - `GET {CLAY_SANDBOX_URL}/api/v1/wallet/status` with `Authorization: Bearer <token>` — confirm wallet is ready
 
-Token and URL are in `skills/claw-wallet-dev/.env.clay`.
+Token and URL are in `skills/claw-wallet/.env.clay`.
 
 ## Documentation
 

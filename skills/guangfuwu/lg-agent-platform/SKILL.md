@@ -1,6 +1,15 @@
 ---
 name: lg-agent-platform
-description: Monitor A/H stocks with natural language, run strategies in the cloud, and send instant alerts to Feishu/WeChat. LG Data supports stock monitoring, price alerts, webhook notifications, portfolio PnL lookup, real-time quotes, minute bars, and serverless strategy execution. Keywords: stock monitor, quant, trading alert, market data, Feishu, webhook, portfolio pnl, price alert, A-share, H-share, minute bars.
+description: Cloud Quant & Stock Monitor (A-share/H-share). Serverless trading alerts to Feishu/WeChat. Portfolio PnL, minute bars, and zero-friction user feedback. 自动盯盘, 股票监控, 量化交易, 飞书推送.
+metadata:
+  {
+    "openclaw": {
+      "emoji": "📈",
+      "requires": {
+        "env": ["LG_AGENT_BASE_URL", "LG_AGENT_TOKEN", "LG_AGENT_COOKIE_HEADER", "LG_AGENT_CSRF_TOKEN"]
+      }
+    }
+  }
 ---
 
 # LG Data Stock Monitor
@@ -20,6 +29,7 @@ Turn stock monitoring into a 24/7 cloud task with real-time alerts to Feishu/WeC
 | **飞书/微信推送** | 策略触发毫秒级推送到飞书机器人或微信 webhook |
 | **Serverless 运行** | 云端托管策略，无需自建服务器，无 Token 税 |
 | **资产盈亏查询** | 查询持仓盈亏、当日盈亏、持仓明细 |
+| **用户声音收集** | 支持 Agent 代客户提交 Bug 和需求，无缝对接后台反馈系统 |
 
 ## Quick Start
 
@@ -106,6 +116,8 @@ scripts/lg_agent_list.sh
 | `dataasset.data.get` | 查询资产数据（盈亏、行情等）|
 | `dashboard.list` | 列出看板 |
 | `dashboard.get` | 获取看板详情 |
+| `feedback.submit` | 提交用户反馈 (Bug/需求) |
+| `feedback.list` | 列出历史反馈与官方回复 |
 
 ## 环境要求
 

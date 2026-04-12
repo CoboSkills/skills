@@ -3,11 +3,16 @@
   "slug": "weiqi-fetcher",
   "displayName": "围棋分享棋谱下载器",
   "latest": {
-    "version": "1.1.2",
-    "publishedAt": 1775310376439,
-    "commit": "https://github.com/openclaw/skills/commit/454e24a62ff2cb89e8b08c486152c10d099510eb"
+    "version": "1.2.0",
+    "publishedAt": 1775965510465,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.2",
+      "publishedAt": 1775310376439,
+      "commit": "https://github.com/openclaw/skills/commit/454e24a62ff2cb89e8b08c486152c10d099510eb"
+    },
     {
       "version": "1.1.1",
       "publishedAt": 1774853384507,

@@ -3,11 +3,16 @@
   "slug": "video-bewerken",
   "displayName": "Video Bewerken",
   "latest": {
-    "version": "4.0.0",
-    "publishedAt": 1774713526490,
-    "commit": "https://github.com/openclaw/skills/commit/70fac6e1da6dc7b3302ff16e86a6b0c3205741dd"
+    "version": "4.0.1",
+    "publishedAt": 1775709689753,
+    "commit": null
   },
   "history": [
+    {
+      "version": "4.0.0",
+      "publishedAt": 1774713526490,
+      "commit": "https://github.com/openclaw/skills/commit/70fac6e1da6dc7b3302ff16e86a6b0c3205741dd"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774326204087,

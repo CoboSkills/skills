@@ -3,11 +3,16 @@
   "slug": "ollama-herd",
   "displayName": "Ollama Herd",
   "latest": {
-    "version": "1.5.2",
-    "publishedAt": 1775254710662,
-    "commit": "https://github.com/openclaw/skills/commit/07a6111fbec60ef52308436a5a4339bf0bf48d67"
+    "version": "1.5.3",
+    "publishedAt": 1775610452825,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.2",
+      "publishedAt": 1775254710662,
+      "commit": "https://github.com/openclaw/skills/commit/07a6111fbec60ef52308436a5a4339bf0bf48d67"
+    },
     {
       "version": "1.5.0",
       "publishedAt": 1774921597601,

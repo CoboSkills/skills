@@ -1370,8 +1370,12 @@ def is_hk_stock(code: str) -> bool:
     return False
 
 def is_a_stock(code: str) -> bool:
-    """判断是否为A股（6位数字）"""
-    return len(code) == 6 and code.isdigit()
+    """判断是否为A股（sz/sh前缀 + 6位数字）"""
+    if len(code) == 8 and (code.startswith("sz") or code.startswith("sh")):
+        return code[2:].isdigit()
+    if len(code) == 6 and code.isdigit():
+        return True
+    return False
 
 def validate_stock_mapping(code: str, quote: Dict) -> str:
     """

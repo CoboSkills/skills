@@ -28,6 +28,7 @@ python3 scripts/tavily_search.py --query "你的搜索词" [--search-depth advan
 | `query` | string | **是** | - | 搜索关键词 |
 | `search-depth` | string | 否 | `basic` | 搜索深度：`basic` (基础, 1积分), `advanced` (高级, 2积分), `fast` (快速), `ultra-fast` (极速) |
 | `topic` | string | 否 | `general` | 主题分类：`general` (通用), `news` (新闻), `finance` (金融) |
+| `country` | string | 否 | - | 国家/地区（小写英文全名，如 `china`,`united states`,`singapore`，完整合法取值见 `scripts/tavily_search.py` 中 `TAVILY_COUNTRY_CHOICES`）；**仅 `topic=general` 生效** |
 | `time-range` | string | 否 | - | 时间过滤：`day`, `week`, `month`, `year` (或简写 `d`, `w`, `m`, `y`) |
 | `start-date` | string | 否 | - | 起始日期，格式如 `YYYY-MM-DD` |
 | `end-date` | string | 否 | - | 结束日期，格式如 `YYYY-MM-DD` |

@@ -1,13 +1,18 @@
 {
   "owner": "longjf25",
   "slug": "dochub",
-  "displayName": "DocHub / 文档工作台",
+  "displayName": "DocHub",
   "latest": {
-    "version": "1.3.0",
-    "publishedAt": 1775447517316,
-    "commit": "https://github.com/openclaw/skills/commit/b72d100655283e7520a0ebe5f04338caf95c9037"
+    "version": "1.4.0",
+    "publishedAt": 1775714019473,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.3.0",
+      "publishedAt": 1775447517316,
+      "commit": "https://github.com/openclaw/skills/commit/b72d100655283e7520a0ebe5f04338caf95c9037"
+    },
     {
       "version": "1.2.1",
       "publishedAt": 1774795319664,

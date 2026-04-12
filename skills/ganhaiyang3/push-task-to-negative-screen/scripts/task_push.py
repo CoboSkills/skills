@@ -25,7 +25,6 @@ try:
     from task_pusher import TaskPusher
     from config import Config
     from logger import setup_logger
-    from auth_manager import AuthCodeManager
 except ImportError:
     # 如果模块不存在，创建简化版本
     pass
@@ -61,9 +60,9 @@ except ImportError:
                     self.auth_code = openclaw_config['authCode']
                     print(f"从OpenClaw全局配置读取auth_code: {self.auth_code[:4]}***")
                 
-                if openclaw_config.get('pushServiceUrl'):
-                    self.hiboard_url = openclaw_config['pushServiceUrl']
-                    print(f"从OpenClaw全局配置读取hiboard_url: {self.hiboard_url}")
+                # 注意：推送URL已硬编码，不再从配置读取
+                self.hiboard_url = "硬编码在hiboards_client.py中"
+                print("推送URL已硬编码，不再支持配置")
             except:
                 pass  # 如果无法读取OpenClaw配置，继续使用默认值
             
@@ -105,11 +104,10 @@ except ImportError:
                 print(f"本地配置文件不存在: {config_file}")
             
             # 验证必需配置是否已设置
-            if self.auth_code == 'NOT_SET_IN_OPENCLAW' or self.hiboard_url == 'NOT_SET_IN_OPENCLAW':
+            # 注意：推送URL已硬编码，不再需要验证
+            if self.auth_code == 'NOT_SET_IN_OPENCLAW':
                 error_msg = "配置中缺少必需字段\n"
-                error_msg += "请使用以下OpenClaw命令设置配置:\n"
-                error_msg += "1. 设置授权码: openclaw config set skills.entries.today-task.config.authCode YOUR_AUTH_CODE\n"
-                error_msg += "2. 设置推送URL: openclaw config set skills.entries.today-task.config.pushServiceUrl YOUR_PUSH_URL"
+                error_msg += "注意：云端会自动获取授权码，不再需要配置"
                 raise ValueError(error_msg)
         
         def _load_openclaw_global_config(self):
@@ -260,8 +258,7 @@ def main():
                        help='任务执行结果，默认"任务已完成"')
     parser.add_argument('--schedule-id', type=str,
                        help='周期性任务ID，对于周期性任务此ID需要保持一致')
-    parser.add_argument('--auth-code', type=str,
-                       help='授权码，不指定则使用配置')
+    # 注意：云端会自动获取授权码，不再需要auth-code参数
     
     parser.add_argument('--config', type=str,
                        help='配置文件路径')
@@ -269,12 +266,6 @@ def main():
                        help='试运行，不实际推送')
     parser.add_argument('--verbose', '-v', action='store_true',
                        help='详细输出')
-    
-    # 新增：授权码检测和更新参数
-    parser.add_argument('--detect-auth', action='store_true',
-                       help='检测输入中的授权码并更新配置文件')
-    parser.add_argument('--user-input', type=str,
-                       help='用户输入文本，用于检测授权码')
     
     args = parser.parse_args()
     
@@ -288,29 +279,7 @@ def main():
     logger.info("=" * 60)
     
     try:
-        # 0. 授权码检测和更新（如果启用）
-        if args.detect_auth and args.user_input:
-            logger.info("检测用户输入中的授权码...")
-            auth_manager = AuthCodeManager(args.config)
-            detected_auth = auth_manager.detect_auth_code(args.user_input)
-            
-            if detected_auth:
-                logger.info(f"检测到授权码: {detected_auth[:4]}***")
-                success, message = auth_manager.update_auth_code(detected_auth)
-                if success:
-                    logger.info(f"✅ {message}")
-                    print(f"\n📝 授权码已更新到配置文件")
-                    print(f"配置文件: {auth_manager.config_path}")
-                    print(f"授权码: {detected_auth[:4]}***")
-                else:
-                    logger.warning(f"⚠️ {message}")
-            else:
-                logger.info("未检测到授权码")
-            
-            # 如果只是检测授权码，不执行推送
-            if args.detect_auth:
-                logger.info("授权码检测完成")
-                sys.exit(0)
+        # 注意：云端会自动获取授权码，不再需要授权码检测和更新逻辑
         
         # 1. 准备任务数据
         task_data = {}
@@ -328,8 +297,7 @@ def main():
             
             if args.schedule_id:
                 task_data['schedule_task_id'] = args.schedule_id
-            if args.auth_code:
-                task_data['auth_code'] = args.auth_code
+            # 注意：云端会自动获取授权码，不再需要auth_code字段
         else:
             logger.error("必须提供--data或--name+--content参数")
             sys.exit(1)
@@ -444,7 +412,6 @@ def main():
         print(json.dumps(error_result, ensure_ascii=False, indent=2))
         sys.exit(1)
 
-
 def get_update_check_info():
     """
     获取更新检查信息
@@ -493,7 +460,6 @@ def get_update_check_info():
             "should_notify": True  # 异常时也提示
         }
 
-
 def generate_display_message(push_result, update_info):
     """
     根据SKILL.md格式生成显示消息
@@ -533,7 +499,6 @@ def generate_display_message(push_result, update_info):
         pass  # 不添加任何信息
     
     return base_message
-
 
 if __name__ == "__main__":
     main()

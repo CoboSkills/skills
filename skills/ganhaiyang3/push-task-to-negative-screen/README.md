@@ -11,74 +11,13 @@
 
 **隐私保护措施：**
 
-- 敏感信息（如授权码）在日志中仅显示部分字符（如 `Twe7***`）
+- 运行信息在日志中记录用于调试。
 - 用户可通过配置控制是否保存推送记录
 - 所有文件仅存储在用户本地设备
 
 **用户责任：** 请定期检查和管理这些本地文件，确保符合您的隐私要求。
 
 ## 🚀 快速开始
-
-### 📋 配置要求（必需）
-
-**本技能需要以下配置才能正常工作：**
-
-#### 1. 授权码 (authCode) - **必需**
-
-- **用途**：用于身份验证，确保只有授权用户可以向负一屏推送内容
-- **获取方式**：从 OpenClaw 全局配置中获取，如果不存在则提示用户从负一屏 -> 我的页 -> 动态管理 -> 关联账号 -> Claw 智能体中获取
-
-#### 2. 推送 URL (pushServiceUrl) - **必需**
-
-- **用途**：指定推送服务的目标地址
-- **获取方式**：从 skill 目录下的 config.json 文件中获取
-
-### ⚙️ 配置方式
-
-本技能使用**混合配置系统**，支持灵活的配置优先级：
-
-#### 配置优先级规则
-
-1. **优先使用 OpenClaw 全局配置**
-2. **如果没有设置，则使用本地 config.json 中的配置**
-3. **如果都没有设置，技能将无法正常工作**
-
-#### 方式一：OpenClaw 全局配置（推荐）
-
-```bash
-# 设置授权码
-openclaw config set skills.entries.today-task.config.authCode YOUR_AUTH_CODE
-
-# 设置推送URL
-openclaw config set skills.entries.today-task.config.pushServiceUrl YOUR_PUSH_URL
-
-# 查看技能配置
-openclaw config get skills.entries.today-task
-
-# 删除配置
-openclaw config unset skills.entries.today-task.config.authCode
-openclaw config unset skills.entries.today-task.config.pushServiceUrl
-```
-
-#### 方式二：本地配置文件 (config.json)
-
-在技能目录的 `config.json` 文件中设置，设置样例如下：
-
-```json
-{
-  "timeout": 30,
-  "max_content_length": 5000,
-  "auto_generate_id": true,
-  "default_result": "任务已完成",
-  "log_level": "INFO",
-  "save_records": true,
-  "records_dir": "push_records",
-  "max_records": 100,
-  "pushServiceUrl": "https://hiboard-claw-drcn.ai.dbankcloud.cn/distribution/message/cloud/claw/msg/upload"
-}
-```
-
-**注意**：授权码 (`authCode`) 必须通过 OpenClaw 全局配置设置，本地 config.json 文件不支持设置授权码。
 
 ### 安装依赖
 
@@ -93,7 +32,7 @@ pip install requests
 ### 基本使用
 
 ```bash
-# 1. 确保已配置授权码和推送URL
+# 1. 确保已配置身份验证和推送URL
 
 # 2. 推送任务结果（会自动检查版本更新）
 python scripts/task_push.py --name "今日新闻" --content "# 今日新闻\n\n- 新闻1: ..." --result "已完成"
@@ -111,8 +50,9 @@ python scripts/task_push.py --data task_data.json
 
 ```json
 {
-  "authCode": "string", // 授权码
-  "msgContent": [
+    "userId": "123455", 
+    "appPackage": "com.huawei.hag",
+    "msgContent": [
     // 消息内容数组
     {
       "scheduleTaskId": "string", // 周期性任务ID（对于周期性任务此ID需要保持一致）
@@ -301,7 +241,7 @@ if '\\n' in content:
 3. **测试验证**：生成数据后验证内容格式
 4. **使用诊断工具**：定期检查数据质量
 
-**注意**：输入数据中的授权码应通过 OpenClaw 全局配置设置，不建议在输入数据中传递授权码。
+**注意**：输入数据中的身份验证应通过 OpenClaw 全局配置设置，不建议在输入数据中传递身份验证。
 
 ## 🔧 配置说明
 
@@ -317,15 +257,13 @@ if '\\n' in content:
   "save_records": true,
   "records_dir": "push_records",
   "max_records": 100,
-  "pushServiceUrl": "https://hiboard-claw-drcn.ai.dbankcloud.cn/distribution/message/cloud/claw/msg/upload"
-}
+  }
 ```
 
 **重要说明**：
 
-- 授权码 (`authCode`) 必须通过 OpenClaw 全局配置设置
-- 推送 URL (`pushServiceUrl`) 可以在本地配置文件中设置，但推荐使用 OpenClaw 全局配置
-- 本地配置文件中的 `pushServiceUrl` 是默认值，可被 OpenClaw 全局配置覆盖
+- 身份验证 (``) 必须通过 OpenClaw 全局配置设置
+
 
 ## 📖 使用示例
 
@@ -498,15 +436,13 @@ today-task/
 
 ### 常见问题
 
-1. **授权码错误**
+1. **身份验证错误**
 
    ```
-   错误: 缺少授权码或授权码无效
+   错误: 缺少身份验证或身份验证无效
    解决方案:
-     - 使用OpenClaw全局配置设置授权码:
-       openclaw config set skills.entries.today-task.config.authCode YOUR_AUTH_CODE
-     - 确保授权码是从负一屏正确获取的
-     - 检查授权码是否已过期或需要重新关联
+     - 使用OpenClaw全局配置设置身份验证:
+       
    ```
 
 2. **网络连接失败**
@@ -515,7 +451,7 @@ today-task/
    错误: 连接失败或超时
    解决方案:
      - 检查网络连接是否正常
-     - 确认推送URL可访问: https://hiboard-claw-drcn.ai.dbankcloud.cn/...
+     - 确认推送URL可访问: https://hag-drcn.op.dbankcloud.com/...
      - 检查是否有代理设置影响连接
      - 尝试使用备用URL
    ```
@@ -523,10 +459,8 @@ today-task/
 3. **配置缺失错误**
 
    ```
-   错误: 配置中缺少必需字段: auth_code
-   解决方案:
-     - 使用OpenClaw全局配置设置必需字段
-     - 运行配置检查: openclaw config get skills.entries.today-task
+      解决方案:
+          - 运行配置检查: openclaw config get skills.entries.today-task
      - 确保技能配置已正确加载
    ```
 
@@ -544,9 +478,9 @@ today-task/
    ```
    疑问: 技能文档说"不存储敏感信息"，但为什么有本地日志和记录文件？
    解答:
-     - "不存储敏感信息"指的是不存储完整的授权码等敏感数据
+     - "不存储敏感信息"指的是不存储完整的身份验证等敏感数据
      - 本地文件包含脱敏的运行记录，用于故障排查：
-       * 日志文件: 包含脱敏信息（授权码显示为 `Twe7***` 格式）
+       * 日志文件: 包含脱敏信息（身份验证显示为 `Twe7***` 格式）
        * 推送记录: 可选保存，用于历史追踪（可通过配置关闭）
      - 用户控制:
        * 通过 `save_records` 配置项控制是否保存推送记录
@@ -618,7 +552,7 @@ MIT License
 
 ### 获取帮助
 
-- 确保已按照"配置要求"部分正确设置授权码和推送 URL
+- 确保已按照"配置要求"部分正确设置身份验证和推送 URL
 - 使用 `--verbose` 参数获取详细日志输出
 - 检查推送记录目录 `push_records/` 查看历史推送状态
 

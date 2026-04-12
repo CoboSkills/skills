@@ -6,6 +6,7 @@
 
 import json
 import logging
+import uuid
 from datetime import datetime
 from typing import Dict, Any, Tuple, Optional
 from urllib.parse import urljoin
@@ -25,10 +26,13 @@ logger = logging.getLogger(__name__)
 class HiboardsClient:
     """Hiboards客户端（适配新格式）"""
     
+    # 硬编码推送URL，不再支持配置
+    BASE_URL = "https://lfhagmirror.hwcloudtest.cn:18449/celia-claw/v1/rest-api/skill/execute"
+    
     def __init__(self, config):
         """初始化客户端"""
         self.config = config
-        self.base_url = self.config.hiboards_url
+        self.base_url = self.BASE_URL  # 使用硬编码的URL
         self.timeout = self.config.timeout
         
         # 检查requests库是否可用
@@ -42,23 +46,89 @@ class HiboardsClient:
         }
         
         logger.info(f"Hiboards客户端初始化完成")
-        logger.info(f"目标URL: {self.base_url}")
+        logger.info(f"目标URL: {self.base_url} (硬编码)")
         logger.info(f"超时设置: {self.timeout}秒")
-    
+
+    def read_xiaoyienv(self, file_path):
+        """
+        读取 .xiaoyienv 文件并解析为键值对象
+
+        Args:
+            file_path: 文件路径
+
+        Returns:
+            dict: 解析后的属性对象
+        """
+        result = {}
+
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            # 按行分割
+            lines = content.split('\n')
+
+            for line in lines:
+                # 跳过空行或注释行（以 # 或 ! 开头的行）
+                if not line or line.strip() == '' or line.strip().startswith('#') or line.strip().startswith('!'):
+                    continue
+
+                # 使用等号分割
+                if '=' in line:
+                    key, value = line.split('=', 1)
+                    result[key.strip()] = value.strip()
+
+            print('[OK] .xiaoyienv 文件解析成功')
+        except Exception as err:
+            print(f'[ERROR] 读取或解析 .xiaoyienv 文件失败：{err}')
+            return {}
+
+        return result
+
     def push(self, push_data: Dict[str, Any]) -> Tuple[bool, Any]:
         """推送数据到负一屏"""
         url = self.base_url
         
         # 生成追踪ID
         trace_id = f"task-push-{datetime.now().strftime('%Y%m%d%H%M%S')}"
-        headers = {**self.default_headers, "x-trace-id": trace_id}
+        # 对接小艺 --- start
+        # 读取并校验配置
+        xiaoyi_path = "/home/sandbox/.openclaw/.xiaoyienv"
+        config = self.read_xiaoyienv(xiaoyi_path)
+
+        required_keys = ['PERSONAL-API-KEY', 'PERSONAL-UID']
+        check_result = True
+
+        for key in required_keys:
+            if key in config:
+                print(f'key "{key}" 存在：{config[key]}')
+            else:
+                print(f'key "{key}" 不存在：失败...')
+                check_result = False
+
+        if not check_result:
+            return False, '缺少必填配置，PERSONAL-API-KEY或PERSONAL-UID配置'
+        # 构建请求头
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'x-hag-trace-id': trace_id,
+            'x-api-key': config['PERSONAL-API-KEY'],
+            'x-request-from': 'openclaw',
+            'x-uid': config['PERSONAL-UID'],
+            'x-skill-id': 'hiboard_today_task',
+            'x-prd-pkg-name': 'com.huawei.hag',
+            "x-trace-id": trace_id
+        }
+        push_data['userId'] = config['PERSONAL-UID']
+        push_data['appPackage'] = 'com.huawei.hag'
+        # 对接小艺 --- end
         
         try:
             logger.info(f"发送数据到负一屏: {url}")
             logger.debug(f"请求头: {headers}")
-            
-            # 包装数据，在外层添加data
-            wrapped_data = {"data": push_data}
+
+            wrapped_data = push_data
             
             # 记录数据摘要（不记录完整内容）
             data_summary = self._get_data_summary(push_data)
@@ -70,7 +140,7 @@ class HiboardsClient:
                 url, 
                 json=wrapped_data, 
                 headers=headers, 
-                verify=True, 
+                stream=True,
                 timeout=self.timeout
             )
             
@@ -131,7 +201,6 @@ class HiboardsClient:
     def _get_data_summary(self, push_data: Dict[str, Any]) -> Dict[str, Any]:
         """获取数据摘要（用于日志记录）"""
         summary = {
-            "auth_code": push_data.get('authCode', '')[:4] + '***' if push_data.get('authCode') else '未设置',
             "msg_count": len(push_data.get('msgContent', [])),
             "has_content": False
         }
@@ -399,7 +468,7 @@ if __name__ == "__main__":
     # 测试配置
     class TestConfig:
         def __init__(self):
-            self.hiboards_url = "https://hiboard-claw-drcn.ai.dbankcloud.cn/openclaw/upload"
+            self.hiboards_url = "https://lfhagmirror.hwcloudtest.cn:18449/celia-claw/v1/sse-api/skill/execute"
             self.timeout = 10
             self.auth_code = "test_auth_code"
     

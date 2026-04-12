@@ -27,15 +27,8 @@ class TaskPusher:
         
         logger.info(f"任务推送器初始化完成")
         
-        # 检查授权码
-        if not self.config.auth_code:
-            logger.warning("[WARNING] 授权码未设置，推送将失败")
-            logger.info("[INFO] 请您到负一屏 -> 我的页 -> 动态管理 -> 关联账号 -> 点击Claw智能体去获取授权码")
-            logger.info("[INFO] 获取授权码后，请使用OpenClaw配置命令设置")
-        else:
-            logger.info(f"授权码: 已设置 ({self.config.auth_code[:4]}***)")
-        
-        logger.info(f"Hiboards URL: {self.config.hiboards_url}")
+        # 注意：云端会自动获取授权码，不再需要用户配置
+        # 注意：推送URL已硬编码在hiboards_client.py中
     
     def _preprocess_content(self, content: str) -> str:
         """
@@ -86,10 +79,8 @@ class TaskPusher:
         import time
         msg_id = f"{schedule_task_id}_{int(time.time())}"
         
-        # 获取授权码（优先使用数据中的，其次使用配置的）
-        auth_code = task_data.get('auth_code', self.config.auth_code)
-        if not auth_code:
-            logger.warning("未设置授权码，推送可能会失败")
+        # 注意：云端会自动获取授权码，不再需要用户配置
+        # 移除所有auth_code相关逻辑
         
         # 获取任务完成时间戳（秒）
         task_finish_time = int(time.time())
@@ -124,7 +115,6 @@ class TaskPusher:
         
         # 构建pushData
         push_data = {
-            "authCode": auth_code,
             "msgContent": [msg_content]
         }
         
@@ -151,9 +141,7 @@ class TaskPusher:
         """验证推送数据"""
         try:
             # 检查必需字段
-            if 'authCode' not in push_data:
-                return False, "缺少authCode字段"
-            
+            # 注意：authCode字段已移除，云端会自动获取授权码
             if 'msgContent' not in push_data:
                 return False, "缺少msgContent字段"
             
@@ -246,7 +234,7 @@ class TaskPusher:
                 )
                 
         except Exception as e:
-            logger.error(f"❌ 推送过程异常: {str(e)}")
+            logger.error(f"[ERROR] 推送过程异常: {str(e)}")
             return self._create_error_response(
                 task_data, "推送过程异常", str(e), "system"
             )

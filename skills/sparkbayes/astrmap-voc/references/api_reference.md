@@ -52,11 +52,11 @@ Content-Type: application/json
 
 ---
 
-### 2. 创建采集任务
+### 2. 创建任务
 
 **端点**: `POST /api/v1/external/task/create`
 
-创建采集任务，下发到当前账号绑定的设备。
+创建任务，下发到当前账号绑定的设备。
 
 **请求体**:
 ```json
@@ -140,7 +140,7 @@ Content-Type: application/json
 |------|------|
 | PENDING | 待处理 |
 | DISPATCHING | 分发中 |
-| COLLECTING | 采集中 |
+| COLLECTING | 获取中 |
 | PROCESSING | 处理中 |
 | ANALYZING | 分析中 |
 | SUCCESS | 完成 |
@@ -193,7 +193,7 @@ Content-Type: application/json
 
 **端点**: `POST /api/v1/external/task/incremental`
 
-为终态任务（SUCCESS/FAILED/CANCELLED）创建增量采集，获取自上次采集后的新增评论。
+为终态任务（SUCCESS/FAILED/CANCELLED）创建增量获取，获取自上次获取后的新增评论。
 
 **请求体**:
 ```json
@@ -227,7 +227,7 @@ Content-Type: application/json
 **适用场景**：
 - 已完成的任务需要更新最新评论数据
 - 与创建新任务的区别：输入是已有的 ASIN（无需重复输入），自动获取增量数据
-- 增量采集会触发完整的采集+分析流程，数据分析会扣除积分
+- 增量获取会触发完整的获取+分析流程，数据分析会扣除积分
 
 ---
 
@@ -592,7 +592,7 @@ Content-Type: application/json
 
 ### 积分规则
 
-- **创建任务**：免费采集亚马逊评论，数据分析会扣除账户积分
+- **创建任务**：免费获取亚马逊评论，数据分析会扣除账户积分
 - **查询结果**：查看已完成任务的分析结果，不扣积分，也无前置条件限制
 
 ### 前置条件（仅创建任务时需要）
@@ -601,10 +601,9 @@ Content-Type: application/json
 
 1. 星图 AI·跨境电商客户洞察 桌面客户端已登录
 2. 桌面客户端已登录亚马逊买家账号
-3. 登录的亚马逊账号为小号（避免频繁采集导致账号被平台限制）
-4. 已开启科学上网，确保亚马逊访问畅通
+3. 确保亚马逊访问畅通
 
 ### 错误处理
-1. 设备不在线 (1001)：检查桌面客户端是否登录，亚马逊账号是否在线
+1. 设备不在线 (1001)：检查桌面客户端是否登录
 2. 积分不足 (1002)：提示用户充值积分
 3. API Key 无效 (2001)：检查 API Key 是否正确

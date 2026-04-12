@@ -1,0 +1,7 @@
+interface:
+  display_name: "会议纪要助手"
+  short_description: "支持录音转文字与文字转录音，输出结构化纪要、行动表和语音简报"
+  default_prompt: "Use $meeting-notes-skill. First ask '有什么会议纪要需要我帮你整理？'. On first use, ALWAYS output environment status and install commands before task execution. Prefer installed ASR/TTS engines first. ASR auto route must be local -> openai -> builtin (do not prioritize built-in first). On macOS, run ASR/TTS commands with --auto-install by default to auto-run bootstrap dependency setup. Then run scripts/generate_meeting_bundle.py for text input. Return SUCCESS only if brief audio + full audio + mindmap are all generated. Do NOT stream internal retry progress to users; provide only one final response with either complete deliverables or one consolidated failure summary with actionable fix steps."
+
+policy:
+  allow_implicit_invocation: true

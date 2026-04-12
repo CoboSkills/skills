@@ -86,6 +86,11 @@ python scripts/query_exercises.py --muscle chest --equipment dumbbell
 
 ## 第二阶段：生成训练计划
 
+**⚠️ 强制前置步骤**：生成计划前，必须先读取 `memory/topics/training-plan-rules.md`，按其中的5步流程执行，特别是：
+- 从 `free-exercise-db` 数据库选动作，使用 `e.name` 标准名称
+- 生成后逐一校验动作名与数据库匹配
+- 自动应用用户私人约束（无单杠、手腕、不练耸肩等）
+
 **参考**：[references/plan-design.md](references/plan-design.md)
 
 ### 查询可用动作
@@ -102,6 +107,20 @@ python scripts/query_exercises.py --force push --equipment dumbbell --level inte
 # 查询单个动作详情
 python scripts/query_exercises.py --id "Incline_Dumbbell_Press"
 ```
+
+### 数据来源识别
+
+生成计划前，先判断用户数据来源：
+
+**来源A：来自Workout Timer App**
+- 数据包含「训练数据报告」「肌群容量分布」「恢复状态」等App专属指标
+- 处理方式：读取 `references/workout-timer-integration.md`，按App数据逻辑分析
+- 输出：Markdown + JSON（方便导入App）
+
+**来源B：用户口头描述/手动提供**
+- 用户通过对话告知训练情况、目标、偏好
+- 处理方式：按下方标准流程生成
+- 输出：Markdown格式即可
 
 ### 计划模板选择
 

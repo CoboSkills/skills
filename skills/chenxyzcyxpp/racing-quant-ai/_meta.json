@@ -3,11 +3,16 @@
   "slug": "racing-quant-ai",
   "displayName": "Racing Quant AI",
   "latest": {
-    "version": "1.4.0",
-    "publishedAt": 1774851523521,
-    "commit": "https://github.com/openclaw/skills/commit/b3bc478cbb5e9142c30392e66501d7d23e5bccfa"
+    "version": "1.5.0",
+    "publishedAt": 1774961198152,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.0",
+      "publishedAt": 1774851523521,
+      "commit": "https://github.com/openclaw/skills/commit/b3bc478cbb5e9142c30392e66501d7d23e5bccfa"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774494811116,

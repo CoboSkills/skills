@@ -41,12 +41,40 @@ function generateKeys() {
   };
 }
 
+// AES-256-GCM: uid → SHA-256(uid) 作为 32 字节密钥
+function _uidKey(uid) {
+  return crypto.createHash('sha256').update(uid).digest();
+}
+
+function encryptField(plaintext, uid) {
+  const key = _uidKey(uid);
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+  const authTag = cipher.getAuthTag();
+  return `${iv.toString('base64')}:${authTag.toString('base64')}:${encrypted.toString('base64')}`;
+}
+
+function decryptField(encryptedStr, uid) {
+  const key = _uidKey(uid);
+  const [ivB64, authTagB64, ciphertextB64] = encryptedStr.split(':');
+  const iv = Buffer.from(ivB64, 'base64');
+  const authTag = Buffer.from(authTagB64, 'base64');
+  const ciphertext = Buffer.from(ciphertextB64, 'base64');
+  const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+  decipher.setAuthTag(authTag);
+  return decipher.update(ciphertext) + decipher.final('utf8');
+}
+
 function ensureConfig() {
   const config = readConfig();
   if (!config || !config.uid || !config.registered) {
     output({ success: false, message: '用户未注册，请先运行: userConfig' });
     process.exit(1);
   }
+  config.publicKeyB64 = decryptField(config.publicKeyB64, config.uid);
+  config.publicKeyPem = decryptField(config.publicKeyPem, config.uid);
+  config.privateKeyPem = decryptField(config.privateKeyPem, config.uid);
   return config;
 }
 
@@ -218,12 +246,12 @@ async function cmdUserConfig() {
     return;
   }
 
-  // 保存到本地
+  // 保存到本地（敏感字段用 uid 派生的 AES-256-GCM 密钥加密）
   const configToSave = {
     uid: keys.uid,
-    publicKeyB64: keys.publicKeyB64,
-    publicKeyPem: keys.publicKeyPem,
-    privateKeyPem: keys.privateKeyPem,
+    publicKeyB64: encryptField(keys.publicKeyB64, keys.uid),
+    publicKeyPem: encryptField(keys.publicKeyPem, keys.uid),
+    privateKeyPem: encryptField(keys.privateKeyPem, keys.uid),
     registered: true,
     registeredAt: new Date().toISOString(),
   };

@@ -1,9 +1,9 @@
 ---
 name: tencent-news
-description: 获取7×24 新闻资讯，聚焦中国国内信息和国际热点。支持热点新闻、早报晚报、实时资讯、新闻榜单、领域新闻查询。当用户需要搜新闻、查新闻、看热点、看早晚报、订阅新闻推送、获取主题相关新闻资讯和最新消息时使用。
-description_zh: 7×24 新闻资讯，支持热点、早晚报、实时资讯、榜单、领域新闻及主题查询。
-description_en: 7×24 news updates with hot news, morning/evening briefings, real-time feeds, rankings, topic news, and subject queries.
-version: 1.0.7
+description: 7×24 新闻资讯搜索工具，聚焦中国国内信息和国际热点。支持新闻搜索，包括热点新闻、早报晚报、实时资讯、领域新闻查询。当用户需要搜索新闻、新闻热榜、新闻早晚报、订阅新闻推送、获取相关新闻资讯和最新消息时使用。
+description_zh: 7×24 新闻搜索工具，聚焦国内外热点，支持热榜、早晚报、实时资讯及领域新闻查询。
+description_en: 7×24 news search tool focused on China and global hot topics, supporting rankings, briefings, real-time feeds, and domain news queries.
+version: 1.0.8
 author: TencentNews
 tags: [news, tencent, headlines, briefings, news rankings, real-time updates]
 ---
@@ -131,6 +131,8 @@ Windows PowerShell 分别使用 `& "<cliPath>" apikey-set KEY`、`& "<cliPath>" 
 
    来源：媒体名称
 
+   时间：发布时间
+
    摘要内容……
 
    [查看原文](https://…)
@@ -138,6 +140,8 @@ Windows PowerShell 分别使用 `& "<cliPath>" apikey-set KEY`、`& "<cliPath>" 
 2. **标题文字**
 
    来源：媒体名称
+
+   时间：发布时间
 
    摘要内容……
 
@@ -174,6 +178,7 @@ Windows PowerShell 分别使用 `& "<cliPath>" apikey-set KEY`、`& "<cliPath>" 
 
 - **标题**：`序号. **标题**`，序号从 1 开始，多类型时每组序号独立
 - **来源**：`来源：` 后跟 CLI 返回的作者或媒体名称；无该字段时省略
+- **时间**：`时间：` 后跟 CLI 返回的发布时间；无该字段时省略
 - **摘要**：来源下方紧跟；无摘要字段时省略
 - **原文链接**：有链接则输出 `[查看原文](URL)`，无则不输出
 - 其他有价值字段（发布时间、标签等）可在来源下方补充

@@ -40,7 +40,11 @@ export CHENGXIN_API_KEY="你的 API Key"
 
 ## 接口地址
 
-**接口 URL**: `https://wx.17u.cn/skills/gateway/api/v1/gateway/resource`
+各 `scripts/*-query.js` 通过 `scripts/lib/api-client.js` 调用程心网关，**基础 URL** 为：
+
+`https://wx.17u.cn/skills/gateway/api/v1/gateway`
+
+具体资源在基础路径后拼接，例如 `/trainResource`、`/flightResource`、`/hotelResource` 等（与脚本内常量一致）。
 
 ## 网络要求
 
@@ -82,7 +86,7 @@ export CHENGXIN_API_KEY="你的 API Key"
 | 类型 | 列名 |
 |------|------|
 | 🏨 酒店 | 酒店名称、价格、类型、评分、评论数、特点、PC 预订、手机预订 |
-| 🚄 火车票 | 车次、出发站、到达站、出发时间、到达时间、运行时长、最低价、余票、PC 预订、手机预订 |
+| 🚄 火车票 | 车次、出发站、到达站、出发时间、到达时间、运行时长、最低价、PC 预订、手机预订 |
 | ✈️ 机票 | 航班号、航空公司、出发机场、到达机场、出发时间、到达时间、运行时长、价格、PC 预订、手机预订 |
 | 🏞️ 景区 | 景区名称、城市、星级、评分、价格、开放时间、PC 预订、手机预订 |
 

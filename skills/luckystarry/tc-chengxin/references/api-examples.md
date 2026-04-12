@@ -4,54 +4,7 @@ _同程程心 API 调用参考_
 
 ---
 
-## 📋 通用查询 API（query.js）
-
-### 基础调用
-
-```bash
-node scripts/query.js "<用户查询>" <意图类型> <channel> <surface>
-```
-
-### 意图类型
-
-| planning 值 | 适用场景 |
-|------------|---------|
-| `Flight` | 机票、航班查询 |
-| `Train` | 火车票、高铁、动车查询 |
-| `Hotel` | 酒店、住宿查询 |
-| `Scenery` | 景区、景点、门票查询 |
-| `Travel` | 度假产品、旅游攻略、行程规划 |
-
-### 渠道参数
-
-| channel | 说明 | 输出格式 |
-|---------|------|---------|
-| `webchat` | Web 聊天 | 表格 + Markdown 链接 |
-| `wechat` | 微信 | 卡片 + 纯文本链接 |
-| `weixin` | 微信 | 卡片 + 纯文本链接 |
-| `qq` | QQ | 卡片 + Markdown 链接 |
-| `dingtalk` | 钉钉 | 卡片 + Markdown 链接 |
-
-### 调用示例
-
-```bash
-# 机票查询（webchat）
-node scripts/query.js "明天上海到北京的航班" Flight webchat webchat
-
-# 火车票查询（微信）
-node scripts/query.js "苏州到上海的高铁" Train wechat ""
-
-# 酒店查询（移动端）
-node scripts/query.js "上海外滩附近的酒店" Hotel "" mobile
-
-# 景区查询
-node scripts/query.js "苏州有哪些景区" Scenery webchat webchat
-
-# 旅游攻略
-node scripts/query.js "帮我规划北京三日游" Travel webchat webchat
-```
-
----
+本技能**仅**通过 `scripts/` 下各 `*-query.js` 调用程心资源接口;须按 SKILL.md 将用户意图映射到对应脚本并传入结构化参数(及 `--channel` / `--surface`)。
 
 ## 🚂 火车票专用 API（train-query.js）
 
@@ -116,22 +69,6 @@ node scripts/train-query.js \
   --channel webchat \
   --surface webchat
 ```
-
----
-
-## 🔍 意图自动识别
-
-query.js 会自动识别用户查询中的意图关键词：
-
-| 关键词 | 识别为 |
-|--------|-------|
-| 机票、航班、飞机 | `Flight` |
-| 火车、高铁、动车、车票 | `Train` |
-| 酒店、住宿、宾馆 | `Hotel` |
-| 景区、景点、门票 | `Scenery` |
-| 度假、旅游 | `Travel` |
-
-**注意**：火车票专用查询（train-query.js）不自动识别意图，需要明确提供参数。
 
 ---
 

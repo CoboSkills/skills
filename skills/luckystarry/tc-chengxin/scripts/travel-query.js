@@ -6,13 +6,13 @@
  * 用法：
  *   node travel-query.js --destination "三亚"
  *   node travel-query.js --destination "三亚" --extra "五一假期"
- *   node travel-query.js --destination "云南" --extra "6 天 5 晚 自由行"
+ *   node travel-query.js --destination "云南" --extra "6天5晚 自由行"
  * 
  * 参数说明：
  *   --destination <城市/地区>  目的地城市或地区
  *   --extra <补充信息>        额外信息（假期、天数、类型等）
  *   --channel <渠道>          通信渠道（webchat/wechat 等）
- *   --surface <界面>          交互界面（mobile/desktop）
+ *   --surface <界面>          交互界面（mobile/desktop/table/card）
  * 
  * 说明：
  *   本接口用于查询自由行、跟团游等度假产品
@@ -24,41 +24,27 @@
  *   - 或创建 config.json 文件（见 config.example.json）
  */
 
-const https = require('https');
-const http = require('http');
-const url = require('url');
-const fs = require('fs');
-const path = require('path');
+const { call_api } = require('./lib/api-client');
+const { resolve_output_mode } = require('./lib/output-mode');
+const {
+  NO_MATCH_DETAIL,
+  create_success_banner_once,
+  handle_api_result,
+  print_no_match_lines,
+  print_request_exception
+} = require('./lib/query-response');
+const {
+  format_trip_card,
+  format_trip_table,
+  format_trip_plans,
+  format_train_table,
+  format_hotel_table,
+  format_scenery_table,
+  render_booking_buttons
+} = require('./lib/formatters');
 
-// 接口配置
-const API_BASE_URL = 'https://wx.17u.cn/skills/gateway/api/v1/gateway';
+// 度假产品 API 路径
 const TRAVEL_API_PATH = '/travelResource';
-
-// 版本号
-const API_VERSION = '0.2.0';
-
-// 配置读取（优先级：环境变量 > config.json）
-let API_KEY = process.env.CHENGXIN_API_KEY;
-
-/**
- * 构建 Authorization Token
- */
-function build_auth_token(key) {
-  if (!key) return '';
-  return `Bearer ${key}`;
-}
-
-if (!API_KEY) {
-  try {
-    const config_path = path.join(__dirname, '..', 'config.json');
-    const config = JSON.parse(fs.readFileSync(config_path, 'utf8'));
-    API_KEY = config.apiKey;
-  } catch (e) {
-    console.error('❌ 配置错误：未找到 CHENGXIN_API_KEY 环境变量或 config.json 文件');
-    console.error('   请设置环境变量或在技能目录下创建 config.json 文件');
-    process.exit(1);
-  }
-}
 
 /**
  * 调用旅行资源专用 API
@@ -66,57 +52,7 @@ if (!API_KEY) {
  * @returns {Promise<object>} - API 响应
  */
 function query_travel_api(params) {
-  return new Promise((resolve, reject) => {
-    const api_url = `${API_BASE_URL}${TRAVEL_API_PATH}`;
-    const parsed_url = url.parse(api_url);
-    const is_https = parsed_url.protocol === 'https:';
-    const client = is_https ? https : http;
-    
-    const post_data = JSON.stringify({
-      ...params,
-      version: API_VERSION
-    });
-    
-    const options = {
-      hostname: parsed_url.hostname,
-      port: parsed_url.port || (is_https ? 443 : 80),
-      path: parsed_url.path,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(post_data),
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Origin': 'https://www.ly.com',
-        'Referer': 'https://www.ly.com/',
-        'Authorization': build_auth_token(API_KEY)
-      }
-    };
-    
-    const req = client.request(options, (res) => {
-      let data = '';
-      
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      
-      res.on('end', () => {
-        try {
-          const result = JSON.parse(data);
-          resolve(result);
-        } catch (e) {
-          reject(new Error(`解析响应失败：${e.message}`));
-        }
-      });
-    });
-    
-    req.on('error', (e) => {
-      reject(new Error(`请求失败：${e.message}`));
-    });
-    
-    req.write(post_data);
-    req.end();
-  });
+  return call_api(TRAVEL_API_PATH, params);
 }
 
 /**
@@ -135,64 +71,141 @@ function format_travel_result(trip_data, use_table = false, use_plain_link = fal
   let output = '🧳 **度假产品**\n\n';
   
   if (use_table) {
-    // 表格格式
-    output += '| 产品 | 目的地 | 价格 | 评分 | 特点 | PC 预订 | 手机预订 |\n';
-    output += '|------|--------|------|------|------|--------|---------|\n';
-    
-    trips.forEach((trip) => {
-      const name = trip.name || '未知产品';
-      const dest_list = (trip.destList || []).join(', ');
-      const price = trip.price ? `¥${trip.price}` : '暂无价格';
-      const score = trip.score && trip.score !== '0.0' ? `⭐${trip.score}` : '暂无';
-      const label_list = (trip.labelList || []).join(', ');
-      
-      // 跟团游只有 redirectUrl（手机端），没有 pcRedirectUrl
-      const mobile_link = trip.clawRedirectUrl || trip.redirectUrl || '#';
-      const pc_link = trip.clawRedirectUrl || trip.redirectUrl || '#';  // 同程跟团游 PC 和移动端是同一链接
-      
-      let pc_link_md, mobile_link_md;
-      if (use_plain_link) {
-        pc_link_md = pc_link !== '#' ? pc_link : '暂不可用';
-        mobile_link_md = mobile_link !== '#' ? mobile_link : '暂不可用';
-      } else {
-        pc_link_md = pc_link !== '#' ? `[PC 端](${pc_link})` : '暂不可用';
-        mobile_link_md = mobile_link !== '#' ? `[手机端](${mobile_link})` : '暂不可用';
-      }
-      
-      output += `| ${name} | ${dest_list} | ${price} | ${score} | ${label_list} | ${pc_link_md} \\| ${mobile_link_md} |\n`;
-    });
+    output += format_trip_table(trips, use_plain_link);
   } else {
     // 卡片格式
     trips.forEach((trip) => {
-      const name = trip.name || '未知产品';
-      const dest_list = (trip.destList || []).join(', ');
-      const price = trip.price ? `¥${trip.price}` : '暂无价格';
-      const score = trip.score && trip.score !== '0.0' ? `⭐${trip.score}` : '暂无';
-      const comment_num = trip.commentNum || '0';
-      const label_list = (trip.labelList || []).join(', ');
-      
-      // 跟团游只有 redirectUrl（手机端），没有 pcRedirectUrl
-      const mobile_link = trip.clawRedirectUrl || trip.redirectUrl || '#';
-      const pc_link = trip.clawRedirectUrl || trip.redirectUrl || '#';  // 同程跟团游 PC 和移动端是同一链接
-      
-      let pc_link_md, mobile_link_md;
-      if (use_plain_link) {
-        pc_link_md = pc_link !== '#' ? `PC 端：${pc_link}` : '暂不可用';
-        mobile_link_md = mobile_link !== '#' ? `手机端：${mobile_link}` : '暂不可用';
-      } else {
-        pc_link_md = pc_link !== '#' ? `[PC 端](${pc_link})` : '暂不可用';
-        mobile_link_md = mobile_link !== '#' ? `[手机端](${mobile_link})` : '暂不可用';
-      }
-      
-      output += `### 🧳 ${name}\n`;
-      output += `**目的地** ${dest_list}\n`;
-      output += `**价格** ${price} | **评分** ${score}（${comment_num}条）\n`;
-      if (label_list) output += `**特点** ${label_list}\n`;
-      output += `**预订** ${pc_link_md} | ${mobile_link_md}\n`;
-      output += '\n---\n\n';
+      output += format_trip_card(trip, use_plain_link);
     });
   }
   
+  return output;
+}
+
+/**
+ * 格式化火车票结果
+ * @param {Array} train_data_list - 火车票数据列表
+ * @param {boolean} use_table - 是否使用表格格式
+ * @param {boolean} use_plain_link - 是否使用纯文本链接
+ * @returns {string} - 格式化输出
+ */
+function format_train_result(train_data_list, use_table = false, use_plain_link = false) {
+  if (!train_data_list || train_data_list.length === 0) {
+    return '';
+  }
+
+  let output = '🚄 **推荐火车/高铁**\n\n';
+
+  train_data_list.forEach((item) => {
+    if (item.desc) {
+      output += `📌 ${item.desc}\n`;
+    }
+    if (item.trainList && item.trainList.length > 0) {
+      output += format_train_table(item.trainList.slice(0, 5), use_plain_link);
+      output += '\n';
+    }
+  });
+
+  return output;
+}
+
+/**
+ * 格式化酒店结果
+ * @param {Array} hotel_data_list - 酒店数据列表
+ * @param {boolean} use_table - 是否使用表格格式
+ * @param {boolean} use_plain_link - 是否使用纯文本链接
+ * @returns {string} - 格式化输出
+ */
+function format_hotel_result(hotel_data_list, use_table = false, use_plain_link = false) {
+  if (!hotel_data_list || hotel_data_list.length === 0) {
+    return '';
+  }
+
+  let output = '🏨 **推荐酒店**\n\n';
+
+  hotel_data_list.forEach((item) => {
+    if (item.hotelList && item.hotelList.length > 0) {
+      output += format_hotel_table(item.hotelList.slice(0, 10), use_plain_link);
+      output += '\n';
+    }
+  });
+
+  return output;
+}
+
+/**
+ * 格式化景区列表
+ * @param {Array} scenery_data_list - 景区数据列表
+ * @param {boolean} use_table - 是否使用表格格式
+ * @param {boolean} use_plain_link - 是否使用纯文本链接
+ * @returns {string} - 格式化输出
+ */
+function format_scenery_result(scenery_data_list, use_table = false, use_plain_link = false) {
+  if (!scenery_data_list || scenery_data_list.length === 0) {
+    return '';
+  }
+
+  let output = '🏞️ **推荐景区/景点**\n\n';
+
+  scenery_data_list.forEach((item) => {
+    if (item.sceneryList && item.sceneryList.length > 0) {
+      if (use_table) {
+        output += format_scenery_table(item.sceneryList.slice(0, 10), use_plain_link);
+      } else {
+        // 卡片格式
+        item.sceneryList.slice(0, 10).forEach((scenery) => {
+          const name = scenery.name || '未知景区';
+          const city = scenery.cityName || '';
+          const price = scenery.price ? `¥${scenery.price}` : '暂无价格';
+          const star = scenery.star || '';
+          const score = scenery.score ? `⭐${scenery.score}` : '';
+          const intro = scenery.describe || '';
+          const pc_link = scenery.pcRedirectUrl || '';
+          const mobile_link = scenery.clawRedirectUrl || scenery.redirectUrl || '';
+
+          output += `### 🏞️ ${name}\n`;
+          if (city || star) output += `📍 ${city} | ${star}\n`;
+          if (price || score) output += `💰 ${price} | ${score}\n`;
+          if (intro) output += `${intro}\n`;
+          const booking_line = render_booking_buttons(pc_link, mobile_link, use_plain_link);
+          if (booking_line) output += `🔗 预订：${booking_line}\n`;
+          output += '\n---\n\n';
+        });
+      }
+      output += '\n';
+    }
+  });
+
+  return output;
+}
+
+/**
+ * 格式化 UGC 攻略指引
+ * @param {Array} ugc_data_list - UGC 数据列表
+ * @returns {string} - 格式化输出
+ */
+function format_ugc_guide(ugc_data_list) {
+  if (!ugc_data_list || ugc_data_list.length === 0) {
+    return '';
+  }
+
+  let output = '📝 **用户攻略推荐**\n\n';
+  output += `共找到 ${ugc_data_list.length} 篇用户攻略，以下是部分推荐：\n\n`;
+
+  ugc_data_list.slice(0, 3).forEach((item, idx) => {
+    if (item.ugcList && item.ugcList.length > 0) {
+      const ugc = item.ugcList[0];
+      const name = ugc.name || '无标题';
+      const author = ugc.nickName || '匿名用户';
+      const redirect_url = ugc.redirectUrl || '#';
+      
+      output += `${idx + 1}. **${name}** - ${author}\n`;
+      output += `   🔗 [查看全文](${redirect_url})\n\n`;
+    }
+  });
+
+  output += '💡 以上攻略由真实用户分享，可供参考。\n\n';
+
   return output;
 }
 
@@ -203,6 +216,7 @@ function format_travel_result(trip_data, use_table = false, use_plain_link = fal
 function parse_args() {
   const args = process.argv.slice(2);
   const params = {
+    departure: '',
     destination: '',
     extra: '',
     channel: '',
@@ -212,7 +226,9 @@ function parse_args() {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     
-    if (arg === '--destination' && args[i + 1]) {
+    if (arg === '--departure' && args[i + 1]) {
+      params.departure = args[++i];
+    } else if (arg === '--destination' && args[i + 1]) {
       params.destination = args[++i];
     } else if (arg === '--extra' && args[i + 1]) {
       params.extra = args[++i];
@@ -220,6 +236,8 @@ function parse_args() {
       params.channel = args[++i];
     } else if (arg === '--surface' && args[i + 1]) {
       params.surface = args[++i];
+    } else if (!arg.startsWith('--') && !params.destination) {
+      params.destination = arg;
     }
   }
   
@@ -254,98 +272,126 @@ async function main() {
   if (!validation.valid) {
     console.log('用法：');
     console.log('  node travel-query.js --destination "三亚"');
-    console.log('  node travel-query.js --destination "三亚" --extra "五一假期"');
-    console.log('  node travel-query.js --destination "云南" --extra "6 天 5 晚 自由行"');
+    console.log('  node travel-query.js --departure "北京" --destination "三亚"');
+    console.log('  node travel-query.js --departure "北京" --destination "三亚" --extra "五一假期"');
     console.log('\n参数说明：');
-    console.log('  --destination <城市/地区>  目的地城市或地区');
-    console.log('  --extra <补充信息>        额外信息（假期、天数、类型等）');
-    console.log('  --channel <渠道>          通信渠道（webchat/wechat 等）');
-    console.log('  --surface <界面>          交互界面（mobile/desktop）');
+    console.log('  --departure <城市>          出发地城市（可选）');
+    console.log('  --destination <城市/地区>   目的地城市或地区（必填）');
+    console.log('  --extra <补充信息>          额外信息（假期、天数、类型等）');
+    console.log('  --channel <渠道>            通信渠道（webchat/wechat 等）');
+    console.log('  --surface <界面>            交互界面（mobile/desktop/table/card）');
     console.log('\n' + validation.error);
     process.exit(1);
   }
   
   // 构建请求参数（只包含非空字段）
   const request_params = {};
+  if (params.departure) request_params.departure = params.departure;
   if (params.destination) request_params.destination = params.destination;
   if (params.extra) request_params.extra = params.extra;
   if (params.channel) request_params.channel = params.channel;
   if (params.surface) request_params.surface = params.surface;
   
   // 检测输出格式
-  let use_table = false;
-  let use_plain_link = false;
-  
-  if (params.channel === 'webchat') {
-    use_table = true;
-  } else if (params.channel.includes('wechat') || params.channel.includes('weixin') || params.channel.includes('微信')) {
-    use_plain_link = true;
-  } else if (params.surface === 'mobile') {
-    use_table = false;
-  }
-  
-  // 输出调试信息
-  console.log('🔍 旅行资源专用查询');
-  console.log(`📤 请求参数：${JSON.stringify(request_params, null, 2)}`);
-  console.log(`📡 渠道：${params.channel || '默认'}`);
-  console.log(`📱 界面：${params.surface || '默认'}`);
-  console.log(`📊 格式：${use_table ? '表格' : '卡片'} | 链接：${use_plain_link ? '纯文本' : 'Markdown'}`);
-  console.log('---\n');
-  
+  const { use_table, use_plain_link } = resolve_output_mode(params);
+
   try {
     const result = await query_travel_api(request_params);
-    
-    if (result.code === '0' || result.code === 0) {
-      console.log('✅ 查询成功\n');
-      
-      const response_data = result.data?.data || result.data;
-      
-      // 新结构：tripDataList 是数组，每个元素包含 pageDataList, tripList, desc
-      // 旧结构：tripData 是单个对象
-      const tripDataList = response_data?.tripDataList;
-      const tripData = response_data?.tripData;
-      
-      let hasOutput = false;
-      
-      if (Array.isArray(tripDataList) && tripDataList.length > 0) {
-        // 新结构：遍历所有列表，每个列表都有 desc 说明
-        tripDataList.forEach((item, index) => {
-          if (item.tripList && item.tripList.length > 0) {
-            // 输出列表说明（desc）
-            if (item.desc) {
-              console.log(`📌 ${item.desc}\n`);
-            } else if (tripDataList.length > 1) {
-              console.log(`📌 列表 ${index + 1}\n`);
-            }
-            console.log(format_travel_result(item, use_table, use_plain_link));
-            hasOutput = true;
+
+    handle_api_result(result, {
+      no_match_detail: NO_MATCH_DETAIL.travel,
+      on_success: (res) => {
+        const print_success_once = create_success_banner_once();
+        const response_data = res.data?.data || res.data;
+
+        let has_output = false;
+        let output_parts = [];
+
+        // 1. 火车票推荐（往返交通）
+        const train_data_list = response_data?.trainDataList;
+        if (Array.isArray(train_data_list) && train_data_list.length > 0) {
+          const train_output = format_train_result(train_data_list, use_table, use_plain_link);
+          if (train_output) {
+            print_success_once();
+            output_parts.push(train_output);
+            has_output = true;
           }
-        });
-      } else if (tripData && tripData.tripList) {
-        // 旧结构：单个对象
-        console.log(format_travel_result(tripData, use_table, use_plain_link));
-        hasOutput = true;
+        }
+
+        // 2. 酒店推荐
+        const hotel_data_list = response_data?.hotelDataList;
+        if (Array.isArray(hotel_data_list) && hotel_data_list.length > 0) {
+          const hotel_output = format_hotel_result(hotel_data_list, use_table, use_plain_link);
+          if (hotel_output) {
+            print_success_once();
+            output_parts.push(hotel_output);
+            has_output = true;
+          }
+        }
+
+        // 2.5. 景区推荐（丰富行程规划）
+        const scenery_data_list = response_data?.sceneryDataList;
+        if (Array.isArray(scenery_data_list) && scenery_data_list.length > 0) {
+          const scenery_output = format_scenery_result(scenery_data_list, use_table, use_plain_link);
+          if (scenery_output) {
+            print_success_once();
+            output_parts.push(scenery_output);
+            has_output = true;
+          }
+        }
+
+        // 3. 传统打包产品（跟团游等）
+        const trip_data_list = response_data?.tripDataList;
+        if (Array.isArray(trip_data_list) && trip_data_list.length > 0) {
+          trip_data_list.forEach((item, index) => {
+            if (item.tripList && item.tripList.length > 0) {
+              print_success_once();
+              let part_output = '';
+              if (item.desc) {
+                part_output += `📌 ${item.desc}\n`;
+              } else if (trip_data_list.length > 1) {
+                part_output += `📌 列表 ${index + 1}\n`;
+              }
+              part_output += format_travel_result(item, use_table, use_plain_link);
+              output_parts.push(part_output);
+              has_output = true;
+            }
+          });
+        }
+
+        // 4. 行程规划（核心）
+        const trip_plan_data_list = response_data?.tripPlanDataList;
+        if (Array.isArray(trip_plan_data_list) && trip_plan_data_list.length > 0) {
+          const plan_output = format_trip_plans(trip_plan_data_list, use_plain_link);
+          if (plan_output) {
+            print_success_once();
+            output_parts.push(plan_output);
+            has_output = true;
+          }
+        }
+
+        // 5. UGC 攻略指引
+        const ugc_data_list = response_data?.ugcDataList;
+        if (Array.isArray(ugc_data_list) && ugc_data_list.length > 0) {
+          const ugc_output = format_ugc_guide(ugc_data_list);
+          if (ugc_output) {
+            output_parts.push(ugc_output);
+          }
+        }
+
+        // 输出所有内容
+        if (has_output) {
+          output_parts.forEach((part) => {
+            console.log(part);
+          });
+          console.log('💡 **更多选择**：也可以打开 **同程旅行 APP** 或在 **微信 - 我 - 服务** 中，点击 **火车票机票** 以及 **酒店民宿** 查看更丰富的资源。\n');
+        } else {
+          print_no_match_lines(NO_MATCH_DETAIL.travel);
+        }
       }
-      
-      if (!hasOutput) {
-        console.log('⚠️ 无结果');
-        console.log('未找到符合条件的度假产品，请尝试调整查询条件。');
-      } else {
-        console.log('💡 **更多选择**：也可以打开 **同程旅行 APP** 或在 **微信 - 我 - 服务** 中，点击 **火车票机票** 以及 **酒店民宿** 查看更丰富的资源。\n');
-      }
-    } else if (result.code === '1') {
-      console.log('⚠️ 无结果');
-      console.log('未找到符合条件的度假产品，请尝试调整查询条件。');
-    } else {
-      console.log(`❌ 查询失败：${result.message || '未知错误'}`);
-      if (result.message?.includes('鉴权') || result.message?.includes('unauthorized')) {
-        console.log('\n⚠️ 同程程心 API 未配置或无效');
-        console.log('请检查 config.json 中的 apiKey 是否正确。');
-      }
-    }
+    });
   } catch (error) {
-    console.error(`❌ 错误：${error.message}`);
-    process.exit(1);
+    print_request_exception(error);
   }
 }
 

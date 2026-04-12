@@ -16,8 +16,8 @@
  *   --arrival-station <站>    到达站
  *   --train-number <车次>     车次号
  *   --extra <补充信息>        额外信息（日期、偏好等）
- *   --channel <渠道>          通信渠道（webchat/wechat等）
- *   --surface <界面>          交互界面（mobile/desktop）
+ *   --channel <渠道>          通信渠道（webchat/wechat 等）
+ *   --surface <界面>          交互界面（mobile/desktop/table/card）
  * 
  * 合法组合：
  *   1. 出发地 + 目的地
@@ -29,41 +29,19 @@
  *   - 或创建 config.json 文件（见 config.example.json）
  */
 
-const https = require('https');
-const http = require('http');
-const url = require('url');
-const fs = require('fs');
-const path = require('path');
+const { call_api } = require('./lib/api-client');
+const { resolve_output_mode } = require('./lib/output-mode');
+const {
+  NO_MATCH_DETAIL,
+  create_success_banner_once,
+  handle_api_result,
+  print_no_match_lines,
+  print_request_exception
+} = require('./lib/query-response');
+const { format_train_table, format_transfer_trip, format_train_card } = require('./lib/formatters');
 
-// 接口配置
-const API_BASE_URL = 'https://wx.17u.cn/skills/gateway/api/v1/gateway';
+// 火车票 API 路径
 const TRAIN_API_PATH = '/trainResource';
-
-// 版本号
-const API_VERSION = '0.2.0';
-
-// 配置读取（优先级：环境变量 > config.json）
-let API_KEY = process.env.CHENGXIN_API_KEY;
-
-/**
- * 构建 Authorization Token
- */
-function build_auth_token(key) {
-  if (!key) return '';
-  return `Bearer ${key}`;
-}
-
-if (!API_KEY) {
-  try {
-    const config_path = path.join(__dirname, '..', 'config.json');
-    const config = JSON.parse(fs.readFileSync(config_path, 'utf8'));
-    API_KEY = config.apiKey;
-  } catch (e) {
-    console.error('❌ 配置错误：未找到 CHENGXIN_API_KEY 环境变量或 config.json 文件');
-    console.error('   请设置环境变量或在技能目录下创建 config.json 文件');
-    process.exit(1);
-  }
-}
 
 /**
  * 调用火车票专用 API
@@ -71,57 +49,7 @@ if (!API_KEY) {
  * @returns {Promise<object>} - API 响应
  */
 function query_train_api(params) {
-  return new Promise((resolve, reject) => {
-    const api_url = `${API_BASE_URL}${TRAIN_API_PATH}`;
-    const parsed_url = url.parse(api_url);
-    const is_https = parsed_url.protocol === 'https:';
-    const client = is_https ? https : http;
-    
-    const post_data = JSON.stringify({
-      ...params,
-      version: API_VERSION
-    });
-    
-    const options = {
-      hostname: parsed_url.hostname,
-      port: parsed_url.port || (is_https ? 443 : 80),
-      path: parsed_url.path,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(post_data),
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Accept': 'application/json, text/plain, */*',
-        'Origin': 'https://www.ly.com',
-        'Referer': 'https://www.ly.com/',
-        'Authorization': build_auth_token(API_KEY)
-      }
-    };
-    
-    const req = client.request(options, (res) => {
-      let data = '';
-      
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      
-      res.on('end', () => {
-        try {
-          const result = JSON.parse(data);
-          resolve(result);
-        } catch (e) {
-          reject(new Error(`解析响应失败：${e.message}`));
-        }
-      });
-    });
-    
-    req.on('error', (e) => {
-      reject(new Error(`请求失败：${e.message}`));
-    });
-    
-    req.write(post_data);
-    req.end();
-  });
+  return call_api(TRAIN_API_PATH, params);
 }
 
 /**
@@ -139,84 +67,39 @@ function format_train_result(train_data, use_table = false, use_plain_link = fal
   const trains = train_data.trainList;
   let output = '🚄 火车票查询结果：\n\n';
   
+  // 分离直达车次和中转联程
+  const direct_trains = trains.filter(t => !(t.tripType === 'TRANSFER' && t.segmentList && t.segmentList.length > 0));
+  const transfer_trains = trains.filter(t => t.tripType === 'TRANSFER' && t.segmentList && t.segmentList.length > 0);
+  
   if (use_table) {
     // 表格格式
-    output += '| 车次 | 出发站 | 到达站 | 出发时间 | 到达时间 | 运行时长 | 最低价 | 余票 | PC 预订 | 手机预订 |\n';
-    output += '|------|--------|--------|---------|---------|---------|--------|------|--------|---------|\n';
+    if (direct_trains.length > 0) {
+      output += format_train_table(direct_trains, use_plain_link) + '\n';
+    }
     
-    trains.forEach((train) => {
-      const train_no = train.trainType === 'GD' ? `🚅 ${train.trainNo}` : `🚆 ${train.trainNo}`;
-      const dep_station = train.depStationName || '-';
-      const arr_station = train.arrStationName || '-';
-      const dep_time = train.depTime || '-';
-      const arr_time = train.arrTime || '-';
-      const run_time = train.runTime || '-';
-      const price = train.price ? `¥${train.price}` : '暂无价格';
-      
-      let ticket_info = '查询中';
-      if (train.ticketList && train.ticketList.length > 0) {
-        const available_tickets = train.ticketList.filter(t => parseInt(t.ticketLeft) > 0);
-        if (available_tickets.length > 0) {
-          ticket_info = available_tickets.map(t => `${t.ticketType}(${t.ticketLeft})`).join(', ');
-        } else {
-          ticket_info = '售罄';
-        }
-      }
-      
-      const pc_link = train.pcRedirectUrl || train.clawRedirectUrl || train.redirectUrl || '#';
-      const mobile_link = train.clawRedirectUrl || train.redirectUrl || '#';
-      
-      let pc_link_md, mobile_link_md;
-      if (use_plain_link) {
-        pc_link_md = pc_link !== '#' ? pc_link : '暂不可用';
-        mobile_link_md = mobile_link !== '#' ? mobile_link : '暂不可用';
-      } else {
-        pc_link_md = pc_link !== '#' ? `[PC 端](${pc_link})` : '暂不可用';
-        mobile_link_md = mobile_link !== '#' ? `[手机端](${mobile_link})` : '暂不可用';
-      }
-      
-      output += `| ${train_no} | ${dep_station} | ${arr_station} | ${dep_time} | ${arr_time} | ${run_time} | ${price} | ${ticket_info} | ${pc_link_md} | ${mobile_link_md} |\n`;
-    });
+    // 中转联程每个方案单独一个小表格
+    if (transfer_trains.length > 0) {
+      transfer_trains.forEach((train) => {
+        output += format_transfer_trip(train, use_plain_link);
+      });
+    }
   } else {
     // 卡片格式
-    trains.forEach((train) => {
-      const train_no = train.trainType === 'GD' ? `🚅 ${train.trainNo}` : `🚆 ${train.trainNo}`;
-      const dep_station = train.depStationName || '-';
-      const arr_station = train.arrStationName || '-';
-      const dep_time = train.depTime || '-';
-      const arr_time = train.arrTime || '-';
-      const run_time = train.runTime || '-';
-      const price = train.price ? `¥${train.price}` : '暂无价格';
-      
-      let ticket_info = '';
-      if (train.ticketList && train.ticketList.length > 0) {
-        const available_tickets = train.ticketList.filter(t => parseInt(t.ticketLeft) > 0);
-        if (available_tickets.length > 0) {
-          ticket_info = available_tickets.map(t => `${t.ticketType}(${t.ticketLeft})`).join(', ');
-        } else {
-          ticket_info = '售罄';
-        }
-      }
-      
-      const pc_link = train.pcRedirectUrl || train.clawRedirectUrl || train.redirectUrl || '#';
-      const mobile_link = train.clawRedirectUrl || train.redirectUrl || '#';
-      
-      let pc_link_md, mobile_link_md;
-      if (use_plain_link) {
-        pc_link_md = pc_link !== '#' ? `PC 端：${pc_link}` : '暂不可用';
-        mobile_link_md = mobile_link !== '#' ? `手机端：${mobile_link}` : '暂不可用';
-      } else {
-        pc_link_md = pc_link !== '#' ? `[PC 端](${pc_link})` : '暂不可用';
-        mobile_link_md = mobile_link !== '#' ? `[手机端](${mobile_link})` : '暂不可用';
-      }
-      
-      output += `### ${train_no} | ${dep_station} → ${arr_station}\n`;
-      output += `**出发时间** ${dep_time} | **到达时间** ${arr_time} | **时长** ${run_time}\n`;
-      output += `**最低价** ${price}\n`;
-      if (ticket_info) output += `**余票** ${ticket_info}\n`;
-      output += `**预订** ${pc_link_md} | ${mobile_link_md}\n`;
-      output += '\n---\n\n';
+    direct_trains.forEach((train) => {
+      output += format_train_card(train, use_plain_link);
     });
+    
+    // 中转联程也用卡片格式
+    if (transfer_trains.length > 0) {
+      transfer_trains.forEach((train) => {
+        output += format_transfer_trip(train, use_plain_link);
+      });
+    }
+  }
+  
+  // 如果没有直达也没有联程
+  if (direct_trains.length === 0 && transfer_trains.length === 0) {
+    output += '⚠️ 未找到符合条件的火车票，请尝试调整查询条件。\n';
   }
   
   output += '💡 **更多选择**：也可以打开 **同程旅行 APP** 或在 **微信 - 我 - 服务** 中，点击 **火车票机票** 查看更丰富的资源。\n';
@@ -319,8 +202,8 @@ async function main() {
     console.log('  --arrival-station <站>    到达站');
     console.log('  --train-number <车次>     车次号');
     console.log('  --extra <补充信息>        额外信息（日期、偏好等）');
-    console.log('  --channel <渠道>          通信渠道（webchat/wechat等）');
-    console.log('  --surface <界面>          交互界面（mobile/desktop）');
+    console.log('  --channel <渠道>          通信渠道（webchat/wechat 等）');
+    console.log('  --surface <界面>          交互界面（mobile/desktop/table/card）');
     console.log('\n' + validation.error);
     process.exit(1);
   }
@@ -336,78 +219,43 @@ async function main() {
   if (params.channel) request_params.channel = params.channel;
   if (params.surface) request_params.surface = params.surface;
   
-  // 检测输出格式
-  let use_table = false;
-  let use_plain_link = false;
-  
-  if (params.channel === 'webchat') {
-    use_table = true;
-  } else if (params.channel.includes('wechat') || params.channel.includes('weixin') || params.channel.includes('微信')) {
-    use_plain_link = true;
-  } else if (params.surface === 'mobile') {
-    use_table = false;
-  }
-  
-  // 输出调试信息
-  console.log('🔍 火车票专用查询');
-  console.log(`📤 请求参数：${JSON.stringify(request_params, null, 2)}`);
-  console.log(`📡 渠道：${params.channel || '默认'}`);
-  console.log(`📱 界面：${params.surface || '默认'}`);
-  console.log(`📊 格式：${use_table ? '表格' : '卡片'} | 链接：${use_plain_link ? '纯文本' : 'Markdown'}`);
-  console.log('---\n');
+  const { use_table, use_plain_link } = resolve_output_mode(params);
   
   try {
     const result = await query_train_api(request_params);
-    
-    if (result.code === '0' || result.code === 0) {
-      console.log('✅ 查询成功\n');
-      
-      const response_data = result.data?.data || result.data;
-      
-      // 新结构：trainDataList 是数组，每个元素包含 pageDataList, trainList, desc
-      // 旧结构：trainData 是单个对象
-      const trainDataList = response_data?.trainDataList;
-      const trainData = response_data?.trainData;
-      
-      if (Array.isArray(trainDataList) && trainDataList.length > 0) {
-        // 新结构：遍历所有列表，每个列表都有 desc 说明
-        let hasOutput = false;
-        trainDataList.forEach((item, index) => {
-          if (item.trainList && item.trainList.length > 0) {
-            // 输出列表说明（desc）
-            if (item.desc) {
-              console.log(`📌 ${item.desc}\n`);
-            } else if (trainDataList.length > 1) {
-              console.log(`📌 列表 ${index + 1}\n`);
+
+    handle_api_result(result, {
+      no_match_detail: NO_MATCH_DETAIL.train,
+      on_success: (res) => {
+        const print_success_once = create_success_banner_once();
+        const response_data = res.data?.data || res.data;
+
+        const train_data_list = response_data?.trainDataList;
+
+        if (Array.isArray(train_data_list) && train_data_list.length > 0) {
+          let has_output = false;
+          train_data_list.forEach((item, index) => {
+            if (item.trainList && item.trainList.length > 0) {
+              print_success_once();
+              if (item.desc) {
+                console.log(`📌 ${item.desc}\n`);
+              } else if (train_data_list.length > 1) {
+                console.log(`📌 列表 ${index + 1}\n`);
+              }
+              console.log(format_train_result(item, use_table, use_plain_link));
+              has_output = true;
             }
-            console.log(format_train_result(item, use_table, use_plain_link));
-            hasOutput = true;
+          });
+          if (!has_output) {
+            print_no_match_lines(NO_MATCH_DETAIL.train);
           }
-        });
-        if (!hasOutput) {
-          console.log('⚠️ 无结果');
-          console.log('未找到符合条件的火车票，请尝试调整查询条件。');
+        } else {
+          print_no_match_lines(NO_MATCH_DETAIL.train);
         }
-      } else if (trainData) {
-        // 旧结构：单个对象
-        console.log(format_train_result(trainData, use_table, use_plain_link));
-      } else {
-        console.log('⚠️ 无结果');
-        console.log('未找到符合条件的火车票，请尝试调整查询条件。');
       }
-    } else if (result.code === '1') {
-      console.log('⚠️ 无结果');
-      console.log('未找到符合条件的火车票，请尝试调整查询条件。');
-    } else {
-      console.log(`❌ 查询失败：${result.message || '未知错误'}`);
-      if (result.message?.includes('鉴权') || result.message?.includes('unauthorized')) {
-        console.log('\n⚠️ 同程程心 API 未配置或无效');
-        console.log('请检查 config.json 中的 apiKey 是否正确。');
-      }
-    }
+    });
   } catch (error) {
-    console.error(`❌ 错误：${error.message}`);
-    process.exit(1);
+    print_request_exception(error);
   }
 }
 

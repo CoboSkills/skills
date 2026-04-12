@@ -1,7 +1,7 @@
 ---
 name: valuescan-skill
 description: ValueScan 加密货币主力资金流分析工具。支持资金异动监控、主力动向追踪、鲸鱼地址分析、板块轮动、机会/风险代币识别、大户成本分析。
-version: 1.0.4
+version: 1.0.5
 user-invocable: true
 category: Data Analysis
 license: MIT
@@ -59,6 +59,7 @@ AI综合多维度数据，追踪当前行情下的具有上涨机会或有下跌
 - 风险代币消息    **→**  下跌风险币的主力动向实时信号（如派发、破位、反弹等）。
 - 资金异动列表    **→**  上涨或震荡行情中资金活跃且具有短期套利潜力的代币
 - 资金异动消息    **→**  短线/趋势异动的实时信号（如主力入场、抛压等）。
+- 大盘分析订阅    **→**  BTC/ETH 的 AI 综合行情分析结果，辅助判断短期行情走向
 
 ### 交易所主力资金监控
 
@@ -234,7 +235,8 @@ valuescan-skill/
 │   │   ├── risk-coin-list.json       # 风险代币列表
 │   │   ├── risk-coin-messages.json   # 风险代币消息
 │   │   ├── funds-coin-list.json      # 资金异动列表
-│   │   └── funds-coin-messages.json  # 资金异动消息
+│   │   ├── funds-coin-messages.json  # 资金异动消息
+│   │   └── ai-analyse.json          # 大盘分析订阅
 │   │
 │   ├── fund/                         # 主力资金
 │   │   ├── realtime-fund.json        # 实时资金积累

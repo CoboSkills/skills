@@ -3,11 +3,16 @@
   "slug": "stock-tools",
   "displayName": "Stock Tools",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1774706623091,
-    "commit": "https://github.com/openclaw/skills/commit/7efd60ccff809b5e5b6ed58b1fce60d777e48958"
+    "version": "1.0.6",
+    "publishedAt": 1775610839104,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1774706623091,
+      "commit": "https://github.com/openclaw/skills/commit/7efd60ccff809b5e5b6ed58b1fce60d777e48958"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1774579948717,

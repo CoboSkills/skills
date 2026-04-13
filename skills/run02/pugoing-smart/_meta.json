@@ -3,9 +3,15 @@
   "slug": "pugoing-smart",
   "displayName": "pugoing-smart",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775199261530,
-    "commit": "https://github.com/openclaw/skills/commit/33c37c9a1d08160f0b6a1a994b5757150c09646c"
+    "version": "1.0.2",
+    "publishedAt": 1775703858028,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775199261530,
+      "commit": "https://github.com/openclaw/skills/commit/33c37c9a1d08160f0b6a1a994b5757150c09646c"
+    }
+  ]
 }

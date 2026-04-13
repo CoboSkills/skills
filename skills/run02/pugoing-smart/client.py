@@ -19,15 +19,16 @@ def load_spec(argv):
     if len(argv) < 2 or argv[1] == "-":
         raw = sys.stdin.read().strip()
         if not raw:
-            die("missing JSON input; pass a file path, a JSON string, or pipe JSON to stdin")
+            die("missing JSON input; pass a file path or pipe JSON to stdin")
         return json.loads(raw)
 
     source = argv[1]
+
     if os.path.isfile(source):
         with open(source, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    return json.loads(source)
+    die("input must be a JSON file path or '-' to read JSON from stdin")
 
 
 def resolve_url(spec):
@@ -49,21 +50,9 @@ def build_headers(spec):
     headers = {"Accept": "application/json"}
     headers.update(spec.get("headers") or {})
 
-    auth_mode = (spec.get("auth") or "agent").lower()
-    if auth_mode == "agent":
-        api_key = os.getenv("PUGOING_API_KEY", "").strip()
-        if not api_key:
-            die("PUGOING_API_KEY is required when auth=agent")
+    api_key = os.getenv("PUGOING_API_KEY", "").strip()
+    if api_key and "X-API-Key" not in headers:
         headers["X-API-Key"] = api_key
-    elif auth_mode == "bearer":
-        token = os.getenv("PUGOING_BEARER_TOKEN", "").strip()
-        if not token:
-            die("PUGOING_BEARER_TOKEN is required when auth=bearer")
-        headers["Authorization"] = f"Bearer {token}"
-    elif auth_mode == "none":
-        pass
-    else:
-        die("auth must be one of: agent, bearer, none")
 
     return headers
 

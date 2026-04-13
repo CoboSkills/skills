@@ -1,5 +1,5 @@
 # Pure Mathematical Audit Configuration
-version: "3.5.9"
+version: "3.6.0"
 name: "Pure Mathematical Audit"
 description: "Mathematical depth audit tool with read-only file access - Professional Edition"
 

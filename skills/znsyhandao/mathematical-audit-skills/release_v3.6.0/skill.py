@@ -10,7 +10,7 @@ Theoretical Framework:
 4. Chaos Theory (Lorenz, 1963) - Lyapunov Exponent, Fractal Dimension
 5. Statistical Mechanics - Maximum Entropy Principle, Free Energy
 
-Version: 3.5.9
+Version: 3.6.0
 """
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
@@ -89,14 +89,14 @@ class InformationTheoryAnalyzer:
     Code analysis based on Shannon Information Theory
 
     Core Formulas:
-    - Shannon Entropy: H(X) = -Σ p(x) log₂ p(x)
-    - Joint Entropy: H(X,Y) = -Σ p(x,y) log₂ p(x,y)
+    - Shannon Entropy: H(X) = -Σ p(x) log�?p(x)
+    - Joint Entropy: H(X,Y) = -Σ p(x,y) log�?p(x,y)
     - Conditional Entropy: H(X|Y) = H(X,Y) - H(Y)
     - Mutual Information: I(X;Y) = H(X) - H(X|Y)
-    - Relative Entropy (KL Divergence): D_KL(P||Q) = Σ p(x) log₂(p(x)/q(x))
+    - Relative Entropy (KL Divergence): D_KL(P||Q) = Σ p(x) log�?p(x)/q(x))
     - Cross Entropy: H(P,Q) = H(P) + D_KL(P||Q)
     - Information Gain: IG(T,X) = H(T) - H(T|X)
-    - Kolmogorov Complexity: K(x) ≈ compress(x)
+    - Kolmogorov Complexity: K(x) �?compress(x)
     """
 
     def __init__(self):
@@ -126,7 +126,7 @@ class InformationTheoryAnalyzer:
             unit="bits",
             category=MetricCategory.INFORMATION_THEORY,
             interpretation=self._interpret_entropy(char_entropy, len(content)),
-            formula="H = -Σ p(c) log₂ p(c)",
+            formula="H = -Σ p(c) log�?p(c)",
             range_min=0.0,
             range_max=8.0,
             is_normalized=char_entropy / 8.0 if char_entropy > 0 else 0.0
@@ -140,7 +140,7 @@ class InformationTheoryAnalyzer:
             unit="",
             category=MetricCategory.INFORMATION_THEORY,
             interpretation=f"Code randomness: {normalized_entropy:.2%}",
-            formula="H_norm = H / log₂(256)",
+            formula="H_norm = H / log�?256)",
             range_min=0.0,
             range_max=1.0,
             is_normalized=True
@@ -154,7 +154,7 @@ class InformationTheoryAnalyzer:
             unit="bits",
             category=MetricCategory.INFORMATION_THEORY,
             interpretation=self._interpret_conditional_entropy(conditional_entropy),
-            formula="H(X|Y) = -Σ p(x,y) log₂ p(x|y)",
+            formula="H(X|Y) = -Σ p(x,y) log�?p(x|y)",
             range_min=0.0,
             range_max=8.0,
             is_normalized=conditional_entropy / 8.0 if conditional_entropy > 0 else 0.0
@@ -197,7 +197,7 @@ class InformationTheoryAnalyzer:
             unit="ratio",
             category=MetricCategory.INFORMATION_THEORY,
             interpretation=self._interpret_kolmogorov(kolmogorov),
-            formula="K(x) ≈ compress(x)",
+            formula="K(x) �?compress(x)",
             range_min=0.0,
             range_max=1.0,
             is_normalized=True
@@ -211,7 +211,7 @@ class InformationTheoryAnalyzer:
             unit="bits",
             category=MetricCategory.INFORMATION_THEORY,
             interpretation=f"Vocabulary diversity: {word_entropy:.3f} bits",
-            formula="H_words = -Σ p(w) log₂ p(w)",
+            formula="H_words = -Σ p(w) log�?p(w)",
             range_min=0.0,
             range_max=math.log2(len(set(re.findall(r'\b\w+\b', content))) if content else 1),
             is_normalized=False
@@ -277,7 +277,7 @@ class InformationTheoryAnalyzer:
 
         Kolmogorov Complexity is defined as the length of the shortest program
         that can generate the string. Here we approximate it using compression:
-        K(x) ≈ compressed_size / original_size
+        K(x) �?compressed_size / original_size
         """
         if not data:
             return 0.0
@@ -448,7 +448,7 @@ class GraphTheoryAnalyzer:
             unit="",
             category=MetricCategory.GRAPH_THEORY,
             interpretation=f"Average connections per node: {avg_degree:.2f}",
-            formula="⟨k⟩ = 2|E|/|V|",
+            formula="⟨k�?= 2|E|/|V|",
             range_min=0.0,
             range_max=float('inf'),
             is_normalized=False
@@ -578,7 +578,7 @@ class GraphTheoryAnalyzer:
         if density <= 0:
             return 0.0
 
-        # Clustering coefficient of random graph ≈ density
+        # Clustering coefficient of random graph �?density
         random_clustering = density
 
         # Small-world quotient = actual clustering / random clustering
@@ -637,7 +637,7 @@ class ComplexityAnalyzer:
     - N2: Total occurrences of operands
     - Program vocabulary: n = n1 + n2
     - Program length: N = N1 + N2
-    - Program volume: V = N * log₂(n)
+    - Program volume: V = N * log�?n)
     - Program difficulty: D = (n1/2) * (N2/n2)
     - Programming effort: E = V * D
     - Programming time: T = E / 18 (seconds)
@@ -684,7 +684,7 @@ class ComplexityAnalyzer:
             unit="bits",
             category=MetricCategory.COMPLEXITY,
             interpretation=f"Algorithm information content: {halstead['volume']:.0f} bits",
-            formula="V = N * log₂(n)",
+            formula="V = N * log�?n)",
             range_min=0.0,
             range_max=float('inf'),
             is_normalized=min(halstead['volume'] / 10000, 1.0)
@@ -964,7 +964,7 @@ class StatisticalAnalyzer:
             unit="",
             category=MetricCategory.STATISTICS,
             interpretation=self._interpret_skewness(skewness),
-            formula="γ₁ = E[(X-μ)/σ]³",
+            formula="γ�?= E[(X-μ)/σ]³",
             range_min=-2.0,
             range_max=2.0,
             is_normalized=(skewness + 2.0) / 4.0
@@ -982,7 +982,7 @@ class StatisticalAnalyzer:
             unit="",
             category=MetricCategory.STATISTICS,
             interpretation=self._interpret_kurtosis(kurtosis),
-            formula="γ₂ = E[(X-μ)/σ]⁴ - 3",
+            formula="γ�?= E[(X-μ)/σ]�?- 3",
             range_min=-3.0,
             range_max=float('inf'),
             is_normalized=min((kurtosis + 3.0) / 10.0, 1.0)
@@ -1311,23 +1311,23 @@ class MathematicalDepthAnalyzer:
         return recommendations
     
     def _get_simple_recommendation(self, metric):
-        """获取简化推荐"""
+        """获取简化推�?""
         name = metric.name
         value = metric.value
         
-        # 熵指标
+        # 熵指�?
         if name == "Normalized Shannon Entropy":
             if value < 0.3:
                 return "Entropy too low: Code may be too predictable."
             elif value > 0.7:
                 return "Entropy too high: Code may be too random."
         
-        # 复杂度指标
+        # 复杂度指�?
         elif name == "Cyclomatic Complexity":
             if value > 10:
                 return f"High complexity ({value}): Consider refactoring."
         
-        # 可维护性指标
+        # 可维护性指�?
         elif name == "Maintainability Index":
             if value < 20:
                 return "Low maintainability: Difficult to maintain."
@@ -1376,7 +1376,7 @@ class MathematicalDepthAnalyzer:
                 lines.append("-" * 50)
                 for m in by_category[cat_key]:
                     lines.append(f"  {m.name}: {m.value:.4f} {m.unit}")
-                    lines.append(f"    → {m.interpretation}")
+                    lines.append(f"    �?{m.interpretation}")
 
         if result.recommendations:
             lines.append("\n💡 Improvement Recommendations")

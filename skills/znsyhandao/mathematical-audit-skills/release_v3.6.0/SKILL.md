@@ -1,6 +1,6 @@
 # Pure Mathematical Audit Skill - Professional Edition
 
-**version: 3.5.9** | **Read-Only File Access, No Network Access, No Dynamic Execution**
+**version: 3.6.0** | **Read-Only File Access, No Network Access, No Dynamic Execution**
 
 ## Description
 
@@ -9,12 +9,12 @@ A **professional mathematical depth audit tool** for OpenClaw skills and code. P
 **Note**: This is the complete professional edition (~54KB) with full mathematical analysis capabilities. For a simplified version, contact the maintainer.
 
 ### **Security Guarantees - Verified**
-- ‚úÖ **Read-Only File Access**: Reads target files for analysis only, no writes or modifications
-- ‚úÖ **No Network Access**: Completely offline processing, no HTTP/HTTPS calls
-- ‚úÖ **No Dynamic Code Execution**: 100% static analysis only, no eval/exec/compile
-- ‚úÖ **No Background Processes**: Runs only when explicitly called, no daemon
-- ‚úÖ **No Subprocess Calls**: No shell execution, no external process spawning
-- ‚úÖ **No External Dependencies**: Pure Python, no requests/numpy/scipy required
+- ‚ú?**Read-Only File Access**: Reads target files for analysis only, no writes or modifications
+- ‚ú?**No Network Access**: Completely offline processing, no HTTP/HTTPS calls
+- ‚ú?**No Dynamic Code Execution**: 100% static analysis only, no eval/exec/compile
+- ‚ú?**No Background Processes**: Runs only when explicitly called, no daemon
+- ‚ú?**No Subprocess Calls**: No shell execution, no external process spawning
+- ‚ú?**No External Dependencies**: Pure Python, no requests/numpy/scipy required
 
 ## What This Skill Does
 
@@ -50,12 +50,12 @@ A **professional mathematical depth audit tool** for OpenClaw skills and code. P
 
 ## What This Skill Does NOT Do
 
-‚ùå **No file writes or modifications** - Cannot modify any files (read-only)
-‚ùå **No network calls** - Cannot access localhost or any network
-‚ùå **No dynamic execution** - Cannot execute any code (no eval/exec/compile)
-‚ùå **No background processes** - No daemon, no monitoring, no services
-‚ùå **No subprocess calls** - No shell execution, no external processes
-‚ùå **No external dependencies** - No requests, numpy, scipy, etc.
+‚ù?**No file writes or modifications** - Cannot modify any files (read-only)
+‚ù?**No network calls** - Cannot access localhost or any network
+‚ù?**No dynamic execution** - Cannot execute any code (no eval/exec/compile)
+‚ù?**No background processes** - No daemon, no monitoring, no services
+‚ù?**No subprocess calls** - No shell execution, no external processes
+‚ù?**No external dependencies** - No requests, numpy, scipy, etc.
 
 ## Usage
 

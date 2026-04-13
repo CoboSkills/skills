@@ -5,8 +5,9 @@ description: >
   Let your AI agent see the screen, understand UI elements, and autonomously perform
   mouse and keyboard operations (click, type, scroll, drag) via a screenshot-analyze-action loop.
   Cross-platform: Linux (headless server with XFCE4+noVNC, or desktop), macOS (cliclick),
-  Windows (pyautogui). Supports GPT-5.4-Mini, GPT-5.4 CUA, Gemini, or local vision models.
-  Smart diff detection saves tokens. Safety mechanisms block dangerous operations.
+  Windows (pyautogui). Supports any OpenAI-compatible vision API (SiliconFlow, OpenAI,
+  DashScope, Zhipu, Ollama, etc.). Smart diff detection saves tokens.
+  Safety mechanisms block dangerous operations.
   Trigger: when user asks to operate/control computer, view/interact with screen,
   open applications, browse websites, fill forms, perform desktop GUI tasks, take screenshots,
   or any task requiring visual screen understanding and desktop automation.
@@ -36,12 +37,23 @@ bash scripts/setup/setup-mac.sh                 # macOS
 python scripts/setup/setup-win.py          # Windows
 ```
 
-### 2. Configure API key
+### 2. Configure API
 
-Copy `config.example.json` to `config.json` and set your vision API key:
-- Set `vision.apiKey` to your API key
-- Default provider: GPT-5.4-Mini via OpenAI-compatible endpoint
-- Environment variable `SV_VISION_API_KEY` also works
+Copy `config.example.json` to `config.json` and fill in your vision API credentials.
+You must set `baseUrl`, `apiKey`, and `model` — supports any OpenAI-compatible API.
+
+```json
+{
+  "vision": {
+    "baseUrl": "https://api.siliconflow.cn/v1",
+    "apiKey": "sk-your-key",
+    "model": "Qwen/Qwen3-VL-32B"
+  }
+}
+```
+
+Environment variables also work: `SV_VISION_API_KEY`, `SV_VISION_BASE_URL`, `SV_VISION_MODEL`.
+See [references/API_CONFIG.md](references/API_CONFIG.md) for all supported providers and detailed setup.
 
 ### 3. Usage
 
@@ -76,14 +88,21 @@ See [references/PLATFORM_GUIDE.md](references/PLATFORM_GUIDE.md) for platform-sp
 
 ## Vision Providers
 
-| Provider | Model | Cost/Task | Quality |
-|----------|-------|-----------|---------|
-| GPT-5.4-Mini | gpt-5.4-mini | ~$0.03 | ★★★★ |
-| GPT-5.4 CUA | computer-use-preview | ~$0.15 | ★★★★★ |
-| Gemini | gemini-3.1-pro | ~$0.01 | ★★★ |
-| Local (Ollama) | llama3.2-vision | Free | ★★ |
+Supports **any OpenAI-compatible vision API**. You choose the provider and model.
 
-See [references/API_CONFIG.md](references/API_CONFIG.md) for provider configuration.
+### Recommended Models
+
+| Model | Provider | Cost/Task | Quality |
+|-------|----------|-----------|---------|
+| Qwen3-VL-32B | SiliconFlow | Low | ★★★★ |
+| GLM-4V-Plus | Zhipu BigModel | Low | ★★★★ |
+| GPT-5.4-Mini | OpenAI / relays | Medium | ★★★★★ |
+| GPT-5.4 CUA | OpenAI | High | ★★★★★ |
+| Llama 3.2 Vision | Ollama (local) | Free | ★★ |
+
+See [references/API_CONFIG.md](references/API_CONFIG.md) for per-provider configuration examples.
+
+**No defaults are hardcoded** — you must configure your own API credentials before use.
 
 ## Action Types
 
@@ -113,8 +132,8 @@ See [references/EXAMPLES.md](references/EXAMPLES.md) for usage examples.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SV_VISION_API_KEY` | — | Vision API key |
-| `SV_VISION_BASE_URL` | `https://api.gpt.ge/v1` | API endpoint |
-| `SV_VISION_MODEL` | `gpt-5.4-mini` | Vision model |
+| `SV_VISION_BASE_URL` | — | API endpoint (required) |
+| `SV_VISION_MODEL` | — | Vision model name (required) |
 | `SV_DISPLAY` | `:1` | X11 display (Linux) |
 | `SV_MAX_DURATION` | `5` | Max task duration (min) |
 | `SV_MAX_ACTIONS` | `100` | Max actions per task |

@@ -6,7 +6,7 @@
 
 [![OpenClaw Skill](https://img.shields.io/badge/OpenClaw-Skill-blue)](https://clawhub.ai/guitu917/ai-screen-vision)
 [![Platform](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-green)]()
-[![Version](https://img.shields.io/badge/Version-1.0.6-orange)]()
+[![Version](https://img.shields.io/badge/Version-1.1.0-orange)]()
 
 ---
 
@@ -28,7 +28,7 @@
            │
            ▼
     ┌─ 截屏（scrot/screencapture/pyautogui）
-    ├─ AI 视觉分析（GPT-5.4-Mini）
+    ├─ AI 视觉分析（用户自选模型）
     │   ├─ 看到什么？
     │   ├─ 下一步做什么？
     │   └─ 操作坐标是什么？
@@ -87,10 +87,9 @@ cp config.example.json config.json
 ```json
 {
   "vision": {
-    "provider": "gpt-5.4-mini",
-    "baseUrl": "https://api.gpt.ge/v1",
+    "baseUrl": "https://api.siliconflow.cn/v1",
     "apiKey": "YOUR_API_KEY",
-    "model": "gpt-5.4-mini"
+    "model": "Qwen/Qwen3-VL-32B"
   }
 }
 ```
@@ -99,18 +98,23 @@ cp config.example.json config.json
 
 ```bash
 export SV_VISION_API_KEY=your_api_key
-export SV_VISION_BASE_URL=https://api.gpt.ge/v1
-export SV_VISION_MODEL=gpt-5.4-mini
+export SV_VISION_BASE_URL=https://api.siliconflow.cn/v1
+export SV_VISION_MODEL=Qwen/Qwen3-VL-32B
 ```
 
 ### 支持的视觉模型
 
-| 模型 | Provider | 费用/任务 | 准确度 |
-|------|----------|----------|--------|
-| GPT-5.4-Mini | OpenAI 兼容 API | ~$0.03 | ⭐⭐⭐⭐ |
-| GPT-5.4 CUA | OpenAI | ~$0.15 | ⭐⭐⭐⭐⭐ |
-| Gemini 3.1 Pro | Google | ~$0.01 | ⭐⭐⭐ |
+本技能支持**所有 OpenAI 兼容的视觉 API**，不限厂商，用户自由选择。
+
+| 模型 | 平台 | 费用/任务 | 准确度 |
+|------|------|----------|--------|
+| Qwen3-VL-32B | 硅基流动 | 低 | ⭐⭐⭐⭐ |
+| GLM-4V-Plus | 智谱 BigModel | 低 | ⭐⭐⭐⭐ |
+| GPT-5.4-Mini | OpenAI / 中转站 | 中 | ⭐⭐⭐⭐⭐ |
+| GPT-5.4 CUA | OpenAI | 高 | ⭐⭐⭐⭐⭐ |
 | Llama 3.2 Vision | Ollama 本地 | 免费 | ⭐⭐ |
+
+详细配置见 [references/API_CONFIG.md](references/API_CONFIG.md)，包含各平台注册地址和配置示例。
 
 ## 🖥️ 平台支持
 

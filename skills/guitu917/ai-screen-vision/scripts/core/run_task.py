@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Main task runner for screen-vision skill.
-Orchestrates the screenshot → analyze → action loop.
+Orchestrates the screenshot -> analyze -> action loop.
 
 Usage: run_task.py --task "Open Chrome and search for weather"
 """
@@ -273,7 +273,7 @@ def main():
         output = {k: v for k, v in result.items() if k != "final_screenshot"}
         print(json.dumps(output, indent=2, ensure_ascii=False))
     else:
-        status = "✅ SUCCESS" if result.get("success") else "❌ FAILED"
+        status = "[OK] SUCCESS" if result.get("success") else "[FAIL] FAILED"
         print(f"\n{status}")
         print(f"Actions: {result.get('action_count', 0)}")
         print(f"Time: {result.get('elapsed_sec', 0):.1f}s")

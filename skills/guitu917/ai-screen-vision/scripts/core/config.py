@@ -9,10 +9,10 @@ import os
 
 DEFAULT_CONFIG = {
     "vision": {
-        "provider": "gpt-5.4-mini",
-        "baseUrl": "https://api.gpt.ge/v1",
+        "provider": "",
+        "baseUrl": "",
         "apiKey": "",
-        "model": "gpt-5.4-mini"
+        "model": ""
     },
     "safety": {
         "max_duration_min": 5,

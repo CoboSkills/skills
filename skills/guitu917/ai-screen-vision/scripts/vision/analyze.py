@@ -81,6 +81,20 @@ def call_vision_api(image_path, task, history="", resolution="1024x768",
     if provider_config is None:
         provider_config = get_default_config()
     
+    # Validate config before encoding image to avoid unnecessary I/O
+    base_url = provider_config.get("baseUrl", "")
+    api_key = provider_config.get("apiKey", "")
+
+    if not base_url or not api_key or not provider_config.get("model"):
+        missing = []
+        if not base_url:
+            missing.append("baseUrl")
+        if not api_key:
+            missing.append("apiKey")
+        if not provider_config.get("model"):
+            missing.append("model")
+        return {"error": f"Vision API not configured. Missing: {', '.join(missing)}. Please set config.json or environment variables. See references/API_CONFIG.md for help."}
+
     prompt = SCREEN_ANALYSIS_PROMPT.format(
         task=task,
         history=history or "No actions taken yet.",
@@ -90,7 +104,7 @@ def call_vision_api(image_path, task, history="", resolution="1024x768",
     img_b64 = encode_image(image_path)
     
     payload = {
-        "model": provider_config.get("model", "gpt-5.4-mini"),
+        "model": provider_config.get("model", ""),
         "messages": [{
             "role": "user",
             "content": [
@@ -105,9 +119,6 @@ def call_vision_api(image_path, task, history="", resolution="1024x768",
     
     import urllib.request
     import urllib.error
-    
-    base_url = provider_config.get("baseUrl", "https://api.gpt.ge/v1")
-    api_key = provider_config.get("apiKey", "")
     
     url = f"{base_url}/chat/completions"
     data = json.dumps(payload).encode()
@@ -168,12 +179,12 @@ def get_default_config():
     """Get default vision provider config from environment or config file."""
     # Try environment variables first
     api_key = os.environ.get("SV_VISION_API_KEY", "")
-    base_url = os.environ.get("SV_VISION_BASE_URL", "https://api.gpt.ge/v1")
-    model = os.environ.get("SV_VISION_MODEL", "gpt-5.4-mini")
-    
-    if api_key:
+    base_url = os.environ.get("SV_VISION_BASE_URL", "")
+    model = os.environ.get("SV_VISION_MODEL", "")
+
+    if api_key or base_url or model:
         return {
-            "provider": "gpt-5.4-mini",
+            "provider": os.environ.get("SV_VISION_PROVIDER", ""),
             "baseUrl": base_url,
             "apiKey": api_key,
             "model": model
@@ -195,10 +206,10 @@ def get_default_config():
                 pass
     
     return {
-        "provider": "gpt-5.4-mini",
-        "baseUrl": "https://api.gpt.ge/v1",
+        "provider": "",
+        "baseUrl": "",
         "apiKey": "",
-        "model": "gpt-5.4-mini"
+        "model": ""
     }
 
 

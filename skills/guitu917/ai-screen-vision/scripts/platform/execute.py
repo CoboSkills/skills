@@ -42,7 +42,7 @@ def run_cmd(cmd, display=None):
         env["DISPLAY"] = display
     result = subprocess.run(cmd, capture_output=True, text=True, env=env, timeout=10)
     if result.returncode != 0:
-        print(f"WARN: {cmd} → {result.stderr.strip()}", file=sys.stderr)
+        print(f"WARN: {cmd} -> {result.stderr.strip()}", file=sys.stderr)
     return result.returncode
 
 

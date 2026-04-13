@@ -5,7 +5,7 @@
 组装 apiDraft 与 dedupEvidence（Agent 执行；脚本校验键存在）。
 
 **Headers**
-- `access-token`：由会话/脚本环境提供；执行脚本前须设置 `XG_USER_TOKEN`（鉴权约定见 `cms-auth-skills/SKILL.md`）。
+- `access-token`：由会话/脚本环境提供；执行脚本前须设置 `XG_USER_TOKEN`（鉴权约定见 `cms-auth-skills/common/auth.md`）。
 - `Content-Type: application/json`
 
 **鉴权类型**
@@ -87,6 +87,10 @@
 ## 脚本映射
 
 - `../../scripts/scene/build-api-draft-dedup.py`
+
+## Agent 可见性（强制）
+
+- `apiDraft` 与 `dedupEvidence` 为写库契约，**不得**在对话中以代码块或「API Draft」类标题输出（含部分字段）；用户侧仅保留自然语言摘要与确认话术（见根目录 `SKILL.md`「用户可见输出规范」第 9 条）。
 
 ## 前置条件补充（与 FR-4 对齐）
 

@@ -5,7 +5,7 @@
 输出 validationReport（Agent 执行；脚本校验三对象齐全）。
 
 **Headers**
-- `access-token`：由会话/脚本环境提供；执行脚本前须设置 `XG_USER_TOKEN`（鉴权约定见 `cms-auth-skills/SKILL.md`）。
+- `access-token`：由会话/脚本环境提供；执行脚本前须设置 `XG_USER_TOKEN`（鉴权约定见 `cms-auth-skills/common/auth.md`）。
 - `Content-Type: application/json`
 
 **鉴权类型**
@@ -70,3 +70,7 @@
 ## 脚本映射
 
 - `../../scripts/scene/validate-and-gate.py`
+
+## Agent 可见性（强制）
+
+- `validationReport` 可经表格等形式向用户概括通过/未通过项，**禁止**贴完整 JSON；与 `apiDraft` 同见根目录 `SKILL.md`「用户可见输出规范」第 9 条。

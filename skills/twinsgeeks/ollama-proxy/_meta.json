@@ -3,11 +3,16 @@
   "slug": "ollama-proxy",
   "displayName": "Ollama Proxy",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775254716844,
-    "commit": "https://github.com/openclaw/skills/commit/27f94c76c0dbd90641e894341aa98c0b53baf320"
+    "version": "1.0.3",
+    "publishedAt": 1775610454929,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775254716844,
+      "commit": "https://github.com/openclaw/skills/commit/27f94c76c0dbd90641e894341aa98c0b53baf320"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1775074978032,

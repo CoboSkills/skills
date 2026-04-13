@@ -1,6 +1,6 @@
 ---
 name: more-news
-description: Fetch, aggregate, and rank AI/tech news from multiple sources listed in `workspace/source.md`. Use when the user asks to get AI news, tech news digest, aggregate news, latest news from sources, fetch news headlines, or compile news from a source list. Triggers on phrases like "get AI news from source.md", "fetch news from my sources", "compile news digest", "aggregate tech news", "more-news". NOT for: generic web search queries (use web_search), single article lookups, or Chinese-language news (use big-ai-news or nature skills instead).
+description: Fetch, aggregate, and rank AI/tech news from multiple sources listed in `workspace/source.md`. Use when the user asks to get AI news, tech news digest, aggregate news, latest news from sources, fetch news headlines, or compile news from a source list. Triggers on phrases like "get AI news from source.md", "fetch news from my sources", "aggregate tech news", "more-news". NOT for: generic web search queries, single article lookups.
 ---
 
 # More News
@@ -11,11 +11,11 @@ Aggregate AI/tech news from user-defined sources in `source.md`. For broad AI ne
 
 ### 1. Load Sources
 
-Read `workspace/skills/more-news/source.md` (or user-specified file) to extract all source entries. The file uses a markdown table format with columns: #, Source, URL, Type/Focus. Extract all URLs.
+Read `workspace/skills/more-news/source.md` to extract all source entries. The file uses a markdown table format with columns: #, Source, URL, Type/Focus. Extract all URLs.
 
 ### 2. Fetch Articles
 
-For each source URL, use `web_fetch` in parallel batches (8-12 at a time):
+For each source URL, use `web_fetch` in sequence:
 - `maxChars`: 15000
 - `extractMode`: "markdown"
 
@@ -45,7 +45,7 @@ At the end, list which sources from `source.md` were skipped and why (blocked, n
 ## Output Format
 
 ```markdown
-# 📰 AI News — Last 24 Hours (Ranked by Date)
+# 📰 AI News — Last 24 Hours (Ranked by datetime)
 
 ## [Date]
 

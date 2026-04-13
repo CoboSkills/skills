@@ -23,10 +23,10 @@ const PRESETS = {
     title: "2026问卷网·愚人节趣味体质测试",
     type: "assess",
   },
-  /** 愚人节活动推广版（防忽悠×玩梗力 5 题·4 档结果），见 examples/april_fools_promo_fun_2026.json */
+  /** 愚人节活动推广版（赛博生存 5 题·4 档结果），见 examples/april_fools_promo_fun_2026.json */
   april_fools_fun: {
     file: "examples/april_fools_promo_fun_2026.json",
-    title: "问卷网·愚人节「防忽悠×玩梗力」趣味测试",
+    title: "问卷网·愚人节「赛博生存」趣味测试",
     type: "assess",
   },
   singles_day: {

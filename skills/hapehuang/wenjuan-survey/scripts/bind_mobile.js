@@ -12,9 +12,10 @@ const axios = require('axios');
 const path = require('path');
 const { resolveAccessToken, getDefaultTokenDir } = require('./token_store');
 const { openUrlBestEffort, writeUrlForManualOpen } = require('./open_url_cjs');
+const { WENJUAN_HOST } = require("./api_config");
 
 // API 地址
-const API_BASE_URL = "https://www.wenjuan.com";
+const API_BASE_URL = WENJUAN_HOST;
 
 /** 从本地文件读取 JWT（逻辑见 token_store.js） */
 async function getToken() {

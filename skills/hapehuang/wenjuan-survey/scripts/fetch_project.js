@@ -18,13 +18,14 @@ const fs = require('fs').promises;
 const path = require('path');
 const { buildSignedUrl } = require('./generate_sign');
 const { resolveAccessToken, getDefaultTokenDir } = require('./token_store');
+const { WENJUAN_HOST } = require("./api_config");
 
 function defaultProjectStructDir() {
   return path.join(getDefaultTokenDir(), "project_struct");
 }
 
 // API 配置
-const API_BASE_URL = "https://www.wenjuan.com";
+const API_BASE_URL = WENJUAN_HOST;
 
 /** 从文件加载 access_token（逻辑见 token_store.js） */
 async function loadAccessToken(tokenDir = null) {
@@ -45,7 +46,7 @@ async function fetchProject(projectId, accessToken, verbose = true) {
   };
   
   // 生成签名并构建完整 URL
-  const fullUrl = buildSignedUrl(baseUrl, params);
+  const fullUrl = await buildSignedUrl(baseUrl, params);
   
   // 构造请求头（JWT）
   const headers = {};

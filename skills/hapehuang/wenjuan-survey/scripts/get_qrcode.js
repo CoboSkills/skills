@@ -3,20 +3,23 @@
  * 问卷网登录二维码获取工具
  */
 
-const axios = require('axios');
 const fs = require('fs').promises;
 const path = require('path');
 const { getDefaultTokenDir } = require('./token_store');
+const { ensurePrivateDir, writeSecretFile } = require("./security_utils");
+const { createSecureAxios } = require("./axios_secure");
+const { wenjuanUrl } = require("./api_config");
+const http = createSecureAxios();
 
 // API 地址
-const QRCODE_URL = "https://www.wenjuan.com/login/qrcode";
+const QRCODE_URL = wenjuanUrl("/login/qrcode");
 
 /**
  * 获取二维码
  */
 async function getQrcode() {
   try {
-    const response = await axios.post(QRCODE_URL, {}, { timeout: 30000 });
+    const response = await http.post(QRCODE_URL, {}, { timeout: 30000 });
     return response.data;
   } catch (error) {
     if (error.response) {
@@ -64,9 +67,9 @@ async function main() {
         tokenDir != null && String(tokenDir).trim() !== ""
           ? path.resolve(String(tokenDir).trim())
           : getDefaultTokenDir();
-      await fs.mkdir(dir, { recursive: true });
+      await ensurePrivateDir(dir);
       const deviceCodeFile = path.join(dir, "device_code");
-      await fs.writeFile(deviceCodeFile, result.data.device_code, 'utf-8');
+      await writeSecretFile(deviceCodeFile, result.data.device_code);
     }
     
     if (outputJson) {

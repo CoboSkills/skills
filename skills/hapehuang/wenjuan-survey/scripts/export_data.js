@@ -9,12 +9,14 @@ const fs = require("fs").promises;
 const { createWriteStream } = require("fs");
 const path = require("path");
 const { pipeline } = require("stream/promises");
-const axios = require("axios");
+const { createSecureAxios } = require("./axios_secure");
 const { openUrlBestEffort } = require("./open_url_cjs");
 const { getDefaultTokenDir, resolveAccessToken } = require("./token_store");
-const { buildSignedUrl, CONFIG, generateSignature } = require("./generate_sign");
+const { buildSignedUrl, CONFIG } = require("./generate_sign");
+const { WENJUAN_HOST } = require("./api_config");
+const axios = createSecureAxios();
 
-const BASE_URL = "https://www.wenjuan.com";
+const BASE_URL = WENJUAN_HOST;
 const DOWNLOAD_API = `${BASE_URL}/report/api/download`;
 const INFO_API = `${BASE_URL}/report/api/download/infos`;
 const FILTER_COUNT_API = `${BASE_URL}/report/api/download/filter_count`;
@@ -22,12 +24,6 @@ const FILTER_COUNT_API = `${BASE_URL}/report/api/download/filter_count`;
 /** 与编辑类接口一致：报表下载 / 数据概况均走 ai_skills（`generate_sign.js` 的 CONFIG） */
 const API_CONFIG = {
   web_site: CONFIG.web_site,
-  appkey: CONFIG.appkey,
-  secret: CONFIG.secret,
-  /** @deprecated 旧字段名，等同于 appkey */
-  get app_key() {
-    return CONFIG.appkey;
-  },
 };
 
 const POLL_INTERVAL_MS = 5000;
@@ -38,10 +34,10 @@ const MAX_POLL_TIME_SEC = 600;
  * @param {string} baseUrl
  * @param {Record<string, string|number>|null} [extraParams] 如 infos 需传 project_id
  */
-function buildUrlWithAuth(baseUrl, extraParams = null) {
+async function buildUrlWithAuth(baseUrl, extraParams = null) {
   const params =
     extraParams && typeof extraParams === "object" ? { ...extraParams } : {};
-  return buildSignedUrl(baseUrl, params);
+  return await buildSignedUrl(baseUrl, params);
 }
 
 async function getJwtToken(tokenDir = null) {
@@ -67,7 +63,7 @@ function isApiOk(result) {
 }
 
 async function getFilterCount(jwtToken, projectId) {
-  const url = buildUrlWithAuth(FILTER_COUNT_API);
+  const url = await buildUrlWithAuth(FILTER_COUNT_API);
   const headers = getAuthHeaders(jwtToken);
   const body = {
     project_id: projectId,
@@ -89,7 +85,7 @@ async function getFilterCount(jwtToken, projectId) {
 }
 
 async function createDownloadTask(jwtToken, projectId) {
-  const url = buildUrlWithAuth(DOWNLOAD_API);
+  const url = await buildUrlWithAuth(DOWNLOAD_API);
   const headers = getAuthHeaders(jwtToken);
   const data = {
     project_id: projectId,
@@ -126,7 +122,7 @@ async function createDownloadTask(jwtToken, projectId) {
 }
 
 async function getDownloadInfos(jwtToken, projectId) {
-  const url = buildUrlWithAuth(INFO_API, { project_id: projectId });
+  const url = await buildUrlWithAuth(INFO_API, { project_id: projectId });
   const headers = getAuthHeaders(jwtToken);
   try {
     const response = await axios.get(url, { headers });
@@ -355,7 +351,6 @@ module.exports = {
   getDownloadInfos,
   downloadFile,
   buildUrlWithAuth,
-  generateSignature,
   API_CONFIG,
 };
 

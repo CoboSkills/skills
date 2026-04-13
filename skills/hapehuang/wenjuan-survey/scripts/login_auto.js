@@ -7,17 +7,19 @@
  * - 自动保存凭证
  */
 
-const axios = require('axios');
 const fs = require('fs').promises;
 const path = require('path');
 const { openUrlBestEffort, writeUrlForManualOpen } = require("./open_url_cjs");
 const readline = require('readline');
 const { getDefaultTokenDir } = require('./token_store');
+const { ensurePrivateDir, writeSecretFile } = require("./security_utils");
+const { createSecureAxios } = require("./axios_secure");
+const { wenjuanUrl } = require("./api_config");
 
 // API 地址
-// 注意：必须使用 www.wenjuan.com 域名
-const QRCODE_URL = "https://www.wenjuan.com/login/qrcode";
-const TOKEN_URL = "https://www.wenjuan.com/login/token";
+// 生产环境域名
+const QRCODE_URL = wenjuanUrl("/login/qrcode");
+const TOKEN_URL = wenjuanUrl("/login/token");
 
 // 默认配置（目录逻辑见 token_store.js / getDefaultTokenDir）
 const POLL_INTERVAL = 3000; // 轮询间隔（毫秒）
@@ -35,7 +37,7 @@ class WenjuanLogin {
         : getDefaultTokenDir();
     this.deviceCode = null;
     this.qrcodeUrl = null;
-    this.session = axios.create();
+    this.session = createSecureAxios();
     this.maxPollTime =
       options.maxPollTime != null ? options.maxPollTime : DEFAULT_MAX_POLL_MS;
   }
@@ -69,9 +71,9 @@ class WenjuanLogin {
       }
       
       // 保存 device_code
-      await fs.mkdir(this.tokenDir, { recursive: true });
+      await ensurePrivateDir(this.tokenDir);
       const deviceCodeFile = path.join(this.tokenDir, "device_code");
-      await fs.writeFile(deviceCodeFile, this.deviceCode, 'utf-8');
+      await writeSecretFile(deviceCodeFile, this.deviceCode);
       
       console.log(`✓ 设备码已保存: ${deviceCodeFile}`);
       console.log(`  device_code: ${this.deviceCode}`);
@@ -256,17 +258,17 @@ class WenjuanLogin {
     
     try {
       // 1. 保存到用户目录（默认位置）
-      await fs.mkdir(this.tokenDir, { recursive: true });
+      await ensurePrivateDir(this.tokenDir);
       
       const tokenFile = path.join(this.tokenDir, "token.json");
-      await fs.writeFile(tokenFile, JSON.stringify(tokenData, null, 2), 'utf-8');
+      await writeSecretFile(tokenFile, JSON.stringify(tokenData, null, 2));
       
       const accessTokenFile = path.join(this.tokenDir, "access_token");
-      await fs.writeFile(accessTokenFile, tokenData.access_token, 'utf-8');
+      await writeSecretFile(accessTokenFile, tokenData.access_token);
       
       if (tokenData.refresh_token) {
         const refreshTokenFile = path.join(this.tokenDir, "refresh_token");
-        await fs.writeFile(refreshTokenFile, tokenData.refresh_token, 'utf-8');
+        await writeSecretFile(refreshTokenFile, tokenData.refresh_token);
       }
       
       console.log(`✓ 凭证已保存到: ${this.tokenDir}`);
@@ -274,7 +276,7 @@ class WenjuanLogin {
       // 2. 保存到项目目录（skill 使用）
       const scriptDir = __dirname;
       const projectTokenDir = path.join(scriptDir, '..', '.wenjuan');
-      await fs.mkdir(projectTokenDir, { recursive: true });
+      await ensurePrivateDir(projectTokenDir);
       
       const projectAuthFile = path.join(projectTokenDir, "auth.json");
       const authData = {
@@ -283,7 +285,7 @@ class WenjuanLogin {
         device_code: this.deviceCode,
         login_time: new Date().toISOString()
       };
-      await fs.writeFile(projectAuthFile, JSON.stringify(authData, null, 2), 'utf-8');
+      await writeSecretFile(projectAuthFile, JSON.stringify(authData, null, 2));
       
       console.log(`✓ 凭证已保存到项目目录: ${projectAuthFile}`);
       console.log(`  - access_token: 访问令牌`);

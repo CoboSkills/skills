@@ -5,12 +5,14 @@
  */
 
 const fs = require('fs');
-const axios = require('axios');
+const { createSecureAxios } = require("./axios_secure");
 const { resolveAccessToken } = require('./token_store');
+const { WENJUAN_HOST, wenjuanUrl } = require("./api_config");
+const axios = createSecureAxios();
 
 // API 地址
-const BASE_URL = "https://www.wenjuan.com/edit/api/update_project_status/?jwt=1";
-const STATUS_URL = "https://www.wenjuan.com/project/api/status/";
+const BASE_URL = wenjuanUrl("/edit/api/update_project_status/?jwt=1");
+const STATUS_URL = wenjuanUrl("/project/api/status/");
 
 /** GET /project/api/status/{id} → body.data.status（与 edit_project 的 status 不是同一套枚举） */
 const STATUS_API_PUBLISHED = 0; // 发布
@@ -117,7 +119,7 @@ function resolveSurveyCollectStatus(project) {
 async function getProjectRealStatus(jwtToken, projectId) {
   try {
     const { buildSignedUrl } = require('./generate_sign');
-    const url = buildSignedUrl('https://www.wenjuan.com/app_api/edit/edit_project/', {
+    const url = await buildSignedUrl(wenjuanUrl("/app_api/edit/edit_project/"), {
       project_id: projectId,
     });
 
@@ -487,7 +489,7 @@ function parseResult(result) {
     const audit = result.poll_result;
     if (audit.success) {
       const sid = audit.data && audit.data.short_id;
-      const link = sid ? ` 答题链接: https://www.wenjuan.com/s/${sid}` : "";
+      const link = sid ? ` 答题链接: ${WENJUAN_HOST}/s/${sid}` : "";
       return `✅ 项目发布成功（审核通过）${link}`;
     }
     const status = audit.status || "";

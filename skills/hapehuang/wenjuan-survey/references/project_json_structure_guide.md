@@ -18,7 +18,7 @@
   "import_type": "0" | "1",    // 可选，0=创建项目(默认), 1=导入到已有项目
   "project_id": "string",      // 条件，import_type=1时必填
   "folder_id": "string",       // 可选，文件夹ID
-  "ai_source": 11,             // 可选，AI创建标识，固定11
+  "ai_source": 12,             // 可选，AI创建标识，固定12
   "survey_result": "string"    // 可选，结束语设置，JSON字符串转义
 }
 ```
@@ -818,7 +818,7 @@
     }
   ],
   "import_type": "0",
-  "ai_source": 11
+  "ai_source": 12
 }
 ```
 

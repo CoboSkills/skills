@@ -4,13 +4,16 @@
  * 使用 device_code 轮询获取 access_token
  */
 
-const axios = require('axios');
 const fs = require('fs').promises;
 const path = require('path');
 const { getDefaultTokenDir } = require('./token_store');
+const { ensurePrivateDir, writeSecretFile } = require("./security_utils");
+const { createSecureAxios } = require("./axios_secure");
+const { wenjuanUrl } = require("./api_config");
+const http = createSecureAxios();
 
 // API 地址
-const TOKEN_URL = "https://www.wenjuan.com/login/token";
+const TOKEN_URL = wenjuanUrl("/login/token");
 
 /**
  * 获取 token
@@ -18,7 +21,7 @@ const TOKEN_URL = "https://www.wenjuan.com/login/token";
  */
 async function getToken(deviceCode) {
   try {
-    const response = await axios.post(
+    const response = await http.post(
       TOKEN_URL,
       { device_code: deviceCode },
       { 
@@ -61,7 +64,7 @@ async function saveToken(tokenData, tokenDir = null) {
   const dir = tokenDir != null && String(tokenDir).trim() !== ""
     ? path.resolve(String(tokenDir).trim())
     : getDefaultTokenDir();
-  await fs.mkdir(dir, { recursive: true });
+  await ensurePrivateDir(dir);
   
   // 保存完整 token 信息
   const tokenFile = path.join(dir, "token.json");
@@ -69,18 +72,18 @@ async function saveToken(tokenData, tokenDir = null) {
     ...tokenData,
     login_time: new Date().toISOString()
   };
-  await fs.writeFile(tokenFile, JSON.stringify(data, null, 2), 'utf-8');
+  await writeSecretFile(tokenFile, JSON.stringify(data, null, 2));
   
   // 单独保存 access_token
   if (tokenData.access_token) {
     const accessTokenFile = path.join(dir, "access_token");
-    await fs.writeFile(accessTokenFile, tokenData.access_token, 'utf-8');
+    await writeSecretFile(accessTokenFile, tokenData.access_token);
   }
   
   // 单独保存 refresh_token
   if (tokenData.refresh_token) {
     const refreshTokenFile = path.join(dir, "refresh_token");
-    await fs.writeFile(refreshTokenFile, tokenData.refresh_token, 'utf-8');
+    await writeSecretFile(refreshTokenFile, tokenData.refresh_token);
   }
 }
 

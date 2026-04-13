@@ -7,10 +7,11 @@
 const axios = require('axios');
 const readline = require('readline');
 const { requireAccessToken } = require('./token_store');
-const { generateSignature, CONFIG } = require('./generate_sign');
+const { requestSignedParams } = require('./generate_sign');
 const { ensureReadyForEdit } = require('./project_edit_guard');
+const { wenjuanUrl } = require("./api_config");
 
-const BASE_URL = "https://www.wenjuan.com/app_api/edit/delete_question/";
+const BASE_URL = wenjuanUrl("/app_api/edit/delete_question/");
 
 async function getToken() {
   return requireAccessToken({}, "未找到 access_token");
@@ -19,18 +20,9 @@ async function getToken() {
 /**
  * 构建带签名的参数
  */
-function buildSignedParams(params) {
-  const timestamp = String(Math.floor(Date.now() / 1000));
-  const signInput = { ...params, timestamp };
-  const signature = generateSignature(signInput, false);
-  
-  return {
-    ...params,
-    appkey: CONFIG.appkey,
-    web_site: CONFIG.web_site,
-    timestamp,
-    signature,
-  };
+async function buildSignedParams(params) {
+  const signed = await requestSignedParams(params, true);
+  return { ...params, ...signed };
 }
 
 /**
@@ -46,7 +38,7 @@ async function deleteQuestion(projectId, questionId) {
     question_id: questionId,
   };
   
-  const fullParams = buildSignedParams(businessParams);
+  const fullParams = await buildSignedParams(businessParams);
   const encodedParams = new URLSearchParams(fullParams).toString();
   
   const headers = {

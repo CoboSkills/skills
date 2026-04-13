@@ -5,11 +5,13 @@
  * 详见 references/project_archive.md
  */
 
-const axios = require("axios");
+const { createSecureAxios } = require("./axios_secure");
 const { resolveAccessToken } = require("./token_store");
 const { buildSignedUrl } = require("./generate_sign");
+const { WENJUAN_HOST } = require("./api_config");
+const axios = createSecureAxios();
 
-const BASE_URL = "https://www.wenjuan.com";
+const BASE_URL = WENJUAN_HOST;
 const ARCHIVE_PATH = "/report/ajax/project_archive/";
 
 const DEFAULT_POLL_MS = 2500;
@@ -50,7 +52,7 @@ function parseArchiveResponse(data) {
  */
 async function postProjectArchive(accessToken, projectId, isMerge = 0) {
   // Query 须含 pid，并与 appkey、web_site、timestamp、signature 一并参与签名（同 generate_sign / export_data）
-  const url = buildSignedUrl(`${BASE_URL}${ARCHIVE_PATH}`, { pid: projectId });
+  const url = await buildSignedUrl(`${BASE_URL}${ARCHIVE_PATH}`, { pid: projectId });
   const body = new URLSearchParams({
     is_merge: String(isMerge === 1 ? 1 : 0),
   }).toString();

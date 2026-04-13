@@ -8,14 +8,15 @@
 const axios = require("axios");
 const { resolveAccessToken } = require("./token_store");
 const { buildUrlWithAuth } = require("./export_data");
+const { WENJUAN_HOST } = require("./api_config");
 
-const BASE_URL = "https://www.wenjuan.com";
+const BASE_URL = WENJUAN_HOST;
 
 /** 与 export_data 下载原始数据一致：web_site / app_key / secret 签名查询串 */
-function statsUrl(projectId) {
+async function statsUrl(projectId) {
   const pid = encodeURIComponent(String(projectId).trim());
   const basePath = `${BASE_URL}/report/api/v2/overview/stats/${pid}/`;
-  return buildUrlWithAuth(basePath);
+  return await buildUrlWithAuth(basePath);
 }
 
 function isV2Success(body) {
@@ -29,10 +30,10 @@ function isV2Success(body) {
  * @returns {Promise<{ ok: true, data: object } | { ok: false, message: string, code?: unknown }>}
  */
 async function fetchOverviewStats(accessToken, projectId) {
-  const url = statsUrl(projectId); // 已含 app_key、web_site、timestamp、signature
+  const signedUrl = await statsUrl(projectId); // 已含 appkey、web_site、timestamp、signature
   let response;
   try {
-    response = await axios.get(url, {
+    response = await axios.get(signedUrl, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         Accept: "application/json",

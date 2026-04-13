@@ -9,9 +9,10 @@ const readline = require("readline");
 const { resolveAccessToken } = require("./token_store");
 const { openUrlBestEffort } = require("./open_url_cjs");
 const { getProjects } = require("./list_projects");
+const { WENJUAN_HOST } = require("./api_config");
 
 /** 问卷网「查看报表」页基址，路径为 /report/topic/{project_id} */
-const REPORT_HREF_PREFIX = "https://www.wenjuan.com/report/topic/";
+const REPORT_HREF_PREFIX = `${WENJUAN_HOST}/report/topic/`;
 
 function reportTopicUrl(projectId) {
   return `${REPORT_HREF_PREFIX}${projectId}`;

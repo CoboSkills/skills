@@ -13,13 +13,13 @@
  */
 
 const axios = require('axios');
-const fs = require('fs').promises;
-const { generateSignature, CONFIG } = require('./generate_sign');
+const { requestSignedParams } = require('./generate_sign');
 const { ensureReadyForEdit } = require('./project_edit_guard');
 const { resolveAccessToken } = require('./token_store');
+const { WENJUAN_HOST } = require("./api_config");
 
 // API 配置
-const API_BASE_URL = "https://www.wenjuan.com";
+const API_BASE_URL = WENJUAN_HOST;
 
 /** 从文件加载 access_token（逻辑见 token_store.js） */
 async function loadAccessToken(tokenDir = null) {
@@ -31,22 +31,8 @@ async function loadAccessToken(tokenDir = null) {
 /**
  * 生成签名参数
  */
-function generateSignatureParams(params) {
-  // 复制参数用于签名（包含业务参数）
-  const signParams = { ...params };
-  
-  // 生成签名（generateSignature 会自动添加 appkey, web_site, timestamp）
-  const signature = generateSignature(signParams, true);
-  
-  // 获取当前时间戳
-  const timestamp = Math.floor(Date.now() / 1000).toString();
-  
-  return {
-    appkey: CONFIG.appkey,
-    web_site: CONFIG.web_site,
-    timestamp: timestamp,
-    signature: signature,
-  };
+async function generateSignatureParams(params) {
+  return requestSignedParams(params, true);
 }
 
 /**
@@ -87,7 +73,7 @@ async function updateProject(projectId, updates, accessToken, verbose = false, t
   });
   
   // 生成签名参数
-  const signatureParams = generateSignatureParams(params);
+  const signatureParams = await generateSignatureParams(params);
   
   // 合并参数（业务参数 + 签名参数）
   const fullParams = { ...params, ...signatureParams };

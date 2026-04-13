@@ -1,71 +1,56 @@
 #!/usr/bin/env node
 /**
- * 问卷网AI技能签名生成工具
- * 
- * 签名规则：
- * 1. 收集所有请求参数（不包括signature，如果存在会自动移除）
- * 2. 添加固定参数: appkey, web_site, timestamp
- * 3. 按参数名字母顺序升序排列
- * 4. 拼接所有参数值（按排序后的顺序）
- * 5. 末尾加上secret的值
- * 6. 对完整字符串进行MD5加密
- * 7. 得到32位小写签名结果
- * 
- * 最终请求参数包含4个固定参数:
- * - appkey: wjMRcjzM12BjqXjkme
- * - web_site: ai_skills
- * - timestamp: 当前时间戳（秒级）
- * - signature: MD5签名结果
+ * 问卷网 AI 技能签名工具（服务端代签）
+ *
+ * 说明：
+ * - 本地不再持有 appkey/secret
+ * - 通过签名服务获取 appkey、timestamp、signature
  */
 
-const crypto = require('crypto');
 const { URL, URLSearchParams } = require('url');
+const { createSecureAxios } = require("./axios_secure");
+const { wenjuanUrl } = require("./api_config");
+const http = createSecureAxios();
 
-// 固定配置
+// 配置
 const CONFIG = {
   web_site: "ai_skills",
-  appkey: "wjMRcjzM12BjqXjkme",
-  secret: "DJFb6xHgmvnRqv52uSNGzMAVaFtUKFdF"
+  sign_service_url: wenjuanUrl("/app_api/create/signature"),
 };
 
 /**
- * 生成签名
- * @param {Object} params - 请求参数字典（如果包含signature会被自动移除）
- * @param {boolean} includeTimestamp - 是否自动添加时间戳
- * @returns {string} 32位小写MD5签名字符串
+ * 请求服务端签名参数
+ * @param {Object} params 业务参数
+ * @param {boolean} includeTimestamp 是否由服务端补 timestamp（默认 true）
+ * @returns {Promise<{appkey:string,web_site:string,timestamp:string,signature:string}>}
  */
-function generateSignature(params, includeTimestamp = true) {
-  // 复制参数，避免修改原对象
-  const signParams = { ...params };
-  
-  // 添加固定参数
-  signParams.web_site = CONFIG.web_site;
-  signParams.appkey = CONFIG.appkey;
-  
-  // 添加时间戳（如果不存在且需要）
-  if (includeTimestamp && !signParams.timestamp) {
-    signParams.timestamp = String(Math.floor(Date.now() / 1000));
+async function requestSignedParams(params, includeTimestamp = true) {
+  const cleanParams = { ...(params || {}) };
+  delete cleanParams.signature;
+  if (!includeTimestamp) {
+    cleanParams.timestamp = String(cleanParams.timestamp || Math.floor(Date.now() / 1000));
   }
-  
-  // 移除signature参数（如果存在）- 签名时不包含旧的signature
-  delete signParams.signature;
-  
-  // 按参数名字母顺序升序排列
-  const sortedKeys = Object.keys(signParams).sort();
-  
-  // 拼接参数值
-  let valueStr = "";
-  for (const key of sortedKeys) {
-    valueStr += String(signParams[key]);
+
+  const resp = await http.post(
+    CONFIG.sign_service_url,
+    {
+      web_site: CONFIG.web_site,
+      params: cleanParams,
+    },
+    { headers: { "Content-Type": "application/json" }, timeout: 30000 }
+  );
+  const body = resp.data || {};
+  const d = body.data && typeof body.data === "object" ? body.data : body;
+  const out = {
+    appkey: String(d.appkey || ""),
+    web_site: String(d.web_site || CONFIG.web_site),
+    timestamp: String(d.timestamp || ""),
+    signature: String(d.signature || ""),
+  };
+  if (!out.appkey || !out.signature || !out.timestamp) {
+    throw new Error("签名服务返回缺少必要字段(appkey/timestamp/signature)");
   }
-  
-  // 末尾加上secret
-  const signString = valueStr + CONFIG.secret;
-  
-  // MD5加密
-  const signature = crypto.createHash('md5').update(signString, 'utf-8').digest('hex');
-  
-  return signature;
+  return out;
 }
 
 /**
@@ -91,25 +76,14 @@ function parseUrlParams(url) {
 }
 
 /**
- * 生成带签名的完整URL
+ * 生成带签名的完整URL（异步）
  * @param {string} baseUrl - 基础URL（不含查询参数）
  * @param {Object} params - 额外参数
- * @returns {string} 带签名的完整URL
+ * @returns {Promise<string>} 带签名的完整URL
  */
-function buildSignedUrl(baseUrl, params = {}) {
-  // 生成签名
-  const signature = generateSignature(params);
-  
-  // 构建完整参数
-  const fullParams = { ...params };
-  fullParams.web_site = CONFIG.web_site;
-  fullParams.appkey = CONFIG.appkey;
-  if (!fullParams.timestamp) {
-    fullParams.timestamp = String(Math.floor(Date.now() / 1000));
-  }
-  fullParams.signature = signature;
-  
-  // 拼接URL
+async function buildSignedUrl(baseUrl, params = {}) {
+  const signed = await requestSignedParams(params, true);
+  const fullParams = { ...params, ...signed };
   const separator = baseUrl.includes("?") ? "&" : "?";
   const queryString = new URLSearchParams(fullParams).toString();
   return baseUrl + separator + queryString;
@@ -120,7 +94,7 @@ function buildSignedUrl(baseUrl, params = {}) {
  * @param {string} url - 原始URL（可包含已有参数）
  * @returns {string} 带签名的完整URL
  */
-function signUrl(url) {
+async function signUrl(url) {
   // 解析已有参数
   const params = parseUrlParams(url);
   
@@ -136,7 +110,7 @@ function signUrl(url) {
 /**
  * 主函数
  */
-function main() {
+async function main() {
   const args = process.argv.slice(2);
   
   // 解析参数
@@ -185,8 +159,9 @@ function main() {
     params.timestamp = String(Math.floor(Date.now() / 1000));
   }
   
-  // 生成签名
-  const signature = generateSignature(params, false);
+  // 远端签名
+  const signed = await requestSignedParams(params, false);
+  const signature = signed.signature;
   
   // 输出结果
   if (format === "signature") {
@@ -196,7 +171,9 @@ function main() {
     if (baseUrl) {
       const fullParams = { ...params };
       fullParams.web_site = CONFIG.web_site;
-      fullParams.appkey = CONFIG.appkey;
+      fullParams.appkey = signed.appkey;
+      fullParams.web_site = signed.web_site;
+      fullParams.timestamp = signed.timestamp;
       fullParams.signature = signature;
       const queryString = new URLSearchParams(fullParams).toString();
       console.log(baseUrl + "?" + queryString);
@@ -212,14 +189,14 @@ function main() {
     console.log();
     console.log("【配置信息】");
     console.log(`  web_site: ${CONFIG.web_site}`);
-    console.log(`  appkey: ${CONFIG.appkey}`);
-    console.log(`  secret: ${CONFIG.secret.slice(0, 10)}...`);
+    console.log(`  sign_service_url: ${CONFIG.sign_service_url}`);
     console.log();
     console.log("【请求参数】");
     // 添加固定参数用于显示
     const displayParams = { ...params };
-    displayParams.web_site = CONFIG.web_site;
-    displayParams.appkey = CONFIG.appkey;
+    displayParams.web_site = signed.web_site;
+    displayParams.appkey = signed.appkey;
+    displayParams.timestamp = signed.timestamp;
     // 移除signature（如果存在）
     if (displayParams.signature) {
       console.log("  (移除了原有的signature参数)");
@@ -240,19 +217,17 @@ function main() {
     const valueStr = sortedItems.map(([_, v]) => String(v)).join("");
     console.log(`  2. 拼接值: ${valueStr}`);
     
-    const signString = valueStr + CONFIG.secret;
-    console.log(`  3. 加secret: ${signString.slice(0, 50)}...`);
-    
-    console.log(`  4. MD5结果: ${signature}`);
+    console.log(`  3. 服务端签名完成`);
+    console.log(`  4. signature: ${signature}`);
     console.log();
     console.log("=".repeat(60));
     console.log(`最终 signature: ${signature}`);
     console.log("=".repeat(60));
     console.log();
     console.log("【最终请求参数（共4个固定参数 + 业务参数）】");
-    console.log(`  appkey=${CONFIG.appkey}`);
-    console.log(`  web_site=${CONFIG.web_site}`);
-    console.log(`  timestamp=${displayParams.timestamp || 'N/A'}`);
+    console.log(`  appkey=${signed.appkey}`);
+    console.log(`  web_site=${signed.web_site}`);
+    console.log(`  timestamp=${signed.timestamp || 'N/A'}`);
     console.log(`  signature=${signature}`);
     const otherKeys = Object.keys(displayParams).filter(k => !['appkey', 'web_site', 'timestamp'].includes(k));
     if (otherKeys.length > 0) {
@@ -266,7 +241,7 @@ function main() {
 
 function showHelp() {
   console.log(`
-生成问卷网AI技能API签名。最终请求参数会包含4个固定参数: appkey, web_site, timestamp, signature
+生成问卷网AI技能API签名（服务端代签）
 
 用法: node generate_sign.js [选项]
 
@@ -291,16 +266,16 @@ function showHelp() {
   node generate_sign.js --param project_id=abc123 --format signature
 
 固定参数:
-  appkey=wjMRcjzM12BjqXjkme
+  appkey=<来自签名服务>
   web_site=ai_skills
-  timestamp=当前时间戳（秒级）
-  signature=MD5签名结果
+  timestamp=<来自签名服务>
+  signature=<来自签名服务>
 `);
 }
 
 // 导出模块
 module.exports = {
-  generateSignature,
+  requestSignedParams,
   parseUrlParams,
   buildSignedUrl,
   signUrl,
@@ -309,5 +284,8 @@ module.exports = {
 
 // 如果是直接运行
 if (require.main === module) {
-  main();
+  main().catch((e) => {
+    console.error(`错误: ${e.message || e}`);
+    process.exit(1);
+  });
 }

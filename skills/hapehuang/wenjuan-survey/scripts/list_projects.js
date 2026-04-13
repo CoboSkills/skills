@@ -6,9 +6,10 @@
 
 const axios = require('axios');
 const readline = require('readline');
+const { WENJUAN_HOST, wenjuanUrl } = require("./api_config");
 
 // API 地址
-const BASE_URL = "https://www.wenjuan.com/app_api/skills/v1/projects/simple";
+const BASE_URL = wenjuanUrl("/app_api/skills/v1/projects/simple");
 
 /**
  * 获取项目列表
@@ -68,7 +69,7 @@ function displayProjects(projects, page, total, totalPages) {
     console.log(`\n[${i + 1}] ${statusIcon} ${title}`);
     console.log(`    Project ID: ${projId}`);
     if (shortId) {
-      console.log(`    答题链接: https://www.wenjuan.com/s/${shortId}`);
+      console.log(`    答题链接: ${WENJUAN_HOST}/s/${shortId}`);
     }
     console.log(`    状态: ${status}`);
     if (createTime) {

@@ -17,9 +17,10 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { requireAccessToken, getDefaultTokenDir } = require('./token_store');
 const readline = require('readline');
-const { generateSignature, CONFIG } = require('./generate_sign');
+const { requestSignedParams } = require('./generate_sign');
+const { wenjuanUrl } = require("./api_config");
 
-const API_URL = "https://www.wenjuan.com/app_api/edit/edit_question/";
+const API_URL = wenjuanUrl("/app_api/edit/edit_question/");
 
 // 错误码映射表
 const ERROR_CODE_MAP = {
@@ -61,18 +62,9 @@ async function loadToken() {
 /**
  * 构建带签名的参数
  */
-function buildSignedParams(params) {
-  const timestamp = String(Math.floor(Date.now() / 1000));
-  const signInput = { ...params, timestamp };
-  const signature = generateSignature(signInput, false);
-  
-  return {
-    ...params,
-    appkey: CONFIG.appkey,
-    web_site: CONFIG.web_site,
-    timestamp,
-    signature,
-  };
+async function buildSignedParams(params) {
+  const signed = await requestSignedParams(params, true);
+  return { ...params, ...signed };
 }
 
 /**
@@ -168,7 +160,7 @@ class QuestionEditor {
    * 获取题目详情
    */
   async getQuestion(projectId, questionId) {
-    const params = buildSignedParams({
+    const params = await buildSignedParams({
       project_id: projectId,
       question_id: questionId
     });
@@ -193,7 +185,7 @@ class QuestionEditor {
     await ensureReadyForEdit(projectId, { log: console.log });
 
     const post = async (struct) => {
-      const params = buildSignedParams({
+      const params = await buildSignedParams({
         project_id: projectId,
         question_id: questionId,
         question_struct: JSON.stringify(struct),

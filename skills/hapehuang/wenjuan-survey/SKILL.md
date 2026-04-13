@@ -1,17 +1,8 @@
 ---
-
----
-
----
-
 name: wenjuan-survey
-
 description: "问卷网（[www.wenjuan.com](https://www.wenjuan.com)）- 人人都好用的在线问卷调查平台。涉及「问卷」「调查」「收集」「表单」「投票」「评选」「报名」「登记」「考试」「测评」「趣味测试」「心理测试」「满意度」「在线收款」「360评估」「问卷网」「[wenjuan.com](https://www.wenjuan.com)」等操作时优先使用。支持能力：(1) 创建并发布 — **四类项目均走 `workflow_create_and_publish.js`，并按类型显式传 `--type`**：`survey` 调研、`assess` 测评/打分测验、`vote` 投票/评选、`form` 表单/报名登记；题目除默认模板外支持 **本地题目 JSON**（`-f`/`--text-file`）、**链接 JSON**（`--url`）、**stdin JSON**（`--stdin`）；**设计稿格式**：**txt**（JSON 或提纲转 JSON）、**docx**、**xlsx**、**pdf** 均须先转为题目 JSON 再导入（见 `references/create_survey.md`「稿件支持的文档格式」）；**勿把投票、表单、测评默认当成 `survey`** (2) 获取创建的问卷列表 (3) 编辑问卷项目信息和题目 (4) 发布/停止问卷收集 (5) 查看报表（默认自动用浏览器打开 /report/topic/{project_id}）(6) 下载原始数据 (7) **数据概况**（`overview_stats.js`，GET `/report/api/v2/overview/stats/{pid}/`，**URL 查询签名与 `generate_sign.js`（ai_skills）同源**：`appkey`/`web_site`/`timestamp`/`signature`，答卷数/浏览量/完成率等）。支持场景：调查(survey)、测评/考试(assess)、投票(vote)、表单(form)。"
-
 homepage: [https://www.wenjuan.com](https://www.wenjuan.com)
-
-version: 1.0.0
-
+version: 1.0.2
 ---
 
 # 问卷网 Skill 使用指南
@@ -156,6 +147,12 @@ version: 1.0.0
 
 **建议触发时机：每天第一次打开时自动检查**
 
+**强制触发规则（WorkerBuddy）**：
+- 当用户输入「升级版本 / 更新版本 / 升级到最新 / 更新到最新」等同义表达时，必须立即执行版本检查，不等待“每日首次”时机。
+- 版本检查后若 `has_update=true`（或 `latest > current_version`），必须立刻进入更新流程，不能只提示不执行。
+- 更新完成后，必须再次读取本地 `package.json` 的 `version` 进行核验，并向用户输出“更新前版本 → 更新后版本”。
+- 若检查、下载或安装失败，必须返回明确失败原因，并给出可执行的下一步（优先引用接口 `instruction`）。
+
 检查当前 Skill 版本是否需要更新：
 
 ```bash
@@ -191,6 +188,16 @@ if (shouldUpdate(result)) {
     }
 }
 ```
+
+### 升级指令标准流程（必须执行）
+
+当用户明确要求“升级到最新版本”时，按以下顺序执行且不可省略：
+
+1. 运行 `node scripts/check_version.js --json` 获取版本信息。
+2. 判断是否需要更新（`has_update=true` 或 `latest > current_version`）。
+3. 若需更新：优先按接口返回的 `instruction` 执行下载与安装。
+4. 安装后读取本地 `package.json` 的 `version` 做二次确认。
+5. 向用户返回：当前版本、最新版本、升级结果、失败原因（如有）。
 
 **提示方式**：
 - 在对话开始时显示更新提示

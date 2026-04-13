@@ -4,17 +4,20 @@
  * 完整工作流程：获取项目→检查状态→智能创建题目
  */
 
-const axios = require('axios');
+const { createSecureAxios } = require("./axios_secure");
 const fs = require('fs').promises;
 const path = require('path');
 const os = require('os');
 const { execSync } = require('child_process');
 const { requireAccessToken, getDefaultTokenDir } = require('./token_store');
 const readline = require('readline');
-const { generateSignature, CONFIG } = require('./generate_sign');
+const { requestSignedParams } = require('./generate_sign');
 const { isProjectCollecting, ensureReadyForEdit } = require('./project_edit_guard');
+const { validateId } = require("./security_utils");
+const { wenjuanUrl } = require("./api_config");
+const http = createSecureAxios();
 
-const BASE_URL = "https://www.wenjuan.com/app_api/edit/create_question/";
+const BASE_URL = wenjuanUrl("/app_api/edit/create_question/");
 
 async function getToken() {
   return requireAccessToken();
@@ -24,6 +27,7 @@ async function getToken() {
  * 获取项目最新结构
  */
 async function fetchProject(projectId) {
+  validateId(projectId, "project_id");
   try {
     const scriptDir = __dirname;
     const fetchScript = path.join(scriptDir, 'fetch_project.js');
@@ -63,25 +67,17 @@ function analyzeProjectScene(projectInfo) {
 /**
  * 构建带签名的参数
  */
-function buildSignedParams(params) {
-  const timestamp = String(Math.floor(Date.now() / 1000));
-
-  const signInput = { ...params, timestamp };
-  const signature = generateSignature(signInput, false);
-
-  return {
-    ...params,
-    appkey: CONFIG.appkey,
-    web_site: CONFIG.web_site,
-    timestamp,
-    signature,
-  };
+async function buildSignedParams(params) {
+  const signed = await requestSignedParams(params, true);
+  return { ...params, ...signed };
 }
 
 /**
  * 调用创建题目接口
  */
 async function createQuestionApi(projectId, questionpageId, questionStruct, index) {
+  validateId(projectId, "project_id");
+  validateId(questionpageId, "questionpage_id");
   await ensureReadyForEdit(projectId, { log: console.log });
 
   const token = await getToken();
@@ -100,7 +96,7 @@ async function createQuestionApi(projectId, questionpageId, questionStruct, inde
     index: String(index),
   };
 
-  const fullParams = buildSignedParams(businessParams);
+  const fullParams = await buildSignedParams(businessParams);
   const encodedParams = new URLSearchParams(fullParams).toString();
 
   const headers = {
@@ -109,7 +105,7 @@ async function createQuestionApi(projectId, questionpageId, questionStruct, inde
   };
 
   try {
-    const response = await axios.post(BASE_URL, encodedParams, { headers, timeout: 30000 });
+    const response = await http.post(BASE_URL, encodedParams, { headers, timeout: 30000 });
     return response.data;
   } catch (error) {
     if (error.response) {

@@ -6,9 +6,10 @@
 
 const axios = require('axios');
 const path = require('path');
+const { wenjuanUrl } = require('./api_config');
 
 // API 地址
-const BASE_URL = "https://www.wenjuan.com/app_api/skills/v1/version/check";
+const BASE_URL = wenjuanUrl("/app_api/skills/v1/version/check");
 
 /** 与 package.json 同步；读失败时用兜底，避免与分发包版本不一致 */
 function getEmbeddedCurrentVersion() {

@@ -26,7 +26,7 @@ from typing import Optional, List, Dict
 
 # ── Constants ────────────────────────────────────────────────────────────────
 
-DEFAULT_API_URL = "http://47.94.254.45/api"
+DEFAULT_API_URL = "https://lobster-rank.wondercv.com/api"
 
 SYSTEM_SKILL_NAMES = {
     "lobster-evaluator",
@@ -392,7 +392,7 @@ def main() -> None:
         api_key = resolve_api_key(args.api_key)
         if not api_key:
             print("错误：缺少 API Key。请用 --api-key 传入，或设置环境变量 OPENCLAW_API_KEY。")
-            print("获取地址：http://47.94.254.45/me")
+            print("获取地址：https://lobster-rank.wondercv.com/me")
             sys.exit(1)
 
         print(f"\n  正在确认上传…")
@@ -404,7 +404,7 @@ def main() -> None:
 
         print(f"  🎉 上传成功！排行榜已更新")
         print(f"  Score ID: {result.get('scoreId')}")
-        print(f"\n  查看排行榜：http://47.94.254.45\n")
+        print(f"\n  查看排行榜：https://lobster-rank.wondercv.com\n")
         return
 
     # ── Scan ──────────────────────────────────────────────────────────────────
@@ -438,7 +438,7 @@ def main() -> None:
     if not api_key:
         print("  错误：缺少 API Key。")
         print("  请用 --api-key 传入，或设置环境变量 OPENCLAW_API_KEY。")
-        print("  获取地址：http://47.94.254.45/me\n")
+        print("  获取地址：https://lobster-rank.wondercv.com/me\n")
         sys.exit(1)
 
     print(f"  正在提交到评分服务器…")
@@ -455,7 +455,7 @@ def main() -> None:
     if pending_token:
         print("  若要将此成绩上传到排行榜，请运行：")
         print(f"\n    python3 scripts/lobster_submit.py --confirm {pending_token}\n")
-        print("  或者直接在网站上确认：http://47.94.254.45/me\n")
+        print("  或者直接在网站上确认：https://lobster-rank.wondercv.com/me\n")
 
 
 if __name__ == "__main__":

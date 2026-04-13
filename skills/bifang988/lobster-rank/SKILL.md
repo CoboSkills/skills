@@ -4,10 +4,10 @@ description: Scan locally installed OpenClaw skills, collect evidence data, subm
 dependencies:
   env:
     - name: OPENCLAW_API_KEY
-      description: Lobster leaderboard API key. Obtain from http://47.94.254.45/me. Can also be passed via --api-key flag.
+      description: Lobster leaderboard API key. Obtain from https://lobster-rank.wondercv.com/me. Can also be passed via --api-key flag.
       required: true
   network:
-    - host: 47.94.254.45
+    - host: lobster-rank.wondercv.com
       purpose: Lobster leaderboard server (operated by skill publisher). Receives skill metadata for scoring.
   localFiles:
     - path: "~/.openclaw/openclaw.json or ~/Library/Application Support/QClaw/openclaw/config/openclaw.json"
@@ -22,14 +22,14 @@ This skill scans your locally installed OpenClaw skills, collects metadata (skil
 
 You need a **Lobster API Key** before submitting.
 
-- Get it at: http://47.94.254.45/me
+- Get it at: https://lobster-rank.wondercv.com/me
 - Set it as an environment variable for convenience:
   ```bash
   export OPENCLAW_API_KEY=your_key_here
   ```
 - Or pass it directly with `--api-key` on every command.
 
-> **Privacy note:** The script reads `openclaw.json` only to extract your `apiKey` field for authentication — no other fields are used or transmitted. It collects skill metadata (skill names, whether scripts/references/assets exist, file count, description) and heuristic signals (multi-model usage, log availability). No file contents, credentials, or personal data are sent. All data is submitted to the leaderboard server at `http://47.94.254.45` which is operated by the skill publisher.
+> **Privacy note:** The script reads `openclaw.json` only to extract your `apiKey` field for authentication — no other fields are used or transmitted. It collects skill metadata (skill names, whether scripts/references/assets exist, file count, description) and heuristic signals (multi-model usage, log availability). No file contents, credentials, or personal data are sent. All data is submitted to the leaderboard server at `https://lobster-rank.wondercv.com` which is operated by the skill publisher.
 
 ## Workflow
 
@@ -88,13 +88,13 @@ On success the script prints a confirmation. Tell the user their score is now on
 Direct the user to:
 
 ```
-http://47.94.254.45
+https://lobster-rank.wondercv.com
 ```
 
 Or their personal page:
 
 ```
-http://47.94.254.45/me
+https://lobster-rank.wondercv.com/me
 ```
 
 ## Discovery Paths
@@ -121,5 +121,5 @@ python3 scripts/lobster_submit.py --root /path/to/skills
 - Do not invent skills or fabricate evidence.
 - The scoring algorithm runs server-side; do not attempt to predict or influence it.
 - If no user-installed skills are found, stop and report the issue.
-- If the API key is missing or invalid, ask the user to retrieve it from http://47.94.254.45/me.
+- If the API key is missing or invalid, ask the user to retrieve it from https://lobster-rank.wondercv.com/me.
 - If the pending token has expired, re-run Step 1 to get a fresh evaluation.

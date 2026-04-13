@@ -3,9 +3,15 @@
   "slug": "lobster-rank",
   "displayName": "lobster-rank",
   "latest": {
-    "version": "2.0.1",
-    "publishedAt": 1775483656128,
-    "commit": "https://github.com/openclaw/skills/commit/6844d21030c7e5bcdf2169780a716778dfbf7d7b"
+    "version": "3.0.2",
+    "publishedAt": 1775634007502,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.1",
+      "publishedAt": 1775483656128,
+      "commit": "https://github.com/openclaw/skills/commit/6844d21030c7e5bcdf2169780a716778dfbf7d7b"
+    }
+  ]
 }

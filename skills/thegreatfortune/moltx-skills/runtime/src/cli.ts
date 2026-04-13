@@ -7,6 +7,8 @@ import { eventTools } from "./tools/events.js";
 import { agentSyncTools } from "./tools/agent-sync.js";
 import { agentQueryTools } from "./tools/agent-query.js";
 import { walletTools } from "./tools/wallet.js";
+import { siweTools } from "./tools/siwe.js";
+import { identityTools } from "./tools/identity.js";
 
 type ToolHandler = (args: unknown) => Promise<string>;
 
@@ -20,6 +22,8 @@ const toolRegistry: Record<string, ToolHandler> = {
   ...agentSyncTools,
   ...agentQueryTools,
   ...walletTools,
+  ...siweTools,
+  ...identityTools,
 };
 
 function printAndExit(message: string, code: number): never {

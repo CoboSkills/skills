@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,15 +9,20 @@ import { privateKeyToAccount } from "viem/accounts";
 export type RuntimeConfig = {
   rpcUrl: string;
   coreAddress: `0x${string}`;
-  councilAddress?: `0x${string}`;
-  predictionAddress?: `0x${string}`;
+  councilAddress: `0x${string}`;
+  predictionAddress: `0x${string}`;
   walletAddress?: `0x${string}`;
 };
 
-const DEFAULT_RPC_URL = "https://sepolia.base.org";
-export const DEFAULT_CORE_ADDRESS = zeroAddress;
-export const DEFAULT_COUNCIL_ADDRESS = zeroAddress;
-export const DEFAULT_PREDICTION_ADDRESS = zeroAddress;
+const DEFAULT_RPC_URL = "https://base-mainnet.g.alchemy.com/v2/JJnstbeYnuQz5s8Rbn91V";
+export const DEFAULT_CORE_ADDRESS = "0xfeBB259e83Bb133E87Ee85A48DC205c8043B3A99" as `0x${string}`;
+export const DEFAULT_COUNCIL_ADDRESS = "0x545e8f8d77dC3FAA74cee11572Dc4BAF35c6Ca0d" as `0x${string}`;
+export const DEFAULT_PREDICTION_ADDRESS = "0xE348e71B3D9b8e0420E74a3FB1Ec022b80a27F83" as `0x${string}`;
+export const DEFAULT_IDENTITY_ADDRESS = "0xb16aA007A5F0C6dE1A69D0D81412BA6d77c685Ab" as `0x${string}`;
+
+// ── API constants (operator-configured, not user-facing) ─────────────────────
+export const API_URL = "https://eplsuascoclomzejttgz.supabase.co";
+export const API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVwbHN1YXNjb2Nsb216ZWp0dGd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU5Mjg1MTMsImV4cCI6MjA5MTUwNDUxM30.pOErf06RIzzs6eRmtRXVrefoC1oyjY2agbLaHK-MbcQ";
 const CONFIG_DIR = path.join(os.homedir(), ".moltx");
 const CONFIG_PATH = path.join(CONFIG_DIR, "config.json");
 
@@ -26,7 +32,7 @@ const DEFAULT_CONFIG: RuntimeConfig = {
   councilAddress: DEFAULT_COUNCIL_ADDRESS,
   predictionAddress: DEFAULT_PREDICTION_ADDRESS,
 };
-
+ 
 function ensureConfigDir(): void {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
 }
@@ -99,27 +105,59 @@ export function setRuntimeConfig(patch: Partial<RuntimeConfig>): RuntimeConfig {
   return next;
 }
 
-export function getPrivateKey(): `0x${string}` {
-  const value = process.env.MOLTX_PRIVATE_KEY;
-  if (!value) {
-    throw new Error("MOLTX_PRIVATE_KEY environment variable not set");
-  }
-  if (!isHex(value) || value.length !== 66) {
-    throw new Error("MOLTX_PRIVATE_KEY must be a 32-byte hex string (0x...)");
-  }
+// ── Wallet persistence (~/.moltx/wallet.json) ───────────────────────────────
 
-  return value as `0x${string}`;
+const WALLET_PATH = path.join(CONFIG_DIR, "wallet.json");
+
+type WalletState = {
+  privateKey: `0x${string}`;
+  address: `0x${string}`;
+};
+
+function readStoredWallet(): WalletState | undefined {
+  if (!fs.existsSync(WALLET_PATH)) return undefined;
+  try {
+    const raw = JSON.parse(fs.readFileSync(WALLET_PATH, "utf8"));
+    if (typeof raw.privateKey !== "string" || !isHex(raw.privateKey) || raw.privateKey.length !== 66) {
+      return undefined;
+    }
+    return raw as WalletState;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeStoredWallet(state: WalletState): void {
+  ensureConfigDir();
+  fs.writeFileSync(WALLET_PATH, JSON.stringify(state, null, 2), { mode: 0o600 });
+  fs.chmodSync(WALLET_PATH, 0o600);
+}
+
+/**
+ * Returns the agent's private key.
+ *
+ * Resolution order:
+ *   1. ~/.moltx/wallet.json (file-based, auto-generated on first run)
+ *
+ * If no wallet exists, a new one is generated and persisted automatically.
+ */
+export function getPrivateKey(): `0x${string}` {
+  const stored = readStoredWallet();
+  if (stored) return stored.privateKey;
+
+  // First run: generate a new wallet
+  const privateKey = `0x${crypto.randomBytes(32).toString("hex")}` as `0x${string}`;
+  const account = privateKeyToAccount(privateKey);
+  writeStoredWallet({ privateKey, address: getAddress(account.address) });
+  return privateKey;
 }
 
 export function getWalletAddress(): `0x${string}` {
-  const config = getRuntimeConfig();
-  if (config.walletAddress) {
-    return config.walletAddress;
-  }
+  const stored = readStoredWallet();
+  if (stored) return getAddress(stored.address);
 
-  const account = privateKeyToAccount(getPrivateKey());
-  const walletAddress = getAddress(account.address);
-  setRuntimeConfig({ walletAddress });
-
-  return walletAddress;
+  // Triggers wallet generation if not exists
+  const privateKey = getPrivateKey();
+  const account = privateKeyToAccount(privateKey);
+  return getAddress(account.address);
 }

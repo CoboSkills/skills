@@ -17,6 +17,7 @@ import {
   getTakerTask,
   isEventProcessed,
   markEventProcessed,
+  readPredictionBets,
   readSyncState,
   resetAllAgentState,
   updateCoreSyncBlock,
@@ -112,11 +113,20 @@ function processCoreEvent(
     case "DisputeRaised":
       handleDisputeRaised(args, walletAddress, blockNumber);
       break;
+    case "TaskCancelled":
+      handleTaskCancelled(args, walletAddress, blockNumber);
+      break;
+    case "TaskSettled":
+      handleTaskSettled(args, walletAddress, blockNumber);
+      break;
+    case "DisputeAbandoned":
+      handleDisputeAbandoned(args, walletAddress, blockNumber);
+      break;
     case "DisputeVerdictRecorded":
-      handleDisputeResolved(args, blockNumber, "VERDICT_RECORDED");
+      handleDisputeResolved(args, walletAddress, blockNumber, "VERDICT_RECORDED");
       break;
     case "DisputeOutcomeRecorded":
-      handleDisputeResolved(args, blockNumber, "UNRESOLVED");
+      handleDisputeResolved(args, walletAddress, blockNumber, "UNRESOLVED");
       break;
     case "BountyReclaimed":
       handleBountyReclaimed(args, walletAddress, blockNumber);
@@ -140,6 +150,7 @@ function handleTaskCreated(args: Record<string, unknown>, walletAddress: string,
 
   const task: MakerTaskState = {
     taskId: String(args.taskId),
+    makerAddress: maker,
     mode: Number(args.mode) === 0 ? "SINGLE" : "MULTI",
     status: "OPEN",
     bountyToken: String(args.bountyToken),
@@ -174,7 +185,7 @@ function handleTaskAccepted(args: Record<string, unknown>, walletAddress: string
   if (taker === walletAddress) {
     const takerTask: TakerTaskState = {
       taskId,
-      maker: makerTask ? String(makerTask.taskId) : "",
+      maker: makerTask?.makerAddress ?? "",
       mode: makerTask?.mode ?? "UNKNOWN",
       status: "ACCEPTED",
       bountyToken: makerTask?.bountyToken ?? "",
@@ -266,15 +277,150 @@ function handleDisputeRaised(args: Record<string, unknown>, walletAddress: strin
   }
 }
 
-function handleDisputeResolved(args: Record<string, unknown>, blockNumber: string, status: DisputeState["status"]) {
+function handleTaskCancelled(args: Record<string, unknown>, walletAddress: string, blockNumber: string) {
+  const taskId = String(args.taskId);
+  const taker = String(args.taker).toLowerCase();
+
+  // Update maker view: mark taker slot cancelled, decrement count
+  const makerTask = getMakerTask(taskId);
+  if (makerTask) {
+    if (makerTask.takers[taker]) {
+      makerTask.takers[taker].status = "CANCELLED";
+      makerTask.acceptedCount = Math.max(0, makerTask.acceptedCount - 1);
+    }
+    // Revert task status to OPEN if no active takers remain
+    const hasActiveTaker = Object.values(makerTask.takers).some(
+      t => t.status !== "CANCELLED",
+    );
+    if (!hasActiveTaker && makerTask.status === "ACCEPTED") {
+      makerTask.status = "OPEN";
+    }
+    makerTask.lastUpdatedBlock = blockNumber;
+    addOrUpdateMakerTask(makerTask);
+  }
+
+  // Update taker view
+  if (taker === walletAddress) {
+    const takerTask = getTakerTask(taskId);
+    if (takerTask) {
+      takerTask.status = "CANCELLED";
+      takerTask.lastUpdatedBlock = blockNumber;
+      addOrUpdateTakerTask(takerTask);
+    }
+  }
+}
+
+function handleTaskSettled(args: Record<string, unknown>, walletAddress: string, blockNumber: string) {
+  const taskId = String(args.taskId);
+
+  // Taker view: if I hold this task and it's in a claimable state, it's now settled
+  const takerTask = getTakerTask(taskId);
+  const takerTerminal = new Set(["CLAIMED", "CANCELLED", "DISPUTE_ABANDONED"]);
+  if (takerTask && !takerTerminal.has(takerTask.status)) {
+    takerTask.status = "CLAIMED";
+    takerTask.claimedAt = new Date().toISOString();
+    takerTask.lastUpdatedBlock = blockNumber;
+    addOrUpdateTakerTask(takerTask);
+  }
+
+  // Maker SINGLE view: only mark COMPLETED_TAKER if the taker legitimately received the bounty.
+  // Dispute-path final states are driven by handleDisputeResolved instead.
+  const makerTask = getMakerTask(taskId);
+  if (makerTask && makerTask.mode === "SINGLE") {
+    for (const [, slot] of Object.entries(makerTask.takers)) {
+      const isOptimistic = slot.status === "SUBMITTED";
+      const isUnresolved = slot.status === "DISPUTE_UNRESOLVED";
+      const isVerdictTakerWon = slot.status === "DISPUTE_RESOLVED" && slot.takerWon === true;
+
+      if (isOptimistic || isUnresolved || isVerdictTakerWon) {
+        slot.status = "CLAIMED";
+        slot.claimedAt = new Date().toISOString();
+        makerTask.status = "COMPLETED_TAKER";
+      }
+      // DISPUTED / DISPUTE_RESOLVED(takerWon=false or unknown): leave unchanged.
+      // handleDisputeResolved drives those terminal states.
+    }
+    makerTask.lastUpdatedBlock = blockNumber;
+    addOrUpdateMakerTask(makerTask);
+  }
+  // MULTI: TaskSettled has no taker field so we can't determine which slot settled;
+  // Maker should read chain state for per-taker detail.
+}
+
+function handleDisputeAbandoned(args: Record<string, unknown>, walletAddress: string, blockNumber: string) {
+  const taskId = String(args.taskId);
+  const taker = String(args.taker).toLowerCase();
+
+  // Update maker taker slot — bounty share is now reclaimable
+  const makerTask = getMakerTask(taskId);
+  if (makerTask?.takers[taker]) {
+    makerTask.takers[taker].status = "DISPUTE_ABANDONED";
+    makerTask.lastUpdatedBlock = blockNumber;
+    addOrUpdateMakerTask(makerTask);
+  }
+
+  // Update taker view
+  if (taker === walletAddress) {
+    const takerTask = getTakerTask(taskId);
+    if (takerTask) {
+      takerTask.status = "DISPUTE_ABANDONED";
+      takerTask.lastUpdatedBlock = blockNumber;
+      addOrUpdateTakerTask(takerTask);
+    }
+  }
+}
+
+function handleDisputeResolved(args: Record<string, unknown>, walletAddress: string, blockNumber: string, status: DisputeState["status"]) {
+  const taskId = String(args.taskId);
+  const taker = String(args.taker).toLowerCase();
+
   addOrUpdateDispute({
-    taskId: String(args.taskId),
+    taskId,
     maker: "",
-    taker: String(args.taker),
+    taker,
     status,
     takerWon: typeof args.takerWon === "boolean" ? args.takerWon : undefined,
     lastUpdatedBlock: blockNumber,
   });
+
+  const resolvedStatus = status === "VERDICT_RECORDED" ? "DISPUTE_RESOLVED" : "DISPUTE_UNRESOLVED";
+
+  // Update taker task status
+  if (taker === walletAddress) {
+    const takerTask = getTakerTask(taskId);
+    if (takerTask) {
+      takerTask.status = resolvedStatus;
+      takerTask.lastUpdatedBlock = blockNumber;
+      addOrUpdateTakerTask(takerTask);
+    }
+  }
+
+  // Update maker per-taker slot + task-level status for SINGLE tasks
+  const makerTask = getMakerTask(taskId);
+  if (makerTask?.takers[taker]) {
+    makerTask.takers[taker].status = resolvedStatus;
+    if (typeof args.takerWon === "boolean") {
+      makerTask.takers[taker].takerWon = args.takerWon;
+    }
+
+    // Drive task-level terminal status for SINGLE disputes
+    if (makerTask.mode === "SINGLE") {
+      if (status === "UNRESOLVED") {
+        // Taker gets bounty+deposit; task is effectively done for Maker (cannot reclaim)
+        makerTask.status = "COMPLETED_TAKER";
+      } else if (status === "VERDICT_RECORDED") {
+        if (args.takerWon === true) {
+          // Taker won; TaskSettled will follow, but set status now so it's accurate immediately
+          makerTask.status = "COMPLETED_TAKER";
+        }
+        // takerWon=false → Maker won; BountyReclaimed will drive COMPLETED_MAKER
+        // Leave task status unchanged so get_urgent_tasks can surface the reclaim hint
+      }
+    }
+
+    makerTask.lastUpdatedBlock = blockNumber;
+    addOrUpdateMakerTask(makerTask);
+  }
 }
 
 function handleBountyReclaimed(args: Record<string, unknown>, walletAddress: string, blockNumber: string) {
@@ -308,15 +454,35 @@ function handlePredictionClaimed(args: Record<string, unknown>, walletAddress: s
   if (String(args.user).toLowerCase() !== walletAddress) {
     return;
   }
-  const bet: PredictionBetState = {
-    roundId: String(args.roundId),
-    tier: 0,
-    shares: "0",
-    status: "CLAIMED",
-    claimedAt: new Date().toISOString(),
-    lastUpdatedBlock: blockNumber,
-  };
-  addOrUpdatePredictionBet(bet);
+  const roundId = String(args.roundId);
+
+  // Find the existing bet for this roundId to get the correct tier.
+  // PredictionRewardClaimed has no tier field, so we look it up from local state.
+  const betsState = readPredictionBets();
+  const existingEntry = Object.entries(betsState.bets).find(
+    ([, b]) => b.roundId === roundId,
+  );
+
+  if (existingEntry) {
+    const [, existing] = existingEntry;
+    addOrUpdatePredictionBet({
+      ...existing,
+      status: "CLAIMED",
+      claimedAt: new Date().toISOString(),
+      lastUpdatedBlock: blockNumber,
+    });
+  } else {
+    // No prior ACCEPTED record found (e.g. sync started after accept).
+    // Store a placeholder so the claim is recorded; tier defaults to -1 to signal unknown.
+    addOrUpdatePredictionBet({
+      roundId,
+      tier: -1,
+      shares: "0",
+      status: "CLAIMED",
+      claimedAt: new Date().toISOString(),
+      lastUpdatedBlock: blockNumber,
+    });
+  }
 }
 
 const reset_agent_state: ToolHandler = async () => {

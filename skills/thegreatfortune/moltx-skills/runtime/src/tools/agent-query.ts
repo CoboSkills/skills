@@ -5,6 +5,12 @@ import {
   readPredictionBets,
   readSyncState,
 } from "./agent-state.js";
+import {
+  getPublicRuntime,
+  predictionAbi,
+  requirePredictionAddress,
+} from "./shared.js";
+import { getWalletAddress } from "./config.js";
 
 type ToolHandler = (args: unknown) => Promise<string>;
 
@@ -67,7 +73,7 @@ const get_my_disputes: ToolHandler = async (args) => {
 
 const get_my_prediction_bets: ToolHandler = async (args) => {
   const { status, claimable } = (args || {}) as { status?: string; claimable?: boolean };
-  
+
   const betsState = readPredictionBets();
   let bets = Object.values(betsState.bets);
 
@@ -76,7 +82,46 @@ const get_my_prediction_bets: ToolHandler = async (args) => {
   }
 
   if (claimable !== undefined) {
-    bets = bets.filter(b => (b.status === "ACCEPTED") === claimable);
+    // Verify claimability on-chain: round must be settled AND user must not have claimed yet.
+    const { config, publicClient } = getPublicRuntime();
+    const predictionAddress = requirePredictionAddress(config);
+    const user = getWalletAddress();
+
+    // Deduplicate roundIds to avoid redundant RPC calls
+    const uniqueRoundIds = [...new Set(bets.map(b => b.roundId))];
+
+    const roundSettledMap = new Map<string, boolean>();
+    const betClaimedMap = new Map<string, boolean>();
+
+    await Promise.all(
+      uniqueRoundIds.map(async (roundId) => {
+        const [roundInfo, userBet] = await Promise.all([
+          publicClient.readContract({
+            address: predictionAddress,
+            abi: predictionAbi,
+            functionName: "getRoundInfo",
+            args: [BigInt(roundId)],
+          }),
+          publicClient.readContract({
+            address: predictionAddress,
+            abi: predictionAbi,
+            functionName: "getUserBet",
+            args: [BigInt(roundId), user],
+          }),
+        ]);
+        const [, , , , , , settled] = roundInfo as readonly [bigint, bigint, readonly bigint[], readonly bigint[], bigint, number, boolean, boolean];
+        const [, claimed] = userBet as readonly [readonly bigint[], boolean];
+        roundSettledMap.set(roundId, Boolean(settled));
+        betClaimedMap.set(roundId, Boolean(claimed));
+      }),
+    );
+
+    bets = bets.filter((b) => {
+      const settled = roundSettledMap.get(b.roundId) ?? false;
+      const claimed = betClaimedMap.get(b.roundId) ?? true; // default to claimed=true if unknown
+      const isClaimable = settled && !claimed;
+      return isClaimable === claimable;
+    });
   }
 
   return JSON.stringify({
@@ -93,14 +138,20 @@ const get_urgent_tasks: ToolHandler = async () => {
   const urgentMakerTasks = [];
   const urgentTakerTasks = [];
 
+  const makerTerminalStatuses = new Set(["COMPLETED_MAKER", "COMPLETED_TAKER"]);
+
   // Maker: tasks with challenge window ending soon or reclaim window reached
   for (const task of Object.values(makerState.tasks)) {
+    if (makerTerminalStatuses.has(task.status)) {
+      continue;
+    }
+
     if (task.status === "SUBMITTED") {
       for (const [takerAddr, takerState] of Object.entries(task.takers)) {
-        if (takerState.submittedAt) {
+        if (takerState.submittedAt && takerState.status === "SUBMITTED") {
           const endsAt = new Date(takerState.submittedAt).getTime() + 24 * 3600 * 1000;
           const hoursLeft = (endsAt - now) / (3600 * 1000);
-          
+
           if (hoursLeft > 0 && hoursLeft < 6) {
             urgentMakerTasks.push({
               taskId: task.taskId,
@@ -125,6 +176,30 @@ const get_urgent_tasks: ToolHandler = async () => {
         });
       }
     }
+
+    // Reclaimable: takers whose dispute window expired without raising a dispute
+    for (const [takerAddr, takerState] of Object.entries(task.takers)) {
+      if (takerState.status === "DISPUTE_ABANDONED") {
+        urgentMakerTasks.push({
+          taskId: task.taskId,
+          taker: takerAddr,
+          reason: "reclaim_bounty_available",
+          note: "dispute window passed without challenge",
+        });
+      }
+      // DISPUTE_RESOLVED + maker won (takerWon=false) → bounty share reclaimable
+      if (takerState.status === "DISPUTE_RESOLVED" && takerState.takerWon === false) {
+        urgentMakerTasks.push({
+          taskId: task.taskId,
+          taker: takerAddr,
+          reason: "reclaim_bounty_available",
+          note: "maker won dispute verdict",
+        });
+      }
+      // DISPUTE_UNRESOLVED → Taker keeps bounty+deposit; Maker cannot reclaim this slot
+      // DISPUTE_RESOLVED + takerWon=true → Taker won; Maker cannot reclaim
+      // takerWon=undefined (verdict not yet synced) → do not hint reclaim until known
+    }
   }
 
   // Taker: tasks with submit or dispute windows ending soon
@@ -146,7 +221,7 @@ const get_urgent_tasks: ToolHandler = async () => {
     if (task.status === "REJECTED" && task.disputeDeadline) {
       const endsAt = new Date(task.disputeDeadline).getTime();
       const hoursLeft = (endsAt - now) / (3600 * 1000);
-      
+
       if (hoursLeft > 0 && hoursLeft < 12) {
         urgentTakerTasks.push({
           taskId: task.taskId,
@@ -155,6 +230,15 @@ const get_urgent_tasks: ToolHandler = async () => {
           disputeWindowEnds: task.disputeDeadline,
         });
       }
+    }
+
+    // Dispute resolved: call claim_funds to collect funds or deposit
+    if (task.status === "DISPUTE_RESOLVED" || task.status === "DISPUTE_UNRESOLVED") {
+      urgentTakerTasks.push({
+        taskId: task.taskId,
+        reason: "claim_funds_available",
+        note: `dispute outcome: ${task.status} — call claim_funds`,
+      });
     }
   }
 

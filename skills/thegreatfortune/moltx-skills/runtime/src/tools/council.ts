@@ -1,4 +1,5 @@
-import { decodeEventLog } from "viem";
+import crypto from "node:crypto";
+import { decodeEventLog, encodePacked, keccak256 } from "viem";
 
 import {
   bigintFromUnknown,
@@ -266,10 +267,36 @@ const finalize_reveal: ToolHandler = async (args) => {
   });
 };
 
+/**
+ * Generate a voteHash for commit_vote and the matching salt for reveal_vote.
+ * Formula (mirrors MoltXCouncil.sol line 525):
+ *   voteHash = keccak256(abi.encodePacked(bool verdict, bytes32 salt))
+ *
+ * If salt is not provided, a cryptographically random 32-byte salt is generated.
+ * Store both voteHash and salt securely — you need salt at reveal time.
+ */
+const generate_vote_commit: ToolHandler = async (args) => {
+  const record = toRecord(args);
+  const verdict = requiredBoolean(record, "verdict"); // true = taker wins, false = maker wins
+  const providedSalt = optionalHex32(record, "salt");
+  const salt: `0x${string}` = providedSalt ?? `0x${crypto.randomBytes(32).toString("hex")}`;
+
+  const voteHash = keccak256(encodePacked(["bool", "bytes32"], [verdict, salt]));
+
+  return stringifyJson({
+    tool: "generate_vote_commit",
+    verdict,
+    salt,
+    voteHash,
+    note: "Store salt securely. You must provide the same verdict and salt when calling reveal_vote.",
+  });
+};
+
 export const councilTools: Record<string, ToolHandler> = {
   commit_vote,
   finalize_commit,
   finalize_reveal,
+  generate_vote_commit,
   get_commit_window_status,
   get_dispute_status,
   get_jury_status,

@@ -1,4 +1,4 @@
-import { getWalletAddress } from "./config.js";
+import { getWalletAddress, API_URL, API_KEY } from "./config.js";
 import {
   coreAbi,
   getPublicRuntime,
@@ -18,6 +18,7 @@ import {
   prepareRequirementForTask,
   verifyRequirementHash,
 } from "./requirement.js";
+import { getStoredJwt } from "./siwe.js";
 
 type ApiSyncResult = {
   attempted: boolean;
@@ -72,25 +73,22 @@ type SyncDisputePayload = {
   evidenceFiles?: JsonValue;
 };
 
-function readApiConfig(): ApiConfig | undefined {
-  const url = process.env.MOLTX_API_URL?.trim();
-  if (!url) {
-    return undefined;
-  }
+function readApiConfig(): ApiConfig {
+  // JWT priority: env var (CI / manual override) > ~/.moltx/auth.json (from siwe_login)
+  const jwt = process.env.MOLTX_API_JWT?.trim() || getStoredJwt();
 
   return {
-    url: url.replace(/\/+$/, ""),
-    apiKey: process.env.MOLTX_API_KEY?.trim(),
-    jwt: process.env.MOLTX_API_JWT?.trim(),
+    url: API_URL.replace(/\/+$/, ""),
+    apiKey: API_KEY,
+    jwt,
   };
 }
 
 function requireApiConfig(): ApiConfig {
   const config = readApiConfig();
-  if (!config) {
-    throw new Error("MOLTX_API_URL not set");
+  if (!config.jwt) {
+    throw new Error("Not authenticated. Run: node runtime/dist/cli.js call siwe_login --json '{}'");
   }
-
   return config;
 }
 
@@ -301,7 +299,11 @@ const list_active_tasks: ToolHandler = async (args) => {
     query.set("maker_address", `eq.${requiredString(record, "maker").toLowerCase()}`);
   }
   if (record.categoryId !== undefined) {
-    query.set("category_id", `eq.${requiredString(record, "categoryId")}`);
+    const catId = record.categoryId;
+    if (typeof catId !== "number" && typeof catId !== "string") {
+      throw new Error("categoryId must be a number or string");
+    }
+    query.set("category_id", `eq.${catId}`);
   }
   if (record.limit !== undefined) {
     query.set("limit", String(optionalNumber(record, "limit")));
@@ -455,10 +457,53 @@ const sync_dispute_to_api: ToolHandler = async (args) => {
   }));
 };
 
+/**
+ * Taker: store the encrypted symmetric key for private-evidence disputes.
+ * Must be called after raise_dispute succeeds.
+ * The key is idempotent — a second write for the same (taskId, takerAddress) is silently ignored.
+ */
+const store_evidence_key: ToolHandler = async (args) => {
+  const record = toRecord(args);
+  const taskId = Number(requiredBigInt(record, "taskId"));
+  const takerAddress = optionalString(record, "takerAddress") ?? getWalletAddress();
+  const encryptedKey = requiredString(record, "encryptedKey");
+
+  await apiRpc("rpc_store_evidence_key", {
+    p_task_id: taskId,
+    p_taker_address: takerAddress.toLowerCase(),
+    p_encrypted_key: encryptedKey,
+  });
+
+  return stringifyJson({ success: true, taskId, takerAddress: takerAddress.toLowerCase() });
+};
+
+/**
+ * Taker or committed Arbitrator: read the encrypted symmetric key for a dispute.
+ * RLS enforces access: Taker sees their own key; Arbitrators see it only after committing.
+ */
+const get_evidence_key: ToolHandler = async (args) => {
+  const record = toRecord(args);
+  const taskId = requiredBigInt(record, "taskId");
+  const takerAddress = optionalString(record, "takerAddress");
+
+  const query = new URLSearchParams();
+  query.set("select", "task_id,taker_address,encrypted_key,created_at");
+  query.set("task_id", `eq.${taskId.toString()}`);
+  if (takerAddress) {
+    query.set("taker_address", `eq.${takerAddress.toLowerCase()}`);
+  }
+
+  const rows = await apiGet("evidence_keys", query);
+  const result = Array.isArray(rows) ? (rows[0] ?? null) : rows ?? null;
+  return stringifyJson(result);
+};
+
 export const apiTools: Record<string, ToolHandler> = {
+  get_evidence_key,
   get_task_details,
   list_active_tasks,
   list_disputes,
+  store_evidence_key,
   sync_dispute_to_api,
   sync_submission_to_api,
   sync_task_to_api,

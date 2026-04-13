@@ -555,7 +555,9 @@ const get_current_emission_rate: ToolHandler = async () => {
 const get_task_decision_plan: ToolHandler = async (args) => {
   const record = toRecord(args);
   const taskId = requiredBigInt(record, "taskId");
-  const taker = optionalAddress(record, "taker") ?? getWalletAddress();
+  const walletAddress = getWalletAddress();
+  const explicitTaker = optionalAddress(record, "taker");
+  const taker = explicitTaker ?? walletAddress;
   const { config, publicClient } = getPublicRuntime();
   const coreAddress = requireCoreAddress(config);
   const [task, takerState, activeDispute, challengeWindow, disputeWindow, now] = await Promise.all([
@@ -579,13 +581,23 @@ const get_task_decision_plan: ToolHandler = async (args) => {
     (task.status === 7 || task.status === 8 || task.status === 5 || task.status === 9) ||
     (!takerState.hasSubmitted && now > task.submitDeadline)
   );
-  const canReject = task.maker === (config.walletAddress ?? getWalletAddress()) && takerState.hasSubmitted && !takerState.isRejected && now <= challengeDeadline;
+  const isMaker = task.maker.toLowerCase() === walletAddress.toLowerCase();
+  const canReject = isMaker && takerState.hasSubmitted && !takerState.isRejected && now <= challengeDeadline;
   const canRaiseDispute = takerState.isRejected && !Boolean(activeDispute) && now <= disputeDeadline;
-  const canReclaimBounty = task.maker === (config.walletAddress ?? getWalletAddress()) && (
+  const canReclaimBounty = isMaker && (
     (task.status === 0) ||
     (!takerState.hasSubmitted && now > task.submitDeadline) ||
     (takerState.isRejected && !Boolean(activeDispute) && now > disputeDeadline)
   );
+  // canConfirmSubmission: Maker's ONLY MOLTX reward entry. Must call before Taker's claim_funds.
+  // Note: already-confirmed state (confirmedSubmissions on Settlement) is not readable from Core ABI;
+  // the contract will revert harmlessly if called twice.
+  const canConfirmSubmission = isMaker && takerState.hasSubmitted && !takerState.hasClaimed && !takerState.isRejected;
+
+  // Warn when Maker is the wallet but no explicit taker was provided: per-taker fields are unreliable
+  const takerPerspectiveWarning = isMaker && explicitTaker === undefined
+    ? "wallet is maker but no taker address provided — canReject/canConfirmSubmission/canReclaimBounty based on taker data may be inaccurate; pass taker address for per-taker decisions"
+    : undefined;
 
   let branch = "inactive";
   if (canAccept) branch = "open_accept";
@@ -617,9 +629,12 @@ const get_task_decision_plan: ToolHandler = async (args) => {
       canSubmit,
       canClaimFunds,
       canReject,
+      canConfirmSubmission,
       canRaiseDispute,
       canReclaimBounty,
+      canClaimMoltX: "call claim_moltx anytime to collect vested MOLTX rewards",
     },
+    ...(takerPerspectiveWarning ? { _warning: takerPerspectiveWarning } : {}),
   });
 };
 
@@ -843,13 +858,112 @@ const add_whitelist_token: ToolHandler = async (args) => {
   });
 };
 
+const confirm_submission: ToolHandler = async (args) => {
+  const taskId = requiredBigInt(toRecord(args), "taskId");
+  const takers = requiredAddressArray(toRecord(args), "takers");
+  const { hash, receipt } = await sendCoreTransaction("confirmSubmission", [taskId, takers]);
+
+  return stringifyJson({
+    tool: "confirm_submission",
+    contractFunction: "confirmSubmission",
+    taskId,
+    takers,
+    txHash: hash,
+    status: receipt.status,
+    blockNumber: receipt.blockNumber,
+  });
+};
+
+const SETTLEMENT_VIEW_ABI = [
+  {
+    inputs: [{ internalType: "address", name: "user", type: "address" }],
+    name: "getClaimableMoltX",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "address", name: "", type: "address" }],
+    name: "rollingRewards",
+    outputs: [
+      { internalType: "uint256", name: "totalReward", type: "uint256" },
+      { internalType: "uint256", name: "claimed", type: "uint256" },
+      { internalType: "uint64", name: "startTime", type: "uint64" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+] as const;
+
+const get_claimable_moltx: ToolHandler = async (args) => {
+  const record = toRecord(args ?? {});
+  const { config, publicClient } = getPublicRuntime();
+  const coreAddress = requireCoreAddress(config);
+  const user = (optionalAddress(record, "address") ?? getWalletAddress()) as `0x${string}`;
+
+  // Read Settlement address from Core's public getter
+  const settlementAddress = await publicClient.readContract({
+    address: coreAddress,
+    abi: coreAbi,
+    functionName: "settlement",
+  }) as `0x${string}`;
+
+  const [claimable, reward] = await Promise.all([
+    publicClient.readContract({
+      address: settlementAddress,
+      abi: SETTLEMENT_VIEW_ABI,
+      functionName: "getClaimableMoltX",
+      args: [user],
+    }),
+    publicClient.readContract({
+      address: settlementAddress,
+      abi: SETTLEMENT_VIEW_ABI,
+      functionName: "rollingRewards",
+      args: [user],
+    }),
+  ]);
+
+  const [totalReward, claimed, startTime] = reward as [bigint, bigint, bigint];
+  const VESTING_DURATION = 50n * 24n * 3600n; // 50 days in seconds
+  const now = BigInt(Math.floor(Date.now() / 1000));
+  const elapsed = now > startTime ? now - startTime : 0n;
+  const vestingEndsAt = startTime + VESTING_DURATION;
+
+  return stringifyJson({
+    address: user,
+    claimableNow: claimable,
+    totalReward,
+    claimed,
+    vestingStartTime: startTime,
+    vestingEndsAt,
+    fullyVestedIn: elapsed < VESTING_DURATION ? `${(VESTING_DURATION - elapsed) / 3600n}h` : "fully vested",
+    hasPending: (claimable as bigint) > 0n,
+  });
+};
+
+const claim_moltx: ToolHandler = async (args) => {
+  // `claimMoltX()` takes no arguments.
+  const { hash, receipt } = await sendCoreTransaction("claimMoltX", []);
+
+  return stringifyJson({
+    tool: "claim_moltx",
+    contractFunction: "claimMoltX",
+    txHash: hash,
+    status: receipt.status,
+    blockNumber: receipt.blockNumber,
+  });
+};
+
 export const coreTools: Record<string, ToolHandler> = {
   accept_task,
   add_whitelist_token,
   approve_token,
   cancel_task,
   claim_funds,
+  claim_moltx,
+  confirm_submission,
   create_task,
+  get_claimable_moltx,
   get_current_emission_rate,
   get_runtime_config,
   get_task,

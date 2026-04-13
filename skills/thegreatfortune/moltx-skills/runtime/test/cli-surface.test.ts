@@ -29,6 +29,8 @@ test("cli lists rebuilt runtime commands and excludes removed legacy commands", 
 
   for (const requiredTool of [
     "claim_funds",
+    "claim_moltx",
+    "confirm_submission",
     "reclaim_bounty",
     "create_prediction_task",
     "accept_prediction_task",

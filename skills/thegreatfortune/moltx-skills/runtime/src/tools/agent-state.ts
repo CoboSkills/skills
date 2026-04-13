@@ -19,6 +19,7 @@ export interface SyncState {
 
 export interface MakerTaskState {
   taskId: string;
+  makerAddress: string;
   mode: string;
   status: string;
   bountyToken: string;
@@ -35,6 +36,7 @@ export interface MakerTaskState {
     claimedAt?: string;
     deliveryRef?: string;
     status: string;
+    takerWon?: boolean; // set when dispute verdict is recorded
   }>;
   lastUpdatedBlock: string;
 }

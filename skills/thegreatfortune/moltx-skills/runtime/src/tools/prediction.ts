@@ -1,4 +1,4 @@
-import { formatEther } from "viem";
+import { decodeEventLog, formatEther, type Log } from "viem";
 
 import {
   bigintFromUnknown,
@@ -18,6 +18,20 @@ import {
   type ToolHandler,
 } from "./shared.js";
 import { getWalletAddress } from "./config.js";
+
+function findEventInLogs(logs: readonly Log[], abi: readonly unknown[], eventName: string): Record<string, unknown> | undefined {
+  for (const log of logs) {
+    try {
+      const decoded = decodeEventLog({ abi, data: log.data, topics: log.topics }) as { eventName: string; args: Record<string, unknown> };
+      if (decoded.eventName === eventName) {
+        return decoded.args;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return undefined;
+}
 
 const accept_prediction_task: ToolHandler = async (args) => {
   const record = toRecord(args);
@@ -55,6 +69,8 @@ const accept_prediction_task: ToolHandler = async (args) => {
   });
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
+  const acceptedEvent = findEventInLogs(receipt.logs, coreAbi, "PredictionTaskAccepted");
+
   return stringifyJson({
     tool: "accept_prediction_task",
     contractFunction: "MoltXCore.acceptPredictionTask",
@@ -62,6 +78,7 @@ const accept_prediction_task: ToolHandler = async (args) => {
     tier,
     currentPrice,
     maxPrice,
+    shares: acceptedEvent?.shares,
     txHash: hash,
     status: receipt.status,
     blockNumber: receipt.blockNumber,
@@ -80,9 +97,13 @@ const create_prediction_task: ToolHandler = async () => {
   });
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
+  const createdEvent = findEventInLogs(receipt.logs, coreAbi, "PredictionTaskCreated");
+
   return stringifyJson({
     tool: "create_prediction_task",
     contractFunction: "MoltXCore.createPredictionTask",
+    roundId: createdEvent?.roundId,
+    yesterdayOutput: createdEvent?.yesterdayOutput,
     txHash: hash,
     status: receipt.status,
     blockNumber: receipt.blockNumber,
@@ -102,10 +123,20 @@ const claim_prediction_reward: ToolHandler = async (args) => {
   });
   const receipt = await publicClient.waitForTransactionReceipt({ hash });
 
+  const claimedEvent = findEventInLogs(receipt.logs, coreAbi, "PredictionRewardClaimed");
+  const ethAmount = claimedEvent?.ethAmount as bigint | undefined;
+  const moltxAmount = claimedEvent?.moltxAmount as bigint | undefined;
+
   return stringifyJson({
     tool: "claim_prediction_reward",
     contractFunction: "MoltXCore.claimPredictionReward",
     roundId,
+    isWinner: ethAmount !== undefined ? ethAmount > 0n : undefined,
+    ethAmount,
+    ethAmountFormatted: ethAmount !== undefined ? formatEther(ethAmount) + " ETH" : undefined,
+    moltxAmount,
+    lpMoltxUsed: claimedEvent?.lpMoltxUsed,
+    taskLPAdded: claimedEvent?.taskLPAdded,
     txHash: hash,
     status: receipt.status,
     blockNumber: receipt.blockNumber,

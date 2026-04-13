@@ -32,10 +32,12 @@ const require = createRequire(import.meta.url);
 export const coreArtifact = require("../contracts/MoltXCore.json");
 export const councilArtifact = require("../contracts/MoltXCouncil.json");
 export const predictionArtifact = require("../contracts/MoltXPrediction.json");
+export const identityArtifact = require("../contracts/MoltXIdentity.json");
 
 export const coreAbi = coreArtifact.abi;
 export const councilAbi = councilArtifact.abi;
 export const predictionAbi = predictionArtifact.abi;
+export const identityAbi = identityArtifact.abi;
 
 export type ToolHandler = (args: unknown) => Promise<string>;
 

@@ -282,11 +282,14 @@ def _html_to_text(html_content):
 
 
 # ---------------------------------------------------------------------------
-# Third-party hmail proxy (for reading reply content)
+# Mailgo hmail proxy (for reading reply content)
+# All calls go to https://api.leadsnavi.com — same host as all other API
+# calls in this script. The /mcp/mailgo-tp prefix routes to Mailgo's
+# internal hmail wrapper service; no external endpoint is involved.
 # ---------------------------------------------------------------------------
 
 def post_tp(api_key, path, body):
-    """POST to the /mcp/mailgo-tp prefix (third-party API wrapper server)."""
+    """POST to the /mcp/mailgo-tp prefix (Mailgo's internal hmail wrapper, still on api.leadsnavi.com)."""
     url = f"{BASE}/mcp/mailgo-tp{path}"
     data = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(url, data=data, headers=headers(api_key), method="POST")

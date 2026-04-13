@@ -1,0 +1,11 @@
+{
+  "owner": "mirni",
+  "slug": "greenhelix-agent-revenue-analytics",
+  "displayName": "Agent Revenue Analytics: Attribution, LTV, Cohorts, and Pricing Optimization for AI Agent Services",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1776065323800,
+    "commit": null
+  },
+  "history": []
+}

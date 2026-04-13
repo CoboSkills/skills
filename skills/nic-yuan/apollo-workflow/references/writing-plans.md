@@ -18,6 +18,8 @@ Announce at start: "I'm using the writing-plans skill to create the implementati
 ```markdown
 # [Feature Name] Implementation Plan
 
+**Design:** docs/plans/YYYY-MM-DD-<topic>-design.md
+
 > **For implementer:** Use TDD throughout. Write failing test first. Watch it fail. Then implement.
 
 **Goal:** [One sentence describing what this builds]
@@ -28,6 +30,8 @@ Announce at start: "I'm using the writing-plans skill to create the implementati
 
 ---
 ```
+
+> ⚠️ **The `Design:` field is MANDATORY.** It must point to the approved design document from Phase 1. Without this field, the plan will not pass HG-2 gate review.
 
 ## Task Granularity
 
@@ -78,3 +82,36 @@ After saving plan, offer:
 > Which approach?"
 
 If Subagent-Driven: proceed to subagent-development phase.
+
+---
+
+## HARD GATE HG-2: Plan Approval
+
+**Before leaving Phase 2, you MUST complete ALL of the following:**
+
+- [ ] Plan file written to `docs/plans/YYYY-MM-DD-<feature>.md`
+- [ ] Plan file committed to git
+- [ ] Plan header contains `Design:` field pointing to approved design doc
+- [ ] Each task has exact file paths (no placeholders)
+- [ ] Each task has TDD steps (write test → fail → implement → pass → commit)
+- [ ] User selected execution mode: Subagent-Driven OR Manual
+- [ ] Gate file created: `.workflow/gate/p2-plan-approved.json`
+
+**Gate file format:**
+```json
+{
+  "gate": "HG-2",
+  "passed_at": "ISO8601",
+  "plan_file": "docs/plans/YYYY-MM-DD-<feature>.md",
+  "design_file": "docs/plans/YYYY-MM-DD-<topic>-design.md",
+  "task_count": N,
+  "execution_mode": "subagent|manual"
+}
+```
+
+**To check gate:**
+```bash
+bash scripts/workflow/phase-gate-check.sh phase3
+```
+
+**If gate not passed:** You CANNOT proceed to Phase 3. Continue planning until gate is satisfied.

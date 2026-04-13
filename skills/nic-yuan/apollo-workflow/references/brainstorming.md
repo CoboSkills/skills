@@ -34,8 +34,37 @@ Source: obra/superpowers brainstorming skill
 - Error handling approach
 - Testing strategy
 
+## HARD GATE HG-1: Design Approval
+
+**Before leaving Phase 1, you MUST complete ALL of the following:**
+
+- [ ] Design doc written to `docs/plans/YYYY-MM-DD-<topic>-design.md`
+- [ ] Design doc committed to git
+- [ ] Design approved by user (user says "approved" or similar)
+- [ ] Gate file created: `.workflow/gate/p1-design-approved.json`
+
+**Gate file format:**
+```json
+{
+  "gate": "HG-1",
+  "passed_at": "ISO8601",
+  "design_file": "docs/plans/YYYY-MM-DD-<topic>-design.md",
+  "approved_by": "user"
+}
+```
+
+**To check gate:**
+```bash
+bash scripts/workflow/phase-gate-check.sh phase2
+```
+
+**If gate not passed:** You CANNOT proceed to Phase 2. Continue brainstorming until gate is satisfied.
+
+---
+
 ## After Design Approval
 
 - Write design to `docs/plans/YYYY-MM-DD-<topic>-design.md`
 - Commit the design doc
+- Create `.workflow/gate/p1-design-approved.json`
 - Hand off to writing-plans — no other skill, no implementation

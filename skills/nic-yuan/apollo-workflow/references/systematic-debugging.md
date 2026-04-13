@@ -2,6 +2,32 @@
 
 Source: obra/superpowers systematic-debugging skill
 
+## Entering Phase 4 (Debug)
+
+**Phase 4 can be entered from ANY phase.** Debugging does not disrupt the workflow state.
+
+| From Phase | Entry Condition | Action |
+|------------|----------------|--------|
+| Phase 1 | Bug discovered during brainstorming | Stay in Phase 1 until debug complete, then resume |
+| Phase 2 | Bug discovered during planning | Stay in Phase 2 until debug complete, then resume |
+| Phase 3 | Bug discovered during development | Stay in Phase 3 until debug complete, then resume |
+| Phase 4 | Already debugging | Continue until HG-4 passed |
+| Phase 5 | Bug in finishing/merge | Enter Phase 4, resolve, return to Phase 5 |
+
+**State file:** Debugging does NOT change `current_phase` in `state.json`. It only creates `.workflow/gate/p4-bug-fixed.json` when complete.
+
+**To trigger Phase 4:**
+```bash
+# Phase 4 is entered by default when you say "debug", "bug", "this is broken"
+# No gate file needed to ENTER Phase 4
+
+# To COMPLETE Phase 4 and exit debug mode:
+bash scripts/workflow/phase-gate-check.sh debug-complete
+# Requires: .workflow/gate/p4-bug-fixed.json
+```
+
+---
+
 ## The Iron Law
 
 ```
@@ -97,3 +123,30 @@ Complete each phase before proceeding to the next.
 - **"Quick patch"** — symptom fix leaving root cause intact
 - **Fixing multiple things at once** — makes it impossible to know what worked
 - **Skipping reproduction** — debugging something you can't trigger consistently
+
+---
+
+## HARD GATE HG-4: Debug Complete
+
+**Before declaring debug complete, you MUST verify ALL of the following:**
+
+- [ ] Root cause identified and written in commit message: `Fix: <root cause description>`
+- [ ] Test exists that would have caught this bug (new or modified)
+- [ ] Full test suite passes (no regressions)
+- [ ] Gate file created: `.workflow/gate/p4-bug-fixed.json`
+
+**Gate file format:**
+```json
+{
+  "gate": "HG-4",
+  "passed_at": "ISO8601",
+  "root_cause": "Description of root cause",
+  "fix_summary": "What was fixed",
+  "test_added": "path/to/test.py::test_name"
+}
+```
+
+**To check gate:**
+```bash
+bash scripts/workflow/phase-gate-check.sh debug-complete
+```

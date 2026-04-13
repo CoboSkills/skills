@@ -3,9 +3,15 @@
   "slug": "apollo-workflow",
   "displayName": "Apollo Workflow",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1775490210841,
-    "commit": "https://github.com/openclaw/skills/commit/671cf9b3d7fb467c2d6d27690ae9efda3a52aa10"
+    "version": "3.0.1",
+    "publishedAt": 1775635560990,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1775490210841,
+      "commit": "https://github.com/openclaw/skills/commit/671cf9b3d7fb467c2d6d27690ae9efda3a52aa10"
+    }
+  ]
 }

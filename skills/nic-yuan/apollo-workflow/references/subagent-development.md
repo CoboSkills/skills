@@ -110,3 +110,32 @@ Report: approve or list issues by severity.
 | Critical | Fix before proceeding — blocks next task |
 | Important | Fix before proceeding |
 | Minor | Note, address later |
+
+---
+
+## HARD GATE HG-3: All Tasks Complete
+
+**Before leaving Phase 3, you MUST verify ALL of the following:**
+
+- [ ] All tasks in plan completed (check `completed_tasks` in state.json)
+- [ ] All commits present (git log shows all task commits)
+- [ ] Each task has: test → fail → implement → pass → commit sequence
+- [ ] No unresolved Critical or Important review issues
+- [ ] Gate file created: `.workflow/gate/p3-all-tasks-done.json`
+
+**Gate file format:**
+```json
+{
+  "gate": "HG-3",
+  "passed_at": "ISO8601",
+  "task_count": N,
+  "completed_count": N,
+  "all_commits_present": true,
+  "critical_issues": 0
+}
+```
+
+**To check gate:**
+```bash
+bash scripts/workflow/phase-gate-check.sh phase5
+```

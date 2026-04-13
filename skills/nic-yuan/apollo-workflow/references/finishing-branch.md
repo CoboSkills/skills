@@ -2,6 +2,21 @@
 
 Source: obra/superpowers finishing-a-development-branch skill
 
+## State Manager Integration
+
+**Before starting Phase 5, check current state:**
+```bash
+bash scripts/workflow/state-manager.sh check
+```
+
+**Current branch and base branch are in `state.json`:**
+- `feature_branch`: current feature branch name
+- Read base branch via: `git merge-base HEAD main`
+
+**Phase 5 does NOT change `current_phase`** until completion.
+
+---
+
 ## Overview
 
 Verify tests → Present options → Execute choice.
@@ -111,3 +126,32 @@ git branch -D <feature-branch>
 - Skipping test verification before offering options → always verify first
 - Merging without pulling latest base → always `git pull` before merge
 - Deleting branch before confirming PR merged → wait for merge confirmation
+
+---
+
+## HARD GATE HG-5: Finishing Complete
+
+**Before declaring Phase 5 complete, you MUST verify ALL of the following:**
+
+- [ ] Full test suite passes (HG-3 subset + regression)
+- [ ] Base branch correctly identified
+- [ ] User selected one of the 4 options
+- [ ] If Option 4 (discard): user typed exact word `discard`
+- [ ] Gate file created: `.workflow/gate/p5-complete.json`
+
+**Gate file format:**
+```json
+{
+  "gate": "HG-5",
+  "passed_at": "ISO8601",
+  "option_selected": 1|2|3|4,
+  "action_taken": "merged|pr_created|kept|discarded"
+}
+```
+
+**To check gate:**
+```bash
+bash scripts/workflow/phase-gate-check.sh finish
+```
+
+**If gate not passed:** You CANNOT complete the workflow. Continue until gate is satisfied.

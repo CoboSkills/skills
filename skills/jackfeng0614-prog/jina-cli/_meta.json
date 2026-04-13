@@ -1,0 +1,11 @@
+{
+  "owner": "jackfeng0614-prog",
+  "slug": "jina-cli",
+  "displayName": "Jina CLI",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775700517482,
+    "commit": null
+  },
+  "history": []
+}

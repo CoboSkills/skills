@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "comet-ml",
+  "displayName": "Comet Ml",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775725139384,
+    "commit": null
+  },
+  "history": []
+}

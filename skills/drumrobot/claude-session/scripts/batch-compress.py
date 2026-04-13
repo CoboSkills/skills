@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""임의 경로의 JSONL 파일들에 dedup을 일괄 실행하여 세션 파일 크기를 줄이는 스크립트
+"""Batch dedup script for JSONL files at arbitrary paths to reduce session file sizes
 
 Usage:
-    python batch-compress.py <path>                    # 경로 내 *.jsonl 재귀 탐색 + dedup
-    python batch-compress.py <path> --dry-run          # 변경 없이 예상 결과만 출력
-    python batch-compress.py <path> --clean-orig       # .orig.jsonl 파일도 정리
-    python batch-compress.py <path> --clean-proj       # .proj.jsonl 파일도 정리
+    python batch-compress.py <path>                    # Recursively find *.jsonl in path + dedup
+    python batch-compress.py <path> --dry-run          # Print expected results without making changes
+    python batch-compress.py <path> --clean-orig       # Also clean up .orig.jsonl files
+    python batch-compress.py <path> --clean-proj       # Also clean up .proj.jsonl files
 """
 
 import os
@@ -15,12 +15,12 @@ from pathlib import Path
 
 
 def load_dedup_session():
-    """같은 디렉토리의 dedup-session.py에서 dedup_session 함수 import"""
+    """Import dedup_session function from dedup-session.py in the same directory"""
     script_dir = Path(__file__).parent
     dedup_path = script_dir / 'dedup-session.py'
 
     if not dedup_path.exists():
-        print(f"오류: {dedup_path} 파일을 찾을 수 없습니다", file=sys.stderr)
+        print(f"Error: {dedup_path} not found", file=sys.stderr)
         sys.exit(1)
 
     spec = importlib.util.spec_from_file_location('dedup_session_mod', dedup_path)
@@ -30,7 +30,7 @@ def load_dedup_session():
 
 
 def format_size(size_bytes: int) -> str:
-    """바이트를 읽기 좋은 형식으로 변환"""
+    """Convert bytes to a human-readable format"""
     if size_bytes < 1024:
         return f"{size_bytes}B"
     elif size_bytes < 1024 * 1024:
@@ -40,7 +40,7 @@ def format_size(size_bytes: int) -> str:
 
 
 def collect_jsonl_files(root: Path) -> list[Path]:
-    """경로 내 모든 .jsonl 파일 재귀 탐색 (.orig.jsonl, .proj.jsonl, .dedup 제외)"""
+    """Recursively find all .jsonl files in path (excluding .orig.jsonl, .proj.jsonl, .dedup)"""
     files = []
     for dirpath, _dirnames, filenames in os.walk(root):
         for fname in filenames:
@@ -53,9 +53,9 @@ def collect_jsonl_files(root: Path) -> list[Path]:
 
 def clean_orig_files(root: Path, dry_run: bool) -> tuple[int, int]:
     """
-    .orig.jsonl 파일 정리:
-    - 대응 .jsonl이 있으면 삭제
-    - 대응 .jsonl이 없으면 rename (.orig.jsonl → .jsonl)
+    Clean up .orig.jsonl files:
+    - Delete if corresponding .jsonl exists
+    - Rename to .jsonl if no corresponding .jsonl exists (.orig.jsonl -> .jsonl)
 
     Returns: (deleted, renamed)
     """
@@ -67,17 +67,17 @@ def clean_orig_files(root: Path, dry_run: bool) -> tuple[int, int]:
             if not fname.endswith('.orig.jsonl'):
                 continue
             orig_path = Path(dirpath) / fname
-            # .orig.jsonl → .jsonl 대응 파일 경로 계산
+            # Compute corresponding .jsonl path from .orig.jsonl
             base_name = fname[: -len('.orig.jsonl')] + '.jsonl'
             jsonl_path = Path(dirpath) / base_name
 
             if jsonl_path.exists():
-                print(f"  [orig] 삭제: {orig_path}")
+                print(f"  [orig] delete: {orig_path}")
                 if not dry_run:
                     orig_path.unlink()
                 deleted += 1
             else:
-                print(f"  [orig] rename: {orig_path} → {jsonl_path}")
+                print(f"  [orig] rename: {orig_path} -> {jsonl_path}")
                 if not dry_run:
                     orig_path.rename(jsonl_path)
                 renamed += 1
@@ -87,8 +87,8 @@ def clean_orig_files(root: Path, dry_run: bool) -> tuple[int, int]:
 
 def clean_proj_files(root: Path, dry_run: bool) -> int:
     """
-    .proj.jsonl 파일 정리:
-    - 대응 .jsonl이 있으면 삭제
+    Clean up .proj.jsonl files:
+    - Delete if corresponding .jsonl exists
 
     Returns: deleted count
     """
@@ -103,7 +103,7 @@ def clean_proj_files(root: Path, dry_run: bool) -> int:
             jsonl_path = Path(dirpath) / base_name
 
             if jsonl_path.exists():
-                print(f"  [proj] 삭제: {proj_path}")
+                print(f"  [proj] delete: {proj_path}")
                 if not dry_run:
                     proj_path.unlink()
                 deleted += 1
@@ -118,7 +118,7 @@ def main():
 
     root = Path(sys.argv[1])
     if not root.exists():
-        print(f"오류: {root} 경로가 존재하지 않습니다", file=sys.stderr)
+        print(f"Error: {root} path does not exist", file=sys.stderr)
         sys.exit(1)
 
     dry_run = '--dry-run' in sys.argv
@@ -126,32 +126,32 @@ def main():
     clean_proj = '--clean-proj' in sys.argv
 
     if dry_run:
-        print("=== DRY RUN 모드 (파일 변경 없음) ===\n")
+        print("=== DRY RUN mode (no file changes) ===\n")
 
     dedup_session = load_dedup_session()
 
-    # 1단계: .orig.jsonl 정리
+    # Step 1: clean up .orig.jsonl
     if clean_orig:
-        print("--- .orig.jsonl 정리 ---")
+        print("--- cleaning .orig.jsonl ---")
         orig_deleted, orig_renamed = clean_orig_files(root, dry_run)
-        print(f"  삭제: {orig_deleted}개, rename: {orig_renamed}개\n")
+        print(f"  deleted: {orig_deleted}, renamed: {orig_renamed}\n")
 
-    # 2단계: .proj.jsonl 정리
+    # Step 2: clean up .proj.jsonl
     if clean_proj:
-        print("--- .proj.jsonl 정리 ---")
+        print("--- cleaning .proj.jsonl ---")
         proj_deleted = clean_proj_files(root, dry_run)
-        print(f"  삭제: {proj_deleted}개\n")
+        print(f"  deleted: {proj_deleted}\n")
 
-    # 3단계: .jsonl 파일 수집 후 크기 역순 정렬 (효과 큰 것 먼저)
+    # Step 3: collect .jsonl files and sort by size descending (largest first)
     jsonl_files = collect_jsonl_files(root)
     jsonl_files.sort(key=lambda p: p.stat().st_size, reverse=True)
 
     total = len(jsonl_files)
     if total == 0:
-        print("처리할 .jsonl 파일이 없습니다.")
+        print("No .jsonl files to process.")
         return
 
-    print(f"--- dedup 처리: {total}개 파일 ---")
+    print(f"--- dedup processing: {total} files ---")
 
     changed = 0
     errors = 0
@@ -160,7 +160,7 @@ def main():
 
     for i, jsonl_path in enumerate(jsonl_files, 1):
         if i % 50 == 0:
-            print(f"  진행: {i}/{total} ({changed}개 변경, {errors}개 오류)")
+            print(f"  progress: {i}/{total} ({changed} changed, {errors} errors)")
 
         file_size = jsonl_path.stat().st_size
         total_before += file_size
@@ -181,22 +181,22 @@ def main():
                     os.replace(dedup_path, jsonl_path)
                     changed += 1
                     print(
-                        f"  변경: {jsonl_path.name}"
-                        f" ({orig_lines}→{unique_lines}줄,"
-                        f" {format_size(file_size)}→{format_size(after_size)})"
+                        f"  changed: {jsonl_path.name}"
+                        f" ({orig_lines}->{unique_lines} lines,"
+                        f" {format_size(file_size)}->{format_size(after_size)})"
                     )
                 else:
                     dedup_path.unlink()
                     total_after = total_after - after_size + file_size
             else:
-                # dry-run: 라인 비율로 예상 절감량 추정
+                # dry-run: estimate savings by line ratio
                 if removed > 0 and orig_lines > 0:
                     estimated_after = int(file_size * unique_lines / orig_lines)
                     changed += 1
                     print(
-                        f"  [예상 변경] {jsonl_path.name}"
-                        f" ({orig_lines}→{unique_lines}줄, -{removed}줄,"
-                        f" ~{format_size(file_size - estimated_after)} 절감 예상)"
+                        f"  [estimated change] {jsonl_path.name}"
+                        f" ({orig_lines}->{unique_lines} lines, -{removed} lines,"
+                        f" ~{format_size(file_size - estimated_after)} estimated savings)"
                     )
                 else:
                     estimated_after = file_size
@@ -205,19 +205,19 @@ def main():
         except Exception as e:
             errors += 1
             total_after += file_size
-            print(f"  오류: {jsonl_path.name} — {e}", file=sys.stderr)
+            print(f"  error: {jsonl_path.name} -- {e}", file=sys.stderr)
 
-    # 결과 요약
+    # Summary
     saved = total_before - total_after
     ratio = (saved / total_before * 100) if total_before > 0 else 0.0
 
-    print(f"\n{'=== 결과 요약 (DRY RUN) ===' if dry_run else '=== 결과 요약 ==='}")
-    print(f"  총 파일:    {total}개")
-    print(f"  변경 파일:  {changed}개")
-    print(f"  오류:       {errors}개")
-    print(f"  처리 전:    {format_size(total_before)}")
-    print(f"  처리 후:    {format_size(total_after)}")
-    print(f"  절감:       {format_size(saved)} ({ratio:.1f}%)")
+    print(f"\n{'=== Summary (DRY RUN) ===' if dry_run else '=== Summary ==='}")
+    print(f"  total files:   {total}")
+    print(f"  changed files: {changed}")
+    print(f"  errors:        {errors}")
+    print(f"  before:        {format_size(total_before)}")
+    print(f"  after:         {format_size(total_after)}")
+    print(f"  saved:         {format_size(saved)} ({ratio:.1f}%)")
 
 
 if __name__ == '__main__':

@@ -16,7 +16,7 @@ http://localhost:5174/#project={project-key}&session={session-id}
 | WSL | `/mnt/c/Users/USER/path/repo` | `-mnt-c-Users-USER-path-repo` |
 | macOS | `/Users/david/path/repo` | `-Users-david-path-repo` |
 
-Rule: path separators (`/`, `\`) → `-`, strip leading `/`, `:` → `-`
+Rule: Replace all non-alphanumeric characters with `-`
 
 ## Procedure
 

@@ -1,6 +1,6 @@
 ---
-name: session
-description: Integrated skill for Claude Code session management. id - look up current session ID + keyword session search, import - import session, summarize - summarize session, analyze - session stats/analysis, classify - classify/organize sessions, compress - compress session, destroy - delete current session, migrate - move sessions between projects (main repo to worktree), repair - restore session structure (chain, tool_result), rename - assign custom title to session, url - generate claude-sessions web URL from session ID, Use when: "session ID", "current session", "session id", "get session", "session analysis", "session classify", "session compress", "session delete", "session repair", "chain repair", "session name", "name session", "session search", "find session", "which session", "session import", "session analyze", "session classify", "session compress", "session migrate", "session move", "worktree session", "move session", "worktree session move", "session repair", "session rename", "chain repair", "session url", "session web URL", "claude-sessions url"
+name: claude-session
+description: Integrated skill for Claude Code session management. id - look up current session ID + keyword session search, import - import session, summarize - summarize session, analyze - session stats/analysis, classify - classify/organize sessions, compress - compress session, destroy - delete current session, migrate - move sessions between projects (main repo to worktree), repair - restore session structure (chain, tool_result), rename - assign custom title to session, url - generate claude-sessions web URL from session ID, Use when: "session ID", "current session", "session id", "get session", "session analysis", "session classify", "session compress", "session delete", "session repair", "chain repair", "session name", "name session", "session search", "find session", "which session", "session import", "session analyze", "session classify", "session compress", "session migrate", "session move", "worktree session", "move session", "worktree session move", "session repair", "session rename", "chain repair", "session url", "session web URL", "claude-sessions url", "session split", "split recommendations", "topic split", "session purge", "dead session", "clean dead sessions", "session cleanup"
 ---
 
 # Session
@@ -13,11 +13,13 @@ Integrated skill for managing Claude Code sessions.
 |-------|-------------|-------|
 | analyze | Session statistics, tool usage patterns, optimization insights | [analyze.md](./analyze.md) |
 | classify | Classify project sessions (delete/keep/extract) | [classify.md](./classify.md) |
+| split | Analyze topic boundaries and recommend session split points | [split.md](./split.md) |
 | compress | AI-compress sessions via UTCP/code-mode | [compress.md](./compress.md) |
 | destroy | Delete current session and restart IDE | [destroy.md](./destroy.md) |
 | id | Look up current session ID (UUID) | [id.md](./id.md) |
 | import | Pipeline session data to other agents/skills | [import.md](./import.md) |
 | migrate | Move sessions between projects (main repo → worktree) | [migrate.md](./migrate.md) |
+| purge | Delete dead sessions (hook-only, no assistant response) permanently | [purge.md](./purge.md) |
 | rename | Assign and look up custom title for session | [rename.md](./rename.md) |
 | repair | Restore session structure (chain, tool_result, UUID) | [repair.md](./repair.md) |
 | summarize | View and summarize conversation content from other sessions | [summarize.md](./summarize.md) |
@@ -53,6 +55,16 @@ Integrated skill for managing Claude Code sessions.
 ```
 
 [Detailed guide](./analyze.md)
+
+### Split (Topic Split Recommendation)
+
+```bash
+/session split                     # Recommend split for current conversation
+/session split <session_id>        # Recommend split for specific session
+/session split --execute           # Execute recommendation immediately
+```
+
+[Detailed guide](./split.md)
 
 ### Classify (Session Classification)
 
@@ -110,6 +122,19 @@ scripts/destroy-session.sh
 
 [Detailed guide](./destroy.md)
 
+### Purge (Dead Session Cleanup)
+
+```bash
+/session purge                    # dry-run: list dead sessions in current project
+/session purge <project_name>     # dry-run: specific project
+/session purge --all              # dry-run: all projects
+```
+
+Dead session = 10 lines or fewer + no `"type":"assistant"` response.
+Script: `scripts/purge-dead-sessions.sh <project_name> [--delete]`
+
+[Detailed guide](./purge.md)
+
 ### Repair (Session Recovery)
 
 ```bash
@@ -130,16 +155,16 @@ Repair targets:
 
 ```bash
 # Assign a name to a specific session
-bash ~/.claude/skills/session/scripts/rename-session.sh <session_id> "name"
+bash scripts/rename-session.sh <session_id> "name"
 
 # Assign a name to the latest session in the current project
-bash ~/.claude/skills/session/scripts/rename-session.sh "name"
+bash scripts/rename-session.sh "name"
 
 # Check current title
-bash ~/.claude/skills/session/scripts/rename-session.sh --show <session_id>
+bash scripts/rename-session.sh --show <session_id>
 
 # List named sessions in current project
-bash ~/.claude/skills/session/scripts/rename-session.sh --list
+bash scripts/rename-session.sh --list
 ```
 
 [Detailed guide](./rename.md)
@@ -148,12 +173,12 @@ bash ~/.claude/skills/session/scripts/rename-session.sh --list
 
 | Actual Path | Project Name |
 |-------------|--------------|
-| `/Users/david/works/.vscode` | `-Users-david-works--vscode` |
-| `/Users/david/Sync/AI` | `-Users-david-Sync-AI` |
+| `/Users/es6kr/works/.vscode` | `-Users-david-works--vscode` |
+| `/Users/es6kr/Sync/AI` | `-Users-david-Sync-AI` |
 
 Rule: `/` → `-`, remove leading `/` from path
 
 ## Requirements
 
-- claude-code-sessions MCP server required
+- claude-sessions-mcp MCP server required
 - Serena MCP server (when using analyze --sync)

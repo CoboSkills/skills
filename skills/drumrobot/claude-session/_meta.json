@@ -1,11 +1,17 @@
 {
   "owner": "drumrobot",
   "slug": "claude-session",
-  "displayName": "Session Manager",
+  "displayName": "Claude Session",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1775186241476,
-    "commit": "https://github.com/openclaw/skills/commit/2c3a397a615b21404347636d9d5f5fe077001f17"
+    "version": "0.1.1",
+    "publishedAt": 1775831096612,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1775186241476,
+      "commit": "https://github.com/openclaw/skills/commit/2c3a397a615b21404347636d9d5f5fe077001f17"
+    }
+  ]
 }

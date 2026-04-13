@@ -24,7 +24,7 @@ Marker for finding session ID: SESSION_MARKER_a1b2c3d4-e5f6-7890-abcd-ef12345678
 ### 2. Search with Script
 
 ```bash
-bash ~/.claude/skills/session/scripts/find-session-id.sh "SESSION_MARKER_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+bash scripts/find-session-id.sh "SESSION_MARKER_a1b2c3d4-e5f6-7890-abcd-ef1234567890"
 ```
 
 The script converts the CWD to a project name, then searches `~/.claude/projects/{project_name}/*.jsonl` for the marker and returns the session ID.
@@ -68,10 +68,12 @@ grep -l "<keyword>" "$PROJECT_DIR"/*.jsonl | while read f; do
 done | sort -rn | head -5
 ```
 
-### Restricting Search Scope
+### Restricting Search Scope (Skill Procedure)
 
-- `--today`: Only sessions modified today (uses `find -newer`)
-- `--project <path>`: Specify a particular project path
+These are not script flags — they are implemented by the skill at invocation time:
+
+- `--today`: Filter results to sessions modified today (skill uses `find -newer`)
+- `--project <path>`: Specify a particular project path (skill overrides CWD-based detection)
 
 ### Output Format
 

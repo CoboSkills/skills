@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""세션 JSONL 파일 전체 복구 스크립트
+"""Full session JSONL file repair script
 
 Usage:
     python repair-session.py <session_file>
@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-# dedup-session.py는 하이픈이 포함된 파일명이라 importlib으로 로드
+# dedup-session.py has a hyphen in the filename, so load with importlib
 _scripts_dir = Path(__file__).parent
 _spec = importlib.util.spec_from_file_location("dedup_session", _scripts_dir / "dedup-session.py")
 _mod = importlib.util.module_from_spec(_spec)
@@ -23,7 +23,7 @@ dedup_session = _mod.dedup_session
 
 
 def load_lines(session_file: Path) -> List[Tuple[str, Optional[dict]]]:
-    """JSONL 파일을 (raw_line, parsed_data) 리스트로 로드"""
+    """Load JSONL file as a list of (raw_line, parsed_data) tuples"""
     messages = []
     with open(session_file, 'r') as f:
         for line in f:
@@ -39,10 +39,10 @@ def load_lines(session_file: Path) -> List[Tuple[str, Optional[dict]]]:
 
 
 def remove_400_errors(messages: List[Tuple[str, Optional[dict]]]) -> Tuple[List[Tuple[str, Optional[dict]]], int]:
-    """400 오류 라인과 직전 user 메시지 제거
+    """Remove 400 error lines and the preceding user message
 
-    조건: isApiErrorMessage==True 또는 error=="invalid_request"
-    제거 시 직전 user 메시지도 함께 제거
+    Condition: isApiErrorMessage==True or error=="invalid_request"
+    Also removes the preceding user message when an error is removed
     """
     removed = 0
     result = []
@@ -58,7 +58,7 @@ def remove_400_errors(messages: List[Tuple[str, Optional[dict]]]) -> Tuple[List[
         )
 
         if is_error:
-            # 직전 user 메시지 제거
+            # Remove preceding user message
             if result and result[-1][1] is not None and result[-1][1].get('type') == 'user':
                 result.pop()
                 removed += 1
@@ -70,12 +70,12 @@ def remove_400_errors(messages: List[Tuple[str, Optional[dict]]]) -> Tuple[List[
 
 
 def remove_orphan_tool_results(messages: List[Tuple[str, Optional[dict]]]) -> Tuple[List[Tuple[str, Optional[dict]]], int]:
-    """고아 tool_result 탐지 및 제거
+    """Detect and remove orphan tool_results
 
-    모든 assistant의 tool_use id 수집 → user의 tool_result.tool_use_id가
-    매칭 안 되면 해당 user 메시지 삭제
+    Collect all assistant tool_use ids -> delete user messages whose
+    tool_result.tool_use_id does not match any remaining tool_use
     """
-    # 모든 tool_use id 수집
+    # Collect all tool_use ids
     tool_use_ids = set()
     for _, data in messages:
         if data and data.get('type') == 'assistant':
@@ -102,22 +102,32 @@ def remove_orphan_tool_results(messages: List[Tuple[str, Optional[dict]]]) -> Tu
                         for item in tool_results
                     )
                     if all_orphan:
-                        removed += 1
+                        # Remove only orphan tool_results, keep other content
+                        non_orphan_content = [
+                            item for item in data.get('message', {}).get('content', [])
+                            if item.get('type') != 'tool_result'
+                            or item.get('tool_use_id') in tool_use_ids
+                        ]
+                        if non_orphan_content:
+                            data['message']['content'] = non_orphan_content
+                            result.append((json.dumps(data), data))
+                        else:
+                            removed += 1
                         continue
         result.append((line, data))
 
     return result, removed
 
 
-# 체인 복구에서 제외할 type 목록
+# Types to exclude from chain repair
 _SKIP_CHAIN_TYPES = {'file-history-snapshot', 'queue-operation', 'last-prompt'}
 
 
 def repair_chains(messages: List[Tuple[str, Optional[dict]]]) -> Tuple[List[Tuple[str, Optional[dict]]], int]:
-    """끊어진 체인 복구
+    """Repair broken chains
 
-    isSidechain==false이고 type이 제외 목록에 없는 메시지에서
-    parentUuid 필드가 없으면 이전 메시지의 uuid를 설정
+    For messages where isSidechain==false and type is not in the exclusion list,
+    set parentUuid to the previous message's uuid if parentUuid is missing
     """
     fixed = 0
     result = []
@@ -145,8 +155,8 @@ def repair_chains(messages: List[Tuple[str, Optional[dict]]]) -> Tuple[List[Tupl
 
 
 def validate(messages: List[Tuple[str, Optional[dict]]]) -> dict:
-    """검증: 중복 message.id==0, 고아 tool_result, 끊어진 체인, JSON 유효성"""
-    # 중복 message.id 확인 (id==0인 것)
+    """Validate: duplicate message.id==0, orphan tool_results, broken chains, JSON validity"""
+    # Check for duplicate message.id (id==0)
     msg_id_zero_count = 0
     tool_use_ids = set()
     orphan_tool_results = 0
@@ -159,12 +169,12 @@ def validate(messages: List[Tuple[str, Optional[dict]]]) -> dict:
             invalid_json += 1
             continue
 
-        # message.id == 0 중복 체크
+        # Check message.id == 0 duplicates
         msg = data.get('message', {})
         if isinstance(msg, dict) and msg.get('id') == 0:
             msg_id_zero_count += 1
 
-        # tool_use id 수집
+        # Collect tool_use ids
         if data.get('type') == 'assistant':
             content = data.get('message', {}).get('content', [])
             if isinstance(content, list):
@@ -172,7 +182,7 @@ def validate(messages: List[Tuple[str, Optional[dict]]]) -> dict:
                     if isinstance(item, dict) and item.get('type') == 'tool_use':
                         tool_use_ids.add(item.get('id'))
 
-        # 고아 tool_result 검사
+        # Check for orphan tool_results
         if data.get('type') == 'user':
             content = data.get('message', {}).get('content', [])
             if isinstance(content, list):
@@ -187,7 +197,7 @@ def validate(messages: List[Tuple[str, Optional[dict]]]) -> dict:
                     ]
                     orphan_tool_results += len(orphans)
 
-        # 끊어진 체인 검사
+        # Check for broken chains
         if data.get('uuid') and not data.get('isSidechain'):
             msg_type = data.get('type', '')
             if msg_type not in _SKIP_CHAIN_TYPES:
@@ -205,7 +215,7 @@ def validate(messages: List[Tuple[str, Optional[dict]]]) -> dict:
 
 
 def repair_session(session_file: Path, dry_run: bool = False) -> dict:
-    """세션 파일 전체 복구 실행"""
+    """Run full session file repair"""
     session_file = Path(session_file)
 
     if not session_file.exists():
@@ -215,15 +225,15 @@ def repair_session(session_file: Path, dry_run: bool = False) -> dict:
     original_lines = load_lines(session_file)
     original_count = len(original_lines)
 
-    # 1단계: 백업
+    # Step 1: backup
     if not dry_run:
         bak_file = Path(str(session_file) + '.bak')
         shutil.copy2(session_file, bak_file)
-        print(f"[1/6] 백업: {bak_file}")
+        print(f"[1/6] Backup: {bak_file}")
     else:
-        print(f"[1/6] 백업: (dry-run, 건너뜀)")
+        print(f"[1/6] Backup: (dry-run, skipped)")
 
-    # 2단계: dedup
+    # Step 2: dedup
     dedup_result = dedup_session(session_file, dry_run=dry_run)
     dedup_removed = dedup_result['original_lines'] - dedup_result['unique_lines']
     dedup_fixed_chains = dedup_result.get('fixed_chains', 0)
@@ -231,40 +241,40 @@ def repair_session(session_file: Path, dry_run: bool = False) -> dict:
     if not dry_run and 'output_file' in dedup_result:
         dedup_file = Path(dedup_result['output_file'])
         os.replace(dedup_file, session_file)
-        print(f"[2/6] dedup: {dedup_removed}개 중복 제거, {dedup_fixed_chains}개 체인 복구 → 적용됨")
+        print(f"[2/6] dedup: {dedup_removed} duplicates removed, {dedup_fixed_chains} chains repaired -> applied")
     else:
-        print(f"[2/6] dedup: {dedup_removed}개 중복 제거, {dedup_fixed_chains}개 체인 복구 (dry-run)")
+        print(f"[2/6] dedup: {dedup_removed} duplicates removed, {dedup_fixed_chains} chains repaired (dry-run)")
 
-    # dedup 후 파일 다시 로드
+    # Reload file after dedup
     if not dry_run:
         messages = load_lines(session_file)
     else:
-        # dry-run: 원본 그대로 분석
+        # dry-run: analyze original as-is
         messages = original_lines
 
-    # 3단계: 400 오류 제거
+    # Step 3: remove 400 errors
     messages, error_removed = remove_400_errors(messages)
-    print(f"[3/6] 400 오류 제거: {error_removed}개 (오류 라인 + 직전 user 메시지 포함)")
+    print(f"[3/6] 400 error removal: {error_removed} (error lines + preceding user messages)")
 
-    # 4단계: 고아 tool_result 제거
+    # Step 4: remove orphan tool_results
     messages, orphan_removed = remove_orphan_tool_results(messages)
-    print(f"[4/6] 고아 tool_result 제거: {orphan_removed}개")
+    print(f"[4/6] Orphan tool_result removal: {orphan_removed}")
 
-    # 5단계: 끊어진 체인 복구
+    # Step 5: repair broken chains
     messages, chain_fixed = repair_chains(messages)
-    print(f"[5/6] 끊어진 체인 복구: {chain_fixed}개")
+    print(f"[5/6] Broken chain repair: {chain_fixed}")
 
-    # 6단계: 검증
+    # Step 6: validate
     validation = validate(messages)
-    print(f"[6/6] 검증:")
-    print(f"  중복 message.id=0: {validation['duplicate_message_id_zero']}")
-    print(f"  고아 tool_result: {validation['orphan_tool_results']}")
-    print(f"  끊어진 체인: {validation['broken_chains']}")
-    print(f"  JSON 파싱 오류: {validation['invalid_json']}")
+    print(f"[6/6] Validation:")
+    print(f"  duplicate message.id=0: {validation['duplicate_message_id_zero']}")
+    print(f"  orphan tool_results: {validation['orphan_tool_results']}")
+    print(f"  broken chains: {validation['broken_chains']}")
+    print(f"  JSON parse errors: {validation['invalid_json']}")
 
     final_count = len(messages)
 
-    # 결과 저장
+    # Save results
     if not dry_run and (error_removed > 0 or orphan_removed > 0 or chain_fixed > 0):
         with open(session_file, 'w') as f:
             for line, _ in messages:
@@ -299,20 +309,20 @@ def main():
 
     result = repair_session(session_file, dry_run=dry_run)
 
-    print(f"\n=== 결과 ===")
-    print(f"원본 라인 수: {result['original_lines']}")
-    print(f"최종 라인 수: {result['final_lines']}")
-    print(f"총 제거/수정:")
-    print(f"  dedup 제거: {result['dedup_removed']}")
-    print(f"  dedup 체인 복구: {result['dedup_fixed_chains']}")
-    print(f"  400 오류 제거: {result['error_removed']}")
-    print(f"  고아 tool_result 제거: {result['orphan_removed']}")
-    print(f"  체인 복구: {result['chain_fixed']}")
+    print(f"\n=== Results ===")
+    print(f"Original lines: {result['original_lines']}")
+    print(f"Final lines: {result['final_lines']}")
+    print(f"Total removed/repaired:")
+    print(f"  dedup removed: {result['dedup_removed']}")
+    print(f"  dedup chain repairs: {result['dedup_fixed_chains']}")
+    print(f"  400 errors removed: {result['error_removed']}")
+    print(f"  orphan tool_results removed: {result['orphan_removed']}")
+    print(f"  chains repaired: {result['chain_fixed']}")
 
     v = result['validation']
     ok = all(v[k] == 0 for k in v)
     status = "PASS" if ok else "FAIL"
-    print(f"\n검증: {status}")
+    print(f"\nValidation: {status}")
 
 
 if __name__ == '__main__':

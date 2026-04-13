@@ -66,7 +66,7 @@ grep '"type":"user"' ~/.claude/projects/{project}/{session}.jsonl \
 In addition to fast analysis, parse TodoWrite items:
 
 ```bash
-~/.claude/skills/session/scripts/extract-todos.py {project} {session_id}
+scripts/extract-todos.py {project} {session_id}
 ```
 
 Example output:
@@ -237,5 +237,5 @@ After execution:
 
 ## Requirements
 
-- claude-code-sessions MCP server required
+- claude-sessions-mcp MCP server required
 - Serena MCP server (when using extraction features)

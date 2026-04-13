@@ -42,7 +42,7 @@ for f in "$SOURCE_DIR"/*.jsonl; do
   sid=$(basename "$f" .jsonl)
   msg_count=$(cat "$f" | grep -c '"type":"user"' || true)
   ew=$(cat "$f" | grep -c '"name":"Edit"\|"name":"Write"' || true)
-  infra=$(cat "$f" | grep -cE 'ssh |kubectl |docker |ansible|terraform|helm ' || true)
+  infra=$(grep -cE '\b(ssh|kubectl|docker|ansible|terraform|helm)\b' "$f" || true)
 done
 ```
 

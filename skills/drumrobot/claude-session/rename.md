@@ -19,11 +19,26 @@ Analyze the conversation content and generate 2–4 name candidates.
 - **Language**: English preferred; technical terms in English
 - **Avoid**: dates, unnecessary words like "session" or "task"
 
-### 2. Select via AskUserQuestion
+### 2. Apply the Name
+
+**Current session** → Output as copyable list only (NO AskUserQuestion):
+
+```
+Session name suggestions:
+
+1. `/rename Candidate 1`
+2. `/rename Candidate 2`
+3. `/rename Candidate 3`
+```
+
+`/rename` is a Claude Code built-in command — cannot be invoked via Bash or Skill tool.
+The user copies and pastes the desired `/rename ...` line.
+
+**Other session** (session ID specified) → AskUserQuestion to select, then apply via script:
 
 ```
 AskUserQuestion {
-  question: "Please select a session name",
+  question: "Select a session name",
   header: "Session Name",
   options: [
     { label: "Candidate 1" },
@@ -33,34 +48,25 @@ AskUserQuestion {
 }
 ```
 
-### 3. Apply the Name
+Then rename via script:
 
-**Claude Code environment (current session):**
-```
-/rename <selected name>
-```
-
-**External session (script):**
 ```bash
-SCRIPT=~/.claude/skills/session/scripts/rename-session.sh
+scripts/rename-session.sh <session_id> "<selected name>"
 
-# Assign a name to a specific session (full UUID required)
-bash "$SCRIPT" 99f1f311-8c3d-43ba-b212-e3184965fed4 "name"
+# Check current title
+scripts/rename-session.sh --show <session_id>
 
-# Assign a name to the latest session in the current project
-bash "$SCRIPT" "name"
-
-# Check the current name
-bash "$SCRIPT" --show 99f1f311-8c3d-43ba-b212-e3184965fed4
-
-# List sessions with a name
-bash "$SCRIPT" --list
+# List named sessions
+scripts/rename-session.sh --list
 ```
 
 ## Storage Format
 
+Both records are appended together at the end of the session JSONL:
+
 ```json
 {"type":"custom-title","customTitle":"<title>","sessionId":"<uuid>"}
+{"type":"agent-name","agentName":"<title>","sessionId":"<uuid>"}
 ```
 
-Appended to the end of the session JSONL file.
+`custom-title` is displayed as the GUI title, and `agent-name` is displayed as the agent name in the session list.

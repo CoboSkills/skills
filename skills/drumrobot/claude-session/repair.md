@@ -459,7 +459,7 @@ jq empty session.jsonl && echo "Valid JSON"
 
 ## Requirements
 
-- claude-code-sessions MCP server (for session list lookup)
+- claude-sessions-mcp MCP server (for session list lookup)
 - jq (for JSON parsing)
 - Write permission on session files
 

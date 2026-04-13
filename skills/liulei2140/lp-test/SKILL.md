@@ -1,16 +1,16 @@
 ---
 name: leaptic
-description: 'Leaptic captures every movement and highlight in front of the lens, making every moment you capture shine instantly. OpenClaw skill: Photon device snapshot API (JSON); App-Key via LEAPTIC_APP_KEY or ~/.config/leaptic/credentials.json (base_url, app_key); base_url is the full GET URL per region (.../skill/device/snapshot); optional LEAPTIC_BASE_URL; requests only to that host.'
+description: 'Leaptic captures every movement and highlight in front of the lens, making every moment you capture shine instantly. OpenClaw skill for Leaptic device snapshot and status access.'
 version: 0.1.0
 homepage: https://www.leaptic.tech/
 metadata: { "leaptic": { "category": "hardware" }, "openclaw": { "primaryEnv": "LEAPTIC_APP_KEY", "homepage": "https://www.leaptic.tech/" } }
 ---
 
-# Leaptic (Photon)
+# Leaptic
 
 Leaptic captures every movement and highlight in front of the lens, making every moment you capture shine instantly. Official website: https://www.leaptic.tech/
 
-This skill documents the **Leaptic Photon** HTTP API surface that is available today: a single **device snapshot** call using an **App-Key**. Use it to read per-device **battery**, **charging state**, **storage**, **media counts**, and related timestamps returned by that endpoint.
+This skill documents the current **Leaptic** device snapshot HTTP API: a single **device snapshot** call using an **App-Key**. Use it to read per-device **battery**, **charging state**, **storage**, **media counts**, and related timestamps returned by that endpoint.
 
 **Important**
 
@@ -82,36 +82,35 @@ curl -sS -X GET "${base_url}" \
 
 **Headers:** `App-Key: <app_key>`
 
-**Response:** JSON object. On success, `code` is `0`, `msg` is `"success"`, `success` is `true`, and `data.devices` is an array of device records. The API also returns a `traceId` string on each response.
+**Response:** JSON object. On success, `code` is `0`, `msg` is `"success"`, and `data.devices` is an array of device records. Each response includes `traceId`. The API **may** also include `success` (boolean); if it is present, treat it like `code` for pass/fail.
 
 ### Top-level fields
 
-| Field     | Type    | Description                          |
-| --------- | ------- | ------------------------------------ |
-| code      | integer | `0` indicates success in the example |
-| msg       | string  | Human-readable message               |
-| data      | object  | Payload; contains `devices`          |
-| traceId   | string  | Request correlation id               |
-| success   | boolean | Overall success flag                 |
+| Field     | Type             | Description                          |
+| --------- | ---------------- | ------------------------------------ |
+| code      | integer          | `0` indicates success in the example |
+| msg       | string           | Human-readable message               |
+| data      | object           | Payload; contains `devices`          |
+| traceId   | string           | Request correlation id               |
+| success   | boolean (optional) | Overall success flag when returned |
 
 ### `data.devices[]` item fields
 
-| Field              | Type              | Description |
-| ------------------ | ----------------- | ----------- |
-| sn                 | string            | Device serial number |
-| batteryLevel       | integer \| null   | Battery level percentage; `null` if unavailable |
-| isCharging         | integer           | Charging: `1` yes, `0` no |
-| totalStorage       | integer (long)    | Total storage (bytes) |
-| usedStorage        | integer (long)    | Used storage (bytes) |
-| freeStorageMinutes | integer (long)    | Estimated remaining recordable time (minutes) |
-| videoCount         | integer           | Total video count |
-| videoDurationMs    | integer (long)    | Total video duration (milliseconds) |
-| videoSizeBytes     | integer (long)    | Total video size (bytes) |
-| photoCount         | integer           | Total photo count |
-| highlightCount     | integer           | Total highlight-marker count |
-| latestShootTime    | integer (long)    | Last capture time (epoch milliseconds) |
+| Field                 | Type            | Description |
+| --------------------- | --------------- | ----------- |
+| sn                    | string          | Device serial number |
+| batteryLevel          | integer \| null | Battery level percentage; `null` if unavailable |
+| isCharging            | integer         | Charging: `1` yes, `0` no |
+| totalStorage          | string          | Total storage, human-readable (e.g. `0.00GB`) |
+| usedStorage           | string          | Used storage, human-readable (e.g. `0.00GB`) |
+| freeStorageMinutes    | string          | Estimated remaining recordable time, display string (e.g. `604 min`; wording may vary by locale) |
+| videoCount            | integer         | Total video count |
+| videoDurationMinutes  | string          | Total video duration, display string (e.g. `1 min`; wording may vary by locale) |
+| videoSizeGb           | string          | Total video size, human-readable (e.g. `0.69GB`) |
+| photoCount            | integer         | Total photo count |
+| latestShootTime       | string          | Last capture time, display string (e.g. `2026-04-07 16:56:58`; format may vary by locale) |
 
-JSON encodes `long` values as numbers; if the server returns numeric strings, parse them as integers.
+Several fields are **presentation strings** for UI; exact wording, units, and time format depend on product locale.
 
 ### Example success body
 
@@ -122,41 +121,26 @@ JSON encodes `long` values as numbers; if the server returns numeric strings, pa
   "data": {
     "devices": [
       {
-        "sn": "SD2401AM0AW88888",
-        "batteryLevel": 80,
+        "sn": "A1AB0SN0CP00043",
+        "batteryLevel": 100,
         "isCharging": 0,
-        "totalStorage": 137438953472,
-        "usedStorage": 42949672960,
-        "freeStorageMinutes": 210,
-        "videoCount": 19,
-        "videoDurationMs": 4920000,
-        "videoSizeBytes": 32212254720,
-        "photoCount": 3,
-        "highlightCount": 5,
-        "latestShootTime": 1742871600000
-      },
-      {
-        "sn": "SD2401AM0AW99999",
-        "batteryLevel": null,
-        "isCharging": 1,
-        "totalStorage": 64424509440,
-        "usedStorage": 59055800320,
-        "freeStorageMinutes": 18,
-        "videoCount": 47,
-        "videoDurationMs": 16200000,
-        "videoSizeBytes": 53687091200,
-        "photoCount": 12,
-        "highlightCount": 23,
-        "latestShootTime": 1742785200000
+        "totalStorage": "0.00GB",
+        "usedStorage": "0.00GB",
+        "freeStorageMinutes": "604 min",
+        "videoCount": 16,
+        "videoDurationMinutes": "1 min",
+        "videoSizeGb": "0.69GB",
+        "photoCount": 1,
+        "latestShootTime": "2026-04-07 16:56:58"
       }
     ]
   },
-  "traceId": "025f1aee-56d7-448b-ba79-aeb9c4a84c52",
+  "traceId": "c83d6079-4b83-49ac-b256-0ac7e82140d0",
   "success": true
 }
 ```
 
-If `code` is not `0` or `success` is not `true`, treat as failure and surface `msg` (and `traceId` if useful) to the user.
+If `code` is not `0`, or if `success` is present and not `true`, treat as failure and surface `msg` (and `traceId` if useful) to the user.
 
 ## Error handling
 

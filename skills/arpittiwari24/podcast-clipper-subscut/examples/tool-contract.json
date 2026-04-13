@@ -1,0 +1,29 @@
+{
+  "name": "generate_podcast_clips",
+  "description": "Generate short-form clips from a long-form spoken video.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "video_url": {
+        "type": "string",
+        "description": "Public podcast, interview, webinar, or talking-head video URL."
+      },
+      "max_clips": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "default": 5
+      },
+      "clip_style": {
+        "type": "string",
+        "enum": ["viral", "clean", "minimal"],
+        "default": "viral"
+      },
+      "captions": {
+        "type": "boolean",
+        "default": true
+      }
+    },
+    "required": ["video_url"]
+  }
+}

@@ -41,6 +41,9 @@ const DEFAULT_CONFIG = {
   maxContinueRounds: 30,
   deltaThreshold: 100,
   rateLimitMs: 5000,
+  followUpHydrationTimeoutMs: 20000,
+  followUpStableMs: 2000,
+  followUpMinVisibleHistoryNodes: 1,
   debugMode: false,
   logToFile: false,
   logPath: '.logs/qwen.log',
@@ -60,6 +63,9 @@ const CONFIG = loadConfig();
 const TIMEOUT_ANSWER = CONFIG.answerTimeout;
 const TIMEOUT_BROWSER = CONFIG.browserLaunchTimeout;
 const MIN_RESPONSE = CONFIG.minResponseLength;
+const OVERSIZE_RETRY_MIN_CHARS = 4000;
+const OVERSIZE_RETRY_KEEP_RATIO = 0.85;
+const OVERSIZE_MAX_RETRIES = 6;
 
 if (CONFIG.logToFile) {
   const logPath = path.resolve(BASE_DIR, CONFIG.logPath);
@@ -113,6 +119,24 @@ function log(...a) { console.log(...a); }
 function debugLog(...a) { if (VERBOSE || DEBUG) console.log(...a); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function ensureDirSync(d) { try { fs.mkdirSync(d, { recursive: true }); } catch {} }
+
+function shortenPromptForRetry(prompt, attempt) {
+  if (typeof prompt !== 'string') return prompt;
+  const lines = prompt.split('\n');
+  if (lines.length <= 6) {
+    const hardMax = Math.max(OVERSIZE_RETRY_MIN_CHARS, Math.floor(prompt.length * Math.pow(OVERSIZE_RETRY_KEEP_RATIO, attempt)));
+    return prompt.slice(0, hardMax).trimEnd();
+  }
+  const header = lines.slice(0, Math.min(6, lines.length)).join('\n');
+  const body = lines.slice(Math.min(6, lines.length)).join('\n');
+  const targetLen = Math.max(OVERSIZE_RETRY_MIN_CHARS, Math.floor(body.length * Math.pow(OVERSIZE_RETRY_KEEP_RATIO, attempt)));
+  return `${header}\n\n[TRUNCATED_FOR_SUBMIT_RETRY: prompt shortened after silent oversize submit block]\n\n${body.slice(0, targetLen).trimEnd()}`;
+}
+
+function withExitCode(err, exitCode) {
+  if (err && typeof err === 'object' && !err.exitCode) err.exitCode = exitCode;
+  return err;
+}
 
 // ═══ Qwen-specific constants ═════════════════════════════════════════════
 const QWEN_URL = 'https://chat.qwen.ai/';
@@ -190,35 +214,128 @@ async function rebindFollowUpChat(page, expectedUrl, reason = 'follow-up-rebind'
   if (!expectedUrl) return safePageUrl(page);
   log(`♻️ Rebinding follow-up chat (${reason}): ${expectedUrl.substring(0, 80)}`);
   await page.goto(expectedUrl, { waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
-  await sleep(2500);
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
-  await sleep(4000);
-  const stableUrl = await waitForSameFollowUpChatStable(page, expectedUrl);
+  await page.waitForFunction(() => document.readyState === 'complete' || document.readyState === 'interactive', {
+    timeout: Math.min(CONFIG.navigationTimeout, 5000),
+  }).catch(() => {});
+  const stableUrl = await waitForSameFollowUpChatStable(page, expectedUrl, 6000, 500);
   log(`♻️ Follow-up chat rebound: ${stableUrl.substring(0, 80)}`);
   return stableUrl;
 }
 
-async function waitForFollowUpChatReady(page, composerSelector, expectedUrl, timeoutMs = 8000, stableMs = 1200) {
+async function waitForFollowUpChatReady(page, composerSelector, expectedUrl, options = {}) {
   if (!expectedUrl) return safePageUrl(page);
+  const {
+    timeoutMs = CONFIG.followUpHydrationTimeoutMs,
+    stableMs = CONFIG.followUpStableMs,
+    expectedChatTitle = null,
+    expectHistory = true,
+    minVisibleHistoryNodes = CONFIG.followUpMinVisibleHistoryNodes,
+  } = options;
+
   const started = Date.now();
   let stableSince = null;
   let lastGoodUrl = '';
+  let titleActivationTried = false;
+  let hardRebindTried = false;
+
   while (Date.now() - started < timeoutMs) {
     const currentUrl = safePageUrl(page);
-    const composerReady = await page.$(composerSelector).catch(() => null);
     const mismatch = describeContinuityMismatch(expectedUrl, currentUrl);
-    if (!mismatch && composerReady) {
+    if (mismatch) {
+      stableSince = null;
+      lastGoodUrl = currentUrl;
+      await sleep(120);
+      continue;
+    }
+
+    const remaining = Math.max(250, timeoutMs - (Date.now() - started));
+    const composerReady = await page.waitForSelector(composerSelector, {
+      visible: true,
+      timeout: Math.min(1200, remaining),
+    }).then(() => true).catch(() => false);
+
+    const state = composerReady ? await page.evaluate(({ expectedTitle, expectHistory, minVisibleHistoryNodes }) => {
+      const norm = (s) => (s || '').trim().replace(/\s+/g, ' ');
+      const isVisible = (node) => {
+        if (!node) return false;
+        const s = getComputedStyle(node);
+        const r = node.getBoundingClientRect();
+        return s.visibility !== 'hidden' && s.display !== 'none' && r.width > 0 && r.height > 0;
+      };
+      const visibleCount = (sel) => Array.from(document.querySelectorAll(sel)).filter(isVisible).length;
+      const messageSelectors = [
+        'article',
+        'div[class*="markdown-body" i]',
+        'div[class*="message-content" i]',
+        '.prose',
+        '[data-testid*="message" i]',
+        '[class*="message-item" i]',
+        '[class*="conversation-item" i]'
+      ];
+      const visibleHistoryNodes = messageSelectors.reduce((sum, sel) => sum + visibleCount(sel), 0);
+      const bodyText = norm(document.body?.innerText || '');
+      const titleNorm = norm(expectedTitle || '');
+      const activeTitleMatch = titleNorm ? Array.from(document.querySelectorAll('[aria-label="chat-item"], a, button, [role="button"]')).some((el) => {
+        const txt = norm(el.innerText || el.textContent || '');
+        if (!txt || !isVisible(el)) return false;
+        const active = el.getAttribute('aria-current') === 'page'
+          || el.getAttribute('aria-selected') === 'true'
+          || /active|selected|current/i.test(typeof el.className === 'string' ? el.className : '');
+        return active && (txt === titleNorm || txt.includes(titleNorm));
+      }) : false;
+      const newChatRoots = [
+        '[data-page="new-chat"]',
+        '[data-testid*="new-chat" i]',
+        '[class*="new-chat" i]',
+        '[href="/c/new-chat"]',
+      ];
+      const visibleNewChatRoots = newChatRoots.reduce((sum, sel) => sum + visibleCount(sel), 0);
+      const hasMessageText = visibleHistoryNodes > 0 && bodyText.length > 0;
+      const shellOnly = visibleHistoryNodes === 0 && (visibleNewChatRoots > 0 || /^(new chat|новый чат)/i.test(bodyText));
+      const historyReady = !expectHistory || (visibleHistoryNodes >= minVisibleHistoryNodes && hasMessageText);
+      const detectionPath = [
+        `historyNodes=${visibleHistoryNodes}`,
+        `newChatRoots=${visibleNewChatRoots}`,
+        `hasMessageText=${hasMessageText}`,
+        `activeTitle=${activeTitleMatch}`,
+        `shellOnly=${shellOnly}`,
+      ];
+      return {
+        visibleHistoryNodes,
+        visibleNewChatRoots,
+        hasMessageText,
+        shellOnly,
+        historyReady,
+        activeTitleMatch,
+        detectionPath,
+        bodyPreview: bodyText.slice(0, 240),
+      };
+    }, { expectedTitle: expectedChatTitle, expectHistory, minVisibleHistoryNodes }).catch(() => ({ visibleHistoryNodes: 0, visibleNewChatRoots: 0, hasMessageText: false, shellOnly: false, historyReady: false, activeTitleMatch: false, detectionPath: ['state-eval-failed'], bodyPreview: '' })) : { visibleHistoryNodes: 0, visibleNewChatRoots: 0, hasMessageText: false, shellOnly: false, historyReady: false, activeTitleMatch: false, detectionPath: ['composer-not-ready'], bodyPreview: '' };
+
+    const hydrated = composerReady && state.historyReady && !state.shellOnly;
+    if (hydrated) {
       if (currentUrl !== lastGoodUrl) {
         stableSince = Date.now();
         lastGoodUrl = currentUrl;
       } else if (stableSince !== null && Date.now() - stableSince >= stableMs) {
-        log(`🔒 Follow-up чат готов: ${currentUrl.substring(0, 80)}`);
+        log(`🔒 Follow-up чат готов: ${currentUrl.substring(0, 80)} | ${state.detectionPath.join(' | ')}`);
         return currentUrl;
       }
     } else {
       stableSince = null;
-      lastGoodUrl = currentUrl;
+      if (!titleActivationTried && expectedChatTitle && composerReady && Date.now() - started > 1200) {
+        titleActivationTried = true;
+        log(`ℹ️ Follow-up hydration not ready; title=${expectedChatTitle}, but sidebar title activation is disabled because duplicate titles can misbind chats`);
+      }
+      if (!hardRebindTried && composerReady && Date.now() - started > Math.max(3000, Math.floor(timeoutMs * 0.4))) {
+        hardRebindTried = true;
+        log(`♻️ Follow-up hydration still not ready; делаю hard rebind на ${expectedUrl.substring(0, 80)}`);
+        await rebindFollowUpChat(page, expectedUrl, 'follow-up-hydration').catch(() => safePageUrl(page));
+        await sleep(700);
+        continue;
+      }
     }
+
     await sleep(150);
   }
   const finalUrl = safePageUrl(page);
@@ -282,37 +399,31 @@ async function clickChatItemByTitle(page, title, timeoutMs = 5000) {
   return false;
 }
 
-async function stabilizeFollowUpChatBinding(page, expectedUrl) {
-  if (!expectedUrl) return page;
+async function stabilizeFollowUpChatBinding(page, expectedUrl, options = {}) {
+  if (!expectedUrl) return { page, expectedChatTitle: null };
   const expectedChatId = getQwenChatId(expectedUrl);
   log(`🧷 Усиливаю привязку follow-up чата: ${expectedUrl.substring(0, 80)}`);
 
   if (!sameQwenChat(safePageUrl(page), expectedUrl)) {
     await page.goto(expectedUrl, { waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
-    await sleep(2500);
+    await page.waitForFunction(() => document.readyState === 'complete' || document.readyState === 'interactive', {
+      timeout: Math.min(CONFIG.navigationTimeout, 5000),
+    }).catch(() => {});
   }
 
   const meta = await fetchQwenChatMetadata(page, expectedChatId);
   const title = extractQwenChatTitle(meta);
-
-  await page.reload({ waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
-  await sleep(4000);
-
-  if (title) {
-    await clickChatItemByTitle(page, title, 3000);
-    await sleep(2000);
-  }
 
   const finalUrl = safePageUrl(page);
   const mismatch = describeContinuityMismatch(expectedUrl, finalUrl);
   if (mismatch) {
     throw new Error(`Chat continuity activation failed: ${mismatch}; expected ${expectedUrl}`);
   }
-  log(`🧷 Follow-up чат активирован: ${finalUrl.substring(0, 80)}`);
-  return page;
+  log(`🧷 Follow-up чат активирован: ${finalUrl.substring(0, 80)}${title ? ` | title=${title}` : ''}`);
+  return { page, expectedChatTitle: title || null };
 }
 
-async function assertFollowUpContinuityAfterSubmit(page, expectedUrl, timeoutMs = 2500) {
+async function assertFollowUpContinuityAfterSubmit(page, expectedUrl, timeoutMs = 1800) {
   if (!expectedUrl) return safePageUrl(page);
   const started = Date.now();
   let lastUrl = safePageUrl(page);
@@ -323,10 +434,178 @@ async function assertFollowUpContinuityAfterSubmit(page, expectedUrl, timeoutMs 
       throw new Error(`Chat continuity broken on follow-up submit: ${mismatch}; expected ${expectedUrl}`);
     }
     if (currentUrl) lastUrl = currentUrl;
-    await sleep(120);
+    await sleep(100);
   }
   log(`🔒 Follow-up continuity OK after submit: ${lastUrl.substring(0, 80)}`);
   return lastUrl;
+}
+
+async function submitPromptBoundToComposer(page, composerHandle, options = {}) {
+  const { expectedChatUrl = null, strictContinuity = false } = options;
+
+  const submitInfo = await page.evaluate((el) => {
+    const isVisible = (node) => {
+      if (!node) return false;
+      const s = getComputedStyle(node);
+      const r = node.getBoundingClientRect();
+      return s.visibility !== 'hidden' && s.display !== 'none' && r.width > 0 && r.height > 0;
+    };
+
+    const gatherButton = (btn, strategy) => ({
+      strategy,
+      usesButton: true,
+      disabled: !!btn.disabled,
+      cls: typeof btn.className === 'string' ? btn.className : '',
+      aria: btn.getAttribute('aria-label') || '',
+      text: (btn.innerText || btn.textContent || '').trim(),
+    });
+
+    const root = el.closest('form, .message-input, .message-input-wrapper, .input-wrap, .chat-input, .input-area, .composer, .footer') || el.parentElement || document.body;
+    const candidateGroups = [root, root?.parentElement, el.parentElement, document.body].filter(Boolean);
+
+    for (const group of candidateGroups) {
+      const buttons = Array.from(group.querySelectorAll('button, [role="button"]')).filter(isVisible);
+      const preferred = buttons.find((btn) => {
+        const cls = (typeof btn.className === 'string' ? btn.className : '').toLowerCase();
+        const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
+        const text = (btn.innerText || btn.textContent || '').trim().toLowerCase();
+        return cls.includes('send-button')
+          || cls.includes('send')
+          || aria.includes('send')
+          || aria.includes('отправ')
+          || text === 'send'
+          || text === 'отправить';
+      });
+      if (preferred) return gatherButton(preferred, 'nearest-send-button');
+    }
+
+    const form = el.closest('form');
+    if (form && typeof form.requestSubmit === 'function') {
+      return { strategy: 'form-request-submit', usesButton: false };
+    }
+    if (form) {
+      return { strategy: 'form-submit', usesButton: false };
+    }
+    return { strategy: 'keyboard-enter', usesButton: false };
+  }, composerHandle);
+
+  if (submitInfo.usesButton) {
+    log(`📨 Submit method: ${submitInfo.strategy}`);
+    const clicked = await page.evaluate((el) => {
+      const isVisible = (node) => {
+        if (!node) return false;
+        const s = getComputedStyle(node);
+        const r = node.getBoundingClientRect();
+        return s.visibility !== 'hidden' && s.display !== 'none' && r.width > 0 && r.height > 0;
+      };
+      const root = el.closest('form, .message-input, .message-input-wrapper, .input-wrap, .chat-input, .input-area, .composer, .footer') || el.parentElement || document.body;
+      const candidateGroups = [root, root?.parentElement, el.parentElement, document.body].filter(Boolean);
+      for (const group of candidateGroups) {
+        const buttons = Array.from(group.querySelectorAll('button, [role="button"]')).filter(isVisible);
+        const preferred = buttons.find((btn) => {
+          const cls = (typeof btn.className === 'string' ? btn.className : '').toLowerCase();
+          const aria = (btn.getAttribute('aria-label') || '').toLowerCase();
+          const text = (btn.innerText || btn.textContent || '').trim().toLowerCase();
+          return (cls.includes('send-button') || cls.includes('send') || aria.includes('send') || aria.includes('отправ') || text === 'send' || text === 'отправить') && !btn.disabled;
+        });
+        if (preferred) {
+          preferred.focus?.();
+          preferred.click();
+          return true;
+        }
+      }
+      return false;
+    }, composerHandle).catch(() => false);
+    if (!clicked) {
+      throw new Error(`Submit button strategy failed: ${submitInfo.strategy}`);
+    }
+  } else if (submitInfo.strategy === 'form-request-submit') {
+    log('📨 Submit method: form-request-submit');
+    await page.evaluate((el) => el.closest('form')?.requestSubmit(), composerHandle);
+  } else if (submitInfo.strategy === 'form-submit') {
+    log('📨 Submit method: form-submit');
+    await page.evaluate((el) => el.closest('form')?.submit(), composerHandle);
+  } else {
+    log('📨 Submit method: composer Enter');
+    await composerHandle.focus();
+    await page.keyboard.press('Enter');
+  }
+
+  if (strictContinuity && expectedChatUrl) {
+    await sleep(120);
+    await assertFollowUpContinuityAfterSubmit(page, expectedChatUrl, 3000);
+    const currentUrl = safePageUrl(page);
+    if (!sameQwenChat(expectedChatUrl, currentUrl)) {
+      throw new Error(`Chat continuity broken on follow-up submit: current chat ${currentUrl || '(empty)'} != expected ${expectedChatUrl}`);
+    }
+    const postSubmitComposerGone = await page.evaluate((el) => {
+      const isVisible = (node) => {
+        if (!node) return false;
+        const s = getComputedStyle(node);
+        const r = node.getBoundingClientRect();
+        return s.visibility !== 'hidden' && s.display !== 'none' && r.width > 0 && r.height > 0;
+      };
+      if (!el || !document.contains(el)) return true;
+      return !isVisible(el);
+    }, composerHandle).catch(() => true);
+    if (!postSubmitComposerGone) {
+      debugLog('ℹ️ Composer still visible immediately after follow-up submit; relying on submit outcome + network/DOM progress checks');
+    }
+  }
+
+  return submitInfo;
+}
+
+async function inspectSubmitOutcome(page, composerSelector, beforeUrl, prompt, timeoutMs = 5000) {
+  const started = Date.now();
+  let sawExpectedRequest = false;
+  while (Date.now() - started < timeoutMs) {
+    const network = cdpInterceptor?.consumeResponse ? cdpInterceptor.consumeResponse() : null;
+    if (network) sawExpectedRequest = true;
+    const snapshot = await page.evaluate((sel, promptStart) => {
+      const el = document.querySelector(sel);
+      const value = el ? ('value' in el ? el.value : (el.textContent || '')) : '';
+      const body = document.body?.innerText || '';
+      return {
+        valueLen: value.length,
+        userPromptVisible: !!(promptStart && body.includes(promptStart)),
+        articleCount: document.querySelectorAll('article').length,
+        url: location.href,
+      };
+    }, composerSelector, prompt.slice(0, 40)).catch(() => ({ valueLen: 0, userPromptVisible: false, articleCount: 0, url: safePageUrl(page) }));
+
+    const urlChanged = !!(snapshot.url && beforeUrl && snapshot.url !== beforeUrl);
+    const textareaCleared = snapshot.valueLen < Math.max(16, Math.floor(prompt.length * 0.05));
+    const accepted = sawExpectedRequest || urlChanged || textareaCleared || snapshot.userPromptVisible || snapshot.articleCount > 0;
+    if (accepted) {
+      return {
+        accepted: true,
+        reason: sawExpectedRequest ? 'network-request' : urlChanged ? 'url-changed' : textareaCleared ? 'textarea-cleared' : snapshot.userPromptVisible ? 'prompt-visible' : 'article-visible',
+        sawExpectedRequest,
+        ...snapshot,
+      };
+    }
+    await sleep(150);
+  }
+
+  const finalSnapshot = await page.evaluate((sel, promptStart) => {
+    const el = document.querySelector(sel);
+    const value = el ? ('value' in el ? el.value : (el.textContent || '')) : '';
+    const body = document.body?.innerText || '';
+    return {
+      valueLen: value.length,
+      userPromptVisible: !!(promptStart && body.includes(promptStart)),
+      articleCount: document.querySelectorAll('article').length,
+      url: location.href,
+    };
+  }, composerSelector, prompt.slice(0, 40)).catch(() => ({ valueLen: 0, userPromptVisible: false, articleCount: 0, url: safePageUrl(page) }));
+
+  return {
+    accepted: false,
+    reason: 'silent-submit-block',
+    sawExpectedRequest,
+    ...finalSnapshot,
+  };
 }
 
 function persistSessionState(session, page, reason = 'state-sync', options = {}) {
@@ -423,6 +702,7 @@ let qwenPage = null;
 let browserLaunchedByUs = false;
 let browserConnectionMode = 'local';
 const DAEMON_LOCK_FILE = path.join(BASE_DIR, '.daemon-request.lock');
+const RATE_LIMIT_FILE = path.join(BASE_DIR, '.last_prompt_send_time');
 let daemonLockHeld = false;
 
 ensureDirSync(SESSIONS_DIR);
@@ -506,7 +786,7 @@ async function connectToDaemon() {
     return b;
   } catch (e) {
     try { fs.unlinkSync(DAEMON_ENDPOINT_FILE); } catch {}
-    throw new Error(`Демон недоступен: ${e.message}`);
+    throw withExitCode(new Error(`Демон недоступен: ${e.message}`), 2);
   }
 }
 
@@ -790,54 +1070,149 @@ async function setupQwenInterceptor(page) {
 
 // ═══ Send prompt ═════════════════════════════════════════════════════════
 async function sendPrompt(page, composerSelector, prompt, options = {}) {
-  const { expectedChatUrl = null, strictContinuity = false } = options;
-  log(`📝 "${prompt.substring(0, 60)}${prompt.length > 60 ? '...' : ''}"`);
-  answerBaseline = await captureAnswerBaseline(page).catch(() => []);
-  if (cdpInterceptor) { cdpInterceptor.prepareForRequest(); }
+  const {
+    expectedChatUrl = null,
+    strictContinuity = false,
+    reuseAnswerBaseline = false,
+    expectedHistory = true,
+  } = options;
+  let workingPrompt = prompt;
 
-  const beforeUrl = safePageUrl(page);
-  if (strictContinuity && expectedChatUrl) {
-    await stabilizeFollowUpChatBinding(page, expectedChatUrl);
-    await waitForFollowUpChatReady(page, composerSelector, expectedChatUrl, 15000, 2000);
-  }
+  for (let attempt = 0; attempt <= OVERSIZE_MAX_RETRIES; attempt++) {
+    log(`📝 "${workingPrompt.substring(0, 60)}${workingPrompt.length > 60 ? '...' : ''}"`);
 
-  const el = await page.waitForSelector(composerSelector, { visible: true, timeout: 10000 });
-
-  await el.evaluate((el, text) => {
-    el.focus();
-    if (el.isContentEditable || el.getAttribute('contenteditable') === 'true') {
-      el.textContent = text;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    } else if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
-      const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-      const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
-      if (setter) setter.call(el, text); else el.value = text;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
-    } else {
-      el.textContent = text;
-      el.dispatchEvent(new Event('input', { bubbles: true }));
+    if (CONFIG.rateLimitMs > 0) {
+    let lastSend = 0;
+    try {
+      if (fs.existsSync(RATE_LIMIT_FILE)) {
+        const content = fs.readFileSync(RATE_LIMIT_FILE, 'utf8').trim();
+        lastSend = parseInt(content, 10) || 0;
+      }
+    } catch {}
+    const elapsed = Date.now() - lastSend;
+    if (lastSend > 0 && elapsed < CONFIG.rateLimitMs) {
+      const waitMs = CONFIG.rateLimitMs - elapsed;
+      log(`⏳ Rate limit: жду ${waitMs}ms перед отправкой`);
+      await sleep(waitMs);
     }
-  }, prompt);
-
-  await el.focus();
-  log('📨 Submit method: Enter only');
-  await page.keyboard.press('Enter');
-  await sleep(120);
-  const afterUrl = await logUrlTransition(page, beforeUrl, 'submit');
-  if (strictContinuity && expectedChatUrl) {
-    await assertFollowUpContinuityAfterSubmit(page, expectedChatUrl);
   }
-  return afterUrl;
+
+    if (!reuseAnswerBaseline || !Array.isArray(answerBaseline)) {
+      answerBaseline = await captureAnswerBaseline(page).catch(() => []);
+    }
+    if (cdpInterceptor) { cdpInterceptor.prepareForRequest(); }
+
+    const beforeUrl = safePageUrl(page);
+    if (strictContinuity && expectedChatUrl) {
+      const binding = await stabilizeFollowUpChatBinding(page, expectedChatUrl);
+      await waitForFollowUpChatReady(page, composerSelector, expectedChatUrl, {
+        timeoutMs: CONFIG.followUpHydrationTimeoutMs,
+        stableMs: CONFIG.followUpStableMs,
+        expectedChatTitle: binding.expectedChatTitle,
+        expectHistory: expectedHistory,
+        minVisibleHistoryNodes: CONFIG.followUpMinVisibleHistoryNodes,
+      });
+    }
+
+    const el = await page.waitForSelector(composerSelector, { visible: true, timeout: 10000 });
+
+    await el.evaluate((el, text) => {
+      el.focus();
+      if (el.isContentEditable || el.getAttribute('contenteditable') === 'true') {
+        el.textContent = text;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      } else if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
+        const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+        if (setter) setter.call(el, text); else el.value = text;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        el.textContent = text;
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }, workingPrompt);
+
+    await el.focus();
+    await sleep(80);
+    await submitPromptBoundToComposer(page, el, {
+      expectedChatUrl,
+      strictContinuity,
+    });
+    if (CONFIG.rateLimitMs > 0) {
+      try { fs.writeFileSync(RATE_LIMIT_FILE, String(Date.now())); } catch {}
+    }
+    const outcome = await inspectSubmitOutcome(page, composerSelector, beforeUrl, workingPrompt, 5000);
+    if (outcome.accepted) {
+      const afterUrl = await logUrlTransition(page, beforeUrl, 'submit');
+      return { afterUrl, promptUsed: workingPrompt, shortened: attempt > 0, submitOutcome: outcome };
+    }
+
+    log(`⚠️ Submit did not actually leave the page (${outcome.reason}); promptLen=${workingPrompt.length}; valueLen=${outcome.valueLen}; url=${outcome.url}`);
+    if (attempt >= OVERSIZE_MAX_RETRIES || workingPrompt.length <= OVERSIZE_RETRY_MIN_CHARS) {
+      const err = new Error(`QWEN_SUBMIT_BLOCKED_OVERSIZE_PROMPT: silent submit block after ${attempt + 1} attempt(s); final promptLen=${workingPrompt.length}`);
+      err.exitCode = 3;
+      err.submitOutcome = outcome;
+      throw err;
+    }
+    workingPrompt = shortenPromptForRetry(workingPrompt, attempt + 1);
+    log(`✂️ Retry with shortened prompt: newLen=${workingPrompt.length} (attempt ${attempt + 1}/${OVERSIZE_MAX_RETRIES})`);
+    await sleep(500);
+  }
 }
 
 // ═══ Enable web search ═══════════════════════════════════════════════════
+async function readSearchModeInfo(page) {
+  return page.evaluate(() => {
+    const trigger = document.querySelector('[class*="globe" i], button[aria-label*="search" i], [class*="search-toggle" i]');
+    if (!trigger) return { exists: false, active: false, text: '', ariaPressed: null, ariaLabel: '' };
+    const text = (trigger.innerText || trigger.textContent || '').trim();
+    const ariaPressed = trigger.getAttribute('aria-pressed');
+    const ariaLabel = trigger.getAttribute('aria-label') || '';
+    const cls = typeof trigger.className === 'string' ? trigger.className : '';
+    const active = ariaPressed === 'true'
+      || /active|selected|enabled|checked|on/i.test(cls)
+      || /search on|disable search|web search on/i.test(`${text} ${ariaLabel}`);
+    return { exists: true, active, text, ariaPressed, ariaLabel };
+  }).catch(() => ({ exists: false, active: false, text: '', ariaPressed: null, ariaLabel: '' }));
+}
+
 async function enableWebSearch(page) {
+  const before = await readSearchModeInfo(page);
+  if (!before.exists) {
+    log('⚠️ Переключатель Web Search не найден');
+    return false;
+  }
+  if (before.active) {
+    log('🔍 Web Search уже активен');
+    return true;
+  }
+
   log('🔍 Активирую Web Search...');
   await page.evaluate(() => {
     const btn = document.querySelector('[class*="globe" i], button[aria-label*="search" i], [class*="search-toggle" i]');
     if (btn && btn.offsetWidth > 0 && !btn.disabled) btn.click();
   }).catch(() => {});
-  await sleep(1000);
+
+  const verified = await page.waitForFunction(() => {
+    const trigger = document.querySelector('[class*="globe" i], button[aria-label*="search" i], [class*="search-toggle" i]');
+    if (!trigger) return false;
+    const text = (trigger.innerText || trigger.textContent || '').trim();
+    const ariaPressed = trigger.getAttribute('aria-pressed');
+    const ariaLabel = trigger.getAttribute('aria-label') || '';
+    const cls = typeof trigger.className === 'string' ? trigger.className : '';
+    return ariaPressed === 'true'
+      || /active|selected|enabled|checked|on/i.test(cls)
+      || /search on|disable search|web search on/i.test(`${text} ${ariaLabel}`);
+  }, { timeout: 1800 }).then(() => true).catch(() => false);
+
+  if (verified) {
+    log('🔍 Web Search включён');
+    return true;
+  }
+
+  log('⚠️ Не удалось подтвердить включение Web Search');
+  return false;
 }
 
 // ═══ Force thinking mode ═════════════════════════════════════════════════
@@ -855,6 +1230,15 @@ async function ensureThinkingMode(page) {
         rect: rect ? { x: rect.x, y: rect.y, w: rect.width, h: rect.height } : null,
       };
     }).catch(() => ({ exists: false, current: '', expanded: null, rect: null }));
+  };
+
+  const confirmThinkingMode = async (timeoutMs = 2000) => {
+    const ok = await page.waitForFunction(() => {
+      const label = document.querySelector('.qwen-thinking-selector .qwen-select-thinking-label-text');
+      const text = label ? (label.textContent || '').trim() : '';
+      return /мышление|размыш|мышлен|think|reason/i.test(text);
+    }, { timeout: timeoutMs }).then(() => true).catch(() => false);
+    return ok;
   };
 
   const modeInfo = await readModeInfo();
@@ -906,6 +1290,19 @@ async function ensureThinkingMode(page) {
         break;
       }
     }
+  }
+
+  if (!opened) {
+    try {
+      const handle = await page.$('.qwen-thinking-selector input[role="combobox"], .qwen-thinking-selector .ant-select-selector, .qwen-thinking-selector').catch(() => null);
+      if (handle) {
+        await handle.focus().catch(() => {});
+        await page.keyboard.press('Enter').catch(() => {});
+        await sleep(180);
+        const probe = await readModeInfo();
+        opened = probe.expanded === 'true';
+      }
+    } catch {}
   }
 
   if (!opened) {
@@ -972,20 +1369,20 @@ async function ensureThinkingMode(page) {
     }
   }
 
-  await sleep(500);
+  const confirmed = await confirmThinkingMode(2200);
   const finalLabel = await page.evaluate(() => {
     const label = document.querySelector('.qwen-thinking-selector .qwen-select-thinking-label-text');
     return label ? (label.textContent || '').trim() : '';
   }).catch(() => '');
 
-  if (/мышление|размыш|мышлен|think|reason/i.test(finalLabel)) {
+  if (confirmed || /мышление|размыш|мышлен|think|reason/i.test(finalLabel)) {
     try {
       await page.keyboard.press('Escape').catch(() => {});
       await sleep(120);
       await page.click('body').catch(() => {});
       await sleep(120);
     } catch {}
-    log(`🧠 Режим мышления включён: ${finalLabel}`);
+    log(`🧠 Режим мышления включён: ${finalLabel || 'thinking'}`);
     return true;
   }
 
@@ -1281,7 +1678,8 @@ async function ensureBrowser(session) {
       log(`🔗 Подключился к демону (singleton page URL: ${qwenPage.url().substring(0, 50)})`);
       return qwenPage;
     } catch (e) {
-      throw new Error(`Демон недоступен: ${e.message}`);
+      if (e?.exitCode) throw e;
+      throw withExitCode(new Error(`Демон недоступен: ${e.message}`), 2);
     }
   }
 
@@ -1447,10 +1845,12 @@ async function main() {
     const fullQuestion = question.startsWith('[Дата:') ? question : `[Дата: ${new Date().toLocaleString('ru-RU', { timeZone: 'Asia/Irkutsk' })}]\n\n${question}`;
 
     // Send prompt
+    const reuseAnswerBaseline = !!(session && session.messageCount > 0 && strictFollowUpContinuity && Array.isArray(answerBaseline));
     if (diag) diag.start('PROMPT_SEND');
-    await sendPrompt(page, composerSel, fullQuestion, {
+    const sendMeta = await sendPrompt(page, composerSel, fullQuestion, {
       expectedChatUrl: expectedFollowUpChatUrl,
       strictContinuity: strictFollowUpContinuity,
+      reuseAnswerBaseline,
     });
     if (session) {
       persistSessionState(session, page, 'post-submit', {
@@ -1458,7 +1858,7 @@ async function main() {
         strictContinuity: strictFollowUpContinuity,
       });
     }
-    if (diag) diag.succeed('PROMPT_SEND');
+    if (diag) diag.succeed('PROMPT_SEND', { promptLength: fullQuestion.length, promptUsedLength: sendMeta?.promptUsed?.length || fullQuestion.length, shortened: !!sendMeta?.shortened, submitReason: sendMeta?.submitOutcome?.reason || null });
 
     // Wait for response
     if (diag) diag.start('ANSWER_WAIT');
@@ -1525,7 +1925,7 @@ async function main() {
     console.error(`\n❌ Ошибка: ${err.message}`);
     if (diag) { diag.fail('INIT', err.message); diag.printSummary(0); diag.save(); }
     debugLog(err.stack);
-    process.exit(1);
+    process.exit(err.exitCode || 1);
   } finally {
     if (browser) {
       const shouldCleanup = useDaemon || shouldClose || !sessionName || dryRun;
@@ -1536,4 +1936,4 @@ async function main() {
   }
 }
 
-main().catch(err => { console.error('Fatal:', err.message); process.exit(1); });
+main().catch(err => { console.error('Fatal:', err.message); process.exit(err.exitCode || 1); });

@@ -62,7 +62,12 @@ bash ask-qwen.sh "Say OK"
 
 # Session path
 bash ask-qwen.sh --session test "Say OK"
+bash ask-qwen.sh --session test "Repeat OK"
+bash ask-qwen.sh --session test --new-chat "Fresh OK"
 bash ask-qwen.sh --session test --end-session
+
+# Broader matrix
+bash scripts/test-mode-matrix.sh
 ```
 
 ## Known Risks
@@ -71,3 +76,6 @@ bash ask-qwen.sh --session test --end-session
 - Search toggle may need selector updates if chat.qwen.ai UI changes.
 - Browser auth state is profile-backed; profile corruption can require re-login.
 - Local mode and daemon mode currently share one Chromium profile. Do not run local mode while `qwen-daemon` is active; use `--daemon` or stop the daemon first.
+- Restored follow-up chats can briefly show a valid URL and composer before prior messages hydrate; this shell-only state is unsafe for follow-up submit and must be waited out or treated as recovery-needed.
+- Current runtime hardening for this case: follow-up preflight now requires both the expected chat URL and visible hydrated history before submit, with hard rebind fallback before the prompt is allowed to send. Sidebar title activation is intentionally disabled in the continuity path because duplicate chat titles can misbind to the wrong chat.
+- Drift debugging signal: successful follow-up preflight logs a detection path including visible history node count and visible new-chat-root count, so shell-only false positives are easier to spot after Qwen UI changes.

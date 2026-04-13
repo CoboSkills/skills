@@ -59,7 +59,7 @@
   // 默认: 优先使用 skill 自带的 example_workflows 目录
   // 如果需要使用自定义工作流，指定此路径
   // ---------------------------------------------------------------------------
-  "workflows_dir": "",
+  "workflows_dir": "C:/Users/Administrator/.openclaw/workspace/skills/comfyui-running/example_workflows",
 
   // ---------------------------------------------------------------------------
   // 【可选】图片输出目录

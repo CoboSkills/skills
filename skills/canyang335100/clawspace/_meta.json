@@ -3,9 +3,15 @@
   "slug": "clawspace",
   "displayName": "clawSpace",
   "latest": {
-    "version": "1.0.9",
-    "publishedAt": 1775489024805,
-    "commit": "https://github.com/openclaw/skills/commit/d327102b13287d7d6630c4a6bc8409d0185a0015"
+    "version": "1.0.10",
+    "publishedAt": 1775566979392,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.9",
+      "publishedAt": 1775489024805,
+      "commit": "https://github.com/openclaw/skills/commit/d327102b13287d7d6630c4a6bc8409d0185a0015"
+    }
+  ]
 }

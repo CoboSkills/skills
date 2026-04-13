@@ -3,9 +3,15 @@
   "slug": "compound-eng-meta-prompting",
   "displayName": "meta-prompting",
   "latest": {
-    "version": "2.53.0",
-    "publishedAt": 1775440559245,
-    "commit": "https://github.com/openclaw/skills/commit/e9e617d2f2a19c2e6acbfbe582fb90ce91c3655b"
+    "version": "2.55.1",
+    "publishedAt": 1776004199254,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.53.0",
+      "publishedAt": 1775440559245,
+      "commit": "https://github.com/openclaw/skills/commit/e9e617d2f2a19c2e6acbfbe582fb90ce91c3655b"
+    }
+  ]
 }

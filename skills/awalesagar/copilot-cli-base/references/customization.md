@@ -21,9 +21,13 @@ Custom instructions, plugins, MCP servers, and enterprise governance for Copilot
 | **MCP servers** | External tool/data integrations | `~/.copilot/mcp-config.json` |
 | **Plugins** | Distributable bundles of all above | `/plugin install` |
 
+**Note:** Plugins can also include **LSP server configurations** (`lsp.json`) for language server integrations.
+
 ## Custom Instructions
 
-Persistent context included automatically in every request. Changes take effect on next prompt.
+Persistent context included automatically in every request. All custom instruction files are **combined** (not cascaded by priority). Changes take effect on next prompt.
+
+Use `/instructions` to view and toggle loaded instruction files during a session.
 
 ### Instruction Locations
 
@@ -35,6 +39,8 @@ Persistent context included automatically in every request. Changes take effect 
 | `AGENTS.md` (git root or cwd) | Repository (primary influence) |
 
 Alternatives: `CLAUDE.md`, `GEMINI.md` (must be at repo root). If both `AGENTS.md` and `.github/copilot-instructions.md` exist, both are used.
+
+`AGENTS.md` in the root directory is treated as **primary instructions** (stronger influence). `AGENTS.md` found in other directories (CWD, `COPILOT_CUSTOM_INSTRUCTIONS_DIRS` paths) are **additional instructions** with less influence.
 
 ### Path-Specific Instructions
 
@@ -133,7 +139,7 @@ Model Context Protocol — open standard for connecting LLMs to external tools. 
 }
 ```
 
-**Types:** `local`/`stdio` (stdin/stdout), `http` (Streamable HTTP), `sse` (legacy, deprecated).
+**Types:** `local`/`stdio` (stdin/stdout — `stdio` is standard MCP name, compatible with VS Code/cloud agent), `http` (Streamable HTTP), `sse` (legacy HTTP+SSE, deprecated but supported).
 
 ### Management
 
@@ -157,7 +163,7 @@ Enterprise owners control via: **Settings > AI controls > Copilot > Copilot Clie
 
 ### Policies That Do NOT Apply
 
-MCP server policies, IDE-specific policies, content exclusions (file path-based).
+MCP server policies, IDE-specific policies, content exclusions (file path-based), user-configured model providers (BYOK — configured at user level via env vars, cannot be controlled by enterprise).
 
 ### Tool Permission Layers
 

@@ -15,6 +15,8 @@ Terminal AI agent that answers questions, writes/debugs code, interacts with Git
 
 **OS:** Linux, macOS, Windows (PowerShell 6+, WSL). **Default model:** Claude Sonnet 4.5 (changeable via `/model` or `--model`).
 
+**Modes:** Ask/execute (default), **plan mode** (Shift+Tab — builds structured implementation plan before code), and programmatic (`-p`). Context is auto-compacted at 95% token limit for virtually infinite sessions; use `/compact` manually or `/context` to visualize token usage.
+
 ## Installation
 
 ### npm (all platforms)
@@ -39,6 +41,9 @@ winget install GitHub.Copilot    # prerelease: GitHub.Copilot.Prerelease
 curl -fsSL https://gh.io/copilot-install | bash
 # Custom: VERSION="v0.0.369" PREFIX="$HOME/custom" bash
 ```
+
+### Download from GitHub.com
+Download executables directly from the [`copilot-cli` releases](https://github.com/github/copilot-cli/releases/). Unpack and run.
 
 ### Update
 ```bash
@@ -115,6 +120,8 @@ On session start, CLI asks to trust the current directory. Options: session only
 | `--available-tools=TOOL` | Restrict to only these tools |
 | `--allow-all` / `--yolo` | All tools + paths + URLs |
 
+During an interactive session, use the `/allow-all` or `/yolo` slash commands to enable all permissions.
+
 **Format:** `Kind(argument)` — argument optional.
 
 | Kind | Examples |
@@ -154,3 +161,7 @@ copilot --allow-tool='shell(git:*)' --deny-tool='shell(git push)'
 | `--disallow-temp-dir` | Block temp directory |
 | `--allow-all-urls` | Access any URL |
 | `--allow-url=DOMAIN` / `--deny-url=DOMAIN` | Per-domain URL control |
+
+**Path scope:** By default, CLI can access CWD, its subdirectories, and system temp dir. Path detection for shell commands has limitations — custom env vars like `$MY_PROJECT_DIR` are not expanded.
+
+**URL scope:** HTTP and HTTPS are treated as different protocols and require separate approval. URL permissions can be persisted per-session or permanently.

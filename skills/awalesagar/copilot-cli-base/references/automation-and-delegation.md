@@ -65,9 +65,13 @@ Autonomous execution without waiting for input between steps.
 
 **Stops when:** task complete, blocking problem, `Ctrl+C`, or `--max-autopilot-continues` limit reached.
 
-**Permissions:** On entering autopilot, prompted to enable all permissions (recommended) or continue with limited. `/allow-all` grants mid-session (one-way).
+**Permissions:** On entering autopilot, prompted to choose: (1) Enable all permissions (recommended), (2) Continue with limited permissions, (3) Cancel. With limited permissions, tool requests requiring approval are auto-denied. Use `/allow-all` mid-session to upgrade (one-way — cannot toggle off).
+
+**Premium requests:** Each autonomous continuation consumes premium requests (varies by model multiplier). CLI displays usage per step: `Continuing autonomously (3 premium requests)`.
 
 **Best for:** well-defined tasks, multi-step sessions, batch ops. **Not for:** vague goals, nuanced judgment at each step.
+
+**Typical workflow:** plan mode → create plan → "Accept plan and build on autopilot" → monitor.
 
 ### Comparing Flags
 
@@ -109,7 +113,9 @@ Parallel execution via subagents.
 
 **Monitor:** `/tasks` — navigate with arrows, `Enter` for details, `k` to kill, `r` to remove.
 
-**Subagent models:** default low-cost model. Override per-subtask in prompt or via custom agent profile.
+**Subagent models:** default low-cost model. Override per-subtask in prompt (e.g., `Use GPT-5.3-Codex to create ...`) or via custom agent profile that specifies a model.
+
+**Custom agents in fleet:** If custom agents are available, Copilot auto-selects based on fit. Force with `@CUSTOM-AGENT-NAME` in prompt: `Use @test-writer to create comprehensive unit tests for ...`
 
 **Best for:** large tasks with independent steps, inherently parallelizable work. **Not for:** sequential dependencies, simple tasks.
 
@@ -143,6 +149,14 @@ You are a specialized security assistant that...
 
 **Fields:** `name` (required), `description` (required), `tools` (optional, defaults to all).
 
+### Creating Agents
+
+Use `/agent` → **Create new agent** → choose Project (`.github/agents/`) or User (`~/.copilot/agents/`). Options:
+- **Copilot-assisted:** Describe expertise and Copilot generates the profile. Review, edit, continue.
+- **Manual:** Guided prompts for name, description, instructions, and tool selection.
+
+**Naming:** lowercase letters and hyphens recommended (e.g., `security-auditor`). Agent ID = filename without `.agent.md`.
+
 ### File Locations
 
 | Scope | Location |
@@ -151,7 +165,7 @@ You are a specialized security assistant that...
 | Repository | `.github/agents/` |
 | Organization | `/agents/` in `.github-private` repo |
 
-**Precedence:** user > repository > organization. Agent ID = filename without `.agent.md`.
+**Precedence:** system > user > repository > organization. Agent ID = filename without `.agent.md`.
 
 ### Invoking
 

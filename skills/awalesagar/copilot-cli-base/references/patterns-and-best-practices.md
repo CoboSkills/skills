@@ -1,5 +1,7 @@
 ---
 title: "Patterns and Best Practices"
+source:
+  - https://docs.github.com/en/copilot/how-tos/copilot-cli/best-practices-copilot-cli
 category: reference
 ---
 

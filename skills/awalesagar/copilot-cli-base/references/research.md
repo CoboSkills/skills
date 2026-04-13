@@ -36,6 +36,7 @@ Activates a specialized research agent that gathers info from codebase, GitHub r
 - Uses a **hard-coded model** (not affected by `/model`)
 - Never asks clarifying questions — documents assumptions in "Confidence Assessment"
 - Works across repos when logged into GitHub
+- **Query-type adaptation:** Response format automatically adapts — process questions get step-by-step, conceptual gets narrative, technical deep-dives get architecture diagrams + code. Phrase prompts explicitly (e.g., "Give me a technical deep-dive into X") to control classification.
 - **Not for:** quick questions (use chat), code changes (reports only), time-sensitive tasks
 
 ## Chronicle (`/chronicle`)
@@ -56,7 +57,12 @@ Session history insights. **Requires:** `/experimental on` or `--experimental`.
 
 **`/chronicle improve`** — finds friction patterns in session history, suggests `.github/copilot-instructions.md` improvements. Interactive selection to apply. Scoped to current repo.
 
-**`/chronicle reindex`** — rebuilds session store from disk. Use after deleting sessions, migrating files, or corruption.
+**`/chronicle reindex`** — rebuilds session store from disk. Use after:
+- Deleting sessions (remove directory then reindex)
+- Migrating/recovering sessions from another machine or backup
+- Session store corruption or accidental deletion
+- Indexing old sessions created before session store existed
+- Unexpected termination (crash/power loss) with unflushed data
 
 ### Resuming & Sharing Sessions
 

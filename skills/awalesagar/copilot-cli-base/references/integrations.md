@@ -24,13 +24,15 @@ View connection status, connect to different workspace, disconnect. Toggle setti
 
 ### Features
 
-**Selection as context:** CLI receives VS Code editor selection in real time. Select code, then prompt `Debug this`.
+**Selection as context:** CLI receives VS Code editor selection in real time. Selection indicator appears below the prompt, aligned right, updating as you select different code. Select code, then prompt `Debug this`.
 
 **Diff view:** File edits appear as side-by-side diffs in VS Code. Accept (checkmark) or reject (X). Not shown when `--allow-all` is active.
 
 **Live diagnostics:** Copilot accesses real-time errors/warnings from VS Code.
 
 **Session sidebar:** Copilot Chat sidebar > Sessions icon. Lists recent sessions, shows transcripts, allows resuming.
+
+**Unread indicator:** A dot icon and unread count appear next to the Chat icon in the VS Code title bar when CLI sessions haven't been viewed. Click to filter unread sessions; click again to clear filter.
 
 **Resume sessions:** Right-click session > "Resume in Terminal" — continues in VS Code integrated terminal with full context.
 

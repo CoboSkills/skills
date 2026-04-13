@@ -29,7 +29,13 @@ Place JSON files in `.github/hooks/` (repo-scoped). Any `*.json` in that directo
 }
 ```
 
-**Hook entry fields:** `type` (always `"command"`), `bash` (script path), `cwd` (optional), `timeoutSec` (default 30), `env` (optional key-value pairs).
+**Hook entry fields:** `type` (`"command"` or `"prompt"`), `bash`/`powershell` (script, for command type), `prompt` (text, for prompt type), `cwd` (optional), `timeoutSec` (default 30), `env` (optional key-value pairs).
+
+**Prompt hooks** (`sessionStart` only): auto-submit text as if the user typed it. Runs before any `--prompt`. Useful for slash commands or setup prompts.
+
+```json
+{"type": "prompt", "prompt": "/compact"}
+```
 
 ## Hook Types
 
@@ -52,7 +58,7 @@ Output this JSON to deny:
 {"permissionDecision":"deny","permissionDecisionReason":"Reason shown to agent"}
 ```
 
-Values: `"deny"` to block, `"allow"` to permit (or omit output). Exit code `0` always — non-zero = script failure, not denial.
+Values: `"deny"` to block, `"allow"` to permit, `"ask"` to defer to user (only `"deny"` actively enforced). Exit code `0` always — non-zero = script failure, not denial.
 
 ## Example: Security Policy Script
 
@@ -139,9 +145,9 @@ Same-type hooks execute in array order:
 
 ## Script Best Practices
 
-- **Read input:** `INPUT=$(cat)` then parse with `jq`
-- **Output JSON:** use `jq -c` for compact single-line output
-- **Error handling:** `set -e` and always `exit 0`
+- **Read input:** `INPUT=$(cat)` then parse with `jq` (Bash) or `$input = [Console]::In.ReadToEnd() | ConvertFrom-Json` (PowerShell)
+- **Output JSON:** use `jq -c` (Bash) or `ConvertTo-Json -Compress` (PowerShell) for compact single-line output
+- **Error handling:** `set -e` and always `exit 0` (Bash) or `$ErrorActionPreference = "Stop"` (PowerShell)
 - **Redact secrets** before logging
 - **Test locally:** `echo '{"toolName":"bash","toolArgs":"{\"command\":\"git status\"}"}' | ./my-hook.sh`
 

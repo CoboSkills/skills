@@ -2,7 +2,7 @@
  * validate-maoyan-authkey.mjs — 校验猫眼用户 AuthKey 是否有效
  *
  * Input（JSON，通过命令行参数或 stdin 传入）：
- *   authKey {string}  [必填] 猫眼用户认证密钥；也可通过环境变量 MAOYAN_TOKEN 传入
+ *   authKey {string}  [必填] 猫眼用户认证密钥
  *             authKey 通过 Cookie 中的 token 字段传递给接口
  *
  * Output（JSON）：
@@ -24,6 +24,7 @@ import {
   run,
   generateMaoyanHeaders,
   mapAuthKey,
+  DEFAULT_TIMEOUT_MS,
 } from "./_shared.mjs";
 
 const MAOYAN_API_URL = "https://m.maoyan.com/mtrade/user/token";
@@ -31,23 +32,21 @@ const MAOYAN_API_URL = "https://m.maoyan.com/mtrade/user/token";
 await run(async () => {
   const input = mapAuthKey(await readJsonInput());
 
-  const token = input.token || process.env.MAOYAN_TOKEN || "";
-  const cookie = input.cookie || process.env.MAOYAN_COOKIE || "";
+  const token = input.token || "";
 
-  // authKey 和 cookie 至少需要其一
-  if (!token && !cookie) {
-    throw new ScriptError(ERROR_CODES.INVALID_INPUT, "缺少必要字段：authKey 或 cookie");
+  if (!token) {
+    throw new ScriptError(ERROR_CODES.INVALID_INPUT, "缺少必要字段：authKey");
   }
 
-  // token 通过 Cookie 传递；若有完整 cookie 则直接使用，否则拼接 token=<token>
+  // token 通过 Cookie header 传递给猫眼接口
   // 过滤 token 中可能导致 Cookie header 注入的非法字符
   const safeToken = token.replace(/[;\s\n\r]/g, "");
-  const cookieHeader = cookie || `token=${safeToken}`;
+  const cookieHeader = `token=${safeToken}`;
 
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
-    Number(process.env.MOVIE_TICKET_TIMEOUT_MS || 10000)
+    DEFAULT_TIMEOUT_MS
   );
 
   let res;

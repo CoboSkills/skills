@@ -36,6 +36,7 @@ import {
   ScriptError,
   ERROR_CODES,
   generateMaoyanHeaders,
+  DEFAULT_TIMEOUT_MS,
 } from "./_shared.mjs";
 
 // 关键词搜索影片接口
@@ -80,8 +81,7 @@ await run(async () => {
   const input = await readJsonInput();
   requireFields(input, ["keyword"]);
 
-  const token = input.token || process.env.MAOYAN_TOKEN || "";
-  const cookie = input.cookie || process.env.MAOYAN_COOKIE || "";
+  const token = input.token || "";
 
   const params = new URLSearchParams({ keyword: input.keyword });
   if (input.cityId != null) params.set("ci", input.cityId);
@@ -93,7 +93,7 @@ await run(async () => {
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
-    Number(process.env.MOVIE_TICKET_TIMEOUT_MS || 10000)
+    DEFAULT_TIMEOUT_MS
   );
 
   let res;
@@ -102,7 +102,6 @@ await run(async () => {
       method: "GET",
       headers: generateMaoyanHeaders({
         token,
-        cookie,
         uuid: input.uuid,
         extraHeaders: { Referer: "https://m.maoyan.com/apollo/search?searchtype=movie" },
       }),

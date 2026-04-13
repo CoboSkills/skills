@@ -69,6 +69,7 @@ import {
   ScriptError,
   ERROR_CODES,
   generateMaoyanHeaders,
+  DEFAULT_TIMEOUT_MS,
 } from "./_shared.mjs";
 
 const MAOYAN_CITIES_URL = "https://m.maoyan.com/dianying/cities.json";
@@ -167,8 +168,7 @@ await run(async () => {
   const limit = normalizeLimit(input.limit, 20);
   const offset = Number(input.offset || 0);
 
-  const token = input.token || process.env.MAOYAN_TOKEN || "";
-  const cookie = input.cookie || process.env.MAOYAN_COOKIE || "";
+  const token = input.token || "";
 
   const hallTypeId = input.hallTypeId || "all";
   const languageId = input.languageId || "all";
@@ -217,14 +217,14 @@ await run(async () => {
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
-    Number(process.env.MOVIE_TICKET_TIMEOUT_MS || 10000)
+    DEFAULT_TIMEOUT_MS
   );
 
   let res;
   try {
     res = await fetch(url, {
       method: "GET",
-      headers: generateMaoyanHeaders({ token, cookie, uuid: input.uuid, channelId: input.channelId ?? CHANNEL_ID }),
+      headers: generateMaoyanHeaders({ token, uuid: input.uuid, channelId: input.channelId ?? CHANNEL_ID }),
       signal: controller.signal,
     });
   } catch (error) {

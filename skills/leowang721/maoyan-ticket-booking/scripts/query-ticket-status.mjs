@@ -21,7 +21,6 @@
  *   }
  */
 import {
-  CHANNEL_ID,
   ERROR_CODES,
   ScriptError,
   readJsonInput,
@@ -30,6 +29,8 @@ import {
   generateMaoyanHeaders,
   loadSavedToken,
   mapAuthKey,
+  CHANNEL_ID,
+  DEFAULT_TIMEOUT_MS,
 } from "./_shared.mjs";
 
 const MAOYAN_API_BASE = "https://m.maoyan.com/api/mtrade/queryorder/v1/detail.json";
@@ -39,7 +40,6 @@ await run(async () => {
   requireFields(input, ["orderId"]);
 
   const token = loadSavedToken(input.token);
-  const cookie = input.cookie || process.env.MAOYAN_COOKIE || "";
 
   // 构建带查询参数的 URL
   const queryParams = new URLSearchParams({
@@ -55,7 +55,7 @@ await run(async () => {
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
-    Number(process.env.MOVIE_TICKET_TIMEOUT_MS || 10000)
+    DEFAULT_TIMEOUT_MS
   );
 
   let res;
@@ -64,7 +64,6 @@ await run(async () => {
       method: "GET",
       headers: generateMaoyanHeaders({
         token,
-        cookie,
         uuid: input.uuid,
         channelId: CHANNEL_ID,
         extraHeaders: { "Cache-Control": "no-cache", Origin: "https://m.maoyan.com" },

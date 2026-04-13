@@ -16,12 +16,7 @@
  *   }
  */
 import { unlinkSync, existsSync } from "fs";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
-import { run } from "./_shared.mjs";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const AUTHKEY_FILE = join(__dirname, "..", ".authkey.json");
+import { run, AUTHKEY_FILE } from "./_shared.mjs";
 
 await run(async () => {
   const hadAuthKey = existsSync(AUTHKEY_FILE);

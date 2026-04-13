@@ -33,6 +33,7 @@ import {
   ERROR_CODES,
   generateMaoyanHeaders,
   mapAuthKey,
+  DEFAULT_TIMEOUT_MS,
 } from "./_shared.mjs";
 
 const MAOYAN_API_URL = "https://m.maoyan.com/ajax/movieOnInfoList";
@@ -66,20 +67,20 @@ await run(async () => {
   const input = mapAuthKey(await readJsonInput());
   const limit = normalizeLimit(input.limit, 10);
 
-  const token = input.token || process.env.MAOYAN_TOKEN || "";
-  const cookie = input.cookie || process.env.MAOYAN_COOKIE || "";
+  const token = input.token || "";
 
   const params = new URLSearchParams();
   if (token) params.set("token", token);
   if (input.ct) params.set("ct", input.ct);
-  if (input.ci != null) params.set("ci", input.ci);
+  const ci = input.cityId ?? input.ci;
+  if (ci != null) params.set("ci", ci);
   if (input.channelId != null) params.set("channelId", input.channelId);
   const url = `${MAOYAN_API_URL}?${params.toString()}`;
 
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
-    Number(process.env.MOVIE_TICKET_TIMEOUT_MS || 10000)
+    DEFAULT_TIMEOUT_MS
   );
 
   let res;
@@ -88,7 +89,6 @@ await run(async () => {
       method: "GET",
       headers: generateMaoyanHeaders({
         token,
-        cookie,
         uuid: input.uuid,
         extraHeaders: { Accept: "application/json, text/javascript, */*; q=0.01", "X-Requested-With": "jQuery", "M-APPKEY": "fe_canary" },
       }),

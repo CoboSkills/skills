@@ -3,9 +3,15 @@
   "slug": "maoyan-ticket-booking",
   "displayName": "猫眼电影票购票助手",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775128476717,
-    "commit": "https://github.com/openclaw/skills/commit/36893934abd0ead5a5f3bceb98499565afad40d4"
+    "version": "1.0.3",
+    "publishedAt": 1775729698824,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775128476717,
+      "commit": "https://github.com/openclaw/skills/commit/36893934abd0ead5a5f3bceb98499565afad40d4"
+    }
+  ]
 }

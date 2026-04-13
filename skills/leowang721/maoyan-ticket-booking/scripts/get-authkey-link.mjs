@@ -17,7 +17,7 @@
  *     }
  *   }
  */
-import { run, outputSuccess } from "./_shared.mjs";
+import { run } from "./_shared.mjs";
 
 // 固定的 AuthKey 获取链接（不允许修改或添加参数）
 const AUTHKEY_URL = "https://m.maoyan.com/mtrade/openclaw/token";

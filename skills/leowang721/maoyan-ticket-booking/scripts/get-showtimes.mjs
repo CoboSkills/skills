@@ -5,8 +5,7 @@
  *   cinemaId  {string}  [必填] 影院 ID
  *   ci        {number}  [可选] 城市 ID（ctx.locate.id），默认 1
  *   userid    {string}  [可选] 用户 ID（ctx.user.id）
- *   uuid      {string}  [可选] 设备 UUID（ctx.device.uuid）；也可通过环境变量 MAOYAN_UUID 传入
- *   cookie    {string}  [可选] 请求携带的 Cookie 字符串；也可通过环境变量 MAOYAN_COOKIE 传入
+ *   uuid      {string}  [可选] 设备 UUID（ctx.device.uuid）
  *
  * Output（JSON）：
  *   {
@@ -39,6 +38,7 @@ import {
   ERROR_CODES,
   generateMaoyanHeaders,
   mapAuthKey,
+  DEFAULT_TIMEOUT_MS,
 } from "./_shared.mjs";
 
 const MAOYAN_API_URL =
@@ -81,11 +81,11 @@ await run(async () => {
   const input = mapAuthKey(await readJsonInput());
   requireFields(input, ["cinemaId"]);
 
-  const token = input.token || process.env.MAOYAN_TOKEN || "";
-  const cookie = input.cookie || process.env.MAOYAN_COOKIE || "";
+  const token = input.token || "";
 
   const params = new URLSearchParams({ cinemaId: input.cinemaId });
-  if (input.ci != null) params.set("ci", input.ci);
+  const ci = input.cityId ?? input.ci;
+  if (ci != null) params.set("ci", ci);
   if (input.userid) params.set("userid", input.userid);
   if (input.channelId) params.set("channelId", input.channelId);
 
@@ -94,14 +94,14 @@ await run(async () => {
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
-    Number(process.env.MOVIE_TICKET_TIMEOUT_MS || 10000)
+    DEFAULT_TIMEOUT_MS
   );
 
   let res;
   try {
     res = await fetch(url, {
       method: "GET",
-      headers: generateMaoyanHeaders({ token, cookie, uuid: input.uuid, channelId: input.channelId }),
+      headers: generateMaoyanHeaders({ token, uuid: input.uuid, channelId: input.channelId }),
       signal: controller.signal,
     });
   } catch (error) {

@@ -17,9 +17,6 @@
  *     data: { saved: true, userName: "test", mobile: "138****1234" }
  *   }
  */
-import { writeFileSync, mkdirSync } from "fs";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
 import {
   ERROR_CODES,
   ScriptError,
@@ -27,10 +24,8 @@ import {
   requireFields,
   run,
   mapAuthKey,
+  saveAuthKey,
 } from "./_shared.mjs";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const AUTHKEY_FILE = join(__dirname, "..", ".authkey.json");
 
 await run(async () => {
   const input = mapAuthKey(await readJsonInput());
@@ -46,11 +41,7 @@ await run(async () => {
   };
 
   try {
-    // 确保目录存在
-    mkdirSync(dirname(AUTHKEY_FILE), { recursive: true });
-    // 保存 AuthKey
-    writeFileSync(AUTHKEY_FILE, JSON.stringify(authKeyData, null, 2), "utf-8");
-
+    saveAuthKey(authKeyData);
     return {
       saved: true,
       userName: authKeyData.userName,

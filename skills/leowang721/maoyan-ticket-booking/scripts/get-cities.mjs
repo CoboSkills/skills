@@ -28,6 +28,7 @@ import {
   ScriptError,
   ERROR_CODES,
   generateMaoyanHeaders,
+  DEFAULT_TIMEOUT_MS,
 } from "./_shared.mjs";
 
 const MAOYAN_API_URL = "https://m.maoyan.com/dianying/cities.json";
@@ -39,7 +40,7 @@ await run(async () => {
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
-    Number(process.env.MOVIE_TICKET_TIMEOUT_MS || 10000)
+    DEFAULT_TIMEOUT_MS
   );
 
   let res;

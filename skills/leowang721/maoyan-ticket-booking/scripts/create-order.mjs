@@ -3,6 +3,7 @@
  *
  * Input（JSON，通过命令行参数或 stdin 传入）：
  *   seqNo         {string}  [必填] 场次号
+ *   cityId        {string}  [必填] 城市ID
  *   seats         {object}  [必填] 座位信息，格式：{ count: 1, list: [{ columnId, rowId, seatNo, seatStatus, seatType, sectionId, type, sectionName }] }
  *   authKey       {string}  [必填] 用户认证密钥
  *   uuid          {string}  [可选] 设备ID
@@ -15,8 +16,6 @@
  *   }
  */
 import {
-  CHANNEL_ID,
-  CHANNEL_NAME,
   ERROR_CODES,
   ScriptError,
   readJsonInput,
@@ -26,6 +25,9 @@ import {
   getOrCreateUuid,
   loadSavedToken,
   mapAuthKey,
+  CHANNEL_ID,
+  CHANNEL_NAME,
+  DEFAULT_TIMEOUT_MS,
 } from "./_shared.mjs";
 
 // 真实接口 URL（注意带有 /mtrade/ 路径）
@@ -33,10 +35,9 @@ const MAOYAN_API_BASE = "https://m.maoyan.com/api/mtrade/createorder/v14/create.
 
 await run(async () => {
   const input = mapAuthKey(await readJsonInput());
-  requireFields(input, ["seqNo", "seats"]);
+  requireFields(input, ["seqNo", "cityId", "seats"]);
 
   const token = loadSavedToken(input.token);
-  const cookie = input.cookie || process.env.MAOYAN_COOKIE || "";
   // 提前获取持久化 UUID，请求体和 headers 保持一致
   const uuid = getOrCreateUuid(input.uuid);
 
@@ -51,10 +52,11 @@ await run(async () => {
   // 构建请求体
   const body = new URLSearchParams();
   body.set("realNameMethod", "1");
-  body.set("channelId", CHANNEL_ID);
+  body.set("channelId", "40003");
   body.set("extChannelId", CHANNEL_ID);
   body.set("extChannelName", CHANNEL_NAME);
   body.set("clientType", "touch");
+  body.set("cityId", input.cityId);
   body.set("seqNo", input.seqNo);
   body.set("seats", JSON.stringify(input.seats));
 
@@ -74,7 +76,7 @@ await run(async () => {
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
-    Number(process.env.MOVIE_TICKET_TIMEOUT_MS || 10000)
+    DEFAULT_TIMEOUT_MS
   );
 
   let res;
@@ -83,7 +85,6 @@ await run(async () => {
       method: "POST",
       headers: generateMaoyanHeaders({
         token,
-        cookie,
         uuid,
         channelId: CHANNEL_ID,
         extraHeaders: { "Content-Type": "application/x-www-form-urlencoded", Origin: "https://m.maoyan.com" },
@@ -109,10 +110,11 @@ await run(async () => {
 
   const json = await res.json();
 
-  // 检查接口返回的业务错误
+  // 检查接口返回的业务错误，透传猫眼原始错误码
   if (json.success === false) {
+    const maoyanCode = json.error?.code ?? json.code ?? ERROR_CODES.HTTP_ERROR;
     throw new ScriptError(
-      ERROR_CODES.HTTP_ERROR,
+      maoyanCode,
       json.error?.message || json.msg || "创建订单失败"
     );
   }

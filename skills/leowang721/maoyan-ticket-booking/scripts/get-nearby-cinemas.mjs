@@ -14,7 +14,7 @@
  * 本地调试示例：
  *   echo '{"address":"北京朝阳立水桥","limit":5}' | node scripts/get-nearby-cinemas.mjs
  *   echo '{"cityId":"1","lat":39.9,"lng":116.4,"limit":5}' | node scripts/get-nearby-cinemas.mjs
- *   echo '{"cityId":"1","lat":39.9,"lng":116.4,"token":"real-token","cookie":"...","limit":10}' | node scripts/get-nearby-cinemas.mjs
+ *   echo '{"cityId":"1","lat":39.9,"lng":116.4,"limit":10}' | node scripts/get-nearby-cinemas.mjs
  *
  * Output（JSON）：
  *   {
@@ -42,6 +42,7 @@ import {
   ERROR_CODES,
   generateMaoyanHeaders,
   mapAuthKey,
+  DEFAULT_TIMEOUT_MS,
 } from "./_shared.mjs";
 
 const MAOYAN_API_URL = "https://m.maoyan.com/ajax/cinemaList";
@@ -73,8 +74,7 @@ await run(async () => {
   const lat = input.lat;
   const lng = input.lng;
 
-  const token = input.token || process.env.MAOYAN_TOKEN || "";
-  const cookie = input.cookie || process.env.MAOYAN_COOKIE || "";
+  const token = input.token || "";
 
   const params = new URLSearchParams({ offset, limit });
   if (input.cityId) params.set("cityId", input.cityId);
@@ -89,7 +89,7 @@ await run(async () => {
   const controller = new AbortController();
   const timer = setTimeout(
     () => controller.abort(),
-    Number(process.env.MOVIE_TICKET_TIMEOUT_MS || 10000)
+    DEFAULT_TIMEOUT_MS
   );
 
   let res;
@@ -98,7 +98,6 @@ await run(async () => {
       method: "GET",
       headers: generateMaoyanHeaders({
         token,
-        cookie,
         uuid: input.uuid,
         extraHeaders: { Accept: "application/json, text/javascript, */*; q=0.01", "X-Requested-With": "jQuery", "M-APPKEY": "fe_canary" },
       }),

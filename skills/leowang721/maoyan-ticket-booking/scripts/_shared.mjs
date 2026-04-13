@@ -1,12 +1,12 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
+import { join, dirname } from "path";
+import { homedir } from "os";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const UUID_FILE = join(__dirname, "..", ".device-uuid.json");
-const AUTHKEY_FILE = join(__dirname, "..", ".authkey.json");
+const CONFIG_DIR = join(homedir(), ".config", "maoyan-ticket-booking");
+export const UUID_FILE = join(CONFIG_DIR, ".device-uuid.json");
+export const AUTHKEY_FILE = join(CONFIG_DIR, ".authkey.json");
 
-const DEFAULT_TIMEOUT_MS = Number(process.env.MOVIE_TICKET_TIMEOUT_MS || 10000);
+export const DEFAULT_TIMEOUT_MS = 10000;
 
 export const CHANNEL_ID = "1000545";
 export const CHANNEL_NAME = "龙虾购票";
@@ -26,14 +26,13 @@ export function generateAntiSpiderHeaders() {
  * 生成猫眼接口通用 headers（包含反扒参数、UUID、token 等）
  * @param {Object} options
  * @param {string} [options.token] - 认证 token
- * @param {string} [options.cookie] - Cookie 字符串
  * @param {string} [options.uuid] - 设备 UUID（可选，会自动调用 getOrCreateUuid）
  * @param {string} [options.channelId] - 渠道 ID（可选，默认使用 CHANNEL_ID 常量）
  * @param {Object} [options.extraHeaders] - 额外的 headers（可选）
  * @returns {Object} 完整的 headers 对象
  */
 export function generateMaoyanHeaders(options = {}) {
-  const { token, cookie, uuid: inputUuid, channelId = CHANNEL_ID, extraHeaders = {} } = options;
+  const { token, uuid: inputUuid, channelId = CHANNEL_ID, extraHeaders = {} } = options;
 
   // 统一获取或创建 UUID，确保同一用户的连续行为使用相同的 UUID
   const uuid = getOrCreateUuid(inputUuid);
@@ -51,7 +50,6 @@ export function generateMaoyanHeaders(options = {}) {
     ...(uuid ? { uuid } : {}), // 统一添加 UUID
     "X-Channel-ID": channelId,
     channelId,
-    ...(cookie ? { Cookie: cookie } : {}),
     ...extraHeaders, // 允许各脚本添加特定的 headers
   };
 }
@@ -84,7 +82,7 @@ function generateUuid() {
 
 /**
  * 加载或生成持久化的设备 UUID
- * 优先级：输入参数 > 环境变量 > 本地文件 > 新生成
+ * 优先级：输入参数 > 本地文件 > 新生成
  * @param {string|undefined} inputUuid - 从输入参数传入的 UUID
  * @returns {string} UUID 字符串
  */
@@ -94,13 +92,7 @@ export function getOrCreateUuid(inputUuid) {
     return inputUuid;
   }
 
-  // 2. 其次使用环境变量
-  const envUuid = process.env.MAOYAN_UUID;
-  if (envUuid) {
-    return envUuid;
-  }
-
-  // 3. 尝试从本地文件加载
+  // 2. 从本地文件加载
   try {
     if (existsSync(UUID_FILE)) {
       const content = readFileSync(UUID_FILE, "utf-8");
@@ -113,7 +105,7 @@ export function getOrCreateUuid(inputUuid) {
     // 文件读取失败，继续生成新的
   }
 
-  // 4. 生成新的 UUID 并保存
+  // 3. 生成新 UUID 并保存
   const newUuid = generateUuid();
   try {
     mkdirSync(dirname(UUID_FILE), { recursive: true });
@@ -127,7 +119,7 @@ export function getOrCreateUuid(inputUuid) {
         null,
         2
       ),
-      "utf-8"
+      { encoding: "utf-8", mode: 0o600 }
     );
   } catch (error) {
     // 保存失败也不影响使用，只是下次会重新生成
@@ -137,17 +129,23 @@ export function getOrCreateUuid(inputUuid) {
 }
 
 /**
+ * 将数据写入 .authkey.json（仅当前用户可读写）
+ * @param {object} data - 调用方负责构造完整数据结构
+ */
+export function saveAuthKey(data) {
+  mkdirSync(dirname(AUTHKEY_FILE), { recursive: true });
+  writeFileSync(AUTHKEY_FILE, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 0o600 });
+}
+
+/**
  * 加载已保存的 token
- * 优先级：输入参数 > 环境变量 > 本地文件
+ * 优先级：输入参数 > 本地文件
  * token 不对外暴露，由脚本内部直接读取使用
  * @param {string|undefined} inputToken - 从输入参数传入的 token
  * @returns {string} token 字符串，未找到时返回空字符串
  */
 export function loadSavedToken(inputToken) {
   if (inputToken) return inputToken;
-
-  const envToken = process.env.MAOYAN_TOKEN;
-  if (envToken) return envToken;
 
   try {
     if (existsSync(AUTHKEY_FILE)) {
@@ -222,50 +220,6 @@ export function normalizeLimit(limit, fallback = 5) {
     return fallback;
   }
   return value;
-}
-
-export async function postJson(path, { token, body }) {
-  const baseUrl = process.env.MOVIE_TICKET_API_BASE_URL;
-  if (!baseUrl) {
-    throw new ScriptError(
-      ERROR_CODES.CONFIG_MISSING,
-      "缺少 MOVIE_TICKET_API_BASE_URL，无法请求真实接口"
-    );
-  }
-
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
-
-  try {
-    const res = await fetch(`${baseUrl}${path}`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        ...(token ? { authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(body || {}),
-      signal: controller.signal,
-    });
-
-    const text = await res.text();
-    const json = text ? JSON.parse(text) : {};
-
-    if (!res.ok) {
-      throw new ScriptError(
-        normalizeErrorCode(json?.error?.code, ERROR_CODES.HTTP_ERROR),
-        json?.error?.message || `请求失败，状态码 ${res.status}`
-      );
-    }
-
-    return json;
-  } catch (error) {
-    if (error.name === "AbortError") {
-      throw new ScriptError(ERROR_CODES.TIMEOUT, "请求超时");
-    }
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
 }
 
 export function outputSuccess(data) {

@@ -25,13 +25,8 @@
  *     data: { exists: false }
  *   }
  */
-import { readFileSync, existsSync } from "fs";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
-import { run } from "./_shared.mjs";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const AUTHKEY_FILE = join(__dirname, "..", ".authkey.json");
+import { readFileSync, existsSync, unlinkSync } from "fs";
+import { run, AUTHKEY_FILE } from "./_shared.mjs";
 
 await run(async () => {
   // 检查文件是否存在
@@ -43,16 +38,18 @@ await run(async () => {
     const content = readFileSync(AUTHKEY_FILE, "utf-8");
     const authKeyData = JSON.parse(content);
 
-    // 检查 AuthKey 是否过期（30天）
+    // 检查 AuthKey 是否过期（7天）
     const savedAt = new Date(authKeyData.savedAt || 0);
     const now = new Date();
     const daysDiff = (now - savedAt) / (1000 * 60 * 60 * 24);
 
-    if (daysDiff > 30) {
+    if (daysDiff > 7) {
+      // 过期后立即删除文件，避免敏感数据长期留存
+      try { unlinkSync(AUTHKEY_FILE); } catch {}
       return {
         exists: true,
         expired: true,
-        message: "AuthKey 已过期（超过30天）",
+        message: "AuthKey 已过期（超过7天），请重新登录",
       };
     }
 

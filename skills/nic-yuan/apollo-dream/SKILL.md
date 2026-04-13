@@ -2,7 +2,7 @@
 name: apollo-dream
 description: >
   像睡觉做梦一样整理记忆，把重要的留下，不重要的忘掉。
-version: 1.2.0
+version: 2.0.0
 read_when:
   - 对话超过20轮时
   - Token快用完时
@@ -128,7 +128,17 @@ metadata:
 
 ---
 
-## v1 实施规格（2026-04-06）
+## v2.0 实施规格（2026-04-07）
+
+### v2新功能
+
+1. **Token精度算法**：使用字符/词/标点综合估算（scripts/token-estimator.py）
+2. **信息密度检测**：识别高价值/低价值内容（scripts/density-detector.py）
+3. **三层压缩**：Microcompact/Session Memory/Deep Compact（scripts/compressor.py）
+4. **7天快照**：自动创建/清理记忆快照（scripts/snapshot.py）
+5. **决策追踪**：识别并记录关键决策（scripts/decision-tracker.py）
+
+### v1 实施规格（2026-04-06）
 
 > 以下是 v1 最小可运行版本的实现规格。
 

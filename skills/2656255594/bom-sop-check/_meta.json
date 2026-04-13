@@ -3,9 +3,15 @@
   "slug": "bom-sop-check",
   "displayName": "BOM与SOP校对",
   "latest": {
-    "version": "2.1.1",
-    "publishedAt": 1775636352827,
-    "commit": "https://github.com/openclaw/skills/commit/e9fb0707ad3bf3bc4f8e39bbcd33bba652576cb2"
+    "version": "2.1.2",
+    "publishedAt": 1775694107269,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.1.1",
+      "publishedAt": 1775636352827,
+      "commit": "https://github.com/openclaw/skills/commit/e9fb0707ad3bf3bc4f8e39bbcd33bba652576cb2"
+    }
+  ]
 }

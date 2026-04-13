@@ -1,6 +1,6 @@
 ---
 name: bom-sop-check
-version: 2.1.1
+version: 2.1.2
 description: BOM与SOP对比校对技能。支持多个BOM文件合并后与SOP对比，检测名称规格、位号、数量差异，在SOP文件中标注差异、追加BOM数据并生成报告。校对报告包含：SOP独有物料、BOM独有物料、数量差异明细三个表格。触发场景：用户发送BOM和SOP文件要求对比校对。
 ---
 

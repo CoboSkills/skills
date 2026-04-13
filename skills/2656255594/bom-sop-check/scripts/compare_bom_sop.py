@@ -248,6 +248,7 @@ def parse_bom_file(bom_path: str) -> Dict[str, Dict]:
     # 解析共享字符串（可能不存在）
     ss_path = os.path.join(extract_dir, 'xl', 'sharedStrings.xml')
     shared_strings = []
+    shared_strings_xml = []  # 保存原始 XML
     if os.path.exists(ss_path):
         with open(ss_path, 'r', encoding='utf-8') as f:
             ss_content = f.read()
@@ -259,6 +260,8 @@ def parse_bom_file(bom_path: str) -> Dict[str, Dict]:
                     if t.text:
                         text_parts.append(t.text)
                 shared_strings.append(''.join(text_parts))
+                # 保存原始 <si> 元素的 XML 字符串
+                shared_strings_xml.append(ET.tostring(si, encoding='unicode'))
         except:
             pass
     
@@ -391,6 +394,7 @@ def parse_sop_file(sop_path: str) -> Dict:
     # 解析共享字符串
     ss_path = os.path.join(result['extract_dir'], 'xl', 'sharedStrings.xml')
     shared_strings = []
+    shared_strings_xml = []  # 保存原始 XML
     if os.path.exists(ss_path):
         with open(ss_path, 'r', encoding='utf-8') as f:
             ss_content = f.read()
@@ -402,10 +406,12 @@ def parse_sop_file(sop_path: str) -> Dict:
                     if t.text:
                         text_parts.append(t.text)
                 shared_strings.append(''.join(text_parts))
+                shared_strings_xml.append(ET.tostring(si, encoding='unicode'))
         except:
             pass
     
     result['shared_strings'] = shared_strings
+    result['shared_strings_xml'] = shared_strings_xml
     
     # 解析工作表
     with open(sheet_path, 'r', encoding='utf-8') as f:
@@ -746,6 +752,7 @@ def generate_marked_file(result: Dict, bom_items: Dict, sop_data: Dict, output_d
     # 需要更新共享字符串（添加 BOM 数据）
     ss_path = os.path.join(sop_data['extract_dir'], 'xl', 'sharedStrings.xml')
     shared_strings = sop_data.get('shared_strings', [])
+    shared_strings_xml = sop_data.get('shared_strings_xml', [])
     new_strings = []
     
     # 收集所有需要添加的 BOM 数据字符串
@@ -921,20 +928,28 @@ def generate_marked_file(result: Dict, bom_items: Dict, sop_data: Dict, output_d
                 'is_only_sop': is_only_sop
             }
     
-    # 3. 收集所有需要添加的字符串
+    # 3. 收集所有需要添加的字符串（包括 BOM 数据和表头）
+    # 先收集表头字符串
+    header_texts = ['BOM名称规格', 'BOM数量', 'BOM位号']
+    for text in header_texts:
+        if text not in shared_strings and text not in all_strings_to_add:
+            all_strings_to_add.append(text)
+    
+    # 再收集 BOM 数据字符串
     for row, data in sorted(all_rows_data.items()):
         for key in ['bom_name', 'bom_qty', 'bom_pos']:
             val = data.get(key, '')
             if val and val not in shared_strings and val not in all_strings_to_add:
                 all_strings_to_add.append(val)
     
-    # 4. 更新共享字符串
+    # 4. 更新共享字符串（只更新一次，保留原始格式）
     ss_count = len(shared_strings)
     if all_strings_to_add:
         ss_content_new = '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="{}">'.format(ss_count + len(all_strings_to_add))
-        for s in shared_strings:
-            s_escaped = s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-            ss_content_new += f'<si><t>{s_escaped}</t></si>'
+        # 保留原始 <si> 元素的格式
+        for si_xml in shared_strings_xml:
+            ss_content_new += si_xml
+        # 添加新字符串
         for s in all_strings_to_add:
             s_escaped = s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             ss_content_new += f'<si><t>{s_escaped}</t></si>'
@@ -945,13 +960,13 @@ def generate_marked_file(result: Dict, bom_items: Dict, sop_data: Dict, output_d
         
         shared_strings = shared_strings + all_strings_to_add
     
-    # 4. 获取字符串索引
+    # 5. 获取字符串索引
     def get_str_idx(s):
         if s in shared_strings:
             return shared_strings.index(s)
         return -1
     
-    # 5. 添加表头行（在物料编码标题行）
+    # 6. 添加表头行（在物料编码标题行）
     # 找到物料编码标题行（AQ 列内容为 "物料编码" 的行）
     header_row = None
     for m in re.finditer(r'<c r="AQ(\d+)"[^>]*><v>(\d+)</v></c>', sheet_content):
@@ -963,29 +978,6 @@ def generate_marked_file(result: Dict, bom_items: Dict, sop_data: Dict, output_d
     
     if header_row:
         logger.info(f"物料编码标题行: {header_row}")
-        
-        # 添加表头字符串
-        header_texts = ['BOM名称规格', 'BOM数量', 'BOM位号']
-        for text in header_texts:
-            if text not in shared_strings and text not in all_strings_to_add:
-                all_strings_to_add.append(text)
-        
-        # 重新更新共享字符串
-        if all_strings_to_add:
-            ss_count = len(shared_strings)
-            ss_content_new = '<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="{}">'.format(ss_count + len(all_strings_to_add))
-            for s in shared_strings:
-                s_escaped = s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                ss_content_new += f'<si><t>{s_escaped}</t></si>'
-            for s in all_strings_to_add:
-                s_escaped = s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                ss_content_new += f'<si><t>{s_escaped}</t></si>'
-            ss_content_new += '</sst>'
-            
-            with open(ss_path, 'w', encoding='utf-8') as f:
-                f.write(ss_content_new)
-            
-            shared_strings = shared_strings + all_strings_to_add
         
         # 在标题行添加表头单元格
         header_cells = ''
@@ -1034,7 +1026,7 @@ def generate_marked_file(result: Dict, bom_items: Dict, sop_data: Dict, output_d
             for col in [bom_name_col, bom_qty_col, bom_pos_col]:
                 new_merge_cells.append(f'<mergeCell ref="{col}{row}:{col}{merge_end_row}"/>')
         
-        # 在行末添加新单元格
+        # 在 BQ 列之后插入新单元格（先删除原有的 BS/BT/BU 列单元格）
         if new_cells:
             row_pattern = rf'(<row r="{row}"[^>]*>)(.*?)(</row>)'
             row_match = re.search(row_pattern, sheet_content, re.DOTALL)
@@ -1042,7 +1034,27 @@ def generate_marked_file(result: Dict, bom_items: Dict, sop_data: Dict, output_d
                 row_start = row_match.group(1)
                 row_content = row_match.group(2)
                 row_end = row_match.group(3)
-                new_row_content = row_start + row_content + new_cells + row_end
+                
+                # 删除原有的 BS/BT/BU 列单元格（可能在行末）
+                for col in [bom_name_col, bom_qty_col, bom_pos_col]:
+                    # 删除非自闭合标签: <c r="XX..." ...>...</c>
+                    row_content = re.sub(rf'<c r="{col}{row}"[^>]*>.*?</c>', '', row_content, flags=re.DOTALL)
+                    # 删除自闭合标签: <c r="XX..." .../>
+                    row_content = re.sub(rf'<c r="{col}{row}"[^>]*/>', '', row_content)
+                
+                # 找到 BQ 列单元格的位置，在其后插入新单元格
+                # BQ 列在 BS/BT/BU 之前
+                bq_pattern = rf'(<c r="BQ{row}"[^>]*(?:>.*?</c>|/>))'
+                bq_match = re.search(bq_pattern, row_content)
+                if bq_match:
+                    # 在 BQ 单元格后插入
+                    insert_pos = bq_match.end()
+                    new_row_content = row_content[:insert_pos] + new_cells + row_content[insert_pos:]
+                else:
+                    # 如果没有 BQ 列，追加到行末
+                    new_row_content = row_content + new_cells
+                
+                new_row_content = row_start + new_row_content + row_end
                 sheet_content = sheet_content.replace(row_match.group(0), new_row_content)
     
     # 6. 添加新的合并单元格定义
@@ -1057,11 +1069,23 @@ def generate_marked_file(result: Dict, bom_items: Dict, sop_data: Dict, output_d
             sheet_content = sheet_content.replace(merge_cells_match.group(0), new_merge_element)
             logger.info(f"添加了 {len(new_merge_cells)} 个新合并单元格")
     
-    # 8. 更新列宽
+    # 8. 更新列宽（先删除原有的冲突定义）
     cols_pattern = r'<cols>(.*?)</cols>'
     cols_match = re.search(cols_pattern, sheet_content, re.DOTALL)
     if cols_match:
         cols_content = cols_match.group(1)
+        
+        # 删除原有的 BS/BT/BU 列宽定义（避免冲突）
+        # BS=71, BT=72, BU=73
+        for col_letter in ['BS', 'BT', 'BU']:
+            col_num = sum((ord(c) - ord('A') + 1) * (26 ** i) for i, c in enumerate(reversed(col_letter)))
+            # 删除精确匹配: <col min="71" max="71" .../>
+            cols_content = re.sub(rf'<col[^>]*min="{col_num}"[^>]*max="{col_num}"[^>]*/>', '', cols_content)
+            # 删除范围包含: <col min="71" max="77" .../>
+            cols_content = re.sub(rf'<col[^>]*min="{col_num}"[^>]*max="\d+"[^>]*/>', '', cols_content)
+            cols_content = re.sub(rf'<col[^>]*min="\d+"[^>]*max="{col_num}"[^>]*/>', '', cols_content)
+        
+        # 添加新的列宽定义
         new_cols = ''
         for col_letter in ['BS', 'BT', 'BU']:
             col_num = sum((ord(c) - ord('A') + 1) * (26 ** i) for i, c in enumerate(reversed(col_letter)))

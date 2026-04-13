@@ -1,0 +1,11 @@
+{
+  "owner": "goog",
+  "slug": "caixin-news",
+  "displayName": "财新网科技新闻",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775181076199,
+    "commit": null
+  },
+  "history": []
+}

@@ -12,10 +12,11 @@ description: >
   "cross-host message", "inter-host relay", "ping PEER", "peer list",
   "check antenna inbox", "approve message".
 metadata:
-  version: 1.1.4
+  version: 1.2.17
+postInstall: "bash skills/antenna/bin/antenna.sh setup"
 ---
 
-# Antenna — Inter-Host OpenClaw Messaging (v1.1.4)
+# Antenna — Inter-Host OpenClaw Messaging (v1.2.17)
 
 Send messages between OpenClaw instances over reachable HTTPS via the built-in `/hooks/agent` webhook.
 
@@ -45,11 +46,12 @@ Messages flow through a script-first relay pipeline:
 
 1. **Sender** runs `antenna-send.sh` which builds an `[ANTENNA_RELAY]` envelope and POSTs it to the recipient's `/hooks/agent` endpoint.
 2. **Recipient gateway** dispatches to the dedicated **Antenna agent**.
-3. **Antenna agent** runs `antenna-relay.sh` which deterministically parses, validates, and formats the message.
-4. **Antenna agent** calls `sessions_send` to inject the formatted message into the target session.
-5. **Message appears** persistently in the target conversation thread.
+3. **Antenna agent** writes the raw inbound message to a temp file using the `write` tool (structured API call, no shell metacharacter concerns).
+4. **Antenna agent** execs `antenna-relay-file.sh` with the file path — the script feeds the message to `antenna-relay.sh` which deterministically parses, validates, and formats it.
+5. **Antenna agent** calls `sessions_send` to inject the formatted message into the target session.
+6. **Message appears** persistently in the target conversation thread.
 
-The LLM never performs relay parsing logic; the scripts do.
+The LLM never performs relay parsing, encoding, or transformation; the scripts do all processing.
 
 ## Trust Model
 
@@ -152,7 +154,16 @@ echo "Long message body..." | antenna send <peer> --stdin
 antenna send <peer> --dry-run "Test message"
 ```
 
-### Peer onboarding / bootstrap exchange
+### Peer pairing (interactive wizard)
+
+```bash
+antenna pair                          # Full interactive wizard
+antenna pair --peer-id myserver       # Pre-fill peer ID
+```
+
+The wizard walks through keypair generation, public key sharing, optional ClawReef invite, bundle creation, optional bundle email send when mail tooling is available, exchange, connectivity test, and first message — with Next/Skip/Quit at each step. Also auto-offered at the end of `antenna setup`.
+
+### Peer onboarding / bootstrap exchange (manual)
 
 Preferred encrypted flow:
 
@@ -261,6 +272,18 @@ summarize the queue and ask me.
 
 **Conversational usage:** Ask your assistant "any Antenna messages waiting?" — it can run `antenna inbox list`, you review, then say "approve 1 and 3, deny 2" and it handles the rest.
 
+## ClawReef — Peer Discovery
+
+[clawreef.io](https://clawreef.io) is the optional community registry for Antenna hosts:
+
+- **Discover peers** — browse and search the directory
+- **Send invites** — ClawReef delivers them via Antenna to the recipient's default session
+- **Accept & pair** — accepting an invite starts the normal `antenna pair` flow locally
+
+ClawReef stores public keys and endpoints, never bilateral secrets. All trust decisions remain local to Antenna.
+
+The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to manual encrypted exchange. Setup also displays ClawReef info after completion.
+
 ## Security Notes
 
 - Relay agent is script-first and non-interpreting
@@ -282,7 +305,8 @@ summarize the queue and ask me.
 - **Encrypted exchange fails immediately**: `age` / `age-keygen` missing
 - **Email send convenience fails**: `himalaya` missing or no suitable account configured
 - **Message sent but not visible**: check `commands.ownerDisplay = "raw"` on the receiver; without it, hook-delivered messages are processed but invisible in Control UI
-- **Exec denied / allowlist miss**: ensure relay agent instructions use only simple commands (no `$(...)`, heredocs, or chaining); the `antenna-relay-exec.sh` wrapper exists for this
+- **Exec denied / allowlist miss**: ensure relay agent instructions use only simple commands (no `$(...)`, heredocs, or chaining); the `antenna-relay-file.sh` wrapper accepts a file path only
+- **Model refuses to encode / base64 errors**: this was fixed in v1.1.8 — the model no longer performs any encoding; if you see encoding errors, ensure you are on v1.1.8+ with the updated `agent/AGENTS.md`
 - **Repeated approval prompts**: ensure Antenna agent has `tools.exec.security: "allowlist"`, `tools.exec.ask: "off"`, and `sandbox: { mode: "off" }` in registration
 
 ## File Inventory
@@ -297,16 +321,19 @@ skills/antenna/
 ├── antenna-peers.json
 ├── antenna-config.json
 ├── antenna.log
+├── install.sh
 ├── bin/
-│   └── antenna
+│   └── antenna.sh
 ├── scripts/
 │   ├── antenna-send.sh
 │   ├── antenna-relay.sh
+│   ├── antenna-relay-file.sh           # v1.1.8 — file-based relay input (preferred)
+│   ├── antenna-relay-exec.sh            # v1.1.6 — base64 wrapper (legacy fallback)
+│   ├── antenna-pair.sh                  # v1.1.9 — interactive peer pairing wizard
 │   ├── antenna-health.sh
 │   ├── antenna-peers.sh
 │   ├── antenna-doctor.sh
 │   ├── antenna-exchange.sh
-│   ├── antenna-relay-exec.sh
 │   ├── antenna-inbox.sh
 │   ├── antenna-model-test.sh
 │   └── antenna-test-suite.sh
@@ -340,3 +367,9 @@ On each host:
 - `hooks.allowedSessionKeyPrefixes` includes `"hook:antenna"`
 - `commands.ownerDisplay` set to `"raw"` (required for relay messages to appear in Control UI)
 - Exec allowlist entries for Antenna agent: `/usr/bin/bash`, `/usr/bin/echo`, `/usr/bin/jq`, `/usr/bin/cat`
+
+## Support
+
+- 📧 **Email:** [help@clawreef.io](mailto:help@clawreef.io)
+- 🐛 **Issues:** [github.com/ClawReefAntenna/antenna/issues](https://github.com/ClawReefAntenna/antenna/issues)
+- 🔒 **Security:** See [SECURITY.md](SECURITY.md)

@@ -2,7 +2,165 @@
 
 All notable changes to the Antenna skill are documented here.
 
+## [1.2.17] — 2026-04-12
+### Fixed
+- Pair wizard once again offers to email bootstrap bundles after creating them, using the existing exchange mail flow
+- Wizard now behaves gracefully on hosts without `gog` or `himalaya` by simply not offering the email option
+
+## [1.2.16] — 2026-04-12
+### Fixed
+- Setup now includes `workspace` when creating default main agent entry — missing workspace caused hook-injected relay messages to be invisible in Control UI
+- Uses user-provided `--agent-id` (not hardcoded `lobster`) for the default agent
+
+## [1.2.15] — 2026-04-12
+### Fixed
+- Setup no longer hardcodes `lobster` as default main agent ID when `agents.list` is empty — now uses the user-provided `--agent-id` value, so relay messages target the correct registered agent
+- Non-interactive setup auto-detects primary agent from gateway config when `--agent-id` is omitted, and warns/corrects if the supplied ID doesn't match a registered agent
+- Updated help text examples to use `main` instead of `lobster`
+
+## [1.2.14] — 2026-04-12
+
+### Fixed
+- **Relay agent exec policy:** Setup no longer sets `tools.exec.security` or `tools.exec.ask` on the antenna agent registration. Explicit exec overrides caused silent relay failures where the hook session acknowledged messages but `sessions_send` never executed, making relayed messages invisible in the Control UI despite successful delivery. The relay now inherits the default exec policy, matching the proven working configuration.
+
+### Changed
+- Existing antenna agent entries are updated on re-run to remove stale `tools.exec` overrides.
+- Setup summary output no longer shows exec allowlist settings.
+
+## [1.2.13] — 2026-04-12
+
+### Fixed
+- **Relative token path resolution:** `peers test`, `antenna-send.sh`, and `antenna-health.sh` now resolve relative `token_file` paths against the skill directory. Previously, these commands silently sent an empty Bearer token when invoked from a different working directory, causing `401 AUTH FAILED` despite correct credentials.
+
+## [1.2.12] — 2026-04-12
+
+### Fixed
+- **Fresh-install setup guard:** running `antenna` before setup now prints a clear next-step hint instead of failing on missing runtime files.
+- **`set -e` second-run crash:** the self-healing permissions pass in `bin/antenna.sh` no longer exits the script when there are no permissions left to fix.
+
+### Changed
+- **Zero-config onboarding hint:** unconfigured installs now direct the user to `antenna setup` or `bash skills/antenna/bin/antenna.sh setup`.
+
+## [1.2.9] — 2026-04-12
+
+### Changed
+- **Self-healing permissions:** `antenna.sh` now auto-fixes execute bits on all scripts on first run. `install.sh` is no longer required after `clawhub install`. The new onboarding flow is just: `clawhub install antenna && bash skills/antenna/bin/antenna.sh setup`.
+- **Simplified Quick Start:** README and User Guide consolidated install + setup into a single two-command step. `install.sh` remains available but is marked optional.
+
+## [1.2.8] — 2026-04-12
+
+### Fixed
+- **Pairing wizard crash on clean install:** `scripts/antenna-pair.sh` hard-coded `bin/antenna` instead of the renamed `bin/antenna.sh` entrypoint, causing immediate failure.
+- **Dangling CLI symlink after uninstall:** `antenna uninstall --purge-skill-dir` now removes the `/usr/local/bin/antenna` (or `~/.local/bin/antenna`) symlink created by setup, instead of leaving it dangling.
+
+## [1.2.7] — 2026-04-11
+
+### Added
+- **Support contact info** (`help@clawreef.io`) added to README, SKILL.md, User Guide, `install.sh`, and `antenna doctor` output.
+- **"Getting Help" section** in README with email, GitHub Issues, ClawReef, and SECURITY.md links.
+- **SECURITY.md** for responsible vulnerability disclosure (standard GitHub convention).
+- `antenna doctor` now prints support contact info when warnings or failures are present.
+- `install.sh` now shows support contact info at the end of every run.
+
+## [1.2.6] — 2026-04-11
+
+### Added
+- **`install.sh` post-install bootstrap script.** Fixes file permissions (ClawHub doesn't preserve execute bits on `.sh` files) and offers to run `antenna setup`. New user flow: `clawhub install antenna && bash skills/antenna/install.sh`.
+- Updated README and User Guide install instructions to include the `install.sh` step.
+
+## [1.2.5] — 2026-04-11
+
+### Fixed
+- **ClawHub packaging fix:** Renamed `bin/antenna` → `bin/antenna.sh` so the CLI dispatcher is included in ClawHub packages. ClawHub's `listTextFiles()` silently drops extensionless files because they fail the text-extension allowlist check. The symlink created by `antenna setup` remains just `antenna` on PATH.
+- Updated all internal references (setup symlink logic, file inventories, FSD, docs) to reflect the new `bin/antenna.sh` filename.
+
+## [1.2.4] — 2026-04-10
+
+### Fixed
+- Setup agent auto-detection now handles both `agents.entries{}` and `agents.list[]` gateway config formats
+- Pair wizard Step 3 now hints to choose [S]kip for email/manual exchange when not using ClawReef
+- Pair wizard Steps 4+ show a "skip 4–6" note when ClawReef invite was used in Step 3
+
+## [1.2.3] — 2026-04-10
+
+### Added
+- **ClawReef integration** — ClawReef peer registry references throughout docs (README, SKILL.md, User Guide)
+- **Setup**: ClawReef info block displayed after setup completion with registration guidance
+- **Pair wizard**: New Step 3 "Send a ClawReef invite" offers registry-based discovery as alternative to manual encrypted exchange; opens browser to invites page if desired
+- User Guide: Full "ClawReef — The Reef Directory" section explaining purpose, trust model, and how it fits into pairing
+- README: ClawReef section with overview, trust model, and usage
+- SKILL.md: ClawReef peer discovery section
+
+### Changed
+- Pair wizard expanded from 7 to 8 steps (ClawReef invite inserted as Step 3; existing steps renumbered)
+- Roadmap entries updated to reflect ClawReef is now live
+
 ## [Unreleased]
+
+## [1.2.0] — 2026-04-09
+
+### Changed
+- **Playful voice pass** for `antenna setup` and `antenna pair` — user-facing copy
+  rewritten with warm, confident tone inspired by the Antenna-for-OpenClaw doc.
+- Setup banner: "Let's Get You on the Reef" with two-minute promise and shellfish joke.
+- Step headers gain warm subtitles (e.g. "Who Are You on the Reef?", "Choosing Your Dispatcher").
+- Relay model hint: "a courier, not a philosopher."
+- Inbox description: "Like a walkie-talkie" / "Trusted peers can skip the line."
+- Completion: "Welcome to the reef, <host>. 🦞"
+- Pair wizard intro: "Let's connect you to another host on the reef."
+- Pair completion: "🦞 You're Claw-nected!" / "The ocean just got smaller."
+- First message send: "Releasing the lobster to <peer>... 🦞"
+- Error messages gain human warmth while staying clear.
+- Quit message: "No worries — pick up where you left off anytime."
+- Total pun count across both scripts: 2. Emoji 🦞 count: 6.
+
+## [1.1.9] — 2026-04-09
+
+### Added
+- **Interactive peer pairing wizard:** New `antenna pair` command walks users through the full
+  pairing flow — keypair generation, public key sharing, bundle creation, bundle import,
+  connectivity test, and first message — with Next/Skip/Quit at each step.
+- `scripts/antenna-pair.sh` — standalone wizard script.
+- `antenna pair [--peer-id <id>]` — CLI entry point.
+- Auto-offered at the end of `antenna setup` (interactive mode only).
+
+### Changed
+- `antenna setup` end-of-run output now shows a concise pairing summary with an offer to
+  launch the wizard, replacing the previous static step-by-step listing.
+
+## [1.1.8] — 2026-04-09
+
+### Changed
+- **File-based relay input (eliminates model encoding dependency):** The relay agent no longer
+  performs base64 encoding. Instead, it uses the `write` tool to save the raw inbound message
+  to a temporary file (`/tmp/antenna-relay-msg.txt`), then execs `antenna-relay-file.sh` with
+  the file path as the sole argument. The script reads the file and pipes it to `antenna-relay.sh
+  --stdin`. This removes the entire class of model-dependent encoding failures — notably
+  `gpt-5.4` refused to base64-encode large payloads under the v1.1.6 approach.
+- Updated `agent/AGENTS.md` with the new write-then-exec flow and simplified instructions.
+- Supersedes `antenna-relay-exec.sh` (base64 wrapper) as the primary relay entry point.
+
+### Added
+- `scripts/antenna-relay-file.sh` — reads raw message from a file and feeds to relay via stdin.
+
+## [1.1.7] — 2026-04-09
+
+### Fixed
+- **`local` keyword outside function:** Fixed `scripts/antenna-relay.sh` line 229 where
+  `local auth_hint expected_hint diag_msg` was used at top-level script scope (outside any
+  function). This caused `local: can only be used in a function` errors on the peer-auth
+  mismatch diagnostic path. Replaced with plain variable assignments. Bug was latent on hosts
+  where auth always succeeded; only surfaced on AntTest where peer-secret mismatches triggered
+  the affected branch.
+
+## [1.1.6] — 2026-04-07
+
+### Changed
+- **Base64-encoded relay exec argument:** The relay agent now base64-encodes the full raw
+  inbound message before passing it to `antenna-relay-exec.sh`. The wrapper decodes before
+  piping to the relay script. This eliminates the entire class of exec allowlist failures
+  caused by message content containing shell metacharacters (`|`, `&`, `;`, `$`, etc.).
+- Updated `agent/AGENTS.md` with base64 encoding instructions and examples.
 
 ## [1.1.5] — 2026-04-06
 
@@ -33,7 +191,7 @@ All notable changes to the Antenna skill are documented here.
 
 ### Fixed
 - **Setup Step 5 display:** `echo` → `echo -e` for ANSI bold/color codes in the inbox mode description
-- **Agent ID auto-detection:** Setup now reads gateway config to pre-fill the primary agent ID, reducing the chance of entering the wrong value and getting misrouted sessions (e.g., `agent:betty:main` vs `agent:main:main`)
+- **Agent ID auto-detection:** Setup now reads gateway config to pre-fill the primary agent ID, reducing the chance of entering the wrong value and getting misrouted sessions (e.g., `agent:lobster:main` vs `agent:main:main`)
 - **Cross-agent session visibility:** Setup now auto-configures `tools.sessions.visibility=all` and `tools.agentToAgent.enabled=true` in the gateway config, fixing "Session send visibility is restricted" errors on fresh installs
 - **Manual fallback instructions** updated with the new visibility/agent-to-agent settings (Step 4) and renumbered
 
@@ -194,7 +352,7 @@ Layer A encrypted bootstrap exchange implemented and docs synced to the current 
 ## [1.0.8] — 2026-03-30
 
 ### Summary
-Onboarding UX fixes from first real "meat test" (human walkthrough on clean-slate BETTYXX).
+Onboarding UX fixes from first real "meat test" (human walkthrough on clean-slate host).
 
 ### Fixed
 - **`antenna setup`** now seeds the host's own ID into `allowed_inbound_peers` and `allowed_outbound_peers` — prevents self-loopback smoke tests from failing with "not in allowed_outbound_peers" immediately after setup.
@@ -205,8 +363,8 @@ Onboarding UX fixes from first real "meat test" (human walkthrough on clean-slat
 - `scripts/antenna-exchange.sh` — reordered guided wizard Step 2 options; added "operator can pull" suggestion.
 
 ### Tested
-- Clean-slate BETTYXX onboarding: `antenna setup` → `peers add` → `peers exchange` → `antenna msg` — full round-trip confirmed.
-- Tier A: 11/11 on both BETTYXIX and BETTYXX after changes.
+- Clean-slate onboarding: `antenna setup` → `peers add` → `peers exchange` → `antenna msg` — full round-trip confirmed.
+- Tier A: 11/11 on both hosts after changes.
 
 ## [1.0.7] — 2026-03-30
 
@@ -341,11 +499,11 @@ Portability cleanup. Removed hardcoded host/user/model assumptions from shareabl
 - `relay_agent_model` reverted from `"mini"` alias to full `"openai/gpt-5.4"` provider/model ID
 - `agent/AGENTS.md` — replaced hardcoded `/home/corey/clawd/...` paths with relative/config-driven resolution
 - `agent/TOOLS.md` — same path portability fix
-- `SKILL.md` — generic `<placeholder>` examples instead of Betty/Corey-specific names and URLs
+- `SKILL.md` — generic `<placeholder>` examples instead of installation-specific names and URLs
 - `README.md` — same generic examples treatment
 - `references/ANTENNA-RELAY-FSD.md` — removed host-specific peer IDs, session keys, and display names from examples
 - `bin/antenna` — generic usage examples; status fallback model shows `"unset"` instead of `"mini"`
-- `scripts/antenna-relay.sh` — fallback `local_agent_id` changed from `"betty"` to `"agent"`
+- `scripts/antenna-relay.sh` — fallback `local_agent_id` changed from example agent to `"agent"`
 
 ### Added
 - `install_path` field in `antenna-config.json` — allows agent/scripts to resolve paths on any host

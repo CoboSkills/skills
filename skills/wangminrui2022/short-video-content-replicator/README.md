@@ -26,7 +26,13 @@
 
 你可以直接对你的 Agent 说：
 
-使用 short-video-content-replicator 技能处理这个链接https://v.douyin.com/M4M5uqTWCRE/，输出到 "F:/test" 文件夹。
+帮我复制这个抖音视频的内容：https://v.douyin.com/M4M5uqTWCRE/
+
+把这个B站短视频转成带标点的文字https://b23.tv/Os94Q14，输出到 "F:/test" 文件夹。
+
+一键端到端处理这个视频
+
+/short-video-content-replicator https://b23.tv/Os94Q14
 
 ## 📋 工作流示意图
 

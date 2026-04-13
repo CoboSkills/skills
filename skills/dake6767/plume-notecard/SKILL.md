@@ -8,7 +8,7 @@ description: |
   use this card's style as reference, use this product image for notecard, replace the content of this notecard,
   create a series of notecards, split long text into multi-page notecards,
   notecard slide deck, card slides, notecard presentation, image PPT, image slides,
-  卡片, 信息图, 知识图谱海报, 把文章可视化, 图解, 总结图, 时间线图, 把这篇文章转成图,
+  卡片, 信息卡片, 信息图, 知识图谱海报, 把文章可视化, 图解, 总结图, 时间线图, 把这篇文章转成图,
   围绕XX主题做一张图解, 参照这张信息图的风格, 用这张产品图做信息图,
   把这张信息图的内容换成, 做一组系列信息图, 把长文拆成多页信息图,
   图片幻灯片, 图片PPT, 信息图幻灯片, 信息图PPT, 做一套图片PPT, 做一套信息图幻灯片,
@@ -78,7 +78,7 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/check_config.py
   - OpenClaw environment: Configure to `env.PLUME_API_KEY` in `~/.openclaw/openclaw.json`
   - Claude Code environment: Set `PLUME_API_KEY` environment variable
   - Other environments: Set `PLUME_API_KEY` environment variable
-  - Get API Key: Visit [Plume](https://design.useplume.app/openclaw-skill)
+  - Get API Key: Visit [Plume](https://design.useplume.app/notecard)
 
 ## Template Gallery
 
@@ -86,9 +86,9 @@ During content planning, always include the template gallery link for users to b
 
 | User Language | Link |
 |--------------|------|
-| 中文 | `https://design.useplume.app/openclaw-skill/templates?lang=zh-CN` |
-| English | `https://design.useplume.app/openclaw-skill/templates?lang=en` |
-| 日本語 | `https://design.useplume.app/openclaw-skill/templates?lang=ja` |
+| 中文 | `https://design.useplume.app/notecard/templates?lang=zh-CN` |
+| English | `https://design.useplume.app/notecard/templates?lang=en` |
+| 日本語 | `https://design.useplume.app/notecard/templates?lang=ja` |
 
 Agent auto-selects the matching link based on the language the user is currently using in conversation.
 
@@ -98,7 +98,7 @@ If user doesn't select a template and confirms directly, Agent auto-matches styl
 
 ## Core Workflow
 
-**`transfer` (when reference image exists) → `create` (sync wait for result) → get local image path → subsequent operations (deliver/package etc.)**
+**`transfer` (when reference image exists) → `create` (sync wait for result) → get local image path → `merge-pdf` / `create-zip` (optional, for batch/deck) → subsequent operations (deliver/package etc.)**
 
 **Before calling create, you must first send a waiting message to the user**, e.g. "Sure, generating your notecard now. This usually takes 1-2 minutes, please wait." This message must be sent before calling create. Because create is synchronous and blocking — if the prompt text and create are in the same turn, the text may not reach the user before blocking starts.
 
@@ -111,6 +111,28 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py transfer --file /path/to/
 python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py create \
   --channel <channel> --mode <article|reference> [params...]
 # Returns {"success": true, "task_id": "xxx", "images": ["/abs/path/result_xxx.png", ...], "result_urls": [...]}
+
+# Create task with auto PDF merge (batch/deck mode)
+python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py create \
+  --channel <channel> --mode article --count 5 --merge-to-pdf
+# Returns {"success": true, "images": [...], "pdf": {"path": "/path/to/merged.pdf", "page_count": 5, "file_size_mb": 2.3}}
+
+# Create task with auto ZIP packaging (batch/deck mode)
+python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py create \
+  --channel <channel> --mode article --count 5 --create-zip
+# Returns {"success": true, "images": [...], "zip": {"path": "/path/to/notecards.zip", "file_count": 5, "file_size_mb": 1.8}}
+
+# Merge existing images to PDF
+python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py merge-pdf \
+  --images /path/to/img1.png,/path/to/img2.png,/path/to/img3.png \
+  --output /path/to/output.pdf
+# Returns {"success": true, "pdf_path": "/path/to/output.pdf", "page_count": 3, "file_size_mb": 1.5}
+
+# Package existing images to ZIP
+python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py create-zip \
+  --images /path/to/img1.png,/path/to/img2.png,/path/to/img3.png \
+  --output /path/to/output.zip
+# Returns {"success": true, "zip_path": "/path/to/output.zip", "file_count": 3, "file_size_mb": 1.2}
 
 # Read operation log (for retry/quoting previous results)
 python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py history --channel <channel>
@@ -220,6 +242,18 @@ Chinese equivalents:
 - `style_transfer`: User uploaded external reference image, need to transfer style
 
 **Deck mode (`--deck-mode`):** First plan page count and structure, prefer passing structured content via `--pages`. Default aspect ratio `16:9`.
+
+**PDF merge behavior:**
+- User explicitly mentions "PDF" / "合并成 PDF" / "merge to PDF" → add `--merge-to-pdf` flag
+- Batch/deck mode without PDF request → generate images only, mention: "如需 PDF 版本，请告诉我。" / "Let me know if you need a PDF version."
+- User later requests PDF → call `merge-pdf` with image paths from history
+- Single image (`count = 1`) → no PDF merge option
+
+**ZIP packaging behavior:**
+- User explicitly mentions "ZIP" / "打包" / "package" / "压缩包" → add `--create-zip` flag
+- Batch/deck mode without packaging request → generate images only, mention: "如需打包下载，请告诉我。" / "Let me know if you need a packaged download."
+- User later requests ZIP → call `create-zip` with image paths from history
+- Single image (`count = 1`) → no ZIP packaging option
 
 ## Error Handling
 

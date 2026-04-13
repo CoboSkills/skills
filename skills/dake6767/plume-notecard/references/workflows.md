@@ -16,7 +16,7 @@ User request: "Generate a notecard about the history of coffee"
    2. Spread to Arabia and Europe
    3. Modern coffee culture
 
-   Browse styles: [Template Gallery](https://design.useplume.app/openclaw-skill/templates?lang=en)
+   Browse styles: [Template Gallery](https://design.useplume.app/notecard/templates?lang=en)
 
    Does this work?
    ```
@@ -200,3 +200,109 @@ Returns:
   ]
 }
 ```
+
+## PDF Merge: Auto-merge on Creation
+
+User: "Generate 5 notecards about programming languages, merge to PDF"
+
+**Process:**
+1. Agent plans content (same as batch workflow)
+2. User confirms
+3. Agent calls create with `--merge-to-pdf`:
+   ```bash
+   python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py create \
+     --channel user123 --mode article \
+     --article "[content covering all 5 languages]" \
+     --count 5 --merge-to-pdf \
+     --style-hint "tech minimalist"
+   ```
+4. Returns:
+   ```json
+   {
+     "success": true,
+     "task_id": "abc123",
+     "images": ["/path/to/img1.png", "/path/to/img2.png", ...],
+     "pdf": {
+       "path": "/path/to/merged_20260407_123456.pdf",
+       "page_count": 5,
+       "file_size_mb": 2.3
+     }
+   }
+   ```
+
+## PDF Merge: Post-generation
+
+User: After batch generation, says "merge to PDF"
+
+**Process:**
+1. Agent reads history to get image paths:
+   ```bash
+   python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py history --channel user123
+   ```
+2. Agent calls merge-pdf:
+   ```bash
+   python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py merge-pdf \
+     --images /path/to/img1.png,/path/to/img2.png,/path/to/img3.png
+   ```
+3. Returns:
+   ```json
+   {
+     "success": true,
+     "pdf_path": "/path/to/merged_20260407_123456.pdf",
+     "page_count": 3,
+     "file_size_mb": 1.5
+   }
+   ```
+
+## ZIP Package: Auto-package on Creation
+
+User: "Generate 5 notecards about programming languages, package as ZIP"
+
+**Process:**
+1. Agent plans content (same as batch workflow)
+2. User confirms
+3. Agent calls create with `--create-zip`:
+   ```bash
+   python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py create \
+     --channel user123 --mode article \
+     --article "[content covering all 5 languages]" \
+     --count 5 --create-zip \
+     --style-hint "tech minimalist"
+   ```
+4. Returns:
+   ```json
+   {
+     "success": true,
+     "task_id": "abc123",
+     "images": ["/path/to/img1.png", "/path/to/img2.png", ...],
+     "zip": {
+       "path": "/path/to/notecards_20260407_123456.zip",
+       "file_count": 5,
+       "file_size_mb": 1.8
+     }
+   }
+   ```
+
+## ZIP Package: Post-generation
+
+User: After batch generation, says "package to ZIP"
+
+**Process:**
+1. Agent reads history to get image paths:
+   ```bash
+   python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py history --channel user123
+   ```
+2. Agent calls create-zip:
+   ```bash
+   python3 ${CLAUDE_SKILL_DIR}/scripts/create_notecard.py create-zip \
+     --images /path/to/img1.png,/path/to/img2.png,/path/to/img3.png
+   ```
+3. Returns:
+   ```json
+   {
+     "success": true,
+     "zip_path": "/path/to/notecards_20260407_123456.zip",
+     "file_count": 3,
+     "file_size_mb": 1.2
+   }
+   ```

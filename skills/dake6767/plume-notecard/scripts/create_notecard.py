@@ -622,6 +622,176 @@ def _download_results(task_id: str, task: dict) -> dict:
     return {"success": True, "images": local_files, "result_urls": result_urls}
 
 
+def _create_zip_archive(image_paths: list[str], output_path: str | None = None) -> dict:
+    """
+    Package multiple images into a ZIP file
+
+    Args:
+        image_paths: List of image file paths
+        output_path: Output ZIP path (optional, defaults to first image directory)
+
+    Returns:
+        {"success": bool, "zip_path": str, "file_count": int, "file_size_mb": float}
+    """
+    import zipfile
+
+    if not image_paths:
+        return {"success": False, "error": "Image list is empty"}
+
+    # Verify all image files exist
+    missing_files = [p for p in image_paths if not os.path.exists(p)]
+    if missing_files:
+        return {
+            "success": False,
+            "error": f"Image files not found: {', '.join(missing_files)}"
+        }
+
+    # Generate default output path
+    if not output_path:
+        first_image_dir = os.path.dirname(image_paths[0])
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        output_path = os.path.join(first_image_dir, f"notecards_{timestamp}.zip")
+
+    try:
+        with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for path in image_paths:
+                # Use filename as path inside ZIP
+                arcname = os.path.basename(path)
+                zipf.write(path, arcname)
+                log(f"Added to ZIP: {arcname}")
+
+        # Get file size
+        file_size = os.path.getsize(output_path) / (1024 * 1024)
+
+        log(f"ZIP packaging successful: {output_path} ({len(image_paths)} files, {file_size:.2f} MB)")
+
+        return {
+            "success": True,
+            "zip_path": output_path,
+            "file_count": len(image_paths),
+            "file_size_mb": round(file_size, 2)
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"ZIP packaging failed: {str(e)}"
+        }
+
+
+def _merge_images_to_pdf(image_paths: list[str], output_path: str | None = None) -> dict:
+    """
+    Merge multiple images into a PDF
+
+    Args:
+        image_paths: List of image file paths
+        output_path: Output PDF path (optional, defaults to first image directory)
+
+    Returns:
+        {"success": bool, "pdf_path": str, "page_count": int, "file_size_mb": float}
+    """
+    try:
+        from PIL import Image
+    except ImportError:
+        return {
+            "success": False,
+            "error": "Pillow library not installed. Please run: pip install Pillow"
+        }
+
+    if not image_paths:
+        return {"success": False, "error": "Image list is empty"}
+
+    # Verify all image files exist
+    missing_files = [p for p in image_paths if not os.path.exists(p)]
+    if missing_files:
+        return {
+            "success": False,
+            "error": f"Image files not found: {', '.join(missing_files)}"
+        }
+
+    # Generate default output path
+    if not output_path:
+        first_image_dir = os.path.dirname(image_paths[0])
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        output_path = os.path.join(first_image_dir, f"merged_{timestamp}.pdf")
+
+    try:
+        # Load all images and convert to RGB
+        images = []
+        for path in image_paths:
+            try:
+                img = Image.open(path)
+                if img.mode != "RGB":
+                    img = img.convert("RGB")
+                images.append(img)
+                log(f"Loaded image: {path}")
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"Cannot open image {path}: {str(e)}"
+                }
+
+        if not images:
+            return {"success": False, "error": "No valid images"}
+
+        # Save as PDF
+        images[0].save(
+            output_path,
+            save_all=True,
+            append_images=images[1:] if len(images) > 1 else [],
+            resolution=100.0,
+            quality=95
+        )
+
+        # Get file size
+        file_size = os.path.getsize(output_path) / (1024 * 1024)
+
+        log(f"PDF merge successful: {output_path} ({len(images)} pages, {file_size:.2f} MB)")
+
+        return {
+            "success": True,
+            "pdf_path": output_path,
+            "page_count": len(images),
+            "file_size_mb": round(file_size, 2)
+        }
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"PDF merge failed: {str(e)}"
+        }
+
+
+def cmd_merge_pdf(args):
+    """Merge multiple images into PDF"""
+    if not args.images:
+        output({"success": False, "error": "--images parameter is required"})
+        return
+
+    image_paths = [p.strip() for p in args.images.split(",") if p.strip()]
+    if not image_paths:
+        output({"success": False, "error": "Image list is empty"})
+        return
+
+    result = _merge_images_to_pdf(image_paths, args.output)
+    output(result)
+
+
+def cmd_create_zip(args):
+    """Package multiple images into ZIP"""
+    if not args.images:
+        output({"success": False, "error": "--images parameter is required"})
+        return
+
+    image_paths = [p.strip() for p in args.images.split(",") if p.strip()]
+    if not image_paths:
+        output({"success": False, "error": "Image list is empty"})
+        return
+
+    result = _create_zip_archive(image_paths, args.output)
+    output(result)
+
+
 def cmd_history(args):
     """读取操作日志历史"""
     entries = action_log.read_log(args.channel or "")
@@ -709,7 +879,7 @@ def cmd_create(args):
         "local_files": dl["images"],
     })
 
-    output({
+    result = {
         "success": True,
         "task_id": task_id,
         "status": status,
@@ -717,7 +887,39 @@ def cmd_create(args):
         "result_urls": dl["result_urls"],
         "count": len(dl["images"]),
         "credits_cost": create_result.get("credits_cost"),
-    })
+    }
+
+    # If --merge-to-pdf is enabled and multiple images, auto-merge
+    if args.merge_to_pdf and len(dl["images"]) > 1:
+        log("Detected --merge-to-pdf option, starting PDF merge...")
+        pdf_result = _merge_images_to_pdf(dl["images"])
+        if pdf_result.get("success"):
+            result["pdf"] = {
+                "path": pdf_result["pdf_path"],
+                "page_count": pdf_result["page_count"],
+                "file_size_mb": pdf_result["file_size_mb"]
+            }
+            log(f"PDF merge successful: {pdf_result['pdf_path']}")
+        else:
+            log(f"PDF merge failed: {pdf_result.get('error')}")
+            result["pdf_error"] = pdf_result.get("error")
+
+    # If --create-zip is enabled and multiple images, auto-package
+    if args.create_zip and len(dl["images"]) > 1:
+        log("Detected --create-zip option, starting ZIP packaging...")
+        zip_result = _create_zip_archive(dl["images"])
+        if zip_result.get("success"):
+            result["zip"] = {
+                "path": zip_result["zip_path"],
+                "file_count": zip_result["file_count"],
+                "file_size_mb": zip_result["file_size_mb"]
+            }
+            log(f"ZIP packaging successful: {zip_result['zip_path']}")
+        else:
+            log(f"ZIP packaging failed: {zip_result.get('error')}")
+            result["zip_error"] = zip_result.get("error")
+
+    output(result)
 
 
 def main():
@@ -730,6 +932,14 @@ def main():
     p_history = subparsers.add_parser("history", help="读取操作日志历史")
     p_history.add_argument("--channel", help="渠道标识")
     p_history.add_argument("--limit", type=int, default=10, help="返回最近 N 条记录")
+
+    p_merge_pdf = subparsers.add_parser("merge-pdf", help="Merge multiple images into PDF")
+    p_merge_pdf.add_argument("--images", required=True, help="Image paths, comma-separated")
+    p_merge_pdf.add_argument("--output", help="Output PDF path (optional)")
+
+    p_create_zip = subparsers.add_parser("create-zip", help="Package multiple images into ZIP")
+    p_create_zip.add_argument("--images", required=True, help="Image paths, comma-separated")
+    p_create_zip.add_argument("--output", help="Output ZIP path (optional)")
 
     p_create = subparsers.add_parser("create", help="创建卡片任务并同步等待结果")
     p_create.add_argument("--mode", choices=["topic", "article", "reference"], help="卡片模式")
@@ -757,12 +967,16 @@ def main():
     p_create.add_argument("--title", help="任务标题（可选）")
     p_create.add_argument("--poll-interval", type=int, default=10, help="轮询间隔秒数（默认 10）")
     p_create.add_argument("--timeout", type=int, default=1800, help="最大等待秒数（默认 1800）")
+    p_create.add_argument("--merge-to-pdf", action="store_true", default=False, help="Auto-merge multiple images to PDF (batch/deck mode only)")
+    p_create.add_argument("--create-zip", action="store_true", default=False, help="Auto-package multiple images to ZIP (batch/deck mode only)")
 
     args = parser.parse_args()
 
     commands = {
         "transfer": cmd_transfer,
         "history": cmd_history,
+        "merge-pdf": cmd_merge_pdf,
+        "create-zip": cmd_create_zip,
         "create": cmd_create,
     }
 

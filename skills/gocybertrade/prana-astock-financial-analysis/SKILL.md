@@ -4,8 +4,8 @@ description: >
   通过调用 Prana 平台上的远程 agent 完成以下处理：分析A股上市公司财务状况,从6个维度展示(盈利能力、偿债能力、营运能力、成长能力、现金流质量、估值水平),生成交互式HTML报告,默认分析近8个季度数据。
   IMPORTANT: This skill has a mandatory step-by-step process. DO NOT skip steps or merge steps without explicit user permission.
   Step 2 is NEVER to be run alone or out of order: regardless of chat context, you MUST (1) confirm with the user first, (2) GET api_key, and (3) set PRANA_SKILL_API_FLAG (either as a temporary shell env or as a global env) — all three in sequence; never only fetch api_key without prior confirmation and without writing the env var.
-  If PRANA_SKILL_API_FLAG is already present (Step 1 passes), you MUST NOT overwrite, refresh, or re-fetch keys to change it without explicit user permission — proceed with Step 3 using the existing value unless the user clearly asks to rotate or reconfigure.
-  Each api_key from GET /api/v2/api-keys is independent and unique to that issuance; do NOT re-fetch or pull a new key on your own initiative — use the value already configured unless the user explicitly authorizes obtaining a new one.
+  If PRANA_SKILL_API_FLAG is already present (Step 1 passes), you MUST NOT call GET /api/v2/api-keys in any form. Never overwrite, refresh, rotate, or re-fetch keys; always proceed directly to Step 3 using the existing value.
+  Each api_key from GET /api/v2/api-keys is independent and unique to that issuance; when PRANA_SKILL_API_FLAG already exists, re-fetching is strictly forbidden under all circumstances.
 required_env:
   - PRANA_SKILL_API_FLAG
 required_env_note: >
@@ -22,8 +22,8 @@ network_requests:
 ---
 
 
-技能使用场景:用于投研场景，诊断A股上市公司财务健康度
-例如：帮我分析贵州茅台近8个季度的财务状况、生成宁德时代A股财务分析交互式报告
+技能使用场景:用于投研场景，诊断A股上市公司财务健康度与估值合理性
+例如：帮我分析贵州茅台近8个季度的财务状况、生成宁德时代A股财务分析报告，包含六大维度
 
 # A股财务分析
 
@@ -33,11 +33,11 @@ network_requests:
 1. **通读**下方「分步流程」全文，明确当前应处于哪一步。
 2. **声明**你即将执行的操作（尤其是 curl、写入配置、运行脚本）。
 3. 若该步标注 **Confirmation Required: YES**，**先询问用户，得到明确同意后再执行**；未同意则 **STOP**，不得继续后续步骤。
-4. **识别分支**：若 Step 1 已检测到 `PRANA_SKILL_API_FLAG`，**禁止**再执行 **Step 2**，应从 **Step 3** 继续。
+4. **识别分支**：若 Step 1 已检测到 `PRANA_SKILL_API_FLAG`，**绝对禁止**再执行 **Step 2**（含任何形式的取钥请求），应从 **Step 3** 继续。
 
-5. **已存在环境变量时（必读）：** 一旦 Step 1 确认 **`PRANA_SKILL_API_FLAG` 已设置**，在**未获得用户明确许可**的情况下，**禁止**为该变量**私自更新、覆盖、轮换或重新取钥**（包括不得因需要付费、鉴权失败、或「想刷新一下」而擅自执行 `GET /api/v2/api-keys` 或改写全局/会话环境变量）。若用户**明确**要求更换密钥或重新走 Step 2，再按 Step 2 的 ①→②→③ 全流程执行。
+5. **已存在环境变量时（必读）：** 一旦 Step 1 确认 **`PRANA_SKILL_API_FLAG` 已设置**，即视为已有可用 `api_key`。此时**绝对禁止**调用 `GET /api/v2/api-keys`（含重试、刷新、换钥、补拉、测试性请求等任何形式），也**不得**改写该变量值；无论出现付费提示、鉴权失败或超时，都只能先向用户报告并等待指示，**不得**自行取钥。
 
-6. **api_key 独立唯一（必读）：** 平台下发的 **每个 `api_key` 均为独立且唯一**的凭证，**不是**可随意「再拉一条替换」的公共资源。**禁止**助手在已有有效配置或未经用户明示时，**自行、反复或试探性地**调用 `GET /api/v2/api-keys` 重新拉取；仅在 **Step 1 未检测到变量**且完成 Step 2 确认流程，或用户**明确要求**换发新钥时，方可取钥。
+6. **api_key 独立唯一（必读）：** 平台下发的 **每个 `api_key` 均为独立且唯一**的凭证，**不是**可随意「再拉一条替换」的公共资源。只要 **Step 1 已检测到 `PRANA_SKILL_API_FLAG`**，就**一律禁止**调用 `GET /api/v2/api-keys` 重新拉取（不设例外）。
 
 **Step 2 硬性要求（无论上下文如何均适用）：**  
 Step 2 **不得**在未获用户事先确认的情况下**私自执行**；**不得**「单独运行」或只执行其中一段（例如**只**调用 `GET /api/v2/api-keys` 取钥却**不**接着设置环境变量，或跳过确认直接取钥）。合法流程**必须**严格按顺序完成下面 **三个环节，缺一不可**：  
@@ -46,7 +46,7 @@ Step 2 **不得**在未获用户事先确认的情况下**私自执行**；**不
 **禁止（DO NOT）：**  
 - 为「省事」跳步、合并多步、假设用户已默许。  
 - **不论**对话上下文、用户语气是否像「已经同意过」，只要当前执行路径仍属 Step 2，**未重新完成上述 ①→②→③ 全流程**，就**不得**擅自取钥或只取钥不写环境变量。  
-- **在 Step 1 已检测到 `PRANA_SKILL_API_FLAG` 的前提下**，**未经用户明确同意**，**不得**修改该变量的值、**不得**重新执行 Step 2 取钥换钥；若脚本或接口失败，应先如实反馈，由用户决定是否重试、是否显式授权「重新取钥并覆盖环境变量」。  
+- **在 Step 1 已检测到 `PRANA_SKILL_API_FLAG` 的前提下**，**一律不得**重新执行 Step 2 或调用 `GET /api/v2/api-keys` 取钥换钥；若脚本或接口失败，只能如实反馈并等待用户决策，助手无权自行取钥。  
 - 在用户未明确同意时写入全局环境配置、持久化密钥或替用户决定「继续重试 / 重新取钥」。  
 - 在用户**未明确说出**要查历史/购买/技能获取记录时，调用 `GET /api/claw/skill-purchase-history-url`（见下文「可选：历史请求地址」）。
 - **擅自**再次调用 `GET /api/v2/api-keys`「换一条试试」：每个 key 独立唯一，**不得**在无用户授权时自行重新拉取。
@@ -65,7 +65,7 @@ env | grep PRANA_SKILL_API_FLAG
 **Why this matters:** 脚本依赖该变量作为 `x-api-key`；未设置时必须先执行 **Step 2**，不得直接跑客户端。
 
 **分支：**
-- 若 **已检测到** 变量 → **跳过 Step 2**，进入 **Step 3**。**在未获用户明确许可前，不得**对该变量**私自覆盖、更新或重新取钥换值**；仅当用户**明确要求**更换密钥 / 重新配置时，再按 **Step 2** 全流程执行。  
+- 若 **已检测到** 变量 → **跳过 Step 2**，进入 **Step 3**。此分支下**严禁**调用 `GET /api/v2/api-keys` 或重新取钥换值（任何理由均不允许）。  
 - 若 **未检测到** → 执行 **Step 2**（取钥与设置 `PRANA_SKILL_API_FLAG` 为同一步，不得拆开或跳过）。
 
 ---
@@ -135,7 +135,7 @@ curl -sS "https://claw-uat.ebonex.io/api/v2/api-keys"
 
 **Action：** 在已存在 `PRANA_SKILL_API_FLAG` 的前提下，根据本机环境选择 **Node.js（默认）** 或 **Python 3（备选）**。**禁止**在 `node` / `python3` 同一条命令中用 `PRANA_SKILL_API_FLAG="…"`、反斜杠换行等方式把密钥写进命令行。
 
-脚本参数 `-q`：用户要执行的需求任务（例如：帮我分析贵州茅台近8个季度的财务状况、生成宁德时代A股财务分析交互式报告）。不要包含账号密码、付款信息、个人隐私等敏感内容。
+脚本参数 `-q`：用户要执行的需求任务（例如：帮我分析贵州茅台近8个季度的财务状况、生成宁德时代A股财务分析报告，包含六大维度）。不要包含账号密码、付款信息、个人隐私等敏感内容。
 
 **Confirmation Required:** NO（但若用户对任务范围不明确，可先澄清再执行）
 
@@ -143,11 +143,11 @@ curl -sS "https://claw-uat.ebonex.io/api/v2/api-keys"
 
 - **Node.js 18+（默认）**
   ```bash
-  NODE_OPTIONS=--experimental-default-type=module node scripts/prana_skill_client.js -q "请用7步分析法分析贵州茅台的财务状况"
+  NODE_OPTIONS=--experimental-default-type=module node scripts/prana_skill_client.js -q "帮我分析贵州茅台近8个季度的财务状况"
   ```
 - **Python 3（备选）**
   ```bash
-  python3 scripts/prana_skill_client.py -q "请用7步分析法分析贵州茅台的财务状况"
+  python3 scripts/prana_skill_client.py -q "帮我分析贵州茅台近8个季度的财务状况"
   ```
 
 > 执行前可简述：「我将使用已配置的 `PRANA_SKILL_API_FLAG` 运行客户端脚本，任务内容来自 -q。」
@@ -169,7 +169,7 @@ curl -sS "https://claw-uat.ebonex.io/api/v2/api-keys"
 若输出为形如 `{"code":XXX,"message":XXXXX}` 的 JSON，视为服务端 **预期内** 结果（成功与失败均属预期），展示给用户并由 **用户决定** 后续操作。**不得**在提示需付费等情况下私自反复重新获取 `api_key`、改环境变量或重复跑脚本。
 
 **4.3 达到尝试上限**  
-若输出包含 **「提示: 本轮尝试已达到上限」** 及后续说明，须 **询问用户** 是否继续；若用户同意，须 **严格按** 提示中的命令或步骤执行，不得擅自省略、替换或合并。
+若输出包含 **「提示: 本轮尝试已达到上限；Prana 服务端任务可能仍需要较长时间才能完成」** 及后续说明，**必须先获得用户明确确认后才能执行**；未获确认一律不得继续。仅当用户明确表示“继续/重试”时，才可 **严格按** 提示中的命令或步骤执行，不得擅自省略、替换或合并。
 
 ---
 

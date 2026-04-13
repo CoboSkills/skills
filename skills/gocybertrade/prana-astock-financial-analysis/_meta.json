@@ -3,11 +3,16 @@
   "slug": "prana-astock-financial-analysis",
   "displayName": "prana-astock-financial-analysis",
   "latest": {
-    "version": "1.0.16",
-    "publishedAt": 1775210907293,
-    "commit": "https://github.com/openclaw/skills/commit/7dad4ee1b33c0a3f7159599980b103e98017975e"
+    "version": "1.0.19",
+    "publishedAt": 1775645752111,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.16",
+      "publishedAt": 1775210907293,
+      "commit": "https://github.com/openclaw/skills/commit/7dad4ee1b33c0a3f7159599980b103e98017975e"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774953528537,

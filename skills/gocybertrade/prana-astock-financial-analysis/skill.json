@@ -52,5 +52,5 @@
     "env_var": "PRANA_SKILL_API_FLAG",
     "required": true
   },
-  "usage_example": "帮我分析贵州茅台近8个季度的财务状况、生成宁德时代A股财务分析交互式报告"
+  "usage_example": "帮我分析贵州茅台近8个季度的财务状况、生成宁德时代A股财务分析报告，包含六大维度"
 }

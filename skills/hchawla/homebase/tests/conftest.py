@@ -50,24 +50,36 @@ MINIMAL_CONFIG = {
                 "emoji": "girl",
                 "age_years": 3,
                 "age_desc": "3 yrs",
-                "meal_rules": [
-                    "Breakfast: Scrambled eggs, oats, jam toast, Dalia, Indian breakfast items",
-                    "Lunch: Cheese sandwich, bread jam, egg bites",
-                    "NO egg items at lunch if she had eggs for breakfast",
-                    "NO khichdi, NO pasta or noodles",
-                    "Sides: Fruit, roasted chana, makhana"
-                ]
+                "meals": {
+                    "breakfast": {
+                        "options": ["Scrambled eggs", "Oats", "Jam toast", "Dalia", "Poha"]
+                    },
+                    "lunch": {
+                        "options": ["Cheese sandwich", "Bread jam", "Egg bites"],
+                        "constraints": ["no_eggs_at_lunch_if_eggs_at_breakfast"]
+                    },
+                    "sides": {
+                        "options": ["Fruit", "Roasted chana", "Makhana"]
+                    }
+                }
             },
             {
                 "name": "Reyansh",
                 "emoji": "boy",
                 "age_months": 20,
                 "age_desc": "20 mos",
-                "meal_rules": [
-                    "Breakfast: Scrambled eggs mashed soft, oat porridge soft, soft toast",
-                    "Lunch: Rice khichdi with veggies, quinoa khichdi with veggies, brown rice khichdi with veggies",
-                    "Sides: Soft fruit only"
-                ]
+                "meals": {
+                    "breakfast": {
+                        "options": ["Soft scrambled eggs", "Oats", "Dalia", "Mashed banana", "Soft idli"]
+                    },
+                    "lunch": {
+                        "fixed_dish": "Khichdi",
+                        "rotate_grains": ["rice", "quinoa", "brown rice + veggies"]
+                    },
+                    "sides": {
+                        "options": ["Strawberries", "Apple", "Blueberries", "Soft banana"]
+                    }
+                }
             }
         ]
     },

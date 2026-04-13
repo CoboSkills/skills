@@ -3,9 +3,15 @@
   "slug": "homebase",
   "displayName": "Homebase",
   "latest": {
-    "version": "0.2.5",
-    "publishedAt": 1775503530095,
-    "commit": "https://github.com/openclaw/skills/commit/d8c1cd8e521395a2c983b38e60f04536121230e1"
+    "version": "0.3.2",
+    "publishedAt": 1775801750993,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.2.5",
+      "publishedAt": 1775503530095,
+      "commit": "https://github.com/openclaw/skills/commit/d8c1cd8e521395a2c983b38e60f04536121230e1"
+    }
+  ]
 }

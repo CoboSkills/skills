@@ -214,10 +214,44 @@ class FamilyCalendarAggregator:
 
     	return creds
 
+    # Sync window: how many days back/forward we replace from Google's truth.
+    # Yesterday → +30 days covers same-day manual reruns and ~1 month of
+    # forward visibility for the briefing and weekly planner. Events outside
+    # this window in the local cache are left alone (they're historical
+    # records the briefing never reads anyway).
+    SYNC_WINDOW_DAYS_BACK    = 1
+    SYNC_WINDOW_DAYS_FORWARD = 30
+    SYNC_PAGE_SIZE           = 250  # Google's max for events.list
+
     def sync_with_google_calendar(self) -> bool:
-        """Sync events from all enabled Google Calendars."""
+        """Sync events from all enabled Google Calendars.
+
+        Replaces every cached event whose date falls within the sync window
+        (yesterday → +30 days) with the authoritative list from Google.
+        Events Google no longer returns are dropped from the cache, fixing
+        the historical bug where deleted/cancelled events lived forever in
+        the local cache and kept appearing in the morning briefing.
+
+        Failure isolation: each calendar is sync'd inside its own try/except
+        and the cache is only mutated for calendars whose API call returned
+        cleanly. A network or auth failure on calendar A leaves cached
+        events from a previous successful sync of A in place — we'd rather
+        show stale data than show empty.
+        """
         print("Syncing with Google Calendar...")
-        synced_count = 0
+        total_added   = 0
+        total_dropped = 0
+
+        # Window in local time, then convert to UTC for the API call
+        now_local      = datetime.now()
+        window_start   = (now_local - timedelta(days=self.SYNC_WINDOW_DAYS_BACK)).replace(
+            hour=0, minute=0, second=0, microsecond=0)
+        window_end     = (now_local + timedelta(days=self.SYNC_WINDOW_DAYS_FORWARD)).replace(
+            hour=23, minute=59, second=59, microsecond=0)
+        window_start_s = window_start.strftime("%Y-%m-%d")
+        window_end_s   = window_end.strftime("%Y-%m-%d")
+        time_min       = (datetime.utcnow() - timedelta(days=self.SYNC_WINDOW_DAYS_BACK)).isoformat() + 'Z'
+        time_max       = (datetime.utcnow() + timedelta(days=self.SYNC_WINDOW_DAYS_FORWARD)).isoformat() + 'Z'
 
         for cal in self.config.get("supported_calendars", []):
             if not (cal.get("type") == "google" and cal.get("enabled", True)):
@@ -227,39 +261,61 @@ class FamilyCalendarAggregator:
             if not creds:
                 continue
 
+            cal_name = cal.get('name', '<unknown>')
             try:
                 from googleapiclient.discovery import build
                 service = build('calendar', 'v3', credentials=creds)
-                now = datetime.utcnow().isoformat() + 'Z'
 
-                events_result = service.events().list(
-                    calendarId=cal["id"],
-                    timeMin=now,
-                    maxResults=50,
-                    singleEvents=True,
-                    orderBy='startTime'
-                ).execute()
-
-                for event in events_result.get('items', []):
-                    start = event['start'].get('dateTime', event['start'].get('date', ''))
-                    # FIX: Always store in dict — no more list/dict conversion
-                    self.calendar[event['id']] = {
-                        "id": event['id'],
-                        "title": event.get('summary', 'Untitled'),
-                        "date": start.split('T')[0] if 'T' in start else start,
-                        "time": start.split('T')[1][:5] if 'T' in start else "All day",
-                        "attendees": self.config.get("family_members", []),
-                        "description": event.get('description', ''),
-                        "calendar_source": cal.get('name'),
-                        "original_id": event['id']
-                    }
-                    synced_count += 1
+                # Paginate to handle busy weeks (>250 events in a month)
+                fresh: Dict[str, Dict] = {}
+                page_token = None
+                while True:
+                    events_result = service.events().list(
+                        calendarId=cal["id"],
+                        timeMin=time_min,
+                        timeMax=time_max,
+                        maxResults=self.SYNC_PAGE_SIZE,
+                        singleEvents=True,
+                        orderBy='startTime',
+                        pageToken=page_token,
+                    ).execute()
+                    for event in events_result.get('items', []):
+                        start = event['start'].get('dateTime', event['start'].get('date', ''))
+                        fresh[event['id']] = {
+                            "id":              event['id'],
+                            "title":           event.get('summary', 'Untitled'),
+                            "date":            start.split('T')[0] if 'T' in start else start,
+                            "time":            start.split('T')[1][:5] if 'T' in start else "All day",
+                            "attendees":       self.config.get("family_members", []),
+                            "description":     event.get('description', ''),
+                            "calendar_source": cal_name,
+                            "original_id":     event['id'],
+                        }
+                    page_token = events_result.get('nextPageToken')
+                    if not page_token:
+                        break
 
             except Exception as e:
-                print(f"  Error syncing '{cal.get('name')}': {e}")
+                print(f"  Error syncing '{cal_name}': {e} — leaving cache for this calendar untouched.")
+                continue
+
+            # Successful API call: drop every cached event from THIS calendar
+            # whose date is in the sync window, then write the fresh set in.
+            # Events from OTHER calendars and events outside the window are
+            # left alone.
+            dropped_ids = [
+                eid for eid, e in self.calendar.items()
+                if e.get("calendar_source") == cal_name
+                and window_start_s <= (e.get("date") or "") <= window_end_s
+            ]
+            for eid in dropped_ids:
+                del self.calendar[eid]
+            self.calendar.update(fresh)
+            total_added   += len(fresh)
+            total_dropped += len(dropped_ids)
 
         self.save_calendar()
-        print(f"Synced {synced_count} events.")
+        print(f"Synced: {total_added} kept/added, {total_dropped} dropped from window {window_start_s} → {window_end_s}.")
 
         # Auto-detect restaurant visits from calendar events
         self._detect_restaurant_events()

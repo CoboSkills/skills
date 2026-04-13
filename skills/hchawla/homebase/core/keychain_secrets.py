@@ -27,6 +27,7 @@ _SECRET_KEYS = {
 
 
 _LAST_KEYRING_ERROR: str = ""
+_KEYRING_IMPORT_FAILED: bool = False
 
 
 def _try_keyring(keyring_key: str) -> str:
@@ -36,10 +37,22 @@ def _try_keyring(keyring_key: str) -> str:
     callers (e.g. preflight) can surface *why* the read failed instead of
     misreporting the secret as "missing." This matters in launchd-spawned
     daemon contexts where Keychain ACL or backend issues are common.
+
+    If `import keyring` itself fails (the Python interpreter doesn't have the
+    package — typically because the script was launched under
+    /usr/bin/python3 instead of the homebase venv), sets _KEYRING_IMPORT_FAILED
+    so callers can distinguish "environment is broken" from "credentials are
+    actually missing." See also `keyring_module_available()`.
     """
-    global _LAST_KEYRING_ERROR
+    global _LAST_KEYRING_ERROR, _KEYRING_IMPORT_FAILED
     try:
         import keyring as _kr
+    except ImportError as e:
+        import sys as _sys
+        _KEYRING_IMPORT_FAILED = True
+        _LAST_KEYRING_ERROR = f"keyring module not installed in interpreter {_sys.executable}: {e}"
+        return ""
+    try:
         backend = type(_kr.get_keyring()).__name__
         value = _kr.get_password(KEYRING_SERVICE, keyring_key)
         if value is None:
@@ -54,6 +67,30 @@ def _try_keyring(keyring_key: str) -> str:
 def last_keyring_error() -> str:
     """Return the most recent keyring failure reason, or '' if none."""
     return _LAST_KEYRING_ERROR
+
+
+def keyring_module_available() -> bool:
+    """True if `import keyring` succeeds in this interpreter.
+
+    Use this to guard credential-missing alerts: if keyring isn't even
+    importable, the credentials may be perfectly fine in Keychain — we just
+    can't read them from this interpreter. That's an environment bug, not
+    an auth bug, and should NOT trigger user-facing "re-authenticate now"
+    notifications. Cheap and idempotent: tries the import directly and
+    caches the result on the module-level _KEYRING_IMPORT_FAILED flag.
+    Does NOT touch _LAST_KEYRING_ERROR for the success case so callers
+    that read last_keyring_error() get the truth about real read failures.
+    """
+    global _KEYRING_IMPORT_FAILED, _LAST_KEYRING_ERROR
+    try:
+        import keyring  # noqa: F401
+        _KEYRING_IMPORT_FAILED = False
+        return True
+    except ImportError as e:
+        import sys as _sys
+        _KEYRING_IMPORT_FAILED = True
+        _LAST_KEYRING_ERROR = f"keyring module not installed in interpreter {_sys.executable}: {e}"
+        return False
 
 
 def load_google_secrets() -> None:

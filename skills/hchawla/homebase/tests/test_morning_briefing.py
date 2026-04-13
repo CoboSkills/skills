@@ -185,6 +185,17 @@ class TestHasDropoffToday:
         result = morning_briefing.has_dropoff_today(events)
         assert len(result) == 1
 
+    def test_detects_one_word_dropoff_in_title(self):
+        """One-word 'dropoff' is a common spelling and should also match."""
+        events = [{"title": "Dropoff Amyra", "description": ""}]
+        result = morning_briefing.has_dropoff_today(events)
+        assert len(result) == 1
+
+    def test_detects_one_word_dropoff_in_description(self):
+        events = [{"title": "School day", "description": "Reyansh dropoff at 8am"}]
+        result = morning_briefing.has_dropoff_today(events)
+        assert len(result) == 1
+
     def test_detects_dropoff_in_description(self):
         events = [{"title": "School day", "description": "Don't forget drop off!"}]
         result = morning_briefing.has_dropoff_today(events)

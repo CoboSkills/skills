@@ -28,7 +28,7 @@
   },
 
   "family": {
-    "_comment": "members is a list of {name, phone}; both formats (list and phone-keyed dict) are accepted. kids has per-child meal rules and an emoji ('boy'/'girl' map to 👦/👧, anything else to 🧒).",
+    "_comment": "members is a list of {name, phone}; both formats (list and phone-keyed dict) are accepted. kids has per-child structured meals and an emoji ('boy'/'girl' map to 👦/👧, anything else to 🧒). The 'meals' object has three slots (breakfast, lunch, sides), each with an 'options' array of concrete menu items the planner is allowed to pick from. A slot may instead use 'fixed_dish' + 'rotate_grains' (e.g. always khichdi, rotate the grain). Optional 'constraints' is a list of named rules — currently only 'no_eggs_at_lunch_if_eggs_at_breakfast' is recognized. Items are added incrementally over time via the catalog learning flow; you don't need to enumerate everything up front.",
     "members": [
       { "name": "Parent A", "phone": "+15550001111" },
       { "name": "Parent B", "phone": "+15550002222" }
@@ -39,24 +39,36 @@
         "emoji": "girl",
         "age_years": 4,
         "age_desc": "4 yrs",
-        "meal_rules": [
-          "Breakfast: Scrambled eggs, oats, jam toast",
-          "Lunch: Cheese sandwich, bread jam",
-          "NO egg items at lunch if had eggs for breakfast",
-          "Sides: Fruit, roasted chana"
-        ]
+        "meals": {
+          "breakfast": {
+            "options": ["Scrambled eggs", "Oats", "Jam toast"]
+          },
+          "lunch": {
+            "options": ["Cheese sandwich", "Bread jam"],
+            "constraints": ["no_eggs_at_lunch_if_eggs_at_breakfast"]
+          },
+          "sides": {
+            "options": ["Fruit", "Roasted chana"]
+          }
+        }
       },
       {
         "name": "Kid 2",
         "emoji": "boy",
         "age_months": 18,
         "age_desc": "18 mos",
-        "meal_rules": [
-          "Breakfast: Soft oats, mashed banana, soft toast",
-          "Lunch: Khichdi with soft veggies",
-          "All food must be soft — limited teeth",
-          "Sides: Soft fruit only"
-        ]
+        "meals": {
+          "breakfast": {
+            "options": ["Soft oats", "Mashed banana", "Soft toast"]
+          },
+          "lunch": {
+            "fixed_dish": "Khichdi",
+            "rotate_grains": ["rice", "quinoa", "brown rice + veggies"]
+          },
+          "sides": {
+            "options": ["Soft fruit"]
+          }
+        }
       }
     ]
   },

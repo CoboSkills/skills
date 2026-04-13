@@ -192,8 +192,14 @@ class TestMealPlanApprovalFlow:
         monkeypatch.setattr(wmp, "HOUSEHOLD_DIR", str(tmp_path))
 
         # Step 1: Generate draft
+        from features.meals.meal_tracker import MealTracker as RealMT
+        real = RealMT.__new__(RealMT)
+        real.history = {}
+        real.learned = {}
+        real.config  = wmp.config
         tracker_mock = MagicMock()
         tracker_mock.get_recent_meals.return_value = []
+        tracker_mock.get_weekly_pool.side_effect   = lambda days=7: real.get_weekly_pool(days=days)
         with patch("features.meals.weekly_meal_planner.MealTracker", return_value=tracker_mock):
             wmp.cmd_draft()
 
@@ -232,8 +238,14 @@ class TestMealPlanRevisionFlow:
         monkeypatch.setattr(wmp, "LOCKED_FILE",   str(locked_file))
         monkeypatch.setattr(wmp, "HOUSEHOLD_DIR", str(tmp_path))
 
+        from features.meals.meal_tracker import MealTracker as RealMT
+        real = RealMT.__new__(RealMT)
+        real.history = {}
+        real.learned = {}
+        real.config  = wmp.config
         tracker_mock = MagicMock()
         tracker_mock.get_recent_meals.return_value = []
+        tracker_mock.get_weekly_pool.side_effect   = lambda days=7: real.get_weekly_pool(days=days)
 
         # Step 1: Generate draft
         with patch("features.meals.weekly_meal_planner.MealTracker", return_value=tracker_mock):

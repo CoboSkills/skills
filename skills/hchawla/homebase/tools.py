@@ -24,6 +24,23 @@ from typing import Any, Dict, Optional
 SKILL_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SKILL_DIR)
 
+# ─── Interpreter self-heal ───────────────────────────────────────────────────
+# When the OpenClaw daemon spawns a cron-triggered agent, the agent's bash PATH
+# (set by ~/Library/LaunchAgents/com.openclaw.daemon.plist) is
+# /opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin — `python3` on
+# that PATH resolves to /usr/bin/python3 (CommandLineTools) which has no
+# `keyring` module. The result is that core/keychain_secrets.py silently
+# returns empty strings for GOOGLE_*, callers misreport "credentials missing,"
+# and false-alarm DMs go out to the owner. Re-exec under the homebase venv
+# python whenever keyring is unavailable so every tool that imports keychain
+# state gets the right interpreter, regardless of how it was launched.
+_VENV_PY = os.path.join(SKILL_DIR, ".venv", "bin", "python")
+if os.path.realpath(sys.executable) != os.path.realpath(_VENV_PY) and os.path.exists(_VENV_PY):
+    try:
+        import keyring  # noqa: F401
+    except ImportError:
+        os.execv(_VENV_PY, [_VENV_PY] + sys.argv)
+
 
 # ─── Tool Implementations ─────────────────────────────────────────────────────
 
@@ -105,10 +122,16 @@ def get_meal_suggestions() -> str:
 def log_kids_meal(child: str, meal_type: str, food: str) -> str:
     from features.meals.meal_tracker import MealTracker
     from datetime import datetime
-    meals  = MealTracker(SKILL_DIR)
-    today  = datetime.now().strftime("%Y-%m-%d")
-    meals.log_meal(child.lower(), meal_type, food.title(), today)
-    return f"✅ Logged *{child.title()}*: {food.title()} ({meal_type})\n_I'll use this to vary tomorrow's suggestions._"
+    meals    = MealTracker(SKILL_DIR)
+    today    = datetime.now().strftime("%Y-%m-%d")
+    in_cat, _ = meals.log_meal(child.lower(), meal_type, food.title(), today)
+    base = (
+        f"✅ Logged *{child.title()}*: {food.title()} ({meal_type})\n"
+        "_I'll use this to vary tomorrow's suggestions._"
+    )
+    if not in_cat:
+        base += "\n_(New menu item — added to the catalog review queue.)_"
+    return base
 
 
 def get_snack_schedule() -> str:
@@ -233,8 +256,10 @@ def get_morning_briefing() -> str:
     Uses --data-only so Python handles no WA delivery — the agent composes and replies.
     """
     import subprocess, logging
+    # Use sys.executable so the child inherits the venv python (with keyring),
+    # not whatever bare `python3` happens to resolve to on the daemon's PATH.
     result = subprocess.run(
-        ["python3", "-m", "features.briefing.morning_briefing", "--data-only"],
+        [sys.executable, "-m", "features.briefing.morning_briefing", "--data-only"],
         capture_output=True, text=True,
         cwd=SKILL_DIR, timeout=120
     )
@@ -438,6 +463,9 @@ def execute_tool(name: str, args: Dict[str, Any],
             "approve_meal_plan":        lambda: handle_meal_plan_response(change_request=""),
             "save_meal_plan":           lambda: save_meal_plan(**args),
             "get_meal_history":         lambda: get_meal_history(**args),
+            "get_weekly_meal_pool":     lambda: get_weekly_meal_pool(**args),
+            "get_pending_catalog_reviews": lambda: get_pending_catalog_reviews(),
+            "apply_catalog_review":     lambda: apply_catalog_review(**args),
             "get_trip_data":            lambda: get_trip_data(**args),
             "mark_trip_prep_sent":      lambda: mark_trip_prep_sent(**args),
             "draft_meal_plan":          lambda: draft_meal_plan(),
@@ -502,11 +530,91 @@ def get_pending_meal_plan() -> str:
 
 def save_meal_plan(plan: dict, revision: int = 0) -> str:
     """Save an agent-generated or agent-revised meal plan as pending.
-    Returns the formatted plan text. The agent delivers it via OpenClaw."""
+
+    Validates every menu pick against the kid's resolved catalog before
+    writing. If the plan contains items not in the catalog, returns a
+    structured ❌ error string the agent should reply with verbatim. If
+    the plan is valid except for lunch/breakfast egg conflicts, those are
+    auto-corrected and the corrections appended to the formatted output.
+
+    NOTE: This function does NOT send anything to WhatsApp. It writes the
+    pending file and returns the formatted text. The agent layer is
+    responsible for posting the returned text to the family group via
+    ``openclaw message send``. Per CLAUDE.md principle #7, no Python
+    function in this skill ever sends WhatsApp directly.
+    """
+    from features.meals.meal_tracker import MealTracker
     from features.meals.weekly_meal_planner import save_pending, format_plan_for_whatsapp
+    tracker = MealTracker(SKILL_DIR)
+    result  = tracker.validate_plan(plan)
+    if not result.get("ok"):
+        errs = result.get("errors") or ["unknown validation error"]
+        # Cap the error string so it stays WhatsApp-readable
+        return "❌ Plan rejected:\n" + "\n".join(f"  • {e}" for e in errs[:6])
+
     save_pending(plan, revision=revision)
     formatted = format_plan_for_whatsapp(plan, revision=revision)
+    corrections = result.get("corrections") or []
+    if corrections:
+        lines = ["", "_Auto-corrections:_"]
+        for c in corrections[:6]:
+            lines.append(
+                f"_• {c['day'].capitalize()} {c['kid'].capitalize()} "
+                f"{c['slot']}: {c['from']} → {c['to']}_"
+            )
+        formatted = formatted + "\n" + "\n".join(lines)
     return formatted
+
+
+def get_weekly_meal_pool(days: int = 7) -> str:
+    """Return the per-day, per-kid, per-slot menu pool as JSON.
+
+    The agent picks exactly one item from each list to compose a weekly
+    plan and then calls ``save_meal_plan``. Constraints are not pre-applied;
+    ``save_meal_plan``'s validator handles them.
+    """
+    import json as _json
+    from features.meals.meal_tracker import MealTracker
+    tracker = MealTracker(SKILL_DIR)
+    return _json.dumps(tracker.get_weekly_pool(days=days), indent=2)
+
+
+def get_pending_catalog_reviews() -> str:
+    """Return the catalog-pending list as JSON for the agent to format/ask about."""
+    import json as _json
+    from features.meals.meal_tracker import MealTracker
+    tracker = MealTracker(SKILL_DIR)
+    return _json.dumps({"pending": tracker.get_pending_reviews()}, indent=2)
+
+
+def apply_catalog_review(decisions: list) -> str:
+    """Apply a structured list of catalog accept/reject decisions.
+
+    Args:
+      decisions: list of {"index": <int>, "decision": "accept"|"reject"}.
+        Indices refer to the current pending list (zero-based).
+
+    The Python validator rejects the entire batch if any index is out of
+    range, duplicated, or has an unknown decision. This is the
+    defense-in-depth safeguard against the agent fabricating approvals
+    for nonexistent items.
+    """
+    import json as _json
+    from features.meals.meal_tracker import MealTracker
+    tracker = MealTracker(SKILL_DIR)
+    result  = tracker.apply_catalog_decisions(decisions or [])
+    if not result.get("ok"):
+        return f"❌ {result.get('error', 'unknown error')}"
+    added    = result.get("added", [])
+    rejected = result.get("rejected", [])
+    parts = []
+    if added:
+        parts.append(f"✅ Added {len(added)} item(s) to the catalog:")
+        for a in added:
+            parts.append(f"  • {a['kid'].capitalize()} {a['slot']}: {a['meal']}")
+    if rejected:
+        parts.append(f"🗑️ Rejected {len(rejected)} item(s).")
+    return "\n".join(parts) if parts else "Nothing to apply."
 
 
 def get_meal_history(days: int = 14) -> str:
@@ -606,6 +714,21 @@ if __name__ == "__main__":
     # Suppress environment-specific warnings (Python 3.9 EOL, OpenSSL, etc.)
     # to prevent them from leaking into the agent's WhatsApp responses.
     _warnings.filterwarnings("ignore")
+
+    # Populate Google OAuth env vars from Keychain or .env BEFORE any tool
+    # imports them. The OpenClaw daemon-spawned cron context calls this at
+    # startup; running `python3 tools.py <action>` from a plain shell did
+    # not, which made every CLI debug session fail with "missing credentials"
+    # even though the production cron path was fine. The keychain_secrets
+    # loader already handles both sources (Keychain preferred, .env fallback)
+    # and is the canonical entry point for this skill.
+    try:
+        from core.keychain_secrets import load_google_secrets
+        load_google_secrets()
+    except Exception:
+        # CLI helper — never fail tool execution because credential bootstrap
+        # itself raised. The downstream tool will surface a clearer error.
+        pass
 
     if len(_sys.argv) < 2:
         print("Usage: tools.py <action> [json_args]")

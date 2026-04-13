@@ -2,19 +2,25 @@
 """
 weekly_meal_planner.py — Weekly Meal Plan Draft + Approval Flow
 
-Refactored: Genericized. Pulls all kids and rules from config.json.
-Revisions are handled by the agent (model-agnostic) by applying rules itself.
+The OpenClaw agent composes the per-kid weekly plan by picking from the
+deterministic menu pool returned by ``MealTracker.get_weekly_pool``. This
+file owns the pending/locked file lifecycle (`save_pending`, `lock_plan`,
+`cmd_approve`, etc.) and a Python-side fallback `generate_weekly_plan`
+that uses the same resolver — useful for tests and CLI smoke runs.
+
+Per CLAUDE.md #2, this file never sends WhatsApp directly: every command
+function returns a formatted string, the agent layer delivers it.
 """
 
 import json
 import os
-import sys
 import random
+import sys
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from core.config_loader import config, SKILL_DIR
-from features.meals.meal_tracker import MealTracker, parse_rule_items
+from features.meals.meal_tracker import MealTracker, _apply_constraints
 from utils import write_json_atomic
 
 HOUSEHOLD_DIR = os.path.join(SKILL_DIR, "household")
@@ -33,16 +39,19 @@ def _pick_avoiding(options: List[str], used: List[str]) -> str:
     return random.choice(pool) if pool else "TBD"
 
 
-_parse_rule_items = parse_rule_items
-
-
 def generate_weekly_plan() -> Dict:
     """
-    Generate a full Mon-Sun meal plan for all kids.
-    Breakfast/lunch per-kid from config meal_rules.
-    Dinner is a shared family meal from config.meals.dinner_options (if enabled).
+    Python-side fallback weekly plan generator.
+
+    Builds a full Mon–Sun plan for all kids by picking from the resolver
+    pool returned by ``MealTracker.get_weekly_pool``. Honors lunch
+    constraints relative to the picked breakfast on the same day. Used by
+    the CLI ``draft`` command and the test suite; the production cron job
+    has the OpenClaw agent compose the plan instead and call
+    ``save_meal_plan`` directly.
     """
     tracker = MealTracker(SKILL_DIR)
+    pool = tracker.get_weekly_pool(days=len(DAYS))
     kids = config.kids
     include_dinner = config.include_dinner
     dinner_options = config.dinner_options
@@ -57,10 +66,10 @@ def generate_weekly_plan() -> Dict:
         }
 
     used_dinners: List[str] = []
-    plan = {}
+    plan: Dict[str, dict] = {}
 
     for day in DAYS:
-        day_plan = {}
+        day_plan: Dict[str, dict] = {}
 
         # Pick shared family dinner for this day (same for all kids)
         family_dinner = None
@@ -69,68 +78,38 @@ def generate_weekly_plan() -> Dict:
             used_dinners.append(family_dinner)
 
         for kid in kids:
-            name = kid.name.lower()
-            rules = kid.meal_rules if hasattr(kid, "meal_rules") else []
+            name        = kid.name.lower()
+            day_pool    = pool.get(day, {}).get(name, {})
+            breakfast_options = day_pool.get("breakfast", [])
+            lunch_options_raw = day_pool.get("lunch", [])
+            side_options      = day_pool.get("sides", []) or ["Fruit"]
+            constraints       = list((kid.slot("lunch").get("constraints") or []))
 
-            breakfast_options = []
-            lunch_options = []
-            side_options = ["Fruit"]
-            no_rules = []
+            breakfast = _pick_avoiding(breakfast_options, kid_used[name]["breakfast"])
+            lunch_pool = _apply_constraints(lunch_options_raw, constraints, breakfast)
+            lunch = _pick_avoiding(lunch_pool or lunch_options_raw, kid_used[name]["lunch"])
+            side  = random.choice(side_options) if side_options else "Fruit"
 
-            for rule in rules:
-                rl = rule.lower()
-                if rl.startswith("breakfast:"):
-                    breakfast_options = _parse_rule_items(rule)
-                elif rl.startswith("lunch:"):
-                    lunch_options = _parse_rule_items(rule)
-                elif rl.startswith("sides:") or rl.startswith("side:"):
-                    side_options = _parse_rule_items(rule)
-                elif rl.startswith("no "):
-                    no_rules.append(rl)
-
-            # Pick breakfast
-            if breakfast_options:
-                breakfast = _pick_avoiding(breakfast_options, kid_used[name]["breakfast"])
-            else:
-                breakfast = "TBD"
-
-            # Pick lunch, applying NO-egg rules
-            had_eggs = "egg" in breakfast.lower()
-            if lunch_options:
-                filtered = lunch_options[:]
-                if had_eggs:
-                    for no_rule in no_rules:
-                        if "egg" in no_rule and "lunch" in no_rule:
-                            filtered = [o for o in filtered if "egg" not in o.lower()]
-                lunch = _pick_avoiding(filtered if filtered else lunch_options, kid_used[name]["lunch"])
-            else:
-                lunch = "TBD"
-
-            side = random.choice(side_options) if side_options else "Fruit"
             note = ""
-            if had_eggs:
-                for no_rule in no_rules:
-                    if "egg" in no_rule and "lunch" in no_rule:
-                        note = "Had eggs for breakfast"
-                        break
+            if "egg" in (breakfast or "").lower() and "no_eggs_at_lunch_if_eggs_at_breakfast" in constraints:
+                note = "Had eggs for breakfast"
 
             kid_used[name]["breakfast"].append(breakfast)
             kid_used[name]["lunch"].append(lunch)
 
             entry = {
                 "breakfast": breakfast,
-                "lunch": lunch,
-                "side": side,
-                "note": note,
+                "lunch":     lunch,
+                "side":      side,
+                "note":      note,
             }
 
             if include_dinner and family_dinner:
-                # Skip egg-based dinners if kid had eggs at breakfast
                 dinner = family_dinner
-                if had_eggs and "egg" in dinner.lower():
+                if "egg" in (breakfast or "").lower() and "egg" in dinner.lower():
                     alt = _pick_avoiding(
                         [d for d in dinner_options if "egg" not in d.lower()],
-                        used_dinners
+                        used_dinners,
                     )
                     dinner = alt
                 entry["dinner"] = dinner

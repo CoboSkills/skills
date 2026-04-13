@@ -42,9 +42,24 @@ DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sun
 
 class TestGenerateWeeklyPlan:
     def _with_empty_tracker(self):
-        """Return a patch that gives an empty MealTracker."""
+        """
+        Return a patch that gives a tracker with empty history but a real
+        config-driven resolver. The new ``generate_weekly_plan`` calls
+        ``get_weekly_pool`` on the tracker, which needs real menu data —
+        the old "mock everything" pattern returns MagicMock objects that
+        can't be iterated. We construct a bare MealTracker that has the
+        live config singleton plus empty history/learned state, and route
+        the relevant methods through it.
+        """
+        from features.meals.meal_tracker import MealTracker as RealMT
+        real = RealMT.__new__(RealMT)
+        real.history = {}
+        real.learned = {}
+        real.config  = wmp.config
+
         mt = MagicMock()
         mt.get_recent_meals.return_value = []
+        mt.get_weekly_pool.side_effect   = lambda days=7: real.get_weekly_pool(days=days)
         return patch("features.meals.weekly_meal_planner.MealTracker", return_value=mt)
 
     def test_has_all_seven_days(self):
@@ -83,26 +98,21 @@ class TestGenerateWeeklyPlan:
                             f"Egg at lunch on day {day} despite egg at breakfast"
                         )
 
-    def test_reyansh_lunch_is_always_khichdi(self):
-        test_data = {**wmp.config._data}
-        test_data["family"] = {**test_data.get("family", {})}
-        test_data["family"]["kids"] = [
-            {"name": "Amyra", "emoji": "girl", "age_desc": "3 yrs", "meal_rules": [
-                "Breakfast: Scrambled eggs, oats, jam toast",
-                "Lunch: Cheese sandwich, bread jam, egg bites",
-                "Sides: Fruit"
-            ]},
-            {"name": "Reyansh", "emoji": "boy", "age_desc": "20 mos", "meal_rules": [
-                "Breakfast: Scrambled eggs mashed, oat porridge, soft toast",
-                "Lunch: Rice khichdi, quinoa khichdi, brown rice khichdi",
-                "Sides: Soft fruit only"
-            ]},
-        ]
-        with self._with_empty_tracker(), \
-             patch.object(wmp.config, '_data', test_data):
+    def test_reyansh_lunch_is_from_resolved_pool(self):
+        """Reyansh's lunch picks must come from the resolved pool (khichdi
+        rotations plus any explicit lunch.options like Dalia)."""
+        from features.meals.meal_tracker import MealTracker
+        real = MealTracker.__new__(MealTracker)
+        real.history = {}
+        real.learned = {}
+        real.config  = wmp.config
+        kid = next(k for k in wmp.config.kids if k.name.lower() == "reyansh")
+        valid = set(real._approved_options_for(kid, "lunch"))
+        with self._with_empty_tracker():
             plan = wmp.generate_weekly_plan()
         for day in DAYS:
-            assert "khichdi" in plan[day]["reyansh"]["lunch"].lower()
+            assert plan[day]["reyansh"]["lunch"] in valid, \
+                f"Reyansh lunch on {day} was {plan[day]['reyansh']['lunch']!r}, not in {valid}"
 
     def test_meals_from_config_options(self):
         dinner_opts = ["Dal rice", "Chapati with dal", "Dosa"]

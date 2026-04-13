@@ -7,8 +7,9 @@ Filters out routine check-in/out and daily summary emails.
 
 import json
 import os
+import sys
 import base64
-from core.keychain_secrets import load_google_secrets
+from core.keychain_secrets import load_google_secrets, keyring_module_available, last_keyring_error
 load_google_secrets()
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -106,6 +107,21 @@ class SchoolEmailMonitor:
         refresh_token = os.environ.get("GOOGLE_REFRESH_TOKEN", "")
 
         if not all([client_id, client_secret, refresh_token]):
+            # Distinguish "environment is broken" (interpreter has no `keyring`
+            # module → keychain_secrets silently returned empty) from "the user
+            # actually needs to re-auth." Telling the user to run reauth_google
+            # when keyring isn't even importable is worse than silence — they
+            # run the script, it appears to work, the cron still fails, they
+            # lose trust in every alert.
+            if not keyring_module_available():
+                print(json.dumps({
+                    "status": "env_broken",
+                    "error": "keyring module unavailable in current interpreter",
+                    "interpreter": sys.executable,
+                    "detail": last_keyring_error(),
+                }))
+                print("NO_REPLY")
+                return None
             print("Error: No valid Google credentials found for Gmail.")
             return None
 
@@ -293,6 +309,19 @@ if __name__ == "__main__":
     import sys as _sys
     import traceback as _tb
     try:
+        # Bail early if the interpreter can't read Keychain — emit a parseable
+        # env_broken status + NO_REPLY so the agent suppresses delivery instead
+        # of firing a misleading credentials-missing DM. The Daily Owner Health
+        # Digest will roll up these env_broken events overnight.
+        if not keyring_module_available():
+            print(_json.dumps({
+                "status": "env_broken",
+                "error": "keyring module unavailable in cron interpreter",
+                "interpreter": _sys.executable,
+                "detail": last_keyring_error(),
+            }))
+            print("NO_REPLY")
+            _sys.exit(0)
         from core.config_loader import SKILL_DIR
         monitor = SchoolEmailMonitor(SKILL_DIR)
         emails = monitor.fetch_recent_school_emails()

@@ -1,6 +1,6 @@
 ---
 name: homebase
-description: Family household coordinator. Aggregates Google Calendar, runs a daily morning briefing (weather, schedule, kids meals, school snacks), watches school Gmail for flyers and PDFs, tracks restaurant visits and ratings from receipt photos, manages a per-store grocery list, drafts a weekly meal plan with a Sat/Sun approval cycle, logs sick-kid medication doses, and proactively flags upcoming trips. All family-specific data lives in config.json — names, phones, calendar IDs, and meal rules are 100% config-driven.
+description: Family household coordinator. Aggregates Google Calendar, runs a daily morning briefing (weather, schedule, kids meals, school snacks), watches school Gmail for flyers and PDFs, tracks restaurant visits and ratings from receipt photos, manages a per-store grocery list, drafts a weekly meal plan with a Sat/Sun approval cycle, logs sick-kid medication doses, and proactively flags upcoming trips. All family-specific data lives in config.json — names, phones, calendar IDs, and structured per-kid meal catalogs are 100% config-driven.
 metadata: {"openclaw": {"requires": {"env": ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GOOGLE_REFRESH_TOKEN"], "bin": ["openclaw"]}, "primaryEnv": "GOOGLE_CLIENT_ID"}}
 license: MIT
 ---

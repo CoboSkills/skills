@@ -27,14 +27,22 @@ from utils import write_json_atomic
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
+_DROPOFF_NEEDLES = ("drop off", "drop-off", "dropoff")
+
+
 def has_dropoff_today(events):
-    return [
-        e for e in events
-        if "drop off" in e.get("title", "").lower() or
-           "drop-off" in e.get("title", "").lower() or
-           "drop off" in e.get("description", "").lower() or
-           "drop-off" in e.get("description", "").lower()
-    ]
+    """Return events whose title or description names a drop-off.
+
+    Matches the three common spellings: ``drop off`` (two words),
+    ``drop-off`` (hyphen), and ``dropoff`` (one word). Case-insensitive.
+    """
+    out = []
+    for e in events:
+        title = (e.get("title") or "").lower()
+        desc  = (e.get("description") or "").lower()
+        if any(n in title or n in desc for n in _DROPOFF_NEEDLES):
+            out.append(e)
+    return out
 
 
 def is_school_day(snacks: SnackManager) -> bool:

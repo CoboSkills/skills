@@ -35,11 +35,15 @@ class Kid:
         self.age_years  = data.get("age_years")
         self.age_months = data.get("age_months")
         self.age_desc   = data.get("age_desc", "")
-        self.meal_rules = data.get("meal_rules", {})
+        self.meals      = data.get("meals", {})
 
     @property
     def emoji_char(self) -> str:
         return {"boy": "\U0001F466", "girl": "\U0001F467"}.get(self.emoji, "\U0001F9D2")
+
+    def slot(self, slot_name: str) -> dict:
+        """Return the structured config for a meal slot ('breakfast'/'lunch'/'sides')."""
+        return self.meals.get(slot_name, {}) or {}
 
     def __repr__(self):
         return f"Kid({self.name})"

@@ -1,34 +1,32 @@
 /**
- * WaQuanquaner 🧧 — 外卖红包每小时实时挖掘助手
- * 
+ * WaQuanquaner 🧧 — 外卖红包实时挖掘助手
+ *
  * 一个轻量级的 Agent Skill，用于查询美团/饿了么/京东外卖平台的
- * 最新红包和优惠活动，返回可直接复制的淘口令链接。
- * 
+ * 最新红包和优惠活动，一个链接挖取当日所有隐藏活动。
+ *
  * 零依赖：仅使用 Node.js 内置模块
- * 
+ *
  * 用法:
  *   const { WaQuanquaner } = require('WaQuanquaner-skill');
- *   const wqq = new WaQuanquaner({ serverUrl: 'https://your-server.com' });
+ *   const wqq = new WaQuanquaner();
  *   const result = await wqq.query();
  *   console.log(result.text);
  */
 
 const queryMod = require('./scripts/query');
-const { render } = require('./scripts/render');
+const { renderCompactFromApi } = require('./scripts/render');
 const { parseInput } = require('./scripts/triggers');
 const config = require('./scripts/config');
 
 class WaQuanquaner {
   /**
    * @param {object} options
-   * @param {string} [options.serverUrl] - 服务器 API 地址
-   * @param {string} [options.lobsterId] - 用户标识符（用于 CPS 归因）
    * @param {string} [options.defaultFormat] - 默认渲染格式 (wechat/feishu/text)
+   * @param {string} [options.compactApiUrl] - 自定义数据接口地址
    */
   constructor(options = {}) {
-    this.serverUrl = options.serverUrl || config.SERVER_URL;
-    this.lobsterId = options.lobsterId || config.DEFAULT_LOBSTER_ID;
     this.defaultFormat = options.defaultFormat || config.FORMATS.WECHAT;
+    this.compactApiUrl = options.compactApiUrl || config.COMPACT_API_URL;
   }
 
   /**
@@ -52,13 +50,10 @@ class WaQuanquaner {
    * @returns {Promise<{success: boolean, text: string, data: object}>}
    */
   async query(options = {}) {
-    const platform = options.platform || null;
     const format = options.format || this.defaultFormat;
 
-    // 获取活动数据
-    const result = await queryMod.fetchActivities({
-      serverUrl: this.serverUrl,
-      lobsterId: this.lobsterId,
+    const result = await queryMod.fetchCompact({
+      compactApiUrl: this.compactApiUrl,
     });
 
     if (!result.success) {
@@ -69,34 +64,13 @@ class WaQuanquaner {
       };
     }
 
-    // 按平台筛选
-    let activities = result.activities;
-    if (platform) {
-      activities = activities.filter(a => a.platform === platform);
-    }
-
-    if (activities.length === 0) {
-      const platformName = config.PLATFORMS[platform]?.name || '';
-      return {
-        success: false,
-        text: platformName
-          ? platformName + '暂时没有可用的红包活动。\n建议查看其他平台的优惠哦！'
-          : '今天暂时没有新的外卖优惠活动，明天再来看看吧！',
-        data: { total: 0, platform },
-      };
-    }
-
-    // 渲染输出
-    const text = render(activities, format);
+    const text = renderCompactFromApi(result.compact, format);
 
     return {
       success: true,
       text: text,
       data: {
-        total: activities.length,
-        platform: platform,
-        groups: queryMod.groupByPlatform(activities),
-        activities: activities,
+        compact: result.compact,
       },
     };
   }
@@ -116,7 +90,6 @@ class WaQuanquaner {
     }
 
     const result = await this.query({
-      platform: parsed.platform,
       format: options.format || this.defaultFormat,
     });
 
@@ -133,7 +106,7 @@ if (require.main === module) {
       : 'wechat';
 
     const wqq = new WaQuanquaner();
-    
+
     if (args[0] && !args[0].startsWith('--')) {
       // 解析自然语言输入
       const result = await wqq.handleInput(args.join(' '), { format });
@@ -152,10 +125,8 @@ if (require.main === module) {
 
 module.exports = {
   WaQuanquaner,
-  // 也可以单独导入子模块
-  query: queryMod.fetchActivities,
-  fetchActivities: queryMod.fetchActivities,
-  render: render,
+  fetchCompact: queryMod.fetchCompact,
+  renderCompactFromApi: renderCompactFromApi,
   parseInput: parseInput,
   config: config,
 };

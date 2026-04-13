@@ -8,12 +8,16 @@ description: >-
   urgent email," "email priority," "sender trust," "inbox zero," or "which
   emails matter." Works with any email client or Graph API tool.
 license: Apache-2.0
+homepage: https://github.com/UseJunior/email-agent-mcp
 compatibility: >-
-  Works with any agent. No runtime dependencies — instruction-only skill.
-  Optionally enhanced by email-agent-mcp (Node.js >=20) for automated triage.
+  Instruction-only skill — no runtime dependencies. Provides prioritization
+  logic that works with whatever email data the agent's runtime already
+  exposes. Does not require the skill to declare or request any credentials.
+  This skill does not instruct the agent to fetch additional data sources
+  it doesn't already have access to.
 metadata:
   author: UseJunior
-  version: "0.1.0"
+  version: "0.1.2"
 ---
 
 # Zero-Trust Email Triage
@@ -70,16 +74,17 @@ Deprioritize by default. Most unsolicited email is noise.
 
 ## Exception Lane: When Unknown Senders Get Elevated
 
-Unknown senders may be elevated from Tier 5 if — and only if — they present objective evidence:
+Unknown senders may be elevated from Tier 5 if — and only if — they present objective evidence in signals the agent already has access to:
 
-| Evidence | Why it matters | Example |
-|----------|---------------|---------|
-| **Existing thread continuity** | They are replying to a thread the user started | User emailed a vendor; vendor's colleague replies from a new address |
-| **Known domain match** | New person at an existing client or partner | `jane@acmecorp.com` when `john@acmecorp.com` is already a Tier 1 contact |
-| **Calendar/deadline evidence** | References a real, verifiable meeting or filing date | "Regarding our meeting on Thursday at 2pm" — cross-check against calendar |
-| **Forwarded-from-known-contact** | A trusted contact forwarded or CC'd the introduction | Check the thread headers for a known sender |
-| **Credible security event** | Verifiable infrastructure alert, not generic phishing | Secret committed to public repo, key rotation from a verified provider domain (AWS, Stripe, GitHub) |
-| **Billing/payment failure** | Authenticated system notification | Payment failure from Stripe's verified domain, not "update your payment info" from an unknown sender |
+| Evidence class | Why it matters |
+|----------------|---------------|
+| **Thread continuity** | The message is a reply within an existing thread the user started |
+| **Known-domain match** | The sender's domain matches a customer or partner already on the priority list |
+| **Externally corroborated reference** | The message references a concrete event (meeting, deadline) that is independently verifiable in another signal the agent already has |
+| **Trusted forward** | The message is a forward or introduction from someone on the priority list |
+| **Authenticated system notification** | The message originates from a verified system sender for an infrastructure event (billing, security) — not generic account-warning phishing |
+
+The agent should only rely on these signals if its runtime already provides access to them. **This skill does not instruct the agent to fetch additional data sources it doesn't already have.**
 
 ### What Does NOT Constitute Evidence
 

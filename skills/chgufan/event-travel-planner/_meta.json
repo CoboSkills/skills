@@ -3,9 +3,15 @@
   "slug": "event-travel-planner",
   "displayName": "Event Travel Planner",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775061861432,
-    "commit": "https://github.com/openclaw/skills/commit/8102de03805d092eb74cd1330c4bfc9da5e5245a"
+    "version": "1.0.2",
+    "publishedAt": 1775987721709,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775061861432,
+      "commit": "https://github.com/openclaw/skills/commit/8102de03805d092eb74cd1330c4bfc9da5e5245a"
+    }
+  ]
 }

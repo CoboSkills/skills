@@ -1,179 +1,207 @@
 ---
 name: hierarchical-agent-memory
-description: Hierarchical memory architecture with automated distillation, maintenance, and extension patterns. Provides a scalable memory system that replaces flat files with tiered daily/weekly/monthly/yearly notes, plus automated routines for moving knowledge up the hierarchy and keeping the system clean.
+description: >-
+  Scalable memory architecture with hybrid topic-based working memory and
+  optional time-based episodic recall. Provides structured MEMORY.md routing
+  table, topic files for active projects, contact files, and configurable
+  daily/weekly/monthly/yearly distillation layers. Use when the agent needs
+  durable, organized long-term memory that survives compaction and scales
+  across projects, contacts, and time horizons. For per-channel session
+  isolation, install the companion skill agent-session-state. Upgrading from
+  v2.x? Existing files are preserved — the agent will guide you through
+  adding topic-based working memory alongside your current structure.
+license: MIT
+compatibility: "OpenClaw 2026.4.x or later. Requires memory-core plugin."
+metadata:
+  openclaw: {"requires": {"bins": ["openclaw"]}}
+  version: "3.1.0"
+  clawhub: {"category": "memory", "tags": ["memory", "hierarchy", "topics", "distillation"]}
 ---
 
-# Hierarchical Agent Memory
+# Hierarchical Agent Memory v3.1.0
 
-Agents wake up fresh each session. Files are the only continuity. This skill provides a scalable memory architecture that grows with the agent's experience, plus automated routines for maintaining the system without manual intervention.
+Agents that run across multiple projects, contacts, and time horizons need memory that scales. Without structure, memory files grow into a single bloated document that triggers lost-in-the-middle degradation. This skill organizes agent memory into a hybrid architecture: topic-based working memory for active projects, and optional time-based archival layers for episodic recall.
 
-## The Problem
+## Onboarding
 
-A single MEMORY.md file grows until retrieval degrades. Content in the middle of a large context window loses attention weight ("lost in the middle" effect). More files loaded at startup consumes more context, leaving less for actual work. Traditional flat-file memory doesn't scale.
+When this skill is installed or updated, initiate a setup conversation with the user before applying any memory structure changes. Do not silently create directories or files.
 
-## Architecture
+**Step 1 — Greet and explain.** Tell the user this skill organizes agent memory into a hybrid structure with topic-based working memory and optional time-based archival layers. Keep it to 2-3 sentences.
 
-### File Hierarchy
+**Step 2 — Ask about preset preference.** Present three presets:
 
-```
-workspace/
-├── MEMORY.md              # Lean index — project state, key decisions, cross-refs
-├── memory/
-│   ├── daily/
-│   │   └── YYYY-MM-DD.md  # Raw logs: what happened, decisions made, open threads
-│   ├── weekly/
-│   │   └── YYYY-WNN.md    # ISO week summaries, synthesized from daily notes
-│   ├── monthly/
-│   │   └── YYYY-MM.md     # Month summaries, synthesized from weekly notes
-│   ├── yearly/
-│   │   └── YYYY.md        # Year summaries, synthesized from monthly notes
-│   ├── projects/          # Detailed project documentation
-│   └── contacts/          # Contact information and profiles
-```
+- **minimal** — MEMORY.md routing table plus daily notes. Best for simple setups and single-project agents.
+- **standard** (default) — Adds topic files and contact files. Best for multi-project agents and teams.
+- **full** — Adds weekly, monthly, and yearly auto-distillation layers. Best for long-running agents needing historical recall. If the bundled `memory-wiki` plugin is enabled, prefer **standard** — `memory-wiki`'s `syntheses/` pages and `reports/` dashboards already cover the same ground.
 
-### Core Principles
+If the user says "just use defaults," apply standard and move on.
 
-1. **MEMORY.md stays lean.** It is an index, not a journal. Target: under 3KB.
-2. **Daily notes are raw.** Log everything worth remembering: sessions, decisions, work done, open threads.
-3. **Higher tiers are synthesized.** Weekly notes distill from daily. Monthly from weekly. Yearly from monthly.
-4. **Lazy load, don't dump.** At session start, load only today + yesterday daily notes and the lean MEMORY.md. Use `memory_search` for anything else. Never load all files upfront.
+Companion skills and plugins: For per-channel session isolation, install `agent-session-state`. For governance and provenance tracking, install `agent-provenance`. If the bundled `memory-wiki` plugin is enabled, it sits beside this skill and is complementary — this skill owns the always-loaded MEMORY.md routing table and `memory/topics/` active-project working memory; `memory-wiki` owns the compiled durable knowledge vault (structured claims, provenance, dashboards). All are independent.
 
-### Daily Note Format
+**Step 3 — Ask targeted follow-up questions based on preset.**
+
+For standard or full: ask whether to create starter topic files from existing MEMORY.md content, and whether the user also uses companion skills.
+
+For full only: first check whether `memory-wiki` is enabled by inspecting `plugins.entries.memory-wiki.enabled` in `openclaw.json`. If it is, warn the user that wiki `syntheses/` and `reports/` overlap with time-based distillation and offer **standard** as the recommended alternative. If the user still wants `full`, ask what timezone distillation cron jobs should use (default: system timezone) and what time weekly synthesis should run (default: Sunday 2:00 AM).
+
+**Step 4 — Apply configuration.** Create the directory structure and write configuration to the workspace. Confirm what was created. Offer to run an initial migration if existing MEMORY.md content should be split into topic files.
+
+**Step 5 — On skill update (v2.x to v3.x).** If `memory/weekly/` or `memory/daily/` already exists, the user is upgrading from v2.x. Tell them v3 adds topic-based working memory alongside the existing structure. Offer to scan current MEMORY.md and daily notes to suggest topic files. Do NOT delete or reorganize existing files without explicit approval.
+
+**Step 6 — On skill update (v3.0.x to v3.1.0).** If the workspace config already has `time_layers: true` (or an effective `full` preset) AND `plugins.entries.memory-wiki.enabled` is true in `openclaw.json`, surface the overlap: wiki `syntheses/` and `reports/` dashboards now cover the same ground as weekly/monthly/yearly distillation. Offer to set `time_layers: false` and leave the existing `memory/weekly/`, `memory/monthly/`, and `memory/yearly/` archive files untouched (they're historical content, not regeneratable cache). If the user declines, do nothing — both systems can coexist, they'll just produce parallel rollups. If `memory-wiki` is not enabled, make no changes and do not mention this step.
+
+---
+
+## Memory Architecture
+
+### Layer 1: MEMORY.md — Routing Table
+
+MEMORY.md is loaded into the system prompt every session. It must stay under 3KB to avoid lost-in-the-middle degradation. It contains:
+
+- Active project pointers — one line each, linking to topic files
+- Key contact pointers — linking to contact files
+- Infrastructure pointers — linking to config/endpoint files
+- Active constraints and hard stops — the ONLY "content" that belongs here
+
+MEMORY.md is a routing table, not a summary. If you're tempted to write a paragraph in MEMORY.md, it belongs in a topic file instead.
+
+**Security note:** MEMORY.md is injected into the model context every session. Never put secrets, API keys, passwords, or sensitive PII in MEMORY.md or any file it points to. Store credentials in environment variables or `.env` files (excluded from memory). Active Constraints entries (e.g., "do not raise X") are acceptable — they are behavioral directives, not sensitive data.
+
+Example MEMORY.md:
 
 ```markdown
-# YYYY-MM-DD
+## Active Projects
+- [BlueCat MCP Testing](topics/bluecat-mcp.md) — BDDS integration, Bug #21 open
+- [RPZ Article](topics/rpz-article.md) — draft in progress
 
-## Session Log
-- HH:MM TZ — [context] — brief summary
+## Key Contacts
+- [Jane Doe](contacts/jane-doe.md) — BlueCat UX
 
-## Decisions
-- Decision X made because Y
-
-## Open Threads
-- Thing still pending
+## Active Constraints
+- DO NOT RAISE: attorney call issue
+- Merge freeze after 2026-04-15
 ```
 
-### Higher Tier Formats
+### Layer 2: Topic Files — Working Memory
 
-Follow the same pattern, but drop detail and keep patterns, themes, and significant changes.
+`memory/topics/<name>.md` files are the primary working layer. Each file is the authoritative source for one project, workstream, or subject area.
 
-## Setup
+Structure topic files with the most recent information at the top, dated entries within the file, and links to relevant daily notes for full context.
 
-On first run, create the directory structure:
+**When to create a new topic file:** a project spans more than 2-3 daily notes, you find yourself repeatedly searching for the same subject, or the user explicitly asks to track something.
 
-```bash
-mkdir -p memory/daily memory/weekly memory/monthly memory/yearly memory/projects memory/contacts
-```
+**When to update a topic file:** new decisions or status changes, after distilling relevant content from daily notes, or when correcting outdated information (update in place, don't append).
 
-If MEMORY.md exists and is large (>5KB), triage it:
-1. Move project detail into dedicated files under `memory/projects/` or similar
-2. Leave only an index with status + pointers in MEMORY.md
-3. Move historical entries into the appropriate `memory/daily/` files by date
+### Layer 3: Contact Files
 
-## Session Startup
+`memory/contacts/<name>.md` files store information about people — role, email, context for how you interact with them, and when you last interacted.
 
-Before responding to the user:
+### Layer 4: Daily Notes — Intake Layer
 
-1. Read `MEMORY.md` (lean index)
-2. Read `memory/daily/YYYY-MM-DD.md` for today and yesterday
-3. That's it. Use `memory_search` for anything older or deeper.
+`memory/daily/YYYY-MM-DD.md` is the raw capture layer. OpenClaw automatically loads today's and yesterday's daily notes at session start.
 
-Do not load weekly/monthly/yearly files at startup. They exist for synthesis and search, not for routine context loading.
+Daily notes are intake, not archive. Important information should be distilled into topic files when the topic is active. Daily notes remain available for historical reference and time-based queries.
 
-## Session Logging
+### Layer 5 (Optional): Time-Based Archival Layers
 
-At the start of any meaningful session, append to `memory/daily/YYYY-MM-DD.md`:
+When enabled, weekly, monthly, and yearly summaries provide episodic recall — the ability to answer "what happened during week 15?" or "what did we accomplish in March?"
 
-```
-## Session Log
-- HH:MM TZ — [context] — brief summary of what was discussed/done
-```
+These layers are generated, read-only archives. They don't drive day-to-day context — topic files do that. They exist for historical queries and long-term recall.
 
-At session end (or periodically during long sessions), append:
-- Work completed
-- Decisions made
-- Open threads
+- `memory/weekly/YYYY-WNN.md` — weekly summary, generated Sunday night
+- `memory/monthly/YYYY-MM.md` — monthly summary, generated 1st of month
+- `memory/yearly/YYYY.md` — yearly summary, generated Jan 1
 
-## Automated Distillation
+Distillation is chronological, not categorical. Weekly summaries summarize the week's daily notes in time order. Topic categorization happens in topic files, not here.
 
-This skill includes automated distillation routines that run periodically (during heartbeats, cron, or on request). Distillation moves knowledge up the hierarchy and keeps the system clean.
+---
 
-### Daily → MEMORY.md
+## Configuration
 
-When daily notes contain decisions, project state changes, or facts worth keeping long-term:
-- Update MEMORY.md with the new state (not the history — just current status)
-- Keep MEMORY.md as a living snapshot, not a changelog
+### Presets
 
-### Daily → Weekly (every 7 days)
+Set a preset in your workspace configuration. Presets provide sensible defaults; individual settings can be overridden.
 
-1. Read the past 7 daily notes
-2. Write `memory/weekly/YYYY-WNN.md` summarizing: key events, decisions, patterns
-3. Drop detail that doesn't matter at the week level
+**minimal** enables the routing table only. Topics, contacts, and time layers are all disabled.
 
-### Weekly → Monthly (end of month)
+**standard** (default) enables the routing table, topics, and contacts. Time layers are disabled.
 
-1. Read that month's weekly summaries
-2. Write `memory/monthly/YYYY-MM.md` summarizing: themes, trajectory, significant changes
-3. Drop per-week granularity
+**full** enables everything including time layers with distillation schedules. Weekly synthesis defaults to Sunday 2:00 AM, monthly to the 1st of each month at 2:00 AM, yearly to January 1 at 2:00 AM. All times use the configured timezone (default: system timezone). **Caveat:** if the `memory-wiki` plugin is enabled, its `syntheses/` pages and `reports/` dashboards overlap with time-based distillation — prefer **standard** unless you specifically want chronological archives in addition to wiki syntheses. See `references/configuration.md` for the full JSON format and all individual settings.
 
-### Monthly → Yearly (end of year)
+### Key Settings
 
-Same pattern. Themes, major milestones, trajectory.
+- **preset** (string, default "standard") — base preset: minimal, standard, or full
+- **routing_table_max_kb** (number, default 3) — max size for MEMORY.md in KB
+- **topics** (bool, default true) — enable topic-based working memory files
+- **contacts** (bool, default true) — enable contact files
+- **time_layers** (bool, default false) — enable weekly/monthly/yearly archival layers
+- **distillation.weekly.schedule** (string, default "0 2 * * 0") — cron expression for weekly synthesis
+- **distillation.monthly.schedule** (string, default "0 2 1 * *") — cron expression for monthly synthesis
+- **distillation.yearly.schedule** (string, default "0 2 1 1 *") — cron expression for yearly synthesis
+- **distillation.timezone** (string, default system tz) — IANA timezone for cron schedules
 
-### Pruning
+---
 
-During distillation, also prune:
-- Remove outdated info from MEMORY.md (completed projects, resolved issues)
-- Don't delete daily notes — they're the audit trail
-- Weekly/monthly files can be updated if corrections are needed
+## Behavioral Rules
 
-## Retrieval
+### MEMORY.md Discipline
 
-When the user asks about something not in today's context:
+Never let MEMORY.md exceed routing_table_max_kb (default 3KB). Never write paragraphs or detailed status into MEMORY.md. When adding a new project or contact, add a one-line pointer to MEMORY.md and write the detail in the appropriate topic or contact file. Remove pointers when a project is completed or archived.
 
-1. `memory_search` first — it covers files in the root `memory/` directory
-2. If search returns a hit, use `memory_get` to pull the specific lines
-3. If low confidence after search, say so — don't fabricate from fragments
+### Topic File Maintenance
 
-**Note:** `memory_search` does not index subdirectories (e.g., `memory/contacts/`, `memory/projects/`). If the answer isn't found, you may need to manually check these subdirectories using `read` or other tools.
+Update topic files when new decisions or status changes occur. Keep the most recent information at the top of the file. Link back to daily notes for full context rather than duplicating content. Archive completed topic files by moving them to `topics/archive/`.
 
-## Extension Patterns
+### Daily Note Distillation
 
-While the core hierarchy handles most memory needs, you may want to extend the system with additional subdirectories for specific types of information:
+After a session with substantive decisions or progress, distill key points into the relevant topic files. Don't duplicate — link to the daily note from the topic file. Daily notes are permanent intake records; never delete them to "clean up."
 
-### Contacts
-For organizing contact information, create `memory/contacts/` with individual contact files. Create an index file `memory/contacts.md` that lists all contacts with links to their detailed profiles.
+### Companion Skills and Plugins
 
-### Projects
-For organizing project information, create `memory/projects/` with individual project files. Create an index file `memory/projects.md` that lists all projects with links to their detailed profiles.
+Session isolation is handled by `agent-session-state` (separate skill). If installed, topic files and session state complement each other — topic files hold the authoritative project state, session files hold per-channel runtime context.
 
-### General Pattern
-- Each subdirectory has an index file (e.g., `contacts.md`, `projects.md`) that serves as a hint system for finding information.
-- Individual files within subdirectories contain detailed information.
-- Cross-references between files maintain connectivity.
-- This pattern scales well and keeps the root memory directory clean.
+Governance is handled by `agent-provenance` (separate skill). If installed, provenance headers and TTL enforcement apply to instruction files, not to topic or contact files managed by this skill.
 
-### Integration
-These additional structures work seamlessly with the existing memory system. The `memory_search` tool will still find content within these files, and the index files provide a manual navigation aid when search falls short.
+Durable knowledge compilation is handled by the bundled `memory-wiki` plugin. If enabled, this skill still owns MEMORY.md as the always-loaded routing table and `memory/topics/` as active-project working memory; `memory-wiki` owns the compiled knowledge vault (`entities/`, `concepts/`, `syntheses/`, `sources/`, `reports/`) with structured claims and dashboards. Do not duplicate content between topic files and wiki pages — topic files are short-horizon action state, wiki pages are durable belief artifacts with provenance. When `memory-wiki` is enabled, disable `time_layers` (or pick the **standard** preset) to avoid generating chronological archives that compete with wiki syntheses.
 
-## Integration with Other Skills
+### Time-Based Layers (when enabled)
 
-- **agent-session-state**: Per-channel session files prevent cross-session writes to the same daily note. Use together.
-- **agent-provenance**: Provenance headers on MEMORY.md and other long-lived files track who wrote what and when it was last reviewed.
-- **agent-session-state**: The core memory skill provides the hierarchical structure; this skill builds on it with provenance and session isolation.
+Weekly, monthly, and yearly files are generated archives — don't manually edit them. Distillation cron jobs use OpenClaw's built-in `cron` tool — they run as isolated agent sessions within the OpenClaw sandbox. No OS-level schedulers (crontab, systemd, launchd) are created or modified. If a cron job fails, daily notes remain the source of truth and synthesis can be re-run.
 
-## Maintenance
+---
 
-The system includes automated maintenance routines that run during heartbeats and cron jobs:
-- Distillation (daily → weekly → monthly → yearly)
-- Pruning outdated information
-- Updating index files
-- Checking for consistency
+## Integration with OpenClaw Dreaming
 
-These routines keep the memory system clean and efficient without manual intervention.
+If the Dreaming feature is enabled alongside this skill:
 
-## Further Reading
+- **Dreaming promotes to MEMORY.md** — ensure promoted entries are pointers or constraints, not detailed content. If Dreaming promotes a detailed entry, move the detail to the appropriate topic file and replace the MEMORY.md entry with a pointer.
+- **Daily notes feed both systems** — daily notes are intake for both topic file distillation and Dreaming's signal collection. No conflict.
+- **No duplication** — if Dreaming handles promotion to MEMORY.md, the time-based distillation cron jobs should focus on archival summaries only, not promotion.
 
-- [Hierarchical Agent Memory](https://github.com/openclaw/openclaw/tree/main/skills/hierarchical-agent-memory) — Core memory architecture
-- [Agent Session State](https://github.com/openclaw/openclaw/tree/main/skills/agent-session-state) — Per-channel isolation
-- [Agent Provenance](https://github.com/openclaw/openclaw/tree/main/skills/agent-provenance) — Tracking authorship and review
+---
+
+## Migration from v2.x
+
+If upgrading from hierarchical-agent-memory v2.x:
+
+1. Existing daily, weekly, monthly, and yearly directories are preserved as-is
+2. The new `memory/topics/` directory is created alongside them
+3. Suggest splitting current MEMORY.md content into a lean routing table (stays in MEMORY.md), topic files for each active project, and contact files for people
+4. Ask user approval before making any changes to existing files
+
+## Migration from v3.0.x to v3.1.0
+
+v3.1.0 adds awareness of OpenClaw's bundled `memory-wiki` plugin. There are no schema changes and no automatic file modifications.
+
+1. Existing topic files, contact files, daily notes, and time-based archives are left untouched
+2. On first session after upgrade, the agent checks whether `plugins.entries.memory-wiki.enabled` is true in `openclaw.json`
+3. If memory-wiki is enabled AND `time_layers` is currently true, the agent surfaces the overlap and offers to set `time_layers: false`. Existing `memory/weekly/`, `monthly/`, and `yearly/` files are historical content and are never deleted as part of this migration
+4. If memory-wiki is not enabled, nothing changes and no prompt is shown
+5. Ask user approval before changing any configuration
+
+---
+
+## Related Skills
+
+- **agent-session-state** — Per-channel session isolation, WAL protocol, and working buffer management
+- **agent-provenance** — File authorship, review tracking, and governance

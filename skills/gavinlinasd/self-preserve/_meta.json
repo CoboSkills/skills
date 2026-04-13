@@ -3,11 +3,16 @@
   "slug": "self-preserve",
   "displayName": "Self Preserve",
   "latest": {
-    "version": "0.3.0",
-    "publishedAt": 1775361750435,
-    "commit": "https://github.com/openclaw/skills/commit/6a379e5d4c727ecf63a4be0d3de22d00ac3306c2"
+    "version": "0.3.2",
+    "publishedAt": 1775754532473,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.3.0",
+      "publishedAt": 1775361750435,
+      "commit": "https://github.com/openclaw/skills/commit/6a379e5d4c727ecf63a4be0d3de22d00ac3306c2"
+    },
     {
       "version": "0.2.0",
       "publishedAt": 1775095110272,

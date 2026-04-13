@@ -1,7 +1,9 @@
 ---
 name: self-preserve
-description: "Backup readiness and disaster recovery for your OpenClaw agent. Checks whether your memory, identity, config, skills, and workspace files are covered by a recent backup, and can schedule automated backup cron jobs so you don't lose state when your agent crashes or a risky operation goes wrong. No scripts, no credentials access, no network calls."
-homepage: https://github.com/gavinlinasd/self-preserve
+description: "Backup readiness and disaster recovery for your OpenClaw agent. Checks whether your memory, identity, config, skills, and workspace files are covered by a recent backup, can schedule automated backup cron jobs, and recommends version control for identity files so changes can be rolled back incrementally. No scripts, no credentials access, no network calls."
+author: Pineapple AI (https://pineappleai.com)
+homepage: https://pineappleai.com
+repository: https://github.com/gavinlinasd/self-preserve
 tags:
   - backup
   - disaster-recovery
@@ -41,6 +43,7 @@ This skill is designed to pass automated security vetting (Skill Vetter and simi
 - **Path allowlist.** Only `~/.openclaw/` and `~/openclaw-backups/` are accessed.
 - **No writes to agent state files.** The skill does not modify config, memory, identity, workspace, or skill files.
 - **Cron schedule writes (user-gated).** Steps 6-7 call Claude-native tools (CronCreate, CronList, CronDelete) only after explicit user confirmation, and only to manage backup cron schedules. If the user opts in to persistent scheduling, CronCreate writes to `.claude/scheduled_tasks.json` (managed by the Claude harness); session-only schedules write nothing to disk. The skill never defaults to persistent without explicit user choice.
+- **Advisory recommendations only (Step 5).** Step 5 may recommend that the user consider version control and session-end hooks for identity files. The skill does not implement, configure, or install any hooks — the recommendation is informational only.
 - **No privilege escalation.** No sudo, no system-level access, no auto-load paths, no forced inclusion in other contexts.
 - **No obfuscation.** All instructions are plain English markdown.
 
@@ -90,7 +93,7 @@ Look for a cron job named `daily-backup` or containing the word `backup`:
 ls ~/.openclaw/cron/ 2>/dev/null
 ```
 
-Also use CronList and check whether any active cron job has a prompt containing the word "backup". Ignore cron jobs unrelated to backups.
+Also use CronList and check whether any active cron job has a prompt containing the word "backup". Ignore cron jobs unrelated to backups. Do not display non-backup cron job details to the user.
 
 Record whether an automated backup schedule appears to be configured (yes/no).
 
@@ -149,6 +152,7 @@ Based on the report, suggest the most relevant actions from this list:
 - **Stale backup (older than 24 hours with recent changes):** "Run `openclaw backup create` to capture recent changes."
 - **No automated backup:** "I can schedule automatic daily backups for you — see Step 6."
 - **All areas covered and recent:** "Your agent is well protected. No action needed."
+- **Identity files lack incremental rollback:** If identity files (SOUL.md, IDENTITY.md, USER.md, MEMORY.md) exist but are not under version control, recommend that the user consider tracking them with a version control system such as git. Full backups are all-or-nothing — if a bad edit lands in SOUL.md, restoring from a tar.gz backup overwrites everything, not just the one file that changed. Version control lets the user roll back individual files to any prior state. Additionally, recommend setting up a hook (e.g. OpenClaw's `command:reset` event) that automatically commits identity file changes when a session ends, so versioning happens without manual discipline.
 
 ## Step 6 — Offer Automated Backup Scheduling
 
@@ -193,8 +197,12 @@ If no backup cron jobs exist, inform the user and offer to create one (go to Ste
 
 ## Version
 
-0.3.0
+0.3.2
 
 ## License
 
 MIT-0 — Free to use, modify, and redistribute.
+
+## Author
+
+Built by [Pineapple AI](https://pineappleai.com) · [GitHub](https://github.com/gavinlinasd/self-preserve)

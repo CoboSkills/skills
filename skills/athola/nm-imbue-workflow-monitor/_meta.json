@@ -1,0 +1,11 @@
+{
+  "owner": "athola",
+  "slug": "nm-imbue-workflow-monitor",
+  "displayName": "Nm Imbue Workflow Monitor",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776060107267,
+    "commit": null
+  },
+  "history": []
+}

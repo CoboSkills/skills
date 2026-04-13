@@ -3,9 +3,15 @@
   "slug": "deepal",
   "displayName": "Deepal",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1775400434151,
-    "commit": "https://github.com/openclaw/skills/commit/0c67274a67868676bebc7938c72af9be8bd678d4"
+    "version": "1.0.2",
+    "publishedAt": 1775634477194,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1775400434151,
+      "commit": "https://github.com/openclaw/skills/commit/0c67274a67868676bebc7938c72af9be8bd678d4"
+    }
+  ]
 }

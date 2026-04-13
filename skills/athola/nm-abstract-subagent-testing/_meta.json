@@ -3,9 +3,15 @@
   "slug": "nm-abstract-subagent-testing",
   "displayName": "Nm Abstract Subagent Testing",
   "latest": {
-    "version": "1.8.2",
-    "publishedAt": 1775513202358,
-    "commit": "https://github.com/openclaw/skills/commit/57672b3efec6dcf48d7b8acfe152e78e433b9444"
+    "version": "1.8.3",
+    "publishedAt": 1775799924141,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.8.2",
+      "publishedAt": 1775513202358,
+      "commit": "https://github.com/openclaw/skills/commit/57672b3efec6dcf48d7b8acfe152e78e433b9444"
+    }
+  ]
 }

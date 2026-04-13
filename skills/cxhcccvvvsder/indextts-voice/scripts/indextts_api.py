@@ -26,7 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # ========== 核心配置（按文档要求） ==========
-BASE_URL = os.getenv("INDEX_BASE_URL", "https://openapi.indextts.cn")
+BASE_URL = os.getenv("INDEX_BASE_URL", "https://openapi.lipvoice.cn")
 API_SIGN = os.getenv("INDEX_API_SIGN")  # 鉴权用 sign，所有接口必需
 TIMEOUT = 30  # 请求超时时间（秒）
 
@@ -43,12 +43,12 @@ session.mount("https://", HTTPAdapter(max_retries=RETRY_CONFIG))
 def validate_config() -> None:
     """验证基础配置（所有接口必需 sign）"""
     if not API_SIGN:
-        logger.error("Error: LIPVOICE_API_SIGN environment variable not set")
-        logger.info("Set via PowerShell: $env:LIPVOICE_API_SIGN='your-api-sign'")
-        logger.info("Set via CMD: set LIPVOICE_API_SIGN=your-api-sign")
+        logger.error("Error: INDEX_API_SIGN environment variable not set")
+        logger.info("Set via PowerShell: $env:INDEX_API_SIGN='your-api-sign'")
+        logger.info("Set via CMD: set INDEX_API_SIGN=your-api-sign")
         sys.exit(1)
     if not BASE_URL:
-        logger.error("Error: LIPVOICE_BASE_URL environment variable not set")
+        logger.error("Error: INDEX_BASE_URL environment variable not set")
         sys.exit(1)
 
 
@@ -509,7 +509,7 @@ def main():
     validate_config()
 
     parser = argparse.ArgumentParser(
-        description='LipVoice API CLI Tool (Compatible with Windows)',
+        description='IndexTTS API CLI Tool (Compatible with Windows)',
         formatter_class=argparse.RawTextHelpFormatter
     )
     subparsers = parser.add_subparsers(dest='command', required=True, help='Available commands')

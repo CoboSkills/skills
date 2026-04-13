@@ -54,13 +54,13 @@ pip install requests
 ### Windows PowerShell
 ```powershell
 $env:INDEX_API_SIGN='你的 API 签名'
-$env:INDEX_BASE_URL='https://openapi.indextts.cn'
+$env:INDEX_BASE_URL='https://openapi.lipvoice.cn'
 ```
 
 ### Windows CMD
 ```cmd
 set INDEX_API_SIGN=你的 API 签名
-set INDEX_BASE_URL=https://openapi.indextts.cn
+set INDEX_BASE_URL=https://openapi.lipvoice.cn
 ```
 
 ### 永久设置（推荐）
@@ -357,7 +357,7 @@ python scripts/indextts_api.py tts-result ABuVg22sQoSxZ7DFDTXqFP7dA9
   "data": {
     "taskId": "ABuVg22sQoSxZ7DFDTXqFP7dA9",
     "status": 2,
-    "voiceUrl": "https://openapi.indextts.cn/file/download/xxx.wav"
+    "voiceUrl": "https://openapi.lipvoice.cn/file/download/xxx.wav"
   },
   "msg": "成功"
 }
@@ -405,7 +405,7 @@ python scripts/indextts_api.py quota
 
 **官方文档**: https://indextts.cn/main/developer
 
-**API 基础 URL**: `https://openapi.indextts.cn/api/third/`
+**API 基础 URL**: `https://openapi.lipvoice.cn/api/third/`
 
 **鉴权方式**: 所有接口需要在 Header 中传递 `sign` 参数，或在 URL params 中拼接 `sign`
 
@@ -471,7 +471,7 @@ python scripts/indextts_api.py quota
 ```powershell
 # 1. 设置环境变量
 $env:INDEX_API_SIGN = '你的 API 签名'
-$env:INDEX_BASE_URL = 'https://openapi.indextts.cn'
+$env:INDEX_BASE_URL = 'https://openapi.lipvoice.cn'
 
 # 2. 查看已有声音模型
 python scripts/indextts_api.py list-models

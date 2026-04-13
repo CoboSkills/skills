@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-elasticsearch-network-manage",
+  "displayName": "Alibabacloud Elasticsearch Network Manage",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1776065477380,
+    "commit": null
+  },
+  "history": []
+}

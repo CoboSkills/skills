@@ -6,8 +6,19 @@
  * @license Apache-2.0
  */
 
-const PLUGIN_VERSION = "0.4.0";
+const PLUGIN_VERSION = "1.0.0";
 const USER_QUERY_MARKER = "--- User Query ---";
+const RELEVANT_MEMORIES_BLOCK_RE = /<relevant-memories>[\s\S]*?<\/relevant-memories>/gi;
+const CONVERSATION_METADATA_BLOCK_RE =
+  /(?:^|\n)\s*(?:Conversation info|Conversation metadata|会话信息|对话信息)\s*(?:\([^)]+\))?\s*:\s*```[\s\S]*?```/gi;
+const SENDER_METADATA_BLOCK_RE =
+  /(?:^|\n)\s*Sender\s*\([^)]*\)\s*:\s*```[\s\S]*?```/gi;
+const FENCED_JSON_BLOCK_RE = /```json\s*([\s\S]*?)```/gi;
+const METADATA_JSON_KEY_RE =
+  /"(session|sessionid|sessionkey|conversationid|channel|sender|userid|agentid|timestamp|timezone)"\s*:/gi;
+const MESSAGE_ID_WITH_SPEAKER_RE =
+  /^\[message_id:\s*[^\]]+\]\s*[^:\n：]{1,80}[：:]\s*([\s\S]+)$/i;
+const MESSAGE_ID_PREFIX_RE = /^\[message_id:\s*[^\]]+\]\s*/i;
 
 /**
  * Session cache for tracking conversation history
@@ -19,12 +30,6 @@ const sessionCache = new Map();
  * Timeout handles for session flush
  */
 const sessionTimers = new Map();
-
-/**
- * Upgrade notification from server
- * Contains: { required: boolean, version: string, message: string, url: string }
- */
-let upgradeNotification = null;
 
 /**
  * Display warning when API Key is not configured
@@ -68,6 +73,28 @@ function stripPrependedPrompt(content) {
     return text.substring(markerIndex + USER_QUERY_MARKER.length).trim();
   }
   return text;
+}
+
+function looksLikeMetadataJsonBlock(content) {
+  const matchedKeys = new Set();
+  const matches = String(content || "").matchAll(METADATA_JSON_KEY_RE);
+  for (const match of matches) {
+    const key = String(match[1] || "").toLowerCase();
+    if (key) matchedKeys.add(key);
+  }
+  return matchedKeys.size >= 3;
+}
+
+function stripInjectedContextBlocks(text) {
+  if (!text) return "";
+  return String(text)
+    .replace(RELEVANT_MEMORIES_BLOCK_RE, "\n")
+    .replace(CONVERSATION_METADATA_BLOCK_RE, "\n")
+    .replace(SENDER_METADATA_BLOCK_RE, "\n")
+    .replace(FENCED_JSON_BLOCK_RE, (full, inner) =>
+      looksLikeMetadataJsonBlock(String(inner || "")) ? "\n" : full
+    )
+    .replace(/\u0000/g, "");
 }
 
 /**
@@ -127,7 +154,7 @@ function isMetadataOnlyText(text) {
  * and drop prepended system transcript lines.
  */
 function normalizeUserMessageContent(content) {
-  const text = stripPrependedPrompt(content);
+  const text = stripInjectedContextBlocks(stripPrependedPrompt(content));
   if (!text) return "";
 
   const normalized = String(text).replace(/\r\n/g, "\n").trim();
@@ -167,6 +194,52 @@ function normalizeUserMessageContent(content) {
   }
 
   return isMetadataOnlyText(normalized) ? "" : normalized;
+}
+
+/**
+ * Normalize search query text before recall.
+ * Search should use the actual user utterance, not injected conversation metadata blocks.
+ */
+function normalizeSearchQuery(content) {
+  const text = stripInjectedContextBlocks(stripPrependedPrompt(content));
+  if (!text) return "";
+
+  const normalized = String(text).replace(/\r\n/g, "\n").trim();
+  if (!normalized) return "";
+
+  const latestSystemMessage = extractLatestSystemTranscriptMessage(normalized);
+  if (latestSystemMessage && !isMetadataOnlyText(latestSystemMessage)) {
+    return latestSystemMessage.replace(/\s+/g, " ").trim();
+  }
+
+  const feishuTail = normalized.match(
+    /\[Feishu[^\]]*\]\s*[^:\n]+:\s*([\s\S]*?)(?:\n\[message_id:[^\]]+\]\s*)?$/i
+  );
+  if (feishuTail && feishuTail[1]) {
+    const candidate = feishuTail[1].trim();
+    if (!isMetadataOnlyText(candidate)) return candidate.replace(/\s+/g, " ").trim();
+  }
+
+  const discordTail = normalized.match(
+    /\[from:\s*[^\(\]\n]+?\s*\(\d{6,}\)\]\s*([\s\S]*?)$/i
+  );
+  if (discordTail && discordTail[1]) {
+    const candidate = discordTail[1].trim();
+    if (!isMetadataOnlyText(candidate)) return candidate.replace(/\s+/g, " ").trim();
+  }
+
+  const messageIdWithSpeaker = normalized.match(MESSAGE_ID_WITH_SPEAKER_RE);
+  if (messageIdWithSpeaker && messageIdWithSpeaker[1]) {
+    const candidate = messageIdWithSpeaker[1].trim();
+    if (!isMetadataOnlyText(candidate)) return candidate.replace(/\s+/g, " ").trim();
+  }
+
+  const withoutMessageId = normalized.replace(MESSAGE_ID_PREFIX_RE, "").trim();
+  if (withoutMessageId && !isMetadataOnlyText(withoutMessageId)) {
+    return withoutMessageId.replace(/\s+/g, " ").trim();
+  }
+
+  return isMetadataOnlyText(normalized) ? "" : normalized.replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -347,12 +420,61 @@ function truncate(text, maxLen) {
   return text.substring(0, maxLen - 3) + "...";
 }
 
+function formatLogValue(value, maxLen = 48) {
+  if (value === undefined || value === null || value === "") return "-";
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "-";
+    const items = value.slice(0, 3).map((item) => truncate(String(item), 24));
+    return items.join(",") + (value.length > 3 ? ",..." : "");
+  }
+  return truncate(String(value), maxLen);
+}
+
+function maskSecretForLog(value, prefix = 10, suffix = 6) {
+  const text = String(value || "").trim();
+  if (!text) return "-";
+  if (text.length <= prefix + suffix) return text;
+  return `${text.slice(0, prefix)}...${text.slice(-suffix)}`;
+}
+
+function buildRequestId(ctx, prefix = "openclaw-plugin") {
+  return ctx?.requestId || `${prefix}-${Date.now()}`;
+}
+
+function resolveMinScore(value, fallback = 0.0) {
+  if (value === undefined || value === null || value === "") return fallback;
+  const numeric = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function memoryPreviewItem(memory, rank) {
+  if (!memory || typeof memory !== "object") {
+    return `#${rank} id=- text="-"`;
+  }
+  const parts = [
+    `#${rank}`,
+    `id=${formatLogValue(memory.id, 8)}`,
+  ];
+  if (typeof memory.score === "number" && Number.isFinite(memory.score)) {
+    parts.push(`s=${memory.score.toFixed(6)}`);
+  }
+  parts.push(`text="${truncate(memory.description || memory.event || "", 80)}"`);
+  return parts.join(" ");
+}
+
+function memoryPreviewSummary(memories, limit = 3) {
+  if (!Array.isArray(memories) || memories.length === 0) return "-";
+  return memories.slice(0, limit).map((memory, index) => memoryPreviewItem(memory, index + 1)).join(" | ");
+}
+
 /**
  * Make HTTP request with retry logic
  */
-async function httpRequest(url, options, cfg, log) {
+async function httpRequest(url, options, cfg, log, meta = {}) {
   const timeout = cfg.timeoutMs || 5000;
   const retries = cfg.retries || 1;
+  const requestId = meta.requestId || "-";
+  const label = meta.label || "OpenClaw Plugin";
 
   let lastError;
 
@@ -368,37 +490,41 @@ async function httpRequest(url, options, cfg, log) {
 
       clearTimeout(timeoutId);
 
-      // Check for upgrade notification in response headers
-      checkUpgradeHeaders(response, log);
-
       if (!response.ok) {
         const errorText = await response.text();
         if (log?.warn) {
-          log.warn(`[Memory Plugin] HTTP ${response.status}: ${errorText.substring(0, 200)}`);
+          log.warn(
+            `[${label}][HTTP] req=${requestId} status=${response.status} ` +
+            `url=${url} error="${truncate(errorText, 200)}"`
+          );
         }
         throw new Error(`HTTP ${response.status}: ${errorText}`);
       }
 
       const jsonResult = await response.json();
-
-      // Also check for upgrade notification in response body
-      checkUpgradeBody(jsonResult, log);
-
       return jsonResult;
     } catch (error) {
       lastError = error;
       if (attempt < retries && error.name !== 'AbortError') {
         if (log?.debug) {
-          log.debug(`[Memory Plugin] Request attempt ${attempt + 1} failed, retrying...`);
+          log.debug(
+            `[${label}][HTTP] req=${requestId} attempt=${attempt + 1} failed ` +
+            `retrying=true error="${truncate(error.message || String(error), 160)}"`
+          );
         }
         continue;
       }
       if (error.name === 'AbortError') {
-        if (log?.warn) log.warn(`[Memory Plugin] Request timeout after ${timeout}ms`);
+        if (log?.warn) {
+          log.warn(`[${label}][HTTP] req=${requestId} timeout_ms=${timeout} url=${url}`);
+        }
         break;
       }
       if (log?.warn) {
-        log.warn(`[Memory Plugin] Request failed: ${error.message}`);
+        log.warn(
+          `[${label}][HTTP] req=${requestId} failed=true ` +
+          `url=${url} error="${truncate(error.message || String(error), 160)}"`
+        );
       }
     }
   }
@@ -407,94 +533,35 @@ async function httpRequest(url, options, cfg, log) {
 }
 
 /**
- * Check response headers for upgrade notification
- */
-function checkUpgradeHeaders(response, log) {
-  const upgradeRequired = response.headers.get('X-Upgrade-Required');
-  const upgradeVersion = response.headers.get('X-Upgrade-Version');
-  const upgradeMessage = response.headers.get('X-Upgrade-Message');
-  const upgradeUrl = response.headers.get('X-Upgrade-Url');
-
-  if (upgradeRequired === 'true' || upgradeVersion) {
-    upgradeNotification = {
-      required: upgradeRequired === 'true',
-      version: upgradeVersion || 'latest',
-      message: upgradeMessage || `Please upgrade to version ${upgradeVersion || 'latest'}`,
-      url: upgradeUrl || 'https://www.npmjs.com/package/@humanlikememory/human-like-mem',
-      currentVersion: PLUGIN_VERSION,
-    };
-    if (log?.warn) {
-      log.warn(`[Memory Plugin] Upgrade ${upgradeRequired === 'true' ? 'REQUIRED' : 'available'}: ${upgradeNotification.message}`);
-    }
-  }
-}
-
-/**
- * Check response body for upgrade notification
- */
-function checkUpgradeBody(result, log) {
-  if (result && result._upgrade) {
-    const upgrade = result._upgrade;
-    upgradeNotification = {
-      required: upgrade.required === true,
-      version: upgrade.version || 'latest',
-      message: upgrade.message || `Please upgrade to version ${upgrade.version || 'latest'}`,
-      url: upgrade.url || 'https://www.npmjs.com/package/@humanlikememory/human-like-mem',
-      currentVersion: PLUGIN_VERSION,
-    };
-    if (log?.warn) {
-      log.warn(`[Memory Plugin] Upgrade ${upgrade.required ? 'REQUIRED' : 'available'}: ${upgradeNotification.message}`);
-    }
-  }
-}
-
-/**
- * Format upgrade notification for user display
- */
-function formatUpgradeNotification() {
-  if (!upgradeNotification) return null;
-
-  const { required, version, message, url, currentVersion } = upgradeNotification;
-
-  if (required) {
-    return `
-**[Human-Like Memory Plugin] Upgrade Required**
-
-Current version: ${currentVersion}
-Latest version: ${version}
-
-${message}
-
-Please upgrade to continue using memory features:
-\`\`\`bash
-npm update @humanlikememory/human-like-mem
-\`\`\`
-
-More info: ${url}
-`;
-  }
-
-  return `
-**[Human-Like Memory Plugin] Upgrade Available**
-
-Current version: ${currentVersion}
-Latest version: ${version}
-
-${message}
-
-Upgrade command:
-\`\`\`bash
-npm update @humanlikememory/human-like-mem
-\`\`\`
-`;
-}
-
-/**
  * Retrieve memories from the API
  */
+function resolveMemoryScenario(cfg) {
+  const rawScenario = typeof cfg?.scenario === "string" ? cfg.scenario.trim() : "";
+  return rawScenario || "openclaw-plugin";
+}
+
+function buildSearchPayload(prompt, cfg, ctx, memoryLimitNumber) {
+  const identity = resolveRequestIdentity(prompt, cfg, ctx);
+  const userId = sanitizeUserId(identity.userId);
+  const scenario = resolveMemoryScenario(cfg);
+  const compatSearchTags = scenario ? [scenario] : (cfg.tags || null);
+  const query = normalizeSearchQuery(prompt);
+
+  return {
+    query,
+    user_id: userId,
+    agent_id: cfg.agentId || ctx?.agentId,
+    conversation_id: cfg.recallGlobal !== false ? null : (ctx?.sessionId || ctx?.conversationId),
+    memory_limit_number: (memoryLimitNumber ?? cfg.memoryLimitNumber) || 6,
+    min_score: resolveMinScore(cfg.minScore, 0.0),
+    scenario: scenario || null,
+    scenarios: scenario ? [scenario] : [],
+    tags: compatSearchTags,
+  };
+}
+
 async function retrieveMemory(prompt, cfg, ctx, log) {
-  const baseUrl = cfg.baseUrl || process.env.HUMAN_LIKE_MEM_BASE_URL;
-  const apiKey = cfg.apiKey || process.env.HUMAN_LIKE_MEM_API_KEY;
+  const { baseUrl, apiKey } = cfg;
 
   if (!apiKey) {
     warnMissingApiKey(log);
@@ -502,20 +569,42 @@ async function retrieveMemory(prompt, cfg, ctx, log) {
   }
 
   const url = `${baseUrl}/api/plugin/v1/search/memory`;
-  if (log?.info) {
-    log.info(`[Memory Plugin] Recall request URL: ${url}`);
+  const payload = buildSearchPayload(prompt, cfg, ctx, cfg.memoryLimitNumber || 6);
+  if (!payload.query) {
+    if (log?.info) {
+      log.info(
+        `[OpenClaw Plugin][Search][SKIP] req=${buildRequestId(ctx)} reason=empty_normalized_query ` +
+        `raw_query="${truncate(extractText(prompt), 80)}" raw_qlen=${extractText(prompt)?.length || 0}`
+      );
+    }
+    return [];
   }
-  const identity = resolveRequestIdentity(prompt, cfg, ctx);
-  const userId = sanitizeUserId(identity.userId);
-  const payload = {
-    query: prompt,
-    user_id: userId,
-    agent_id: cfg.agentId || ctx?.agentId,
-    conversation_id: cfg.recallGlobal !== false ? null : (ctx?.sessionId || ctx?.conversationId),
-    memory_limit_number: cfg.memoryLimitNumber || 6,
-    min_score: cfg.minScore || 0.1,
-    tags: cfg.tags || null,
-  };
+  const requestId = buildRequestId(ctx);
+  const requestStart = Date.now();
+  const rawPrompt = extractText(prompt);
+  if (payload.query !== rawPrompt && log?.info) {
+    log.info(
+      `[OpenClaw Plugin][Search][NORMALIZE] req=${requestId} ` +
+      `raw_query="${truncate(rawPrompt, 80)}" raw_qlen=${rawPrompt?.length || 0} ` +
+      `query="${truncate(payload.query, 80)}" qlen=${payload.query.length}`
+    );
+  }
+  if (log?.info) {
+    log.info(
+      `[OpenClaw Plugin][Search][START] req=${requestId} url=${url} ` +
+      `query="${truncate(payload.query, 80)}" qlen=${payload.query.length} ` +
+      `user_id=${formatLogValue(payload.user_id)} agent_id=${formatLogValue(payload.agent_id)} ` +
+      `conversation_id=${formatLogValue(payload.conversation_id)} scenario=${formatLogValue(payload.scenario)} ` +
+      `limit=${payload.memory_limit_number} min_score=${payload.min_score} ` +
+      `api_key=${maskSecretForLog(apiKey)}`
+    );
+  }
+
+  if (log?.debug) {
+    log.debug(
+      `[OpenClaw Plugin][Search][FILTER] req=${requestId} scenarios=${formatLogValue(payload.scenarios)} tags=${formatLogValue(payload.tags)}`
+    );
+  }
 
   try {
     const result = await httpRequest(url, {
@@ -523,27 +612,41 @@ async function retrieveMemory(prompt, cfg, ctx, log) {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
-        "x-request-id": ctx?.requestId || `openclaw-${Date.now()}`,
+        "x-request-id": requestId,
         "x-plugin-version": PLUGIN_VERSION,
         "x-client-type": "plugin",
       },
       body: JSON.stringify(payload),
-    }, cfg, log);
+    }, cfg, log, {
+      requestId,
+      label: "OpenClaw Plugin",
+    });
 
     if (!result.success) {
-      if (log?.warn) log.warn(`[Memory Plugin] Memory retrieval failed: ${result.error}`);
+      if (log?.warn) {
+        log.warn(
+          `[OpenClaw Plugin][Search][END] req=${requestId} success=false ` +
+          `total_ms=${Date.now() - requestStart} error="${truncate(result.error || "Memory retrieval failed", 160)}"`
+        );
+      }
       return [];
     }
 
     const memoryCount = result.memories?.length || 0;
-    if (memoryCount > 0 && log?.info) {
-      log.info(`[Memory Plugin] Retrieved ${memoryCount} memories for query: "${truncate(prompt, 50)}"`);
+    if (log?.info) {
+      log.info(
+        `[OpenClaw Plugin][Search][END] req=${requestId} success=true count=${memoryCount} ` +
+        `total_ms=${Date.now() - requestStart} top=${memoryPreviewSummary(result.memories || [])}`
+      );
     }
 
     return result.memories || [];
   } catch (error) {
     if (log?.warn) {
-      log.warn(`[Memory Plugin] Memory retrieval failed: ${error.message}`);
+      log.warn(
+        `[OpenClaw Plugin][Search][END] req=${requestId} success=false ` +
+        `total_ms=${Date.now() - requestStart} error="${truncate(error.message || String(error), 160)}"`
+      );
     }
     return [];
   }
@@ -553,15 +656,11 @@ async function retrieveMemory(prompt, cfg, ctx, log) {
  * Add memories to the API
  */
 async function addMemory(messages, cfg, ctx, log) {
-  const baseUrl = cfg.baseUrl || process.env.HUMAN_LIKE_MEM_BASE_URL;
-  const apiKey = cfg.apiKey || process.env.HUMAN_LIKE_MEM_API_KEY;
+  const { baseUrl, apiKey } = cfg;
 
   if (!apiKey) return;
 
   const url = `${baseUrl}/api/plugin/v1/add/message`;
-  if (log?.info) {
-    log.info(`[Memory Plugin] Add-memory request URL: ${url}`);
-  }
   const sessionId = resolveSessionId(ctx, null) || `session-${Date.now()}`;
   const latestUserText = getLatestUserMessageText(messages);
   const identity = resolveRequestIdentity(latestUserText, cfg, ctx);
@@ -580,6 +679,7 @@ async function addMemory(messages, cfg, ctx, log) {
     return [userId];
   })();
   const agentId = cfg.agentId || ctx?.agentId || "main";
+  const scenario = cfg.scenario || "openclaw-plugin";
 
   const payload = {
     user_id: userId,
@@ -597,15 +697,28 @@ async function addMemory(messages, cfg, ctx, log) {
           user_ids: metadataUserIds,
           agent_ids: [agentId],
           session_id: sessionId,
-          scenario: cfg.scenario || "openclaw-plugin",
+          scenario,
         }),
       },
     },
   };
+  const requestId = buildRequestId(ctx);
+  const requestStart = Date.now();
+  if (log?.info) {
+    log.info(
+      `[OpenClaw Plugin][Add][START] req=${requestId} url=${url} ` +
+      `user_id=${formatLogValue(userId)} agent_id=${formatLogValue(agentId)} ` +
+      `conversation_id=${formatLogValue(sessionId)} messages=${messages.length} ` +
+      `roles=${formatLogValue(messages.map((m) => m?.role).filter(Boolean))} ` +
+      `last_user="${truncate(latestUserText || "", 80)}" scenario=${formatLogValue(scenario)} ` +
+      `user_ids=${formatLogValue(metadataUserIds)} agent_ids=${formatLogValue([agentId])} ` +
+      `api_key=${maskSecretForLog(apiKey)}`
+    );
+  }
 
   if (log?.debug) {
     log.debug(
-      `[Memory Plugin] add/message payload: user_id=${userId}, agent_id=${agentId}, conversation_id=${sessionId}, metadata.user_ids=${JSON.stringify(metadataUserIds)}, metadata.agent_ids=${JSON.stringify([agentId])}`
+      `[OpenClaw Plugin][Add][FILTER] req=${requestId} tags=${formatLogValue(payload.tags)} async=${payload.async_mode}`
     );
   }
 
@@ -615,22 +728,33 @@ async function addMemory(messages, cfg, ctx, log) {
       headers: {
         "Content-Type": "application/json",
         "x-api-key": apiKey,
-        "x-request-id": ctx?.requestId || `openclaw-${Date.now()}`,
+        "x-request-id": requestId,
         "x-plugin-version": PLUGIN_VERSION,
         "x-client-type": "plugin",
       },
       body: JSON.stringify(payload),
-    }, cfg, log);
+    }, cfg, log, {
+      requestId,
+      label: "OpenClaw Plugin",
+    });
 
     const memoryCount = result?.memories_count || 0;
     if (log?.info) {
-      log.info(`[Memory Plugin] Successfully added memory: ${memoryCount} streams`);
+      log.info(
+        `[OpenClaw Plugin][Add][END] req=${requestId} success=${result?.success !== false} ` +
+        `accepted=${result?.success !== false} total_ms=${Date.now() - requestStart} ` +
+        `count=${memoryCount} server_req=${formatLogValue(result?.request_id)} ` +
+        `message="${truncate(result?.message || "", 120)}"`
+      );
     }
 
     return result;
   } catch (error) {
     if (log?.warn) {
-      log.warn(`[Memory Plugin] Memory add failed: ${error.message}`);
+      log.warn(
+        `[OpenClaw Plugin][Add][END] req=${requestId} success=false ` +
+        `total_ms=${Date.now() - requestStart} error="${truncate(error.message || String(error), 160)}"`
+      );
     }
     throw error;
   }
@@ -1011,7 +1135,7 @@ export default {
         if (log?.info) log.info(`[Memory Plugin] Service started (v${PLUGIN_VERSION})`);
       },
       health: async () => {
-        const hasApiKey = !!(cfg.apiKey || process.env.HUMAN_LIKE_MEM_API_KEY);
+        const hasApiKey = !!cfg.apiKey;
         return {
           status: hasApiKey ? "ok" : "degraded",
           message: hasApiKey
@@ -1040,7 +1164,7 @@ export default {
         getMemorySearchManager: async () => ({
           manager: {
             async probeVectorAvailability() {
-              return { ok: !!(cfg.apiKey || process.env.HUMAN_LIKE_MEM_API_KEY) };
+              return { ok: !!cfg.apiKey };
             },
             status() {
               return {
@@ -1094,12 +1218,6 @@ export default {
 
         let prependContext = "";
 
-        const upgradeMsg = formatUpgradeNotification();
-        if (upgradeMsg) {
-          prependContext += upgradeMsg + "\n\n";
-          upgradeNotification = null;
-        }
-
         if (memories && memories.length > 0) {
           prependContext += formatMemoriesForContext(memories, { currentTime: Date.now() });
           if (log?.info) log.info(`[Memory Plugin] Injected ${memories.length} memories`);
@@ -1110,12 +1228,6 @@ export default {
         }
       } catch (error) {
         if (log?.warn) log.warn(`[Memory Plugin] Memory recall failed: ${error.message}`);
-
-        const upgradeMsg = formatUpgradeNotification();
-        if (upgradeMsg) {
-          upgradeNotification = null;
-          return { prependContext: upgradeMsg };
-        }
       }
     };
 
@@ -1192,7 +1304,7 @@ export default {
 
     // --- Agent tools registration ---
     if (typeof api.registerTool === "function") {
-      api.registerTool({
+      api.registerTool((toolCtx) => ({
         name: "memory_search",
         label: "Memory Search",
         description: "Search user's long-term memory for relevant past conversations, knowledge, and preferences. Use this when you need context about the user's history or when they reference past events.",
@@ -1209,7 +1321,7 @@ export default {
           const clampedLimit = Math.min(Math.max(1, limit), 20);
           if (log?.info) log.info(`[Memory Plugin] Tool memory_search: query="${truncate(query, 50)}", limit=${clampedLimit}`);
           try {
-            const memories = await retrieveMemory(query, { ...cfg, memoryLimitNumber: clampedLimit }, null, log);
+            const memories = await retrieveMemory(query, { ...cfg, memoryLimitNumber: clampedLimit }, toolCtx, log);
             if (!memories || memories.length === 0) {
               return { content: [{ type: "text", text: "No relevant memories found for this query." }] };
             }
@@ -1223,9 +1335,9 @@ export default {
             return { content: [{ type: "text", text: `Memory search failed: ${error.message}` }], isError: true };
           }
         },
-      });
+      }));
 
-      api.registerTool({
+      api.registerTool((toolCtx) => ({
         name: "memory_store",
         label: "Memory Store",
         description: "Actively save important information, user preferences, or key decisions to long-term memory. Use this when the user shares something worth remembering for future conversations.",
@@ -1245,7 +1357,7 @@ export default {
               { role: "user", content: `[Memory Store${category ? ` | ${category}` : ""}] ${content}` },
               { role: "assistant", content: `Noted and saved to memory: ${truncate(content, 100)}` },
             ];
-            const result = await addMemory(messages, cfg, null, log);
+            const result = await addMemory(messages, cfg, toolCtx, log);
             return {
               content: [{ type: "text", text: `Memory saved successfully: "${truncate(content, 80)}"` }],
               details: { stored: true, category: category || null },
@@ -1255,7 +1367,7 @@ export default {
             return { content: [{ type: "text", text: `Memory store failed: ${error.message}` }], isError: true };
           }
         },
-      });
+      }));
 
       if (log?.info) log.info(`[Memory Plugin] Registered 2 agent tools: memory_search, memory_store`);
     }
@@ -1270,29 +1382,32 @@ export default {
  * Build config from various sources
  */
 function buildConfig(config) {
-  const minTurnsToStore = config?.minTurnsToStore || parseInt(process.env.HUMAN_LIKE_MEM_MIN_TURNS) || 5;
-  const configuredUserId = config?.userId || process.env.HUMAN_LIKE_MEM_USER_ID;
+  const minTurnsToStore = config?.minTurnsToStore || 5;
+  const configuredUserId = config?.userId;
 
   return {
-    baseUrl: config?.baseUrl || process.env.HUMAN_LIKE_MEM_BASE_URL || "https://plugin.human-like.me",
-    apiKey: config?.apiKey || process.env.HUMAN_LIKE_MEM_API_KEY,
+    baseUrl: config?.baseUrl || "https://plugin.human-like.me",
+    apiKey: config?.apiKey,
     configuredUserId: configuredUserId,
     userId: configuredUserId || "openclaw-user",
-    agentId: config?.agentId || process.env.HUMAN_LIKE_MEM_AGENT_ID,
+    agentId: config?.agentId,
     recallEnabled: config?.recallEnabled !== false,
     addEnabled: config?.addEnabled !== false,
     recallGlobal: config?.recallGlobal !== false,
-    memoryLimitNumber: config?.memoryLimitNumber || parseInt(process.env.HUMAN_LIKE_MEM_LIMIT_NUMBER) || 6,
-    minScore: config?.minScore || parseFloat(process.env.HUMAN_LIKE_MEM_MIN_SCORE) || 0.1,
+    memoryLimitNumber: config?.memoryLimitNumber || 6,
+    minScore: resolveMinScore(config?.minScore, 0.0),
     tags: config?.tags || null,
     maxMessageChars: config?.maxMessageChars || 20000,
     asyncMode: config?.asyncMode !== false,
     timeoutMs: config?.timeoutMs || 5000,
     retries: config?.retries ?? 1,
-    scenario: config?.scenario || process.env.HUMAN_LIKE_MEM_SCENARIO || "openclaw-plugin",
+    scenario: config?.scenario || "openclaw-plugin",
+    stripPlatformMetadata: typeof config?.stripPlatformMetadata === "boolean"
+      ? config.stripPlatformMetadata
+      : true,
     // Session-based storage settings
     minTurnsToStore: minTurnsToStore,
     maxTurnsToStore: minTurnsToStore * 2,  // Always 2x of minTurnsToStore
-    sessionTimeoutMs: config?.sessionTimeoutMs || parseInt(process.env.HUMAN_LIKE_MEM_SESSION_TIMEOUT) || 5 * 60 * 1000,
+    sessionTimeoutMs: config?.sessionTimeoutMs || 5 * 60 * 1000,
   };
 }

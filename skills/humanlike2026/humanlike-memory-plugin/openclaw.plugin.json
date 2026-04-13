@@ -3,7 +3,7 @@
   "id": "human-like-mem",
   "name": "Human-Like Memory Plugin",
   "description": "Long-term memory plugin with automatic recall, storage, and agent-accessible memory tools.",
-  "version": "0.4.8",
+  "version": "1.0.1",
   "kind": "memory",
   "extensions": ["./index.js"],
   "requirements": {
@@ -31,10 +31,13 @@
   ],
   "configSchema": {
     "type": "object",
+    "additionalProperties": false,
+    "required": ["apiKey"],
     "properties": {
       "apiKey": {
         "type": "string",
-        "description": "API key (apply at https://plugin.human-like.me)"
+        "description": "API key (apply at https://plugin.human-like.me)",
+        "minLength": 1
       },
       "baseUrl": {
         "type": "string",
@@ -73,7 +76,7 @@
       "minScore": {
         "type": "number",
         "description": "Minimum relevance score",
-        "default": 0.1
+        "default": 0.0
       },
       "tags": {
         "type": "array",
@@ -95,7 +98,7 @@
       "stripPlatformMetadata": {
         "type": "boolean",
         "description": "Strip platform user IDs (Feishu/Discord) from metadata",
-        "default": false
+        "default": true
       }
     }
   },
@@ -103,37 +106,31 @@
     "apiKey": {
       "type": "string",
       "description": "API key (apply at https://plugin.human-like.me)",
-      "env": "HUMAN_LIKE_MEM_API_KEY",
       "required": true
     },
     "baseUrl": {
       "type": "string",
       "description": "Memory API base URL",
-      "default": "https://plugin.human-like.me",
-      "env": "HUMAN_LIKE_MEM_BASE_URL"
+      "default": "https://plugin.human-like.me"
     },
     "userId": {
       "type": "string",
       "description": "User identifier",
-      "default": "openclaw-user",
-      "env": "HUMAN_LIKE_MEM_USER_ID"
+      "default": "openclaw-user"
     },
     "agentId": {
       "type": "string",
-      "description": "Agent identifier",
-      "env": "HUMAN_LIKE_MEM_AGENT_ID"
+      "description": "Agent identifier"
     },
     "recallEnabled": {
       "type": "boolean",
       "description": "Enable memory recall",
-      "default": true,
-      "env": "HUMAN_LIKE_MEM_RECALL_ENABLED"
+      "default": true
     },
     "addEnabled": {
       "type": "boolean",
       "description": "Enable memory storage",
-      "default": true,
-      "env": "HUMAN_LIKE_MEM_ADD_ENABLED"
+      "default": true
     },
     "recallGlobal": {
       "type": "boolean",
@@ -143,14 +140,12 @@
     "memoryLimitNumber": {
       "type": "number",
       "description": "Maximum number of recalled memories",
-      "default": 6,
-      "env": "HUMAN_LIKE_MEM_LIMIT_NUMBER"
+      "default": 6
     },
     "minScore": {
       "type": "number",
       "description": "Minimum relevance score",
-      "default": 0.1,
-      "env": "HUMAN_LIKE_MEM_MIN_SCORE"
+      "default": 0.0
     },
     "tags": {
       "type": "array",
@@ -159,20 +154,17 @@
     "minTurnsToStore": {
       "type": "number",
       "description": "Store once every N turns (stores latest N*2 turns)",
-      "default": 5,
-      "env": "HUMAN_LIKE_MEM_MIN_TURNS"
+      "default": 5
     },
     "sessionTimeoutMs": {
       "type": "number",
       "description": "Session timeout in milliseconds before auto-flush",
-      "default": 300000,
-      "env": "HUMAN_LIKE_MEM_SESSION_TIMEOUT"
+      "default": 300000
     },
     "stripPlatformMetadata": {
       "type": "boolean",
       "description": "Strip platform user IDs (Feishu/Discord) from metadata",
-      "default": false,
-      "env": "HUMAN_LIKE_MEM_STRIP_PLATFORM_METADATA"
+      "default": true
     }
   },
   "uiHints": {
@@ -180,11 +172,12 @@
       "label": "API Key",
       "sensitive": true,
       "placeholder": "mp_xxxxxx",
-      "help": "Configure via: openclaw config set plugins.entries.human-like-mem.config.apiKey \"mp_xxx\". Get your key at https://plugin.human-like.me"
+      "help": "Required. Configure via: openclaw config set plugins.entries.human-like-mem.config.apiKey \"mp_xxx\". Get your key at https://plugin.human-like.me",
+      "tags": ["required", "credential"]
     },
     "baseUrl": {
       "label": "API Base URL",
-      "help": "Default: https://plugin.human-like.me. Override via HUMAN_LIKE_MEM_BASE_URL env var."
+      "help": "Default: https://plugin.human-like.me. Configure via plugins.entries.human-like-mem.config.baseUrl."
     }
   }
 }

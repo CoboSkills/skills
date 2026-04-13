@@ -7,10 +7,12 @@ This document provides complete transparency about what data this plugin collect
 **This plugin requires an API key:**
 
 ```bash
-export HUMAN_LIKE_MEM_API_KEY="mp_your_key_here"
+openclaw config set plugins.entries.human-like-mem.config.apiKey "mp_your_key_here"
 ```
 
 Get your API key at: https://plugin.human-like.me
+
+The runtime reads this value from OpenClaw plugin config only. It does not read `HUMAN_LIKE_MEM_*` environment variables or local secrets files.
 
 ## Data Transmission Details
 
@@ -31,7 +33,7 @@ Get your API key at: https://plugin.human-like.me
 ### What is NOT Sent
 
 - Local file contents
-- System environment variables (except HUMAN_LIKE_MEM_*)
+- System environment variables
 - IP address (visible to server but not stored by plugin)
 - Device information
 - Other application data
@@ -42,14 +44,11 @@ When messages contain platform-specific formats (e.g., `[Feishu ou_xxx]`), the p
 - **Cross-session memory continuity**: Same user on same platform gets consistent memories
 - **Multi-user conversations**: Track who said what in group chats
 
-**To disable platform ID extraction**, set:
-```json
-{
-  "stripPlatformMetadata": true
-}
-```
+**Platform ID extraction is disabled by default in v1.0.0+. To explicitly enable it**, run:
 
-(Note: This feature is planned for v0.5.0)
+```bash
+openclaw config set plugins.entries.human-like-mem.config.stripPlatformMetadata false
+```
 
 ## Default Behavior
 
@@ -59,21 +58,18 @@ When messages contain platform-specific formats (e.g., `[Feishu ou_xxx]`), the p
 | `addEnabled` | `true` | Auto-store conversations |
 | `minTurnsToStore` | `5` | Store every N turns |
 | `memoryLimitNumber` | `6` | Max memories to retrieve |
+| `stripPlatformMetadata` | `true` | Do not send Feishu/Discord platform IDs unless explicitly enabled |
 
 ### How to Disable Auto-Storage
 
 ```bash
-# Via environment variable
-export HUMAN_LIKE_MEM_ADD_ENABLED=false
-
-# Via OpenClaw config
 openclaw config set plugins.entries.human-like-mem.config.addEnabled false
 ```
 
 ### How to Disable Auto-Recall
 
 ```bash
-export HUMAN_LIKE_MEM_RECALL_ENABLED=false
+openclaw config set plugins.entries.human-like-mem.config.recallEnabled false
 ```
 
 ## Server-Side Data Handling
@@ -95,7 +91,7 @@ export HUMAN_LIKE_MEM_RECALL_ENABLED=false
 To verify what data is sent, enable debug logging:
 
 ```bash
-export HUMAN_LIKE_MEM_DEBUG=true
+openclaw logs | grep "Memory Plugin"
 ```
 
 Or inspect network traffic:

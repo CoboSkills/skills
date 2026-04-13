@@ -6,6 +6,8 @@ metadata:
   openclaw:
     emoji: "🧠"
     kind: plugin
+    requires:
+      config: ["plugins.entries.human-like-mem.config.apiKey"]
 ---
 
 # Human-Like Memory Plugin
@@ -18,6 +20,8 @@ Long-term memory plugin for OpenClaw. Gives your agent the ability to remember p
 - Automatic conversation storage after each response
 - Agent-callable tools: `memory_search` and `memory_store`
 - Registered as a first-class memory slot (`kind: "memory"`)
+- Runtime reads OpenClaw plugin config only
+- Privacy-preserving by default: platform metadata extraction is disabled unless explicitly enabled
 - Requires OpenClaw >= 2026.2.0
 
 ## Setup
@@ -68,6 +72,7 @@ All options via `openclaw config set plugins.entries.human-like-mem.config.<key>
 | `memoryLimitNumber` | number | `6` | Max memories to recall per turn |
 | `minScore` | number | `0.1` | Minimum relevance score (0-1) |
 | `minTurnsToStore` | number | `5` | Store after N conversation turns |
+| `stripPlatformMetadata` | boolean | `true` | Do not send Feishu/Discord platform IDs unless explicitly enabled |
 
 ## Agent Tools
 

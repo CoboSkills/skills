@@ -1,0 +1,11 @@
+{
+  "owner": "spzwin",
+  "slug": "my-skil-song-s",
+  "displayName": "我的技能",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775732820219,
+    "commit": null
+  },
+  "history": []
+}

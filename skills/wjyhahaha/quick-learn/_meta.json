@@ -3,9 +3,15 @@
   "slug": "quick-learn",
   "displayName": "Quick Learn",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775454102149,
-    "commit": "https://github.com/openclaw/skills/commit/1681770c59164997b126532df0c942a1f862c8b1"
+    "version": "2.5.0",
+    "publishedAt": 1775969527003,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775454102149,
+      "commit": "https://github.com/openclaw/skills/commit/1681770c59164997b126532df0c942a1f862c8b1"
+    }
+  ]
 }

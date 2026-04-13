@@ -3,9 +3,15 @@
   "slug": "compound-eng-code-review",
   "displayName": "code-review",
   "latest": {
-    "version": "2.53.0",
-    "publishedAt": 1775433114842,
-    "commit": "https://github.com/openclaw/skills/commit/777ff26c93850979d2bb71ee49b4bd99d11fb1a3"
+    "version": "2.55.1",
+    "publishedAt": 1776004149130,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.53.0",
+      "publishedAt": 1775433114842,
+      "commit": "https://github.com/openclaw/skills/commit/777ff26c93850979d2bb71ee49b4bd99d11fb1a3"
+    }
+  ]
 }

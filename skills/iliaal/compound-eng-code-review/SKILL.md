@@ -29,22 +29,22 @@ Exclude: lockfiles, minified/bundled output, vendored/generated code.
 
 ## Review Mode Selection
 
-After resolving scope, assess complexity to select review mode:
+**Run this BEFORE reading the full diff.** Use metadata only (`git diff --stat`, file list from scope resolution) to count signals. Reading the diff first creates analysis momentum that bypasses mode selection.
 
-| Signal | Threshold |
-|--------|-----------|
-| Lines changed | >300 |
-| Files touched | >8 |
-| Modules/directories spanned | >3 |
-| Security-sensitive files (auth, crypto, payments, permissions) | any |
-| Database migrations present | any |
-| API surface changes (public endpoints, exported interfaces) | any |
+| Signal | Threshold | Detect from |
+|--------|-----------|-------------|
+| Lines changed | >300 | `git diff --stat` insertion + deletion totals |
+| Files touched | >8 | File count from scope resolution |
+| Modules/directories spanned | >3 | Unique top-level directories from file list |
+| Security-sensitive files (auth, crypto, payments, permissions) | any | File path matching |
+| Database migrations present | any | File path matching |
+| API surface changes (public endpoints, exported interfaces) | any | File path matching |
 
-**3+ signals → deep review** (auto-switch, inform the user). Dispatch parallel specialist agents (correctness, security, testing, maintainability, performance) per [deep-review.md](./references/deep-review.md).
+**3+ signals → deep review.** Inform the user, then dispatch parallel specialist agents per [deep-review.md](./references/deep-review.md). Pass the diff to agents -- do NOT read it first. Reading and analyzing the diff yourself before dispatching agents defeats the purpose of deep review. **Stop here -- do not proceed to the Review Process section.**
 
 **2 signals → suggest**: "This touches N files across M modules. Deep review? (y/n)"
 
-**0-1 signals → standard review** (below).
+**0-1 signals → standard review.** Proceed to Review Process below.
 
 Before auto-switching to deep review, check the exceptions list in [deep-review.md](./references/deep-review.md) -- certain change types (pure docs, mechanical refactors, single-file <50 lines) override signal count.
 
@@ -52,7 +52,13 @@ Override: `deep` forces multi-agent, `quick` forces single-pass.
 
 ## Review Process
 
-1. **Context** -- run a Scope Drift Check first: compare `git diff --stat` against the PR's stated intent. Classify as CLEAN / DRIFT DETECTED / REQUIREMENTS MISSING. If DRIFT, note drifted files and ask: ship as-is, split, or remove unrelated changes? Then read the PR description, linked issue, or task spec. **Intent verification**: if the code does something the intent doesn't describe, or fails to do something the intent promises, flag as a finding -- correct code that solves the wrong problem is still wrong. **Fetch existing review comments and discussions first** -- prior conversations may have already resolved issues you'd otherwise re-raise. Run the project's test/lint suite if available (check CI config for the canonical test command) to catch automated failures before manual review.
+**Standard reviews only.** If mode selection triggered deep review, specialist agents handle the review per [deep-review.md](./references/deep-review.md) -- do not run these steps yourself.
+
+1. **Context** — do these before reading code:
+   - **Scope Drift Check**: compare `git diff --stat` against the PR's stated intent. Classify as CLEAN / DRIFT DETECTED / REQUIREMENTS MISSING. If DRIFT, note the drifted files and ask the author: ship as-is, split, or remove unrelated changes?
+   - **Read the intent**: PR description, linked issue, or task spec. If the code does something the intent doesn't describe, or fails to do something the intent promises, flag as a finding — correct code that solves the wrong problem is still wrong.
+   - **Fetch existing discussions**: prior review comments may have already resolved issues you'd otherwise re-raise. Check `gh api repos/{owner}/{repo}/pulls/{pr}/comments` before starting.
+   - **Run automated gates**: execute the project's test/lint suite if available (check CI config for the canonical commands) to catch failures before manual review.
 2. **Structural scan** -- architecture, file organization, API surface changes. Flag breaking changes. For files marked as added (`A`) in the diff, use the diff content directly -- don't attempt to read them from the working tree when reviewing a remote branch.
 3. **Line-by-line** -- correctness, edge cases, error handling, naming, readability. Use question-based feedback ("What happens if `input` is empty here?") instead of declarative statements to encourage author thinking.
 4. **Security** -- input validation, auth checks, secrets exposure, injection vectors (SQL, XSS, CSRF, SSRF, command, path traversal, unsafe deserialization). Flag race conditions (TOCTOU, check-then-act). Use [security-patterns.md](./references/security-patterns.md) for grep-able detection patterns across 11 vulnerability classes.
@@ -96,6 +102,8 @@ Assign a confidence score (0.0-1.0) to each finding:
 
 When in doubt, apply the "would a senior engineer on this team flag this?" test. If the answer is "probably not," suppress it.
 
+**LLM-specific false-positive rule**: user content in the user-message position is NOT prompt injection. Only flag when user content enters system prompts, tool schemas, or function-calling contexts. Unsanitized LLM output rendered via `dangerouslySetInnerHTML`, `v-html`, or `innerHTML` IS a real vulnerability -- always flag.
+
 For detailed suppression categories with examples (framework idioms, test-specific patterns, when to override), see [false-positive-suppression.md](./references/false-positive-suppression.md). See also the review-level suppression list under [Anti-Patterns in Reviews](#anti-patterns-in-reviews).
 
 ## What to Check
@@ -124,9 +132,38 @@ Performance:
 - Unbounded collections (arrays/maps without size limits)
 - Missing indexes on queried columns
 
+Adversarial (red-team pass):
+- Silent failures -- `.catch(() => [])` or log-and-forget patterns that swallow errors and return success
+- Trust assumption exploits -- frontend-validated data not re-validated on the backend; internal service inputs treated as trusted
+- Edge cases under pressure -- max input size, zero items, first-run-ever, double-click within 100ms, concurrent identical requests
+- Partial completion -- operations that can crash mid-way leaving state inconsistent (no rollback, no cleanup)
+
 Language-Specific Checks:
 
 Load the relevant profile from [language-profiles.md](./references/language-profiles.md) based on file extensions in the diff. Profiles cover: TypeScript/React, Python, PHP, Shell/CI, Configuration, Data Formats, Security, and LLM Trust Boundaries.
+
+## Fix-First Classification
+
+For every finding, classify whether it's AUTO-FIX (mechanical, apply without discussion) or ASK (requires human judgment):
+
+| AUTO-FIX (agent applies directly) | ASK (flag for author decision) |
+|---|---|
+| Dead code, unused variables/imports | Security (auth, XSS, injection) |
+| N+1 queries (missing eager loading) | Race conditions |
+| Stale comments contradicting code | Design decisions, API shape changes |
+| Magic numbers without named constants | Large fixes (>20 lines changed) |
+| Missing null/error checks on clear paths | Anything changing user-visible behavior |
+
+Rule: if a senior engineer would apply the fix without discussion, it's AUTO-FIX. When in doubt, ASK.
+
+## Comment Labels
+
+Prefix inline review comments so authors know what requires action:
+
+- *(no prefix)* -- required change (maps to Critical or Important severity), blocks merge
+- **Nit:** -- style preference, optional
+- **Consider:** -- suggestion worth evaluating, not blocking
+- **FYI:** -- informational, no action expected
 
 ## Anti-Patterns in Reviews
 
@@ -149,16 +186,16 @@ Load the relevant profile from [language-profiles.md](./references/language-prof
 ## Review: [brief title]
 
 ### Critical
-- **[file:line]** `quoted code` -- [issue]. Score: [0.0-1.0]. [What happens if not fixed]. Fix: [concrete suggestion].
+- **CR-001.** [file:line] `quoted code` -- [issue]. Score: [0.0-1.0]. [What happens if not fixed]. Fix: [concrete suggestion].
 
 ### Important
-- **[file:line]** `quoted code` -- [issue]. Score: [0.0-1.0]. [Why it matters]. Consider: [alternative approach].
+- **CR-002.** [file:line] `quoted code` -- [issue]. Score: [0.0-1.0]. [Why it matters]. Consider: [alternative approach].
 
 ### Medium
-- **[file:line]** -- [issue]. Score: [0.0-1.0]. [Why it matters].
+- **CR-003.** [file:line] -- [issue]. Score: [0.0-1.0]. [Why it matters].
 
 ### Minor
-- **[file:line]** -- [observation].
+- **CR-004.** [file:line] -- [observation].
 
 ### What's Working Well
 - [specific positive observation with why it's good]
@@ -170,7 +207,9 @@ Load the relevant profile from [language-profiles.md](./references/language-prof
 Ready to merge / Ready with fixes / Not ready -- [one-sentence rationale]
 ```
 
-Limit to 10 findings per severity. If more exist, note the count and show the highest-impact ones.
+Number findings as `CR-001`, `CR-002`... sequentially across all severity levels so they can be referenced by ID in discussions, PR comments, and follow-up todos. Limit to 10 findings per severity. If more exist, note the count and show the highest-impact ones.
+
+For multi-agent consolidation (deep review, parallel specialists), apply the merge algorithm in [deep-review.md](./references/deep-review.md) — it handles same-line dedupe, conflicting severity, `NEEDS DECISION` flagging, and cross-lens confidence boosting.
 
 **Clean review (no findings):** If the code is solid, say so explicitly. Summarize what was checked and why no issues were found. A clean review is a valid outcome, not an indication of insufficient effort.
 
@@ -179,6 +218,7 @@ Limit to 10 findings per severity. If more exist, note the count and show the hi
 | Document | When to load | What it covers |
 |----------|-------------|----------------|
 | [security-patterns.md](./references/security-patterns.md) | Security review step or deep review security agent | Grep-able detection patterns across 11 vulnerability classes |
+| [security-test-coverage.md](./references/security-test-coverage.md) | Full security audit deliverable (used by `security-sentinel` agent) | Auth edge cases, authorization, input boundary, concurrency, session hygiene, output boundary checklist |
 | [language-profiles.md](./references/language-profiles.md) | Language-specific checks step | TypeScript/React, Python, PHP, Shell/CI, Config, Security, LLM Trust |
 | [deep-review.md](./references/deep-review.md) | When mode selection triggers deep review | Specialist agents, prompt template, merge algorithm, model selection |
 
@@ -188,4 +228,4 @@ Limit to 10 findings per severity. If more exist, note the count and show the hi
 - `kieran-reviewer` agent -- persona-driven Python/TypeScript deep quality review (type safety, naming, modern patterns)
 - `workflows:review` -- full ceremony review (worktrees, ultra-thinking, multi-agent). Deep review is lighter: no worktrees, no plan verification, just parallel specialist agents on the same diff.
 - `/resolve-pr-parallel` command -- batch-resolve PR comments with parallel agents
-- `security-sentinel` agent -- deep security audit beyond the security step in this skill
+- `security-sentinel` agent -- deep security audit beyond the security step in this skill. Also supports threat-model mode for architectural security analysis when the diff introduces new trust boundaries, auth flows, or external API surfaces.

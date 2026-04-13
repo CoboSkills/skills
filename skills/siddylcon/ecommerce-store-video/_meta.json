@@ -1,11 +1,17 @@
 {
   "owner": "siddylcon",
   "slug": "ecommerce-store-video",
-  "displayName": "Ecommerce Store Video",
+  "displayName": "Dropshipping Video",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775089350604,
-    "commit": "https://github.com/openclaw/skills/commit/083d73541d6d9fe92c12c8c8b3f5d849026dd59a"
+    "version": "1.0.2",
+    "publishedAt": 1775616475028,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775089350604,
+      "commit": "https://github.com/openclaw/skills/commit/083d73541d6d9fe92c12c8c8b3f5d849026dd59a"
+    }
+  ]
 }

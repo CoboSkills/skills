@@ -3,9 +3,15 @@
   "slug": "harry-potter",
   "displayName": "Harry Potter",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775433217077,
-    "commit": "https://github.com/openclaw/skills/commit/4f5842b80623aad1c5b4d4aaeb3c613ca44396ab"
+    "version": "1.0.2",
+    "publishedAt": 1775634647495,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775433217077,
+      "commit": "https://github.com/openclaw/skills/commit/4f5842b80623aad1c5b4d4aaeb3c613ca44396ab"
+    }
+  ]
 }

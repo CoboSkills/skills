@@ -1,0 +1,11 @@
+{
+  "owner": "mirni",
+  "slug": "greenhelix-agent-kya-verification",
+  "displayName": "Know Your Agent (KYA) Implementation Playbook",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1776065253050,
+    "commit": null
+  },
+  "history": []
+}

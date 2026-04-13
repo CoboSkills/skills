@@ -3,11 +3,16 @@
   "slug": "compound-eng-linux-bash-scripting",
   "displayName": "linux-bash-scripting",
   "latest": {
-    "version": "2.53.2",
-    "publishedAt": 1775658012664,
-    "commit": "https://github.com/openclaw/skills/commit/8710e1e76c638310ad3fbe6e2accf041b2d59c61"
+    "version": "2.55.1",
+    "publishedAt": 1776004188776,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.53.2",
+      "publishedAt": 1775658012664,
+      "commit": "https://github.com/openclaw/skills/commit/8710e1e76c638310ad3fbe6e2accf041b2d59c61"
+    },
     {
       "version": "2.53.0",
       "publishedAt": 1775436867649,

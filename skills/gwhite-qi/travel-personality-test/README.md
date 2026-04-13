@@ -90,9 +90,9 @@ travel-personality-test/
 
 ---
 
-## 🔧 可选：集成 flyai
+## 🔧 集成 flyai
 
-本 skill 支持但不依赖 flyai。安装后可获取：
+本 skill **依赖 flyai** 获取实时推荐数据。安装后可获取：
 - 实时热门目的地数据
 - 机票/酒店价格查询
 - 搜索量趋势分析
@@ -100,6 +100,16 @@ travel-personality-test/
 ### 安装 flyai
 
 参考：https://github.com/alibaba-flyai/flyai-skill
+
+### 配置 API Key（如需）
+
+```bash
+export FLYAI_API_KEY="your_api_key"
+```
+
+### 兜底机制
+
+如果 flyai 调用失败（如配额用完），会自动使用 `cities.md` 中的参考数据作为兜底推荐。
 
 ---
 

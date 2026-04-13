@@ -3,7 +3,7 @@
 
 name: travel-personality-test
 display_name: 旅行人格测试
-version: 1.0.3
+version: 1.1.0
 description: 通过10道轻量题目发现你的旅行人格，获取实时目的地推荐，让每次出行都更懂自己
 author: junfan716-dot
 license: MIT
@@ -31,11 +31,12 @@ tags:
 category: lifestyle
 subcategory: travel
 
-# 依赖的 skills（可选）
+# 依赖的 skills（必需）
 dependencies:
   - name: flyai
-    required: false
-    description: 用于获取实时热门目的地和机票价格
+    required: true
+    description: 用于获取实时热门目的地、搜索趋势、机票和酒店价格数据
+    install_guide: https://github.com/alibaba-flyai/flyai-skill
 
 # 文件列表
 files:
@@ -138,7 +139,7 @@ notes: |
 
   - 触发词："旅行人格测试"、"测测我是什么旅行者"、"推荐旅行目的地"
   - flyai 调用时机：全部10题答完后才调用，答题过程中绝不调用
-  - 未安装 flyai 时：从 cities.md 智能匹配推荐，并友好提示安装
+  - flyai 为必需依赖：用于获取实时搜索热度、机票酒店价格等动态数据
 
   ## GitHub
 

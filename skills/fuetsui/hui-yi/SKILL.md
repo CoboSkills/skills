@@ -1,200 +1,288 @@
 ---
 name: hui-yi
 description: >
-  Manage a file-based cold-memory archive under memory/cold/. Use this skill when:
-  (1) cooling recent daily notes into long-term archival storage,
-  (2) recalling historical context that would materially improve the current answer,
-  (3) maintaining, merging, or pruning the cold-memory index.
-  Trigger on phrases like "do you remember", "how did we handle that", "archive this",
-  "cool this down", or any task where low-frequency historical context would noticeably
-  improve correctness or continuity. Do NOT use for fresh daily notes (→ memory/YYYY-MM-DD.md),
-  high-frequency user profile facts (→ MEMORY.md), tool/environment setup (→ TOOLS.md),
-  or recent lessons still being validated (→ .learnings/).
+  Trigger for cold-memory recall and archive work under memory/cold/. Strong triggers:
+  "do you remember", "what did we do before", "archive this", "cool this down",
+  "有记录吗", "之前怎么处理", older low-frequency context, historical continuity,
+  recall / resurfacing / cooling / rebuild / decay. Strong excludes: fresh daily notes
+  (→ memory/YYYY-MM-DD.md), high-frequency facts (→ MEMORY.md), tool/setup notes
+  (→ TOOLS.md), and fresh learnings still being validated (→ .learnings/).
 ---
 
-# Hui Yi — Cold Memory System
+# Hui Yi — Forgetting-aware Cold Memory
 
-Archive low-frequency, high-value knowledge. Recall it only when it materially helps.
+Archive low-frequency, high-value knowledge, then resurface it only when it is both relevant now and at risk of being forgotten.
 
-**Guiding principle:** archive less, but archive better.
+## What this skill manages
 
-## Memory layers
+Hui Yi manages the **cold** layer, not the whole memory stack.
 
-This skill operates on the **cold** layer. Know all three:
+Memory layers:
+- **Active**: current chat and current task
+- **Warm**: recent daily files and near-term context
+- **Cold**: durable low-frequency knowledge in `memory/cold/`
+- **Dormant**: archived items that should rarely surface unless strongly triggered
 
-- **Active** — current chat, current task, immediate working notes. Keep minimal.
-- **Warm** — recent daily files (`memory/YYYY-MM-DD.md`), active project notes, near-term context. Check this first for anything recent or ongoing. (High-frequency project context that persists across weeks belongs in `MEMORY.md`, not here.)
-- **Cold** — older but still valuable knowledge (`memory/cold/`). Stable facts, reusable lessons, historical decisions, durable background. This is what Hui Yi manages.
+Use Hui Yi for:
+- archiving reusable lessons, background, and stable historical context
+- recalling older context that would materially improve the current answer
+- cooling daily notes into cold memory
+- maintaining cold-memory quality, review timing, and retrieval metadata
 
-## Storage layout
+Do **not** use Hui Yi for:
+- today's transient notes → `memory/YYYY-MM-DD.md`
+- high-frequency project or personal facts → `MEMORY.md`
+- tool paths, setup quirks, machine notes → `TOOLS.md`
+- fresh mistakes or unvalidated lessons → `.learnings/`
+
+## Core model
+
+The unit is a **memory unit**, not a raw keyword.
+A memory unit can be a reusable lesson, decision, fact, troubleshooting result, or durable background note.
+
+Do not rank memories by word frequency alone.
+Use a blend of:
+- semantic relevance
+- forgetting risk
+- importance
+- cross-session reuse
+- recall feedback
+
+Working principle:
 
 ```text
-memory/
-├── cold/
-│   ├── index.md             # human-readable index (primary retrieval surface)
-│   ├── tags.json            # structured metadata for targeted lookup
-│   ├── retrieval-log.md     # tracks recall events for quality feedback
-│   ├── _template.md         # starter note template
-│   ├── <topic-slug>.md      # one note per topic (default namespace)
-│   └── <project>/           # optional: project-specific namespace
-│       └── <topic-slug>.md
-├── heartbeat-state.json     # maintenance timestamps and cold-memory stats
-scripts/
-├── search.py                # keyword search across index and tags
-├── rebuild.py               # regenerate index.md + tags.json from notes
-├── decay.py                 # auto-decay confidence by last_verified age
-└── cool.py                  # scan pending daily notes + update heartbeat
+Priority ≈
+  0.35 * CurrentRelevance
++ 0.25 * ForgettingRisk
++ 0.20 * Importance
++ 0.10 * CrossSessionReuse
++ 0.10 * StateBias
 ```
 
-### Multi-project namespaces (optional)
+## Memory metadata
 
-For users with multiple distinct projects, notes can be organized into subdirectories under `memory/cold/<project>/`. The global `index.md` and `tags.json` aggregate all namespaces. Helper scripts automatically scan subdirectories.
+Cold notes remain Markdown, but Hui Yi expects metadata like:
+- `Importance`: high | medium | low
+- `Memory state`: hot | warm | cold | dormant
+- `Last seen` — last time this note appeared in a conversation or task
+- `Last reviewed` — last time the note was explicitly reviewed for recall quality
+- `Next review` — scheduled date for the next spaced review
+- `Review cadence`
+  - `interval_days` — current review interval (starts at 1, grows with each success)
+  - `review_count`
+  - `review_success`
+  - `review_fail`
+- `Confidence` — reliability of the note's content (high | medium | low)
+- `Last verified` — last time the **content** was confirmed still accurate and current.
+  This is NOT updated during recall feedback; only update it when you re-verify the
+  underlying information against source of truth.
+- `Related tags`
 
-Use namespaces only when project isolation genuinely helps retrieval. Default: keep all notes flat in `memory/cold/`.
+States:
+- **hot**: recently reinforced, okay to inject when useful
+- **warm**: good prompted-recall candidate
+- **cold**: preserved, lower urgency
+- **dormant**: keep archived, surface only with a strong trigger
 
-## Cross-platform helper scripts
+## Recall rules
 
-Use the Python helpers when you want to automate mechanical file operations. They are intended to run on Linux, macOS, and Windows with a normal `python` installation.
+Prefer **active recall** over passive dumping.
+Good pattern:
+- “You previously touched on X. Want me to pull that thread back in?”
 
-| Script | Purpose | Usage |
-|---|---|---|
-| `scripts/search.py <keyword>` | Search index + tags by keyword | Retrieval when manual scan is insufficient |
-| `scripts/rebuild.py` | Regenerate index.md + tags.json from note files | Use after manual edits or when index drifts |
-| `scripts/decay.py [--dry-run]` | Auto-decay confidence by last_verified age | Run during monthly maintenance; preview with `--dry-run` |
-| `scripts/cool.py scan` | List daily notes pending cooling | Run at start of each cooling pass |
-| `scripts/cool.py done <reviewed> <archived> <merged>` | Update heartbeat cold-memory stats | Run after completing a cooling pass |
-| `scripts/cool.py status` | Show current cold-memory heartbeat state | Quick check anytime |
+Avoid:
+- long unsolicited note dumps
+- surfacing weakly related archive material
+- recalling based on one noisy keyword match
 
-If the helper scripts are unavailable, follow the same workflow manually. The skill must still work without automation.
+When retrieving:
+1. Check current conversation first.
+2. Check warm memory / `MEMORY.md` / `TOOLS.md` / `.learnings/` when appropriate.
+3. Use cold memory only when archival context would materially help.
+4. Open the fewest notes possible, ideally 1 and no more than 3.
+5. Summarize, do not paste raw notes unless asked.
+6. Log meaningful cold-memory retrievals in `memory/cold/retrieval-log.md`.
+
+## Requirements
+
+Python 3.10+ (`X | Y` union-type syntax used throughout the helper scripts).
 
 ## First-time setup
 
 If `memory/cold/` does not exist, bootstrap it:
 
 1. Create `memory/cold/` directory.
-2. Create an `index.md` that matches the flat format in `references/cold-memory-schema.md`.
-3. Create a `tags.json` that matches the schema in `references/cold-memory-schema.md`.
-4. Create `memory/cold/retrieval-log.md` with the retrieval log header shown in the schema reference.
-5. Extract the note template from `references/cold-memory-schema.md` and save it as `memory/cold/_template.md`. Do not copy the whole reference file.
-6. If `memory/heartbeat-state.json` does not exist, create it with an object that includes a top-level `coldMemory` section.
+2. Create `memory/cold/index.md` with header `# Cold Memory Index`.
+3. Create `memory/cold/tags.json`:
+   ```json
+   { "_meta": { "version": 4 }, "notes": [] }
+   ```
+4. Copy `references/note-template.md` → `memory/cold/_template.md`
+   (`cold-memory-schema.md` is the full schema reference; keep it separate from `_template.md`).
+5. Create `memory/cold/retrieval-log.md` — just the header line:
+   ```
+   # Retrieval Log
+   ```
+   The `review.py feedback` and `review.py session` commands append rows automatically.
+6. **Optional — timed recall scheduler:**
+   ```bash
+   cp references/schedule.example.json memory/cold/schedule.json
+   # then edit schedule.json: timezone, cron time, min_importance, etc.
+   ```
 
-## When to archive
-
-Archive ONLY if at least one condition is true:
-
-- The content will likely still matter after 30 days.
-- It contains a reusable lesson or workflow.
-- It would noticeably improve a future answer or decision.
-- The user explicitly asks to preserve it.
-
-IF none apply → do not archive.
-
-### Boundary check before archiving
-
-Before writing to `memory/cold/`, confirm the content does not belong elsewhere:
-
-| Content type | Correct destination |
-|---|---|
-| Today's task notes, status updates | `memory/YYYY-MM-DD.md` |
-| High-frequency personal/project context | `MEMORY.md` |
-| Machine paths, tool setup, device quirks | `TOOLS.md` |
-| Fresh mistakes, corrections, raw lessons | `.learnings/` |
-| Workflow rules, agent behavior specs | `AGENTS.md` / `SOUL.md` |
-| Secrets, tokens, API keys, passwords | **never store anywhere in cold memory** |
-
-Only after ruling out the above → archive into `memory/cold/`.
-
-## Memory types
-
-Classify each note before writing:
-
-- **fact** — short, stable, directly reusable (a path, URL, naming convention, standing preference)
-- **experience** — lessons from doing something (troubleshooting result, decision rationale, workflow that worked). Often the most valuable type.
-- **background** — larger context for future synthesis (project history, research summary, long-term context for a system or person)
-
-## Note structure
-
-Keep notes layered so recall is cheap — put the shortest useful summary at the top.
-
-→ `references/cold-memory-schema.md` — full template with field definitions and file formats
-→ `references/examples.md` — complete examples for all three types, including matching index and tags.json entries
-
-## Recall workflow
-
-At each step, stop if found; otherwise continue to the next.
+## Storage layout
 
 ```text
-1. Current conversation has the answer?       → done.
-2. Topic recent? → check warm memory.         → done / continue.
-3. Check MEMORY.md.                           → done / continue.
-4. Tools/env? → TOOLS.md. Lesson? → .learnings/. → done / continue.
-5. Would cold archival context materially help?
-   NO  → answer directly.
-   YES → cold memory retrieval ↓
+memory/
+├── cold/
+│   ├── index.md
+│   ├── tags.json
+│   ├── retrieval-log.md
+│   ├── _template.md
+│   ├── schedule.json        ← optional, copy from references/schedule.example.json
+│   └── <topic>.md
+├── heartbeat-state.json
+
+skills/hui-yi/scripts/
+├── common.py    ← shared path / parse / JSON helpers
+├── create.py    ← new note with Ebbinghaus defaults
+├── validate.py  ← schema validation
+├── search.py
+├── rebuild.py
+├── decay.py
+├── cool.py
+├── review.py
+├── scheduler.py
+└── smoke_test.py
 ```
 
-### Cold memory retrieval
+## Script roles
 
-`index.md` is the **primary retrieval surface**. `tags.json` is **secondary**.
+- `create.py --title "..."`: create a new note with Ebbinghaus defaults (`interval_days: 1`, `next_review: tomorrow`)
+- `validate.py`: check all notes against the schema; cross-validate tags.json file references
+- `search.py <query>`: search cold-memory metadata by keyword/query
+- `search.py <query> --full-text`: also search note file bodies (not just metadata)
+- `rebuild.py`: rebuild `index.md` and `tags.json` from note files
+- `decay.py [--rebuild]`: decay stale notes; `--rebuild` syncs tags.json in one step
+- `cool.py`: scan daily notes and update heartbeat cold-memory stats
+- `review.py due`: list notes due for review
+- `review.py session`: **interactive batch review** — presents each due note's TL;DR, collects y/n/s/q, applies Ebbinghaus intervals, handles graduation
+- `review.py resurface --query "..."`: rank resurfacing candidates using a short topic query
+- `review.py resurface --context-file <file>` / `--stdin`: rank resurfacing candidates using richer context
+- `review.py feedback <note>`: single-note feedback; `<note>` accepts slug, title, or keywords
+- `scheduler.py`: timed-recall selector driven by schedule config with cooldown, dedupe, and quiet-hours filters
+- `smoke_test.py`: isolated end-to-end smoke test that bootstraps a temp cold-memory root and runs the core scripts in sequence
 
-1. Scan `index.md` for matching entries by topic, tags, or triggers.
-2. Match found → open the note, done.
-3. No match and the archive is large enough to justify automation → use `python scripts/search.py <keyword>` if available.
-4. Open only the most relevant note(s) — prefer 1, cap at 3.
-5. Read TL;DR and Decisions / lessons first. Load Details only if needed.
-6. Synthesize for the current task. Do not dump raw notes.
-7. If the note was stale or poorly structured, update it after answering.
-8. Log the retrieval in `memory/cold/retrieval-log.md`.
+### Scheduler setup
 
-### Confidence-based retrieval
+`scheduler.py` reads `memory/cold/schedule.json`. To enable it:
 
-- **high** — use directly as reliable context.
-- **medium** — use with a caveat that it is older or not recently re-verified.
-- **low** — mention only if no better source exists; suggest re-verification.
+```bash
+cp references/schedule.example.json memory/cold/schedule.json
+# then edit memory/cold/schedule.json to match your preferred schedule and timezone
+```
 
-## Archiving (cooling)
+The example config runs a daily evening review at 21:00, surfaces one high-importance note, and applies quiet hours from 22:30 to 08:00.
 
-Start with `python scripts/cool.py scan` if the helper exists. Then: strip noise, route each item to the correct file using the boundary table above, archive cold-worthy content by merging into existing notes or creating new ones, and keep `index.md` plus `tags.json` in sync. Finish with `python scripts/cool.py done <reviewed> <archived> <merged>` if using automation.
+Important:
+- `--schedule-id` means “run this schedule's filters now”, not “force a candidate for preview”
+- `--preview` is the explicit debug mode. It bypasses due, importance, allowed_states, cooldown, and relevance-required gating so you can inspect candidate ranking for that schedule
 
-**Frequency:** weekly, or when 5+ daily notes have accumulated since the last pass.
+## Review cadence
 
-→ `references/heartbeat-cooling-playbook.md` — full 4-pass cooling workflow
+Default ladder for notes that merit reinforcement:
+- creation
+- +1 day
+- +3 days
+- +7 days
+- +14 days
+- +30 days
 
-## Maintenance and pruning
+After that:
+- helpful recall → extend interval
+- unhelpful recall → shorten interval or cool further
+- high-importance notes should degrade more slowly than low-importance notes
 
-Periodically (monthly or when index exceeds 30 entries):
+## Archiving rules
 
-1. Preview confidence decay with `python scripts/decay.py --dry-run` if the helper exists.
-2. Merge overlapping notes, remove stale entries, strengthen triggers/tags.
-3. Review `retrieval-log.md`: notes never recalled → removal candidate; unmatched queries → new note or better triggers; recalled but unhelpful → rewrite candidate.
-4. Rebuild or resync index metadata with `python scripts/rebuild.py` only if the helper exists and the archive format matches the current schema.
+Archive only if at least one is true:
+- it will still matter after 30 days
+- it captures a reusable lesson or workflow
+- it would materially improve a future answer or decision
+- the user explicitly wants it preserved
+
+Before archiving, route elsewhere if it belongs in:
+- `memory/YYYY-MM-DD.md`
+- `MEMORY.md`
+- `TOOLS.md`
+- `.learnings/`
+- `AGENTS.md` / `SOUL.md`
+
+Never store secrets, tokens, or passwords in cold memory.
+
+## Maintenance rules
+
+During maintenance:
+- merge overlapping notes
+- sharpen summaries, triggers, and semantic context
+- demote stale or noisy notes
+- review `retrieval-log.md` for:
+  - notes never recalled
+  - unmatched queries
+  - unhelpful recalls
+  - repeatedly useful recalls
 
 Favor a smaller, sharper archive over a large fuzzy one.
 
 ## Error handling
 
-- IF `memory/cold/` does not exist → run first-time setup.
-- IF `index.md` missing or malformed → rebuild it manually or with `python scripts/rebuild.py`.
-- IF `tags.json` missing or malformed → rebuild it manually or with `python scripts/rebuild.py`.
-- IF `heartbeat-state.json` missing → create it with a top-level `coldMemory` object, not a conflicting standalone schema.
-- IF indexed note file does not exist → remove the dangling entry and update the index / tags.
-- IF `retrieval-log.md` missing → recreate it with the standard header row.
-- IF unsure where content belongs → ask the user.
+- missing `memory/cold/` → bootstrap it
+- missing or malformed `index.md` / `tags.json` → rebuild with `rebuild.py`
+- missing `retrieval-log.md` → recreate standard header
+- missing `heartbeat-state.json` → create with top-level `coldMemory`
+- dangling note path in metadata → repair index / tags
+- noisy resurfacing → tighten thresholds before adding more notes
+- unsure where content belongs → ask the user
 
-## Output behavior
+## Development sanity check
 
-1. Answer the current question first.
-2. Mention recalled context only if it adds value — summarize, do not paste.
-3. Show raw archive contents only if the user explicitly asks.
+Before shipping script changes, run:
+
+```bash
+python3 skills/hui-yi/scripts/smoke_test.py
+```
+
+This boots an isolated temporary cold-memory tree and exercises create, validate, search, resurface, feedback, decay, cool, and scheduler.
 
 ## References
 
-Read **only when performing the specified action**:
+Read only when needed:
+- `references/cold-memory-schema.md` → note/index/tags structure
+- `references/examples.md` → concrete note examples
+- `references/heartbeat-cooling-playbook.md` → cooling workflow
+- `references/integration-patterns.md` → trigger modes, heartbeat/cron integration, scheduler boundary, preview vs normal mode
 
-| File | Read when |
-|---|---|
-| `references/cold-memory-schema.md` | Creating or modifying note/index/tags structure |
-| `references/examples.md` | Need a concrete example of any note type or index/tags format |
-| `references/heartbeat-cooling-playbook.md` | Executing a scheduled cooling or maintenance pass |
+Core rule:
 
-Helper scripts are optional. Prefer the Python versions listed above when automation is useful and available.
+**archive less, but archive better. recall less, but recall at the right time.**
+
+## Bridge (桥接层)
+
+`skills/hui-yi/bridge/bridge.py` 是一个轻量桥接层，用于在调度 (`scheduler.py`) 与实际投递之间完成筛选、去重、频控等策略。默认配置位于 `skills/hui-yi/bridge/config.example.json`，其中已设置 `statePath`、`outputPath` 指向 bridge 目录。
+
+### 关键功能
+- **统一配置**：`config.example.json` 包含 `deliveryPolicy`（`maxCandidates`、`minScore`、`globalCooldownHours`、`perScheduleCooldownHours`、`maxDeliveriesPerDay`、`quietHours` 等）。
+- **投递模式**：`logOnly`（默认，仅记录返回 JSON），`stdout`（打印），`file`（写入 `deliveries.log`），`message`（占位，后续可接 OpenClaw 消息工具）。
+- **dry‑run / preview**：`--dry-run` 或 `dryRun:true` 只输出结果，不修改状态或投递。
+- **状态持久化**：`bridge-state.json` 记录上一次运行时间、已投递记录，以实现去重与频控。
+
+### 使用示例
+```bash
+# 预览候选（不投递）
+python3 skills/hui-yi/bridge/bridge.py --dry-run
+
+# 正式投递（默认 logOnly）
+python3 skills/hui-yi/bridge/bridge.py
+```
+
+如需实际向用户发送消息，请将 `delivery.mode` 改为 `message` 并在后续集成中使用 OpenClaw `message` API。

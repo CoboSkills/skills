@@ -1,13 +1,18 @@
 {
   "owner": "fuetsui",
   "slug": "hui-yi",
-  "displayName": "Hui Yi",
+  "displayName": "Hui‑Yi – 冷记忆管理",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1775276755894,
-    "commit": "https://github.com/openclaw/skills/commit/7597a1628e6cc786632a138dcb3491d86c88a750"
+    "version": "1.1.2",
+    "publishedAt": 1775639817805,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1775276755894,
+      "commit": "https://github.com/openclaw/skills/commit/7597a1628e6cc786632a138dcb3491d86c88a750"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1775165221017,

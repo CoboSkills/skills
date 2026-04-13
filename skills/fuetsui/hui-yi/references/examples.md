@@ -1,39 +1,57 @@
 # Cold Memory Examples
 
-Read this file when you need a concrete reference for creating notes, index entries, or tags.json entries.
+用在：需要快速参考一个合格 note 长什么样。
 
-## Example 1 — Experience note (full triple)
+---
 
-### The note (`memory/cold/postgres-migration.md`)
+## Example 1 — experience
 
 ```markdown
 # Migrating Postgres with zero downtime
 
 ## TL;DR
-- Use logical replication, not pg_dump, for zero-downtime migration.
-- Cutover window is ~2 minutes if sequences are pre-synced.
+- 用 logical replication，不用 pg_dump
+- cutover 可压到约 2 分钟
 
 ## Memory type
 - experience
 
+## Importance
+- high
+
 ## Semantic context
-If someone is planning a production database migration and needs to minimize downtime,
-this note explains why logical replication beats pg_dump and covers the key steps for a
-smooth cutover.
+如果有人在做生产库迁移并且想最小化停机，这条 note 解释为什么 logical replication 更合适。
 
 ## Triggers
 - postgres migration
-- zero downtime database move
-- logical replication cutover
+- logical replication
 
 ## Use this when
-- Planning a production database migration
-- Evaluating pg_dump vs logical replication tradeoffs
+- 规划生产数据库迁移
+- 对比 pg_dump 和 replication
 
 ## Decisions / lessons
-- DO: pre-sync sequences 1 hour before cutover
-- DO: run a dry-run cutover on staging first
-- AVOID: relying on pg_dump for databases > 50GB in production
+- DO: 提前同步 sequences
+- DO: 先在 staging 演练
+- AVOID: 对大库直接用 pg_dump 做零停机迁移
+
+## Memory state
+- warm
+
+## Review cadence
+- interval_days: 7
+- review_count: 2
+- review_success: 2
+- review_fail: 0
+
+## Last seen
+- 2025-03-15
+
+## Last reviewed
+- 2025-03-15
+
+## Next review
+- 2025-03-22
 
 ## Confidence
 - high
@@ -47,67 +65,56 @@ smooth cutover.
 - devops
 ```
 
-### The index entry (`memory/cold/index.md`)
+---
 
-```markdown
-- `postgres-migration.md` — Zero-downtime Postgres migration via logical replication
-  - type: experience
-  - tags: postgres, migration, devops
-  - triggers: postgres migration, zero downtime database move, logical replication cutover
-  - read when: planning production DB migration; evaluating pg_dump vs logical replication
-  - confidence: high
-  - updated: 2025-03-15
-```
-
-### The tags.json entry
-
-```json
-{
-  "title": "Migrating Postgres with zero downtime",
-  "path": "memory/cold/postgres-migration.md",
-  "type": "experience",
-  "summary": "Use logical replication for zero-downtime Postgres migration; pre-sync sequences before cutover.",
-  "semantic_context": "If someone is planning a production database migration and needs to minimize downtime, this note explains why logical replication beats pg_dump and covers the key steps for a smooth cutover.",
-  "tags": ["postgres", "migration", "devops"],
-  "triggers": ["postgres migration", "zero downtime database move", "logical replication cutover"],
-  "scenarios": ["planning production DB migration", "evaluating pg_dump vs logical replication"],
-  "confidence": "high",
-  "last_verified": "2025-03-15",
-  "updated": "2025-03-15"
-}
-```
-
-## Example 2 — Fact note (full triple)
-
-### The note (`memory/cold/api-rate-limits.md`)
+## Example 2 — fact
 
 ```markdown
 # Internal API rate limits
 
 ## TL;DR
-- Standing rate limits for payment and user service APIs.
-- Check this before designing batch jobs or load tests.
+- 支付和用户服务的固定速率限制
+- 设计批任务前先看这条
 
 ## Memory type
 - fact
 
+## Importance
+- medium
+
 ## Semantic context
-If someone is designing a batch job, load test, or integration that hits internal APIs,
-this note has the standing rate limits to prevent 429 errors.
+如果有人在设计 batch job、load test 或排查 429，这条 note 给出稳定的 rate limit 信息。
 
 ## Triggers
 - rate limit
-- API throttle
 - 429 error
 
 ## Use this when
-- Designing a batch job that calls internal APIs
-- Debugging 429 errors in production
+- 设计批量请求
+- 排查 429
 
 ## Key facts
-- Payment API: 500 req/s per client, burst to 800
-- User service: 2000 req/s, no burst allowance
-- Auth service: 100 req/s, strict
+- Payment API: 500 req/s
+- User service: 2000 req/s
+- Auth service: 100 req/s
+
+## Memory state
+- cold
+
+## Review cadence
+- interval_days: 30
+- review_count: 1
+- review_success: 1
+- review_fail: 0
+
+## Last seen
+- 2025-02-20
+
+## Last reviewed
+- 2025-02-20
+
+## Next review
+- 2025-03-22
 
 ## Confidence
 - medium
@@ -121,71 +128,37 @@ this note has the standing rate limits to prevent 429 errors.
 - infrastructure
 ```
 
-### The index entry
+---
 
-```markdown
-- `api-rate-limits.md` — Standing rate limit values for internal APIs
-  - type: fact
-  - tags: api, rate-limit, infrastructure
-  - triggers: rate limit, API throttle, 429 error
-  - read when: designing batch jobs against internal APIs; debugging 429 errors
-  - confidence: medium
-  - updated: 2025-02-20
-```
-
-### The tags.json entry
-
-```json
-{
-  "title": "Internal API rate limits",
-  "path": "memory/cold/api-rate-limits.md",
-  "type": "fact",
-  "summary": "Standing rate limits for payment and user service APIs.",
-  "semantic_context": "If someone is designing a batch job, load test, or integration that hits internal APIs, this note has the standing rate limits to prevent 429 errors.",
-  "tags": ["api", "rate-limit", "infrastructure"],
-  "triggers": ["rate limit", "API throttle", "429 error"],
-  "scenarios": ["designing batch jobs against internal APIs", "debugging 429 errors"],
-  "confidence": "medium",
-  "last_verified": "2025-02-20",
-  "updated": "2025-02-20"
-}
-```
-
-## Example 3 — Background note (skeleton)
+## Example 3 — background
 
 ```markdown
 # Project Atlas — architecture history
 
 ## TL;DR
-- Atlas started as a monolith (2022), split into 4 services (2023), consolidated auth into a shared gateway (2024).
-- Current pain point: service-to-service latency after the split.
+- Atlas 从 monolith 演进到 4 个服务
+- 当前主要痛点是服务间延迟
 
 ## Memory type
 - background
 
+## Importance
+- high
+
 ## Semantic context
-If someone is making architecture decisions for Project Atlas, onboarding a new team
-member, or evaluating whether to merge services, this note provides the full history
-of how the system evolved and the rationale behind each major decision.
+如果有人在做 Atlas 架构决策、onboarding、或者考虑重新合并服务，这条 note 提供历史背景和决策理由。
 
 ## Triggers
 - atlas architecture
-- project atlas history
 - service split decision
 
 ## Use this when
-- Making new architecture decisions for Atlas
-- Onboarding someone to Atlas context
-- Evaluating whether to merge services back
+- 做新架构决策
+- onboarding
+- 评估是否合并服务
 
-## Key facts
-- 4 services: user, billing, content, auth-gateway
-- Auth gateway handles all cross-service tokens since 2024-Q2
-- Latency budget: 200ms p99 end-to-end
-
-## Decisions / lessons
-- DO: check latency dashboard before proposing new service boundaries
-- AVOID: adding a 5th service without first reducing current inter-service calls
+## Memory state
+- warm
 
 ## Confidence
 - high
@@ -197,17 +170,58 @@ of how the system evolved and the rationale behind each major decision.
 - atlas
 - architecture
 - microservices
-
-## Details
-[Extended project history, migration timeline, and stakeholder context would go here.]
 ```
 
-## Key differences by type
+---
 
-| Aspect | fact | experience | background |
-|---|---|---|---|
-| Typical length | 10–20 lines | 20–35 lines | 30–60+ lines |
-| Key facts section | primary content | optional | usually present |
-| Decisions / lessons | rarely needed | primary content | often present |
-| Details section | omit | optional | expected |
-| Update frequency | low (stable data) | low (lessons don't change) | medium (context evolves) |
+## Example 4 — dormant
+
+```markdown
+# Legacy vendor PDF export workaround
+
+## TL;DR
+- 老供应商导出链路的历史 workaround
+- 仅罕见支持场景再看
+
+## Memory type
+- experience
+
+## Importance
+- low
+
+## Semantic context
+如果有人在处理极少见的旧导出链路问题，这条 note 还能用；平时不该主动浮出来。
+
+## Triggers
+- vendor pdf export legacy
+
+## Use this when
+- 处理历史遗留支持问题
+
+## Memory state
+- dormant
+
+## Confidence
+- low
+
+## Last verified
+- 2025-01-15
+
+## Related tags
+- legacy
+- workaround
+- vendor
+```
+
+---
+
+## 快速判断
+
+- `fact`：短、稳、直接可复用
+- `experience`：最值钱，重点写 lesson
+- `background`：给未来做综合判断
+- `dormant`：保留，但别乱提醒
+
+一句话：
+
+**好 note 不是写得多，而是以后真能被准时想起来。**

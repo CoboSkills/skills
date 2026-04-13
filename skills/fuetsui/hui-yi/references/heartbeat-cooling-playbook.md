@@ -1,86 +1,119 @@
 # Heartbeat Cooling Playbook
 
-Read this file when executing a scheduled cooling pass or heartbeat maintenance.
+用在：定期 cooling、heartbeat 维护、整理 daily notes。
 
-## When to run cooling
+---
 
-- **Default cadence:** once per week, or when 5+ daily notes have accumulated since the last pass.
-- **Check:** read `memory/heartbeat-state.json` and inspect the `coldMemory` section for the last scan / archive timestamps.
-- **Ad hoc:** the user explicitly asks to archive, cool, or clean up notes.
+## 目标
 
-## Pre-flight
+Cooling 不只是“归档”，还要顺手决定：
+- 什么值得进 cold memory
+- 什么只是普通记录
+- 什么未来值得 resurfacing
 
-1. Run `python scripts/cool.py scan` if the helper is available.
-2. The helper uses `coldMemory.lastArchive` to show only daily notes newer than the last archive pass.
-3. If no helper is available, manually inspect recent `memory/YYYY-MM-DD.md` files.
-4. If no new daily notes exist, stop.
+---
 
-## Step-by-step cooling process
+## 什么时候跑
 
-### Pass 1 — Scan and triage
+- 默认：每周一次
+- 或者：积累了 5+ 条 daily notes
+- 或者：用户明确要求 archive / cool / cleanup
 
-For each daily note since the last cooling:
+先看：
+- `memory/heartbeat-state.json`
+- `coldMemory.lastArchive`
 
-1. Read the note.
-2. For each piece of content, ask: is this low-frequency and high-value?
-   - NO → skip (one-off status, transient chatter, speculative notes)
-   - YES → proceed to routing ↓
+---
 
-### Pass 2 — Route to the correct destination
+## 预检查
 
-For each high-value item, determine where it belongs:
+如果 helper 可用，先跑：
 
-| If the content is… | Route to |
+```bash
+python3 skills/hui-yi/scripts/cool.py scan
+```
+
+没有 helper 就手工看最近 `memory/YYYY-MM-DD*.md`。
+
+---
+
+## 四步流程
+
+### Pass 1：筛选
+
+逐条看 recent daily notes，问三件事：
+
+1. 这是低频高价值吗？
+2. 30 天后还值得留吗？
+3. 它是一个 memory unit 吗，而不是一个零散词或临时碎片？
+
+都满足再继续。
+
+### Pass 2：路由
+
+按类型放对地方：
+
+| 内容 | 去哪 |
 |---|---|
-| A high-frequency personal/project fact | `MEMORY.md` |
-| A machine path, tool quirk, device name | `TOOLS.md` |
-| A fresh mistake or correction still being validated | `.learnings/` |
-| A workflow rule or agent behavior spec | `AGENTS.md` / `SOUL.md` |
-| Low-frequency archival knowledge that stays useful | `memory/cold/` ← proceed to Pass 3 |
+| 高频背景 | `MEMORY.md` |
+| 工具/路径/环境坑 | `TOOLS.md` |
+| 新错误、新纠正 | `.learnings/` |
+| 工作规则/行为规则 | `AGENTS.md` / `SOUL.md` |
+| 低频长期知识 | `memory/cold/` |
 
-Write routed content to the correct file immediately. Do not batch.
+### Pass 3：写 cold note
 
-### Pass 3 — Archive into cold memory
+1. 先查 `index.md` 是否已有同主题 note
+2. 有就 merge，没有就新建
+3. 压缩噪音，保留：
+   - stable facts
+   - lessons
+   - rationale
+   - decision context
+4. 设好：
+   - importance
+   - state
+   - last_seen
+   - next_review（必要时）
 
-For each item routed to cold memory:
+默认建议：
+- 重要且近期可能复用 → `warm`
+- 稳定参考资料 → `cold`
+- 很少用但不能丢 → `dormant`
 
-1. **Check for existing notes.** Search `memory/cold/index.md` for a note on the same topic.
-   - EXISTS → open the note, merge the new content in. Update TL;DR, Decisions / lessons, Last verified, and Confidence as needed.
-   - DOES NOT EXIST → create a new note from `memory/cold/_template.md`.
+### Pass 4：轻维护
 
-2. **Write the note.** Follow the note structure from `references/cold-memory-schema.md`.
-   - Strip noise: remove one-off context, transient references, conversation fragments.
-   - Compress: the cold note should be shorter and more reusable than the original.
-   - Preserve: lessons, rationale, stable facts, and decision context.
+如果有时间，再做：
+- merge 重复 note
+- 降低 stale / noisy note 的权重
+- 看 `retrieval-log.md`
+  - 从没被召回的 note
+  - 常无匹配的 query
+  - 常被召回但没用的 note
+  - 常被证明有用的 note
 
-3. **Update index.md.** Add or update the entry. Keep entries sorted by most-recently-updated first.
+---
 
-4. **Update tags.json.** Add or update the corresponding object. Ensure path, tags, triggers, scenarios, and confidence are current.
+## 收尾
 
-### Pass 4 — Light maintenance (optional)
+1. `python3 skills/hui-yi/scripts/rebuild.py`
+   ⚠️  **必须跑**：`decay.py` 只修改 `.md` 文件，不更新 `tags.json` / `index.md`。
+   如果这轮跑过 `decay.py`，rebuild 不能省略；或改用 `decay.py --rebuild` 合并两步。
+2. `python3 skills/hui-yi/scripts/cool.py done <reviewed> <archived> <merged>`
+3. 更新 heartbeat 状态
+4. 除非用户问，不要主动汇报一大堆冷却结果
 
-If you have time or the index is getting large:
+---
 
-- Scan for duplicate or overlapping notes → merge them.
-- Check for stale entries (last_verified > 90 days) → flag for review or lower confidence.
-- Remove dangling index entries where the note file no longer exists.
-- Tighten summaries and triggers based on actual retrieval patterns.
-- Review `memory/cold/retrieval-log.md`:
-  - Notes never recalled → candidate for removal or better triggers.
-  - Queries with no match → candidate for a new note.
-  - Notes recalled but marked unhelpful → candidate for rewrite.
+## 不要做的事
 
-## Post-cooling
+- 不要把整个 cold archive 全读一遍
+- 不要把当天临时状态塞进 cold memory
+- 不要创建大量近似 note
+- 不要存 secrets
+- 不要因为词频高就把内容当成长期记忆
+- 不要编造过于精确的 review 数据
 
-1. If using automation, run `python scripts/cool.py done <notes_reviewed> <notes_archived> <notes_merged>`.
-2. Update the `coldMemory` section of `memory/heartbeat-state.json` with latest timestamps and a short summary.
-3. For monthly maintenance, optionally run `python scripts/decay.py --dry-run` first, then `python scripts/decay.py`, then `python scripts/rebuild.py`.
-4. Do NOT announce cooling results to the user unless asked.
+一句话：
 
-## What NOT to do during cooling
-
-- Do not read the entire cold archive. Only open notes you are actively merging into.
-- Do not surface old notes to the user without a clear trigger.
-- Do not archive content that fails the 30-day test.
-- Do not create near-duplicate notes. Always check index first.
-- Do not store secrets, tokens, or auth material.
+**cooling 的目标不是多存，而是把以后真正可能有用的东西存准。**

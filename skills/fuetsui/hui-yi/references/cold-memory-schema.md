@@ -1,46 +1,57 @@
 # Cold Memory Schema Reference
 
-Read this file when creating or modifying notes, index entries, tags.json structure, or retrieval-log format.
+用在：创建或修改 cold note、`index.md`、`tags.json`、`retrieval-log.md`。
 
-## Note template
+目标只有两个：
+1. note 对人类可读
+2. metadata 对检索和回忆调度有用
 
-Use this as `memory/cold/_template.md`:
+不要围着高频词打转，核心单位是 **memory unit**。
+
+---
+
+## Note 最小模板
 
 ```markdown
 # [Topic title]
 
 ## TL;DR
-- What this note is
-- When it matters
-- Key conclusion or takeaway
-
-## Why this matters
-1–3 lines explaining the value of preserving this knowledge.
+- 这条 note 是什么
+- 什么时候有用
+- 关键结论
 
 ## Memory type
 - fact | experience | background
 
+## Importance
+- high | medium | low
+
 ## Semantic context
-A 1–2 sentence natural language description of what this note is about and when it
-would be useful. Write this as if answering: "If someone were working on ___, this
-note would help because ___." This field enables fuzzy matching when exact keyword
-triggers miss.
+1-2 句自然语言说明：这条 note 在什么任务里有帮助，为什么有帮助。
 
 ## Triggers
-- word or phrase that should make this note worth checking
-- another trigger phrase
+- 触发词或短语
 
 ## Use this when
-- scenario where this note materially helps
-- another scenario
+- 具体使用场景
 
-## Key facts
-- stable fact 1
-- stable fact 2
+## Memory state
+- hot | warm | cold | dormant
 
-## Decisions / lessons
-- DO: recommended action and why
-- AVOID: anti-pattern and why
+## Review cadence
+- interval_days: 7
+- review_count: 0
+- review_success: 0
+- review_fail: 0
+
+## Last seen
+- YYYY-MM-DD
+
+## Last reviewed
+- YYYY-MM-DD
+
+## Next review
+- YYYY-MM-DD
 
 ## Confidence
 - high | medium | low
@@ -53,116 +64,153 @@ triggers miss.
 - tag2
 
 ## Details
-Longer context, history, or explanation if needed.
-Keep this section optional — omit it for fact-type notes.
-
-## Source context
-- file, conversation, date, or origin note
+可选，只有真的需要长背景时再写。
 ```
 
-### Field definitions
+---
 
-| Field | Required | Purpose |
-|---|---|---|
-| Topic title | yes | Clear, searchable title |
-| TL;DR | yes | 2–4 bullet summary for cheap retrieval |
-| Why this matters | no | Brief justification; useful for background notes |
-| Memory type | yes | One of: fact, experience, background |
-| Semantic context | yes | 1–2 sentence natural language description for fuzzy matching when triggers miss |
-| Triggers | yes | Keywords/phrases that should surface this note during recall |
-| Use this when | yes | Concrete scenarios where the note helps |
-| Key facts | if applicable | Stable, reusable facts |
-| Decisions / lessons | if applicable | DO/AVOID pairs with rationale |
-| Confidence | yes | high = reliable; medium = use with caveat; low = needs re-verification |
-| Last verified | yes | Date of last accuracy check |
-| Related tags | yes | Tags matching tags.json for cross-referencing |
-| Details | no | Extended context; keep only if genuinely needed |
-| Source context | no | Origin trail for future verification |
+## 字段说明
 
-### Writing guidelines
+必需字段：
+- Topic title
+- TL;DR
+- Memory type
+- Importance
+- Semantic context
+- Triggers
+- Use this when
+- Memory state
+- Confidence
+- Last verified
+- Related tags
 
-- Put the shortest useful summary at the top (TL;DR).
-- Write for retrieval, not narrative beauty.
-- Preserve lessons and rationale, not raw transcript noise.
-- One note per topic. Merge when topics overlap.
-- Update existing notes instead of creating near-duplicates.
-- Write Semantic context as natural prose, not a keyword list — its purpose is to catch queries that exact triggers would miss.
+推荐字段：
+- Review cadence
+- Last seen
+- Last reviewed
+- Next review
 
-## index.md format
+简化理解：
+- `Importance`：历史价值
+- `Memory state`：当前温度
+- `Review cadence`：复习节奏
+- `Confidence`：可靠程度
 
-Use a single consistent Markdown list with one block per note.
+---
+
+## 状态建议
+
+```text
+hot      最近强化过，能直接用
+warm     适合轻提醒
+cold     保留但低优先级
+dormant  除非强触发，否则别主动拿出来
+```
+
+---
+
+## 默认 review ladder
+
+```text
+创建
++1d
++3d
++7d
++14d
++30d
+```
+
+之后：
+- helpful recall → 间隔拉长
+- unhelpful recall → 间隔缩短或继续冷却
+
+---
+
+## index.md 格式
 
 ```markdown
 # Cold Memory Index
 
-- `note-file.md` — one-line summary
+- `note-file.md` — 一句话总结
   - type: fact | experience | background
-  - tags: comma-separated tags
-  - triggers: words or phrases that should prompt recall
-  - read when: scenarios where this note materially helps
+  - importance: high | medium | low
+  - state: hot | warm | cold | dormant
+  - tags: ...
+  - triggers: ...
+  - read when: ...
   - confidence: high | medium | low
   - updated: YYYY-MM-DD
+  - next review: YYYY-MM-DD | none
 ```
 
-Guidelines:
-- Keep entries sorted by most-recently-updated first.
-- Use one block per note.
-- If the archive gets large, add simple section headings like `## Experience`, `## Fact`, `## Background`, but keep the same per-note block shape.
+要求：
+- 一条 note 一个 block
+- 按最近更新时间排序
 
-## tags.json format
+---
 
-Use an object with metadata plus a `notes` array.
+## tags.json 格式
 
 ```json
 {
   "_meta": {
     "description": "Structured metadata for cold-memory retrieval",
-    "version": 3,
+    "version": 4,
     "updated": "YYYY-MM-DD"
   },
   "notes": [
     {
-      "title": "string — note title",
-      "path": "string — relative path, e.g. memory/cold/postgres-migration.md",
-      "type": "string — fact | experience | background",
-      "summary": "string — one-sentence summary",
-      "semantic_context": "string — 1-2 sentence natural language description for fuzzy matching",
-      "tags": ["string array — searchable tags"],
-      "triggers": ["string array — recall trigger phrases"],
-      "scenarios": ["string array — when-to-use descriptions"],
-      "confidence": "string — high | medium | low",
-      "last_verified": "string — YYYY-MM-DD",
-      "updated": "string — YYYY-MM-DD"
+      "title": "...",
+      "path": "memory/cold/xxx.md",
+      "type": "fact|experience|background",
+      "importance": "high|medium|low",
+      "state": "hot|warm|cold|dormant",
+      "summary": "...",
+      "semantic_context": "...",
+      "tags": ["..."],
+      "triggers": ["..."],
+      "scenarios": ["..."],
+      "confidence": "high|medium|low",
+      "last_seen": "YYYY-MM-DD or null",
+      "last_reviewed": "YYYY-MM-DD or null",
+      "next_review": "YYYY-MM-DD or null",
+      "review": {
+        "interval_days": 7,
+        "review_count": 0,
+        "review_success": 0,
+        "review_fail": 0
+      },
+      "last_verified": "YYYY-MM-DD",
+      "updated": "YYYY-MM-DD"
     }
   ]
 }
 ```
 
-### Keeping index.md and tags.json in sync
+---
 
-Every archive or update operation must update both files. If they drift out of sync:
-
-1. Treat the note files as the source of truth.
-2. Rebuild `index.md` and `tags.json` from the note files.
-3. Verify all paths in `tags.json` point to existing files.
-4. Keep `_meta.updated` current after rebuilds.
-
-## retrieval-log.md format
-
-`memory/cold/retrieval-log.md` tracks which notes were recalled and whether they helped.
+## retrieval-log.md 格式
 
 ```markdown
 # Retrieval Log
 
 | Date | Query | Matched | Useful | Action |
 |---|---|---|---|---|
-| 2025-03-20 | postgres migration rollback | postgres-migration.md | yes | — |
-| 2025-03-22 | rate limit batch job | api-rate-limits.md | yes | updated Key facts |
-| 2025-04-01 | redis cache eviction | (no match) | n/a | created new note |
+| 2026-04-07 | heartbeat startup | daily-memory-auto-create-hardening.md | yes | reinforced note |
 ```
 
-Guidelines:
-- Log only cold memory retrievals, not warm or `MEMORY.md` lookups.
-- `Useful` = the recalled note materially improved the answer.
-- `Action` = any update made to the note, index, or tags after retrieval.
-- Review the log during maintenance to identify stale, missing, or weak notes.
+只记录 cold memory retrieval，不记录 warm / MEMORY.md 查询。
+
+---
+
+## 维护规则
+
+- note 文件是 source of truth
+- `index.md` 和 `tags.json` 要同步
+- 漂移了就 rebuild
+- 不要手工编造过度精确的 review 数据
+- 小而准，比大而乱更重要
+
+一句话：
+
+**schema 是为了更准地回忆，不是为了把系统写得像论文。**

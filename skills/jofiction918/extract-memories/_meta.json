@@ -3,9 +3,15 @@
   "slug": "extract-memories",
   "displayName": "Extract Memories",
   "latest": {
-    "version": "3.0.6",
-    "publishedAt": 1775555465107,
-    "commit": "https://github.com/openclaw/skills/commit/cf86f550842e500cba796025e83f1b77a73a6f42"
+    "version": "3.0.10",
+    "publishedAt": 1775583264753,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "3.0.6",
+      "publishedAt": 1775555465107,
+      "commit": "https://github.com/openclaw/skills/commit/cf86f550842e500cba796025e83f1b77a73a6f42"
+    }
+  ]
 }

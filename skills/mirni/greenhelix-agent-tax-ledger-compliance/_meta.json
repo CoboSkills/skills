@@ -1,0 +1,11 @@
+{
+  "owner": "mirni",
+  "slug": "greenhelix-agent-tax-ledger-compliance",
+  "displayName": "Agent Tax & Ledger Compliance Playbook",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1776065375218,
+    "commit": null
+  },
+  "history": []
+}

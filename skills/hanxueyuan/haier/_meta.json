@@ -3,9 +3,15 @@
   "slug": "haier",
   "displayName": "Haier",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775433211034,
-    "commit": "https://github.com/openclaw/skills/commit/5111d7a15f9c5edcb09084fc631534ecb2cebc7a"
+    "version": "1.0.2",
+    "publishedAt": 1775634537634,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775433211034,
+      "commit": "https://github.com/openclaw/skills/commit/5111d7a15f9c5edcb09084fc631534ecb2cebc7a"
+    }
+  ]
 }

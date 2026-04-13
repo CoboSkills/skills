@@ -3,9 +3,15 @@
   "slug": "crypto-market-report-cmc-cli",
   "displayName": "market-report-using-cmc-cli",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1775015140915,
-    "commit": "https://github.com/openclaw/skills/commit/6ab0ca6fc49cdededc94f549f676cf623f57f472"
+    "version": "1.0.8",
+    "publishedAt": 1775723718194,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1775015140915,
+      "commit": "https://github.com/openclaw/skills/commit/6ab0ca6fc49cdededc94f549f676cf623f57f472"
+    }
+  ]
 }

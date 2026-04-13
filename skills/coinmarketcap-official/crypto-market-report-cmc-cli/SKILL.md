@@ -1,13 +1,13 @@
 ---
-name: cmc-crypto-market-report
+
+## name: cmc-crypto-market-report
 description: >-
   Daily coin market report and crypto snapshot via CoinMarketCap (CMC) CLI.
   Covers BTC and ETH prices, top coin gainers and losers, trending crypto
   tokens, and latest crypto news. Use for coin market report, crypto morning
   brief, crypto market summary, or when asking how's crypto today.
 version: 0.1.0
-metadata: {"openclaw":{"requires":{"bins":["cmc"],"env":["CMC_API_KEY"]},"primaryEnv":"CMC_API_KEY","homepage":"https://github.com/coinmarketcap-official/CoinMarketCap-CLI"}}
----
+metadata: {"openclaw":{"requires":{"bins":["cmc"],"env":["CMC_API_KEY"]},"primaryEnv":"CMC_API_KEY","homepage":"[https://github.com/openCMC/CoinMarketCap-CLI"}}](https://github.com/openCMC/CoinMarketCap-CLI"}})
 
 # OpenClaw CMC Market Report
 
@@ -16,7 +16,8 @@ Use this skill only for OpenClaw-driven market report workflows. Keep it aligned
 ## Prerequisites
 
 This skill requires:
-- `cmc` CLI installed and available on PATH — see [CoinMarketCap CLI](https://github.com/coinmarketcap-official/CoinMarketCap-CLI) for installation options
+
+- `cmc` CLI installed and available on PATH — see [CoinMarketCap CLI](https://github.com/openCMC/CoinMarketCap-CLI) for installation options
 - `CMC_API_KEY` available to OpenClaw via skill config or session environment
 
 If either dependency is missing, the skill will not function.
@@ -24,6 +25,7 @@ If either dependency is missing, the skill will not function.
 ## Trigger
 
 Apply when the request matches or clearly implies:
+
 - market report
 - market snapshot
 - crypto morning brief

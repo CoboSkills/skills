@@ -21,8 +21,6 @@ DB_ID=""
 SQL=""
 LOGIC=false
 OUTPUT_JSON=false
-FORCE=false
-DRY_RUN=false
 
 print_help() {
     echo "Usage: $0 --db-id <database_id> --sql <sql_statement> [options]"
@@ -35,16 +33,12 @@ print_help() {
     echo "  --logic           Use logic database mode"
     echo "  --json            Output results in JSON format"
     echo "  --region <region> Aliyun region (default: cn-hangzhou)"
-    echo "  --force           Skip confirmation for write operations (INSERT/UPDATE/DELETE)"
-    echo "  --dry-run         Preview write operations without executing"
     echo "  -h, --help        Show this help message"
     echo ""
     echo "Examples:"
     echo "  $0 --db-id 12345 --sql \"SELECT 1\""
     echo "  $0 --db-id 12345 --sql \"SHOW TABLES\" --json"
     echo "  $0 --db-id 12345 --sql \"SELECT * FROM users LIMIT 5\" --logic"
-    echo "  $0 --db-id 12345 --sql \"INSERT INTO users (name) VALUES ('test')\" --force"
-    echo "  $0 --db-id 12345 --sql \"UPDATE users SET name='test' WHERE id=1\" --dry-run"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -68,14 +62,6 @@ while [[ $# -gt 0 ]]; do
         --region)
             REGION="$2"
             shift 2
-            ;;
-        --force)
-            FORCE=true
-            shift
-            ;;
-        --dry-run)
-            DRY_RUN=true
-            shift
             ;;
         -h|--help)
             print_help
@@ -152,60 +138,15 @@ USER_AGENT="AlibabaCloud-Agent-Skills"
 READ_TIMEOUT=10
 CONNECT_TIMEOUT=10
 
-# Detect write operation type
+# SQL safety check - block destructive operations
 SQL_UPPER=$(echo "$SQL" | tr '[:lower:]' '[:upper:]')
-IS_WRITE_OP=false
-WRITE_OP_TYPE=""
-
-if echo "$SQL_UPPER" | grep -qE '^\s*INSERT\s'; then
-    IS_WRITE_OP=true
-    WRITE_OP_TYPE="INSERT"
-elif echo "$SQL_UPPER" | grep -qE '^\s*UPDATE\s'; then
-    IS_WRITE_OP=true
-    WRITE_OP_TYPE="UPDATE"
-elif echo "$SQL_UPPER" | grep -qE '^\s*DELETE\s'; then
-    IS_WRITE_OP=true
-    WRITE_OP_TYPE="DELETE"
-elif echo "$SQL_UPPER" | grep -qE '^\s*(DROP|TRUNCATE|ALTER|RENAME)\s'; then
-    # Block destructive DDL operations completely
-    echo "Error: 安全检查失败 - 不允许执行 DDL 破坏性操作 (DROP/TRUNCATE/ALTER/RENAME)" >&2
-    echo "       这些操作可能导致数据不可恢复丢失，请通过 DMS 控制台执行" >&2
+if echo "$SQL_UPPER" | grep -qE '^\s*(DELETE|DROP|UPDATE|TRUNCATE|ALTER|RENAME)\s'; then
+    echo "Error: 安全检查失败 - 不允许执行破坏性 SQL 操作 (DELETE/DROP/UPDATE/TRUNCATE/ALTER/RENAME)" >&2
     exit 1
 fi
-
-# Handle write operations with protective pre-check
-if [[ "$IS_WRITE_OP" == "true" ]]; then
-    echo "" >&2
-    echo "========================================" >&2
-    echo "  [警告] 检测到写操作: $WRITE_OP_TYPE" >&2
-    echo "========================================" >&2
-    echo "  目标数据库 ID: $DB_ID" >&2
-    echo "  SQL 语句:" >&2
-    echo "    $SQL" >&2
-    echo "========================================" >&2
-    
-    if [[ "$DRY_RUN" == "true" ]]; then
-        echo "" >&2
-        echo "[DRY-RUN 模式] 仅预览，不会执行实际操作" >&2
-        echo "如需执行，请移除 --dry-run 参数并添加 --force 参数" >&2
-        exit 0
-    fi
-    
-    if [[ "$FORCE" != "true" ]]; then
-        echo "" >&2
-        echo "此操作将修改数据库数据。" >&2
-        echo "如需执行，请添加 --force 参数确认操作。" >&2
-        echo "如需预览，请添加 --dry-run 参数。" >&2
-        echo "" >&2
-        echo "示例:" >&2
-        echo "  $0 --db-id $DB_ID --sql \"$SQL\" --force" >&2
-        echo "  $0 --db-id $DB_ID --sql \"$SQL\" --dry-run" >&2
-        exit 1
-    fi
-    
-    echo "" >&2
-    echo "[--force 已确认] 将执行写操作..." >&2
-    echo "" >&2
+if echo "$SQL_UPPER" | grep -qE '\s(DELETE\s+FROM|DROP\s+TABLE|DROP\s+DATABASE|UPDATE\s+.+\s+SET|TRUNCATE\s+TABLE)\s'; then
+    echo "Error: 安全检查失败 - 不允许执行破坏性 SQL 操作 (DELETE/DROP/UPDATE/TRUNCATE)" >&2
+    exit 1
 fi
 
 # Step 1: Get Tenant ID (Tid)

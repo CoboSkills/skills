@@ -64,12 +64,10 @@ User Request → Search Database → Get Database ID → Execute SQL → Return 
 
 | Parameter | Required/Optional | Description | Default |
 |-----------|------------------|-------------|---------|
-| keyword | Required | Database search keyword (1-128 chars, alphanumeric) | - |
-| db-id | Required | Database ID (positive integer, obtained from search) | - |
-| sql | Required | SQL statement to execute (1-10000 chars) | - |
+| keyword | Required | Database search keyword | - |
+| db-id | Required | Database ID (obtained from search results) | - |
+| sql | Required | SQL statement to execute | - |
 | logic | Optional | Whether to use logic database mode | false |
-| force | Optional | Confirm write operations (INSERT/UPDATE/DELETE) | false |
-| dry-run | Optional | Preview write operations without executing | false |
 
 ## Core Workflow
 
@@ -98,31 +96,14 @@ Execute SQL using the Database ID obtained in the previous step:
 ./scripts/execute_query.sh --db-id <database_id> --sql "<SQL_statement>"
 ```
 
-#### Write Operation Protection
-
-For write operations (INSERT/UPDATE/DELETE), the script implements protective pre-check:
-
-| Parameter | Description |
-|-----------|-------------|
-| `--force` | Required to confirm and execute write operations |
-| `--dry-run` | Preview write operations without executing |
-
-**DDL Operations (DROP/TRUNCATE/ALTER/RENAME) are completely blocked** — these must be executed via DMS Console.
-
 Examples:
 
 ```bash
-# Read operations (no confirmation needed)
+# List tables
 ./scripts/execute_query.sh --db-id 78059000 --sql "SHOW TABLES"
+
+# Query data with JSON output
 ./scripts/execute_query.sh --db-id 78059000 --sql "SELECT * FROM users LIMIT 10" --json
-
-# Write operations - preview first (recommended)
-./scripts/execute_query.sh --db-id 78059000 --sql "INSERT INTO users (name) VALUES ('test')" --dry-run
-
-# Write operations - execute with confirmation
-./scripts/execute_query.sh --db-id 78059000 --sql "INSERT INTO users (name) VALUES ('test')" --force
-./scripts/execute_query.sh --db-id 78059000 --sql "UPDATE users SET name='test' WHERE id=1" --force
-./scripts/execute_query.sh --db-id 78059000 --sql "DELETE FROM users WHERE id=1" --force
 
 # Logic database mode
 ./scripts/execute_query.sh --db-id 78059000 --sql "SELECT 1" --logic
@@ -156,15 +137,7 @@ After executing SQL, check the returned results:
 
 ## Cleanup
 
-This skill performs read and write operations but does not create persistent resources. No cleanup is required.
-
-## Write Operation Safety
-
-| Operation Type | Behavior |
-|---------------|----------|
-| SELECT / SHOW / DESC | Execute directly |
-| INSERT / UPDATE / DELETE | Require `--force` or `--dry-run` |
-| DROP / TRUNCATE / ALTER / RENAME | **Blocked** — use DMS Console |
+This skill only performs query operations and does not create resources. No cleanup is required.
 
 ## Available Scripts
 
@@ -179,9 +152,7 @@ This skill performs read and write operations but does not create persistent res
 
 1. **Confirm database** — Verify the target database before executing SQL
 2. **Use --json parameter** — Facilitates programmatic processing of output
-3. **Preview write operations** — Always use `--dry-run` first for INSERT/UPDATE/DELETE
-4. **Explicit confirmation** — Use `--force` only after reviewing the preview
-5. **Avoid DDL operations** — DROP/TRUNCATE/ALTER/RENAME are blocked; use DMS Console instead
+3. **Be cautious with sensitive operations** — For UPDATE/DELETE operations, execute SELECT first to confirm
 
 ## Reference Links
 

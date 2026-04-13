@@ -30,6 +30,7 @@ const DEFAULT_CONFIG = {
   minTextForContinue: 2000,
   maxTextForContinue: 6000,
   rateLimitMs: 5000,
+  preferredChatMode: 'expert',
   debugMode: false,
   logToFile: false,
   logPath: '.logs/deepseek.log',
@@ -56,6 +57,9 @@ const SHORT_STABLE = CONFIG.shortAnswerStableMs;
 const MIN_RESPONSE = CONFIG.minResponseLength;
 const DELTA_THRESHOLD = CONFIG.deltaThreshold;
 const RATE_LIMIT_MS = CONFIG.rateLimitMs;
+const OVERSIZE_RETRY_MIN_CHARS = 4000;
+const OVERSIZE_RETRY_KEEP_RATIO = 0.85;
+const OVERSIZE_MAX_RETRIES = 6;
 
 if (CONFIG.logToFile) {
   const logPath = path.resolve(BASE_DIR, CONFIG.logPath);
@@ -81,7 +85,10 @@ const endSession = argv.includes('--end-session');
 const newChat = argv.includes('--new-chat');
 const useDaemon = argv.includes('--daemon');
 const dryRun = argv.includes('--dry-run');
+const searchMode = argv.includes('--search');
+const thinkMode = argv.includes('--think');
 const VERBOSE = argv.includes('--verbose');
+const preferredChatMode = String(CONFIG.preferredChatMode || 'expert').toLowerCase();
 const FILE_ARG_IDX = argv.indexOf('--file');
 const FILE_PROMPT_PATH = FILE_ARG_IDX !== -1 ? (argv[FILE_ARG_IDX + 1] || '') : null;
 if (FILE_PROMPT_PATH) debugLog('[DEBUG] --file=' + FILE_PROMPT_PATH + ', exists=' + fs.existsSync(FILE_PROMPT_PATH));
@@ -243,6 +250,19 @@ function debugLog(...a) { if (VERBOSE) console.log(...a); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 function ensureDirSync(d) { try { fs.mkdirSync(d, { recursive: true }); } catch {} }
 
+function shortenPromptForRetry(prompt, attempt) {
+ if (typeof prompt !== 'string') return prompt;
+ const lines = prompt.split('\n');
+ if (lines.length <= 6) {
+   const hardMax = Math.max(OVERSIZE_RETRY_MIN_CHARS, Math.floor(prompt.length * Math.pow(OVERSIZE_RETRY_KEEP_RATIO, attempt)));
+   return prompt.slice(0, hardMax).trimEnd();
+ }
+ const header = lines.slice(0, Math.min(6, lines.length)).join('\n');
+ const body = lines.slice(Math.min(6, lines.length)).join('\n');
+ const targetLen = Math.max(OVERSIZE_RETRY_MIN_CHARS, Math.floor(body.length * Math.pow(OVERSIZE_RETRY_KEEP_RATIO, attempt)));
+ return `${header}\n\n[TRUNCATED_FOR_SUBMIT_RETRY: prompt shortened after silent oversize submit block]\n\n${body.slice(0, targetLen).trimEnd()}`;
+}
+
 // Отключает CSS-анимации и transition для стабилизации DOM
 async function disableAnimations(page) {
   await page.evaluate(() => {
@@ -303,11 +323,36 @@ async function withRetry(fn, options = {}) {
 }
 
 // ─── Демон и оптимизации ────────────────────────────────────────
+function shouldExitAsDeepSeekUnreachable(err) {
+  const msg = String(err?.message || err || '');
+  const code = String(err?.code || '');
+  return (
+    /Демон не запущен|Демон недоступен|ECONNREFUSED|ETIMEDOUT|ERR_CONNECTION_REFUSED|ERR_CONNECTION_CLOSED|ERR_CONNECTION_RESET|ERR_NAME_NOT_RESOLVED|ERR_INTERNET_DISCONNECTED|ERR_NETWORK_CHANGED|ERR_TIMED_OUT|ERR_ADDRESS_UNREACHABLE|ERR_PROXY_CONNECTION_FAILED/i.test(msg) ||
+    /ECONNREFUSED|ETIMEDOUT/i.test(code)
+  );
+}
+
 async function connectToDaemon() {
-  if (!fs.existsSync(DAEMON_ENDPOINT_FILE)) {
-    throw new Error('Демон не запущен. Запусти: node deepseek-daemon.js');
+  let wsEndpoint = '';
+  if (fs.existsSync(DAEMON_ENDPOINT_FILE)) {
+    wsEndpoint = fs.readFileSync(DAEMON_ENDPOINT_FILE, 'utf8').trim();
+  } else {
+    try {
+      const daemonSessionPath = getSessionFile('daemon');
+      if (fs.existsSync(daemonSessionPath)) {
+        const daemonSession = JSON.parse(fs.readFileSync(daemonSessionPath, 'utf8'));
+        if (daemonSession?.browserWSEndpoint) {
+          wsEndpoint = daemonSession.browserWSEndpoint.trim();
+          try { fs.writeFileSync(DAEMON_ENDPOINT_FILE, wsEndpoint); } catch {}
+        }
+      }
+    } catch {}
   }
-  const wsEndpoint = fs.readFileSync(DAEMON_ENDPOINT_FILE, 'utf8').trim();
+  if (!wsEndpoint) {
+    const err = new Error('Демон не запущен. Запусти: node deepseek-daemon.js');
+    err.exitCode = 2;
+    throw err;
+  }
   log('🔗 Подключаюсь к демону:', wsEndpoint);
   try {
     const browser = await puppeteer.connect({
@@ -319,7 +364,9 @@ async function connectToDaemon() {
   } catch (e) {
     // Демон не отвечает — удаляем stale endpoint file
     try { fs.unlinkSync(DAEMON_ENDPOINT_FILE); } catch {}
-    throw new Error(`Демон недоступен: ${e.message}`);
+    const err = new Error(`Демон недоступен: ${e.message}`);
+    err.exitCode = 2;
+    throw err;
   }
 }
 
@@ -497,10 +544,9 @@ async function cleanup() {
    if (browser) {
      if (browserLaunchedByUs) {
        await browser.close().catch(() => {});
-       // Дополнительная очистка процессов для одноразовых запросов
-       if (!sessionName && shouldClose) {
-         await killChromeProcessesForProfile(PROFILE_DIR);
-       }
+       // В обычном happy-path НЕ убиваем процессы по shared profile:
+       // daemon использует тот же .profile, и агрессивная зачистка может убить его Chrome.
+       // Жёсткий kill остаётся только в recovery/launch-путях, где он нужен осознанно.
      } else {
        // Daemon/session browser: не закрываем сам Chrome, только отключаемся
        try { browser.disconnect(); } catch (e) {}
@@ -739,7 +785,14 @@ async function setupDeepSeekInterceptor(page) {
     });
   }
 
-  return { prepareForRequest, waitForResponse, cleanupState, get state() { return { resolved: responseState.resolved, expectedCount: expectedRequestIds.size, correlation: requestIdCounter }; } };
+  function consumeResponse() {
+    if (!responseState.resolved || !responseState.result) return null;
+    const r = responseState.result;
+    cleanupState();
+    return r;
+  }
+
+  return { prepareForRequest, waitForResponse, consumeResponse, cleanupState, get state() { return { resolved: responseState.resolved, expectedCount: expectedRequestIds.size, correlation: requestIdCounter }; } };
 }
 
 
@@ -772,15 +825,34 @@ async function ensureBrowser(session, diag = null) {
      debugLog('[DEBUG] Connecting to daemon...');
      browser = await connectToDaemon();
      const pages = await browser.pages();
-     dsPage = pages.find(p => {
-       try { return p.url().includes('deepseek'); } catch { return false; }
-     }) || pages[0] || await browser.newPage();
 
-     // Если страница не на DeepSeek — переходим
-     const currentUrl = dsPage.url();
-     if (!currentUrl.includes('deepseek')) {
-       log('📍 Навигация на DeepSeek...');
-       await dsPage.goto(DS_URL, { waitUntil: 'domcontentloaded', timeout: 20000 });
+     if (session?.chatUrl && !newChat) {
+       const exactSessionPage = pages.find(p => {
+         try { return p.url() === session.chatUrl; } catch { return false; }
+       });
+       dsPage = exactSessionPage || pages.find(p => {
+         try { return p.url().includes('deepseek'); } catch { return false; }
+       }) || pages[0] || await browser.newPage();
+
+       const currentUrl = dsPage.url();
+       if (currentUrl !== session.chatUrl) {
+         if (!exactSessionPage) {
+           log('⚠️ Session fallback used: exact chat tab not found, navigating to saved chatUrl');
+         }
+         log(`📂 Восстанавливаю чат сессии: ${session.chatUrl.substring(0, 50)}`);
+         await dsPage.goto(session.chatUrl, { waitUntil: 'domcontentloaded', timeout: CONFIG.navigationTimeout });
+       }
+     } else {
+       dsPage = pages.find(p => {
+         try { return p.url().includes('deepseek'); } catch { return false; }
+       }) || pages[0] || await browser.newPage();
+
+       // Если страница не на DeepSeek — переходим
+       const currentUrl = dsPage.url();
+       if (!currentUrl.includes('deepseek')) {
+         log('📍 Навигация на DeepSeek...');
+         await dsPage.goto(DS_URL, { waitUntil: 'domcontentloaded', timeout: 20000 });
+       }
      }
 
      log(`🔗 Подключился к демону (URL: ${dsPage.url().substring(0, 50)})`);
@@ -973,87 +1045,209 @@ async function startNewChat(page, forceNewSession = false) {
 }
 
 // ─── Включение Search ───────────────────────────────────────
+async function clickToggleByLabel(page, label, options = {}) {
+ const normalizedLabel = String(label || '').trim().toLowerCase();
+ const targetState = options.targetState || 'enable';
+ const result = await page.evaluate(({ normalizedLabel, targetState }) => {
+   const isVisible = (el) => !!(el && el.offsetWidth > 0 && el.offsetHeight > 0);
+   const normalize = (s) => String(s || '').trim().toLowerCase();
+   const candidates = [...document.querySelectorAll('button, [role="button"], div, span, a')]
+     .filter(el => isVisible(el))
+     .filter(el => normalize(el.textContent) === normalizedLabel || normalize(el.getAttribute('aria-label')) === normalizedLabel);
+
+   function findClickable(el) {
+     let cur = el;
+     for (let i = 0; i < 5 && cur; i++, cur = cur.parentElement) {
+       if (!isVisible(cur)) continue;
+       const cls = typeof cur.className === 'string' ? cur.className : '';
+       const role = normalize(cur.getAttribute('role'));
+       if (cur.tagName === 'BUTTON' || role === 'button' || cls.includes('ds-toggle-button') || cls.includes('ds-atom-button') || cls.includes('_9f2341b') || cls.includes('dfb78875')) {
+         return cur;
+       }
+     }
+     return el;
+   }
+
+   for (const raw of candidates) {
+     if (raw.closest('[data-role="measure"]')) continue;
+     const el = findClickable(raw);
+     const cls = typeof el.className === 'string' ? el.className : '';
+     const selected = cls.includes('ds-toggle-button--selected') || cls.includes('_31a22b0') || normalize(el.getAttribute('aria-selected')) === 'true' || normalize(el.getAttribute('aria-pressed')) === 'true';
+     if ((targetState === 'enable' && selected) || (targetState === 'disable' && !selected)) {
+       return { changed: false, already: true, text: normalize(el.textContent), cls };
+     }
+     el.click();
+     return { changed: true, already: false, text: normalize(el.textContent), cls };
+   }
+   return null;
+ }, { normalizedLabel, targetState }).catch(() => null);
+
+ if (result?.changed) {
+   await sleep(600);
+ }
+ return result;
+}
+
+async function ensureExpertMode(page) {
+ if (preferredChatMode !== 'expert') {
+   debugLog(`⚙️ preferredChatMode=${preferredChatMode}, skip Expert enforcement`);
+   return false;
+ }
+
+ log('🎯 Проверяю режим DeepSeek: Expert');
+ const result = await clickToggleByLabel(page, 'Expert', { targetState: 'enable' });
+ if (!result) {
+   log('⚠️ Переключатель Expert не найден');
+   return false;
+ }
+ if (result.already) {
+   log('🎯 Expert уже активен');
+   return true;
+ }
+ log('🎯 Переключил DeepSeek в Expert');
+ return true;
+}
+
 async function enableSearch(page) {
  log('🔍 Активирую Search...');
-
- const result = await page.evaluate(() => {
- const all = [...document.querySelectorAll('button, [role="button"], div[class*="btn"], span')];
- for (const el of all) {
- const text = (el.textContent || '').trim();
- const aria = (el.getAttribute('aria-label') || '');
- if ((/^search$/i.test(text) || /search/i.test(aria)) && el.offsetWidth > 0 && !el.disabled) {
- el.click();
- return `"${text}" aria="${aria}"`;
- }
- }
- // По data-атрибутам
- const dataSearch = document.querySelector('[data-testid*="search"], [data-action*="search"]');
- if (dataSearch) { dataSearch.click(); return 'data-attr'; }
- return null;
- }).catch(() => null);
-
- if (result) { log(`🔍 Search: ${result}`); await sleep(500); }
+ const result = await clickToggleByLabel(page, 'Search', { targetState: 'enable' });
+ if (result) { log(`🔍 Search: ${result.already ? 'уже активен' : 'включён'}`); }
  else log('⚠️ Кнопка Search не найдена');
 }
 
+async function enableDeepThink(page) {
+ log('🧠 Активирую DeepThink...');
+ const result = await clickToggleByLabel(page, 'DeepThink', { targetState: 'enable' });
+ if (result) { log(`🧠 DeepThink: ${result.already ? 'уже активен' : 'включён'}`); }
+ else log('⚠️ Кнопка DeepThink не найдена');
+}
+
 // ─── Отправка ───────────────────────────────────────────────
-async function sendPrompt(page, composerSelector, prompt) {
- log(`📝 "${prompt.substring(0, 60)}..."`);
+async function inspectSubmitOutcome(page, composerSelector, prompt, timeoutMs = 5000) {
+ const started = Date.now();
+ let sawExpectedRequest = false;
+ while (Date.now() - started < timeoutMs) {
+   const network = cdpInterceptor?.consumeResponse ? cdpInterceptor.consumeResponse() : null;
+   if (network) sawExpectedRequest = true;
+   const snapshot = await page.evaluate((sel, promptStart) => {
+     const el = document.querySelector(sel);
+     const value = el ? ('value' in el ? el.value : (el.textContent || '')) : '';
+     const body = document.body?.innerText || '';
+     return {
+       valueLen: value.length,
+       userPromptVisible: !!(promptStart && body.includes(promptStart)),
+       articleCount: document.querySelectorAll('article').length,
+       url: location.href,
+     };
+   }, composerSelector, prompt.slice(0, 40)).catch(() => ({ valueLen: 0, userPromptVisible: false, articleCount: 0, url: page.url() }));
 
- // ═══ CDP: prepare ДО отправки ═══
- if (cdpInterceptor) {
-   const corrId = cdpInterceptor.prepareForRequest();
-   debugLog(`[CDP] Prepared for request, correlation #${corrId}`);
- }
-
- const needsSearch = /\[РЕЖИМ: ПОИСК/i.test(prompt);
- if (needsSearch) await enableSearch(page);
-
- const element = await page.waitForSelector(composerSelector, { visible: true, timeout: 10000 });
- const textBefore = prompt;
-
- const result = await element.evaluate((el, text) => {
- el.focus();
- // Проверяем тип элемента для корректного ввода текста
- if (el.isContentEditable || el.getAttribute('contenteditable') === 'true') {
-   el.textContent = text;
-   el.dispatchEvent(new Event('input', { bubbles: true }));
-   el.dispatchEvent(new Event('change', { bubbles: true }));
- } else if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
-   const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
-   const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
-   if (setter) {
-     setter.call(el, text);
-   } else {
-     el.value = text;
+   const textareaCleared = snapshot.valueLen < Math.max(16, Math.floor(prompt.length * 0.05));
+   const accepted = sawExpectedRequest || textareaCleared || snapshot.userPromptVisible || snapshot.articleCount > 0;
+   if (accepted) {
+     return {
+       accepted: true,
+       reason: sawExpectedRequest ? 'network-request' : textareaCleared ? 'textarea-cleared' : snapshot.userPromptVisible ? 'prompt-visible' : 'article-visible',
+       sawExpectedRequest,
+       ...snapshot,
+     };
    }
-   el.dispatchEvent(new Event('input', { bubbles: true }));
-   el.dispatchEvent(new Event('change', { bubbles: true }));
- } else {
-   el.textContent = text;
-   el.dispatchEvent(new Event('input', { bubbles: true }));
+   await sleep(150);
  }
 
- const enter = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
- el.dispatchEvent(new KeyboardEvent('keydown', enter));
- el.dispatchEvent(new KeyboardEvent('keypress', enter));
- el.dispatchEvent(new KeyboardEvent('keyup', enter));
+ const finalSnapshot = await page.evaluate((sel, promptStart) => {
+   const el = document.querySelector(sel);
+   const value = el ? ('value' in el ? el.value : (el.textContent || '')) : '';
+   const body = document.body?.innerText || '';
+   return {
+     valueLen: value.length,
+     userPromptVisible: !!(promptStart && body.includes(promptStart)),
+     articleCount: document.querySelectorAll('article').length,
+     url: location.href,
+   };
+ }, composerSelector, prompt.slice(0, 40)).catch(() => ({ valueLen: 0, userPromptVisible: false, articleCount: 0, url: page.url() }));
 
- let btn = null;
- for (const sel of ['button[type="submit"]', '[data-testid="send"]', 'button[aria-label*="send" i]']) {
- const b = (el.closest('form') || document).querySelector(sel);
- if (b && b.offsetWidth > 0 && !b.disabled) { b.click(); btn = sel; break; }
- }
- if (!btn) {
- const nearby = el.parentElement?.querySelector('button, [role="button"]');
- if (nearby && nearby.offsetWidth > 0 && !nearby.disabled) { nearby.click(); btn = 'nearby'; }
- }
- const len = (el.value || el.textContent || '').length;
- return { len, btn };
- }, prompt);
+ return {
+   accepted: false,
+   reason: 'silent-submit-block',
+   sawExpectedRequest,
+   ...finalSnapshot,
+ };
+}
 
- await sleep(20);
- return { textBefore };
+async function sendPrompt(page, composerSelector, prompt) {
+ let workingPrompt = prompt;
+ for (let attempt = 0; attempt <= OVERSIZE_MAX_RETRIES; attempt++) {
+   log(`📝 "${workingPrompt.substring(0, 60)}..."`);
+
+   // ═══ CDP: prepare ДО отправки ═══
+   if (cdpInterceptor) {
+     const corrId = cdpInterceptor.prepareForRequest();
+     debugLog(`[CDP] Prepared for request, correlation #${corrId}`);
+   }
+
+   await ensureExpertMode(page);
+   if (searchMode || /\[РЕЖИМ: ПОИСК/i.test(workingPrompt)) await enableSearch(page);
+   if (thinkMode || /\[РЕЖИМ: DEEP THINK/i.test(workingPrompt)) await enableDeepThink(page);
+
+   const element = await page.waitForSelector(composerSelector, { visible: true, timeout: 10000 });
+   const textBefore = workingPrompt;
+
+   await element.evaluate((el, text) => {
+   el.focus();
+   if (el.isContentEditable || el.getAttribute('contenteditable') === 'true') {
+     el.textContent = text;
+     el.dispatchEvent(new Event('input', { bubbles: true }));
+     el.dispatchEvent(new Event('change', { bubbles: true }));
+   } else if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
+     const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+     const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+     if (setter) {
+       setter.call(el, text);
+     } else {
+       el.value = text;
+     }
+     el.dispatchEvent(new Event('input', { bubbles: true }));
+     el.dispatchEvent(new Event('change', { bubbles: true }));
+   } else {
+     el.textContent = text;
+     el.dispatchEvent(new Event('input', { bubbles: true }));
+   }
+
+   const enter = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
+   el.dispatchEvent(new KeyboardEvent('keydown', enter));
+   el.dispatchEvent(new KeyboardEvent('keypress', enter));
+   el.dispatchEvent(new KeyboardEvent('keyup', enter));
+
+   let btn = null;
+   for (const sel of ['button[type="submit"]', '[data-testid="send"]', 'button[aria-label*="send" i]']) {
+   const b = (el.closest('form') || document).querySelector(sel);
+   if (b && b.offsetWidth > 0 && !b.disabled) { b.click(); btn = sel; break; }
+   }
+   if (!btn) {
+   const nearby = el.parentElement?.querySelector('button, [role="button"]');
+   if (nearby && nearby.offsetWidth > 0 && !nearby.disabled) { nearby.click(); btn = 'nearby'; }
+   }
+   const len = (el.value || el.textContent || '').length;
+   return { len, btn };
+   }, workingPrompt);
+
+   await sleep(20);
+   const outcome = await inspectSubmitOutcome(page, composerSelector, workingPrompt, 5000);
+   if (outcome.accepted) {
+     return { textBefore, promptUsed: workingPrompt, shortened: attempt > 0, submitOutcome: outcome };
+   }
+
+   log(`⚠️ Submit did not actually leave the page (${outcome.reason}); promptLen=${workingPrompt.length}; valueLen=${outcome.valueLen}; url=${outcome.url}`);
+   if (attempt >= OVERSIZE_MAX_RETRIES || workingPrompt.length <= OVERSIZE_RETRY_MIN_CHARS) {
+     const err = new Error(`DEEPSEEK_SUBMIT_BLOCKED_OVERSIZE_PROMPT: silent submit block after ${attempt + 1} attempt(s); final promptLen=${workingPrompt.length}`);
+     err.exitCode = 3;
+     err.submitOutcome = outcome;
+     throw err;
+   }
+   workingPrompt = shortenPromptForRetry(workingPrompt, attempt + 1);
+   log(`✂️ Retry with shortened prompt: newLen=${workingPrompt.length} (attempt ${attempt + 1}/${OVERSIZE_MAX_RETRIES})`);
+   await sleep(500);
+ }
 }
 
 // ─── Чтение ответа ──────────────────────────────────────────
@@ -1642,7 +1836,9 @@ async function ask(q) {
      if (effectiveDelay > RATE_LIMIT_MS) {
        log(`⏳ Smart rate limit: backing off ${remaining}s (attempt #${lim.consecutive + 1}, ${effectiveDelay}ms)`);
      }
-     throw new Error(`Rate limit: wait ${effectiveDelay}ms (backoff ${lim.consecutive})`);
+     const rateLimitError = new Error(`Rate limit: wait ${effectiveDelay}ms (backoff ${lim.consecutive})`);
+     rateLimitError.exitCode = 3;
+     throw rateLimitError;
    }
    lim.t = now;
    ensureDirSync(BASE_DIR);
@@ -1750,8 +1946,9 @@ async function ask(q) {
  // ═══ Отправка промпта ══════════════════════════════════════════════════════
  diag.start('PROMPT_SEND');
  diag.phaseStart('prompt_send');
- const { textBefore } = await sendPrompt(page, composerSel, q);
- diag.succeed('PROMPT_SEND', { promptLength: q.length });
+ const sendMeta = await sendPrompt(page, composerSel, q);
+ const { textBefore } = sendMeta;
+ diag.succeed('PROMPT_SEND', { promptLength: q.length, promptUsedLength: sendMeta?.promptUsed?.length || q.length, shortened: !!sendMeta?.shortened, submitReason: sendMeta?.submitOutcome?.reason || null });
  diag.phaseEnd('prompt_send');
  diag.increment('apiRequests', 1);
  diag.snapMemory('after_prompt');
@@ -1831,8 +2028,10 @@ async function ask(q) {
 
  // ═══ Закрытие ═══
  if (isSession) {
- // Сессионный: НЕ закрываем — держим контекст
+ // Сессионный: сохраняем контекст, но обязательно отключаем локальный клиент,
+ // иначе процесс может зависнуть на открытом DevTools/CDP соединении.
  log(`🟢 Сессия "${sessionName}" активна. Браузер открыт.`);
+ await cleanup();
  } else if (shouldClose || !isVisible) {
  // Одиночный: закрываем
  log('🔒 Закрываю...');
@@ -1964,6 +2163,9 @@ process.on('unhandledRejection', e => console.error('❌', e));
         console.error(`\x1b[33m📸 Артефакты ошибки сохранены в .diagnostics/\x1b[0m`);
       } catch {}
     }
+    if (!e.exitCode && shouldExitAsDeepSeekUnreachable(e)) {
+      e.exitCode = 2;
+    }
     console.error(`\x1b[31m❌ ${e.message}\x1b[0m`);
     try {
       if (e && /rate limit/i.test(String(e.message || ''))) {
@@ -1977,6 +2179,6 @@ process.on('unhandledRejection', e => console.error('❌', e));
       }
     } catch {}
     if (!sessionName || shouldClose) await cleanup().catch(() => {});
-    process.exit(1);
+    process.exit(e.exitCode || 1);
   }
 })();

@@ -5,6 +5,9 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
+echo "🧩 Running isolation check..."
+node "$SCRIPT_DIR/isolation-check.js"
+
 echo "📦 Installing dependencies..."
 npm install --silent
 

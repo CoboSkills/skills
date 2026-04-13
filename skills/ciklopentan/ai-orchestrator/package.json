@@ -1,6 +1,6 @@
 {
   "name": "ai-orchestrator",
-  "version": "2.0.4",
+  "version": "2.0.11",
   "description": "DeepSeek AI access via Puppeteer browser automation with CDP interceptor. Network-first pipeline (Phase 1). Persistent daemon (~35ms startup), health checks, graceful shutdown, PM2 management. Configurable via .deepseek.json.",
   "main": "ask-puppeteer.js",
   "bin": {

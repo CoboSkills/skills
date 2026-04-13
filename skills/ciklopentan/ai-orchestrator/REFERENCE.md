@@ -299,7 +299,8 @@ pm2 save          # сохраняет текущие процессы
 
 ### `ask-deepseek.sh` — CLI wrapper
 - Парсит флаги, добавляет дату, вызывает `ask-puppeteer.js`
-- **stdin support**: `cat file \| ask-deepseek.sh "анализ"` или heredoc
+- **stdin support**: `cat file \| ask-deepseek.sh "анализ"`, `ask-deepseek.sh --stdin < file.txt` или heredoc
+- **argv + stdin merge**: если передан и аргумент, и stdin, wrapper собирает промпт как `<аргументы> + пустая строка + <stdin>`
 - **--dry-run**: проверка auth + composer без отправки промпта
 - Без `--daemon`: добавляет `--close` автоматически
 

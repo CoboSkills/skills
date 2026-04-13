@@ -7,33 +7,45 @@ TODAY=$(date '+%Y-%m-%d %H:%M %Z')
 SEARCH_MODE=false
 THINK_MODE=false
 SESSION_NAME="${DEEPSEEK_SESSION:-}"
-SESSION_FLAG=""
-NEW_CHAT=""
-END_SESSION=""
-EXTRA_FLAGS=""
 USE_DAEMON=false
-SEARCH_TEMP_SESSION=false
 DRY_RUN=false
+VISIBLE=false
+WAIT_FOR_AUTH=false
+CLOSE_BROWSER=false
+DEBUG_MODE=false
+VERBOSE_MODE=false
+FORCE_STDIN=false
+START_NEW_CHAT=false
+END_SESSION=false
 QUESTION=""
+STDIN_TEXT=""
+
+SESSION_ARGS=()
+PUPPETEER_ARGS=()
+
+if [[ -n "$SESSION_NAME" ]]; then
+  SESSION_ARGS=(--session "$SESSION_NAME")
+fi
 
 while [[ $# -gt 0 ]]; do
-  case $1 in
+  case "$1" in
     --search) SEARCH_MODE=true; shift ;;
     --think) THINK_MODE=true; shift ;;
     --session)
       SESSION_NAME="$2"
-      SESSION_FLAG="--session $2"
+      SESSION_ARGS=(--session "$2")
       shift 2
       ;;
-    --new-chat) NEW_CHAT="--new-chat"; shift ;;
-    --end-session) END_SESSION="--end-session"; shift ;;
+    --new-chat) START_NEW_CHAT=true; shift ;;
+    --end-session) END_SESSION=true; shift ;;
     --daemon) USE_DAEMON=true; shift ;;
-    --visible) EXTRA_FLAGS="$EXTRA_FLAGS --visible"; shift ;;
-    --wait) EXTRA_FLAGS="$EXTRA_FLAGS --wait"; shift ;;
-    --dry-run) DRY_RUN=true; EXTRA_FLAGS="$EXTRA_FLAGS --dry-run"; shift ;;
-    --close) EXTRA_FLAGS="$EXTRA_FLAGS --close"; shift ;;
-    --debug) EXTRA_FLAGS="$EXTRA_FLAGS --debug"; shift ;;
-    --verbose) EXTRA_FLAGS="$EXTRA_FLAGS --verbose"; shift ;;
+    --visible) VISIBLE=true; shift ;;
+    --wait) WAIT_FOR_AUTH=true; shift ;;
+    --dry-run) DRY_RUN=true; shift ;;
+    --close) CLOSE_BROWSER=true; shift ;;
+    --debug) DEBUG_MODE=true; shift ;;
+    --verbose) VERBOSE_MODE=true; shift ;;
+    --stdin) FORCE_STDIN=true; shift ;;
     --help|-h)
       cat <<'EOF'
 ask-deepseek.sh — универсальный wrapper (Puppeteer с демоном)
@@ -46,6 +58,8 @@ ask-deepseek.sh — универсальный wrapper (Puppeteer с демон�
   ask-deepseek.sh --session work --end-session    — завершить сессию
   ask-deepseek.sh --search "запрос"           — поиск в интернете
   ask-deepseek.sh --daemon                    — использовать демон (быстрее)
+  cat file.txt | ask-deepseek.sh "проанализируй"   — argv + stdin
+  ask-deepseek.sh --stdin < file.txt          — читать промпт из stdin явно
 
 Флаги:
   --session NAME   Имя сессии
@@ -56,10 +70,17 @@ ask-deepseek.sh — универсальный wrapper (Puppeteer с демон�
   --daemon         Использовать фоновый Chrome (ускоряет запросы)
   --visible        Открыть видимый браузер (если нужна авторизация)
   --wait           Ждать ручной авторизации (с --visible)
+  --dry-run        Проверить auth + composer без реального вопроса
+  --stdin          Явно читать тело промпта из stdin
   --close          Закрыть браузер после ответа (без демона)
   --debug          Включить отладку
   --verbose        Подробный лог
   -h, --help       Показать эту справку
+
+stdin / heredoc:
+  Если stdin подключён не к терминалу, wrapper автоматически читает его.
+  Если одновременно передан текст аргументом, итоговый промпт будет:
+  <аргументы> + пустая строка + <stdin>
 
 Демон:
   Запуск демона:   pm2 start deepseek-daemon.js --name deepseek-daemon --no-autorestart
@@ -86,17 +107,28 @@ EOF
   esac
 done
 
-QUESTION=$(echo "$QUESTION" | xargs)
+if [[ "$FORCE_STDIN" = true ]]; then
+  if [[ -t 0 ]]; then
+    echo "Ошибка: --stdin указан, но stdin не передан" >&2
+    exit 1
+  fi
+  STDIN_TEXT=$(cat)
+elif [[ ! -t 0 ]]; then
+  STDIN_TEXT=$(cat)
+fi
 
-# Если вопрос не задан и есть stdin — читаем из stdin (поддержка pipe и heredoc)
-if [[ -z "$QUESTION" && ! -t 0 ]]; then
-  QUESTION=$(cat)
+if [[ -n "$STDIN_TEXT" ]]; then
+  if [[ -n "$QUESTION" ]]; then
+    QUESTION="${QUESTION}"$'\n\n'"${STDIN_TEXT}"
+  else
+    QUESTION="$STDIN_TEXT"
+  fi
 fi
 
 # End session
-if [[ -n "$END_SESSION" ]]; then
+if [[ "$END_SESSION" = true ]]; then
   if [[ -n "$SESSION_NAME" ]]; then
-    node "$SCRIPT_DIR/ask-puppeteer.js" $SESSION_FLAG --end-session 2>/dev/null || true
+    node "$SCRIPT_DIR/ask-puppeteer.js" "${SESSION_ARGS[@]}" --end-session 2>/dev/null || true
     rm -f "$SCRIPT_DIR/.sessions/${SESSION_NAME}.json"
     echo "Сессия '$SESSION_NAME' завершена"
   else
@@ -114,6 +146,7 @@ if [[ -z "$QUESTION" ]]; then
   echo "Ошибка: нужен вопрос. Запусти --help для справки"
   echo "  ask-deepseek.sh \"вопрос\""
   echo "  cat file.txt | ask-deepseek.sh \"проанализируй\""
+  echo "  ask-deepseek.sh --stdin < file.txt"
   echo "  ask-deepseek.sh <<'EOF'"
   echo "  длинный текст"
   echo "  EOF"
@@ -127,13 +160,24 @@ FULL_PROMPT="[Дата: ${TODAY}]"
 FULL_PROMPT="$FULL_PROMPT $QUESTION"
 
 # Флаги для ask-puppeteer.js
-PUPPETEER_FLAGS=""
-[[ "$SEARCH_MODE" = true ]] && PUPPETEER_FLAGS="$PUPPETEER_FLAGS --search"
-[[ "$THINK_MODE" = true ]] && PUPPETEER_FLAGS="$PUPPETEER_FLAGS --think"
-[[ -n "$SESSION_NAME" ]] && PUPPETEER_FLAGS="$PUPPETEER_FLAGS $SESSION_FLAG"
-[[ -n "$NEW_CHAT" ]] && PUPPETEER_FLAGS="$PUPPETEER_FLAGS $NEW_CHAT"
-[[ "$USE_DAEMON" = true ]] && PUPPETEER_FLAGS="$PUPPETEER_FLAGS --daemon"
-[[ -n "$EXTRA_FLAGS" ]] && PUPPETEER_FLAGS="$PUPPETEER_FLAGS $EXTRA_FLAGS"
+[[ "$SEARCH_MODE" = true ]] && PUPPETEER_ARGS+=(--search)
+[[ "$THINK_MODE" = true ]] && PUPPETEER_ARGS+=(--think)
+[[ -n "$SESSION_NAME" ]] && PUPPETEER_ARGS+=("${SESSION_ARGS[@]}")
+[[ "$START_NEW_CHAT" = true ]] && PUPPETEER_ARGS+=(--new-chat)
+[[ "$USE_DAEMON" = true ]] && PUPPETEER_ARGS+=(--daemon)
+[[ "$VISIBLE" = true ]] && PUPPETEER_ARGS+=(--visible)
+[[ "$WAIT_FOR_AUTH" = true ]] && PUPPETEER_ARGS+=(--wait)
+[[ "$DRY_RUN" = true ]] && PUPPETEER_ARGS+=(--dry-run)
+[[ "$CLOSE_BROWSER" = true ]] && PUPPETEER_ARGS+=(--close)
+[[ "$DEBUG_MODE" = true ]] && PUPPETEER_ARGS+=(--debug)
+[[ "$VERBOSE_MODE" = true ]] && PUPPETEER_ARGS+=(--verbose)
+
+PROMPT_FILE="$(mktemp)"
+cleanup_prompt_file() {
+  rm -f "$PROMPT_FILE"
+}
+trap cleanup_prompt_file EXIT
+printf '%s' "$FULL_PROMPT" > "$PROMPT_FILE"
 
 echo "📅 $TODAY"
 [[ -n "$SESSION_NAME" ]] && echo "🔄 Сессия: $SESSION_NAME"
@@ -145,6 +189,15 @@ echo ""
 # Проверяем демон
 if [[ "$USE_DAEMON" = true ]]; then
   if [[ ! -f "$SCRIPT_DIR/.daemon-ws-endpoint" ]]; then
+    # Fallback: daemon session metadata may still be present during restart races.
+    if [[ -f "$SCRIPT_DIR/.sessions/daemon.json" ]]; then
+      daemon_ws=$(node -e 'try{const fs=require("fs");const p=process.argv[1];const j=JSON.parse(fs.readFileSync(p,"utf8"));if(j&&j.browserWSEndpoint)process.stdout.write(j.browserWSEndpoint)}catch(e){}' "$SCRIPT_DIR/.sessions/daemon.json")
+      if [[ -n "$daemon_ws" ]]; then
+        printf '%s' "$daemon_ws" > "$SCRIPT_DIR/.daemon-ws-endpoint"
+      fi
+    fi
+  fi
+  if [[ ! -f "$SCRIPT_DIR/.daemon-ws-endpoint" ]]; then
     echo "❌ Демон не запущен. Запусти: cd \"$SCRIPT_DIR\" && pm2 start deepseek-daemon.js --name deepseek-daemon --no-autorestart"
     exit 1
   fi
@@ -152,14 +205,12 @@ fi
 
 # Запускаем puppeteer
 if [[ "$USE_DAEMON" = true ]]; then
-  node "$SCRIPT_DIR/ask-puppeteer.js" "$FULL_PROMPT" $PUPPETEER_FLAGS 2>&1
+  node "$SCRIPT_DIR/ask-puppeteer.js" --file "$PROMPT_FILE" "${PUPPETEER_ARGS[@]}" 2>&1
 else
   # Без демона — закрываем браузер после
-  node "$SCRIPT_DIR/ask-puppeteer.js" "$FULL_PROMPT" $PUPPETEER_FLAGS --close 2>&1
+  node "$SCRIPT_DIR/ask-puppeteer.js" --file "$PROMPT_FILE" "${PUPPETEER_ARGS[@]}" --close 2>&1
 fi
 
 EXIT_CODE=$?
-
-# Если был временный демон (автозапуск), не убиваем — пусть живёт для следующих запросов
 
 exit $EXIT_CODE

@@ -8,6 +8,16 @@ const SESSION_FILE = path.join(SESSIONS_DIR, 'daemon.json');
 const DAEMON_ENDPOINT_FILE = path.join(__dirname, '.daemon-ws-endpoint');
 const DS_URL = 'https://chat.deepseek.com/';
 
+function unlinkIfMatches(filePath, expectedContent) {
+  try {
+    if (!fs.existsSync(filePath)) return;
+    const current = fs.readFileSync(filePath, 'utf8');
+    if (current === expectedContent) {
+      fs.unlinkSync(filePath);
+    }
+  } catch (e) {}
+}
+
 (async () => {
   console.log('🚀 Запуск DeepSeek Daemon...');
   
@@ -34,11 +44,13 @@ const DS_URL = 'https://chat.deepseek.com/';
 
   // Сохраняем endpoint сразу, чтобы клиенты могли подключиться пока грузится DeepSeek
   const endpoint = browser.wsEndpoint();
-  fs.writeFileSync(DAEMON_ENDPOINT_FILE, endpoint);
-  fs.writeFileSync(SESSION_FILE, JSON.stringify({ 
-    browserWSEndpoint: endpoint, 
+  const sessionPayload = JSON.stringify({ 
+    browserWSEndpoint: endpoint,
+    pid: process.pid,
     created: new Date().toISOString() 
-  }));
+  });
+  fs.writeFileSync(DAEMON_ENDPOINT_FILE, endpoint);
+  fs.writeFileSync(SESSION_FILE, sessionPayload);
   console.log(`✅ Endpoint готов: ${endpoint}`);
   console.log(`📁 Endpoint file: ${DAEMON_ENDPOINT_FILE}`);
   
@@ -99,8 +111,10 @@ const DS_URL = 'https://chat.deepseek.com/';
     console.log(`\n(System) Получен ${signal}, останавливаю демон...`);
     try {
       await browser.close();
-      fs.unlinkSync(DAEMON_ENDPOINT_FILE);
-      fs.unlinkSync(SESSION_FILE);
+    } catch (e) {}
+    try {
+      unlinkIfMatches(DAEMON_ENDPOINT_FILE, endpoint);
+      unlinkIfMatches(SESSION_FILE, sessionPayload);
       console.log('✅ Демон остановлен');
     } catch (e) {}
     process.exit(0);

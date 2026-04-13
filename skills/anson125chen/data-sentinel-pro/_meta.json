@@ -3,9 +3,15 @@
   "slug": "data-sentinel-pro",
   "displayName": "Data Sentinel Pro",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775284751800,
-    "commit": "https://github.com/openclaw/skills/commit/66b17227a98278e9fe44b3d7228a799ba7b4ce19"
+    "version": "1.0.2",
+    "publishedAt": 1775718940264,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775284751800,
+      "commit": "https://github.com/openclaw/skills/commit/66b17227a98278e9fe44b3d7228a799ba7b4ce19"
+    }
+  ]
 }

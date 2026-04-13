@@ -10,11 +10,23 @@ description: >
 
 ## Pricing - 定价方案
 
-| 套餐 | 价格 | 监控 URL | 检查频率 | 通知方式 | 其他功能 |
-|------|------|----------|----------|----------|----------|
-| **免费版** | $0/月 | 1 个 | 每天 1 次 | 无 | 基础监控 |
-| **专业版** | $49/月 | 10 个 | 每 5 分钟 | Telegram/邮件 | 实时告警、历史记录 |
-| **企业版** | $499/月 | 无限 | 每 1 分钟 | Telegram/邮件/SMS/API | 专属部署、API 对接、优先支持 |
+**免费版** - $0/月
+- 监控 URL: 1 个
+- 检查频率：每天 1 次
+- 通知方式：无
+- 其他功能：基础监控
+
+**专业版** - $49/月
+- 监控 URL: 10 个
+- 检查频率：每 5 分钟
+- 通知方式：Telegram/邮件
+- 其他功能：实时告警、历史记录
+
+**企业版** - $499/月
+- 监控 URL: 无限
+- 检查频率：每 1 分钟
+- 通知方式：Telegram/邮件/SMS/API
+- 其他功能：专属部署、API 对接、优先支持
 
 **升级方式：** 联系 ai.agent.anson@qq.com 或访问 https://asmartglobal.com 咨询
 
@@ -82,20 +94,21 @@ description: >
 
 ```bash
 # 手动执行一次检查（核心脚本）
-uv run scripts/monitor.py <url> [rule]
+cd ~/.openclaw/workspace/skills/data-sentinel-pro
+uv run monitor.py <url> [rule]
 
 # 示例：监控价格变化
-uv run scripts/monitor.py https://item.jd.com/123456.html price
+uv run monitor.py https://item.jd.com/123456.html price
 
 # 示例：监控内容变化
-uv run scripts/monitor.py https://example.com content
+uv run monitor.py https://example.com content
 ```
 
 > 💡 提示：完整任务管理（添加/删除/状态）通过 OpenClaw 主程序处理，此脚本用于手动检查。
 
 ## Storage
 
-监控数据存储在 `~/.openclaw/workspace/data-sentinel-pro/monitors.json`
+监控数据存储在 `~/.openclaw/workspace/skills/data-sentinel-pro/data/monitors.json`
 
 格式：
 ```json

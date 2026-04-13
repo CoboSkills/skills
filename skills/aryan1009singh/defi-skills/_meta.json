@@ -3,9 +3,15 @@
   "slug": "defi-skills",
   "displayName": "Agent Intent Skill",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775460864547,
-    "commit": "https://github.com/openclaw/skills/commit/5d8448e5fbb1384ced4ef7f98968f80bee667654"
+    "version": "1.1.1",
+    "publishedAt": 1776073344824,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775460864547,
+      "commit": "https://github.com/openclaw/skills/commit/5d8448e5fbb1384ced4ef7f98968f80bee667654"
+    }
+  ]
 }

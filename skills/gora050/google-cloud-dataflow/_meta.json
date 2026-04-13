@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "google-cloud-dataflow",
+  "displayName": "Google Cloud Dataflow",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775693833499,
+    "commit": null
+  },
+  "history": []
+}

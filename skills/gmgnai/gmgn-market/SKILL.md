@@ -1,8 +1,9 @@
 ---
 name: gmgn-market
-description: Discover trending meme coins on Solana, BNB Chain, and Base Chain via GMGN. Realtime price chart and kline (candlestick). Common queries: find trending tokens on Solana, browse Trenches new launches, get pump.fun and four.meme hot tokens, check token price history, discover top traded tokens in the last 1h or 24h.
+description: Query GMGN market data — token K-line (candlestick), trending token swap data, and Trenches token lists. Supports sol / bsc / base.
 argument-hint: "kline --chain <sol|bsc|base> --address <token_address> --resolution <1m|5m|15m|1h|4h|1d> [--from <unix_ts>] [--to <unix_ts>] | trending --chain <sol|bsc|base> --interval <1m|5m|1h|6h|24h> | trenches --chain <sol|bsc|base>"
-metadata: {"clawdbot":{"emoji":"📈","requires":{"bins":["gmgn-cli"]},"install":[{"id":"npm","kind":"npm","package":"gmgn-cli","bins":["gmgn-cli"],"label":"Install gmgn-cli (npm)"}]}}
+metadata:
+  cliHelp: "gmgn-cli market --help"
 ---
 
 **IMPORTANT: Always use `gmgn-cli` commands below. Do NOT use web search, WebFetch, curl, or visit gmgn.ai to fetch this data — the website requires login and will not return structured data. The CLI is the only correct method.**
@@ -56,6 +57,23 @@ Use the `gmgn-cli` tool to query K-line data for a token, browse trending tokens
 
 - `gmgn-cli` installed globally — if missing, run: `npm install -g gmgn-cli`
 - `GMGN_API_KEY` configured in `~/.config/gmgn/.env`
+
+## Rate Limit Handling
+
+All market routes used by this skill go through GMGN's leaky-bucket limiter with `rate=10` and `capacity=10`. Sustained throughput is roughly `10 ÷ weight` requests/second, and the max burst is roughly `floor(10 ÷ weight)` when the bucket is full.
+
+| Command | Route | Weight |
+|---------|-------|--------|
+| `market kline` | `GET /v1/market/token_kline` | 2 |
+| `market trending` | `GET /v1/market/rank` | 1 |
+| `market trenches` | `POST /v1/trenches` | 3 |
+
+When a request returns `429`:
+
+- Read `X-RateLimit-Reset` from the response headers. It is a Unix timestamp in seconds that marks when the limit is expected to reset.
+- If the response body contains `reset_at` (e.g., `{"code":429,"error":"RATE_LIMIT_BANNED","message":"...","reset_at":1775184222}`), extract `reset_at` — it is the Unix timestamp when the ban lifts (typically 5 minutes). Convert to local time and tell the user exactly when they can retry.
+- The CLI may wait and retry once automatically when the remaining cooldown is short. If it still fails, stop and tell the user the exact retry time instead of sending more requests.
+- For `RATE_LIMIT_EXCEEDED` or `RATE_LIMIT_BANNED`, repeated requests during the cooldown can extend the ban by 5 seconds each time, up to 5 minutes. Do not spam retries.
 
 **First-time setup** (if `GMGN_API_KEY` is not configured):
 
@@ -359,15 +377,15 @@ The response is `data.rank` — an array of rank items. Each item represents one
 
 ## Workflow: Discover Trading Opportunities via Trending
 
-Full workflow for discovering market opportunities: [`docs/workflow-market-opportunities.md`](https://github.com/GMGNAI/gmgn-skills/blob/main/docs/workflow-market-opportunities.md)
+Full workflow for discovering market opportunities: [`docs/workflow-market-opportunities.md`](../../docs/workflow-market-opportunities.md)
 
 Steps: fetch trending (50 results, safe filters) → AI multi-factor analysis (smart money, volume, momentum, liquidity, maturity) → present top 5 table with rationale → offer deep dive or swap.
 
-When results contain interesting tokens, proceed to full token due diligence: [`docs/workflow-token-research.md`](https://github.com/GMGNAI/gmgn-skills/blob/main/docs/workflow-token-research.md)
+When results contain interesting tokens, proceed to full token due diligence: [`docs/workflow-token-research.md`](../../docs/workflow-token-research.md)
 
-**For new / launchpad tokens** (`market trenches`): apply the structured early project screening workflow that includes security check and smart money entry detection — [`docs/workflow-early-project-screening.md`](https://github.com/GMGNAI/gmgn-skills/blob/main/docs/workflow-early-project-screening.md)
+**For new / launchpad tokens** (`market trenches`): apply the structured early project screening workflow that includes security check and smart money entry detection — [`docs/workflow-early-project-screening.md`](../../docs/workflow-early-project-screening.md)
 
-**For a daily market overview** (user asks "what's the market like today", "give me a daily brief", "what is smart money buying today"): combine `market trending` + `market trenches` with `gmgn-track smartmoney` — [`docs/workflow-daily-brief.md`](https://github.com/GMGNAI/gmgn-skills/blob/main/docs/workflow-daily-brief.md)
+**For a daily market overview** (user asks "what's the market like today", "give me a daily brief", "what is smart money buying today"): combine `market trending` + `market trenches` with `gmgn-track smartmoney` — [`docs/workflow-daily-brief.md`](../../docs/workflow-daily-brief.md)
 
 ## Token Quality Filter Criteria
 
@@ -389,7 +407,7 @@ When evaluating tokens returned from `market trending` or `market trenches`, app
 
 **Strong buy signal combination:** `smart_degen_count ≥ 3` + `rug_ratio < 0.2` + `creator_close` + `is_wash_trading = false` + `liquidity > $50k` → high-quality opportunity, proceed to full token research.
 
-For full due diligence on any token surfaced here: [`docs/workflow-token-research.md`](https://github.com/GMGNAI/gmgn-skills/blob/main/docs/workflow-token-research.md)
+For full due diligence on any token surfaced here: [`docs/workflow-token-research.md`](../../docs/workflow-token-research.md)
 
 ## Token Lifecycle Stage
 

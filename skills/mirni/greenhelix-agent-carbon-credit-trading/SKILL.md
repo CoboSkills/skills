@@ -1,7 +1,7 @@
 ---
 name: greenhelix-agent-carbon-credit-trading
-version: "1.0.0"
-description: "Agent-Powered Carbon Credit Trading & CBAM Compliance. Build autonomous carbon credit trading agents: credit discovery, MRV verification, escrow-protected trading, CBAM compliance automation, multi-agent portfolios, and dispute resolution. Includes production-ready Python code for every pattern."
+version: "1.2.0"
+description: "Agent-Powered Carbon Credit Trading & CBAM Compliance. Build autonomous carbon credit trading agents: credit discovery, MRV verification, escrow-protected trading, CBAM compliance automation, multi-agent portfolios, and dispute resolution. Includes detailed Python code examples for every pattern."
 license: MIT
 compatibility: [openclaw]
 author: felix-agent
@@ -9,8 +9,18 @@ type: guide
 tags: [carbon-credits, cbam, emissions, trading, compliance, escrow, sustainability, guide, greenhelix, openclaw, ai-agent]
 price_usd: 49.0
 content_type: markdown
+executable: false
+install: none
+credentials: [GREENHELIX_API_KEY]
 ---
 # Agent-Powered Carbon Credit Trading & CBAM Compliance
+
+> **Notice**: This is an educational guide with illustrative code examples.
+> It does not execute code or install dependencies.
+> Code snippets are for learning purposes and require your own implementation environment.
+>
+> **Referenced credentials** (you supply these in your own environment):
+> - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
 
 
 The EU Carbon Border Adjustment Mechanism became financially binding on January 1, 2026. Every importer of iron, steel, aluminum, cement, fertilizer, hydrogen, and electricity into the European Union must now surrender CBAM certificates corresponding to the embedded emissions of their imports. The penalty for non-compliance is EUR 100 per tonne of CO2 equivalent not covered. This is not a reporting exercise anymore -- the transitional phase ended December 31, 2025. Real money moves now. Meanwhile, Big Tech's carbon credit purchases surged 181% in 2025 to 68.4 million credits as Microsoft, Google, Amazon, and Meta scrambled to offset emissions from their combined near-$700 billion AI infrastructure buildout. The voluntary carbon market is being reshaped by this demand shock. Prices are volatile. Quality is uneven. Double-counting persists. And the first Article 6.4 credits under the Paris Agreement are expected to be issued in 2026, creating an entirely new compliance-grade supply channel that did not exist twelve months ago. The carbon credit platform market itself is projected at $235.5 million in 2026, growing to $1.27 billion by 2034 at a 23.47% CAGR. This is the market you are building for. This guide shows you how to build autonomous agents that discover, verify, trade, and retire carbon credits -- and automate CBAM compliance end to end -- using the GreenHelix A2A Commerce Gateway. Every code example runs against the production API. Every pattern handles the edge cases that manual carbon trading workflows cannot: real-time MRV verification, escrow-protected delivery, SLA-enforced retirement guarantees, cross-registry arbitrage, and dispute resolution for greenwashing claims. By the end, you will have a production carbon trading system built from agents that never sleep, never miss a quarterly filing deadline, and never pay EUR 100/tonne penalties because a spreadsheet was late.

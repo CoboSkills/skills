@@ -2,7 +2,7 @@
 
 # Macro News Signal
 
-> **AI Skill** — An intelligent market analysis skill that transforms real-time global news and key macro indicators into actionable investment insights.
+> **OpenClaw Skill** — Install at [https://clawhub.ai/zhelincheng/macro-news-signal](https://clawhub.ai/zhelincheng/macro-news-signal)
 
 ---
 

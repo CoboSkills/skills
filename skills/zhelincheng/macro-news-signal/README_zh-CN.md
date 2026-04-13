@@ -2,7 +2,7 @@
 
 # 宏观新闻信号 (Macro News Signal)
 
-> **AI Skill** — 一款智能市场分析工具，将实时全球新闻和关键宏观指标转化为可操作的投资洞察。
+> **OpenClaw Skill** — 安装地址：[https://clawhub.ai/zhelincheng/macro-news-signal](https://clawhub.ai/zhelincheng/macro-news-signal)
 
 ---
 

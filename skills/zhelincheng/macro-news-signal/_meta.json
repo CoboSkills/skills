@@ -3,9 +3,15 @@
   "slug": "macro-news-signal",
   "displayName": "Macro News Signal",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1775285032789,
-    "commit": "https://github.com/openclaw/skills/commit/a0e60e783b32af7fdea2d1eccaed1395389b03ec"
+    "version": "1.1.1",
+    "publishedAt": 1775883619533,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1775285032789,
+      "commit": "https://github.com/openclaw/skills/commit/a0e60e783b32af7fdea2d1eccaed1395389b03ec"
+    }
+  ]
 }

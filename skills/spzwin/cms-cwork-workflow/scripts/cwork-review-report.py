@@ -9,6 +9,7 @@ Modes:
 
 Usage:
   python cwork-review-report.py --mode reply --report-id <id> --reply "内容"
+  python cwork-review-report.py --mode reply --report-id <id> --reply "内容" --content-type html
   python cwork-review-report.py --mode reply --report-id <id> --reply "内容" --at "张三"
   python cwork-review-report.py --mode mark-read --report-id <id>
   python cwork-review-report.py --mode pending [--page-size 20]
@@ -23,7 +24,9 @@ import argparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from cwork_client import CWorkClient, make_client, CWorkError, output_json, output_error, resolve_names_to_empids
+from cwork_client import (CWorkClient, make_client, CWorkError,
+                           output_json, output_error, resolve_names_to_empids,
+                           apply_params_file_pre_parse)
 
 
 def parse_args(argv=None):
@@ -32,7 +35,16 @@ def parse_args(argv=None):
                         choices=["reply", "mark-read", "pending"],
                         help="操作模式")
     parser.add_argument("--report-id", help="汇报ID（reply/mark-read模式必填）")
-    parser.add_argument("--reply", help="回复内容（reply模式必填）")
+    parser.add_argument(
+        "--reply",
+        help="回复正文（reply 必填；提交至 API 的 contentHtml，格式由 --content-type 决定）",
+    )
+    parser.add_argument(
+        "--content-type",
+        choices=["html", "markdown"],
+        default="markdown",
+        help="回复内容类型：markdown 支持 [@标题](reportId=…&linkType=report) 等内部链接（默认）；html 时包裹为 <p>…</p>",
+    )
     parser.add_argument("--at", help="被@人的姓名（reply模式可选）")
     parser.add_argument("--page-index", type=int, default=1, help="页码（默认1）")
     parser.add_argument("--page-size", type=int, default=20, help="每页大小（默认20）")
@@ -40,10 +52,13 @@ def parse_args(argv=None):
                         help="汇报类型筛选")
     parser.add_argument("--interactive", action="store_true", help="交互模式")
     parser.add_argument("--dry-run", action="store_true", help="干跑模式")
+    parser.add_argument("--params-file", dest="params_file", default=None,
+                        help="UTF-8 JSON 文件路径，从文件读取参数")
     return parser.parse_args(argv)
 
 
 def main():
+    apply_params_file_pre_parse()
     args = parse_args()
 
     if args.dry_run:
@@ -51,6 +66,7 @@ def main():
             "mode": args.mode,
             "reportId": args.report_id,
             "reply": args.reply,
+            "contentType": args.content_type,
             "at": args.at,
         }
         print("=== DRY RUN PREVIEW ===", file=sys.stderr)
@@ -81,9 +97,15 @@ def main():
             if args.at:
                 at_emp_ids = resolve_names_to_empids(client, [args.at])
 
+            if args.content_type == "html":
+                content_body = f"<p>{args.reply}</p>"
+            else:
+                content_body = args.reply
+
             reply_id = client.reply_report(
                 report_record_id=args.report_id,
-                content_html=f"<p>{args.reply}</p>",
+                content_html=content_body,
+                content_type=args.content_type,
                 add_emp_id_list=at_emp_ids,
                 send_msg=True,
             )

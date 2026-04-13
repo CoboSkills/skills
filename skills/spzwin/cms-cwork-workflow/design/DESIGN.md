@@ -23,8 +23,7 @@
 cms-cwork-workflow/
 ├── SKILL.md                           ← 产品级接口文档
 ├── scripts/
-│   ├── cwork_client.py               ← 共享 HTTP 客户端
-│   ├── cwork_api.py                  ← 共享 API 客户端模块
+│   ├── cwork_client.py               ← 共享 API 客户端（HTTP 封装 + 所有 API 方法）
 │   ├── cwork-search-emp.py           ← 搜索员工
 │   ├── cwork-send-report.py          ← 发送汇报
 │   ├── cwork-query-report.py         ← 查询汇报
@@ -33,32 +32,55 @@ cms-cwork-workflow/
 │   ├── cwork-query-tasks.py          ← 查询任务
 │   ├── cwork-nudge-report.py         ← 催办闭环
 │   ├── cwork-todo.py                 ← 待办管理
-│   └── cwork-templates.py            ← 模板管理
+│   ├── cwork-templates.py            ← 模板管理
+│   └── cwork-draft-box.py            ← 草稿箱列表 / 批量删除（5.24 / 5.28）
 ├── design/
 │   └── DESIGN.md                     ← 本文件
 └── references/
-    ├── api-endpoints.md              ← API 端点文档
-    ├── api-client.md                 ← Python 客户端参考
-    ├── maintenance.md                ← 维护说明
-    └── original-api-client.py        ← 原始客户端参考实现
+    └── maintenance.md                ← Skill 维护/发布参考
 ```
 
 ## 编排脚本架构
 
 ### 客户端层 (`cwork_client.py`)
-- 封装 HTTP 请求逻辑
+- 封装 HTTP 请求逻辑（含 307 重定向处理）
 - 统一错误处理和重试
 - 参数编码和响应解析
-
-### API 层 (`cwork_api.py`)
-- 高级业务 API 调用
-- 数据转换和验证
-- 缓存和状态管理
+- 所有业务 API 方法（`submit_report`、`save_draft` 等）
+- 共享工具函数（`resolve_names_to_empids`、`parse_deadline`、`make_client` 等）
 
 ### 编排脚本层 (`.py`)
 - argparse 命令行参数处理
 - 业务逻辑编排
 - 结构化 JSON 输出
+
+## cwork_client.py API 方法索引
+
+| API 端点 | 方法 |
+|----------|------|
+| `/open-api/cwork-user/searchEmpByName` | `search_emp_by_name()` |
+| `/open-api/work-report/report/record/inbox` | `get_inbox_list()` |
+| `/open-api/work-report/report/record/outbox` | `get_outbox_list()` |
+| `/open-api/work-report/report/info` | `get_report_info()` |
+| `/open-api/work-report/report/record/submit` | `submit_report()` |
+| `/open-api/work-report/report/record/reply` | `reply_report()` |
+| `/open-api/work-report/reportInfoOpenQuery/unreadList` | `get_unread_list()` |
+| `/open-api/work-report/open-platform/report/readReport` | `mark_report_read()` |
+| `/open-api/work-report/report/plan/searchPage` | `search_task_page()` |
+| `/open-api/work-report/report/plan/getSimplePlanAndReportInfo` | `get_simple_plan_and_report_info()` |
+| `/open-api/work-report/open-platform/report/plan/create` | `create_plan()` |
+| `/open-api/work-report/draftBox/saveOrUpdate` | `save_draft()` |
+| `/open-api/work-report/draftBox/listByPage` | `list_drafts()` |
+| `/open-api/work-report/draftBox/detail/{id}` | `get_draft_detail()` |
+| `/open-api/work-report/draftBox/delete/{id}` | `delete_draft()`（路径 id = 5.24 列表项 `id`）；`delete_draft_by_report_id()`（按 `businessId` 查列表再删） |
+| `/open-api/work-report/draftBox/submit/{id}` | `submit_draft()`（5.27，路径 id 为汇报 id） |
+| `/open-api/cwork-file/uploadWholeFile` | `upload_file()` |
+| `/open-api/work-report/template/listTemplates` | `list_templates()` |
+| `/open-api/work-report/reportInfoOpenQuery/todoList` | `get_todo_list()` |
+| `/open-api/work-report/open-platform/todo/completeTodo` | `complete_todo()` |
+| `/open-api/work-report/report/getReportNodeDetail` | `get_report_node_detail()` |
+| — | `get_sender_history()` |
+| — | `search_reports_by_keyword()` |
 
 ## API 覆盖设计
 
@@ -69,7 +91,7 @@ cms-cwork-workflow/
 | 审阅回复 | `cwork-review-report.py` | `reply_report()`, `mark_report_read()` | `{"success": true, "result": {...}}` |
 | 催办闭环 | `cwork-nudge-report.py` | `submit_report(type=12)`, `complete_todo()` | `{"success": true, "action": "nudge"}` |
 | 创建任务 | `cwork-create-task.py` | `create_plan()`, `search_emp_by_name()` | `{"success": true, "planId": "..."}` |
-| 发送汇报 | `cwork-send-report.py` | `submit_report()`, `upload_file()` | `{"success": true, "reportId": "..."}` |
+| 发送汇报 | `cwork-send-report.py` | `save_draft()`, `get_draft_detail()`, `submit_draft()`（5.27）, `upload_file()` | `{"success": true, "reportId": "..."}` |
 | 待办管理 | `cwork-todo.py` | `get_todo_list()`, `complete_todo()` | `{"success": true, "todos": [...]}` |
 | 模板管理 | `cwork-templates.py` | `list_templates()` | `{"success": true, "templates": [...]}` |
 
@@ -135,7 +157,7 @@ Agent → exec: python3 cwork-nudge-report.py identify --days-threshold 7
 
 ---
 
-## 实现状态 (v3.1.0)
+## 实现状态 (v1.0.0)
 
 ### ✅ 已完成
 - [x] 8个编排脚本完整实现
@@ -147,7 +169,7 @@ Agent → exec: python3 cwork-nudge-report.py identify --days-threshold 7
 - [x] **决策/建议/反馈待办完整支持**（v3.1.0 新增）
 - [x] **汇报节点详情查询**（`get_report_node_detail()`）
 
-### 🆕 v3.1.0 新增功能（2026-04-03）
+### 🆕 v1.0.1 新增功能（2026-04-03）
 | 功能 | 说明 | API 接口 |
 |------|------|----------|
 | **决策待办** | 支持同意/不同意操作 | `complete_todo(operate="agree/disagree")` |

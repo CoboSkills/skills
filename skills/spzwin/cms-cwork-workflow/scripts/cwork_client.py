@@ -7,6 +7,7 @@ CWork API Client — 共享 API 封装
   CWORK_BASE_URL  (default: https://sg-al-cwork-web.mediportal.com.cn)
   CWORK_APP_KEY   (required)
 """
+from __future__ import annotations
 
 import os
 import json
@@ -16,6 +17,14 @@ import urllib.parse
 import urllib.error
 import argparse
 from datetime import datetime
+
+# 在模块加载时强制 stdout/stderr 使用 UTF-8，避免在 LANG=en_US 等环境下
+# argparse --help 或任何 print() 输出中文时崩溃
+try:
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+except AttributeError:
+    pass
 
 
 # ---------------------------------------------------------------------------
@@ -226,12 +235,15 @@ class CWorkClient:
 
     def is_report_read(self, report_id: str | int, employee_id: str | int) -> bool:
         return self._get(
-            f"/open-api/work-report/reportInfoOpenQuery/isReportRead"
-            f"?reportId={report_id}&employeeId={employee_id}"
+            "/open-api/work-report/reportInfoOpenQuery/isReportRead",
+            {"reportId": str(report_id), "employeeId": str(employee_id)},
         )
 
     def mark_report_read(self, report_id: str | int) -> None:
-        self._get(f"/open-api/work-report/open-platform/report/readReport?reportId={report_id}")
+        self._get(
+            "/open-api/work-report/open-platform/report/readReport",
+            {"reportId": str(report_id)},
+        )
 
     # -------------------------------------------------------------------------
     # Report — reply / submit / remind
@@ -242,6 +254,7 @@ class CWorkClient:
         main: str,
         content_html: str,
         *,
+        report_id: str | None = None,
         content_type: str = "html",
         type_id: int = 9999,
         grade: str = "一般",
@@ -253,61 +266,11 @@ class CWorkClient:
         report_level_list: list[dict] | None = None,
         file_vo_list: list[dict] | None = None,
     ) -> dict:
-        """Returns {id: string}"""
-        return self._post("/open-api/work-report/report/record/submit", {
-            "appKey": self.app_key,
-            "main": main,
-            "contentHtml": content_html,
-            "contentType": content_type,
-            "typeId": type_id,
-            "grade": grade,
-            "privacyLevel": privacy_level,
-            "planId": plan_id,
-            "templateId": template_id,
-            "acceptEmpIdList": accept_emp_id_list,
-            "copyEmpIdList": copy_emp_id_list,
-            "reportLevelList": report_level_list,
-            "fileVOList": file_vo_list,
-        })
+        """Submit a report. Pass report_id to promote an existing draft.
 
-    def reply_report(
-        self,
-        report_record_id: str,
-        content_html: str,
-        *,
-        add_emp_id_list: list[str] | None = None,
-        send_msg: bool = True,
-    ) -> int:
-        """Returns reply ID"""
-        return self._post("/open-api/work-report/report/record/reply", {
-            "appKey": self.app_key,
-            "reportRecordId": report_record_id,
-            "contentHtml": content_html,
-            "addEmpIdList": add_emp_id_list,
-            "sendMsg": send_msg,
-        })
-
-    # -------------------------------------------------------------------------
-    # Draft box
-    # -------------------------------------------------------------------------
-
-    def save_draft(
-        self,
-        main: str,
-        content_html: str,
-        *,
-        draft_id: str | None = None,
-        content_type: str = "markdown",
-        type_id: int = 9999,
-        grade: str = "一般",
-        privacy_level: str = "非涉密",
-        plan_id: str | None = None,
-        template_id: str | None = None,
-        accept_emp_id_list: list[str] | None = None,
-        copy_emp_id_list: list[str] | None = None,
-        report_level_list: list[dict] | None = None,
-        file_vo_list: list[dict] | None = None,
-    ) -> dict:
+        正文写入 JSON 键 ``contentHtml``（历史命名）；语义由 ``contentType`` 决定，
+        ``markdown`` 时传 Markdown 源码即可。
+        """
         payload = {
             "appKey": self.app_key,
             "main": main,
@@ -323,11 +286,76 @@ class CWorkClient:
             "reportLevelList": report_level_list,
             "fileVOList": file_vo_list,
         }
-        if draft_id is not None:
-            payload["id"] = draft_id
+        if report_id is not None:
+            payload["id"] = report_id
+        return self._post("/open-api/work-report/report/record/submit", payload)
+
+    def reply_report(
+        self,
+        report_record_id: str,
+        content_html: str,
+        *,
+        content_type: str = "html",
+        add_emp_id_list: list[str] | None = None,
+        send_msg: bool = True,
+    ) -> int:
+        """回复汇报。正文写入 ``contentHtml``；``content_type=markdown`` 时为 Markdown。"""
+        return self._post("/open-api/work-report/report/record/reply", {
+            "appKey": self.app_key,
+            "reportRecordId": report_record_id,
+            "contentHtml": content_html,
+            "contentType": content_type,
+            "addEmpIdList": add_emp_id_list,
+            "sendMsg": send_msg,
+        })
+
+    # -------------------------------------------------------------------------
+    # Draft box
+    # -------------------------------------------------------------------------
+
+    def save_draft(
+        self,
+        main: str,
+        content_html: str,
+        *,
+        draft_id: str | None = None,
+        id: str | None = None,  # noqa: A002 — 兼容误用 save_draft(id=汇报id) 的调用方
+        content_type: str = "markdown",
+        type_id: int = 9999,
+        grade: str = "一般",
+        privacy_level: str = "非涉密",
+        plan_id: str | None = None,
+        template_id: str | None = None,
+        accept_emp_id_list: list[str] | None = None,
+        copy_emp_id_list: list[str] | None = None,
+        report_level_list: list[dict] | None = None,
+        file_vo_list: list[dict] | None = None,
+    ) -> dict:
+        """5.23 草稿 saveOrUpdate。正文写入 ``contentHtml``；``content_type=markdown`` 时传 Markdown 字符串。"""
+        effective_draft_id = draft_id if draft_id is not None else id
+        if draft_id is not None and id is not None and str(draft_id) != str(id):
+            raise ValueError("save_draft: pass only one of draft_id and id")
+        payload = {
+            "appKey": self.app_key,
+            "main": main,
+            "contentHtml": content_html,
+            "contentType": content_type,
+            "typeId": type_id,
+            "grade": grade,
+            "privacyLevel": privacy_level,
+            "planId": plan_id,
+            "templateId": template_id,
+            "acceptEmpIdList": accept_emp_id_list,
+            "copyEmpIdList": copy_emp_id_list,
+            "reportLevelList": report_level_list,
+            "fileVOList": file_vo_list,
+        }
+        if effective_draft_id is not None:
+            payload["id"] = effective_draft_id
         return self._post("/open-api/work-report/draftBox/saveOrUpdate", payload)
 
     def list_drafts(self, page_index: int, page_size: int) -> dict:
+        """5.24 草稿箱分页。``data.list[]`` 中 ``id`` 为草稿箱记录 id（用于 5.26 删除）；``businessId`` 为汇报 id（``bizType=report`` 时）。"""
         return self._post("/open-api/work-report/draftBox/listByPage", {
             "pageIndex": page_index,
             "pageSize": page_size,
@@ -336,8 +364,78 @@ class CWorkClient:
     def get_draft_detail(self, report_record_id: str) -> dict:
         return self._get(f"/open-api/work-report/draftBox/detail/{report_record_id}")
 
+    def submit_draft(self, report_id: str) -> bool:
+        """API 5.27: 将草稿转为正式汇报发出。路径参数 id 为汇报 id（与 saveOrUpdate 返回的 id 一致）。"""
+        rid = urllib.parse.quote(str(report_id), safe="")
+        return bool(self._post(f"/open-api/work-report/draftBox/submit/{rid}"))
+
     def delete_draft(self, draft_id: str) -> bool:
-        return self._post(f"/open-api/work-report/draftBox/delete/{draft_id}")
+        """5.26 删除草稿。路径 ``id`` 必须是 **5.24 列表项的 ``id``**（草稿箱记录主键）。
+
+        **不是** ``businessId``，也**不是** 汇报 id（与 5.25/5.27、``--draft-id`` 所用相同的那份汇报 id 不同）。
+        误传汇报 id 时，部分环境仍可能返回 ``data: true``，但草稿仍在列表中。
+        若只有汇报 id，请用 ``delete_draft_by_report_id``。
+        """
+        did = urllib.parse.quote(str(draft_id), safe="")
+        return bool(self._post(f"/open-api/work-report/draftBox/delete/{did}"))
+
+    def delete_draft_by_report_id(
+        self,
+        report_id: str | int,
+        *,
+        page_size: int = 50,
+        max_pages: int = 20,
+    ) -> bool:
+        """按汇报 id 删除草稿：先 5.24 查找 ``bizType=report`` 且 ``businessId`` 匹配的行，再 5.26。
+
+        未在列表中找到对应行时返回 ``False``（不调用删除接口）。
+        """
+        rid = str(report_id)
+        for page in range(1, max_pages + 1):
+            data = self.list_drafts(page_index=page, page_size=page_size)
+            items = data.get("list") or []
+            for row in items:
+                if not isinstance(row, dict):
+                    continue
+                if row.get("bizType") != "report":
+                    continue
+                if str(row.get("businessId")) != rid:
+                    continue
+                box_id = row.get("id")
+                if box_id is None:
+                    continue
+                return self.delete_draft(str(box_id))
+            if len(items) < page_size:
+                break
+        return False
+
+    def batch_delete_drafts(
+        self,
+        *,
+        id_list: list[str | int] | None = None,
+        begin_time_ms: int | None = None,
+        end_time_ms: int | None = None,
+    ) -> int:
+        """5.28 批量删除草稿。开放 API 约定 **时间范围优先**：同时传时间与 idList 时仅按时间删除。
+
+        请求体仅含文档所列字段：``beginTime`` / ``endTime`` 或 ``idList``（草稿箱记录 id，同 5.24 的 ``id``）。
+        """
+        body: dict = {}
+        if begin_time_ms is not None and end_time_ms is not None:
+            body["beginTime"] = int(begin_time_ms)
+            body["endTime"] = int(end_time_ms)
+        elif id_list:
+            body["idList"] = [int(str(x)) for x in id_list]
+        else:
+            raise ValueError(
+                "batch_delete_drafts: 请传入 begin_time_ms 与 end_time_ms，或传入 id_list"
+            )
+        data = self._post("/open-api/work-report/draftBox/batchDelete", body)
+        if isinstance(data, int):
+            return data
+        if data is None:
+            return 0
+        return int(data)
 
     # -------------------------------------------------------------------------
     # Tasks
@@ -413,27 +511,39 @@ class CWorkClient:
     # Todo / feedback
     # -------------------------------------------------------------------------
 
-    def list_created_feedbacks(self, page_num: int, page_size: int) -> dict:
-        return self._post("/open-api/work-report/todoTask/listCreatedFeedbacks", {
-            "pageNum": page_num,
-            "pageSize": page_size,
-        })
+    def list_created_feedbacks(self, emp_id: str | None = None) -> list:
+        """API 5.12: GET, optional empId filter."""
+        params = {}
+        if emp_id is not None:
+            params["empId"] = emp_id
+        return self._get(
+            "/open-api/work-report/todoTask/listCreatedFeedbacks", params
+        )
 
     def get_todo_list(self, page_index: int, page_size: int, *, status: str | None = None) -> dict:
+        """5.15 待办列表。成功时 ``data`` 为 PageInfo（``total`` + ``list``，见开放 API 6.3 / 6.18）。"""
         params = {"pageIndex": page_index, "pageSize": page_size}
         if status:
             params["status"] = status
         return self._post("/open-api/work-report/reportInfoOpenQuery/todoList", params)
 
     def complete_todo(
-        self, todo_id: str, content: str, *, operate: str | None = None
+        self,
+        todo_id: str,
+        content: str,
+        *,
+        content_type: str = "html",
+        operate: str | None = None,
     ) -> bool:
-        return self._post("/open-api/work-report/open-platform/todo/completeTodo", {
+        payload: dict = {
             "appKey": self.app_key,
             "todoId": todo_id,
             "content": content,
-            "operate": operate,
-        })
+            "contentType": content_type,
+        }
+        if operate is not None:
+            payload["operate"] = operate
+        return self._post("/open-api/work-report/open-platform/todo/completeTodo", payload)
 
     # -------------------------------------------------------------------------
     # File upload
@@ -589,6 +699,31 @@ def make_client() -> CWorkClient:
 # CLI argument helpers
 # ---------------------------------------------------------------------------
 
+def flatten_emp_search_bucket(raw) -> list:
+    """Normalize ``inside`` / ``outside`` from searchEmpByName to a flat emp dict list.
+
+    API may return a dict with ``empList``, a list of group dicts (each with
+    ``empList``), or a flat list of employee records.
+    """
+    if raw is None:
+        return []
+    if isinstance(raw, dict):
+        emp_list = raw.get("empList")
+        return list(emp_list) if isinstance(emp_list, list) else []
+    if isinstance(raw, list):
+        out: list = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            nested = item.get("empList")
+            if isinstance(nested, list) and nested:
+                out.extend(nested)
+            elif item.get("id") is not None or item.get("empId") is not None or item.get("empid") is not None:
+                out.append(item)
+        return out
+    return []
+
+
 def parse_deadline(value: str | None) -> int | None:
     """Parse deadline string to milliseconds timestamp."""
     if value is None:
@@ -606,17 +741,128 @@ def parse_deadline(value: str | None) -> int | None:
 
 
 def resolve_names_to_empids(client: CWorkClient, names: list[str]) -> list[str]:
-    """Resolve a list of names to empIds via search API."""
+    """Resolve a list of names to empIds via search API.
+
+    Priority: internal employees (inside) > external contacts (outside).
+    If inside has any matches, outside is ignored entirely.
+    Raises CWorkError if any name is not found or matches more than one employee
+    within the same category (inside or outside).
+    """
     empids = []
     for name in names:
         result = client.search_emp_by_name(name)
-        inside_list = result.get("inside", {}).get("empList", [])
-        outside_list = result.get("outside", {}).get("empList", [])
-        all_emps = inside_list + outside_list
+        inside_list = flatten_emp_search_bucket(result.get("inside"))
+        # Only fall back to outside when inside has no match at all
+        if inside_list:
+            all_emps = inside_list
+        else:
+            all_emps = flatten_emp_search_bucket(result.get("outside"))
         if not all_emps:
-            raise CWorkError(f"No employee found with name: {name}")
-        empids.append(all_emps[0].get("empId") or all_emps[0].get("empid"))
+            raise CWorkError(
+                f'未找到姓名为"{name}"的员工，请确认姓名或直接提供员工 ID'
+            )
+        if len(all_emps) > 1:
+            candidates = [
+                {
+                    "empId": e.get("id") or e.get("empId") or e.get("empid"),
+                    "name": e.get("name", ""),
+                    "title": e.get("title", ""),
+                    "dept": e.get("mainDept", ""),
+                }
+                for e in all_emps
+            ]
+            raise CWorkError(
+                f'"{name}" 匹配到多名员工，请指定唯一员工后重试：'
+                + json.dumps(candidates, ensure_ascii=False)
+            )
+        empids.append(
+            all_emps[0].get("id") or all_emps[0].get("empId") or all_emps[0].get("empid")
+        )
     return empids
+
+
+def apply_params_file(args) -> None:
+    """[Deprecated: use apply_params_file_pre_parse() instead]
+    Post-parse merge — cannot satisfy required argparse args from file.
+    """
+    apply_params_file_pre_parse()
+
+
+def apply_params_file_pre_parse() -> None:
+    """Pre-scan sys.argv for --params-file, load JSON, and inject missing flags
+    back into sys.argv BEFORE argparse.parse_args() is called.
+
+    This allows required arguments (e.g. --mode) to be provided from a file,
+    which is the primary workaround for Windows PowerShell encoding issues when
+    passing Chinese content on the command line.
+
+    Call this at the very start of main(), before parse_args():
+
+        def main():
+            apply_params_file_pre_parse()
+            args = parse_args()
+            ...
+
+    File format example (params.json, UTF-8):
+        {
+          "mode": "inbox",
+          "content": "本周工作进展",
+          "receivers": "张三,李四"
+        }
+
+    cwork-send-report：JSON 键 ``content`` 表示正文（映射 API ``contentHtml``）；旧键 ``content-html`` 同 ``--content-html``。
+
+    CLI args always take precedence over file values.
+    """
+    # Step 1: find --params-file in sys.argv without a full parse
+    params_file = None
+    argv = sys.argv[1:]
+    for i, arg in enumerate(argv):
+        if arg == "--params-file" and i + 1 < len(argv):
+            params_file = argv[i + 1]
+            break
+        if arg.startswith("--params-file="):
+            params_file = arg.split("=", 1)[1]
+            break
+    if not params_file:
+        return
+
+    # Step 2: load the JSON file
+    try:
+        # utf-8-sig strips the UTF-8 BOM that PowerShell Out-File adds by default
+        with open(params_file, "r", encoding="utf-8-sig") as f:
+            file_params = json.load(f)
+    except (OSError, json.JSONDecodeError) as exc:
+        print(
+            json.dumps({"success": False, "error": f"--params-file: {exc}"},
+                       ensure_ascii=False),
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # Step 3: build set of flags already present in sys.argv (CLI wins)
+    existing_flags: set[str] = set()
+    for arg in sys.argv[1:]:
+        if arg.startswith("--"):
+            existing_flags.add(arg.split("=")[0])
+
+    # Step 4: append missing flags to sys.argv
+    extra: list[str] = []
+    for key, value in file_params.items():
+        flag = f"--{key}"
+        if flag in existing_flags:
+            continue
+        if isinstance(value, bool):
+            if value:
+                extra.append(flag)
+        elif isinstance(value, list):
+            for v in value:
+                extra.extend([flag, str(v)])
+        else:
+            extra.extend([flag, str(value)])
+
+    if extra:
+        sys.argv.extend(extra)
 
 
 def _write_utf8(text: str, stream=None) -> None:

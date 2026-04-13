@@ -2,22 +2,17 @@
 name: cms-cwork-workflow
 description: 管理工作协同中的员工查询、汇报处理、待办闭环和任务协作流程。触发词：cwork/CWork/工作协同/发送汇报/发汇报/汇报/申请/周报/待办/任务/催办/搜索员工/查收件箱。
 skillcode: cms-cwork-workflow
-github: https://github.com/xgjk/cwork-skills/tree/main/cwork-skills/cms-cwork-workflow
+github: https://github.com/xgjk/cwork-skills
 dependencies:
   - cms-auth-skills
-version: 1.0.2
+# bump 时须同步修改同目录下 version.json 的 version 字段
+version: 1.0.7
 tools_provided:
   - name: cwork_client
     category: exec
     risk_level: medium
     permission: exec
-    description: CWork API底层HTTP客户端，处理认证和请求封装
-    status: active
-  - name: cwork_api
-    category: exec
-    risk_level: medium
-    permission: exec
-    description: CWork API高级封装，提供业务级接口
+    description: CWork API共享客户端，封装HTTP请求、认证和所有业务API方法
     status: active
   - name: cwork-search-emp
     category: exec
@@ -73,182 +68,59 @@ tools_provided:
     permission: read
     description: 查询汇报模板列表
     status: active
+  - name: cwork-draft-box
+    category: exec
+    risk_level: high
+    permission: write
+    description: 草稿箱列表（5.24）与批量删除草稿（5.28）
+    status: active
 ---
 
-# cms-cwork-workflow — Agent-First Architecture
-
-## 🚀 快速开始
-
-### 发送汇报（推荐流程）
-
-```
-1. 搜索员工确认接收人
-python3 scripts/cwork-search-emp.py --name "张三"
-
-2. 保存草稿（预览）
-python3 scripts/cwork-send-report.py \
-  --title "周报" \
-  --content-html "<p>汇报内容</p>" \
-  --receivers "张三" \
-  --preview-only
-
-3. 确认发送
-python3 scripts/cwork-send-report.py \
-  --title "周报" \
-  --content-html "<p>汇报内容</p>" \
-  --receivers "张三"
-```
-
-### 查询待办
-
-```
-python3 scripts/cwork-todo.py --list
-```
-
-## 推荐工作流程
-
-### 汇报发送标准流程
-
-**推荐**：草稿 → 预览 → 发送（3步）
-
-```
-draft → preview → submit
-```
-
-| 步骤 | 命令 | 说明 |
-|------|------|------|
-| 1. 保存草稿 | `cwork-send-report.py` | 存入草稿箱 |
-| 2. 预览确认 | `cwork-query-report.py --inbox --type draft` | 查看草稿内容 |
-| 3. 确认发送 | `cwork-send-report.py --confirm` | 正式发送 |
-
-**注意**：`--preview-only` 参数只保存草稿不发送，适合需要用户确认的场景。
-
-### API 端点概览
-
-| 功能 | 端点 |
-|------|------|
-| 搜索员工 | `/open-api/employee/simpleList` |
-| 保存草稿 | `/open-api/work-report/draftBox/saveOrUpdate` |
-| 发送汇报 | `/open-api/work-report/report/record/submit` |
-| 查询汇报 | `/open-api/work-report/inbox/pageList` |
-| 创建任务 | `/open-api/work-task/task/createTask` |
-| 待办管理 | `/open-api/work-report/todo/v2/queryPageList` |
-
-## ⚠️ 强制规则（MUST READ）
-
-**所有 CWork API 调用必须使用本 Skill 提供的 Python 脚本，禁止直接使用 curl/HTTP 调用。**
-
-### 为什么必须使用脚本？
-
-#### 1. URL 编码自动处理
-**问题**：API 要求中文参数 URL 编码（UTF-8）
-
-```bash
-# ❌ 错误：中文未编码 → 400 Bad Request
-curl "https://.../searchEmpByName?searchKey=张"
-
-# ✅ 正确：脚本自动编码
-python3 scripts/cwork_api.py search-emp --name "张"
-```
-
-#### 2. 参数验证完整
-**问题**：API 有复杂的参数要求
-
-```bash
-# ❌ 手动调用：缺少参数 → 400/500 错误
-curl -X POST "https://.../submit" -d '{"title":"周报"}'
-
-# ✅ 脚本自动验证：提前报错
-python3 scripts/cwork-send-report.py --title "周报"
-# Error: --content-html is required
-```
-
-#### 3. 错误处理统一
-**问题**：API 错误信息不明确
-
-```bash
-# ❌ 手动调用：看不出具体错误
-curl "https://.../submit"
-# {"resultCode":0,"resultMsg":null}
-
-# ✅ 脚本提供清晰错误
-python3 scripts/cwork-send-report.py --title "周报"
-# {"success":false,"error":"缺少必填项 --content-html","suggestion":"请提供汇报正文"}
-```
-
-#### 4. 重试机制
-**问题**：网络异常导致失败
-
-```bash
-# ❌ 手动调用：网络抖动直接失败
-curl "https://.../api"  # timeout
-
-# ✅ 脚本自动重试：提升成功率
-python3 scripts/cwork_api.py ...  # 自动重试 3 次
-```
-
-### 违规示例（❌ 禁止）
-
-```bash
-# ❌ 禁止：未使用脚本，中文未编码
-curl "https://.../searchEmpByName?searchKey=张"
-
-# ❌ 禁止：未使用脚本，缺少参数验证
-curl -X POST "https://.../submit" -d '{"title":"..."}'
-
-# ❌ 禁止：未使用脚本，类型错误
-curl -d '{"empId":"1514822118611259394"}' ...  # 应该是数字不是字符串
-```
-
-### 正确示例（✅ 必须）
-
-```bash
-# ✅ 正确：使用搜索脚本
-python3 scripts/cwork-query-report.py --mode inbox --page-size 20
-
-# ✅ 正确：使用发送脚本
-python3 scripts/cwork-send-report.py \
-  --title "周报" \
-  --content-html "<p>内容</p>" \
-  --receivers "张三"
-
-# ✅ 正确：使用待办脚本
-python3 scripts/cwork-todo.py list --page-size 20
-```
-
-### 例外情况
-
-**仅当 Python 脚本不可用时**，才可使用 curl，但**必须**：
-1. 参考 `cwork_client.py` 中的编码逻辑
-2. 对中文参数进行 URL 编码（UTF-8）
-3. 手动验证所有必填参数
-4. 处理可能的错误响应
-
-### 调试技巧
-
-如果需要查看脚本的实际请求：
-
-```bash
-# 使用 --debug 参数（如果脚本支持）
-python3 scripts/cwork_api.py search-emp --name "张" --debug
-
-# 查看脚本源码中的编码逻辑
-cat scripts/cwork_client.py | grep urlencode
-```
-
----
+# cms-cwork-workflow
 
 ## 概述
 
-本 Skill 将 CWork（工作协同平台）的完整 API 能力封装为 **9 个意图级编排脚本**，每个脚本独立可执行，Agent 通过 `exec python3 scripts/<name>.py` 调用，JSON 输出到 stdout、错误到 stderr。
+本 Skill 将 CWork（工作协同平台）的完整 API 能力封装为 **多个意图级编排脚本**，每个脚本独立可执行，Agent 通过 `exec python3 scripts/<name>.py` 调用，JSON 输出到 stdout、错误到 stderr。
 
 **设计原则**：
 - **Agent-First**：脚本负责 API 编排，Agent 负责 LLM 推理和用户交互
 - **幂等安全**：所有写操作支持 `--dry-run` / `--preview-only`
-- **零 TypeScript 依赖**：纯 Python 3.10+，仅需标准库
-- **强制封装**：所有 API 调用必须通过脚本，禁止直接 HTTP 调用
-- **TypeScript 参考**保留在 `references/` 目录
+- **零外部依赖**：纯 Python 3.9+，仅需标准库
+- **强制封装**：所有 API 调用必须通过脚本，**禁止直接 HTTP/curl 调用**（脚本已内置 URL 编码、参数验证、错误转换、重试机制）
 
+## 快速开始
+
+### 发送汇报（标准 3 步流程）
+
+```
+1. 搜索接收人，确认 empId
+python3 scripts/cwork-search-emp.py --name "张三"
+
+2. 预览草稿（--preview-only 仅保存草稿，不发送）
+python3 scripts/cwork-send-report.py \
+  --title "周报" --content "<p>内容</p>" \
+  --receivers "张三" --preview-only
+
+3. 确认发送
+python3 scripts/cwork-send-report.py \
+  --title "周报" --content "<p>内容</p>" \
+  --receivers "张三"
+```
+
+### 其他常用命令
+
+```bash
+# 查看未读汇报
+python3 scripts/cwork-query-report.py --mode unread
+
+# 查看待办列表
+python3 scripts/cwork-todo.py list --page-size 20
+
+# 查询我的任务
+python3 scripts/cwork-query-tasks.py --mode my
+```
+
+---
 
 ## 9 个编排命令
 
@@ -326,38 +198,79 @@ python3 scripts/cwork-search-emp.py --name "张" --output-raw
 
 ### 1. 发送汇报 — `cwork-send-report.py`
 
-**意图**：搜索接收人 → 校验 → 保存草稿 → 预览 → 发送 → 清理草稿
+**意图**：先**全量**保存/更新草稿（5.23，更新前会拉 5.25 详情合并，避免覆盖丢字段）→ 输出接口返回的**完整**草稿（`draftDetail`）供用户过目 → 仅在用户明确同意后加 `--confirm-send` 调用 **5.27**（`draftBox/submit/{汇报id}`）发出。
+
+**汇报 id 与 `draftId` 字段（避免歧义）**
+
+| 概念 | 含义 | 出现位置 |
+|------|------|----------|
+| **汇报 id** | 草稿对应的汇报记录主键 | 5.23 返回 `data.id`、5.25 路径与 `draftDetail.id`、5.27 路径 `{id}` |
+| **草稿箱记录 id** | 草稿箱列表里一行的主键，**仅用于 5.26 删除** | 5.24 列表项的 `id`（勿与汇报 id 混用） |
+
+**删除草稿（`cwork_client`）**：`delete_draft` 的参数必须是 **5.24 列表项的 `id`**。若只有汇报 id（与列表里的 `businessId` 相同），须调用 **`delete_draft_by_report_id(汇报id)`**；误把汇报 id 传给 `delete_draft` 时，接口可能仍返回 `true` 但列表中草稿未删（见开放 API 5.26 与 5.24 参数说明）。
+
+脚本 stdout 里同时有根字段 **`reportId`** 与 **`draftId`**：二者**不是**两种 id，而是**同一汇报 id 的重复输出**——`draftId` **并非**开放平台文档里的字段名，而是本脚本为衔接历史参数 `--draft-id` 而保留的 JSON 键名，容易让人误以为是「草稿箱 id」。**以 `reportId` / `draftDetail.id` 为准即可**；后续步骤一律传该汇报 id（`--draft-id <汇报id>` 中的值也是它）。
 
 ```bash
+# 第一步：保存草稿并输出完整预览（默认不会发出）
 python3 scripts/cwork-send-report.py \
   --title "周报标题" \
-  --content-html "<p>汇报内容</p>" \
+  --content "<p>汇报内容</p>" \
   --receivers "张三,李四" \
   --grade "一般"
+
+# 第二步：用户确认 draftDetail 全文后，仅发出（无需再传标题正文）
+python3 scripts/cwork-send-report.py --draft-id "<汇报id>" --confirm-send
+
+# 一步保存并发出（仍须显式 --confirm-send，表示已确认预览）
+python3 scripts/cwork-send-report.py \
+  --title "周报标题" \
+  --content "<p>汇报内容</p>" \
+  --receivers "张三" \
+  --confirm-send
+
+# Markdown 正文（须 --content-type markdown）
+python3 scripts/cwork-send-report.py \
+  --title "周报标题" \
+  --content-type markdown \
+  --content "## 小节\n正文" \
+  --receivers "张三"
 ```
+
+**正文（编排侧只认 `content`）**
+
+- 汇报正文：CLI 用 **`--content`** / **`-c`**，`--params-file` 用键 **`content`**。脚本负责与接口字段对齐，**Agent 只需按 `content` 理解正文**。
+- Markdown：须同时指定 **`--content-type markdown`**。
+- 新建未传 `--content-type` 时脚本默认 `html`；带 `--draft-id` 更新且未传时沿用草稿详情中的正文类型。
+- **`--content-html`** 可选，与 **`--content` 二选一**（兼容旧自动化，勿同时使用）。
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
-| `--title` / `-t` | ✅ | 汇报标题 |
-| `--content-html` / `-c` | ✅ | 正文 HTML |
-| `--receivers` / `-r` | ❌ | 接收人姓名（逗号分隔，自动解析 empId） |
-| `--cc` | ❌ | 抄送人姓名 |
+| `--title` / `-t` | 保存草稿时 ✅ | 汇报标题（与 `--draft-id --confirm-send` 单独发出时勿传） |
+| `--content` / `-c` | 保存草稿时 ✅ | 汇报正文 |
+| `--content-html` | ❌ | [兼容] 同 `--content` |
+| `--content-type` | ❌ | 正文格式：`html` 或 `markdown`（默认与更新沿用规则见上文） |
+| `--receivers` / `-r` | ❌ | 接收人姓名；**多个姓名**可用英文逗号 `,`、中文逗号 `，`、顿号 `、` 或分号 `;`/`；` 分隔（勿整串写成一人）。更新时若省略则沿用草稿详情中的接收人。**若本次传了姓名**且草稿已有 `reportLevelList`（且未使用 `--report-level-json`），脚本会把解析后的 empId **写回**对应节点的 `levelUserList`，与开放 API「接收人以 `reportLevelList` 为准」一致，避免仅 `summary` 显示新人而 `draftDetail` 仍为旧人 |
+| `--cc` | ❌ | 抄送；分隔规则同 `--receivers` |
 | `--grade` | ❌ | 优先级：`一般`（默认）/ `紧急` |
 | `--type-id` | ❌ | 汇报类型 ID（默认 9999） |
-| `--file-paths` | ❌ | 本地附件路径（最多 10 个） |
+| `--file-paths` | ❌ | 本地附件；**未传且为更新**时沿用草稿已有附件 |
 | `--file-names` | ❌ | 附件显示名称 |
-| `--plan-id` | ❌ | 关联的任务 ID |
-| `--preview-only` | ❌ | 仅保存草稿+预览，不发送 |
-| `--draft-id` | ❌ | 已有草稿 ID（更新模式） |
+| `--plan-id` | ❌ | 关联任务 ID |
+| `--report-level-json` | ❌ | JSON 文件路径，`reportLevelList` 数组，覆盖流程节点 |
+| `--preview-only` | ❌ | 仅保存+预览；**即使带 `--confirm-send` 也不会发出** |
+| `--draft-id` | ❌ | **值为汇报 id**（参数名历史沿用）：更新草稿或配合 `--confirm-send` 仅执行 5.27 |
+| `--confirm-send` | ❌ | **必须**在用户确认完整 `draftDetail` 后再加，才会调用 5.27 |
+| `--allow-minimal-body` | ❌ | 跳过「正文过短」校验（默认纯文本长度 **≤10** 会拒绝保存，**超过 10 字**不拦截；极短占位可加本参数） |
 
 **流程步骤**：
-1. **Resolve** — 按姓名搜索员工，精确匹配返回 empId
-2. **Validate** — 未找到或多于一个匹配时报错终止
-3. **Upload** — 上传本地文件（如有）
-4. **Draft** — 调草稿 API 保存，返回 draftId
-5. **Preview** — 输出结构化预览 JSON（含 confirmPrompt 供 Agent 展示）
-6. **Submit** — 确认后发送汇报
-7. **Cleanup** — 发送成功后删除草稿
+1. **Resolve** — 按姓名搜索员工；本轮回填的姓名参与合并，未填则沿用 5.25 详情中的接收人/抄送
+2. **Validate** — 姓名未找到或多匹配时报错终止
+3. **Upload** — 若传了 `--file-paths` 则上传并作为附件；否则更新时保留原附件列表
+4. **Detail（更新时）** — 若有 `--draft-id`，先 `get_draft_detail` 再与本次参数合并，并用于正文长度校验（未传 `--allow-minimal-body` 时）
+5. **Draft（5.23）** — 全量 `saveOrUpdate`，返回汇报 id
+6. **Preview** — 再次 `get_draft_detail`，stdout 含完整 **`draftDetail`**（含全文**正文**）及 **`summary`**。`summary` 的 `contentPlainText` / `contentPreview` 为便于速览的纯文本预览（对 HTML 标签做了剥离；Markdown 正文通常无标签，与 `--content` 接近）；过长截断；过短有 `previewWarnings`。`confirmPrompt` 内嵌预览（≤2000 字）。**向用户确认时以完整 `draftDetail` 为准**，不要只用 `summary`。
+7. **Submit（5.27）** — 仅当 `--confirm-send` 且非 `--preview-only` 时 `submit`；**不要**再用 5.1 无 id 提交，以免产生重复汇报与孤儿草稿
 
 ---
 
@@ -405,6 +318,8 @@ python3 scripts/cwork-query-report.py --mode keyword-search \
 | `--report-type` | 汇报类型：1-工作交流 / 2-工作指引 / 3-文件签批 / 4-AI汇报 / 5-工作汇报 |
 | `--status` | 已读状态：0=未读 / 1=已读 |
 | `--start-date` / `--end-date` | 时间范围（YYYY-MM-DD） |
+
+**收件箱 / 发件箱列表 vs 详情**：`inbox` / `outbox` / `pending` / `unread` / `my-sent`（与 `outbox` 同脚本路径）等模式返回的 **`data` 为接口原始分页结构**（常见含 `list`、`total`）。列表项里的「正文」类字段多为**摘要**，与 `send-report` 的 `--content` 全文不一定一致；需要全文或完整字段时请用 **`--mode detail --report-id`**（或 `node-detail`）拉详情。
 
 **输出格式**（sender-history）：
 ```json
@@ -494,16 +409,16 @@ python3 scripts/cwork-create-task.py \
 | 参数 | 必填 | 说明 |
 |------|------|------|
 | `--task-main` | ✅ | 任务标题 |
-| `--content` | ✅ | 任务描述（needful） |
+| `--content` | ✅ | 任务描述 |
 | `--target` | ❌ | 预期目标（默认 = content） |
 | `--assignee` | ❌ | 责任人姓名（自动解析 empId） |
-| `--report-to` | ❌ | 汇报人姓名 |
+| `--report-to` | ❌ | 汇报人姓名（不传则自动取 `--assignee` 的值；API 要求必填） |
 | `--assistant` | ❌ | 协办人姓名（逗号分隔多人） |
 | `--supervisor` | ❌ | 监督人姓名 |
 | `--copy` | ❌ | 抄送人姓名（逗号分隔多人） |
 | `--observer` | ❌ | 观察员姓名（逗号分隔多人） |
 | `--deadline` | ❌ | 截止时间（YYYY-MM-DD 或 Unix ms，默认 7 天后） |
-| `--push-now` | ❌ | 是否立即推送（true/false，默认 true） |
+| `--push-now` | ❌ | 是否立即推送（true/false，默认 true）。开放 API 文档未说明 `pushNow=0` 时的额外字段；若服务端报「待办发送时间未设置」等错误，需向接口提供方确认是否另有未文档化参数或是否暂不支持延迟推送 |
 | `--dry-run` | ❌ | 仅验证+解析，不创建 |
 
 **流程步骤**：
@@ -523,7 +438,7 @@ python3 scripts/cwork-create-task.py \
 # 标记已读
 python3 scripts/cwork-review-report.py --mode mark-read --report-id <id>
 
-# 回复
+# 回复（默认 markdown，可发内部链接；需纯 HTML 段落可加 --content-type html）
 python3 scripts/cwork-review-report.py --mode reply \
   --report-id <id> --reply "回复内容"
 
@@ -535,7 +450,8 @@ python3 scripts/cwork-review-report.py --mode pending --page-size 20
 |------|------|
 | `--mode` | `reply` / `mark-read` / `pending` |
 | `--report-id` | 汇报记录 ID（reply / mark-read 必填） |
-| `--reply` | 回复内容纯文本（reply 必填，脚本自动包裹 HTML） |
+| `--reply` | 回复正文（reply 必填；格式由 `--content-type` 决定） |
+| `--content-type` | `markdown`（默认）或 `html`（`html` 时包成 `<p>…</p>`） |
 | `--at` | 回复中 @的人姓名（自动解析 empId） |
 | `--page-index` | 页码（pending 模式，默认 1） |
 | `--page-size` | 每页大小（pending 模式，默认 20） |
@@ -572,7 +488,7 @@ python3 scripts/cwork-query-tasks.py --mode blocked --days-threshold 7
 | `--subordinate-ids` | 下属 empId 列表（逗号分隔，manager 模式必填） |
 | `--assignee` | 责任人姓名（my / assigned 模式可选，自动解析 empId） |
 | `--status` | 任务状态：0=已关闭 / 1=进行中 / 2=未启动 |
-| `--report-status` | 汇报状态：1=已逾期 / 2=未逾期 |
+| `--report-status` | 汇报状态：0=关闭 / 1=待汇报 / 2=已汇报 / 3=逾期 |
 | `--key-word` | 关键词搜索 |
 | `--days-threshold` | 逾期天数阈值（blocked 模式，默认 7） |
 | `--page-index` | 页码（默认 1） |
@@ -583,46 +499,40 @@ python3 scripts/cwork-query-tasks.py --mode blocked --days-threshold 7
 
 ### 6. 催办闭环 — `cwork-nudge-report.py`
 
-**意图**：识别未闭环事项 → 生成催办文案 → 发送催办
+**意图**：列出逾期未闭环任务 / 向责任人发送催办通知
 
 ```bash
-# 第1步：识别未闭环任务
-python3 scripts/cwork-nudge-report.py identify \
-  --item-type task --days-threshold 7 --user-id <empId>
+# 列出逾期未闭环任务（超过阈值天数）
+python3 scripts/cwork-nudge-report.py --mode list --days-threshold 7
 
-# 第2步：生成催办文案（规则模板，不依赖 LLM）
-python3 scripts/cwork-nudge-report.py reminder \
-  --item-id <id> --recipient "张三" \
-  --days-unresolved 14 --original "完成XXX" --style polite
+# 向责任人发送催办（通过 empId）
+python3 scripts/cwork-nudge-report.py --mode nudge \
+  --emp-id <empId> \
+  --task-main "完成XXX功能" \
+  --deadline 2026-05-01 \
+  --content "请尽快处理"
 
-# 第3步：发送催办（通过回复触发通知）
-python3 scripts/cwork-nudge-report.py nudge \
-  --report-id <id> --content-html "<p>催办内容</p>"
+# 通过姓名自动解析 empId 并催办
+python3 scripts/cwork-nudge-report.py --mode nudge \
+  --assignee "张三" \
+  --task-main "完成XXX功能" \
+  --remind-style normal
 ```
 
 | 参数 | 说明 |
 |------|------|
-| `action` | `identify` / `reminder` / `nudge` |
-| `--item-type` | `task` / `decision` / `feedback` |
-| `--days-threshold` | 超期天数阈值（默认 7） |
-| `--user-id` | 检查指定用户的任务 |
-| `--item-id` | 事项 ID（reminder 用） |
-| `--recipient` | 催办接收人姓名 |
-| `--days-unresolved` | 未解决天数 |
-| `--original` | 原始任务/决策描述 |
-| `--style` | 催办风格：`polite` / `urgent` / `formal` |
-| `--report-id` | 催办回复的汇报 ID（nudge 用） |
-| `--content-html` | 催办内容 HTML（nudge 用） |
-
-**识别逻辑**：
-- 查询活跃任务（status ≠ 0）
-- 计算 `now - lastReportTime` 的天数差
-- 超过阈值 → 标记为未闭环，附带建议行动
-
-**催办文案**（规则模板）：
-- 三种风格：礼貌 / 紧急 / 正式
-- 包含：标题、问候、事项描述、紧迫度、结束语
-- Agent 可在此基础上调用 LLM 进一步优化
+| `--mode` | `list`=列出未闭环 / `nudge`=发送催办 |
+| `--days-threshold` | 逾期天数阈值（list 模式，默认 7） |
+| `--page-index` | 页码（list 模式，默认 1） |
+| `--page-size` | 每页大小（list 模式，默认 50） |
+| `--emp-id` | 催办对象 empId（nudge 必填，与 `--assignee` 二选一） |
+| `--assignee` | 责任人姓名（nudge 模式，自动解析 empId） |
+| `--task-main` | 任务名称（nudge 必填） |
+| `--deadline` | 截止日期（YYYY-MM-DD 或 Unix ms） |
+| `--content` | 催办内容描述（脚本自动构建 HTML 正文） |
+| `--target` | 目标描述 |
+| `--remind-style` | 催办风格：`polite`（默认，含礼貌用语）/ `normal`（简洁） |
+| `--dry-run` | 仅预览，不调用 API |
 
 ---
 
@@ -638,7 +548,7 @@ python3 scripts/cwork-nudge-report.py nudge \
 | **反馈** | `feedback` | `--content` | 反馈人回复评论或补充信息 |
 
 ```bash
-# 查询待办列表
+# 查询待办列表（5.15 分页结构为 PageInfo，条目见 items，字段含 todoId、reportId、main、todoType 等）
 python3 scripts/cwork-todo.py list --page-size 20 --status pending
 
 # 完成决策待办（必须指定 operate）
@@ -658,7 +568,7 @@ python3 scripts/cwork-todo.py complete \
   --content "已补充相关数据，详见附件"
 
 # 查看汇报详情（含节点与处理意见）
-python3 scripts/cwork-query-report.py node-detail --report-id <id>
+python3 scripts/cwork-query-report.py --mode node-detail --report-id <id>
 ```
 
 | 参数 | 说明 |
@@ -669,7 +579,7 @@ python3 scripts/cwork-query-report.py node-detail --report-id <id>
 | `--status` | 状态筛选 |
 | `--todo-id` | 待办 ID（complete 必填） |
 | `--content` | 完成说明（所有类型必填） |
-| `--operate` | 决策操作：`agree`（同意）/ `disagree`（不同意）（可选，默认 `complete`） |
+| `--operate` | 决策操作：`agree`（同意）/ `disagree`（不同意）（仅决策类待办需要，不传则不发送此字段） |
 | `--dry-run` | 仅预览（complete 可用） |
 
 **输出格式**（complete）：
@@ -699,9 +609,9 @@ python3 scripts/cwork-templates.py list --begin-time 1710000000000 --end-time 17
 | 参数 | 说明 |
 |------|------|
 | `action` | `list` |
-| `--limit` | 参数已接收但当前实现未传给 API，暂无效 |
-| `--begin-time` | 参数已接收但当前实现未传给 API，暂无效 |
-| `--end-time` | 参数已接收但当前实现未传给 API，暂无效 |
+| `--limit` | 返回数量限制（默认 50） |
+| `--begin-time` | 开始时间戳（毫秒） |
+| `--end-time` | 结束时间戳（毫秒） |
 | `--output-raw` | 输出原始 API 响应 |
 
 **输出字段**：
@@ -713,34 +623,117 @@ python3 scripts/cwork-templates.py list --begin-time 1710000000000 --end-time 17
 
 ---
 
-## 共享 API 模块 — `cwork_api.py`
+### 9. 草稿箱列表与批量删除 — `cwork-draft-box.py`
 
-所有脚本共用 `scripts/cwork_api.py` 中的 `CWorkClient` 类。该模块封装了：
+**意图**：分页查看草稿箱（5.24）；按草稿箱记录 id 列表或时间范围批量删除（5.28）。**`--ids` 须为 5.24 返回的 `draftBoxId`（列表项 `id`），不是汇报 id / `businessId`**；仅持有汇报 id 时请用 `cwork_client.delete_draft_by_report_id`。
 
-| API 端点 | 方法 |
-|----------|------|
-| `/open-api/cwork-user/searchEmpByName` | `search_emp_by_name()` |
-| `/open-api/work-report/report/record/inbox` | `get_inbox_list()` |
-| `/open-api/work-report/report/record/outbox` | `get_outbox_list()` |
-| `/open-api/work-report/report/info` | `get_report_info()` |
-| `/open-api/work-report/report/record/submit` | `submit_report()` |
-| `/open-api/work-report/report/record/reply` | `reply_report()` |
-| `/open-api/work-report/reportInfoOpenQuery/unreadList` | `get_unread_list()` |
-| `/open-api/work-report/open-platform/report/readReport` | `mark_report_read()` |
-| `/open-api/work-report/report/plan/searchPage` | `search_task_page()` |
-| `/open-api/work-report/report/plan/getSimplePlanAndReportInfo` | `get_simple_plan_and_report_info()` |
-| `/open-api/work-report/open-platform/report/plan/create` | `create_plan()` |
-| `/open-api/work-report/draftBox/saveOrUpdate` | `save_draft()` |
-| `/open-api/work-report/draftBox/listByPage` | `list_drafts()` |
-| `/open-api/work-report/draftBox/detail/{id}` | `get_draft_detail()` |
-| `/open-api/work-report/draftBox/delete/{id}` | `delete_draft()` |
-| `/open-api/cwork-file/uploadWholeFile` | `upload_file()` |
-| `/open-api/work-report/template/listTemplates` | `list_templates()` |
-| `/open-api/work-report/reportInfoOpenQuery/todoList` | `get_todo_list()` |
-| `/open-api/work-report/open-platform/todo/completeTodo` | `complete_todo()` |
-| `/open-api/work-report/report/getReportNodeDetail` | `get_report_node_detail()` |
-| — | `get_sender_history()` ✨ v3.1.1 新增 |
-| — | `search_reports_by_keyword()` ✨ v3.1.1 新增 |
+```bash
+python3 scripts/cwork-draft-box.py list --page-size 20
+python3 scripts/cwork-draft-box.py batch-delete --ids 2036325013120483329,2036325013120483330
+python3 scripts/cwork-draft-box.py batch-delete --begin-ms 1711785600000 --end-ms 1711872000000 --dry-run
+```
+
+开放 API 约定 **时间范围优先**：同时传时间与 `idList` 时仅执行时间范围删除。
+
+---
+
+## `reportLevelList` 字段格式
+
+`cwork-send-report.py` 可通过 **`--report-level-json`** 指向 UTF-8 JSON 文件（根节点为数组），内容对应 API 字段 `reportLevelList`，用于指定建议人/决策人/传阅等节点；不传时新建草稿可为空，**更新**时默认从 5.25 详情中的 `reportLevelList` 原样转换后写回，避免全量更新被清空。每个节点结构如下：
+
+```python
+report_level_list = [
+    {
+        "level": 1,                              # 节点序号（从1开始）
+        "nodeName": "建议人",                     # 节点显示名称
+        "type": "suggest",                       # suggest=建议 | decide=决策 | read=传阅
+        "levelUserList": [
+            {"empId": 1512393035869810694},       # empId 必须是整数（非字符串）
+        ],
+    }
+]
+```
+
+> ⚠️ `type` 只接受英文小写 `suggest` / `decide` / `read`，不接受中文。`levelUserList` 是必填字段，不可为 `null` 或空列表。
+
+---
+
+## Agent 调用模式
+
+### 模式 A：简单查询（单次 exec）
+
+```
+用户：「帮我看看今天有没有未读汇报」
+Agent → exec: python3 scripts/cwork-query-report.py --mode unread --page-size 10
+Agent ← JSON → 摘要呈现给用户
+```
+
+### 模式 B：多步编排（Agent 协调多次 exec）
+
+```
+用户：「给张三发一份周报，内容是XXX」
+Agent → exec: python3 scripts/cwork-send-report.py \
+          --title "周报" --content "..." --receivers "张三"
+Agent ← JSON（含完整 draftDetail、confirmPrompt；默认不会发出）
+Agent → 向用户展示 **draftDetail 全文**（含正文、附件、`reportLevelList`）
+用户：「确认」
+Agent → exec: python3 scripts/cwork-send-report.py \
+          --draft-id "<上一步的 reportId（与 draftId 同值）>" --confirm-send
+Agent ← JSON（success、已通过 5.27 发出）
+Agent → 告知发送成功
+```
+
+### 模式 C：催办闭环（3步分离）
+
+```
+Agent → exec: python3 scripts/cwork-nudge-report.py --mode list --days-threshold 7
+Agent ← JSON（未闭环列表）
+Agent → （LLM 推理）筛选需要催办的事项
+Agent → exec: python3 scripts/cwork-nudge-report.py --mode nudge \
+          --emp-id <empId> --task-main "任务名" --deadline YYYY-MM-DD --content "催办说明"
+Agent ← JSON（已发送催办汇报）
+```
+
+---
+
+## 错误处理
+
+所有脚本遵循统一错误约定：
+- **成功**：JSON 到 stdout，含 `"success": true`
+- **失败**：JSON 到 stderr，含 `"success": false` 和 `"error"` 字段，exit code ≠ 0
+- **Agent 应同时检查 stdout 和 stderr**
+
+遇到 API 异常（如 `API Error (2xxxxx)`）时：请自动调用GitHub工具上报错误(如有)。
+
+### 通用参数
+
+所有脚本均支持以下通用参数：
+
+| 参数 | 说明 |
+|------|------|
+| `--params-file <path>` | 从 UTF-8 JSON 读参数，key 与 CLI 一致（连字符）。解决 PowerShell 中文编码问题。发送汇报时正文键用 **`content`**；旧键 **`content-html`** 仍兼容。 |
+
+**多行正文（JSON 合法性）**：字符串值内若需换行，须写转义序列 `\n`；**不要**在 JSON 引号对内直接敲物理换行，否则 `json.load` 会报 `Expecting delimiter`。
+
+**`content-type` 与展示**：脚本会把 `markdown` / `html` 按开放 API 传入 `contentType`。若产品在客户端将正文按 HTML 渲染、Markdown 仅当纯文本显示，则需在编排侧自行将 Markdown 转为 HTML 后以 `html` 提交，或向接口/产品确认是否支持 Markdown 渲染（勿在客户端臆造文档未列字段）。
+
+**用法示例**：
+
+```json
+{
+  "title": "周报标题",
+  "content": "<p>汇报内容</p>",
+  "receivers": "张三"
+}
+```
+
+```bash
+python3 scripts/cwork-send-report.py --params-file params.json
+```
+
+> 文件参数与命令行参数可混用，命令行参数优先级更高。文件必须为 UTF-8 编码（带或不带 BOM 均支持）。
+
+---
 
 ## 目录结构
 
@@ -748,8 +741,7 @@ python3 scripts/cwork-templates.py list --begin-time 1710000000000 --end-time 17
 cms-cwork-workflow/
 ├── SKILL.md                          ← 本文件（意图级接口文档）
 ├── scripts/
-│   ├── cwork_api.py                  ← 共享 API 客户端模块
-│   ├── cwork_client.py               ← 低层 HTTP 客户端
+│   ├── cwork_client.py               ← 共享 API 客户端（HTTP 封装 + 所有 API 方法）
 │   ├── cwork-search-emp.py           ← 0. 搜索员工 ✨ v3.2.0 新增
 │   ├── cwork-send-report.py          ← 1. 发送汇报
 │   ├── cwork-query-report.py         ← 2. 查询汇报
@@ -758,55 +750,19 @@ cms-cwork-workflow/
 │   ├── cwork-query-tasks.py          ← 5. 查询任务
 │   ├── cwork-nudge-report.py         ← 6. 催办闭环
 │   ├── cwork-todo.py                 ← 7. 待办管理
-│   └── cwork-templates.py            ← 8. 模板管理
-└── references/                       ← TypeScript 源码参考（保留）
-    ├── api-client.md
-    ├── api-endpoints.md
-    └── maintenance.md
+│   ├── cwork-templates.py            ← 8. 模板管理
+│   └── cwork-draft-box.py            ← 草稿箱列表 / 批量删除（5.24 / 5.28）
+├── design/
+│   └── DESIGN.md                     ← 架构设计文档
+└── references/
+    └── maintenance.md                ← Skill 维护/发布参考（非 Cursor 规则）
 ```
 
-## Agent 调用模式
+---
 
-### 模式 A：简单查询（单次 exec）
+## 参考资料
 
-```
-用户：「帮我看看今天有没有未读汇报」
-Agent → exec: python3 scripts/cwork-query-report.py unread --page-size 10
-Agent ← JSON → 摘要呈现给用户
-```
+> 正常调用只需按本文档使用 CLI 脚本，不必直接查阅 API 文档。
+> 遇到 API 错误码或需要扩展脚本时，可查阅以下官方文档：
 
-### 模式 B：多步编排（Agent 协调多次 exec）
-
-```
-用户：「给张三发一份周报，内容是XXX」
-Agent → exec: python3 scripts/cwork-send-report.py --preview-only \
-          --title "周报" --content-html "..." --receivers "张三"
-Agent ← JSON（含 confirmPrompt）
-Agent → 展示预览给用户
-用户：「确认」
-Agent → exec: python3 scripts/cwork-send-report.py \
-          --title "周报" --content-html "..." --receivers "张三"
-Agent ← JSON（含 reportId）
-Agent → 告知发送成功
-```
-
-### 模式 C：催办闭环（3步分离）
-
-```
-Agent → exec: python3 scripts/cwork-nudge-report.py identify --days-threshold 7
-Agent ← JSON（未闭环列表）
-Agent → （LLM 推理）筛选需要催办的事项
-Agent → exec: python3 scripts/cwork-nudge-report.py reminder \
-          --item-id <id> --recipient "张三" --days-unresolved 14 --style polite
-Agent ← JSON（催办文案）
-Agent → （可选 LLM 优化文案）
-Agent → exec: python3 scripts/cwork-nudge-report.py nudge \
-          --report-id <id> --content-html "..."
-```
-
-## 错误处理
-
-所有脚本遵循统一错误约定：
-- **成功**：JSON 到 stdout，含 `"success": true`
-- **失败**：JSON 到 stderr，含 `"success": false` 和 `"error"` 字段，exit code ≠ 0
-- **Agent 应同时检查 stdout 和 stderr**
+- **工作协同 Open API 接口文档**：[工作协同API说明.md](https://github.com/xgjk/dev-guide/blob/main/02.%E4%BA%A7%E5%93%81%E4%B8%9A%E5%8A%A1AI%E6%96%87%E6%A1%A3/%E5%B7%A5%E4%BD%9C%E5%8D%8F%E5%90%8C/%E5%B7%A5%E4%BD%9C%E5%8D%8F%E5%90%8CAPI%E8%AF%B4%E6%98%8E.md)

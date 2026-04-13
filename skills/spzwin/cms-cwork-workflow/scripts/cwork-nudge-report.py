@@ -22,7 +22,8 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from cwork_client import (CWorkClient, make_client, CWorkError,
-                           output_json, output_error, parse_deadline, resolve_names_to_empids)
+                           output_json, output_error, parse_deadline,
+                           resolve_names_to_empids, apply_params_file_pre_parse)
 
 
 REPORT_TYPE_ID = 12  # 催收汇报
@@ -46,6 +47,8 @@ def parse_args(argv=None):
     parser.add_argument("--page-size", type=int, default=50, help="每页大小（默认50）")
     parser.add_argument("--interactive", action="store_true", help="交互模式")
     parser.add_argument("--dry-run", action="store_true", help="干跑模式")
+    parser.add_argument("--params-file", dest="params_file", default=None,
+                        help="UTF-8 JSON 文件路径，从文件读取参数")
     return parser.parse_args(argv)
 
 
@@ -71,6 +74,7 @@ def build_nudge_content(task_main: str, deadline: str | None, content: str | Non
 
 
 def main():
+    apply_params_file_pre_parse()
     args = parse_args()
 
     if args.dry_run:
@@ -148,14 +152,6 @@ def main():
                 content_html=nudge_content,
                 type_id=REPORT_TYPE_ID,
                 accept_emp_id_list=[emp_id],
-                report_level_list=[
-                    {
-                        "level": 12,
-                        "type": "催收汇报",
-                        "nodeName": "催收汇报",
-                        "levelUserList": [{"empId": emp_id}]
-                    }
-                ],
             )
             output_json({
                 "success": True,

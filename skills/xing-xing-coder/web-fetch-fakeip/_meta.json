@@ -3,9 +3,15 @@
   "slug": "web-fetch-fakeip",
   "displayName": "Web Fetch Fake-IP Workaround",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775631737615,
-    "commit": "https://github.com/openclaw/skills/commit/b8a9ac4633ba7abbd6beeb71278d06b97bd531fc"
+    "version": "1.0.2",
+    "publishedAt": 1775969046532,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775631737615,
+      "commit": "https://github.com/openclaw/skills/commit/b8a9ac4633ba7abbd6beeb71278d06b97bd531fc"
+    }
+  ]
 }

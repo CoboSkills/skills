@@ -1,6 +1,6 @@
 ---
 name: web-fetch-fakeip
-description: Temporary workaround for web_fetch failures caused by SSRF blocking under Clash, Mihomo, or Surge fake-ip mode on npm global installs. Use when web_fetch reports private or internal IP blocking and you need a reversible patch without editing config or rebuilding from source.
+description: Legacy workaround for web_fetch fake-ip failures on older npm-global OpenClaw installs. Use when web_fetch is blocked under Clash, Mihomo, or Surge fake-ip mode and the OpenClaw version does not yet support the openclaw.json ssrfPolicy fix. For OpenClaw v2026.4.10 and later, prefer configuration instead of patching.
 ---
 
 # web_fetch Fake-IP Workaround
@@ -14,10 +14,12 @@ Use this skill when:
 - OpenClaw was installed with `npm install -g openclaw`
 - You use Clash, Mihomo, or Surge with fake-ip enabled
 - `web_fetch` fails with private/internal/special-use IP blocking
-- You want a quick workaround before an upstream fix lands
+- Your OpenClaw version is older than `v2026.4.10`
+- You need a legacy workaround because the config-based fix is unavailable
 
 ## Not for
 
+- OpenClaw `v2026.4.10` or later, use `openclaw.json` instead
 - Source-built OpenClaw
 - Certificate problems
 - Proxy rule or port mistakes
@@ -56,6 +58,7 @@ openclaw gateway restart
 - Safe to run repeatedly
 - Creates backup files on apply/revert
 - After OpenClaw upgrades, rerun if needed
+- On `v2026.4.10+`, prefer the built-in config fix instead of this patch
 
 ## Resources
 

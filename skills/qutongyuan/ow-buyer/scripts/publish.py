@@ -14,8 +14,9 @@ from datetime import datetime, timedelta
 STATE_DIR = pathlib.Path(__file__).resolve().parent.parent / "state"
 REQ_DIR = STATE_DIR / "requirements"
 
-# OW API URL - 可通过环境变量配置
-OW_API_URL = "http://www.owshanghai.com/api/posts"
+# OW API URL - 可通过环境变量配置，默认使用 HTTPS
+import os
+OW_API_URL = os.environ.get("OW_API_URL", "https://www.owshanghai.com/api/posts")
 
 def generate_req_id() -> str:
     """生成需求ID"""

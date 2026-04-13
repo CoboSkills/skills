@@ -13,10 +13,11 @@ from datetime import datetime
 from pathlib import Path
 
 # 平台配置
+import os
 PLATFORMS = {
     "ow": {
         "name": "OW社区",
-        "api": "http://www.owshanghai.com/api/posts",
+        "api": os.environ.get("OW_API_URL", "https://www.owshanghai.com/api/posts"),
         "type": "api"
     },
     "wechat_mp": {

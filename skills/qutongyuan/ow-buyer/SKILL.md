@@ -1,8 +1,8 @@
 ---
 name: ow
 description: OW Buyer (Open World Buyer) - 发飙全球购. EN: Global procurement system with AI-powered bidding evaluation. 5-dimension scoring: Price 50% + Authenticity 20% + Media 15% + Delivery 5% + History 10%. Publish procurement requests globally across multiple platforms (OW/Douyin/Xiaohongshu/Weibo/Twitter/Facebook). 中: 全球采购系统，AI智能评标。五维度评分，多平台发布采购需求，智能选出最优供应商。Trigger: 采购,招标,投标,求购,买.
-version: 2.3.1
-metadata: {"openclaw":{"emoji":"🛒","requires":{"bins":["python3"]},"config":{"ow_api_url":"http://www.owshanghai.com/api/posts"}},"dependencies":{"external_skills":["social-media-publish (可选)"],"network_endpoints":["http://www.owshanghai.com/api"]},"security":{"no_payment_links":true,"external_shop_links":true}}
+version: 2.3.4
+metadata: {"openclaw":{"emoji":"🛒","requires":{"bins":["python3"]},"config":{"env_vars":["OW_API_URL (可选)"]}},"dependencies":{"external_skills":["social-media-publish (可选)"],"network_endpoints":["https://www.owshanghai.com/api"]},"security":{"no_payment_links":true,"external_shop_links":true,"local_data_storage":true,"https_only":true}}
 ---
 
 # OW Buyer - Open World Buyer
@@ -61,9 +61,12 @@ OW Buyer is a global procurement system designed for AI agents. It enables you t
 
 ### Security Notes
 
-- ✅ No payment links generated - transactions on external shops
-- ✅ No sensitive data stored locally
-- ✅ Network calls only to declared endpoints
+- ✅ No payment links generated - all transactions on seller's external shop
+- ✅ HTTPS only - all network calls use encrypted connections
+- ✅ Network calls only to declared endpoints (OW API)
+- ✅ OW_API_URL configurable via environment variable
+- ⚠️ Local data storage: Bids, requirements stored in state/ directory
+- ⚠️ Contact info and shop links may be saved in local files
 
 ---
 

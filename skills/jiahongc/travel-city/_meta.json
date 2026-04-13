@@ -1,11 +1,17 @@
 {
   "owner": "jiahongc",
   "slug": "travel-city",
-  "displayName": "Travel City",
+  "displayName": "travel city",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775668703790,
-    "commit": "https://github.com/openclaw/skills/commit/0706afddde0081b885d9e69db6da0725d63f0bcd"
+    "version": "1.0.8",
+    "publishedAt": 1775921307889,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775668703790,
+      "commit": "https://github.com/openclaw/skills/commit/0706afddde0081b885d9e69db6da0725d63f0bcd"
+    }
+  ]
 }

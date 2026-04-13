@@ -1,158 +1,46 @@
 ---
-name: session-compact-skill
+name: openclaw-session-compact
 description: |
-  Intelligent session compression for OpenClaw that automatically manages token consumption and supports unlimited-length conversations. Compresses historical messages into structured summaries to reduce token usage by 85-95%. Features cross-session memory, pre-compaction protection (WAL), and context recovery.
-metadata: {
-  "clawdbot": {
-    "emoji": "🗜️",
-    "requires": { "bins": ["node"] },
-    "tools": [
-      {
-        "name": "compact_session",
-        "description": "压缩当前会话历史以节省 tokens。自动检测 token 数，将早期消息替换为摘要",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "maxTokens": {
-              "type": "number",
-              "description": "触发压缩的 token 阈值 (默认 10000)"
-            },
-            "preserveRecent": {
-              "type": "number",
-              "description": "保留的最新消息数 (默认 4)"
-            },
-            "force": {
-              "type": "boolean",
-              "description": "是否强制压缩 (即使未超阈值)"
-            }
-          }
-        }
-      },
-      {
-        "name": "save_session_state",
-        "description": "保存当前会话状态到持久化存储",
-        "inputSchema": {
-          "type": "object",
-          "properties": {
-            "task": { "type": "string", "description": "当前任务" },
-            "details": { "type": "array", "items": { "type": "string" }, "description": "关键细节" }
-          }
-        }
-      },
-      {
-        "name": "recover_context",
-        "description": "压缩后恢复上下文",
-        "inputSchema": { "type": "object", "properties": {} }
-      }
-    ]
-  }
-}
+  Intelligent session compression plugin for OpenClaw that automatically manages token consumption and supports unlimited-length conversations. Compresses historical messages into structured summaries to reduce token usage by 85-95%. Provides CLI commands: compact, compact-status, compact-config, sessions, session-info.
 ---
 
-# Session Compact Skill v1.1.0
+# OpenClaw Session Compact Plugin v1.2.1
 
-Intelligent session compression for OpenClaw that automatically manages token consumption and supports **unlimited-length conversations**. By compressing historical messages into structured summaries, it significantly reduces token usage (typically 85-95% savings).
+Intelligent session compression plugin for OpenClaw that automatically manages token consumption and supports **unlimited-length conversations**. By automatically compressing historical messages into structured summaries, it significantly reduces token usage (typically 85-95% savings).
 
-## ✨ New in v1.1.0
+## ✨ New in v1.2.1
 
-- **Cross-Session Memory**: Session state persists across `/new` and compaction
-- **Pre-Compaction Protection**: WAL protocol captures critical state before compression
-- **Context Recovery**: Automatic recovery after compaction from multiple sources
-- **Working Buffer**: Danger zone buffer at 60%+ context utilization
-- **Daily Memory Archive**: Automatic daily memory logging
+- 🐛 **Fixed**: Configuration persistence — `loadFromOpenClawConfig()` correctly reads from `plugins.entries.<id>.config`
+- ✨ **Added**: 16 comprehensive test cases for OpenClaw config loading (163 total tests)
+- 📝 **Improved**: README with step-by-step installation guide and troubleshooting
+- 🔧 **Updated**: Dependencies — `openclaw` → 2026.4.9, `basic-ftp` → 5.2.2
+- 🔧 **Updated**: `openclaw.build.openclawVersion` → 2026.4.9
 
----
+### v1.1.0 Highlights
 
-## ✨ Features
-
-- **Automatic Compression**: Triggers when session tokens approach threshold
-- **Smart Summaries**: Preserves key information (timeline, todos, files, tools used)
-- **Seamless Continuation**: Conversations continue without user intervention
-- **Fallback Protection**: Code-based extraction when LLM unavailable
-- **Recursive Compression**: Supports multiple compression cycles
-- **Cross-Session Memory**: Session state persists across `/new` and compaction
-- **Pre-Compaction Protection**: WAL protocol captures critical state before compression
-- **Context Recovery**: Automatic recovery after compaction from multiple sources
-- **Working Buffer**: Danger zone buffer at 60%+ context utilization
-- **Daily Memory Archive**: Automatic daily memory logging
-
-## 🧠 Cross-Session Memory
-
-### Problem Solved
-Your OpenClaw agent forgets everything between sessions — after `/new`, after compaction, after overnight. This feature fixes all three.
-
-### How It Works
-
-**1. Session State Persistence**
-- State stored in `~/.openclaw/memory/SESSION-STATE.md`
-- Captures: current task, key details, decisions, preferences, files
-- Valid for 72 hours (configurable)
-
-**2. Working Buffer (Danger Zone)**
-- Activates at 60% context utilization
-- Stores recent exchanges in `~/.openclaw/memory/working-buffer.md`
-- Survives compaction and session resets
-
-**3. Daily Memory Archive**
-- Automatic daily logging to `~/.openclaw/memory/YYYY-MM-DD.md`
-- Preserves long-term context across days
-
-### Usage
-
-**Save State Manually**:
-```
-"保存当前状态" or "save session state"
-```
-
-**Recover Context After Compaction**:
-```
-"恢复上下文" or "recover context"
-```
-
-## 🛡️ Pre-Compaction Protection (WAL Protocol)
-
-### The Problem
-When context window fills up, OpenClaw compacts older messages into a summary. Summaries lose precision — exact numbers become "approximately," file paths vanish, decisions lose their rationale.
-
-### The Fix: Write-Ahead Logging
-
-**On EVERY incoming message, scan for:**
-- ✏️ **Corrections** — "It's X, not Y" / "Actually..." / "应该是..."
-- 📍 **Proper Nouns** — names, places, companies, products
-- 🎨 **Preferences** — styles, approaches, "I like/don't like"
-- 📋 **Decisions** — "Let's do X" / "Go with Y" / "决定..."
-- 📝 **Draft Changes** — edits to active work
-- 🔢 **Specific Values** — numbers, dates, IDs, URLs, paths
-
-**If ANY appear:**
-1. **STOP** — do not compose response yet
-2. **WRITE** — update `SESSION-STATE.md` with the detail
-3. **THEN** — respond to the human
-
-### Compaction Recovery
-
-**Auto-trigger when:**
-- Session starts with `<summary>` tag in context
-- You should know something but don't
-- Human says "where were we?" / "continue" / "what were we doing?"
-
-**Recovery steps (in order):**
-1. Read `memory/working-buffer.md` — raw danger-zone exchanges
-2. Read `SESSION-STATE.md` — active task state
-3. Read today's + yesterday's `memory/YYYY-MM-DD.md`
-4. Extract important context from buffer → update SESSION-STATE.md
-5. Report: "Recovered context. Last task was X. Continuing."
-
-**NEVER ask "what were we discussing?"** — the buffer has the answer.
-
----
+- **Session Persistence**: JSON file-based storage with version tracking
+- **Token Usage Tracking**: Actual API usage + cache token metrics
+- **Rich Message Structure**: ContentBlock types (text, tool_use, tool_result)
+- **Session Lifecycle Manager**: Auto-compaction, state management, events
+- **New CLI Commands**: `sessions`, `session-info`
 
 ## 🚀 Quick Start
 
 ### Installation
 
+**From ClawHub** (recommended):
+
 ```bash
-openclaw skills install session-compact-skill
+clawhub install openclaw-session-compact
+```
+
+**Manual installation**:
+
+```bash
+git clone https://github.com/SDC-creator/openclaw-session-compact.git \
+  ~/.openclaw/extensions/openclaw-session-compact
+cd ~/.openclaw/extensions/openclaw-session-compact
+npm install --production
 ```
 
 ### Configuration
@@ -161,128 +49,233 @@ Add to `~/.openclaw/openclaw.json`:
 
 ```json
 {
-  "skills": {
+  "plugins": {
+    "allow": ["openclaw-session-compact"],
     "entries": {
-      "session-compact-skill": {
+      "openclaw-session-compact": {
         "enabled": true,
-        "max_tokens": 10000,
-        "preserve_recent": 4,
-        "auto_compact": true
+        "config": {
+          "max_tokens": 10000,
+          "preserve_recent": 4,
+          "auto_compact": true,
+          "model": ""
+        }
       }
     }
   }
 }
 ```
 
-### Usage
+**重要**：配置参数从 OpenClaw 配置系统读取。修改配置后需要重启 Gateway：
 
-**Automatic Mode** (Recommended):
+```bash
+openclaw gateway restart
+```
+
+
+## 💡 Usage Scenarios
+
+### Scenario 1: CLI Commands
+
+```bash
+# Check current session status
+openclaw compact-status
+
+# Manually trigger compression
+openclaw compact
+
+# Force compression (ignores threshold)
+openclaw compact --force
+
+# View configuration
+openclaw compact-config
+```
+
+### Scenario 2: Automatic Compression
+
 ```bash
 # Start OpenClaw - compression works automatically
 openclaw start
-# Auto-compacts when conversation exceeds threshold
+
+# When conversation history exceeds the threshold, it auto-compresses
+# and continues seamlessly without user intervention
 ```
 
-**Manual Trigger**:
-```bash
-# Tell your agent to compress
-"压缩当前会话" or "compact session"
-```
+### Scenario 3: Long Conversation Handling
 
-**Tool Call**:
-```bash
-openclaw tools call compact_session '{"force": false}'
-```
+**Problem**: Conversations exceeding 10,000 tokens cause:
+- Rapid token consumption
+- Slower response times
+- Potential model limits exceeded
 
-## ⚙️ Configuration
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `max_tokens` | number | 10000 | Token threshold to trigger compression |
-| `preserve_recent` | number | 4 | Number of recent messages to keep uncompressed |
-| `auto_compact` | boolean | true | Enable automatic compression |
-
-## 🔧 How It Works
-
-1. **Token Estimation**: Uses heuristic method (~4 chars ≈ 1 token)
-2. **Trigger Detection**: Checks if total tokens exceed 90% of threshold
-3. **Message Selection**: Keeps last N messages intact (preserve_recent)
-4. **Summary Generation**: Extracts structured summary from older messages
-5. **Replacement**: Swaps old messages with summary, continues seamlessly
-
-### Summary Structure
+**Solution**: Session Compact automatically compresses history:
 
 ```
-<summary>
-- Scope: X earlier messages compacted (user=Y, assistant=Z, tool=W).
-- Recent requests: [Last 3 user requests]
-- Pending work: [Outstanding tasks]
-- Key files: [Referenced file paths]
-- Tools used: [Tool names]
-- Key timeline: [Message timeline]
-</summary>
+Before: 50 messages (1,250 tokens)
+        ↓ [Auto-compress]
+After:  5 messages (360 tokens) - 92% token savings
 ```
 
-## 📊 Example
+## 🔧 Configuration Options
 
-### Before Compression
+| Parameter | Type | Default | Description | Recommended |
+|-----------|------|---------|-------------|-------------|
+| `max_tokens` | number | 10000 | Token threshold for compression | 5000-20000 |
+| `preserve_recent` | number | 4 | Number of recent messages to keep | 4-6 |
+| `auto_compact` | boolean | true | Enable automatic compression | true |
+| `model` | string | '' | Model for summary generation | Global default |
+
+### Configuration Examples
+
+**Conservative Mode** (frequent compression, max token savings):
 ```json
-[
-  {"role":"user","content":"请分析赛力斯2025年报"},
-  {"role":"assistant","content":"[tavily_search] 正在搜索..."},
-  {"role":"user","content":"还要2024年对比数据"},
-  {"role":"assistant","content":"[tavily_search] 已找到..."}
-  // ... continues to 50+ messages
-]
+{
+  "max_tokens": 5000,
+  "preserve_recent": 6
+}
 ```
 
-### After Compression
+**Aggressive Mode** (fewer compressions, more context retained):
 ```json
-[
-  {"role":"system","content":"Summary:\n- Scope: 45 earlier messages compacted...\n- Key timeline:..."},
-  {"role":"user","content":"那么深信服的2025预测呢？"},
-  {"role":"assistant","content":"继续..."}
-  // ... latest 4 messages preserved
-]
+{
+  "max_tokens": 20000,
+  "preserve_recent": 3
+}
 ```
 
-## ⚠️ Important Notes
+## 📊 How It Works
 
-- **Compression is irreversible** - Early message details are permanently lost
-- **Threshold setting** - Recommend setting max_tokens high (8000-12000) to avoid premature compression
-- **Summary quality** - Uses code-based extraction for reliability, LLM enhancement when available
+### Compression Flow
 
-## 📦 Advanced Version
+```
+1. Monitor token usage
+   ↓
+2. Exceeds threshold (90%)?
+   ├─ No → Continue conversation
+   └─ Yes → Trigger compression
+        ↓
+3. Keep last N messages (default: 4)
+   ↓
+4. Compress old messages into structured summary
+   ├─ Scope: Statistics
+   ├─ Recent requests: Last 3 user requests
+   ├─ Pending work: To-dos
+   ├─ Key files: Important files
+   ├─ Tools used: Tools mentioned
+   └─ Key timeline: Conversation timeline
+   ↓
+5. Replace old messages with System summary
+   ↓
+6. Seamlessly continue conversation
+```
 
-For full features including:
-- Session persistence (JSON file storage)
-- Token usage tracking (actual API usage + cache metrics)
-- Rich message structure (ContentBlock types)
-- CLI commands (compact, compact-status, compact-config, sessions, session-info)
-- 150 test suite with 82.78% coverage
+### Fallback Mechanism
 
-Install the Code Plugin version:
+When LLM is unavailable, automatically falls back to **code extraction** mode:
+- Extract timeline directly from message content
+- Use preset templates for summary fields
+- Ensures functionality without LLM dependency
+
+## 🛠️ Troubleshooting
+
+### Common Issues
+
+#### 1. Compression Not Triggered
+
+**Cause**: Token count below threshold
+**Solution**:
 ```bash
-openclaw plugins install clawhub:openclaw-session-compact
+# Check current token usage
+openclaw compact-status
+
+# Lower threshold for testing
+openclaw compact --force
 ```
+
+#### 2. Poor Summary Quality
+
+**Cause**: LLM misconfigured or unavailable
+**Solution**:
+- Verify `model` configuration
+- Ensure OpenClaw Gateway is running: `openclaw gateway start`
+- System auto-falls back to code extraction
+
+#### 3. Context Loss After Compression
+
+**Cause**: `preserve_recent` set too low
+**Solution**:
+```json
+{
+  "preserve_recent": 6  // Increase to 6 or more
+}
+```
+
+#### 4. Plugin Not Recognized
+
+**Cause**: Missing plugin configuration
+**Solution**:
+```bash
+# Check plugin status
+openclaw plugins list | grep compact
+
+# Ensure plugin is in plugins.allow in openclaw.json
+```
+
+## 📈 Performance Metrics
+
+- **Test Coverage**: 82.78% (163 tests passing)
+- **Core Function Coverage**: 89.76%
+- **Average Compression Time**: < 1 second (without LLM)
+- **Token Savings**: Typically 85-95%
+- **Memory Usage**: Low (no leaks)
+
+## 🧪 Testing
+
+```bash
+# Run tests
+npm test
+
+# Check coverage (163 tests, 82.78%)
+npm run test:coverage
+```
+
+## 📚 Technical Documentation
+
+For detailed API documentation and examples, see [README.md](README.md).
+
+### Core API
+
+```typescript
+// Compress session
+const result = await compactSession(messages, config);
+
+// Check if compression is needed
+const needsCompact = shouldCompact(messages, config);
+
+// Estimate token count
+const tokens = estimateTokenCount(messages);
+```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please submit Issues and Pull Requests.
+
+1. Fork the project
+2. Create a feature branch
+3. Commit changes
+4. Push to the branch
+5. Open a Pull Request
+
+## 📄 License
+
+MIT License
 
 ---
 
-**Version**: 1.1.0  
-**Author**: sdc-creator  
-**License**: MIT  
-**GitHub**: https://github.com/SDC-creator/openclaw-session-compact
-
-## 📦 Advanced Version
-
-For full features including:
-- Session persistence (JSON file storage with version tracking)
-- Token usage tracking (actual API usage + cache metrics)
-- Rich message structure (ContentBlock types)
-- CLI commands (compact, compact-status, compact-config, sessions, session-info)
-- 150 test suite with 82.78% coverage
-
-Install the Code Plugin version:
-```bash
-openclaw plugins install clawhub:openclaw-session-compact
-```
+**Status**: ✅ Stable Release
+**Tests**: ✅ 163/163 Passing
+**Coverage**: 📈 82.78%
+**ClawHub (Code Plugin)**: ✅ Published (openclaw-session-compact@1.2.1)
+**ClawHub (Skill)**: ✅ Published (session-compact-skill@1.2.1)
+**Version**: v1.2.1
+**Maintainer**: SDC-creator

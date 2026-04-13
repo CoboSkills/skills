@@ -1,11 +1,17 @@
 {
   "owner": "sdc-creator",
   "slug": "session-compact-skill",
-  "displayName": "Session Compact Skill",
+  "displayName": "Session Compact",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1775522575411,
-    "commit": "https://github.com/openclaw/skills/commit/9fb9bb34d29df3aae9f8e3209d6dc1c8327bccb3"
+    "version": "1.2.1",
+    "publishedAt": 1775919262754,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1775522575411,
+      "commit": "https://github.com/openclaw/skills/commit/9fb9bb34d29df3aae9f8e3209d6dc1c8327bccb3"
+    }
+  ]
 }

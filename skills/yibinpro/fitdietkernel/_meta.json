@@ -3,9 +3,15 @@
   "slug": "fitdietkernel",
   "displayName": "FitDietKernel",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775480024175,
-    "commit": "https://github.com/openclaw/skills/commit/aa20fdb04b9bd8e5c28d84a825c32590a419e75c"
+    "version": "1.0.1",
+    "publishedAt": 1775899334665,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775480024175,
+      "commit": "https://github.com/openclaw/skills/commit/aa20fdb04b9bd8e5c28d84a825c32590a419e75c"
+    }
+  ]
 }

@@ -3,9 +3,15 @@
   "slug": "compound-eng-planning",
   "displayName": "planning",
   "latest": {
-    "version": "2.53.0",
-    "publishedAt": 1775444249572,
-    "commit": "https://github.com/openclaw/skills/commit/1e82a769001c4273360ede7d33ee24143e7e14ea"
+    "version": "2.55.1",
+    "publishedAt": 1776004228400,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.53.0",
+      "publishedAt": 1775444249572,
+      "commit": "https://github.com/openclaw/skills/commit/1e82a769001c4273360ede7d33ee24143e7e14ea"
+    }
+  ]
 }

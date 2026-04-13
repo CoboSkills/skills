@@ -6,7 +6,7 @@ metadata:
     "openclaw":
       {
         "emoji": "🎬",
-        "requires": { "bins": ["ffmpeg (>=6.1)", "yt-dlp (>=2026.03.17)"], "env": ["DASHSCOPE_API_KEY", "ALIYUN_OSS_AK", "ALIYUN_OSS_SK", "ALIYUN_OSS_BUCKET_ID"] },
+        "requires": { "bins": ["ffmpeg (>=6.1)", "yt-dlp (>=2026.03.17)"], "env": ["DASHSCOPE_API_KEY", "ALIYUN_OSS_AK", "ALIYUN_OSS_SK", "ALIYUN_OSS_BUCKET_ID", "ALIYUN_OSS_ENDPOINT"] },
         "install":
           [
             {
@@ -26,7 +26,7 @@ metadata:
             {
               "id": "pip",
               "kind": "pip",
-              "packages": "requests oss2 python-dotenv",
+              "packages": "requests oss2 python-dotenv biliup",
               "label": "Install Python dependencies",
             },
           ],
@@ -38,10 +38,18 @@ metadata:
 
 将 B 站/YouTube/小红书/抖音视频转换为结构化 Notion 总结文档，自动上传截图，一键推送 Notion。
 
-**版本**: 1.0.7  
-**发布**: 2026-04-06  
+**版本**: 1.0.9  
+**发布**: 2026-04-12  
 **许可**: MIT  
 **作者**: Ajay Hao
+
+---
+
+> ⚠️ **安全提示**
+> - 本技能会将视频内容发送至第三方 AI 服务进行分析
+> - 建议使用专用 API Key（非生产环境）
+> - OSS Bucket 请配置最小权限（仅写入/读取）
+> - B 站 Cookies 仅在你控制的设备上使用
 
 ---
 
@@ -62,6 +70,36 @@ metadata:
 - **GPU 自适应**: 自动检测显存，选择最优 Whisper 模型
 - **断点续跑**: 支持从中断点恢复，避免重复处理
 - **四层标签**: 标题 hashtag → 元数据 → AI 关键词 → 默认值
+
+---
+
+## 🔐 安全与隐私说明
+
+### 敏感数据处理
+
+| 文件/路径 | 用途 | 敏感性 | 用户控制 |
+|-----------|------|--------|----------|
+| `~/.cookies/bilibili_cookies.txt` | B 站官方字幕获取 | 高（Session Token） | 用户主动扫码生成，可随时删除 |
+| `~/.openclaw/.env` | API Keys 存储 | 高 | 用户自行配置，skill 不修改 |
+| `/tmp/video-summarizer-*/` | 临时输出 | 低 | 处理完成后可手动清理 |
+
+### 外部服务端点
+
+| 服务 | 域名 | 用途 | 传输数据 |
+|------|------|------|----------|
+| DashScope | `dashscope.aliyuncs.com` | AI 分析 | 字幕文本、元数据 |
+| 阿里云 OSS | `oss-cn-shanghai.aliyuncs.com` | 图床上传 | 截图、封面图 |
+| Groq | `api.groq.com` | 备用转录（可选，需代理） | 音频片段 |
+| Bilibili | `bilibili.com` | 视频下载/字幕 | 无（仅下载） |
+| YouTube | `youtube.com` | 视频下载/字幕 | 无（仅下载） |
+
+**说明**: Groq API 为可选加速方案，未配置时自动降级到本地 Faster-Whisper。
+
+### 最小权限建议
+
+- **OSS Bucket**: 创建专用 Bucket，仅授予 PutObject/GetObject 权限
+- **API Keys**: 使用子账号 Key，设置 IP 白名单
+- **测试环境**: 首次使用建议在隔离环境测试
 
 ---
 
@@ -185,19 +223,17 @@ DASHSCOPE_API_KEY=sk-xxxxxxxxxxxxxxxx
 
 # ========== 可选配置 ==========
 
-# Notion 自动推送
+# Notion 自动推送（可选）
 NOTION_API_KEY=nop_xxxxxxxxxxxxxxxx
-NOTION_VIDEO_SUMMARY_DATABASE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+NOTION_VIDEO_SUMMARY_DATABASE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  # 单个数据库 ID
 
-# 语音转录加速（无 GPU 时推荐）
+# 语音转录加速（Groq API，可选）
+# 国内需代理访问，如未配置自动降级到本地 Faster-Whisper
+# 不配置此项不影响使用
 GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxx
-
-# 硅基流动（备用转录）
-SILICONFLOW_API_KEY=sk-xxxxxxxxxxxxxxxx
 
 # 本地 Whisper 模型（有 GPU 时自动检测）
 WHISPER_MODEL=base  # tiny/base/small/medium/large
-USE_LOCAL_WHISPER=false  # true 强制使用本地 Whisper
 ```
 
 ### OSS Bucket 要求
@@ -236,7 +272,7 @@ USE_LOCAL_WHISPER=false  # true 强制使用本地 Whisper
 4. **配置环境变量**：
    ```bash
    NOTION_API_KEY=nop_xxxxxxxxxxxxxxxx
-   NOTION_VIDEO_SUMMARY_DATABASE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+   NOTION_VIDEO_SUMMARY_DATABASE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx  # 单个数据库
    ```
 
 #### 数据库视图示例
@@ -284,7 +320,7 @@ Step 9: Notion 推送 (可选)
 |------|------|
 | 编排层 | Bash (video-summarize.sh) |
 | 分析层 | Python + DashScope API (qwen3.5-plus) |
-| 转录层 | Faster-Whisper (本地) / Groq API / 硅基流动 |
+| 转录层 | Groq API (可选) / Faster-Whisper (本地) |
 | 工具层 | yt-dlp (>=2026.03.17), ffmpeg (>=6.1), oss2, requests |
 
 ### 数据文件
@@ -348,21 +384,24 @@ Step 9: Notion 推送 (可选)
 | **小红书** | ❌ 无 | ✅ 唯一 | Plan B |
 | **抖音** | ❌ 无 | ✅ 唯一 | Plan B |
 
-### Plan B 四层降级方案
+### Plan B 双层降级方案
 
 ```
-1. Faster-Whisper (本地) → GPU/CPU 自适应
+1. Groq API (whisper-large-v3) → 云端高速（可选，需配置 GROQ_API_KEY 且网络可达）
+   └─ 失败/未配置 → 降级到本地
+
+2. Faster-Whisper (本地) → GPU/CPU 自适应
    ├─ GPU ≥8GB  → large-v2 模型
    ├─ GPU ≥4GB  → medium 模型
    ├─ GPU ≥2GB  → small 模型
+   ├─ GPU ≥1GB  → base 模型 (GPU)
    └─ 无 GPU    → base 模型 (CPU)
-
-2. Groq API (whisper-large-v3) → 云端高速
-
-3. 硅基流动 (FunAudioLLM/SenseVoiceSmall) → 备选云端
-
-4. Whisper.cpp / OpenAI Whisper → 保底方案
 ```
+
+**说明**: 
+- Groq API 为可选配置，未配置时直接使用本地 Faster-Whisper
+- 本地转录无需任何 API Key，完全离线运行
+- 国内使用 Groq 需配置代理
 
 ---
 

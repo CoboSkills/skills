@@ -3,9 +3,15 @@
   "slug": "video-summarizer",
   "displayName": "Video Summarizer（视频摘录+Notion存档）",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1775492881926,
-    "commit": "https://github.com/openclaw/skills/commit/456a0f10c515de8c7c0905bb9ba37ad5f88dd6dd"
+    "version": "1.0.9",
+    "publishedAt": 1776004278903,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1775492881926,
+      "commit": "https://github.com/openclaw/skills/commit/456a0f10c515de8c7c0905bb9ba37ad5f88dd6dd"
+    }
+  ]
 }

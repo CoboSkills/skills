@@ -1,9 +1,9 @@
-import { getApiKey, BASE_URL } from "./env.mjs";
+import { getApiKey, BASE_URL, CHANNEL } from "./env.mjs";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
-// 加载工具注册表（tools.json 与 scripts/ 同级上一层）
+// Load the tool registry next to the skill package.
 const __dir = dirname(fileURLToPath(import.meta.url));
 const TOOLS = JSON.parse(
   readFileSync(join(__dir, "../tools.json"), "utf8")
@@ -15,7 +15,7 @@ const SEMANTIC_QUERY_ALIASES = JSON.parse(
 function normalizeSearchText(input) {
   return String(input || "")
     .toLowerCase()
-    .replace(/[\s"'“”‘’，。、《》【】（）()、:：;；!?！？-]+/g, "")
+    .replace(/[\s"'‘’“”，。、《》【】（）()，。！？!?-]+/g, "")
     .trim();
 }
 
@@ -69,7 +69,7 @@ function buildSearchTerms(input) {
   return [...terms];
 }
 
-/** 本地关键词匹配，替代后端 /skill/match */
+/** Local keyword matching that replaces backend /skill/match. */
 export function discover(query, { limit = 5 } = {}) {
   const queryVariants = buildQueryVariants(query);
   const queryTerms = buildSearchTerms(query);
@@ -92,16 +92,23 @@ export function discover(query, { limit = 5 } = {}) {
         similarity = Math.max(similarity, 0.98);
       } else if (normalizedName.includes(variant)) {
         similarity = Math.max(similarity, 0.95);
-      } else if (normalizedKeywords.some((keyword) => keyword.includes(variant) || variant.includes(keyword))) {
+      } else if (
+        normalizedKeywords.some((keyword) => keyword.includes(variant) || variant.includes(keyword))
+      ) {
         similarity = Math.max(similarity, 0.9);
-      } else if (normalizedDescription.includes(variant) || normalizedText.includes(variant)) {
+      } else if (
+        normalizedDescription.includes(variant) ||
+        normalizedText.includes(variant)
+      ) {
         similarity = Math.max(similarity, 0.85);
       }
     }
 
     if (similarity < 0.85) {
       const hits = queryTerms.filter(
-        (term) => normalizedText.includes(term) || normalizedKeywords.some((keyword) => keyword.includes(term))
+        (term) =>
+          normalizedText.includes(term) ||
+          normalizedKeywords.some((keyword) => keyword.includes(term))
       );
       const uniqueHits = new Set(hits);
       const overlap =
@@ -130,32 +137,48 @@ export function discover(query, { limit = 5 } = {}) {
   };
 }
 
-/** 直接调用真实 API，替代后端 /gateway/{tool_id} */
+function buildRequestParams(params = {}) {
+  return {
+    ...params,
+    channel: CHANNEL,
+  };
+}
+
+/** Directly call the real API, replacing the old backend gateway layer. */
 export async function call(toolId, params = {}) {
   const apiKey = await getApiKey();
-  if (!apiKey) throw new Error("API Key 未配置，请先访问 https://www.riskbird.com/skills，通过页面中部复制按钮获取当前页面展示的公用 Key，并设置环境变量 FN_API_KEY");
+  if (!apiKey) {
+    throw new Error("API Key 未配置，请检查内置 Key 是否有效，或通过环境变量 FN_API_KEY 提供私有 Key");
+  }
 
-  const tool = TOOLS.find((t) => t.tool_id === toolId);
-  if (!tool) throw new Error(`未找到工具: ${toolId}`);
+  const tool = TOOLS.find((item) => item.tool_id === toolId);
+  if (!tool) {
+    throw new Error(`未找到工具 ${toolId}`);
+  }
 
+  const requestParams = buildRequestParams(params);
   const url = new URL(BASE_URL + tool.endpoint);
-  // 风鸟接口实际要求通过 URL 参数 apikey 传递鉴权信息，而不是请求头。
+
+  // Fengniao expects apikey/channel as request params instead of request headers.
   url.searchParams.set("apikey", apiKey);
+  url.searchParams.set("channel", CHANNEL);
 
   const options = {
     method: tool.method,
     headers: {
-      "Accept": "application/json",
+      Accept: "application/json",
     },
   };
 
   if (tool.method === "GET") {
-    Object.entries(params).forEach(([k, v]) => {
-      if (v != null) url.searchParams.set(k, v);
+    Object.entries(requestParams).forEach(([key, value]) => {
+      if (value != null) {
+        url.searchParams.set(key, String(value));
+      }
     });
   } else {
     options.headers["Content-Type"] = "application/json";
-    options.body = JSON.stringify(params);
+    options.body = JSON.stringify(requestParams);
   }
 
   const res = await fetch(url.toString(), options);
@@ -165,6 +188,5 @@ export async function call(toolId, params = {}) {
     throw new Error(`API 错误 ${res.status}: ${JSON.stringify(body)}`);
   }
 
-  // 直接透传原始响应，结构为 { code, msg, data, success }
   return body;
 }

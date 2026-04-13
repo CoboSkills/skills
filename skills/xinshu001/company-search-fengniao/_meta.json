@@ -3,9 +3,15 @@
   "slug": "company-search-fengniao",
   "displayName": "China company search fengniao",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775527440153,
-    "commit": "https://github.com/openclaw/skills/commit/59ba7f78f2aa33a34e491d3e27eb1cb5318dd866"
+    "version": "1.0.2",
+    "publishedAt": 1775727350484,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775527440153,
+      "commit": "https://github.com/openclaw/skills/commit/59ba7f78f2aa33a34e491d3e27eb1cb5318dd866"
+    }
+  ]
 }

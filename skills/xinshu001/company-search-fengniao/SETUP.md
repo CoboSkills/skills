@@ -7,7 +7,7 @@
 ## 前置条件
 
 - Node.js 18 或以上版本
-- 一个可用的 `FN_API_KEY`
+- 无需额外配置 API Key；当前发布包内置公用 Key，并在内部固定传入 `channel`
 
 验证 Node.js 版本：
 
@@ -107,7 +107,8 @@ node scripts/tool.mjs call biz_basic_info --params '{"entid":"AerjZTfkSh0"}'
 - 只读取 skill 包内的 `tools.json` 和 `references/` 文件
 - 不读取用户主目录中的 agent 配置或 shell 启动配置
 - 不写入本地文件
-- API 凭证读取自环境变量，但实际调用时通过 URL 参数 `apikey` 发送，不通过 HTTP 请求头发送
+- API 凭证优先读取环境变量 `FN_API_KEY`，未配置时回退到内置公用 Key；实际调用时通过 URL 参数 `apikey` 发送，不通过 HTTP 请求头发送
+- 当前发布包会固定附带 URL 参数 `channel`，不对用户暴露填写入口；切换发布平台时只需修改 `scripts/env.mjs` 中的 `FIXED_CHANNEL`
 
 ## 生产环境说明
 

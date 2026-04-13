@@ -1,10 +1,10 @@
 ---
 name: industry_research_report
 description: >
-  生成行业深度研究报告。当用户的请求中包含行业关键词、行业名称，并且意图是了解某个行业、生成行业研究报告、行业分析时，触发此 Skill。
-  典型触发场景包括但不限于：用户提到"XX行业研究"、"XX行业报告"、"帮我分析XX行业"、"XX产业深度研究"、"XX领域市场分析"等。
-  即使用户没有明确说"报告"二字，只要意图是围绕某个行业主体进行深度研究或分析，都应触发此 Skill。
-  请在收到用户请求后，第一时间阅读此 SKILL.md 并严格按照流程执行。
+  依托东方财富数据库，为指定行业生成深度研究报告。
+  当用户问题中出现可识别的行业/产业/领域主体，且意图属于行业认知、产业剖析或撰写研究报告时，应触发本 Skill。
+  常见表述如「XX 行业研究」「XX 行业报告」「帮我分析 XX 行业」「XX 产业深度研究」「XX 领域市场分析」等。
+  即使用户未明说「报告」，只要以某一行业为核心、要求系统性或深度的研究/分析，同样适用。
 metadata:
   {
     "openclaw": {
@@ -34,9 +34,7 @@ metadata:
 | 变量名 | 说明 | 默认 |
 |---|---|---|
 | `EM_API_KEY` | 接口鉴权密钥（必填，请勿打印/写入日志） | 无 |
-| `INDUSTRY_RESEARCH_REPORT_OUTPUT_DIR` | 报告与附件输出目录 | `miaoxiang/industry_research_report`（相对当前工作目录） |
-
-说明：脚本同时兼容旧变量 `industry_research_report_OUTPUT_DIR`（如历史环境中已设置）。
+| `INDUSTRY_RESEARCH_REPORT_OUTPUT_DIR` | 报告文件输出目录（可选） | `./miaoxiang/industry_research_report` |
 
 ## 前提条件
 
@@ -129,3 +127,9 @@ Step 2 成功后，将返回的 title、truncated_text、pdf_output_dir、docx_o
 |---|---|---|
 | `ERROR_TOPIC_TOO_LONG` | topic 超出 500 字限制 | "字数超出限制，请尝试其它主体。" |
 | 其他异常 | 接口调用失败等 | "报告生成服务暂时不可用，请稍后重试。" |
+
+## 安全与隐私提示（必读）
+
+- **密钥安全**：`EM_API_KEY` 属于敏感信息，只应配置在可信环境中，禁止写入日志/截图/共享给不可信第三方。
+- **文件落盘**：脚本会写入本地文件。请通过环境变量 `INDUSTRY_RESEARCH_REPORT_OUTPUT_DIR` 指定保存位置，确保目录可写且符合你的合规要求。
+- **外链谨慎**：服务端可能返回分享链接，请仅在你信任的网络环境中打开，并留意域名与跳转。

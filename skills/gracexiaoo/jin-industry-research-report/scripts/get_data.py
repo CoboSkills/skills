@@ -71,6 +71,7 @@ if not EM_API_KEY:
 
 SKILL_NAME = "industry_research_report"
 DEFAULT_OUTPUT_DIR = Path.cwd() / "miaoxiang" / SKILL_NAME
+OUTPUT_DIR_ENV = "INDUSTRY_RESEARCH_REPORT_OUTPUT_DIR"
 # MCP 服务器地址
 MCP_URL = "https://mx-saas-platform-test.eastmoney.com/proxy/app-robo-advisor-api/assistant/write/industry/research"
 
@@ -134,7 +135,8 @@ def run_cli() -> None:
         sys.exit(1)
 
     async def _main() -> None:
-        output_dir = Path(os.environ.get(SKILL_NAME + "_OUTPUT_DIR", str(DEFAULT_OUTPUT_DIR)))
+        output_dir_env = os.environ.get(OUTPUT_DIR_ENV, "").strip()
+        output_dir = Path(output_dir_env) if output_dir_env else DEFAULT_OUTPUT_DIR
         r = await get_industry_research_report(args.query, output_dir=output_dir)
         if "error" in r:
             print(f"错误: {r['error']}", file=sys.stderr)

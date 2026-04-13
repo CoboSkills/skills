@@ -1,11 +1,17 @@
 {
   "owner": "tenequm",
   "slug": "web3-protocol-gtm",
-  "displayName": "web3-protocol-gtm",
+  "displayName": "Web3 Protocol GTM",
   "latest": {
-    "version": "0.2.1",
-    "publishedAt": 1775241334440,
-    "commit": "https://github.com/openclaw/skills/commit/6a7f65e0670d08927ae9fc8ed2af8ad98a87df60"
+    "version": "0.2.2",
+    "publishedAt": 1775755264477,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.2.1",
+      "publishedAt": 1775241334440,
+      "commit": "https://github.com/openclaw/skills/commit/6a7f65e0670d08927ae9fc8ed2af8ad98a87df60"
+    }
+  ]
 }

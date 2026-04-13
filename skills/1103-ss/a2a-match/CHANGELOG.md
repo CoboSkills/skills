@@ -5,37 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.9.0] - 2026-04-09
+## [1.8.6] - 2026-04-13
+
+### Security & Privacy
+- 🔐 **API Key 鉴权** —— 所有 `/api/*` 接口支持 Bearer Token 认证（生产模式）
+- ☁️ **云端功能默认关闭** —— 用户主动开启才连云端，解决"本地vs云端"不一致问题
+- 📋 **完整隐私声明** —— 明确列出上传/不上传的数据范围
+- 🔓 **开发/生产双模式** —— 未配置 API Key 时为开放模式（开发测试），配置后自动开启鉴权
+
+### Changed
+- 云端 WebSocket 通知需用户手动启用（cloud.enabled=false 默认）
+- SKILL.md 增加「隐私与数据说明」专区，解决安全扫描警告
+
+## [1.8.5] - 2026-04-13
 
 ### Added
-- 🤝 **连接请求系统**：发起/接受/拒绝连接请求
-- 💬 **消息中转**：平台内聊天，保护隐私
-- 📞 **联系方式交换**：双方同意后可交换微信/邮箱等联系方式
-- 🔔 **通知系统**：匹配通知、连接通知、消息通知
-- 📡 **A2A Server v2.0**：完整的云端 API 服务
-- 🛠️ **客户端 SDK**：Python SDK 便于集成
+- ☁️ **云端 WebSocket 通知** —— 匹配成功时实时推送通知
+- 🔗 **Skill ↔ Cloud ↔ Skill 完整交互流程** —— 本地 Skill 与云端无缝对接
+- 🌐 **云端服务器部署** —— `http://81.70.250.9:3000` 已上线
+- 📡 **WebSocket 实时事件**：`new_matches` / `match_accepted`
+- 🔄 **云端档案同步模块**（cloud_sync.py）
+- 🛠️ **云端命令工具**（cloud_commands.py）
+- 💓 **云端心跳检测**（heartbeat_cloud.py）
+- 🧠 **自动匹配算法** —— 云端自动计算匹配分数（阈值 0.3）
 
-### API Endpoints
-- `POST /api/v1/connect` - 发起连接请求
-- `GET /api/v1/connect/requests` - 获取连接请求
-- `POST /api/v1/connect/<id>/accept` - 接受连接
-- `POST /api/v1/connect/<id>/decline` - 拒绝连接
-- `POST /api/v1/messages` - 发送消息
-- `GET /api/v1/messages/<user_id>` - 获取聊天记录
-- `GET /api/v1/contact-info/<user_id>` - 获取联系方式
+### Changed
+- Socket.IO 替代纯 WebSocket，兼容性更好
+- 匹配算法归一化处理（最高 1.0）
+- 云端配置支持 WebSocket 开关
 
-## [1.8.3] - 2026-04-09
+## [1.8.3] - 2026-04-13
 
 ### Added
-- QQ 交流群：962354006
-- skill.json 添加 support.qq_group 字段
+- 多平台发布（SkillHub v1.8.3、GitHub）
+- 推广文章（掘金、知乎）
 
-## [1.8.0] - 2026-04-08
+## [1.8.2] - 2026-04-12
 
 ### Added
-- 聚焦5大核心领域：AI、互联网、云算力、电商、工业数字化
-- 补充各领域专业术语
-- 优化匹配算法
+- SkillHub SEO 优化（13个关键词）
+- 详细推广清单文档
+
+## [1.8.1] - 2026-04-11
+
+### Added
+- 腾讯云服务器部署准备
+- MongoDB + PM2 部署脚本
+
+## [1.8.0] - 2026-04-10
+
+### Added
+- 聚焦 5 大核心领域，补充领域术语
+- 匹配类型说明文档
+
+## [1.6.1] - 2026-04-09
 
 ### Added
 - 推广素材：README.md、推广文章、贡献指南

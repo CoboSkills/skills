@@ -1,7 +1,7 @@
 ---
 name: tencent-agent-storage
 description: |
-  Cloud file storage, upload, backup, and file management tool for Tencent Agent Storage (专属云盘).
+  Cloud file storage, upload, backup, and file management tool for Tencent Agent Storage (专属网盘).
   Manages the user's personal cloud drive: upload files, list files, download, share links, preview, and backup.
   MUST trigger when the user mentions ANY of the following concepts:
   【云盘/网盘相关 — Cloud Drive Access】

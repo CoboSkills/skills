@@ -1,11 +1,17 @@
 {
   "owner": "cat-xierluo",
   "slug": "yuandian-law-search",
-  "displayName": "Yuandian Law Search",
+  "displayName": "元典法条与案例检索",
   "latest": {
-    "version": "0.3.0",
-    "publishedAt": 1775445468545,
-    "commit": "https://github.com/openclaw/skills/commit/48d24068a5ebed8aec18725c220d1900781fdfc7"
+    "version": "0.3.1",
+    "publishedAt": 1775625284958,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.3.0",
+      "publishedAt": 1775445468545,
+      "commit": "https://github.com/openclaw/skills/commit/48d24068a5ebed8aec18725c220d1900781fdfc7"
+    }
+  ]
 }

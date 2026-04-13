@@ -3,131 +3,66 @@ name: paper-management-system
 description: 文献管理系统 - 自动化PDF文献索引、搜索、AI提炼工具。当用户需要管理PDF文献、自动索引、搜索文献、提取元数据时激活。
 metadata:
   {
-    "openclaw":
-      {
-        "emoji": "📚",
-        "tags": ["pdf", "papers", "research", "academic", "indexing"],
-      },
+    "openclaw": {
+      "emoji": "📚",
+      "tags": ["pdf", "papers", "research", "academic", "indexing"]
+    }
   }
 ---
 
 # Paper Management System
 
-文献管理系统 - 自动化PDF文献管理工具
+文献管理系统 - 自动化 PDF 文献管理工具（v2.0）
 
 ## 功能特性
 
-- 📄 **自动索引**: 扫描PDF文件，提取元数据（标题、作者、DOI等）
-- 🔍 **智能搜索**: 支持标题、作者、DOI、摘要等多字段搜索
-- 🏷️ **自动重命名**: 按规范格式重命名PDF文件
-- 📚 **全文提取**: 提取PDF文本内容便于检索
-- 🤖 **AI提炼**: 自动提取研究背景、方法、结果、结论
-- 🔔 **飞书通知**: 新文献入库自动通知（需配合 feishu-relay）
-- 🔄 **定时任务**: 支持cron定时自动扫描
+- 自动索引：扫描 PDF，提取元数据
+- 智能搜索：按关键词/年份/作者搜索
+- AI 提炼：生成结构化摘要
+- 自动重命名：`作者_年份_关键词.pdf`
+- 增量处理 + Hash 去重
+- 飞书通知（需 feishu-relay）
 
-## 依赖项目
+## 所需环境变量
 
-本项目的新文献通知功能需要配合 **feishu-relay** 使用：
+| 变量名 | 必须 | 说明 |
+|--------|------|------|
+| `PAPERMGR_PAPERS_DIR` | 否 | PDF 存储目录（默认 `./papers`） |
+| `PAPERMGR_DOWNLOADS_DIR` | 否 | 下载目录（默认 `./downloads`） |
+| `PAPERMGR_DATABASE_PATH` | 否 | 数据库路径（默认 `./data/index.db`） |
+| `PAPERMGR_AI_ENABLED` | 否 | 启用 AI（默认 false） |
+| `OPENAI_API_KEY` | 否 | OpenAI API Key |
 
-🔗 **feishu-relay**: https://github.com/crayfish-ai/feishu-relay
+## 调用方式
 
-feishu-relay 是一个飞书消息转发服务，提供统一的消息通知通道。
-
-## 安装
+### 自动（cron）
 
 ```bash
-git clone <repo-url>
-cd paper-management-system
-chmod +x auto_index.sh
+*/30 * * * * /path/to/scripts/auto_index.sh
 ```
 
-## 使用方法
+### 手动
 
-### 1. 初始化数据库
 ```bash
-python3 paper_manager.py index
+python3 scripts/paper_manager.py index    # 索引
+python3 scripts/paper_manager.py rename   # 重命名
+python3 scripts/paper_manager.py search <关键词>  # 搜索
+python3 scripts/paper_manager.py status   # 状态
 ```
 
-### 2. 搜索文献
-```bash
-python3 paper_manager.py search "关键词"
-```
+## 输入
 
-### 3. 自动重命名
-```bash
-python3 paper_manager.py rename
-```
+- PDF 文件（放入 `downloads/` 或 `papers/` 目录）
 
-### 4. 查看状态
-```bash
-python3 paper_manager.py status
-```
+## 输出
 
-### 5. 设置定时任务
-```bash
-# 编辑crontab
-crontab -e
+- SQLite 数据库（`data/index.db`）
+- 重命名后的 PDF 文件
+- AI 摘要（`ai_summary` 字段，可选）
+- 飞书通知（可选）
 
-# 添加每30分钟自动扫描
-*/30 * * * * /path/to/paper-management-system/auto_index.sh
-```
+## 发布信息
 
-## 文件说明
-
-| 文件 | 功能 |
-|------|------|
-| `paper_manager.py` | 核心管理模块（索引、搜索、重命名） |
-| `auto_index.sh` | 自动化脚本（定时任务用） |
-| `extract_fulltext.py` | PDF全文提取模块 |
-| `ai_summarize.py` | AI智能提炼模块 |
-
-## 数据库结构
-
-SQLite数据库 `index.db` 包含以下字段：
-- `file_hash`: MD5哈希（去重用）
-- `filename`: 文件名
-- `title`: 文献标题
-- `authors`: 作者
-- `doi`: DOI
-- `year`: 年份
-- `journal`: 期刊
-- `abstract`: 摘要
-- `full_text`: 全文内容
-- `ai_summary`: AI提炼内容
-
-## 配置
-
-编辑脚本中的以下变量以适应你的环境：
-
-```python
-# paper_manager.py
-DB_PATH = "/your/path/index.db"
-PAPERS_DIR = "/your/path/papers"
-
-# auto_index.sh
-PAPERS_DIR="/your/path/papers"
-DB_PATH="/your/path/index.db"
-```
-
-### 飞书通知配置（可选）
-
-如需启用飞书通知，请确保已安装并配置 [feishu-relay](https://github.com/crayfish-ai/feishu-relay)，然后修改 `ai_summarize.py` 中的通知路径：
-
-```python
-# ai_summarize.py
-cmd = f'/path/to/feishu-relay/bin/notify "{title}" "{message}"'
-```
-
-## 依赖
-
-- Python 3.7+
-- sqlite3
-- PyPDF2（PDF解析）
-
-## 相关项目
-
-- [feishu-relay](https://github.com/crayfish-ai/feishu-relay) - 飞书统一通知服务
-
-## License
-
-MIT
+- 版本：v2.0.0
+- 许可证：MIT
+- GitHub：https://github.com/crayfish-ai/paper-management-system

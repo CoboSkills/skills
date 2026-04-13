@@ -3,9 +3,15 @@
   "slug": "compound-eng-pinescript",
   "displayName": "pinescript",
   "latest": {
-    "version": "2.53.0",
-    "publishedAt": 1775444245563,
-    "commit": "https://github.com/openclaw/skills/commit/5bead8354912262c1e1ec959fede07ad195e9e3f"
+    "version": "2.55.1",
+    "publishedAt": 1776004223412,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.53.0",
+      "publishedAt": 1775444245563,
+      "commit": "https://github.com/openclaw/skills/commit/5bead8354912262c1e1ec959fede07ad195e9e3f"
+    }
+  ]
 }

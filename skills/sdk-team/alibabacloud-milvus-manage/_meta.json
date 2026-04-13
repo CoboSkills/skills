@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-milvus-manage",
+  "displayName": "Alibabacloud Milvus Manage",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1775715927447,
+    "commit": null
+  },
+  "history": []
+}

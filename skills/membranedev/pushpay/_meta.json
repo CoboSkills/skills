@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "pushpay",
+  "displayName": "Pushpay",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775718282009,
+    "commit": null
+  },
+  "history": []
+}

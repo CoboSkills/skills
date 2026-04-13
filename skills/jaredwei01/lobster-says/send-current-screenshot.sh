@@ -6,7 +6,7 @@
 #  数据访问声明：
 #  - 读取 .lobster-config（技能自身配置）
 #  - 调用 openclaw sessions --json 获取活跃 IM 通道元数据
-#  - 调用 openclaw message send 向 IM 通道发送截图摘要（统一使用 --to 参数）
+#  - 调用 openclaw message send 向 IM 通道发送截图摘要（统一使用 --target 参数）
 #  - 与 https://nixiashuo.com 通信：获取工作室短链和截图
 #  - 不读取 openclaw.json 配置文件，不提取 gateway token
 #
@@ -296,11 +296,11 @@ send_via_wecom_direct_message() {
   wecom_user_id=$(read_config_value "wecom_user_id")
   [ -n "$wecom_user_id" ] || { _SEND_FAIL_REASON="企业微信截图发送缺少 sender_id / wecom_user_id"; return 1; }
 
-  # 使用 openclaw message send --to 统一参数
+  # 使用 openclaw message send --target 统一参数
   local send_result rc
   send_result=$("$OPENCLAW_BIN" message send \
     --channel "openclaw-wecom-bot" \
-    --to "$wecom_user_id" \
+    --target "$wecom_user_id" \
     --message "$message_text" 2>&1)
   rc=$?
   if [ $rc -ne 0 ]; then
@@ -430,13 +430,13 @@ elif [ "$OUTBOUND_ADAPTER" = "openclaw" ] || [ "$OUTBOUND_ADAPTER" = "wecom-dire
     step "尝试发送到 ${channel} → ${target}"
 
     if supports_media "$channel"; then
-      if reliable_send --channel "$channel" --to "$target" --message "$TEXT_CAPTION"; then
+      if reliable_send --channel "$channel" --target "$target" --message "$TEXT_CAPTION"; then
         MEDIA_SOURCE="$SCREENSHOT_URL"
         if [ -z "$MEDIA_SOURCE" ] && [ -n "$LOCAL_SCREENSHOT_FILE" ]; then
           MEDIA_SOURCE="$LOCAL_SCREENSHOT_FILE"
         fi
 
-        if [ -n "$MEDIA_SOURCE" ] && reliable_send --channel "$channel" --to "$target" --media "$MEDIA_SOURCE"; then
+        if [ -n "$MEDIA_SOURCE" ] && reliable_send --channel "$channel" --target "$target" --media "$MEDIA_SOURCE"; then
           SUCCESS_CHANNEL="$channel"
           SUCCESS_TARGET="$target"
           SUCCESS_MODE="media"
@@ -446,7 +446,7 @@ elif [ "$OUTBOUND_ADAPTER" = "openclaw" ] || [ "$OUTBOUND_ADAPTER" = "wecom-dire
 
         warn "${channel} 原生截图发送失败 (${_SEND_FAIL_REASON})，降级为文本提示"
         FALLBACK_MESSAGE="$(build_fallback_message "$channel")"
-        if reliable_send --channel "$channel" --to "$target" --message "$FALLBACK_MESSAGE"; then
+        if reliable_send --channel "$channel" --target "$target" --message "$FALLBACK_MESSAGE"; then
           SUCCESS_CHANNEL="$channel"
           SUCCESS_TARGET="$target"
           if [ -n "$SCREENSHOT_URL" ]; then
@@ -470,7 +470,7 @@ elif [ "$OUTBOUND_ADAPTER" = "openclaw" ] || [ "$OUTBOUND_ADAPTER" = "wecom-dire
     fi
 
     FALLBACK_MESSAGE="$(build_fallback_message "$channel")"
-    if reliable_send --channel "$channel" --to "$target" --message "$FALLBACK_MESSAGE"; then
+    if reliable_send --channel "$channel" --target "$target" --message "$FALLBACK_MESSAGE"; then
       SUCCESS_CHANNEL="$channel"
       SUCCESS_TARGET="$target"
       if [ -n "$SCREENSHOT_URL" ]; then

@@ -8,13 +8,12 @@
 # - 不读取 openclaw.json 配置文件，不提取 gateway token
 # - gateway 认证仅通过用户显式设置的 OPENCLAW_GATEWAY_TOKEN 环境变量
 #
-# 重构设计（v2.5 方案B）：
+# 重构设计（v2.5.3 可测版）：
 # - 企微通道：cron 注册带 --channel openclaw-wecom-bot --to <sender_id>（delivery 兜底）
-#   agent prompt 要求执行 push-scheduled-message.sh --generate-only 生成消息，
-#   然后使用 message 工具发送企微私聊
-# - 通用通道（Telegram等）：cron 注册带 --channel <ch> --to <target>（delivery 兜底）
-#   agent prompt 要求执行 push-scheduled-message.sh 完整模式（脚本自行多通道 fallback）
-# - 所有 cron 不再使用 --no-deliver；统一 --to 替代 --target
+#   agent prompt 只做两件事：执行 push-scheduled-message.sh --emit-message-text 取得最终文本，
+#   然后必须使用 message 工具发送私聊；不再依赖脚本内 CLI 直发
+# - 通用通道（Telegram等）：仍由脚本完整模式执行，多通道 fallback + delivery 兜底
+# - openclaw cron add 继续使用 --to；但 openclaw message send 一律使用 --target，避免 CLI 参数漂移
 
 set -u
 
@@ -551,11 +550,11 @@ apply_wecom_direct_delivery_override() {
 }
 
 # ═══════════════════════════════════════════════
-#  Cron 注册核心函数（方案B重构）
+#  Cron 注册核心函数（v2.5.3 可测版）
 # ═══════════════════════════════════════════════
 
-# 企业微信通道注册：使用 --generate-only + agent message 工具
-# agent prompt 要求：1) 执行脚本 --generate-only 拿到 JSON 2) 用 message 工具发送
+# 企业微信通道注册：脚本只输出最终文本，isolated agent 必须使用 message 工具发送
+# 同时保留 cron add 的 --channel/--to，便于观察 delivery 状态并保留兜底能力
 register_wecom_job() {
   local name="$1"
   local cron_expr="$2"
@@ -563,25 +562,26 @@ register_wecom_job() {
   local wecom_target="$4"
   local extra_args="${5:-}"
 
-  local agent_message="请执行以下步骤：
-1. 运行命令获取消息内容：
-bash \"${PUSH_SCRIPT}\" --slot ${slot}${extra_args} --generate-only
-2. 从命令的 stdout 输出中读取 JSON，提取 message_text 字段。
-3. 使用 message 工具发送私聊：action=send, channel=openclaw-wecom-bot, to=${wecom_target}, message=<message_text 的值>
-4. 发送完毕后回复 done。
-注意：如果步骤 1 执行失败，直接报告错误即可。"
+  local agent_message="执行以下命令：
+bash \"${PUSH_SCRIPT}\" --slot ${slot}${extra_args} --emit-message-text
+将命令的 stdout 原文直接作为你唯一的回复输出，不要加任何前缀、解释或额外文字。
+不要调用任何 message 工具，不要尝试私信任何人。
+你的回复文本会自动通过 announce 投递到群聊，这就是预期行为。"
 
-  step "注册 ${name}（企微 agent-deliver 模式）..."
+
+  step "注册 ${name}（企微 message 工具模式）..."
+  local announce_target="${BINDING_TARGET:-$wecom_target}"
+
   if openclaw cron add \
     --name "$name" \
     --cron "$cron_expr" \
     --tz "Asia/Shanghai" \
     --session isolated \
     --channel "openclaw-wecom-bot" \
-    --to "$wecom_target" \
+    --to "$announce_target" \
     "${OPENCLAW_CRON_ARGS[@]}" \
     --message "$agent_message" >/dev/null; then
-    info "${name} 注册成功（openclaw-wecom-bot → ${wecom_target}）"
+    info "${name} 注册成功（企微 message 工具 → ${wecom_target}，announce → ${announce_target}）"
   else
     error "${name} 注册失败"
   fi
@@ -645,9 +645,16 @@ print(t.astimezone(timezone(timedelta(hours=8))).strftime('%H:%M'))
 " 2>/dev/null || echo "$trigger_at")
 
   if [ "$OUTBOUND_ADAPTER" = "wecom-direct-message" ] && [ -n "$wecom_target" ]; then
-    # 企微 init-ready：agent 使用 message 工具直接发
-    local message_for_agent="虾已经准备好了。这是虾完成初始化后的首次问候。请使用 message 工具发送私聊：action=send, channel=openclaw-wecom-bot, to=${wecom_target}, message=<自然地告诉用户你已经准备好了，会开始陪着 ta 的内容>。发送完毕后回复 done。"
+    # 企微 init-ready：直接让 isolated agent 调用 message 工具，避免再经过 shell CLI
+    local lobster_name
+    lobster_name=$(read_config_value "lobster_name" "虾")
+    local message_for_agent="执行以下命令：
+bash \"${push_script}\" --slot event${init_ready_suffix} --emit-message-text
+将 stdout 原文直接作为你唯一的回复输出，不要加任何前缀、解释或额外文字。
+不要调用任何 message 工具，不要尝试私信任何人。
+你的回复文本会自动通过 announce 投递到群聊，这就是预期行为。"
 
+    local init_ready_announce_target="${BINDING_TARGET:-$wecom_target}"
     local cron_result rc
     cron_result=$(openclaw cron add \
       --name "lobster-says-init-ready" \
@@ -656,11 +663,11 @@ print(t.astimezone(timezone(timedelta(hours=8))).strftime('%H:%M'))
       --message "$message_for_agent" \
       --delete-after-run \
       --channel "openclaw-wecom-bot" \
-      --to "$wecom_target" \
+      --to "$init_ready_announce_target" \
       "${OPENCLAW_CRON_ARGS[@]}" 2>&1)
     rc=$?
     [ $rc -eq 0 ] || error "init-ready 注册失败: ${cron_result}"
-    info "init-ready 注册成功（at=${trigger_at}, channel=openclaw-wecom-bot→${wecom_target}）"
+    info "init-ready 注册成功（at=${trigger_at}, 企微 message 工具 → ${wecom_target}）"
   else
     # 通用通道 init-ready：脚本完整模式执行
     local init_message="请立即执行以下命令，并只用一句话报告结果：
@@ -802,7 +809,7 @@ register_all_jobs() {
 
   if [ "$OUTBOUND_ADAPTER" = "wecom-direct-message" ] && [ -n "$WECOM_USER_ID" ]; then
     # ─────────────────────────────────────────
-    #  企微通道：agent prompt = --generate-only + message 工具
+    #  企微通道：agent prompt = --emit-message-text + message 工具
     # ─────────────────────────────────────────
     register_wecom_job "lobster-says-morning" "$morning_cron" "morning" "$WECOM_USER_ID"
     register_wecom_job "lobster-says-discovery" "$discovery_cron" "discovery" "$WECOM_USER_ID"
@@ -827,10 +834,6 @@ register_all_jobs() {
   fi
 
   if [ "$MEMORY_MODE" != "lightweight" ]; then
-    register_general_job "lobster-says-digest" "0 3,9,15,21 * * *" "digest" "" "" ""
-    # digest 的 agent message 需要特殊处理
-    # 上面注册的 message 不对，需要覆盖
-    remove_job_by_name "lobster-says-digest"
     local digest_message="请执行以下命令来消化用户的对话记录：
 bash \"${BASE_DIR}/digest-transcript.sh\" --mode ${MEMORY_MODE}
 执行完毕后，简要报告结果。"
@@ -876,8 +879,8 @@ bash \"${BASE_DIR}/digest-transcript.sh\" --mode ${MEMORY_MODE}
   fi
   if [ "$OUTBOUND_ADAPTER" = "wecom-direct-message" ]; then
     echo ""
-    echo "  📲 企微推送模式: generate-only + agent message 工具直达"
-    echo "  📲 所有 cron 均带 --channel openclaw-wecom-bot --to ${WECOM_USER_ID}（delivery 兜底）"
+    echo "  📲 企微推送模式: emit-message-text + agent message 工具直达"
+    echo "  📲 所有企微 cron 均带 --channel openclaw-wecom-bot --to ${WECOM_USER_ID} 作为 delivery 兜底"
   else
     echo ""
     echo "  📲 通用推送模式: 脚本多通道 fallback + delivery 兜底"

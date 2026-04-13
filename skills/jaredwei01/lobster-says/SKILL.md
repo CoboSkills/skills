@@ -18,7 +18,7 @@ metadata: {"openclaw": {"emoji": "🦞", "always": false, "requires": {"anyBins"
 | 注册 cron 定时任务 | 通过 `openclaw cron add` 注册 5-6 个定时推送任务 | 用户初始化时确认 |
 | 读写 `.lobster-config` | 在技能目录下保存用户/虾的身份和通道偏好 | 仅限技能自身配置 |
 | 调用 `openclaw sessions` | 扫描最近活跃的 IM 会话以确定投递通道 | 仅读取会话元数据（通道名+ID），不读取内容 |
-| 调用 `message` 工具 / `openclaw message send` | 企业微信定时消息走 `--generate-only` 模式：脚本只生成消息 JSON，由 isolated agent 使用 `message` 工具执行 `action=send, channel=openclaw-wecom-bot, to=<sender_id>` 私聊直达；通用通道（Telegram 等）由脚本自行调用 `openclaw message send --to` 多通道 fallback；所有 cron 均注册 `--channel` + `--to` 作为 delivery 兜底 | 仅传递目标通道 ID 与最终消息文本 |
+| 调用 `message` 工具 / `openclaw message send` | 企业微信定时推送走 **cron delivery announce 回播**模式：脚本通过 `--emit-message-text` 输出最终消息文本，isolated agent 将 stdout 原文作为回复输出，cron 的 `--channel openclaw-wecom-bot --to <群聊chat_id或私聊sender_id>` 自动把回复回播到目标会话。**agent 不需要调用 message 工具，不需要主动发送私聊。** 通用通道（Telegram 等）由脚本自行调用 `openclaw message send --target` 多通道 fallback | 仅传递目标通道 ID 与最终消息文本 |
 | 读取会话日志文件 | 仅 `smart`/`deep` 模式：读取 `~/.openclaw/agents/main/sessions/*.jsonl` | 用户选择理解模式后生效；`lightweight` 模式完全跳过 |
 | 网络通信 | 与 `nixiashuo.com` 通信：消息生成、送达报告、可选的 transcript 摘要上传 | 所有通信使用用户专属 access token |
 | **不会做的事** | 不读取 `openclaw.json` 配置文件；不提取 gateway token；不访问其他技能的数据 | — |
@@ -67,7 +67,11 @@ cat "{baseDir}/.lobster-config" 2>/dev/null
 - 如果只缺最后一个必填项（例如只差 `personality`），就只追问这一项；如果用户已经给够参数，就立刻执行初始化，而不是继续等待。
 - 如果用户说"默认""默认就行""推送时间默认"，就映射为默认时间：早安 `09:00`、广场见闻 `20:00`、晚安 `21:00`。
 - 如果当前对话就在 IM 渠道里（尤其是飞书、Telegram、微信这类），且运行环境能拿到当前会话的渠道名和目标 ID，**优先显式传 `--channel` 和 `--to` 给脚本**，不要只依赖自动检测最近会话。
-- **如果当前会话是企业微信**，必须额外从 inbound metadata 里读取 `sender_id`，并把它作为 `--wecom-user-id` 传给脚本；企业微信定时推送只认这个值作为私聊目标，不要拿群聊 `chat_id` 代替。
+- **如果当前会话是企业微信**，必须按以下规则确定 `--to` 和 `--wecom-user-id`：
+  - 从 inbound metadata 读取 `sender_id`（个人 ID）和 `group_space`（群聊 ID，群聊时才有）
+  - **如果是群聊**（inbound metadata 中 `is_group_chat=true` 或存在 `group_space`）：`--to` 使用 `group_space`（群聊 ID），`--wecom-user-id` 使用 `sender_id`
+  - **如果是私聊**：`--to` 和 `--wecom-user-id` 均使用 `sender_id`
+  - 这样 `chat_id`、`binding_target`、`delivery_target` 写入的是真实投递目标（群聊时为群聊 ID），`wecom_user_id` 保留个人 ID 供鉴权备用
 
 ### 第三步：固定进行"理解模式选择"
 
@@ -138,7 +142,7 @@ bash "{baseDir}/init-lobster.sh" \
 
 如果初始化脚本最后输出的 `INIT_RESULT_JSON` 里：
 - `success=true` 且 `cron_registered=true`：按"初始化完成"回复
-- `success=true` 且 `cron_registration_status=pending_activation`：明确告诉用户**虾已经创建成功**，只是当前企业微信会话还缺少 `sender_id / wecom_user_id`，所以定时私聊尚未注册；提示用户回到企业微信当前会话里重试，或让 skill 重新从 inbound metadata 读取 `sender_id` 后再执行一次；**不要**把它描述成"初始化失败"
+- `success=true` 且 `cron_registration_status=pending_activation`：明确告诉用户**虾已经创建成功**，只是当前企业微信会话还缺少投递目标（群聊 `group_space` 或私聊 `sender_id`），所以定时推送尚未注册；提示用户回到企业微信当前会话里重试，或让 skill 重新从 inbound metadata 读取后再执行一次；**不要**把它描述成"初始化失败"
 - `success=true` 且 `cron_registered=false` 且 `cron_registration_status` 不是 `pending_activation`：明确告诉用户**虾已经创建成功**，只是定时推送注册暂时失败，稍后补跑 `setup-cron.sh` 即可；**不要**把它描述成"后端整体不可用"或"初始化失败"
 - `reused_existing=true`：告诉用户本次复用了已有的虾，没有重复创建
 
@@ -204,33 +208,38 @@ curl -s -X POST "https://nixiashuo.com/api/memory/ingest" \
 
 统一遵循下面这条路径，**不要再引导 webhook / bot / delivery 对抗式方案**：
 
-1. 从当前对话的 inbound metadata 中读取 `sender_id`，把它当作唯一的企业微信私聊目标。
+1. 从当前对话的 inbound metadata 中确定投递目标：
+   - **群聊**：用 `group_space` 作为目标（群聊 ID）
+   - **私聊**：用 `sender_id`（个人 ID）
 2. 如果是在初始化或补注册共情虾 cron，重新执行相关脚本时**必须**带上：
 
 ```bash
-bash "{baseDir}/setup-cron.sh" --wecom-user-id "CURRENT_SENDER_ID"
+# 群聊场景：
+bash "{baseDir}/setup-cron.sh" --to "GROUP_SPACE_ID" --wecom-user-id "CURRENT_SENDER_ID"
+# 私聊场景：
+bash "{baseDir}/setup-cron.sh" --to "CURRENT_SENDER_ID" --wecom-user-id "CURRENT_SENDER_ID"
 ```
 
 3. 如果是在 skill 内创建"一次性企业微信定时通知"，标准做法是：
    - 先调用 `compute_timestamp` 生成 ISO-8601 触发时间；不要手算。
    - 再调用 cron tool 创建任务，`sessionTarget="isolated"`。
    - `payload.message` 里要求 isolated agent：
-     1. 执行 `push-scheduled-message.sh --generate-only --slot <slot>` 获取消息 JSON
-     2. 从 JSON 的 `message_text` 字段提取消息内容
-     3. 使用 `message` 工具发送私聊：`action=send`、`channel=openclaw-wecom-bot`、`to=<sender_id>`
-   - 同时注册 cron 时带 `--channel wecom --to <sender_id>` 作为 delivery 兜底。
+     1. 执行 `push-scheduled-message.sh --emit-message-text --slot <slot>` 获取最终消息文本
+     2. 将 stdout 原文直接作为唯一回复输出，不要加前缀、解释或额外文字
+     3. **不要调用 message 工具，不要尝试私信任何人**——回复文本会自动通过 cron delivery announce 投递到目标会话
+   - 同时注册 cron 时带 `--channel openclaw-wecom-bot --to <delivery_target>` 作为 announce 投递目标（群聊用 `group_space`，私聊用 `sender_id`）。
 
 标准示意：
-- `sender_id -> user_id`
+- 群聊：`group_space -> delivery_target`；私聊：`sender_id -> delivery_target`
 - `compute_timestamp(...) -> trigger_at`
 - `cron.add`：`schedule.kind="at"`、`schedule.at=trigger_at`、`sessionTarget="isolated"`、`deleteAfterRun=true`
-- `--channel openclaw-wecom-bot --to {user_id}`（delivery 兜底）
-- `payload.message`：要求 agent 先执行 `push-scheduled-message.sh --generate-only`，再用 `message` 工具三件套发送
+- `--channel openclaw-wecom-bot --to {delivery_target}`（announce 投递目标）
+- `payload.message`：要求 agent 执行 `push-scheduled-message.sh --emit-message-text`，stdout 原文作为唯一回复
 
 执行要求：
 - 企业微信链路里**不要再推荐** `configure-wecom-delivery.sh`、`wecom-webhook`、`wecom-mcp`、`wecom-bot` 作为定时推送主方案。
-- 如果当前缺少 `sender_id`，就明确告诉用户：需要回到企业微信当前会话里，让 skill 从 inbound metadata 读取到 `sender_id` 后再重试。
-- 如果 cron / 脚本已经成功拿到 `sender_id`，就按"已改为企业微信私聊直达链路"来回复，不要再提 webhook 补齐。
+- 如果当前缺少 `sender_id` 或 `group_space`，就明确告诉用户：需要回到企业微信当前会话里，让 skill 从 inbound metadata 读取到对应字段后再重试。
+- 如果 cron / 脚本已经成功拿到投递目标，就按实际投递目标（群聊或私信）来回复，不要再提 webhook 补齐。
 
 ### 切换理解模式
 

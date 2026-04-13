@@ -68,10 +68,10 @@ Skill 会引导你完成：
 
 1. 生成本次消息与工作室链接
 2. 通用 IM 通道（Telegram 等）由脚本完整模式执行：优先发到最近活跃的 direct session，失败时多通道 fallback；所有 cron 注册带 `--channel` + `--to` 作为 delivery 兜底
-3. 企业微信走 `--generate-only` 模式：脚本只生成消息 JSON 输出到 stdout，由 isolated agent 使用 `message` 工具发送 `channel=openclaw-wecom-bot, to=<sender_id>` 私聊直达；cron 同样注册带 `--channel openclaw-wecom-bot --to <sender_id>` 兜底
-4. `init-ready` 一次性任务在注册后会立即校验 `nextRun`，失败时自动顺延重排，避免出现任务存在但不执行
+3. 企业微信走 `--emit-message-text` 模式：脚本只输出最终消息文本到 stdout，由 isolated agent 把 stdout 原文直接作为 `message` 工具参数发送到 `channel=openclaw-wecom-bot, to=<sender_id>`；cron 同样注册带 `--channel openclaw-wecom-bot --to <sender_id>` 作为 delivery 兜底
+4. `init-ready` 一次性任务在注册后会立即校验 `nextRun`，失败时自动顺延重排；企微 `init-ready` 直接走 `message` 工具固定欢迎语，不再经过 shell CLI
 
-支持的 IM 通道：Telegram、微信（openclaw-weixin）、飞书、钉钉、企业微信、Discord、Slack 等所有 OpenClaw 支持的通道；其中企业微信定时推送使用 `--generate-only` + agent `message` 工具的双层架构确保可靠送达。
+支持的 IM 通道：Telegram、微信（openclaw-weixin）、飞书、钉钉、企业微信、Discord、Slack 等所有 OpenClaw 支持的通道；其中企业微信定时推送在 `2.5.3` 可测版中使用 `--emit-message-text` + agent `message` 工具的极简链路优先验证可达性。
 
 ### 🧠 记忆系统
 

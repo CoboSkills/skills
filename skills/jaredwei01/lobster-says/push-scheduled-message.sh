@@ -7,19 +7,22 @@
 #  - 读取 .lobster-config（技能自身配置，含 user_id/access_token/通道偏好）
 #  - 调用 openclaw sessions --json 获取最近活跃 IM 通道元数据（通道名+ID）
 #  - 通用 IM 通道使用 openclaw message send 发送消息（多通道 fallback）
-#  - 企业微信定时推送走 --generate-only 模式：脚本只生成消息，由 cron isolated agent 使用 message 工具私聊直达
+#  - 企业微信定时推送主链路走 --emit-message-text：脚本只输出最终消息文本，由 cron isolated agent 使用 message 工具私聊直达
+#  - --generate-only JSON 模式保留为调试/兼容能力，不再作为企微 cron 主链路
 #  - 与 https://nixiashuo.com 通信：生成消息、报告送达结果
 #  - 不读取 openclaw.json 配置文件，不提取 gateway token
 #
 #  设计目标：
-#  1. --generate-only 模式：仅生成消息内容，输出 JSON 到 stdout，不执行任何发送
-#     适用于：企业微信 cron 链路——由 isolated agent 读取 stdout JSON 后使用 message 工具发送
-#  2. 完整模式（默认）：生成消息 + 多通道 fallback 发送
+#  1. --emit-message-text 模式：仅输出最终消息文本到 stdout，不执行任何发送
+#     适用于：企业微信 cron 链路——由 isolated agent 直接把 stdout 原文作为 message 工具参数发送
+#  2. --generate-only 模式：输出 JSON 到 stdout，保留为调试/兼容能力
+#  3. 完整模式（默认）：生成消息 + 多通道 fallback 发送
 #     适用于：Telegram/Discord/飞书等通用 IM 通道
-#  3. 两种模式共享消息生成、init-ready 管理、送达报告等基础设施
+#  4. 各模式共享消息生成、init-ready 管理、送达报告等基础设施
 #
 #  使用方式：
 #    bash push-scheduled-message.sh --slot morning|discovery|evening
+#    bash push-scheduled-message.sh --slot morning --emit-message-text
 #    bash push-scheduled-message.sh --slot morning --generate-only
 
 set -u
@@ -39,6 +42,7 @@ CONTENT_PREFIX=""
 MANAGED_JOB_NAME=""
 JOB_KIND="scheduled-message"
 GENERATE_ONLY=0
+EMIT_MESSAGE_TEXT=0
 ACTIVE_WINDOW_MINUTES="${ACTIVE_WINDOW_MINUTES:-10080}"
 INIT_READY_MAX_ATTEMPTS="${INIT_READY_MAX_ATTEMPTS:-4}"
 INIT_READY_RETRY_MINUTES="${INIT_READY_RETRY_MINUTES:-15}"
@@ -64,7 +68,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 _ts()   { date '+%Y-%m-%d %H:%M:%S'; }
-# --generate-only 模式下，info/warn/error/step 输出到 stderr，stdout 保留给 JSON
+# --emit-message-text / --generate-only 模式下，info/warn/error/step 输出到 stderr，stdout 保留给消息文本或 JSON
 info()  { echo -e "${GREEN}[✓]${NC} $(_ts) $1" >&2; }
 warn()  { echo -e "${YELLOW}[!]${NC} $(_ts) $1" >&2; }
 error() { echo -e "${RED}[✗]${NC} $(_ts) $1" >&2; exit 1; }
@@ -102,12 +106,13 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --slot) SLOT="$2"; shift 2 ;;
     --channel) FORCED_CHANNEL="$2"; shift 2 ;;
-    --to) FORCED_TARGET="$2"; shift 2 ;;
+    --to|--target) FORCED_TARGET="$2"; shift 2 ;;
     --extra-context) EXTRA_CONTEXT="$2"; shift 2 ;;
     --content-prefix) CONTENT_PREFIX="$2"; shift 2 ;;
     --job-kind) JOB_KIND="$2"; shift 2 ;;
     --managed-job-name|--remove-cron-job-name) MANAGED_JOB_NAME="$2"; shift 2 ;;
     --generate-only) GENERATE_ONLY=1; shift ;;
+    --emit-message-text) EMIT_MESSAGE_TEXT=1; shift ;;
     *) echo "未知参数: $1" >&2; exit 1 ;;
   esac
 done
@@ -693,19 +698,30 @@ PY
 fi
 
 # ═══════════════════════════════════════════════
-#  模式分流：--generate-only vs 完整发送
+#  模式分流：--emit-message-text / --generate-only / 企微 CLI fallback / 通用多通道 fallback
 # ═══════════════════════════════════════════════
+
+if [ "$EMIT_MESSAGE_TEXT" = "1" ]; then
+  # ───────────────────────────────────────────
+  #  emit-message-text 模式：仅输出最终消息文本到 stdout
+  #  供 isolated agent 直接把 stdout 原文作为 message 工具参数发送
+  # ───────────────────────────────────────────
+  step "emit-message-text 模式：输出最终消息文本到 stdout..."
+  FINAL_TEXT=$(build_text_message true)
+  echo "$FINAL_TEXT"
+  append_delivery_ledger "emit_message_text" "ok" "plain text output to stdout for agent message tool" "" "" "emit_message_text" "$MESSAGE_ID"
+  info "emit-message-text 完成，最终消息文本已输出到 stdout"
+  exit 0
+fi
 
 if [ "$GENERATE_ONLY" = "1" ]; then
   # ───────────────────────────────────────────
-  #  generate-only 模式：仅输出消息 JSON 到 stdout
-  #  由 cron isolated agent 读取后使用 message 工具发送
+  #  generate-only 模式：仅输出消息 JSON 到 stdout（保留作为备用能力）
   # ───────────────────────────────────────────
   step "generate-only 模式：输出消息 JSON 到 stdout..."
 
   FINAL_TEXT=$(build_text_message true)
 
-  # 构造输出 JSON
   GENERATE_ONLY_OUTPUT=$(FINAL_TEXT_VALUE="$FINAL_TEXT" \
     GENERATED_CONTENT_VALUE="$GENERATED_CONTENT" \
     MESSAGE_ID_VALUE="$MESSAGE_ID" \
@@ -736,11 +752,68 @@ print(json.dumps(output, ensure_ascii=False))
 PY
 )
 
-  # stdout 输出 JSON（这是 agent 会读取的内容）
   echo "$GENERATE_ONLY_OUTPUT"
   append_delivery_ledger "generate_only_output" "ok" "JSON output to stdout for agent delivery" "" "" "generate_only" "$MESSAGE_ID"
   info "generate-only 完成，消息已输出到 stdout"
   exit 0
+fi
+
+if [ "$OUTBOUND_ADAPTER" = "wecom-direct-message" ]; then
+  # ───────────────────────────────────────────
+  #  企微 CLI fallback：仅保留给手动调试/非 cron 场景
+  #  2.5.3 起不再作为企微 cron 主链路
+  # ───────────────────────────────────────────
+  WECOM_SEND_TARGET="${FORCED_TARGET:-${WECOM_USER_ID:-${DELIVERY_TARGET:-}}}"
+  WECOM_SEND_CHANNEL="${FORCED_CHANNEL:-openclaw-wecom-bot}"
+
+  if [ -z "$WECOM_SEND_TARGET" ]; then
+    LAST_ERROR="企业微信定时推送缺少 sender_id / wecom_user_id"
+    append_delivery_ledger "wecom_target_missing" "failed" "$LAST_ERROR" "$WECOM_SEND_CHANNEL" "" "wecom_cli_direct" "$MESSAGE_ID"
+    [ "$JOB_KIND" = "init-ready" ] && schedule_init_ready_retry "$INIT_READY_ATTEMPT_NUMBER" "$LAST_ERROR"
+    error "$LAST_ERROR"
+  fi
+
+  if [ "$IS_STICKER" = "true" ]; then
+    DELIVERED_TEXT="🦞 ${LOBSTER_NAME}给你准备了一张图片礼物，先去工作室看看吧 → ${WEB_URL}"
+  else
+    DELIVERED_TEXT=$(build_text_message true)
+  fi
+
+  step "企微 CLI fallback：openclaw message send → ${WECOM_SEND_CHANNEL} → ${WECOM_SEND_TARGET}..."
+  _SEND_STDERR_FILE=$(mktemp "${TMPDIR:-/tmp}/lobster-send-stderr.XXXXXX")
+  SEND_RESULT=$(openclaw message send \
+    --channel "$WECOM_SEND_CHANNEL" \
+    --target "$WECOM_SEND_TARGET" \
+    --message "$DELIVERED_TEXT" 2>"$_SEND_STDERR_FILE")
+  SEND_RC=$?
+  SEND_STDERR=""
+  [ -f "$_SEND_STDERR_FILE" ] && SEND_STDERR=$(cat "$_SEND_STDERR_FILE" 2>/dev/null)
+
+  if [ $SEND_RC -eq 0 ]; then
+    # 检查假成功
+    if echo "$SEND_STDERR" | grep -qiE '(wsclient|websocket|not.connected|connection.refused|connection.reset|connection.timeout|no.active.session|failed.to.send|send.failed|delivery.failed)'; then
+      LAST_ERROR="企微 CLI 假成功(exit=0 但检测到连接问题): ${SEND_STDERR}"
+      append_delivery_ledger "wecom_cli_direct" "failed" "$LAST_ERROR" "$WECOM_SEND_CHANNEL" "$WECOM_SEND_TARGET" "wecom_cli_direct" "$MESSAGE_ID"
+      [ "$JOB_KIND" = "init-ready" ] && schedule_init_ready_retry "$INIT_READY_ATTEMPT_NUMBER" "$LAST_ERROR"
+      error "$LAST_ERROR"
+    fi
+
+    DELIVERED_AT_UTC=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+    report_delivery "$MESSAGE_ID" "sent" "$WECOM_SEND_CHANNEL" "$WECOM_SEND_TARGET" "wecom_cli_direct" "$DELIVERED_TEXT" "$SCREENSHOT_URL" ""
+    append_delivery_ledger "wecom_cli_direct" "sent" "企微 CLI fallback 发送成功" "$WECOM_SEND_CHANNEL" "$WECOM_SEND_TARGET" "wecom_cli_direct" "$MESSAGE_ID"
+    update_init_ready_state "sent" "$INIT_READY_ATTEMPT_NUMBER" "$MESSAGE_ID" "" "$WECOM_SEND_CHANNEL" "$WECOM_SEND_TARGET"
+    [ "$JOB_KIND" = "init-ready" ] && finalize_managed_job
+    info "📮 企微 CLI fallback 发送成功: slot=${SLOT} message_id=${MESSAGE_ID} channel=${WECOM_SEND_CHANNEL} target=${WECOM_SEND_TARGET}"
+    echo "DELIVERY_OK slot=${SLOT} message_id=${MESSAGE_ID} channel=${WECOM_SEND_CHANNEL} mode=wecom_cli_direct" >&2
+    exit 0
+  else
+    LAST_ERROR="企微 CLI 发送失败 (rc=${SEND_RC}): ${SEND_STDERR}"
+    report_delivery "$MESSAGE_ID" "failed" "$WECOM_SEND_CHANNEL" "$WECOM_SEND_TARGET" "wecom_cli_direct" "" "$SCREENSHOT_URL" "$LAST_ERROR"
+    append_delivery_ledger "wecom_cli_direct" "failed" "$LAST_ERROR" "$WECOM_SEND_CHANNEL" "$WECOM_SEND_TARGET" "wecom_cli_direct" "$MESSAGE_ID"
+    [ "$JOB_KIND" = "init-ready" ] && update_init_ready_state "delivery_failed" "$INIT_READY_ATTEMPT_NUMBER" "$MESSAGE_ID" "$LAST_ERROR" "$WECOM_SEND_CHANNEL" "$WECOM_SEND_TARGET"
+    [ "$JOB_KIND" = "init-ready" ] && schedule_init_ready_retry "$INIT_READY_ATTEMPT_NUMBER" "$LAST_ERROR"
+    error "$LAST_ERROR"
+  fi
 fi
 
 # ═══════════════════════════════════════════════
@@ -839,8 +912,8 @@ ${STUDIO_ENTRY_LINE}"
 
   if supports_media "$channel"; then
     TEXT_MESSAGE=$(build_text_message false)
-    if reliable_send --channel "$channel" --to "$target" --message "$TEXT_MESSAGE"; then
-      if reliable_send --channel "$channel" --to "$target" --media "$SCREENSHOT_URL"; then
+    if reliable_send --channel "$channel" --target "$target" --message "$TEXT_MESSAGE"; then
+      if reliable_send --channel "$channel" --target "$target" --media "$SCREENSHOT_URL"; then
         SUCCESS_CHANNEL="$channel"
         SUCCESS_TARGET="$target"
         SUCCESS_MODE="media"
@@ -850,7 +923,7 @@ ${STUDIO_ENTRY_LINE}"
       fi
       warn "${channel} 原生截图发送失败 (${_SEND_FAIL_REASON})，降级为补发截图 URL"
       URL_FALLBACK=$(build_text_message true)
-      if reliable_send --channel "$channel" --to "$target" --message "$URL_FALLBACK"; then
+      if reliable_send --channel "$channel" --target "$target" --message "$URL_FALLBACK"; then
         SUCCESS_CHANNEL="$channel"
         SUCCESS_TARGET="$target"
         SUCCESS_MODE="degraded_url"

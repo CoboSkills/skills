@@ -1,11 +1,17 @@
 {
   "owner": "warren618",
   "slug": "vibe-trading",
-  "displayName": "Clawhub Publish",
+  "displayName": "Vibe Trading",
   "latest": {
-    "version": "0.2.3",
-    "publishedAt": 1775023711940,
-    "commit": "https://github.com/openclaw/skills/commit/f05864da07cefc79dab27f7fa8bc5b21f33aab6c"
+    "version": "0.1.4",
+    "publishedAt": 1775827419772,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.2.3",
+      "publishedAt": 1775023711940,
+      "commit": "https://github.com/openclaw/skills/commit/f05864da07cefc79dab27f7fa8bc5b21f33aab6c"
+    }
+  ]
 }

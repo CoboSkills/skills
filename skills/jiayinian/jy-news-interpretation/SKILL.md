@@ -171,7 +171,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # 3. 测试连接
-mcporter call jy-financedata-api.getNewsInfo query="测试" --output json
+mcporter call jy-financedata-api.CompanyBasicInfo query="测试 600519.SH" --output json
 ```
 
 ## 核心工作流程
@@ -185,9 +185,10 @@ mcporter call jy-financedata-api.getNewsInfo query="测试" --output json
 ### 步骤 2：并行获取基础数据
 
 ```bash
-# 并行调用两个核心服务
-mcporter call jy-financedata-api.getNewsInfo query="用户输入内容" --output json &
-mcporter call jy-financedata-tool.analyzeNewsImpact query="用户输入内容" --output json &
+# 并行调用两个核心服务（根据查询类型选择合适工具）
+# 示例：查询公司相关新闻和数据
+mcporter call jy-financedata-tool.FinQuery query="用户输入内容" --output json &
+mcporter call jy-financedata-api.CompanyBasicInfo query="用户输入内容" --output json &
 wait
 ```
 
@@ -215,27 +216,36 @@ mcporter call 服务名。工具名 query="查询内容"
 
 **1. 24 小时财经热点速报**
 ```bash
-mcporter call jy-financedata-api.get24hHotNews query="过去 24 小时财经热点新闻"
+# 使用 FinQuery 查询近期财经新闻
+mcporter call jy-financedata-tool.FinQuery query="过去 24 小时财经热点新闻"
 ```
 
 **2. 单条新闻深度解读**
 ```bash
-mcporter call jy-financedata-tool.interpretNews query="央行降准新闻解读"
+# 使用 FinancialResearchReport 获取研报观点
+mcporter call jy-financedata-tool.FinancialResearchReport query="央行降准 影响分析"
 ```
 
 **3. 行业新闻影响分析**
 ```bash
-mcporter call jy-financedata-api.analyzeIndustryNews query="半导体行业利好新闻影响"
+# 使用 MacroIndustryData 查询行业数据
+mcporter call jy-financedata-tool.MacroIndustryData query="半导体行业 最新政策 经济数据"
 ```
 
 **4. 个股公告查询**
 ```bash
-mcporter call jy-financedata-api.queryStockAnnouncement query="600519.SH 最新公告"
+# 使用 CompanyBasicInfo 查询公司基本信息
+mcporter call jy-financedata-api.CompanyBasicInfo query="贵州茅台 600519.SH"
+# 使用 PerformanceForecast 查询业绩预告
+mcporter call jy-financedata-api.PerformanceForecast query="600519.SH 业绩预告"
 ```
 
 **5. 关联标的分析**
 ```bash
-mcporter call jy-financedata-tool.findRelatedStocks query="新能源汽车产业链 关联上市公司"
+# 使用 StockBelongIndustry 查询行业归属
+mcporter call jy-financedata-api.StockBelongIndustry query="新能源汽车产业链 上市公司"
+# 使用 StockMultipleFactorFilter 筛选相关股票
+mcporter call jy-financedata-tool.StockMultipleFactorFilter query="新能源汽车行业 龙头企业"
 ```
 
 ## 输出格式
@@ -289,8 +299,12 @@ mcporter call jy-financedata-tool.findRelatedStocks query="新能源汽车产业
 
 ## 限制
 
-### 数据来源仅限恒生聚源 MCP 金融服务，不支持外部数据源
-所有数据查询必须通过 `jy-financedata-tool` 或 `jy-financedata-api` 服务获取
+### ⚠️ 数据来源限制（重要）
+**本技能仅能调用以下两个 MCP 数据源：**
+- `jy-financedata-tool`（5 个工具）
+- `jy-financedata-api`（276 个工具）
+
+**禁止调用任何外部数据源**，所有数据查询必须通过上述两个服务获取
 
 ### 新闻解读基于已发布的公开资讯，不构成投资建议
 解读结果仅供参考，不能作为绝对的投资决策依据
@@ -306,15 +320,83 @@ API Key 失效或权限变更时，需重新向恒生聚源申请并更新配置
 
 ## 数据查询要求
 
-| 数据类型 | 查询内容 | 时间范围 | 服务 | 工具 |
-|----------|----------|----------|------|------|
-| 热点新闻 | 24 小时财经新闻 | 近 24 小时 | jy-financedata-api | get24hHotNews |
-| 新闻解读 | 单条新闻分析 | 指定新闻 | jy-financedata-tool | interpretNews |
-| 行业分析 | 行业影响评估 | 近 3 天 | jy-financedata-api | analyzeIndustryNews |
-| 个股公告 | 上市公司公告 | 近 7 天 | jy-financedata-api | queryStockAnnouncement |
-| 关联标的 | 产业链关联公司 | 实时 | jy-financedata-tool | findRelatedStocks |
-| 行情数据 | 股票/指数行情 | 实时 | jy-financedata-api | queryStockQuote |
-| 财务数据 | 公司财报数据 | 近 5 年 | jy-financedata-api | queryCompanyFinance |
+**重要：本技能仅能调用以下两个 MCP 数据源的工具/接口**
+
+### jy-financedata-tool（5 个工具）
+
+| 工具名 | 功能描述 | 典型场景 |
+|--------|----------|----------|
+| `StockMultipleFactorFilter` | 智能选股，多维条件筛选股票/板块/指数 | "满足若干条件的股票有哪些" |
+| `FundMultipleFactorFilter` | 智能选基，多维条件筛选基金（含 ETF） | "重仓 XX 股票的基金" |
+| `FinQuery` | 金融数据查询，覆盖股票/基金/债券/指数/行情等 | 各类金融产品结构化数据查询 |
+| `MacroIndustryData` | 宏观经济与行业经济数据定位获取 | 中国宏观、行业经济指标查询 |
+| `FinancialResearchReport` | 券商研报库智能问答 | 获取研报中宏观行业、公司等专业信息 |
+
+### jy-financedata-api（276 个工具，核心工具列表）
+
+#### 公司基本资料
+| 工具名 | 功能 |
+|--------|------|
+| `CompanyBasicInfo` | 上市公司基本资料（注册信息、行业、概念、简介） |
+| `CompanyManagement` | 董事会、监事会、高管人员信息及简历 |
+| `NumberOfEmployeesAndSalary` | 员工人数、薪酬总额、人均薪酬 |
+
+#### 发行与融资
+| 工具名 | 功能 |
+|--------|------|
+| `IpoIssuanceInfo` | IPO 发行信息（价格、中签率、主承销商、募资额） |
+| `BonusStock` | 分红记录、方案（支持多股批量查询及时间筛选） |
+| `StockRepurchase` | 股票回购计划及执行进度 |
+
+#### 板块归属
+| 工具名 | 功能 |
+|--------|------|
+| `StockBelongConcept` | 所属概念板块及入选依据、起始时间 |
+| `StockBelongIndustry` | 申万、证监会等主流行业分类体系归属 |
+| `StockBelongIndex` | 归属的市场指数（沪深 300、上证 50 等） |
+
+#### 股东信息
+| 工具名 | 功能 |
+|--------|------|
+| `Top10ShareHolders` | 前十大股东持股信息（持股量及比例） |
+| `InstitutionInvestor` | 机构股东持股信息（持股数量、比例、机构类型） |
+| `ShareholderNum` | 股东户数、户均持股数及变动情况 |
+
+#### 财务数据
+| 工具名 | 功能 |
+|--------|------|
+| `FinancialStatement` | 历史财务报表（合并/母公司、累计/单季数据） |
+| `FinancialAnalysis` | 财务分析指标（盈利能力、偿债能力、成长能力等） |
+| `ConsensusExpectation` | 未来三年盈利预测数据（营收、净利润等） |
+| `PerformanceForecast` | 业绩预告数据（净利润预期、增速） |
+
+#### 评级与调研
+| 工具名 | 功能 |
+|--------|------|
+| `InstitutionalRating` | 机构评级次数、评级分数及机构家数 |
+| `InstitutionInvestigation` | 机构调研记录（机构、日期、内容、人员） |
+
+#### 行情与对比
+| 工具名 | 功能 |
+|--------|------|
+| `MarketPerformanceComparison` | 与同行业企业市场表现对比（涨跌幅、成交额） |
+| `ValueAnalysisComparison` | 与同行业企业估值指标对比（PE、PB、EV） |
+
+#### 基金相关（部分）
+| 工具名 | 功能 |
+|--------|------|
+| `FundBasicInfoReport` | 基金基础信息（分类、托管人、业绩基准） |
+| `FundManagerInfoReport` | 基金经理个人背景、从业年限、管理规模 |
+| `ShareholdingDetailReport` | 基金持仓股票明细（市值、占比、行业） |
+
+#### 企业风险与法律（部分）
+| 工具名 | 功能 |
+|--------|------|
+| `StockSuitArbitration` | 诉讼仲裁案件信息（案由、涉案金额、进展） |
+| `StockViolationPenalty` | 违规处罚事件（原因、处罚机构） |
+| `CourtSession` | 开庭公告信息（案号、案由、当事人、法院） |
+
+**完整工具列表共 276 个，可通过 `mcporter describe jy-financedata-api` 查看**
 
 ## 注意事项
 
@@ -350,9 +432,10 @@ API Key 失效或权限变更时，需重新向恒生聚源申请并更新配置
 
 **助手**: 
 1. 环境检查通过
-2. 调用 `jy-financedata-tool.interpretNews query="美联储加息"`
-3. 分析影响路径...
-4. 生成深度解读报告...
+2. 调用 `jy-financedata-tool.FinancialResearchReport query="美联储加息 影响分析"`
+3. 调用 `jy-financedata-tool.MacroIndustryData query="美联储加息 宏观经济数据"`
+4. 分析影响路径...
+5. 生成深度解读报告...
 
 **用户**: 我没有 JY_API_KEY，怎么配置？
 

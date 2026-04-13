@@ -1,0 +1,11 @@
+{
+  "owner": "liverock",
+  "slug": "security-sentinel-ultimate",
+  "displayName": "Security Sentinel Ultimate",
+  "latest": {
+    "version": "0.3.0",
+    "publishedAt": 1775534267536,
+    "commit": null
+  },
+  "history": []
+}

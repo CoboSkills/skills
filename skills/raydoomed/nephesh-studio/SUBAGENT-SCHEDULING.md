@@ -29,7 +29,6 @@
   "cleanup": "keep",
   "label": "<project-name>-<role-name>[-<suffix>]",
   "task": "完整任务描述，所有路径使用绝对路径 + 项目根目录绝对路径说明",
-  "runTimeoutSeconds": 300
 }
 ```
 
@@ -46,7 +45,6 @@
 - **同项目同角色多次调用**：`项目名-角色名-任务描述-issue名称`
 这样侧边栏能清晰区分不同轮次任务，便于识别排查 |
 | `task` | 是 | - | - | 任务描述 |
-| `runTimeoutSeconds` | 否 | `300` | `0` | 超时时间 |
 
 ## 执行规则
 

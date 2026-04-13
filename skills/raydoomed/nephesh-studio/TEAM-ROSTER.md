@@ -16,8 +16,9 @@
 | 8 | 数据分析师 | **算算** | 项目经理 | `roles/data-analyst.md` | `learning/data-analyst.md` |
 | 9 | 内容编辑 | **写写** | 项目经理 | `roles/content-editor.md` | `learning/content-editor.md` |
 | 10 | QA审核专员 | **查查** | CEO | `roles/qa-auditor.md` | `learning/qa-auditor.md` |
+| 11 | 美术设计师 | **画坊** | 项目经理 | `roles/art-designer.md` | `learning/art-designer.md` |
 
 ---
-*更新时间: 2026-04-03*
-*最后修改: 修正文件路径，使用相对路径*
+*更新时间: 2026-04-10*
+*最后修改: 新增美术设计师岗位（画坊）*
 ---

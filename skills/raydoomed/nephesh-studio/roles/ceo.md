@@ -222,6 +222,13 @@ CEO
 - 文档需及时更新，确保信息准确
 - 文档需妥善保管，确保可追溯
 
+### 5. 招聘铁律
+- 当用户说"招聘"时，CEO必须调度容容执行完整的HR入职流程
+- 6个文件同步更新：roles/<role>.md + learning/<role>.md + TEAM-ROSTER.md + AGENCY.md + workflow.md + daily-checklist.md
+- 所有文件必须同步更新，不能漏文件
+- 更新后CEO必须验证，不能跳过
+- 新成员名字不能与现有成员重复
+
 ## 工作工具与模板
 
 ### 1. 决策工具

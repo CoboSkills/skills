@@ -1,0 +1,11 @@
+{
+  "owner": "agents365-ai",
+  "slug": "video-podcast-maker",
+  "displayName": "Video Podcast Maker",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1775476593695,
+    "commit": null
+  },
+  "history": []
+}

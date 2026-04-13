@@ -1,0 +1,11 @@
+{
+  "owner": "16miku",
+  "slug": "image-downloader",
+  "displayName": "bing图片批量下载skill",
+  "latest": {
+    "version": "2.0.1",
+    "publishedAt": 1776049098449,
+    "commit": null
+  },
+  "history": []
+}

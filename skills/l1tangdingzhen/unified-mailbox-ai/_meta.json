@@ -1,11 +1,17 @@
 {
   "owner": "l1tangdingzhen",
   "slug": "unified-mailbox-ai",
-  "displayName": "Unified Mailbox AI",
+  "displayName": "Unified Mailbox Ai",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775547860915,
-    "commit": "https://github.com/openclaw/skills/commit/500b56d7eefdc64602bd404773e7bc2137732309"
+    "version": "1.1.0",
+    "publishedAt": 1775717703303,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775547860915,
+      "commit": "https://github.com/openclaw/skills/commit/500b56d7eefdc64602bd404773e7bc2137732309"
+    }
+  ]
 }

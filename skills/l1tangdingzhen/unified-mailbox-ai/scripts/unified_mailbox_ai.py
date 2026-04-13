@@ -1,4 +1,5 @@
 import json, os, argparse, subprocess, sys, shutil
+from concurrent.futures import ThreadPoolExecutor
 from urllib import request
 import msal
 
@@ -129,6 +130,12 @@ def fetch_outlook_unread(token):
     return emails
 
 
+def fetch_outlook_unread_full():
+    """Combined token refresh + unread fetch; intended as a single unit of work for the thread pool."""
+    token = get_access_token()
+    return fetch_outlook_unread(token)
+
+
 # ── Gmail ─────────────────────────────────────────────────────────────────────
 
 def fetch_gmail_unread():
@@ -177,7 +184,7 @@ def is_meeting_invite_text(subject, body):
     """Detect whether the subject/body looks like a meeting or event invitation."""
     text = (subject + ' ' + body).lower()
     keywords = ['invite', 'invitation', 'meeting', 'calendar',
-                'appointment', 'schedule',
+                '邀请', '会议', '日程', 'appointment', 'schedule',
                 'event', 'conference', 'webinar', 'zoom', 'teams']
     return any(word in text for word in keywords)
 
@@ -201,25 +208,33 @@ def save_notified(ids):
 # ── Main actions ─────────────────────────────────────────────────────────────
 
 def check_new_emails():
-    """Check unread emails across the enabled mailboxes (intended for manual agent calls)."""
+    """Check unread emails across the enabled mailboxes concurrently (intended for manual agent calls)."""
     notified = load_notified()
     result = {'outlook': [], 'gmail': [], 'errors': []}
 
-    if OUTLOOK_ENABLED:
-        try:
-            token = get_access_token()
-            outlook_emails = fetch_outlook_unread(token)
-            result['outlook'] = [e for e in outlook_emails if e['id'] not in notified]
-        except Exception as e:
-            result['errors'].append(f'Outlook error: {e}')
-    else:
-        result['outlook_skipped'] = 'Outlook not configured'
+    # Fire off the enabled providers in parallel; the two network paths are independent.
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = {}
+        if OUTLOOK_ENABLED:
+            futures['outlook'] = executor.submit(fetch_outlook_unread_full)
+        else:
+            result['outlook_skipped'] = 'Outlook not configured'
 
-    if GMAIL_ENABLED:
-        gmail_emails = fetch_gmail_unread()
-        result['gmail'] = [e for e in gmail_emails if e['id'] not in notified]
-    else:
-        result['gmail_skipped'] = 'Gmail not configured (set EMAIL_MONITOR_GMAIL_ACCOUNT)'
+        if GMAIL_ENABLED:
+            futures['gmail'] = executor.submit(fetch_gmail_unread)
+        else:
+            result['gmail_skipped'] = 'Gmail not configured (set EMAIL_MONITOR_GMAIL_ACCOUNT)'
+
+        if 'outlook' in futures:
+            try:
+                outlook_emails = futures['outlook'].result()
+                result['outlook'] = [e for e in outlook_emails if e['id'] not in notified]
+            except Exception as e:
+                result['errors'].append(f'Outlook error: {e}')
+
+        if 'gmail' in futures:
+            gmail_emails = futures['gmail'].result()
+            result['gmail'] = [e for e in gmail_emails if e['id'] not in notified]
 
     total = len(result['outlook']) + len(result['gmail'])
     result['count'] = total
@@ -244,26 +259,32 @@ def auto_notify():
     new_emails = []
     errors = []
 
-    # Outlook (only if configured)
-    if OUTLOOK_ENABLED:
-        try:
-            token = get_access_token()
-            for e in fetch_outlook_unread(token):
+    # Run Outlook and Gmail fetches in parallel; only the configured providers are submitted.
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = {}
+        if OUTLOOK_ENABLED:
+            futures['outlook'] = executor.submit(fetch_outlook_unread_full)
+        else:
+            print('Outlook not configured, skipping.')
+
+        if GMAIL_ENABLED:
+            futures['gmail'] = executor.submit(fetch_gmail_unread)
+        else:
+            print('Gmail not configured, skipping.')
+
+        if 'outlook' in futures:
+            try:
+                for e in futures['outlook'].result():
+                    if e['id'] not in notified:
+                        new_emails.append(e)
+            except Exception as e:
+                errors.append(f'Outlook error: {e}')
+                print(f'Outlook error: {e}', file=sys.stderr)
+
+        if 'gmail' in futures:
+            for e in futures['gmail'].result():
                 if e['id'] not in notified:
                     new_emails.append(e)
-        except Exception as e:
-            errors.append(f'Outlook error: {e}')
-            print(f'Outlook error: {e}', file=sys.stderr)
-    else:
-        print('Outlook not configured, skipping.')
-
-    # Gmail (only if configured)
-    if GMAIL_ENABLED:
-        for e in fetch_gmail_unread():
-            if e['id'] not in notified:
-                new_emails.append(e)
-    else:
-        print('Gmail not configured, skipping.')
 
     if not new_emails:
         print('No new emails from Outlook or Gmail; skipping AI call.')

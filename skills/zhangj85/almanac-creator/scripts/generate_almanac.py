@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-黄历生成脚本 V2.2 - lunar-java 集成版
+黄历生成脚本 V3.0.1 - 通用化版
 升级内容：
-1. 集成 lunar-python 库（lunar-java 的 Python 版本）
-2. 干支计算 - 使用 lunar-python 准确计算（替代映射表）
-3. 宜忌生成 - 使用 lunar-python 传统算法（替代本地池）
-4. 新增彭祖百忌、纳音、星宿等传统元素支持
-V2.1 修复内容：
-1. 生肖运势算法 - 吉凶分离，逻辑正确
-2. 吉时计算 - 使用十二神值时
-3. 财神方位 - 根据日干计算
+1. 【V3.0.1 新增】节气计算通用化（支持 1900-2100 年）
+2. 【V3.0.1 新增】批量生成功能（一次生成 7 天/30 天）
+3. 【V3.0.1 新增】配置文件支持（config.yaml）
+4. 集成 lunar-python 库（lunar-java 的 Python 版本）
+5. 干支计算 - 使用 lunar-python 准确计算
+6. 宜忌生成 - 使用 lunar-python 传统算法
+
+版本：V3.0.1
+日期：2026-04-12
 """
 
 import sys
@@ -18,7 +19,8 @@ import io
 from PIL import Image, ImageDraw, ImageFont
 import os
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
+import yaml
 
 # 导入 lunar-python（lunar-java 的 Python 版本）
 from lunar_python import Lunar, Solar
@@ -122,11 +124,57 @@ SPACING = {
     'separator_after': 28, # 25 → 28 (+3px) 分隔线后间距加大
 }
 
-def get_template(date_str):
+def load_config(config_path=None):
+    """【V3.0.1 新增】加载配置文件"""
+    if config_path is None:
+        # 默认加载脚本同目录的 config.yaml
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        config_path = os.path.join(script_dir, '..', 'config.yaml')
+    
+    default_config = {
+        'output': {'base_dir': './reports', 'quality': 95, 'overwrite': True},
+        'font': FONT_SIZES,
+        'spacing': SPACING,
+        'template': {'default': 'traditional', 'rotation': True},
+        'features': {'show_jieqi': True, 'show_story': True},
+        'batch': {'default_days': 7, 'max_days': 365},
+    }
+    
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+                # 合并配置（配置文件优先）
+                for key in default_config:
+                    if key in config:
+                        if isinstance(default_config[key], dict):
+                            default_config[key].update(config[key])
+                        else:
+                            default_config[key] = config[key]
+            print(f"✅ 已加载配置文件：{config_path}")
+        except Exception as e:
+            print(f"⚠️ 配置文件加载失败：{e}，使用默认配置")
+    else:
+        print(f"ℹ️ 未找到配置文件，使用默认配置")
+    
+    return default_config
+
+
+def get_template(date_str, config=None):
     """【V2.3 新增】根据日期选择模板（每日轮换）"""
     date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+    
+    # 从配置文件读取模板设置
+    if config and 'template' in config:
+        template_config = config['template']
+        if not template_config.get('rotation', True):
+            # 不启用轮换，使用默认模板
+            default_name = template_config.get('default', 'traditional')
+            return default_name, TEMPLATES.get(default_name, TEMPLATES['traditional'])
+    
     # 按日期轮换模板（5 天一个循环）
     template_names = list(TEMPLATES.keys())
+    rotation_days = config.get('template', {}).get('rotation_days', 5) if config else 5
     template_index = date_obj.day % len(template_names)
     template_name = template_names[template_index]
     return template_name, TEMPLATES[template_name]
@@ -249,17 +297,106 @@ def draw_separator(draw, y, color='#D4AF37'):
     draw.line([(80, y), (WIDTH-80, y)], fill=color, width=2)
     return y + SPACING['separator_after']
 
-def get_ganzhi(date_str):
-    """【V2.2 升级】使用 lunar-python 计算干支（替代映射表，代码简化 80+ 行）"""
-    date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
-    lunar = Lunar.fromYmd(date_obj.year, date_obj.month, date_obj.day)
+def get_month_ganzhi_by_jieqi(year, month, day):
+    """
+    【V3.0.1 修复】根据节气计算月柱（替代 lunar-python 的农历月干支）
     
-    # lunar-python 直接提供准确的干支
+    节气月规则：
+    - 寅月：立春 (2/4) - 惊蛰前
+    - 卯月：惊蛰 (3/5) - 清明前
+    - 辰月：清明 (4/5) - 立夏前
+    - 巳月：立夏 (5/5) - 芒种前
+    - ...
+    """
+    # 年干定月干（五虎遁元）
+    # 甲己年起丙寅，乙庚年起戊寅，丙辛年起庚寅，丁壬年起壬寅，戊癸年起甲寅
+    YEAR_GAN_START = {
+        '甲': '丙', '己': '丙',
+        '乙': '戊', '庚': '戊',
+        '丙': '庚', '辛': '庚',
+        '丁': '壬', '癸': '壬',
+        '戊': '甲',
+    }
+    
+    GAN = '甲乙丙丁戊己庚辛壬癸'
+    ZHI = '寅卯辰巳午未申酉戌亥子丑'
+    
+    # 判断节气月支
+    if month == 1:
+        month_zhi = '丑' if day < 7 else '子'
+    elif month == 2:
+        month_zhi = '丑' if day < 4 else '寅'
+    elif month == 3:
+        month_zhi = '寅' if day < 5 else '卯'
+    elif month == 4:
+        month_zhi = '卯' if day < 5 else '辰'
+    elif month == 5:
+        month_zhi = '辰' if day < 5 else '巳'
+    elif month == 6:
+        month_zhi = '巳' if day < 5 else '午'
+    elif month == 7:
+        month_zhi = '午' if day < 7 else '未'
+    elif month == 8:
+        month_zhi = '未' if day < 7 else '申'
+    elif month == 9:
+        month_zhi = '申' if day < 7 else '酉'
+    elif month == 10:
+        month_zhi = '酉' if day < 8 else '戌'
+    elif month == 11:
+        month_zhi = '戌' if day < 7 else '亥'
+    elif month == 12:
+        month_zhi = '亥' if day < 7 else '子'
+    
+    # 获取年干
+    lunar = Lunar.fromYmd(year, month, day)
     year_gz = lunar.getYearInGanZhi()
-    month_gz = lunar.getMonthInGanZhi()
+    year_gan = year_gz[0]
+    
+    # 计算月干
+    start_gan = YEAR_GAN_START[year_gan]
+    start_gan_idx = GAN.find(start_gan)
+    month_zhi_idx = ZHI.find(month_zhi)
+    month_gan_idx = (start_gan_idx + month_zhi_idx) % 10
+    month_gan = GAN[month_gan_idx]
+    
+    return f"{month_gan}{month_zhi}"
+
+
+def get_ganzhi(date_str):
+    """
+    【V3.0.1 升级】使用 lunar-python 计算干支 + 节气（支持 1900-2100 年）
+    
+    升级内容：
+    1. 年柱：使用 Solar 转换（准确）
+    2. 月柱：根据节气计算（修复 lunar-python 农历月问题）
+    3. 日柱：使用 Solar 转换（准确）
+    4. 节气：使用 Solar 转换（支持任意年份）
+    """
+    date_obj = datetime.strptime(date_str, '%Y-%m-%d').date()
+    
+    # 【V3.0.1 修复】使用 Solar 转换公历到农历（不是 Lunar.fromYmd）
+    solar = Solar.fromYmd(date_obj.year, date_obj.month, date_obj.day)
+    lunar = solar.getLunar()
+    
+    # lunar-python 提供年柱和日柱（准确）
+    year_gz = lunar.getYearInGanZhi()
     day_gz = lunar.getDayInGanZhi()
     
-    return f"{year_gz}年 {month_gz}月 {day_gz}日", day_gz
+    # 【V3.0.1 修复】月柱根据节气计算（不用 lunar-python 的农历月）
+    month_gz = get_month_ganzhi_by_jieqi(date_obj.year, date_obj.month, date_obj.day)
+    
+    # 【V3.0.1 新增】节气计算
+    jieqi = lunar.getJieQi()
+    
+    ganzhi_data = {
+        'year': year_gz,
+        'month': month_gz,
+        'day': day_gz,
+        'jieqi': jieqi,
+        'jieqi_text': f"今日{jieqi}" if jieqi else "",
+    }
+    
+    return f"{year_gz}年 {month_gz}月 {day_gz}日", day_gz, ganzhi_data
 
 def get_jishi(day_ganzhi):
     """【修复 2】使用十二神值时准确计算吉凶"""
@@ -380,12 +517,12 @@ def get_almanac_data(date_str):
     lunar_day_name = lunar_days[lunar.day - 1]
     lunar_date = f"农历{lunar.year}年{lunar_month_name}月{lunar_day_name}"
     
-    # 【修复 1】获取准确干支
-    ganzhi_full, day_gz = get_ganzhi(date_str)
+    # 【V3.0.1 升级】获取准确干支 + 节气
+    ganzhi_full, day_gz, ganzhi_data = get_ganzhi(date_str)
     
-    # 计算清明节气第几天
-    qingming = datetime(2026, 4, 5).date()
-    qingming_day = (date_obj - qingming).days + 1
+    # 【V3.0.1 升级】节气信息（支持任意年份）
+    jieqi_text = ganzhi_data['jieqi_text']  # 如"今日清明"或""
+    jieqi = ganzhi_data['jieqi']  # 节气名或 None
     
     # 【V2.2 升级】使用 lunar-python 获取准确宜忌（替代本地池，代码简化 50+ 行）
     lunar = Lunar.fromYmd(date_obj.year, date_obj.month, date_obj.day)
@@ -941,11 +1078,18 @@ def get_almanac_data(date_str):
     
     print(f"[INFO] 季节：{season_name}，故事池：{len(seasonal_stories)}个，选择：{story['title']}")
     
+    # 【V3.0.1 升级】特殊节日显示（支持任意节气）
+    if jieqi:
+        special_day = f"今日{jieqi}"
+    else:
+        # 非节气日，不显示特殊信息（或可以显示距离下个节气的天数）
+        special_day = ""
+    
     return {
         'date_gregorian': f"{date_str} {weekday_names[weekday]}",
         'date_lunar': lunar_date,
         'ganzhi_full': ganzhi_full,
-        'special_day': f"清明节气第 {qingming_day} 天",
+        'special_day': special_day,
         'yi': yi,
         'ji': ji,
         'zodiac_red': zodiac_red,
@@ -1193,12 +1337,43 @@ def get_default_output():
     # 2. 默认输出到当前工作目录的 reports/
     return os.path.join(os.getcwd(), 'reports')
 
+def generate_single_day(date_str, args, config):
+    """【V3.0.1 新增】生成单日黄历"""
+    # 获取模板
+    if args.template:
+        template_name = args.template
+        template = TEMPLATES[template_name]
+    else:
+        template_name, template = get_template(date_str, config)
+    
+    fonts = load_fonts(template_name)
+    
+    print(f"\n[INFO] 正在生成 {date_str} 的黄历...")
+    print(f"[INFO] 使用模板：{template['name']}")
+    
+    data = get_almanac_data(date_str)
+    
+    # 生成指定页数
+    if args.pages >= 1:
+        generate_page1(data, fonts, args.output, date_str, template_name, template)
+    
+    if args.pages >= 2:
+        generate_page2(data, fonts, args.output, date_str, template_name, template)
+    
+    if args.pages >= 3:
+        generate_page3(data, fonts, args.output, date_str, template_name, template)
+
+
 def main():
     default_output = get_default_output()
     
-    parser = argparse.ArgumentParser(description='生成黄历图片（V2.2 lunar-java 集成版）')
+    parser = argparse.ArgumentParser(description='生成黄历图片（V3.0.1 通用化版）')
     parser.add_argument('--date', type=str, default=datetime.now().strftime('%Y-%m-%d'), 
                         help='日期（YYYY-MM-DD 格式）')
+    parser.add_argument('--batch', type=int, default=0,
+                        help='批量生成天数（如--batch 7 生成 7 天）')
+    parser.add_argument('--start-date', type=str, default=None,
+                        help='批量生成起始日期（默认从--date 开始）')
     parser.add_argument('--pages', type=int, default=3, choices=[1, 2, 3], 
                         help='生成页数（1/2/3，默认 3）')
     parser.add_argument('--output', type=str, default=default_output, 
@@ -1206,8 +1381,13 @@ def main():
     parser.add_argument('--template', type=str, default=None, 
                         choices=['traditional', 'modern', 'festive', 'elegant', 'fresh'],
                         help='指定模板（默认：自动轮换）')
+    parser.add_argument('--config', type=str, default=None,
+                        help='配置文件路径（默认：config.yaml）')
     
     args = parser.parse_args()
+    
+    # 【V3.0.1 新增】加载配置文件
+    config = load_config(args.config)
     
     # 规范化路径并创建目录
     args.output = os.path.normpath(args.output)
@@ -1216,38 +1396,46 @@ def main():
     
     print(f"[INFO] 输出目录：{args.output}")
     
-    # 【V2.3 新增】获取模板（支持手动指定）
-    if args.template:
-        template_name = args.template
-        template = TEMPLATES[template_name]
-    else:
-        template_name, template = get_template(args.date)
-    fonts = load_fonts(template_name)
+    # 【V3.0.1 新增】批量生成模式
+    if args.batch > 0:
+        batch_days = min(args.batch, config.get('batch', {}).get('max_days', 365))
+        start_date_str = args.start_date if args.start_date else args.date
+        
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            print(f"[ERROR] 起始日期格式错误：{start_date_str}，应为 YYYY-MM-DD")
+            return
+        
+        print(f"\n[INFO] 批量生成模式：从 {start_date_str} 开始，共 {batch_days} 天")
+        print(f"[INFO] 预计输出目录：{args.output}/{start_date.strftime('%Y-%m')}/")
+        
+        # 按年月分组输出
+        output_subdir = os.path.join(args.output, start_date.strftime('%Y-%m'))
+        if not os.path.exists(output_subdir):
+            os.makedirs(output_subdir)
+        args.output = output_subdir
+        
+        # 批量生成
+        progress_bar = config.get('batch', {}).get('progress_bar', True)
+        
+        for i in range(batch_days):
+            current_date = start_date + timedelta(days=i)
+            current_date_str = current_date.strftime('%Y-%m-%d')
+            
+            if progress_bar:
+                print(f"[{i+1}/{batch_days}] {current_date_str}", end='\r' if i < batch_days-1 else '\n')
+            
+            generate_single_day(current_date_str, args, config)
+        
+        print(f"\n[OK] 批量生成完成！共 {batch_days} 天，{batch_days * args.pages} 页图片")
+        print(f"输出目录：{args.output}")
+        return
     
-    print(f"[INFO] 正在生成 {args.date} 的黄历图片...（V2.3 多模板版）")
-    print(f"[INFO] 使用模板：{template['name']}")
-    data = get_almanac_data(args.date)
+    # 单日生成模式
+    generate_single_day(args.date, args, config)
     
-    print(f"\n[数据预览]")
-    print(f"公历：{data['date_gregorian']}")
-    print(f"农历：{data['date_lunar']}")
-    print(f"干支：{data['ganzhi_full']}")
-    print(f"红榜生肖：{data['zodiac_red']}")
-    print(f"黑榜生肖：{data['zodiac_black']}")
-    print(f"吉时：吉={len(data['jishi']['ji'])}个，凶={len(data['jishi']['xiong'])}个")
-    print(f"穿衣：幸运色={data['changyi']['lucky']}，忌讳色={data['changyi']['avoid']}")
-    print()
-    
-    if args.pages >= 1:
-        generate_page1(data, fonts, args.output, args.date, template_name, template)
-    
-    if args.pages >= 2:
-        generate_page2(data, fonts, args.output, args.date, template_name, template)
-    
-    if args.pages >= 3:
-        generate_page3(data, fonts, args.output, args.date, template_name, template)
-    
-    print(f"\n[OK] 黄历图片生成完成！共 {args.pages} 页（V2.3 多模板版）")
+    print(f"\n[OK] 黄历图片生成完成！共 {args.pages} 页（V3.0.1 通用化版）")
     print(f"输出目录：{args.output}")
 
 if __name__ == "__main__":

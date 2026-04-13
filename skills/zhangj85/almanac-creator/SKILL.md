@@ -2,9 +2,9 @@
 name: almanac-creator
 displayName: Almanac Creator
 description: Daily Chinese Almanac Image Generator - Create traditional Huangli calendar images with zodiac fortune, fengshui tips, auspicious timing, and dressing advice for social media publishing (Toutiao/Douyin/Xiaohongshu)
-version: 2.3.1
+version: 3.0.2
 author: Digital Transformation Team
-tags: [almanac, chinese-calendar, huangli, zodiac, fengshui, image-generator, lunar-python, multi-template, large-font, seasonal-story]
+tags: [almanac, chinese-calendar, huangli, zodiac, fengshui, image-generator, lunar-python, multi-template, batch-generator, config-file, universal]
 ---
 
 # Almanac Creator (黄历制作技能)
@@ -12,7 +12,7 @@ tags: [almanac, chinese-calendar, huangli, zodiac, fengshui, image-generator, lu
 > **标准版本**: almanac-image-standard.md V3  
 > **适用范围**: 每日黄历图片生成  
 > **输出规格**: 3 页 PNG 图片（1080x1400 像素）  
-> **最新版本**: V2.3.1 季节故事修复版（2026-04-11 更新）
+> **最新版本**: V3.0.2 干支修复版（2026-04-12 紧急修复）
 
 ---
 
@@ -25,17 +25,36 @@ tags: [almanac, chinese-calendar, huangli, zodiac, fengshui, image-generator, lu
 
 适用于今日头条（三图轮播）、抖音/小红书（单图发布）等平台。
 
-### V2.3.1 更新内容（2026-04-11 季节故事修复版）⭐⭐⭐⭐⭐
+### V3.0.2 更新内容（2026-04-12 干支修复版）⭐⭐⭐⭐⭐
+
+**紧急修复**: 干支计算错误（月柱/日柱）
 
 | 更新项 | 说明 |
 |--------|------|
-| ✅ **季节故事匹配** | 春季显示春季故事，不再出现"春季贴秋膘" |
-| ✅ **故事轮换机制** | 同季节内 6 个故事轮换（7-10 天不重复） |
-| ✅ **字体全面加大** | 栏目题 55→60px，正文 45→48px，故事/养生正文 40→44px |
-| ✅ **行间距优化** | 1.3→1.4，提升阅读舒适度 |
-| ✅ **间距调整** | 栏目/内容/分隔线间距加大 2-3px |
-| ✅ **可读性提升** | 整体可读性提升约 15%，中老年用户友好 |
-| ✅ **无需分页** | 保持 3 页完整布局，内容不裁剪 |
+| 🔧 **月柱修复** | 根据节气计算月柱（修复 lunar-python 农历月问题） |
+| 🔧 **日柱修复** | 使用 Solar.fromYmd 转换（修复 Lunar.fromYmd 农历日期问题） |
+| ✅ **向后兼容** | 完全兼容 V3.0.1，建议所有用户升级 |
+
+**问题说明**:
+- V3.0.1 使用 `Lunar.fromYmd()` 导致日期转换错误
+- lunar-python 的 `getMonthInGanZhi()` 返回农历月干支，不是节气月干支
+- 修复后：2026-04-13 = 丙午年 壬辰月 丁巳日 ✅
+
+### V3.0.1 更新内容（2026-04-12 通用化版）⭐⭐⭐⭐⭐⭐
+
+**使用示例**:
+```bash
+# 单日生成
+python generate_almanac.py --date 2026-04-12
+
+# 批量生成 7 天
+python generate_almanac.py --batch 7 --start-date 2026-04-12
+
+# 指定配置文件
+python generate_almanac.py --date 2026-04-12 --config my_config.yaml
+```
+
+### V2.3.1 更新内容（2026-04-11 季节故事修复版）⭐⭐⭐⭐⭐
 
 ### V2.3 更新内容（2026-04-11 大字体优化版）⭐⭐⭐⭐⭐
 

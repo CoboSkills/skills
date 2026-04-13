@@ -3,9 +3,15 @@
   "slug": "dcl-policy-enforcer",
   "displayName": "DCL Policy Enforcer",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775631738073,
-    "commit": "https://github.com/openclaw/skills/commit/faa4de91c0c6c6d397bcf9b73e5957c7943dd468"
+    "version": "1.0.3",
+    "publishedAt": 1776084055263,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775631738073,
+      "commit": "https://github.com/openclaw/skills/commit/faa4de91c0c6c6d397bcf9b73e5957c7943dd468"
+    }
+  ]
 }

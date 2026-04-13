@@ -23,7 +23,7 @@ IS_MACOS = sys.platform == "darwin"
 def get_combined_output_dir():
     workspace = os.environ.get("OPENCLAW_WORKSPACE",
                               os.path.join(os.path.expanduser("~"), ".openclaw", "workspace"))
-    return os.path.join(workspace, "projects", "stt")
+    return os.path.join(workspace, "projects", "speech-transcriber")
 
 
 # ── Main ─────────────────────────────────────────────────────────────────────

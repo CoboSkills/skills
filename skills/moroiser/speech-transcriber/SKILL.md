@@ -14,6 +14,34 @@ description: |
 
 ---
 
+## 文件结构
+
+```
+技能目录（发布用）：
+~/.openclaw/workspace/skills/speech-transcriber/
+├── SKILL.md           # 本文档
+├── _meta.json         # 元数据
+├── .clawhub/          # ClawHub 源信息
+└── scripts/           # 运行时脚本
+    ├── download_models.sh      # 下载模型
+    ├── record_audio.py         # 录音
+    ├── transcribe.py          # 转写
+    └── record_and_transcribe.py # 一键录音+转写
+
+项目目录（运行时数据）：
+~/.openclaw/workspace/projects/speech-transcriber/
+├── requirements.txt   # Python 依赖
+├── recordings/       # 录音文件
+└── transcriptions/   # 转写结果
+
+模型缓存（统一命名，技能专属）：
+~/.cache/huggingface/modules/speech-transcriber/
+├── small/        # small 模型（464MB，默认使用）
+└── base/        # base 模型（约 142MB，可选）
+```
+
+---
+
 ## 目录
 
 1. [概述](#概述)
@@ -53,13 +81,13 @@ description: |
 
 ```bash
 cd ~/.openclaw/workspace/skills/speech-transcriber
-pip install -r requirements.txt
+pip install -r requirements.txt --break-system-packages
 ```
 
 ### 2. 下载模型
 
 ```bash
-# 下载 faster-whisper 模型（推荐）
+cd ~/.openclaw/workspace/skills/speech-transcriber
 bash scripts/download_models.sh base
 ```
 
@@ -74,7 +102,7 @@ python3 scripts/record_and_transcribe.py --duration 10
 python3 scripts/record_audio.py --duration 10
 
 # 转写音频文件
-python3 scripts/transcribe.py ~/.openclaw/workspace/projects/stt/recordings/recording_xxx.wav
+python3 scripts/transcribe.py ~/.openclaw/workspace/projects/speech-transcriber/recordings/recording_xxx.wav
 ```
 
 ---
@@ -86,6 +114,7 @@ python3 scripts/transcribe.py ~/.openclaw/workspace/projects/stt/recordings/reco
 一键录音并转写，适合快速使用：
 
 ```bash
+cd ~/.openclaw/workspace/skills/speech-transcriber
 python3 scripts/record_and_transcribe.py --duration 10 --language zh
 ```
 
@@ -101,6 +130,7 @@ python3 scripts/record_and_transcribe.py --duration 10 --language zh
 从麦克风录制音频，输出 WAV 文件。
 
 ```bash
+cd ~/.openclaw/workspace/skills/speech-transcriber
 python3 scripts/record_audio.py \
     --duration 10 \
     --sample-rate 16000 \
@@ -115,7 +145,7 @@ python3 scripts/record_audio.py \
 | `--sample-rate` | 16000 | 采样率（Hz），Whisper 推荐 16000 |
 | `--channels` | 1 | 声道数，1=单声道 |
 | `--list-devices` | - | 列出可用的音频设备 |
-| `--output-dir` | projects/stt/recordings | 输出目录 |
+| `--output-dir` | projects/speech-transcriber/recordings | 输出目录 |
 | `--filename` | auto | 输出文件名 |
 
 **示例**:
@@ -137,6 +167,7 @@ python3 scripts/record_audio.py --duration 30 --filename my_voice.wav
 将音频文件转写为文字。
 
 ```bash
+cd ~/.openclaw/workspace/skills/speech-transcriber
 python3 scripts/transcribe.py audio.wav
 ```
 
@@ -151,7 +182,7 @@ python3 scripts/transcribe.py audio.wav
 | `--engine` | auto | 转写引擎：`auto`、`faster-whisper`、`whisper`、`api` |
 | `--api-url` | (env) | API URL（API 模式） |
 | `--api-key` | (env) | API 密钥（API 模式） |
-| `--output-dir` | projects/stt/transcriptions | 输出目录 |
+| `--output-dir` | projects/speech-transcriber/transcriptions | 输出目录 |
 
 **模型选择**:
 
@@ -189,17 +220,27 @@ python3 scripts/transcribe.py audio.wav \
 
 ### 模型存放位置
 
-模型存放在 skill 目录的 `models/` 文件夹中（便携设计）：
+模型统一存放在缓存位置，**按技能命名目录**，清晰不混乱：
 
 ```
-~/.openclaw/workspace/skills/speech-transcriber/models/
-└── (模型文件)
+~/.cache/huggingface/modules/speech-transcriber/
+├── small/        # small 模型（464MB，当前使用）
+└── base/        # base 模型（约 142MB）
+
+# 模型文件结构示例：
+~/.cache/huggingface/modules/speech-transcriber/small/
+├── model.bin        # 462MB（实际模型）
+├── tokenizer.json   # 2.2MB
+├── config.json      # 2.4KB
+└── vocabulary.txt   # 450KB
 ```
 
 ### 下载模型
 
+首次使用需下载 Whisper 模型（存放在 HuggingFace 缓存，不占技能目录）：
+
 ```bash
-# 下载指定大小的模型
+cd ~/.openclaw/workspace/skills/speech-transcriber
 bash scripts/download_models.sh base
 
 # 可选模型大小: tiny, base, small, medium, large
@@ -210,17 +251,17 @@ bash scripts/download_models.sh small
 
 脚本按以下顺序查找模型：
 1. 环境变量 `STT_MODEL_PATH`
-2. skill 的 `models/` 目录
-3. `~/.cache/huggingface/modules/`
+2. `~/.cache/huggingface/modules/`  ← 主要位置
+3. `~/.openclaw/workspace/projects/speech-transcriber/models/`  ← 工作区备份
 
 ---
 
 ## 输出目录
 
-运行结果统一保存在工作区的 `projects/stt/` 目录下：
+运行结果统一保存在工作区的 `projects/speech-transcriber/` 目录下：
 
 ```
-~/.openclaw/workspace/projects/stt/
+~/.openclaw/workspace/projects/speech-transcriber/
 ├── recordings/       # 原始录音文件 (record_audio.py)
 │   └── recording_20260401_123456.wav
 └── transcriptions/  # 转写结果 (transcribe.py)
@@ -273,6 +314,10 @@ brew install portaudio
 
 # 然后安装 PyAudio
 pip install pyaudio
+
+# 安装依赖
+cd ~/.openclaw/workspace/skills/speech-transcriber
+pip install -r requirements.txt --break-system-packages
 ```
 
 ### 转写速度慢
@@ -342,16 +387,35 @@ python3 -c "from faster_whisper import download_model; download_model('base', ou
 
 ## 目录结构
 
+### 技能目录（发布用）
+
 ```
 speech-transcriber/
-├── SKILL.md                    # 本文档
-├── requirements.txt            # Python 依赖
-├── scripts/
-│   ├── record_audio.py         # 录音脚本
-│   ├── transcribe.py           # 转写脚本
-│   ├── record_and_transcribe.py # ⭐ 一键录音+转写
-│   └── download_models.sh      # 模型下载脚本
-└── models/                    # 模型目录（需单独下载）
+├── SKILL.md           # 本文档
+├── _meta.json         # 元数据
+├── .clawhub/          # ClawHub 源信息
+└── scripts/           # 运行时脚本
+    ├── download_models.sh      # 下载模型
+    ├── record_audio.py         # 录音脚本
+    ├── transcribe.py           # 转写脚本
+    └── record_and_transcribe.py # ⭐ 一键录音+转写
+```
+
+### 项目目录（运行时数据）
+
+```
+~/.openclaw/workspace/projects/speech-transcriber/
+├── requirements.txt   # Python 依赖
+├── recordings/        # 录音文件
+└── transcriptions/   # 转写结果
+```
+
+### 模型缓存
+
+```
+~/.cache/huggingface/modules/speech-transcriber/
+├── small/        # small 模型
+└── base/        # base 模型
 ```
 
 ---

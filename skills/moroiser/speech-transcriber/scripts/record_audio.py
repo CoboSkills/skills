@@ -37,7 +37,7 @@ def get_default_output_dir():
     """Get default output directory in workspace projects folder."""
     workspace = os.environ.get("OPENCLAW_WORKSPACE",
                               os.path.join(os.path.expanduser("~"), ".openclaw", "workspace"))
-    return os.path.join(workspace, "projects", "stt", "recordings")
+    return os.path.join(workspace, "projects", "speech-transcriber", "recordings")
 
 
 def get_skill_dir():
@@ -143,7 +143,7 @@ def main():
     parser.add_argument("--channels", type=int, default=1,
                         help="Number of audio channels, 1=mono (default: 1)")
     parser.add_argument("--output-dir", default=None,
-                        help=f"Output directory (default: ~/.../projects/stt/recordings)")
+                        help=f"Output directory (default: ~/.../projects/speech-transcriber/recordings)")
     parser.add_argument("--filename", default=None,
                         help="Output filename (default: auto-generated with timestamp)")
     parser.add_argument("--list-devices", action="store_true",

@@ -27,7 +27,7 @@ IS_MACOS = sys.platform == "darwin"
 def get_default_output_dir():
     workspace = os.environ.get("OPENCLAW_WORKSPACE",
                               os.path.join(os.path.expanduser("~"), ".openclaw", "workspace"))
-    return os.path.join(workspace, "projects", "stt", "transcriptions")
+    return os.path.join(workspace, "projects", "speech-transcriber", "transcriptions")
 
 
 def get_skill_dir():
@@ -39,17 +39,33 @@ def get_model_search_paths():
     workspace = os.environ.get("OPENCLAW_WORKSPACE",
                               os.path.join(os.path.expanduser("~"), ".openclaw", "workspace"))
     skill_dir = get_skill_dir()
+    # 按技能命名的统一缓存位置
+    skill_cache_dir = os.path.expanduser("~/.cache/huggingface/modules/speech-transcriber")
     return [
         os.environ.get("STT_MODEL_PATH", ""),
+        # 统一缓存位置（按技能命名）
+        os.path.join(skill_cache_dir, "small"),
+        os.path.join(skill_cache_dir, "base"),
+        os.path.join(skill_cache_dir, "tiny"),
+        os.path.join(skill_cache_dir, "medium"),
+        os.path.join(skill_cache_dir, "large"),
+        skill_cache_dir,
+        # 工作区备份
         os.path.join(skill_dir, "models"),
-        os.path.join(workspace, "stt", "models"),
+        os.path.join(workspace, "speech-transcriber", "models"),
+        # 通用 HuggingFace 缓存（faster-whisper 默认位置）
         os.path.expanduser("~/.cache/huggingface/modules"),
         ".",
     ]
 
 
 def find_model(model_name_or_path):
-    """Find Whisper model file or directory."""
+    """Find Whisper model file or directory.
+    
+    faster-whisper models are directories (e.g. ~/.cache/huggingface/modules/speech-transcriber/small/)
+    containing model.bin, config.json, etc. This function resolves a bare model name
+    like "small" to the correct directory path.
+    """
     path = Path(model_name_or_path)
 
     if path.is_absolute() and path.exists():
@@ -59,15 +75,20 @@ def find_model(model_name_or_path):
     if path.is_dir():
         return str(path)
 
-    # If it's just a name, search in standard locations
+    # If it's just a name like "small", search for a directory with that name
     for search_dir in get_model_search_paths():
         if not search_dir:
             continue
-        candidate = Path(search_dir) / path.name
+        # Check if search_dir itself is the model directory (e.g. ~/.cache/.../speech-transcriber/small)
+        candidate_dir = Path(search_dir)
+        if candidate_dir.name == path.name and candidate_dir.is_dir():
+            return str(candidate_dir)
+        # Also check subdirectory named after the model (backwards compat)
+        candidate = candidate_dir / path.name
         if candidate.exists():
             return str(candidate)
 
-    return model_name_or_path  # Return original, let the library handle it
+    return model_name_or_path  # Return original, let faster-whisper handle it
 
 
 # ── Transcription Engines ────────────────────────────────────────────────────
@@ -212,7 +233,7 @@ def main():
     parser.add_argument("--api-key", default=os.environ.get("STT_API_KEY", ""),
                         help="API key (for api engine)")
     parser.add_argument("--output-dir", default=None,
-                        help=f"Output directory (default: ~/.../projects/stt/transcriptions)")
+                        help=f"Output directory (default: ~/.../projects/speech-transcriber/transcriptions)")
     parser.add_argument("--output-format", default="txt", choices=["txt", "srt", "vtt"],
                         help="Output format (default: txt)")
     args = parser.parse_args()

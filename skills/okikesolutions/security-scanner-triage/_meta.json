@@ -1,0 +1,11 @@
+{
+  "owner": "okikesolutions",
+  "slug": "security-scanner-triage",
+  "displayName": "Security Scanner Triage",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1775183085360,
+    "commit": null
+  },
+  "history": []
+}

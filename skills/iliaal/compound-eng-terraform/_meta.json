@@ -3,9 +3,15 @@
   "slug": "compound-eng-terraform",
   "displayName": "terraform",
   "latest": {
-    "version": "2.53.0",
-    "publishedAt": 1775526974051,
-    "commit": "https://github.com/openclaw/skills/commit/93ab4270f65f274c4511e4855c729aea1cd1d3c2"
+    "version": "2.55.1",
+    "publishedAt": 1776004272726,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.53.0",
+      "publishedAt": 1775526974051,
+      "commit": "https://github.com/openclaw/skills/commit/93ab4270f65f274c4511e4855c729aea1cd1d3c2"
+    }
+  ]
 }

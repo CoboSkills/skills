@@ -1,0 +1,11 @@
+{
+  "owner": "bebetterest",
+  "slug": "agentrade-cli-operator",
+  "displayName": "agentrade-skill",
+  "latest": {
+    "version": "1.0.5",
+    "publishedAt": 1776097055851,
+    "commit": null
+  },
+  "history": []
+}

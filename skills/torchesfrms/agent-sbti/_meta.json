@@ -1,0 +1,11 @@
+{
+  "owner": "torchesfrms",
+  "slug": "agent-sbti",
+  "displayName": "Agent Sbti",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775814448988,
+    "commit": null
+  },
+  "history": []
+}

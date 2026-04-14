@@ -1,0 +1,11 @@
+{
+  "owner": "mirowangl-ops",
+  "slug": "xiaozhua-agent-deployment",
+  "displayName": "Agent Deployment",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775907762419,
+    "commit": null
+  },
+  "history": []
+}

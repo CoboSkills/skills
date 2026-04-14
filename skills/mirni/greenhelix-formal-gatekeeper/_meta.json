@@ -1,0 +1,11 @@
+{
+  "owner": "mirni",
+  "slug": "greenhelix-formal-gatekeeper",
+  "displayName": "The Formal Gatekeeper: Z3-Verified Safety for Autonomous Agent Plans",
+  "latest": {
+    "version": "1.3.0",
+    "publishedAt": 1776133667958,
+    "commit": null
+  },
+  "history": []
+}

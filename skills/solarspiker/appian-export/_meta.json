@@ -1,0 +1,11 @@
+{
+  "owner": "solarspiker",
+  "slug": "appian-export",
+  "displayName": "Appian Export",
+  "latest": {
+    "version": "1.3.0",
+    "publishedAt": 1776169315921,
+    "commit": null
+  },
+  "history": []
+}

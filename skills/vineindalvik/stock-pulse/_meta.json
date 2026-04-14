@@ -1,11 +1,17 @@
 {
   "owner": "vineindalvik",
   "slug": "stock-pulse",
-  "displayName": "stock-pulse",
+  "displayName": "Stock Pulse",
   "latest": {
-    "version": "1.2.3",
-    "publishedAt": 1775966685360,
-    "commit": "https://github.com/openclaw/skills/commit/31abce875d00ad3739befa07e8a316c9cdc0bd67"
+    "version": "1.2.5",
+    "publishedAt": 1776085306424,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.2.3",
+      "publishedAt": 1775966685360,
+      "commit": "https://github.com/openclaw/skills/commit/31abce875d00ad3739befa07e8a316c9cdc0bd67"
+    }
+  ]
 }

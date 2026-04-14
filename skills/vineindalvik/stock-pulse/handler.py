@@ -21,11 +21,13 @@ from pathlib import Path
 
 def build_llm_client():
     api_key = os.getenv("LLM_API_KEY")
-    base_url = os.getenv("LLM_BASE_URL", "https://api.xf-yun.com/v1")
+    base_url = os.getenv("LLM_BASE_URL", "").rstrip("/")
     model    = os.getenv("LLM_MODEL")
 
     if not api_key:
         raise RuntimeError("请设置 LLM_API_KEY（OpenClaw 运行时自动注入）")
+    if not base_url:
+        raise RuntimeError("请设置 LLM_BASE_URL（OpenClaw 运行时自动注入）")
     if not model:
         raise RuntimeError("请设置 LLM_MODEL（OpenClaw 运行时自动注入）")
 

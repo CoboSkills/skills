@@ -1,0 +1,11 @@
+{
+  "owner": "futurizerush",
+  "slug": "apify-google-maps",
+  "displayName": "Apify Google Maps Scraper",
+  "latest": {
+    "version": "0.1.1",
+    "publishedAt": 1775894578811,
+    "commit": null
+  },
+  "history": []
+}

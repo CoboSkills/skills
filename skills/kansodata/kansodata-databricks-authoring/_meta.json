@@ -1,0 +1,11 @@
+{
+  "owner": "kansodata",
+  "slug": "kansodata-databricks-authoring",
+  "displayName": "Kansodata Databricks Authoring",
+  "latest": {
+    "version": "0.1.1",
+    "publishedAt": 1775956048586,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "goog",
+  "slug": "text2qa",
+  "displayName": "get QA pairs from text or session",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1775807341223,
+    "commit": null
+  },
+  "history": []
+}

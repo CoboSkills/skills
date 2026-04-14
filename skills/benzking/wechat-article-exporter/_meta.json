@@ -1,0 +1,11 @@
+{
+  "owner": "benzking",
+  "slug": "wechat-article-exporter",
+  "displayName": "WeChat Article Exporter",
+  "latest": {
+    "version": "3.3.0",
+    "publishedAt": 1775813706990,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "joseconti",
+  "slug": "declaracion-renta-espana",
+  "displayName": "Declaración de la Renta - España (IRPF 2025, Campaña 2026)",
+  "latest": {
+    "version": "2025.4.1",
+    "publishedAt": 1776090251054,
+    "commit": null
+  },
+  "history": []
+}

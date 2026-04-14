@@ -1,0 +1,11 @@
+{
+  "owner": "tutebravo",
+  "slug": "safe-ia",
+  "displayName": "Safe IA — Monitor de riesgos de herramientas IA",
+  "latest": {
+    "version": "2.0.1",
+    "publishedAt": 1775875341856,
+    "commit": null
+  },
+  "history": []
+}

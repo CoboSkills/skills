@@ -1,0 +1,11 @@
+{
+  "owner": "kadbbz",
+  "slug": "rag-kb",
+  "displayName": "Knowledge Base with Faiss and Bailian (embedding and rerank)",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776090037598,
+    "commit": null
+  },
+  "history": []
+}

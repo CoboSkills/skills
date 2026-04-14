@@ -1,0 +1,11 @@
+{
+  "owner": "lrddrl",
+  "slug": "openclaw-subagent-session-cleanup",
+  "displayName": "OpenClaw Subagent Session Cleanup",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1775769018397,
+    "commit": null
+  },
+  "history": []
+}

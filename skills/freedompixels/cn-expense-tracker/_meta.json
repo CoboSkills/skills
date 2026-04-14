@@ -1,0 +1,11 @@
+{
+  "owner": "freedompixels",
+  "slug": "cn-expense-tracker",
+  "displayName": "中文个人记账助手",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776037048197,
+    "commit": null
+  },
+  "history": []
+}

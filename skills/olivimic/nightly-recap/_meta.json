@@ -1,0 +1,11 @@
+{
+  "owner": "olivimic",
+  "slug": "nightly-recap",
+  "displayName": "Nightly Recap",
+  "latest": {
+    "version": "3.0.1",
+    "publishedAt": 1775883027532,
+    "commit": null
+  },
+  "history": []
+}

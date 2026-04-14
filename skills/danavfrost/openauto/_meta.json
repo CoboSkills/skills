@@ -1,0 +1,11 @@
+{
+  "owner": "danavfrost",
+  "slug": "openauto",
+  "displayName": "OpenAuto - Autonomous Agent",
+  "latest": {
+    "version": "1.0.7",
+    "publishedAt": 1775788949267,
+    "commit": null
+  },
+  "history": []
+}

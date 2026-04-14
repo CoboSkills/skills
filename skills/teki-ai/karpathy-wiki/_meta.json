@@ -1,0 +1,11 @@
+{
+  "owner": "teki-ai",
+  "slug": "karpathy-wiki",
+  "displayName": "Karpathy Wiki",
+  "latest": {
+    "version": "0.1.1",
+    "publishedAt": 1776020808483,
+    "commit": null
+  },
+  "history": []
+}

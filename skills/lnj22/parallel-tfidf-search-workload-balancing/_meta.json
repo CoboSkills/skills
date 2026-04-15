@@ -1,0 +1,11 @@
+{
+  "owner": "lnj22",
+  "slug": "parallel-tfidf-search-workload-balancing",
+  "displayName": "workload-balancing",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776256366257,
+    "commit": null
+  },
+  "history": []
+}

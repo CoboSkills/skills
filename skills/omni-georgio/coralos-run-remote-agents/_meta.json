@@ -1,0 +1,11 @@
+{
+  "owner": "omni-georgio",
+  "slug": "coralos-run-remote-agents",
+  "displayName": "CoralOS",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776114673269,
+    "commit": null
+  },
+  "history": []
+}

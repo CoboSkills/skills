@@ -1,0 +1,11 @@
+{
+  "owner": "charlie-morrison",
+  "slug": "incident-postmortem-generator",
+  "displayName": "Incident Postmortem Generator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776123983104,
+    "commit": null
+  },
+  "history": []
+}

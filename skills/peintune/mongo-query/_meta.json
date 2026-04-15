@@ -1,0 +1,11 @@
+{
+  "owner": "peintune",
+  "slug": "mongo-query",
+  "displayName": "mongodb-query",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776218467909,
+    "commit": null
+  },
+  "history": []
+}

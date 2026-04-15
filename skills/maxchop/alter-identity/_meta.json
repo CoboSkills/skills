@@ -1,0 +1,11 @@
+{
+  "owner": "maxchop",
+  "slug": "alter-identity",
+  "displayName": "ALTER Identity",
+  "latest": {
+    "version": "0.2.2",
+    "publishedAt": 1776263770370,
+    "commit": null
+  },
+  "history": []
+}

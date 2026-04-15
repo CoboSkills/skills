@@ -1,0 +1,11 @@
+{
+  "owner": "charlie-morrison",
+  "slug": "composer-json-validator",
+  "displayName": "Composer JSON Validator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776123969282,
+    "commit": null
+  },
+  "history": []
+}

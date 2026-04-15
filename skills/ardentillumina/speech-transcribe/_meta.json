@@ -1,0 +1,11 @@
+{
+  "owner": "ardentillumina",
+  "slug": "speech-transcribe",
+  "displayName": "Speech-to-text, 3x faster than Whisper, remote FREE GPU",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776210225044,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "wu-uk",
+  "slug": "energy-market-pricing-economic-dispatch",
+  "displayName": "economic-dispatch",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776225832743,
+    "commit": null
+  },
+  "history": []
+}

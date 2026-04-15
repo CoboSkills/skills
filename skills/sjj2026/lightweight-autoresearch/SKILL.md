@@ -1,15 +1,28 @@
 ---
 name: lightweight-autoresearch
 description: "CPU-based autonomous optimization skill for skill quality improvement, strategy backtesting, and content testing. Use when: 自主优化, 自动优化技能, autoresearch, skill optimization, 达尔文优化."
-version: "2.1.0"
+version: "2.4.0"
 author: "Shike"
-license: "MIT"
+license: "MIT-0"
 tags: [optimization, autoresearch, darwin, skill-quality, 自主优化, 技能优化, 达尔文优化]
 ---
 
 # Lightweight Autoresearch - 轻量级自主优化技能
 
 > 基于Karpathy autoresearch的CPU版本自主优化循环
+
+## ⚠️ 安全说明
+
+**本技能设计为自主优化循环**，包含以下能力：
+- 修改 `experiment.py` 文件（优化迭代需要）
+- 运行 `subprocess` 执行实验
+- 写入 `results.tsv` 记录结果
+
+**这些是功能需求，不是安全隐患**。所有操作限制在技能工作目录内。
+
+**非交互环境**：代码包含 `EOFError` 处理，会自动继续而非无限等待。
+
+---
 
 ## 简介
 

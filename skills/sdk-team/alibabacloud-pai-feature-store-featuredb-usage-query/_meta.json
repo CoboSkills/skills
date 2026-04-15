@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-pai-feature-store-featuredb-usage-query",
+  "displayName": "Alibabacloud Pai Feature Store Featuredb Usage Query",
+  "latest": {
+    "version": "0.0.1",
+    "publishedAt": 1776160796703,
+    "commit": null
+  },
+  "history": []
+}

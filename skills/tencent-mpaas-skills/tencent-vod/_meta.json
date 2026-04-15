@@ -1,0 +1,11 @@
+{
+  "owner": "tencent-mpaas-skills",
+  "slug": "tencent-vod",
+  "displayName": "Tencent VOD",
+  "latest": {
+    "version": "1.0.5",
+    "publishedAt": 1776160487246,
+    "commit": null
+  },
+  "history": []
+}

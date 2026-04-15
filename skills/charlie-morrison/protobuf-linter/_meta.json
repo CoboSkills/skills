@@ -1,0 +1,11 @@
+{
+  "owner": "charlie-morrison",
+  "slug": "protobuf-linter",
+  "displayName": "Protobuf Linter",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776131907905,
+    "commit": null
+  },
+  "history": []
+}

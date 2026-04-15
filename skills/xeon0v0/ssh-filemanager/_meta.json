@@ -1,0 +1,11 @@
+{
+  "owner": "xeon0v0",
+  "slug": "ssh-filemanager",
+  "displayName": "ssh_file_manager",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776237497766,
+    "commit": null
+  },
+  "history": []
+}

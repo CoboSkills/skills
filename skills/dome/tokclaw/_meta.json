@@ -1,0 +1,11 @@
+{
+  "owner": "dome",
+  "slug": "tokclaw",
+  "displayName": "TokClaw Wallet",
+  "latest": {
+    "version": "5.9.0",
+    "publishedAt": 1776166812202,
+    "commit": null
+  },
+  "history": []
+}

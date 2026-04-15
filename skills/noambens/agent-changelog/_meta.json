@@ -1,0 +1,11 @@
+{
+  "owner": "noambens",
+  "slug": "agent-changelog",
+  "displayName": "Agent Changelog",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776116249112,
+    "commit": null
+  },
+  "history": []
+}

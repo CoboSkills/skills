@@ -1,0 +1,11 @@
+{
+  "owner": "infectit007",
+  "slug": "suricata-monitor",
+  "displayName": "Suricata IDS Monitor",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776106538562,
+    "commit": null
+  },
+  "history": []
+}

@@ -3,9 +3,15 @@
   "slug": "gworkspace",
   "displayName": "G.workspace",
   "latest": {
-    "version": "2.0.2",
-    "publishedAt": 1776069028228,
-    "commit": "https://github.com/openclaw/skills/commit/7ee560887222b545596781642c4cbb0b3aa72fa1"
+    "version": "3.1.4",
+    "publishedAt": 1776135839130,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.2",
+      "publishedAt": 1776069028228,
+      "commit": "https://github.com/openclaw/skills/commit/7ee560887222b545596781642c4cbb0b3aa72fa1"
+    }
+  ]
 }

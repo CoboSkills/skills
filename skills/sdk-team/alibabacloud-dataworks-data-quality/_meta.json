@@ -1,0 +1,11 @@
+{
+  "owner": "sdk-team",
+  "slug": "alibabacloud-dataworks-data-quality",
+  "displayName": "Alibabacloud Dataworks Data Quality",
+  "latest": {
+    "version": "0.0.1-beta.1",
+    "publishedAt": 1776174091217,
+    "commit": null
+  },
+  "history": []
+}

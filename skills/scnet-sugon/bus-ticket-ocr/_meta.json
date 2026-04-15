@@ -1,0 +1,11 @@
+{
+  "owner": "scnet-sugon",
+  "slug": "bus-ticket-ocr",
+  "displayName": "Bus Ticket Ocr",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776073612844,
+    "commit": null
+  },
+  "history": []
+}

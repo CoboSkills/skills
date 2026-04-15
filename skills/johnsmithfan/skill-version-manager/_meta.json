@@ -1,0 +1,11 @@
+{
+  "owner": "johnsmithfan",
+  "slug": "skill-version-manager",
+  "displayName": "Skill Version Manager",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776101166882,
+    "commit": null
+  },
+  "history": []
+}

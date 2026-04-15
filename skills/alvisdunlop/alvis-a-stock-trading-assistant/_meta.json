@@ -3,9 +3,15 @@
   "slug": "alvis-a-stock-trading-assistant",
   "displayName": "A Stock Trading Assistant",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1776070280105,
-    "commit": "https://github.com/openclaw/skills/commit/7f164a2a62c4ba181bca4e8525f6048e6a724885"
+    "version": "2.0.0",
+    "publishedAt": 1776237294945,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1776070280105,
+      "commit": "https://github.com/openclaw/skills/commit/7f164a2a62c4ba181bca4e8525f6048e6a724885"
+    }
+  ]
 }

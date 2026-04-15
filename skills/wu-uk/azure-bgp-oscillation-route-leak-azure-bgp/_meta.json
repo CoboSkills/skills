@@ -1,0 +1,11 @@
+{
+  "owner": "wu-uk",
+  "slug": "azure-bgp-oscillation-route-leak-azure-bgp",
+  "displayName": "azure-bgp",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776093876569,
+    "commit": null
+  },
+  "history": []
+}

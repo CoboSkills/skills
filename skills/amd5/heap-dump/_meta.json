@@ -1,0 +1,11 @@
+{
+  "owner": "amd5",
+  "slug": "heap-dump",
+  "displayName": "Heap Dump & Profiler",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776153156999,
+    "commit": null
+  },
+  "history": []
+}

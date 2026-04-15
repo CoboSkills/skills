@@ -1,0 +1,11 @@
+{
+  "owner": "abeltennyson",
+  "slug": "abel-agent-orchestrator",
+  "displayName": "Agent Orchestrator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776220992442,
+    "commit": null
+  },
+  "history": []
+}

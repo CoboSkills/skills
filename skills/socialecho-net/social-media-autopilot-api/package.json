@@ -1,0 +1,36 @@
+{
+  "name": "social-media-autopilot",
+  "version": "1.0.2",
+  "type": "module",
+  "description": "CLI helpers for Social media autopilot external APIs",
+  "author": "SocialEcho Team",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "socialecho-team": "./team.js",
+    "socialecho-account": "./account.js",
+    "socialecho-article": "./article.js",
+    "socialecho-report": "./report.js"
+  },
+  "files": [
+    "SKILL.md",
+    "_meta.json",
+    "openapi.yaml",
+    "openapi.json",
+    "client.js",
+    "team.js",
+    "account.js",
+    "article.js",
+    "report.js",
+    ".env.example"
+  ],
+  "scripts": {
+    "team": "node ./team.js",
+    "account": "node ./account.js",
+    "article": "node ./article.js",
+    "report": "node ./report.js"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "zzz123hash",
+  "slug": "cc-remote",
+  "displayName": "Claude Code Remote Executor",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776210744272,
+    "commit": null
+  },
+  "history": []
+}

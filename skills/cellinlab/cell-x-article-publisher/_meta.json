@@ -1,0 +1,11 @@
+{
+  "owner": "cellinlab",
+  "slug": "cell-x-article-publisher",
+  "displayName": "X 长文发布",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776155277415,
+    "commit": null
+  },
+  "history": []
+}

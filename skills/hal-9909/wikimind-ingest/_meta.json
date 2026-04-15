@@ -1,0 +1,11 @@
+{
+  "owner": "hal-9909",
+  "slug": "wikimind-ingest",
+  "displayName": "Wikimind Skill",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1776165517010,
+    "commit": null
+  },
+  "history": []
+}

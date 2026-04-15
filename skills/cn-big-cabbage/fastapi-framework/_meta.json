@@ -1,0 +1,11 @@
+{
+  "owner": "cn-big-cabbage",
+  "slug": "fastapi-framework",
+  "displayName": "FastAPI",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776141297989,
+    "commit": null
+  },
+  "history": []
+}

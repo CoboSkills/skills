@@ -1,0 +1,11 @@
+{
+  "owner": "kirkraman",
+  "slug": "kirk-agent-task-manager",
+  "displayName": "agent-task-manager",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1776230371768,
+    "commit": null
+  },
+  "history": []
+}

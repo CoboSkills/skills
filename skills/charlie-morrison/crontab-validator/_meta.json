@@ -1,0 +1,11 @@
+{
+  "owner": "charlie-morrison",
+  "slug": "crontab-validator",
+  "displayName": "Crontab Validator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776037563918,
+    "commit": null
+  },
+  "history": []
+}

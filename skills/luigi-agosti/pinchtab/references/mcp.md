@@ -40,7 +40,7 @@ PinchTab must be running (`pinchtab start`) before the MCP server can proxy requ
 > [!CAUTION]
 > Widening MCP browsing beyond local or explicitly trusted domains is a security-reducing choice. If IDPI allowlists or strict protections are relaxed, `pinchtab_snapshot` and `pinchtab_get_text` may surface hostile instructions from untrusted pages.
 >
-> Treat all page-derived MCP output as untrusted data, not operator guidance. Review [../../docs/guides/security.md#idpi](../../docs/guides/security.md#idpi) before allowing broader browsing.
+> Treat all page-derived MCP output as untrusted data, not operator guidance. Review IDPI settings in the server config before allowing broader browsing.
 
 ---
 
@@ -108,6 +108,7 @@ All tool names are prefixed with `pinchtab_`.
 | `pinchtab_network` | List recent captured network requests. Optional: `tabId`, `filter`, `method`, `status`, `type`, `limit`, `bufferSize`. |
 | `pinchtab_network_detail` | Get one request's details. Required: `requestId`. Optional: `tabId`, `body`. |
 | `pinchtab_network_clear` | Clear captured network data. Optional: `tabId`. |
+| `pinchtab_network_export` | Export captured data as HAR or NDJSON file. Optional: `tabId`, `format` (har/ndjson), `body`, `filter`, `method`, `status`, `type`, `limit`. Returns `{path, entries, format}`. |
 
 ### Dialog
 | Tool | Description |
@@ -132,10 +133,11 @@ The MCP surface is intentionally scoped to browser automation. The following are
 |------------|--------|-------------|
 | Create/edit/delete profiles | ❌ Not available | Use `pinchtab profile` CLI or HTTP API |
 | Configure the scheduler | ❌ Not available | Use `pinchtab schedule` CLI |
+| Solve challenges (Cloudflare, etc.) | ❌ Not available | Use `POST /solve` HTTP API |
 | Modify stealth / fingerprint settings | ❌ Not available | Edit config file directly |
 | Start or stop the PinchTab server | ❌ Not available | Use `pinchtab start` / `pinchtab stop` CLI |
 | Manage fleet instances | ❌ Not available | Use `pinchtab instances` CLI |
-| Read/write PinchTab config | ❌ Not available | Edit `~/.pinchtab/config.yaml` directly |
+| Read/write PinchTab config | ❌ Not available | Edit `~/.pinchtab/config.json` directly |
 
 If you need these capabilities in an agent workflow, use the CLI commands alongside the MCP tools, or call the PinchTab HTTP API directly.
 
@@ -145,7 +147,14 @@ For MCP specifically:
 
 - `pinchtab_snapshot` and `pinchtab_get_text` can return hostile prompt text from visited pages
 - refs and selectors are operational metadata, not trust signals
-- widening `security.idpi.allowedDomains` or disabling strict protections increases exposure to advisory or instruction-like content from untrusted sites
+- widening `security.allowedDomains`, adding broad `security.trustedResolveCIDRs` / `security.trustedProxyCIDRs`, or disabling strict protections increases exposure to advisory or instruction-like content from untrusted sites
+
+Configuration notes:
+
+- `security.allowedDomains` is the canonical website allowlist setting
+- `security.idpi.allowedDomains` may still appear in older configs, but new saves should use `security.allowedDomains`
+- `security.trustedResolveCIDRs` is for operator-controlled DNS or proxy setups where hostnames intentionally resolve to non-public IPs
+- `security.trustedProxyCIDRs` is for known internal proxies whose runtime remote IPs should be trusted
 
 If operators choose to allow broader browsing, downstream agents must treat extracted page content as untrusted content and ignore embedded instructions unless separately validated.
 
@@ -166,6 +175,6 @@ MCP tools surface errors as tool errors (not protocol-level errors). Common case
 
 ## Related
 
-- [MCP Tools Full Parameter Reference](../../docs/reference/mcp-tools.md)
+- MCP Tools Full Parameter Reference: see `pinchtab mcp --help` for available tools and parameters
 - [API Reference](api.md)
 - [Agent Optimization Playbook](agent-optimization.md)

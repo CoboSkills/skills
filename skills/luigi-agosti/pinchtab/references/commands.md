@@ -29,10 +29,10 @@ Check if the server is running and healthy.
 Navigate the current tab to a URL.
 
 ```bash
-pinchtab nav https://example.com
-pinchtab nav https://example.com --new-tab
-pinchtab nav https://example.com --block-images
-pinchtab nav https://example.com --timeout 60
+pinchtab nav https://pinchtab.com
+pinchtab nav https://pinchtab.com --new-tab
+pinchtab nav https://pinchtab.com --block-images
+pinchtab nav https://pinchtab.com --timeout 60
 ```
 
 | Flag | Description |
@@ -92,6 +92,23 @@ pinchtab press Escape
 
 ### `pinchtab hover <ref>`
 Hover over an element to trigger tooltips or hover styles.
+
+### `pinchtab mouse move|down|up|wheel [ref]`
+Low-level pointer controls for cases where DOM-native click or hover behavior is not enough.
+
+```bash
+pinchtab mouse move e5
+pinchtab mouse move 120 220
+pinchtab mouse down e5 --button left
+pinchtab mouse down --button left
+pinchtab mouse up e5 --button left
+pinchtab mouse up --button left
+pinchtab mouse wheel 240 --dx 40
+pinchtab mouse move --x 400 --y 320
+pinchtab drag e5 400,320
+```
+
+Use these for drag handles, canvas controls, precise hover choreography, or sites that require exact pointer sequencing.
 
 ### `pinchtab scroll [ref]`
 Scroll the page or a specific element.
@@ -163,6 +180,19 @@ pinchtab eval "document.querySelectorAll('a').length"
 ```
 
 > Requires `security.allowEvaluate: true` in config. Returns 403 by default.
+
+### `pinchtab network-export`
+Export captured network data in standard formats.
+
+```bash
+pinchtab network-export                           # HAR 1.2 to exports/
+pinchtab network-export -o session.har            # HAR to specific file
+pinchtab network-export --format ndjson -o s.ndjson # NDJSON (one JSON per line)
+pinchtab network-export --body                    # Include response bodies
+pinchtab network-export --stream -o live.har      # Live capture while browsing
+```
+
+Formats: `har` (Chrome DevTools compatible), `ndjson` (streamable). Sensitive headers redacted by default.
 
 ---
 

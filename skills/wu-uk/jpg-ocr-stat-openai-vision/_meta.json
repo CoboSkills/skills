@@ -1,0 +1,11 @@
+{
+  "owner": "wu-uk",
+  "slug": "jpg-ocr-stat-openai-vision",
+  "displayName": "openai-vision",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776278478836,
+    "commit": null
+  },
+  "history": []
+}

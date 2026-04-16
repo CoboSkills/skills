@@ -44,7 +44,17 @@ if [[ ! -f "$SKILL_DIR/SKILL.md" ]]; then
   exit 1
 fi
 
-if ! command -v clawhub &>/dev/null; then
+if [[ ! -f "$SKILL_DIR/scripts/stage-clawhub.sh" ]]; then
+  echo "FATAL: stage-clawhub.sh not found in $SKILL_DIR/scripts"
+  exit 1
+fi
+
+if [[ ! -f "$SKILL_DIR/scripts/lint-clawhub-package.sh" ]]; then
+  echo "FATAL: lint-clawhub-package.sh not found in $SKILL_DIR/scripts"
+  exit 1
+fi
+
+if [[ "$DRY_RUN" != "true" ]] && ! command -v clawhub &>/dev/null; then
   echo "FATAL: clawhub CLI not found. Install it first."
   exit 1
 fi
@@ -57,14 +67,9 @@ echo "Staging skill for ClawHub..."
 echo "  Source: $SKILL_DIR"
 echo "  Staging: $TMP_DIR"
 
-# Copy everything
-cp -r "$SKILL_DIR"/* "$TMP_DIR/"
-
-# Swap SKILL-OPENCLAW.md → SKILL.md
-cp "$TMP_DIR/SKILL-OPENCLAW.md" "$TMP_DIR/SKILL.md"
-rm "$TMP_DIR/SKILL-OPENCLAW.md"
-
-echo "  Swapped SKILL-OPENCLAW.md → SKILL.md"
+bash "$SKILL_DIR/scripts/stage-clawhub.sh" "$TMP_DIR"
+bash "$SKILL_DIR/scripts/lint-clawhub-package.sh" "$TMP_DIR"
+echo "  Prepared publish artifact"
 
 # Verify the swap worked
 if grep -q "OpenClaw Secrets Manager" "$TMP_DIR/SKILL.md"; then

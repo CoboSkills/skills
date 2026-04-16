@@ -1,30 +1,38 @@
 ---
 name: vmware-aiops
 description: >
-  VMware family entry point and AI-powered VM lifecycle operations.
-  Start here for any VMware/vSphere/ESXi task — routes to the right skill.
-  Directly handles: power on/off, snapshot, clone, migrate, deploy OVA/template,
-  guest operations, cluster management, plan/apply workflows.
-  Use when user asks to "power on/off a VM", "deploy from OVA", "clone a VM",
-  "create a cluster", "run a command inside a VM", "batch deploy VMs",
-  "migrate a VM", or any VMware/vSphere/ESXi operation.
-  Run "vmware-aiops hub status" to see all installed family members.
+  Use this skill whenever the user needs to manage VMs in VMware/vSphere/ESXi — it's the entry point for all VM operations.
+  Directly handles: power on/off, clone, snapshot, migrate, deploy from OVA or templates, run commands inside VMs, batch operations, cluster management, and vCenter alarm acknowledgment.
+  Always use this skill for any "power on", "clone", "deploy", "migrate", "batch", "guest exec", "alarm", or VM lifecycle task when the context is explicitly VMware, vSphere, or ESXi.
+  Do NOT use for read-only queries (use vmware-monitor), NSX networking (use vmware-nsx), storage/iSCSI/vSAN (use vmware-storage), or Kubernetes cluster lifecycle (use vmware-vks).
+  For multi-step workflows use vmware-pilot. For load balancing/AVI/AKO use vmware-avi.
 installer:
   kind: uv
   package: vmware-aiops
 argument-hint: "[vm-name or describe your task]"
 allowed-tools:
   - Bash
-metadata: {"openclaw":{"requires":{"env":["VMWARE_AIOPS_CONFIG"],"bins":["vmware-aiops"],"config":["~/.vmware-aiops/config.yaml","~/.vmware-aiops/.env"]},"optional":{"env":["SLACK_WEBHOOK_URL","DISCORD_WEBHOOK_URL"]},"primaryEnv":"VMWARE_AIOPS_CONFIG","homepage":"https://github.com/zw008/VMware-AIops","emoji":"🖥️","os":["macos","linux"]}}
+metadata: {"openclaw":{"requires":{"env":["VMWARE_AIOPS_CONFIG"],"bins":["vmware-aiops"],"config":["~/.vmware-aiops/config.yaml","~/.vmware-aiops/.env"]},"optional":{"env":["VMWARE_TARGET_PASSWORD","SLACK_WEBHOOK_URL","DISCORD_WEBHOOK_URL"],"bins":["vmware-policy"]},"primaryEnv":"VMWARE_AIOPS_CONFIG","homepage":"https://github.com/zw008/VMware-AIops","emoji":"🖥️","os":["macos","linux"]}}
+compatibility: >
+  vmware-policy auto-installed as Python dependency (provides @vmware_tool decorator and audit logging). All write operations audited to ~/.vmware/audit.db.
+  Credentials: Each vCenter/ESXi target requires a per-target password env var in ~/.vmware-aiops/.env following the pattern VMWARE_<TARGET_NAME_UPPER>_PASSWORD. Passwords are never logged or echoed.
+  Destructive operations: All write tools require explicit parameters, pass through @vmware_tool decorator (pre-check + audit + sanitize), and CLI destructive commands require double confirmation + support --dry-run.
+  Guest operations: Require explicit vm_name, cmd (full path), args, user parameters — no implicit or background execution.
+  Webhooks: Disabled by default. When enabled, send only aggregated alert metadata (alarm counts, event types) to user-configured URLs. No credentials, IPs, or PII in payloads.
+  SSL bypass: disableSslCertValidation is off by default; exists only for self-signed certs in isolated lab environments.
+  Transitive dependencies: Only vmware-policy (audit/policy). No post-install scripts or background services.
 ---
 
 # VMware AIops
 
-VMware family entry point — AI-powered VM lifecycle and deployment — 31 MCP tools.
+> **Disclaimer**: This is a community-maintained open-source project and is **not affiliated with, endorsed by, or sponsored by VMware, Inc. or Broadcom Inc.** "VMware" and "vSphere" are trademarks of Broadcom. Source code is publicly auditable at [github.com/zw008/VMware-AIops](https://github.com/zw008/VMware-AIops) under the MIT license.
+
+VMware family entry point — AI-powered VM lifecycle, deployment, and alarm management — 34 MCP tools.
 
 > **Start here**: install vmware-aiops first, then add modules as needed.
 > Run `vmware-aiops hub status` to see which family members are installed.
-> **Family**: [vmware-monitor](https://github.com/zw008/VMware-Monitor) (inventory/health), [vmware-storage](https://github.com/zw008/VMware-Storage) (iSCSI/vSAN), [vmware-vks](https://github.com/zw008/VMware-VKS) (Tanzu Kubernetes), [vmware-nsx](https://github.com/zw008/VMware-NSX) (NSX networking), [vmware-nsx-security](https://github.com/zw008/VMware-NSX-Security) (DFW/firewall), [vmware-aria](https://github.com/zw008/VMware-Aria) (metrics/alerts/capacity).
+> **Family**: [vmware-monitor](https://github.com/zw008/VMware-Monitor) (inventory/health), [vmware-storage](https://github.com/zw008/VMware-Storage) (iSCSI/vSAN), [vmware-vks](https://github.com/zw008/VMware-VKS) (Tanzu Kubernetes), [vmware-nsx](https://github.com/zw008/VMware-NSX) (NSX networking), [vmware-nsx-security](https://github.com/zw008/VMware-NSX-Security) (DFW/firewall), [vmware-aria](https://github.com/zw008/VMware-Aria) (metrics/alerts/capacity), [vmware-avi](https://github.com/zw008/VMware-AVI) (AVI/ALB/AKO).
+> | [vmware-pilot](../vmware-pilot/SKILL.md) (workflow orchestration) | [vmware-policy](../vmware-policy/SKILL.md) (audit/policy)
 
 ## What This Skill Does
 
@@ -36,6 +44,7 @@ VMware family entry point — AI-powered VM lifecycle and deployment — 31 MCP 
 | **Plan/Apply** | multi-step planning with rollback | 4 |
 | **Cluster** | create, delete, HA/DRS config, add/remove hosts | 6 |
 | **Datastore** | browse files, scan for images | 2 |
+| **Alarm Management** | list alarms, acknowledge, reset | 3 |
 
 ## Quick Install
 
@@ -57,6 +66,7 @@ vmware-aiops is the entry point. Add modules for additional capabilities:
 | **vmware-nsx** | `uv tool install vmware-nsx-mgmt` | NSX networking: segments, gateways, NAT |
 | **vmware-nsx-security** | `uv tool install vmware-nsx-security` | DFW microsegmentation, security groups |
 | **vmware-aria** | `uv tool install vmware-aria` | Aria Ops metrics, alerts, capacity |
+| **vmware-avi** | `uv tool install vmware-avi` | AVI load balancer, ALB, AKO, Ingress |
 
 > Each module stays independent — small tool count keeps local models (Ollama, Qwen) accurate.
 
@@ -68,11 +78,13 @@ vmware-aiops is the entry point. Add modules for additional capabilities:
 - Create/configure clusters (HA/DRS)
 - Browse datastores for deployable images
 - Plan and execute multi-step operations with rollback
+- List, acknowledge, and reset vCenter triggered alarms
 
 **Use companion skills for**:
 - Inventory, health, alarms, VM info → `vmware-monitor`
 - iSCSI, vSAN, datastore management → `vmware-storage`
 - Tanzu Kubernetes (Supervisor, Namespace, TKC) → `vmware-vks`
+- Load balancing, AVI/ALB, AKO, Ingress → `vmware-avi`
 
 ## Related Skills — Skill Routing
 
@@ -85,13 +97,16 @@ vmware-aiops is the entry point. Add modules for additional capabilities:
 | NSX networking: segments, gateways, NAT | **vmware-nsx** (`uv tool install vmware-nsx-mgmt`) |
 | NSX security: DFW rules, security groups | **vmware-nsx-security** (`uv tool install vmware-nsx-security`) |
 | Aria Ops: metrics, alerts, capacity | **vmware-aria** (`uv tool install vmware-aria`) |
+| Multi-step workflows with approval | **vmware-pilot** |
+| Load balancer, AVI, ALB, AKO, Ingress | **vmware-avi** (`uv tool install vmware-avi`) |
+| Audit log query | **vmware-policy** (`vmware-audit` CLI) |
 
 ## Common Workflows
 
 ### Deploy a Lab Environment
 1. Browse datastore for OVA images → `vmware-aiops datastore browse <ds> --pattern "*.ova"`
 2. Deploy VM from OVA → `vmware-aiops deploy ova ./image.ova --name lab-vm --datastore ds1`
-3. Install software inside VM → `vmware-aiops vm guest-exec lab-vm --cmd /bin/bash --args "-c 'apt-get install -y nginx'" --user root`
+3. Run provisioning script inside VM → `vmware-aiops vm guest-exec lab-vm --cmd /usr/bin/python3 --args "setup.py" --user admin`
 4. Create baseline snapshot → `vmware-aiops vm snapshot-create lab-vm --name baseline`
 5. Set TTL for auto-cleanup → `vmware-aiops vm set-ttl lab-vm --minutes 480`
 
@@ -115,16 +130,24 @@ vmware-aiops is the entry point. Add modules for additional capabilities:
 | Cloud models (Claude, GPT-4o) | Either | MCP gives structured JSON I/O |
 | Automated pipelines | **MCP** | Type-safe parameters, structured output |
 
-## MCP Tools (31)
+## MCP Tools (34 — 20 read, 14 write)
 
-| Category | Tools |
-|----------|-------|
-| VM Lifecycle (6) | `vm_power_on`, `vm_power_off`, `vm_set_ttl`, `vm_cancel_ttl`, `vm_list_ttl`, `vm_clean_slate` |
-| Deployment (8) | `deploy_vm_from_ova`, `deploy_vm_from_template`, `deploy_linked_clone`, `attach_iso_to_vm`, `convert_vm_to_template`, `batch_clone_vms`, `batch_linked_clone_vms`, `batch_deploy_from_spec` |
-| Guest Ops (5) | `vm_guest_exec`, `vm_guest_exec_output`, `vm_guest_upload`, `vm_guest_download`, `vm_guest_provision` |
-| Plan/Apply (4) | `vm_create_plan`, `vm_apply_plan`, `vm_rollback_plan`, `vm_list_plans` |
-| Datastore (2) | `browse_datastore`, `scan_datastore_images` |
-| Cluster (6) | `cluster_create`, `cluster_delete`, `cluster_add_host`, `cluster_remove_host`, `cluster_configure`, `cluster_info` |
+| Category | Tools | R/W |
+|----------|-------|:---:|
+| VM Lifecycle (6) | `vm_list_ttl` | Read |
+| | `vm_power_on`, `vm_power_off`, `vm_set_ttl`, `vm_cancel_ttl`, `vm_clean_slate` | Write |
+| Deployment (8) | `deploy_vm_from_ova`, `deploy_vm_from_template`, `deploy_linked_clone`, `attach_iso_to_vm`, `convert_vm_to_template`, `batch_clone_vms`, `batch_linked_clone_vms`, `batch_deploy_from_spec` | Write |
+| Guest Ops (5) | `vm_guest_exec_output`, `vm_guest_download` | Read |
+| | `vm_guest_exec`, `vm_guest_upload`, `vm_guest_provision` | Write |
+| Plan/Apply (4) | `vm_list_plans`, `vm_create_plan` | Read |
+| | `vm_apply_plan`, `vm_rollback_plan` | Write |
+| Datastore (2) | `browse_datastore`, `scan_datastore_images` | Read |
+| Cluster (6) | `cluster_info` | Read |
+| | `cluster_create`, `cluster_delete`, `cluster_add_host`, `cluster_remove_host`, `cluster_configure` | Write |
+| Alarm Management (3) | `list_vcenter_alarms` | Read |
+| | `acknowledge_vcenter_alarm`, `reset_vcenter_alarm` | Write |
+
+**Read/write split**: 20 tools are read-only, 14 modify state. All write tools require explicit parameters and are audit-logged. Destructive operations (delete, force power-off) require double confirmation.
 
 ## CLI Quick Reference
 
@@ -138,8 +161,8 @@ vmware-aiops vm clone <name> --new-name <new>
 vmware-aiops vm migrate <name> --to-host <host>
 
 # Guest operations (requires VMware Tools)
-vmware-aiops vm guest-exec <name> --cmd /bin/bash --args "-c 'whoami'" --user root
-vmware-aiops vm guest-upload <name> --local ./script.sh --guest /tmp/script.sh --user root
+vmware-aiops vm guest-exec <name> --cmd <script-path> --args "<args>" --user <username>
+vmware-aiops vm guest-upload <name> --local ./script.sh --guest /tmp/script.sh --user <username>
 
 # Deploy
 vmware-aiops deploy ova <path> --name <vm> --datastore <ds>
@@ -151,6 +174,11 @@ vmware-aiops cluster info <name>
 
 # Datastore
 vmware-aiops datastore browse <ds> --pattern "*.ova"
+
+# Alarm management
+vmware-aiops alarm list [--target <t>]
+vmware-aiops alarm acknowledge <entity_name> <alarm_name> [--target <t>]
+vmware-aiops alarm reset <entity_name> <alarm_name> [--target <t>]
 
 # Family
 vmware-aiops hub status        # show installed family members + install commands
@@ -185,7 +213,20 @@ vmware-aiops init  # generates config.yaml and .env templates
 chmod 600 ~/.vmware-aiops/.env
 ```
 
+> All tools are automatically audited via vmware-policy. Audit logs: `vmware-audit log --last 20`
+
 > Full setup guide, security details, and AI platform compatibility: see `references/setup-guide.md`
+
+## Audit & Safety
+
+All operations are automatically audited via vmware-policy (`@vmware_tool` decorator):
+- Every tool call logged to `~/.vmware/audit.db` (SQLite, framework-agnostic)
+- Policy rules enforced via `~/.vmware/rules.yaml` (deny rules, maintenance windows, risk levels)
+- Risk classification: each tool tagged as low/medium/high/critical
+- View recent operations: `vmware-audit log --last 20`
+- View denied operations: `vmware-audit log --status denied`
+
+vmware-policy is automatically installed as a dependency — no manual setup needed.
 
 ## License
 

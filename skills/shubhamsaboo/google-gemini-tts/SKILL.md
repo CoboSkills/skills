@@ -1,7 +1,7 @@
 ---
 name: google-gemini-tts
 description: "Generate spoken audio from text using Google's Gemini TTS models (default is Gemini 3.1 Flash TTS Preview, with fallback to Gemini 2.5 Flash/Pro preview TTS). Use when an agent needs to convert text to speech, produce voice replies, narrate briefings or newsletters, create podcast-style two-speaker conversations, generate audio with expressive style control (whispers, pauses, accents, emotion), or output WAV files for voice-enabled workflows. Supports 30 prebuilt voices, 70+ languages, single and multi-speaker modes, and natural-language style prompts. Requires a GEMINI_API_KEY from Google AI Studio (the script also accepts GOOGLE_API_KEY as an alternative name for the same key)."
-version: 1.0.2
+version: 1.0.3
 author: Shubham Saboo
 compatibility: Requires curl, jq, base64, ffmpeg, and a GEMINI_API_KEY from Google AI Studio. Preview model names may change as Google promotes them to GA.
 metadata:
@@ -88,20 +88,51 @@ The same 30-voice library is shared between `gemini-3.1-flash-tts-preview` and t
 
 ## Style control
 
-Control tone, pace, and delivery with natural language prompts. Gemini 3.1 Flash TTS Preview also supports expressive audio tags for finer narration control when you want to lean into the newer model features:
+Gemini 3.1 Flash TTS reads plain transcripts naturally, but gives you two complementary ways to steer the delivery when you want more control.
 
-- `"Say in a spooky whisper:"`
-- `"Read enthusiastically as a sports announcer:"`
-- `"Speak slowly and calmly, like a meditation guide:"`
-- `"Say with a British accent, cheerfully:"`
+### Inline audio tags
 
-For multi-speaker output, put speaker instructions into the prompt itself:
+Drop bracketed directions into the transcript. They modify what follows, can appear anywhere, and can stack or repeat across a single script:
 
 ```text
-Make Host sound professional and warm, and Guest sound excited.
-Host: Welcome back to AI Weekly.
-Guest: I can't wait to share what we found.
+[excitedly] Massive update today — [whispers] but keep it between us. [laughs]
 ```
+
+Tags are open-ended; anything in `[ ]` is treated as a direction to the model. A useful starting set:
+
+- **Emotion** — `[excitedly]`, `[bored]`, `[reluctantly]`, `[amazed]`, `[curious]`, `[mischievously]`, `[panicked]`, `[sarcastic]`, `[serious]`, `[tired]`, `[trembling]`
+- **Pace and volume** — `[very fast]`, `[very slowly]`, `[asmr]`, `[deep and loud shouting]`, `[whispers]`
+- **Non-verbal** — `[gasp]`, `[giggles]`, `[sighs]`, `[snorts]`, `[cough]`, `[laughs]`, `[crying]`
+- **Character / style** — `[like dracula]`, `[like a dog]`, `[singing]`, `[sarcastically, one painfully slow word at a time]`
+
+### Structured context prompt
+
+For longer pieces where you want a consistent persona, prepend an `AUDIO PROFILE / SCENE / DIRECTOR'S NOTES / TRANSCRIPT` block. The four headers are load-bearing — the model uses them to separate performance context from the script it should actually speak:
+
+```text
+# AUDIO PROFILE: Jaz, London morning-show radio DJ
+
+## THE SCENE: 10 PM, neon-lit studio, "ON AIR" tally blazing.
+Jaz is bouncing on their heels, hands on the faders, infectious energy.
+
+### DIRECTOR'S NOTES
+Style: vocal smile always audible; punchy consonants; elongated vowels on excitement words.
+Accent: Brixton, London.
+Pace: energetic, bouncing cadence, no dead air.
+
+#### TRANSCRIPT
+[excitedly] Yes, massive vibes in the studio! [shouting] Turn it up!
+```
+
+Inline tags inside `#### TRANSCRIPT` override the baseline direction when you want a specific beat.
+
+### Tips
+
+- Keep the script and direction coherent — the speaker, what is said, and how it is said should agree.
+- Don't overspecify. Give the model space to fill gaps; it reads better.
+- A simple preamble ("Say cheerfully: ...") still works for quick one-offs, but inline tags give you per-phrase control and structured prompts give you persona consistency.
+
+Full prompting reference: [Gemini speech-generation docs](https://ai.google.dev/gemini-api/docs/speech-generation).
 
 ## Multi-speaker
 

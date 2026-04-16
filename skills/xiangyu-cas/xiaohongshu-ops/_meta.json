@@ -1,13 +1,18 @@
 {
   "owner": "xiangyu-cas",
   "slug": "xiaohongshu-ops",
-  "displayName": "小红书自动运营",
+  "displayName": "xiaohongshu 小红书自动运营",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1771853804092,
-    "commit": "https://github.com/openclaw/skills/commit/cf1ac0c030d9c0ef5f0ce4d72d6c49353d69bf97"
+    "version": "0.1.2",
+    "publishedAt": 1776065992261,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1771853804092,
+      "commit": "https://github.com/openclaw/skills/commit/cf1ac0c030d9c0ef5f0ce4d72d6c49353d69bf97"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1771425064203,

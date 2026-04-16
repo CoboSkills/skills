@@ -17,7 +17,13 @@ MAX_DIMENSION = 12000
 
 def _workspace_root() -> Path:
     env_root = os.getenv("OPENCLAW_WORKSPACE")
-    return Path(env_root).resolve() if env_root else Path.cwd().resolve()
+    if env_root:
+        return Path(env_root).resolve()
+
+    cwd = Path.cwd().resolve()
+    if cwd.name == "removebg-api" and cwd.parent.name == "skills":
+        return cwd.parent.parent.resolve()
+    return cwd
 
 
 def _ensure_within(path: Path, root: Path, label: str) -> None:

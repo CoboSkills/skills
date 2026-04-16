@@ -3,11 +3,16 @@
   "slug": "polymarket-copytrading",
   "displayName": "Polymarket Copytrading",
   "latest": {
-    "version": "1.8.5",
-    "publishedAt": 1775184419382,
-    "commit": "https://github.com/openclaw/skills/commit/5d6b8f13cf43dd987301316fa4f812249dafbaa1"
+    "version": "1.9.1",
+    "publishedAt": 1776333354182,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.8.5",
+      "publishedAt": 1775184419382,
+      "commit": "https://github.com/openclaw/skills/commit/5d6b8f13cf43dd987301316fa4f812249dafbaa1"
+    },
     {
       "version": "1.8.1",
       "publishedAt": 1774428523234,

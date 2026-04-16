@@ -1,14 +1,12 @@
 ---
 name: prediction-trade-journal
-displayName: Prediction Trade Journal
 description: Auto-log trades with context, track outcomes, generate calibration reports to improve trading.
-metadata: {"clawdbot":{"emoji":"📓","requires":{"env":["SIMMER_API_KEY"]},"cron":null,"autostart":false}}
-authors:
-  - Simmer (@simmer_markets)
-version: "1.1.4"
-published: true
+metadata:
+  author: Simmer (@simmer_markets)
+  version: "1.1.8"
+  displayName: Prediction Trade Journal
+  difficulty: beginner
 ---
-
 # Prediction Trade Journal
 
 Track every trade, learn from outcomes, improve your edge.
@@ -20,6 +18,19 @@ Use this skill when the user wants to:
 - Track win rate and P&L
 - Generate trading reports
 - Analyze which strategies work best
+
+## Setup Flow
+
+When user asks to install or configure this skill:
+
+1. **Install the Simmer SDK**
+   ```bash
+   pip install simmer-sdk
+   ```
+
+2. **Ask for Simmer API key**
+   - They can get it from simmer.markets/dashboard → SDK tab
+   - Store in environment as `SIMMER_API_KEY`
 
 ## Quick Commands
 

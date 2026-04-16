@@ -9,6 +9,10 @@ metadata:
     requires:
       bins: ["curl", "jq"]
       install: []
+    secrets:
+      - path: "~/.openclaw/secrets/simplelogin.json"
+        description: "SimpleLogin API key (fallback if SIMPLELOGIN_API_KEY env var not set)"
+        fields: ["password", "api_key"]
   clawhub:
     category: "privacy"
     tags: ["email", "alias", "privacy", "simplelogin"]

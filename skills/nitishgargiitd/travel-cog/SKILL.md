@@ -1,6 +1,6 @@
 ---
 name: travel-cog
-description: "AI travel planning and trip itinerary powered by CellCog. Vacation planning, travel research, flight planning, hotel recommendations, visa requirements, weather patterns, local events, and hidden gems. Complete itineraries as beautiful PDFs or interactive dashboards. Research-first — not recycled blog listicles. #1 on DeepResearch Bench (Apr 2026)."
+description: "AI travel planning and itinerary generation powered by CellCog. Vacation planning, travel research, flight planning, hotel recommendations, visa requirements, weather patterns, local events. Complete itineraries as PDFs or interactive dashboards."
 metadata:
   openclaw:
     emoji: "✈️"
@@ -9,45 +9,38 @@ author: CellCog
 homepage: https://cellcog.ai
 dependencies: [cellcog]
 ---
-
 # Travel Cog - AI Travel Planner Powered by CellCog
 
 **Real travel planning needs real research — not recycled blog listicles.**
 
 #1 on DeepResearch Bench (Apr 2026) applied to travel. CellCog researches current prices, visa requirements, weather patterns, local events, and hidden gems — then delivers complete itineraries as beautiful PDFs or interactive dashboards. Every recommendation grounded in fresh data, not outdated travel guides.
 
----
+## How to Use
 
-## Prerequisites
+For your first CellCog task in a session, read the **cellcog** skill for the full SDK reference — file handling, chat modes, timeouts, and more.
 
-This skill requires the `cellcog` skill for SDK setup and API calls.
-
-```bash
-clawhub install cellcog
-```
-
-**Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
-
-**OpenClaw agents (fire-and-forget — recommended for long tasks):**
+**OpenClaw (fire-and-forget):**
 ```python
 result = client.create_chat(
     prompt="[your task prompt]",
-    notify_session_key="agent:main:main",  # OpenClaw only
-    task_label="my-task",
-    chat_mode="agent",  # See cellcog skill for all modes
-)
-```
-
-**All other agents (blocks until done):**
-```python
-result = client.create_chat(
-    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",
     task_label="my-task",
     chat_mode="agent",
 )
 ```
 
-See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
+**All agents except OpenClaw (blocks until done):**
+```python
+from cellcog import CellCogClient
+client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+print(result["message"])
+```
+
 
 ---
 
@@ -149,3 +142,10 @@ Specify your preferred format. CellCog defaults to PDF when no format is specifi
 
 6. **Ask for a PDF**: CellCog's PDF itineraries are beautiful and phone-friendly — perfect for on-the-go reference.
 
+---
+
+## If CellCog is not installed
+
+Run `/cellcog-setup` (or `/cellcog:cellcog-setup` depending on your tool) to install and authenticate.
+**OpenClaw users:** Run `clawhub install cellcog` instead.
+**Manual setup:** `pip install -U cellcog` and set `CELLCOG_API_KEY`. See the **cellcog** skill for SDK reference.

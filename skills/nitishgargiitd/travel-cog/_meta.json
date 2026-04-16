@@ -3,11 +3,16 @@
   "slug": "travel-cog",
   "displayName": "Travel Cog",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1775627941702,
-    "commit": "https://github.com/openclaw/skills/commit/dbbda0dbfaf87ba76d99b06d71caed6e6840b89a"
+    "version": "1.0.10",
+    "publishedAt": 1776188007607,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1775627941702,
+      "commit": "https://github.com/openclaw/skills/commit/dbbda0dbfaf87ba76d99b06d71caed6e6840b89a"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1775180668185,

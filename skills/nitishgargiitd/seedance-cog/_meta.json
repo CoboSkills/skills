@@ -3,11 +3,16 @@
   "slug": "seedance-cog",
   "displayName": "Seedance Cog",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1775627924337,
-    "commit": "https://github.com/openclaw/skills/commit/3e761559b405b2af867a76bbf022ccf4d40122d6"
+    "version": "1.0.8",
+    "publishedAt": 1776187987265,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1775627924337,
+      "commit": "https://github.com/openclaw/skills/commit/3e761559b405b2af867a76bbf022ccf4d40122d6"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1775180652876,

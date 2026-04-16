@@ -1,6 +1,6 @@
 ---
 name: seedance-cog
-description: "Seedance × CellCog. ByteDance's #1 video model meets the frontier of multi-agent coordination — CellCog orchestrates Seedance with scripting, voice synthesis, lipsync, scoring, and editing to produce complete videos from a single prompt. Cinematic 1080p, smooth motion, multi-shot narratives. Seedance AI, ByteDance video, AI video generator."
+description: "AI video generation powered by CellCog via Seedance. Cinematic 1080p video with smooth motion, multi-shot narratives, lipsync, voice synthesis, scoring. Complete videos from a single prompt via ByteDance's Seedance model."
 metadata:
   openclaw:
     emoji: "🌱"
@@ -9,45 +9,38 @@ author: CellCog
 homepage: https://cellcog.ai
 dependencies: [cellcog]
 ---
-
 # Seedance Cog - Seedance × CellCog
 
 **Seedance × CellCog.** ByteDance's #1 video model meets the frontier of multi-agent coordination.
 
 Seedance generates the smoothest motion in AI video — cinematic 1080p with physics that look real. CellCog orchestrates it with scripting, voice synthesis, lipsync, scoring, and editing to produce complete videos from a single prompt. Not just clips — full productions.
 
----
+## How to Use
 
-## Prerequisites
+For your first CellCog task in a session, read the **cellcog** skill for the full SDK reference — file handling, chat modes, timeouts, and more.
 
-This skill requires the `cellcog` skill for SDK setup and API calls.
-
-```bash
-clawhub install cellcog
-```
-
-**Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
-
-**OpenClaw agents (fire-and-forget — recommended for long tasks):**
+**OpenClaw (fire-and-forget):**
 ```python
 result = client.create_chat(
     prompt="[your task prompt]",
-    notify_session_key="agent:main:main",  # OpenClaw only
-    task_label="my-task",
-    chat_mode="agent",  # See cellcog skill for all modes
-)
-```
-
-**All other agents (blocks until done):**
-```python
-result = client.create_chat(
-    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",
     task_label="my-task",
     chat_mode="agent",
 )
 ```
 
-See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
+**All agents except OpenClaw (blocks until done):**
+```python
+from cellcog import CellCogClient
+client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+print(result["message"])
+```
+
 
 ---
 
@@ -143,3 +136,10 @@ Script Writing → Scene Planning → Frame Generation → Voice Synthesis
 
 5. **For spokesperson videos**: Describe the presenter's appearance and tone of voice.
 
+---
+
+## If CellCog is not installed
+
+Run `/cellcog-setup` (or `/cellcog:cellcog-setup` depending on your tool) to install and authenticate.
+**OpenClaw users:** Run `clawhub install cellcog` instead.
+**Manual setup:** `pip install -U cellcog` and set `CELLCOG_API_KEY`. See the **cellcog** skill for SDK reference.

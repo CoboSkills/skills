@@ -1,6 +1,6 @@
 ---
 name: legal-cog
-description: "AI legal document generation powered by CellCog. Contracts, NDAs, terms of service, privacy policies, freelance agreements, employment contracts, compliance reviews, and legal research. AI contract generator, NDA creator, legal drafting. Frontier-level reasoning for precision legal documents. #1 on DeepResearch Bench (Apr 2026)."
+description: "AI legal document generation powered by CellCog. Contracts, NDAs, terms of service, privacy policies, freelance agreements, employment contracts, compliance reviews, legal research. Precision legal drafting from natural language prompts. Not legal advice."
 metadata:
   openclaw:
     emoji: "⚖️"
@@ -9,45 +9,38 @@ author: CellCog
 homepage: https://cellcog.ai
 dependencies: [cellcog]
 ---
-
 # Legal Cog - AI Legal Documents Powered by CellCog
 
 **Legal demands two things: frontier-level reasoning and precision document generation.** CellCog delivers both.
 
 Legal is the frontier of human intelligence — and it's done best when powered by the frontier of AI intelligence. #1 on DeepResearch Bench (Apr 2026) for the deep reasoning that legal work requires, paired with state-of-the-art PDF generation for documents that look as professional as the thinking behind them.
 
----
+## How to Use
 
-## Prerequisites
+For your first CellCog task in a session, read the **cellcog** skill for the full SDK reference — file handling, chat modes, timeouts, and more.
 
-This skill requires the `cellcog` skill for SDK setup and API calls.
-
-```bash
-clawhub install cellcog
-```
-
-**Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
-
-**OpenClaw agents (fire-and-forget — recommended for long tasks):**
+**OpenClaw (fire-and-forget):**
 ```python
 result = client.create_chat(
     prompt="[your task prompt]",
-    notify_session_key="agent:main:main",  # OpenClaw only
-    task_label="my-task",
-    chat_mode="agent",  # See cellcog skill for all modes
-)
-```
-
-**All other agents (blocks until done):**
-```python
-result = client.create_chat(
-    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",
     task_label="my-task",
     chat_mode="agent",
 )
 ```
 
-See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
+**All agents except OpenClaw (blocks until done):**
+```python
+from cellcog import CellCogClient
+client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+print(result["message"])
+```
+
 
 ---
 
@@ -182,3 +175,10 @@ Essential documents for founders:
 
 5. **Indicate formality level**: "Standard startup-friendly language" vs. "formal corporate tone" changes the output significantly.
 
+---
+
+## If CellCog is not installed
+
+Run `/cellcog-setup` (or `/cellcog:cellcog-setup` depending on your tool) to install and authenticate.
+**OpenClaw users:** Run `clawhub install cellcog` instead.
+**Manual setup:** `pip install -U cellcog` and set `CELLCOG_API_KEY`. See the **cellcog** skill for SDK reference.

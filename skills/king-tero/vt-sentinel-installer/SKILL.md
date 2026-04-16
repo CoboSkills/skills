@@ -10,149 +10,156 @@ metadata:
     emoji: "\U0001F6E1\uFE0F"
     requires:
       anyBins:
-        - npm
-        - pnpm
-        - yarn
-        - bun
+        - openclaw
 ---
 
 # Install / Upgrade VT Sentinel Plugin
 
+This skill delegates everything to the official `openclaw` CLI. It does **not**
+delete files, edit `openclaw.json` manually, download tarballs from external
+URLs, or touch system services directly. All filesystem and config changes are
+performed by `openclaw plugins` subcommands.
+
+## What this skill will do
+
+Before proceeding, tell the user the exact actions that will run, so they can
+approve:
+
+1. Query installed plugins (`openclaw plugins list`) — read-only.
+2. If not installed → `openclaw plugins install clawhub:openclaw-plugin-vt-sentinel`
+   (downloads the verified ClawHub package into `~/.openclaw/extensions/`).
+3. If installed → `openclaw plugins update openclaw-plugin-vt-sentinel`
+   (in-place upgrade handled by the OpenClaw CLI).
+4. `openclaw gateway restart` — restart the user-scope gateway so the plugin loads.
+5. Verify the plugin is active.
+
+User data (`vt-sentinel-agent.json`, `vt-sentinel-state.json`,
+`vt-sentinel-audit/`) lives in `<OPENCLAW_STATE_DIR>` (outside the plugin
+directory) and is preserved across install/upgrade.
+
+## Source & provenance
+
+- ClawHub package: `openclaw-plugin-vt-sentinel` (verified / LLM-reviewed clean).
+- npm package: `openclaw-plugin-vt-sentinel` (public, MIT licensed).
+- Source repository: `https://github.com/king-tero/VT-sentinel`.
+
+If the user is uncertain about provenance, suggest inspecting the package first
+with `openclaw plugins inspect clawhub:openclaw-plugin-vt-sentinel`.
+
 ## Step 1: Check current state
 
 ```
-exec { "command": "openclaw plugins list 2>/dev/null | grep vt-sentinel" }
+exec { "command": "openclaw plugins list" }
 ```
 
-Determine the platform:
+Look for `openclaw-plugin-vt-sentinel` in the output.
 
-```
-exec { "command": "uname -s 2>/dev/null || echo Windows" }
-```
-
-Three possible outcomes:
-- **Not installed** → go to Step 2 (fresh install)
-- **Installed, older version** → go to Step 3 (upgrade)
-- **Installed, already v0.10.0 or newer** → tell the user it's up to date and skip remaining steps
-
-To check the installed version:
-```
-exec { "command": "node -e \"const p=require(process.env.HOME+'/.openclaw/extensions/openclaw-plugin-vt-sentinel/package.json');console.log(p.version)\" 2>/dev/null || echo unknown" }
-```
-
-On Windows use `%USERPROFILE%` instead of `$HOME`.
+- **Not present** → go to Step 2 (fresh install).
+- **Present** → go to Step 3 (upgrade in place).
 
 ## Step 2: Fresh install
 
 ```
-exec { "command": "openclaw plugins install openclaw-plugin-vt-sentinel" }
+exec { "command": "openclaw plugins install clawhub:openclaw-plugin-vt-sentinel" }
 ```
 
-This downloads the npm package, registers the plugin, loads skills and hooks automatically. No manual configuration needed. Go to Step 4.
+This downloads the ClawHub package, registers the plugin, and loads skills and
+hooks automatically. No manual configuration needed. Go to Step 4.
 
-## Step 3: Upgrade from previous version
-
-The `openclaw plugins install` command does NOT support in-place upgrade — it fails with "plugin already exists". The upgrade process is:
-
-### 3a. Remove old extension directory (preserves all user data)
-
-On Linux/macOS:
-```
-exec { "command": "rm -rf ~/.openclaw/extensions/openclaw-plugin-vt-sentinel" }
-```
-
-On Windows:
-```
-exec { "command": "rmdir /s /q %USERPROFILE%\\.openclaw\\extensions\\openclaw-plugin-vt-sentinel" }
-```
-
-**User data is safe** — these files live outside the plugin directory and are preserved:
-- `~/.openclaw/vt-sentinel-state.json` (configuration overrides, onboarding flags)
-- `~/.openclaw/vt-sentinel-uploads.log` (audit log)
-- `~/.openclaw/vt-sentinel-detections.log` (audit log)
-- `~/.openclaw/vtai-agent-credentials.json` (VTAI API credentials)
-
-### 3b. Clean stale install entry (preserves user config)
-
-After removing the extension directory, `openclaw.json` still references the old plugin path in `plugins.installs`, which causes validation errors. Only remove the stale install metadata — user config in `plugins.entries` (apiKey, etc.) is preserved:
-
-On Linux/macOS:
-```
-exec { "command": "node -e \"const fs=require('fs'),p=process.env.HOME+'/.openclaw/openclaw.json';try{const P=(()=>{try{return require('json5').parse}catch{return JSON.parse}})();const c=P(fs.readFileSync(p,'utf8'));if(c.plugins?.installs)delete c.plugins.installs['openclaw-plugin-vt-sentinel'];fs.writeFileSync(p,JSON.stringify(c,null,2));console.log('Config cleaned')}catch(e){console.log('No config to clean: '+e.message)}\"" }
-```
-
-On Windows:
-```
-exec { "command": "node -e \"const fs=require('fs'),p=process.env.USERPROFILE+'\\\\.openclaw\\\\openclaw.json';try{const P=(()=>{try{return require('json5').parse}catch{return JSON.parse}})();const c=P(fs.readFileSync(p,'utf8'));if(c.plugins?.installs)delete c.plugins.installs['openclaw-plugin-vt-sentinel'];fs.writeFileSync(p,JSON.stringify(c,null,2));console.log('Config cleaned')}catch(e){console.log('No config to clean: '+e.message)}\"" }
-```
-
-### 3c. Install new version
+## Step 3: Upgrade in place
 
 ```
-exec { "command": "openclaw plugins install openclaw-plugin-vt-sentinel" }
+exec { "command": "openclaw plugins update openclaw-plugin-vt-sentinel" }
 ```
 
-If this fails on Windows with `spawn EINVAL`, use the manual method:
+The OpenClaw CLI handles the upgrade atomically: it fetches the latest version,
+replaces the extension directory, and updates `plugins.installs` metadata. User
+config in `plugins.entries` and state files under `<OPENCLAW_STATE_DIR>` are
+preserved.
+
+If the CLI reports "already at latest version", tell the user VT Sentinel is
+up to date and skip to Step 5 (verify only).
+
+If the update is blocked (for example by a corrupted install), fall back to a
+clean reinstall using only official subcommands:
+
 ```
-exec { "command": "cd %TEMP% && npm pack openclaw-plugin-vt-sentinel && mkdir %USERPROFILE%\\.openclaw\\extensions\\openclaw-plugin-vt-sentinel && tar xzf openclaw-plugin-vt-sentinel-0.10.0.tgz -C %USERPROFILE%\\.openclaw\\extensions\\openclaw-plugin-vt-sentinel --strip-components=1 && cd %USERPROFILE%\\.openclaw\\extensions\\openclaw-plugin-vt-sentinel && npm install --omit=dev" }
+exec { "command": "openclaw plugins uninstall openclaw-plugin-vt-sentinel --force" }
+exec { "command": "openclaw plugins install clawhub:openclaw-plugin-vt-sentinel" }
 ```
+
+`uninstall` removes the extension directory and cleans `plugins.installs` in a
+single supported operation — do not edit `openclaw.json` manually.
 
 ## Step 4: Restart the gateway
 
-The plugin won't be active until the gateway restarts. Detect the platform and use the appropriate command:
+The plugin will not become active until the gateway restarts. The OpenClaw CLI
+provides a cross-platform wrapper that handles the underlying service manager
+(launchd on macOS, systemd user unit on Linux, schtasks on Windows):
 
-Linux:
-```
-exec { "command": "systemctl --user restart openclaw-gateway.service" }
-```
-
-macOS:
-```
-exec { "command": "openclaw gateway restart" }
-```
-
-Windows:
 ```
 exec { "command": "openclaw gateway restart" }
 ```
 
 ## Step 5: Verify
 
-After restart, check that the plugin loaded correctly and shows 9 tools:
+```
+exec { "command": "openclaw plugins list" }
+```
 
-```
-exec { "command": "openclaw plugins list 2>/dev/null | grep vt-sentinel" }
-```
+Confirm `openclaw-plugin-vt-sentinel` appears as loaded. A healthy install
+registers **9 tools** and **2 hooks**.
 
 ## Step 6: Inform the user
 
-Tell the user:
+1. VT Sentinel is installed and active (mention whether this was a fresh
+   install or an upgrade, and from which version if known).
+2. **No API key needed** — the plugin auto-registers with VirusTotal's AI API
+   (VTAI) on first scan. Zero configuration required.
+3. Optionally, the user can add their own VirusTotal API key for higher rate
+   limits:
+   ```
+   openclaw config set plugins.entries.openclaw-plugin-vt-sentinel.config.apiKey "vt_xxxxxxxx"
+   ```
+   Since v0.11.0 the `VIRUSTOTAL_API_KEY` environment variable fallback was
+   retired — only the plugin config value or VTAI auto-registration are
+   supported.
 
-1. VT Sentinel is installed and active (mention if this was an upgrade, and from which version).
-2. **No API key needed** — it auto-registers with VirusTotal's AI API (zero-config).
-3. Optionally, they can add their own VirusTotal API key for higher rate limits via `openclaw plugins config openclaw-plugin-vt-sentinel apiKey <key>`.
+### What VT Sentinel provides
 
-VT Sentinel provides:
+Tools exposed after install:
+
 - `vt_scan_file` — Full file scan (AV + AI Code Insight)
 - `vt_check_hash` — Quick hash lookup
-- `vt_upload_consent` — Consent for sensitive file uploads
+- `vt_upload_consent` — Consent flow for sensitive file uploads
 - `vt_sentinel_status` — View current config, watched dirs, protection status
 - `vt_sentinel_configure` — Change settings at runtime (presets, notify level, block mode)
 - `vt_sentinel_reset_policy` — Reset to defaults
 - `vt_sentinel_help` — Quick-start guide and privacy info
 - `vt_sentinel_update` — Check for updates and get upgrade instructions
 - `vt_sentinel_re_register` — Re-register agent identity with VTAI
-- Automatic scanning of downloaded/created files
-- Active blocking of malicious file execution and dangerous command patterns
+
+Behavior:
+
+- Automatic scanning of downloaded and created files (AV + AI Code Insight)
+- Active blocking of known-malicious file execution and dangerous command patterns
+- Rotating audit logs under `<OPENCLAW_STATE_DIR>/vt-sentinel-audit/`
 
 ## Troubleshooting
 
-If `openclaw plugins install` fails:
-- Check internet connectivity: `exec { "command": "npm ping" }`
-- Try with verbose output: `exec { "command": "openclaw plugins install openclaw-plugin-vt-sentinel --verbose" }`
-- On Windows, if `spawn EINVAL` error occurs, use the manual method from Step 3b
+If any step fails:
+
+- Check connectivity to ClawHub and the OpenClaw gateway: `openclaw gateway status`.
+- Re-run the failing command with verbose output: append `--verbose` to the
+  `openclaw plugins ...` command.
+- Inspect plugin load errors: `openclaw plugins doctor`.
+- Inspect the package before install: `openclaw plugins inspect clawhub:openclaw-plugin-vt-sentinel`.
 
 ## Constraints
 
-- Do NOT modify `openclaw.json` manually — `openclaw plugins install` handles everything
-- If the user reports the plugin is blocked, check `plugins.deny` in their `openclaw.json`
+- Do **not** modify `~/.openclaw/openclaw.json` manually — `openclaw plugins
+  install/update/uninstall` handle configuration atomically.
+- Do **not** run `rm -rf` on `~/.openclaw/extensions/...` — use
+  `openclaw plugins uninstall` instead.
+- If the user reports the plugin is blocked, check `plugins.deny` in their
+  `openclaw.json` (read-only inspection is fine; the user edits it themselves).

@@ -1,13 +1,18 @@
 {
   "owner": "king-tero",
   "slug": "vt-sentinel-installer",
-  "displayName": "Vt Sentinel Installer",
+  "displayName": "Vt Sentinel Installer 1.10.0",
   "latest": {
-    "version": "1.6.0",
-    "publishedAt": 1771613618353,
-    "commit": "https://github.com/openclaw/skills/commit/c1b1d1d546dfab70090f9ce6cd2fa5046b7f91c9"
+    "version": "1.10.0",
+    "publishedAt": 1776161531669,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.6.0",
+      "publishedAt": 1771613618353,
+      "commit": "https://github.com/openclaw/skills/commit/c1b1d1d546dfab70090f9ce6cd2fa5046b7f91c9"
+    },
     {
       "version": "1.5.2",
       "publishedAt": 1771062545772,

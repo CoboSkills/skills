@@ -1,6 +1,19 @@
 # Changelog
 
+## 3.8.1
+
+- fix: sync endpoint category counts to 67 active endpoints (31 read, 28 write, 8 webhook/stream)
+- docs: add missing curl examples for legacy and bookmark endpoints
+
 All notable changes to this skill will be documented in this file.
+
+## [3.8.0] - 2026-04-10
+
+### Added
+- Added 9 active OpenAPI endpoints previously missing from the skill: `bookmark_tweet_v2`, `bookmarks_v2`, `unbookmark_tweet_v2`, `login_by_email_or_username`, `login_by_2fa`, `upload_image`, `create_tweet`, `like_tweet`, `retweet_tweet`
+
+### Changed
+- Total endpoint count: 58 → 67
 
 ## [3.7.2] - 2026-03-22
 

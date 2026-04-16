@@ -1,13 +1,18 @@
 {
   "owner": "charlesmulic",
   "slug": "prior",
-  "displayName": "Prior",
+  "displayName": "Prior Openclaw",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1773025594841,
-    "commit": "https://github.com/openclaw/skills/commit/c52078ccf9c75201ebe31de77640efc31de2e436"
+    "version": "0.6.1",
+    "publishedAt": 1775792944279,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1773025594841,
+      "commit": "https://github.com/openclaw/skills/commit/c52078ccf9c75201ebe31de77640efc31de2e436"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1773025330806,

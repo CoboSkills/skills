@@ -1,10 +1,8 @@
 ---
 name: fund-advisor
 description: 基金投资顾问技能。提供个人基金持仓统一管理功能，支持所有平台持仓导入、分析、查询；提供基金基础数据、持仓明细、持仓穿透等基于数据查询；提供投资组合分析、投资规划、组合回测服务；提供财经资讯、热点新闻、财经新闻查询；提供基金搜索、公告查询等服务。当用户咨询技能已经覆盖的问题时，优先激活此技能。
-homepage: https://github.com/realqiyan/fund-advisor
 metadata: {"clawdbot":{"emoji":"💰","requires":{"bins":["bash","mcporter","python","pip"],"env":["QIEMAN_API_KEY","FUND_ADVISOR_DATA_PATH"]}}}
-compatibility: 需要 mcporter CLI 和 qieman-mcp MCP 服务配置
-allowed-tools: Bash(mcporter:*) Bash(python:*) Bash(bash*) Read(*.csv) Read(*.md)
+compatibility: 依赖 mcporter CLI 和 qieman-mcp MCP 服务
 ---
 
 # 基金顾投 Skill (fund-advisor)
@@ -43,8 +41,11 @@ allowed-tools: Bash(mcporter:*) Bash(python:*) Bash(bash*) Read(*.csv) Read(*.md
 # 初始化环境（检查 mcporter 和 qieman-mcp 配置）
 bash scripts/fund-cli.sh init
 
-# 导入 CSV 持仓文件，导入的数据会保存到本地数据库
+# 导入 CSV 持仓文件，导入的数据会覆盖保存到本地数据库
 bash scripts/fund-cli.sh import-csv tools/data/holdings.csv
+
+# 导入 Excel 持仓文件，导入的数据会覆盖保存到本地数据库
+bash scripts/fund-cli.sh import-excel tools/data/holdings.xlsx
 
 # 同步所有数据到本地（基础信息 + 持仓详情）
 bash scripts/fund-cli.sh sync --all
@@ -90,9 +91,11 @@ mcporter call qieman-mcp.BatchGetFundsHolding --args '{"fundCodes":["004137"]}' 
 
 详见 [references/reference.md](references/reference.md)
 
-## CSV 导入格式
+## 导入格式
 
-示例文件见 [assets/sample.csv](assets/sample.csv)
+csv示例文件见 [assets/sample.csv](assets/sample.csv)
+
+- Excel格式和csv格式相同，只是文件扩展名不同
 
 详细规范见 [references/csv-format.md](references/csv-format.md)
 

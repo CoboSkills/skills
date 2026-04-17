@@ -1,19 +1,19 @@
 ---
 name: tuya-cloud
-description: Read sensor data and control Tuya IoT devices via Tuya Cloud API. Use when the user wants to list devices, read temperature, humidity, soil moisture, battery or other sensor data, or send commands to switches and valves. Requires TUYA_ACCESS_ID, TUYA_ACCESS_SECRET, and optionally TUYA_API_ENDPOINT in .env.
+description: Read sensor data and control Tuya IoT devices via Tuya Cloud API or local LAN. Use when the user wants to list devices, read temperature, humidity, soil moisture, battery or other sensor data, or send commands to switches and valves. Requires TUYA_ACCESS_ID, TUYA_ACCESS_SECRET, and optionally TUYA_API_ENDPOINT in .env.
 license: MIT
 metadata: {"openclaw":{"emoji":"🔌","primaryEnv":"TUYA_ACCESS_ID","requires":{"env":["TUYA_ACCESS_ID","TUYA_ACCESS_SECRET"],"bins":["python3"]}}}
 ---
 
 # Tuya Cloud Controller
 
-Read sensor data and control Tuya IoT devices via `scripts/tuya_controller.py`.
+Read sensor data and control Tuya IoT devices via `scripts/tuya_controller.py`. Supports both Tuya Cloud API and direct local LAN control.
 
 ## Device registry
 
 Known controllable devices are defined in `scripts/config.py` as `CONTROLLABLE_DEVICES` (OPTIONAL).  
 **Always consult this list first if exist** to resolve a device name to its `device_id`.  
-For valve devices the `valve` key gives the DP code (e.g. `switch_1`) to use as the command `code`.  
+For valve devices the `valve` key gives the DP code ( e.g. `switch_1`) to use as the command `code`.  
 Only call `tuya_list_devices` if the device is not listed in the config.
 
 ## Setup
@@ -64,7 +64,7 @@ python scripts/tuya_controller.py read_sensor <device_id> --output_format text
 
 ### `tuya_control_device`
 
-Send commands to a Tuya device (switch, valve, countdown timer). Pass a JSON array of `{"code", "value"}` pairs.
+Send commands to a Tuya device (switch, valve, countdown timer). Pass a JSON array of `{"code", "value"}` pairs. Uses the IoT Core `/v1.0/iot-03/` endpoint, which supports Zigbee sub-devices.
 
 ```bash
 # Turn switch/valve on or off
@@ -78,11 +78,75 @@ python scripts/tuya_controller.py control_device <device_id> '[{"code":"switch_1
 
 > ⚠️ `countdown_1` / `countdown_2` are in **minutes**. `10` = 10 min, `60` = 1 hour.
 
+#### Dual-channel valve devices
+
+Some valve devices expose two independent channels (e.g. left and right outlet). Each channel has its own switch and countdown DP:
+
+| Channel | Switch DP  | Countdown DP  |
+|---------|------------|---------------|
+| Left    | `switch_1` | `countdown_1` |
+| Right   | `switch_2` | `countdown_2` |
+
+Control each channel independently:
+
+```bash
+# Open left valve for 5 minutes
+python scripts/tuya_controller.py control_device <device_id> '[{"code":"switch_1","value":true},{"code":"countdown_1","value":5}]'
+
+# Open right valve for 10 minutes
+python scripts/tuya_controller.py control_device <device_id> '[{"code":"switch_2","value":true},{"code":"countdown_2","value":10}]'
+
+# Close right valve immediately
+python scripts/tuya_controller.py control_device <device_id> '[{"code":"switch_2","value":false}]'
+```
+
+To register a dual-channel valve in `config.py`, add both channels as separate entries or use a list:
+
+```python
+# Option A: two entries (one per channel)
+{'name': 'Greenhouse valve left',  'device_id': '<id>', 'valve': 'switch_1', 'countdown': 'countdown_1'},
+{'name': 'Greenhouse valve right', 'device_id': '<id>', 'valve': 'switch_2', 'countdown': 'countdown_2'},
+```
+
+## Local LAN Tools
+
+Control devices directly over the local network without cloud API calls. No credentials needed for scanning; `local_key` and `ip` required for read/control.
+
+### `scan_local`
+
+Scan the local network for Tuya devices via UDP broadcast.
+
+```bash
+python scripts/tuya_controller.py scan_local
+python scripts/tuya_controller.py scan_local --timeout 10
+python scripts/tuya_controller.py scan_local --enrich --output_format json   # add cloud names/local_keys
+```
+
+### `read_local`
+
+Read device status directly over LAN (no cloud round-trip).
+
+```bash
+python scripts/tuya_controller.py read_local <device_id> <ip> <local_key>
+python scripts/tuya_controller.py read_local <device_id> <ip> <local_key> --version 3.4
+```
+
+### `control_local`
+
+Send commands to a device directly over LAN. Commands can use integer DP index (`dp`) or string DP name (`code`).
+
+```bash
+python scripts/tuya_controller.py control_local <device_id> <ip> <local_key> '[{"dp":1,"value":true}]'
+python scripts/tuya_controller.py control_local <device_id> <ip> <local_key> '[{"code":"switch_1","value":true}]'
+```
+
+> Use integer `dp` for maximum compatibility. String `code` requires the device to support it.
+
 ## API Endpoints (internal)
 
-- Device list: `GET /v2.0/cloud/thing/device` (`page_size=20`)
-- Device info: `GET /v2.0/cloud/thing/{device_id}`
-- Device status: `GET /v2.0/cloud/thing/{device_id}/state`
+- Device list: `GET /v1.0/iot-01/associated-users/devices`
+- Device info: `GET /v1.0/devices/{device_id}`
+- Device status: `GET /v1.0/iot-03/devices/{device_id}/status`
 - Send commands: `POST /v1.0/iot-03/devices/{device_id}/commands`
 
 ## Dependencies
@@ -99,3 +163,5 @@ pip install tinytuya python-dotenv
 | "Permission denied" | Subscribe to IoT Core and enable Device Status Notification |
 | Device offline | `online: false`; soil moisture returns `null` |
 | Wrong endpoint | Match `TUYA_API_ENDPOINT` to your account region |
+| Local scan finds nothing | Check firewall; UDP broadcast may be blocked on some networks |
+| Local control fails for Zigbee devices | Zigbee sub-devices must be controlled via their gateway (use gateway ID + `cid`) |

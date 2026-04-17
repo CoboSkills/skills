@@ -1,4 +1,4 @@
-"""Tuya Cloud device controller — list, read, and control via tinytuya."""
+"""Tuya Cloud and local LAN device controller — list, read, and control via tinytuya."""
 
 import json
 import os
@@ -68,12 +68,119 @@ def get_device_status(client: tinytuya.Cloud, device_id: str) -> Dict[str, Any]:
 def send_device_commands(
     client: tinytuya.Cloud, device_id: str, commands: List[Dict[str, Any]]
 ) -> bool:
-    """Send a list of {code, value} commands to a device. Returns True on success."""
-    # tinytuya.sendcommand posts its second arg as the raw request body
-    resp = client.sendcommand(device_id, {'commands': commands})
+    """Send a list of {code, value} commands to a device. Returns True on success.
+
+    Uses the IoT Core v1.0/iot-03 endpoint (same as Home Assistant tuya_iot),
+    which has broader device control support than the older v1.0/devices endpoint.
+    """
+    resp = client.cloudrequest(
+        f"/v1.0/iot-03/devices/{device_id}/commands",
+        action='POST',
+        post={'commands': commands},
+    )
     if resp.get('success'):
         return True
     raise Exception(f"send_device_commands failed ({resp.get('code')}): {resp.get('msg')}")
+
+
+# ---------------------------------------------------------------------------
+# Local (LAN) API
+# ---------------------------------------------------------------------------
+
+def scan_local_devices(timeout: int = 18) -> Dict[str, Any]:
+    """Scan the local network for Tuya devices via UDP broadcast.
+
+    Returns a dict keyed by gwId: {ip, version, productKey, ...}.
+    No cloud credentials required.
+    """
+    return tinytuya.deviceScan(verbose=False, maxretry=timeout)
+
+
+def _make_local_device(device_id: str, ip: str, local_key: str, version: float, cid: str = None) -> tinytuya.Device:
+    kwargs = {"cid": cid} if cid else {}
+    d = tinytuya.Device(device_id, ip, local_key, **kwargs)
+    d.set_version(version)
+    if version >= 3.4:
+        d.set_socketPersistent(True)
+    return d
+
+
+def get_local_device_status(
+    device_id: str,
+    ip: str,
+    local_key: str,
+    version: float = 3.3,
+) -> Dict[str, Any]:
+    """Read current DP status directly over LAN. Returns raw {dp_id: value} dict."""
+    d = _make_local_device(device_id, ip, local_key, version)
+    resp = d.status()
+    if not resp:
+        raise Exception("No response from device")
+    if 'Error' in resp:
+        raise Exception(f"Local status error: {resp['Error']}")
+    return resp.get('dps', resp)
+
+
+def send_local_device_commands(
+    device_id: str,
+    ip: str,
+    local_key: str,
+    commands: List[Dict[str, Any]],
+    version: float = 3.3,
+) -> bool:
+    """Send commands to a device directly over LAN.
+
+    Each command must have 'value' and either:
+      'dp'   — integer DP index  (e.g. {"dp": 1, "value": true})
+      'code' — string DP name    (e.g. {"code": "switch_1", "value": true})
+    String codes are passed as-is; use integer dp for maximum compatibility.
+    """
+    d = _make_local_device(device_id, ip, local_key, version)
+    payload: Dict[Any, Any] = {}
+    for cmd in commands:
+        key = cmd['dp'] if 'dp' in cmd else cmd['code']
+        payload[key] = cmd['value']
+    resp = d.set_multiple_values(payload)
+    if resp and 'Error' in resp:
+        raise Exception(f"Local command error: {resp['Error']}")
+    return True
+
+
+def get_local_subdevice_status(
+    gateway_id: str,
+    gateway_ip: str,
+    gateway_local_key: str,
+    sub_device_id: str,
+    version: float = 3.3,
+) -> Dict[str, Any]:
+    """Read status of a Zigbee/sub-device via its gateway over LAN."""
+    d = _make_local_device(gateway_id, gateway_ip, gateway_local_key, version, cid=sub_device_id)
+    resp = d.status()
+    if not resp:
+        raise Exception("No response from gateway")
+    if 'Error' in resp:
+        raise Exception(f"Gateway status error: {resp['Error']}")
+    return resp.get('dps', resp)
+
+
+def send_local_subdevice_commands(
+    gateway_id: str,
+    gateway_ip: str,
+    gateway_local_key: str,
+    sub_device_id: str,
+    commands: List[Dict[str, Any]],
+    version: float = 3.3,
+) -> bool:
+    """Send commands to a Zigbee/sub-device via its gateway over LAN."""
+    d = _make_local_device(gateway_id, gateway_ip, gateway_local_key, version, cid=sub_device_id)
+    payload: Dict[Any, Any] = {}
+    for cmd in commands:
+        key = cmd['dp'] if 'dp' in cmd else cmd['code']
+        payload[key] = cmd['value']
+    resp = d.set_multiple_values(payload)
+    if resp and 'Error' in resp:
+        raise Exception(f"Gateway command error: {resp['Error']}")
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -86,7 +193,12 @@ def parse_sensor_data(status: Dict[str, Any]) -> Dict[str, Any]:
 
     temp_raw = status.get('va_temperature') or status.get('temp_current') or status.get('temp_set')
     if temp_raw is not None:
-        parsed['temperature_celsius'] = round(temp_raw / 10.0, 1)
+        # Some Tuya devices report in tenths of a degree (raw 90 = 9°C), others in whole degrees.
+        # If the raw value is already in a plausible °C range, use it directly.
+        if -80 <= temp_raw <= 80:
+            parsed['temperature_celsius'] = round(float(temp_raw), 1)
+        else:
+            parsed['temperature_celsius'] = round(temp_raw / 10.0, 1)
 
     humidity = status.get('va_humidity') or status.get('humidity_value')
     if humidity is not None:
@@ -200,6 +312,64 @@ def cmd_control_device(args: argparse.Namespace) -> None:
         print(f"  • {cmd['code']} = {cmd['value']}")
 
 
+def cmd_scan_local(args: argparse.Namespace) -> None:
+    """Scan local network for Tuya devices (no cloud credentials needed)."""
+    print(f"Scanning local network (timeout={args.timeout}s)…", file=sys.stderr)
+    devices = scan_local_devices(timeout=args.timeout)
+
+    # Optionally enrich with cloud names/local_keys
+    cloud_map: Dict[str, Any] = {}
+    if args.enrich:
+        try:
+            client = load_tuya_client()
+            for dev in list_all_devices(client):
+                cloud_map[dev['id']] = dev
+        except Exception as e:
+            print(f"⚠ Cloud enrichment failed: {e}", file=sys.stderr)
+
+    if args.output_format == 'json':
+        enriched = {}
+        for gw_id, info in devices.items():
+            entry = dict(info)
+            if gw_id in cloud_map:
+                entry['name'] = cloud_map[gw_id].get('name')
+                entry['local_key'] = cloud_map[gw_id].get('local_key')
+            enriched[gw_id] = entry
+        print(json.dumps(enriched, indent=2))
+        return
+
+    print(f"\nFound {len(devices)} local device(s):\n")
+    for gw_id, info in devices.items():
+        name = cloud_map.get(gw_id, {}).get('name', gw_id)
+        local_key = cloud_map.get(gw_id, {}).get('local_key', '')
+        ip = info.get('ip', '?')
+        ver = info.get('version', '?')
+        print(f"  {name}")
+        print(f"    ID: {gw_id}  IP: {ip}  version: {ver}" +
+              (f"  local_key: {local_key}" if local_key else ""))
+
+
+def cmd_read_local(args: argparse.Namespace) -> None:
+    """Read device status directly over LAN."""
+    status = get_local_device_status(args.device_id, args.ip, args.local_key, args.version)
+    if args.output_format == 'json':
+        print(json.dumps({'device_id': args.device_id, 'ip': args.ip, 'dps': status}, indent=2))
+        return
+    print(f"Device {args.device_id} ({args.ip}):")
+    for dp, val in status.items():
+        print(f"  dp {dp}: {val}")
+
+
+def cmd_control_local(args: argparse.Namespace) -> None:
+    """Control a device directly over LAN."""
+    commands = json.loads(args.commands)
+    send_local_device_commands(args.device_id, args.ip, args.local_key, commands, args.version)
+    print(f"✓ Sent to {args.device_id} ({args.ip})")
+    for cmd in commands:
+        key = cmd.get('dp', cmd.get('code'))
+        print(f"  • dp/code {key} = {cmd['value']}")
+
+
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
@@ -209,7 +379,7 @@ def main() -> None:
         description="Tuya Cloud Controller",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Examples:
+Examples (Cloud):
   python tuya_controller.py list_devices
   python tuya_controller.py list_devices --output_format json
 
@@ -217,6 +387,15 @@ Examples:
   python tuya_controller.py read_sensor bf0a155b2e49d3367bafrz --output_format text
 
   python tuya_controller.py control_device bffc2c6de8e82861e5vlhh '[{"code":"switch_1","value":true}]'
+
+Examples (Local LAN — no cloud credentials needed for scan):
+  python tuya_controller.py scan_local
+  python tuya_controller.py scan_local --timeout 10 --enrich --output_format json
+
+  python tuya_controller.py read_local DEVICE_ID 192.168.1.50 MY_LOCAL_KEY
+  python tuya_controller.py read_local DEVICE_ID 192.168.1.50 MY_LOCAL_KEY --version 3.4
+
+  python tuya_controller.py control_local DEVICE_ID 192.168.1.50 MY_LOCAL_KEY '[{"dp":1,"value":true}]'
         """,
     )
     sub = parser.add_subparsers(dest="command", required=True)
@@ -234,6 +413,28 @@ Examples:
     p.add_argument("device_id")
     p.add_argument("commands", help='JSON array, e.g. \'[{"code":"switch_1","value":true}]\'')
     p.set_defaults(func=cmd_control_device)
+
+    p = sub.add_parser("scan_local", help="Scan local network for Tuya devices (no credentials needed)")
+    p.add_argument("--timeout", type=int, default=18, help="UDP scan timeout in seconds (default: 18)")
+    p.add_argument("--enrich", action="store_true", help="Cross-reference with cloud to add device names and local keys")
+    p.add_argument("--output_format", choices=["json", "text"], default="text")
+    p.set_defaults(func=cmd_scan_local)
+
+    p = sub.add_parser("read_local", help="Read device status directly over LAN")
+    p.add_argument("device_id")
+    p.add_argument("ip")
+    p.add_argument("local_key")
+    p.add_argument("--version", type=float, default=3.3, help="Protocol version (default: 3.3)")
+    p.add_argument("--output_format", choices=["json", "text"], default="json")
+    p.set_defaults(func=cmd_read_local)
+
+    p = sub.add_parser("control_local", help="Control a device directly over LAN")
+    p.add_argument("device_id")
+    p.add_argument("ip")
+    p.add_argument("local_key")
+    p.add_argument("commands", help='JSON array, e.g. \'[{"dp":1,"value":true}]\' or \'[{"code":"switch_1","value":true}]\'')
+    p.add_argument("--version", type=float, default=3.3, help="Protocol version (default: 3.3)")
+    p.set_defaults(func=cmd_control_local)
 
     args = parser.parse_args()
     try:

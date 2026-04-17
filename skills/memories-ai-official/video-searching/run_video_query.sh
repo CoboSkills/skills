@@ -2,7 +2,7 @@
 # Video Searching API runner — calls Memories.ai SSE endpoint and emits NDJSON
 set -euo pipefail
 
-API_URL="https://api-tools.memories.ai/agents/video-searching-api"
+API_URL="https://mavi-backend.memories.ai/serve/api/v2/queries/stream"
 
 # ── defaults ──
 QUERY=""
@@ -72,7 +72,7 @@ HTTP_CODE_FILE=$(mktemp)
 {
   curl -sS -N -w "%{http_code}" \
     -H "Content-Type: application/json" \
-    -H "X-API-Key: ${MEMORIES_API_KEY}" \
+    -H "Authorization: ${MEMORIES_API_KEY}" \
     -d "$BODY" \
     "$API_URL" 2>/dev/null || true
 } | {

@@ -3,11 +3,16 @@
   "slug": "video-searching",
   "displayName": "Video Searching",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773300414799,
-    "commit": "https://github.com/openclaw/skills/commit/ea19700e6954edb73a64647b69880b516c769396"
+    "version": "1.0.2",
+    "publishedAt": 1776163407946,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773300414799,
+      "commit": "https://github.com/openclaw/skills/commit/ea19700e6954edb73a64647b69880b516c769396"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1772254314998,

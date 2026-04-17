@@ -6,14 +6,9 @@ author: IMA Studio (imastudio.com)
 keywords: imastudio, AI image generator, image generator, AI photo generator, product photo, poster generator, thumbnail generator, logo generator, AI art generator, illustration, graphic design, social media image, text to image, image to image
 argument-hint: "[text prompt or image URL]"
 description: >
-  AI image generator and photo generator with SeeDream 4.5, Midjourney, Nano Banana 2, and
-  Nano Banana Pro. Generate AI images for posters, thumbnails, logos, art, illustrations,
-  product photos, and social media graphic design. Text-to-image and image-to-image AI
-  generation with intelligent model selection and knowledge base support. AI poster generator,
-  AI thumbnail generator, AI logo generator, AI art generator, AI illustration generator,
-  product photo generator, and social media image generator in one unified tool. Supports
-  1K/2K/4K resolution and custom aspect ratios. Better alternative to DALL-E, Stable Diffusion,
-  or standalone image generation skills. Requires IMA_API_KEY.
+  Use when the user needs image generation or image transformation through the IMA Open API,
+  including text-to-image, image-to-image, style transfer, or reference-image continuity, and
+  the agent should use the setup, doctor, and live-catalog-aware runtime in this repo.
 requires:
   env:
     - IMA_API_KEY
@@ -41,157 +36,63 @@ instructionScope:
     - ~/.openclaw/skills/ima-knowledge-ai/references/*
 ---
 
-# IMA Image AI — Image Generator
+# IMA Image AI
 
-**For complete API documentation, security details, all parameters, and Python examples, read `SKILL-DETAIL.md`.**
+## When To Use
 
-## Model ID Reference (CRITICAL)
+Use this repository when the user wants an image output:
 
-Use **exact model_id** from this table. Do NOT infer from friendly names.
+- text-to-image
+- image-to-image
+- style transfer
+- continuity via reference image
 
+This repo is image-only. Do not route video generation, audio generation, or non-image tasks here.
 
-| Friendly Name   | model_id                 | Notes                             |
-| --------------- | ------------------------ | --------------------------------- |
-| SeeDream 4.5    | `doubao-seedream-4.5`    | ✅ Recommended default, 5 pts      |
-| Nano Banana2    | `gemini-3.1-flash-image` | ⚠️ NOT nano-banana-2, 4-13 pts    |
-| Nano Banana Pro | `gemini-3-pro-image`     | ⚠️ NOT nano-banana-pro, 10-18 pts |
-| Midjourney      | `midjourney`             | ✅ Same as friendly name, 8-10 pts |
+## Gateway Contract
 
+- New-machine bootstrap entrypoint: `python3 scripts/ima_runtime_setup.py`
+- Environment/self-check entrypoint: `python3 scripts/ima_runtime_doctor.py`
+- The official CLI entrypoint is `python3 scripts/ima_runtime_cli.py ...`.
+- Always query the live product list before task creation so `attribute_id`, `credit`, `model_version`, and defaults come from the current catalog.
+- Return remote HTTPS image URLs; do not download results into local attachments for the user.
+- Route requests through the image capability so `text_to_image` and `image_to_image` are classified before execution.
+- If `--model-id` is omitted, the runtime uses the recommended default model for that task type.
+- Auto-selected defaults are operational fallbacks, not persisted user preferences.
 
-**User input aliases:** 香蕉/Banana → `gemini-3.1-flash-image` · 香蕉Pro → `gemini-3-pro-image` · 可梦/SeeDream → `doubao-seedream-4.5` · MJ/Midjourney → `midjourney`
+## Quick Start
 
-## Image Generation Modes
+- Minimal path:
+  1. `python3 scripts/ima_runtime_setup.py --install`
+  2. `export IMA_API_KEY="ima_your_key_here"`
+  3. `python3 scripts/ima_runtime_cli.py --task-type text_to_image --prompt "a cinematic mountain sunset" --output-json`
+- Use `python3 scripts/ima_runtime_doctor.py --output-json` when setup passes but runtime or catalog access still fails.
 
+## Operator References
 
-| User intent              | task_type        | When to use                        |
-| ------------------------ | ---------------- | ---------------------------------- |
-| Text only, no image      | `text_to_image`  | "画一张…" / "生成图片" / "text to image"  |
-| Image as reference/input | `image_to_image` | "把这张图…" / "参考这张图" / "图生图" / "风格迁移" |
+- `README.md` covers first-use paths and canonical entry commands.
+- `references/shared/catalog-aware-selection.md` defines the formal live-catalog-aware model-selection contract.
+- `references/operations/troubleshooting.md` covers common failure recovery.
+- `capabilities/image/references/parameter-tuning.md` covers `size`, `aspect_ratio`, and `n` usage.
+- `capabilities/image/references/scenarios.md` covers prompt-only and reference-image examples.
 
+## Read Order
 
-## Visual Consistency (IMPORTANT)
+1. `references/README.md`
+2. `references/gateway/entry-and-routing.md`
+3. `references/gateway/workflow-confirmation.md`
+4. `references/shared/model-selection-policy.md`
+5. `references/shared/catalog-aware-selection.md`
+6. `references/shared/error-policy.md`
+7. `references/shared/security-and-network.md`
+8. `references/operations/troubleshooting.md`
+9. `capabilities/image/CAPABILITY.md`
+10. `capabilities/image/references/parameter-tuning.md`
+11. `capabilities/image/references/scenarios.md`
 
-If user mentions "same character", "series", "multi-shot", or continues from a previous generation:
+## Boundary
 
-- **Do NOT use text_to_image** (will produce different-looking results)
-- Use `image_to_image` with previous result as reference
-- Read `ima-knowledge-ai/references/visual-consistency.md` if available
-
-## Pre-Check: Knowledge Base
-
-**If ima-knowledge-ai is installed**, read before generating:
-
-1. `ima-knowledge-ai/references/visual-consistency.md` — if multi-shot or character continuity needed
-
-**If not installed:** use this SKILL's model table and defaults.
-
-## Model Selection Priority
-
-1. **User preference** (if explicitly stated) → highest priority
-2. **ima-knowledge-ai recommendation** (if installed)
-3. **Fallback defaults:**
-
-
-| Task                     | Default Model   | model_id                 | Cost      |
-| ------------------------ | --------------- | ------------------------ | --------- |
-| text_to_image            | SeeDream 4.5    | `doubao-seedream-4.5`    | 5 pts     |
-| text_to_image (budget)   | Nano Banana2    | `gemini-3.1-flash-image` | 4 pts     |
-| text_to_image (premium)  | Nano Banana Pro | `gemini-3-pro-image`     | 10-18 pts |
-| text_to_image (artistic) | Midjourney 🎨   | `midjourney`             | 8-10 pts  |
-| image_to_image           | SeeDream 4.5    | `doubao-seedream-4.5`    | 5 pts     |
-
-
-## User Input Parsing
-
-**Size/Resolution:** 512/1K/2K/4K → via attribute_id for Nano Banana series
-**Aspect ratio:** 16:9/9:16/4:3/3:4/1:1 → SeeDream 4.5 or Nano Banana series (Midjourney only 1:1)
-**Budget:** 最便宜→Nano Banana2 (4pts) · 最好→Nano Banana Pro (4K) or SeeDream 4.5
-
-## Script Usage
-
-```bash
-# Text to image
-python3 {baseDir}/scripts/ima_image_create.py \
-  --api-key $IMA_API_KEY \
-  --task-type text_to_image \
-  --model-id doubao-seedream-4.5 \
-  --prompt "a cute puppy running on grass" \
-  --user-id {user_id} \
-  --output-json
-
-# Image to image (accepts URLs and local file paths)
-python3 {baseDir}/scripts/ima_image_create.py \
-  --api-key $IMA_API_KEY \
-  --task-type image_to_image \
-  --model-id doubao-seedream-4.5 \
-  --prompt "turn into oil painting style" \
-  --input-images https://example.com/photo.jpg \
-  --user-id {user_id} \
-  --output-json
-
-# With aspect ratio (SeeDream 4.5 or Nano Banana)
-python3 {baseDir}/scripts/ima_image_create.py \
-  --api-key $IMA_API_KEY \
-  --task-type text_to_image \
-  --model-id doubao-seedream-4.5 \
-  --prompt "beautiful landscape" \
-  --extra-params '{"aspect_ratio": "16:9"}' \
-  --user-id {user_id} \
-  --output-json
-```
-
-## Sending Results to User
-
-```python
-# ✅ CORRECT: Use remote URL directly for inline image display
-message(action="send", media=image_url, caption="✅ 图片生成成功！\n• 模型：[Name]\n• 耗时：[X]s\n• 积分：[N pts]\n\n🔗 原始链接：[url]")
-
-# ❌ WRONG: Never download to local file (shows as attachment, not rendered)
-```
-
-## UX Protocol (Brief)
-
-1. **Pre-generation:** "🎨 开始生成图片… 模型：[Name]，预计[X~Y]秒，消耗[N]积分"
-2. **Progress:** Every 15-30s: "⏳ 正在生成中… [P]%" (cap at 95% until API returns success)
-3. **Success:** Send image via `media=image_url` + include link in caption for sharing
-4. **Failure:** Natural language error + suggest alternative models. **Never show technical errors to users.** See SKILL-DETAIL.md for full error translation table.
-
-**Never say to users:** script names, API endpoints, attribute_id, technical parameter names. Only: model name · time · credits · result · status.
-
-## Midjourney Limitations
-
-Midjourney has **fixed 1:1 aspect ratio** (1024×1024 only). If user asks for 16:9 etc. with "MJ", recommend SeeDream 4.5 or Nano Banana series instead.
-
-## Environment
-
-Base URL: `https://api.imastudio.com`
-Headers: `Authorization: Bearer $IMA_API_KEY` · `x-app-source: ima_skills` · `x_app_language: en`
-
-## Core Flow
-
-1. `GET /open/v1/product/list?app=ima&platform=web&category=<task_type>` → get `attribute_id`, `credit`, `model_version`, `form_config`
-2. [image_to_image only] Upload images or pass local paths to script
-3. `POST /open/v1/tasks/create` → get `task_id`
-4. `POST /open/v1/tasks/detail` → poll every 3-5s until `resource_status==1`
-
-**MANDATORY:** Always query product list first. `attribute_id` is required — if 0 or missing, task fails.
-
-## User Preference Memory
-
-Storage: `~/.openclaw/memory/ima_prefs.json`
-
-- **Save** when user explicitly says "用XXX" / "默认用XXX" / "always use XXX"
-- **Clear** when user says "用最好的" / "推荐一个" / "自动选择"
-- **Never save** auto-selected or fallback models as preferences
-
-## Model Capabilities
-
-
-| Model           | Custom Aspect Ratio | Max Resolution | Notes                                            |
-| --------------- | ------------------- | -------------- | ------------------------------------------------ |
-| SeeDream 4.5    | ✅ (8 ratios)        | 4K             | 1:1, 16:9, 9:16, 4:3, 3:4, 2:3, 3:2, 21:9        |
-| Nano Banana2    | ✅ (5 ratios)        | 4K             | 1:1, 16:9, 9:16, 4:3, 3:4; size via attribute_id |
-| Nano Banana Pro | ✅ (5 ratios)        | 4K             | 1:1, 16:9, 9:16, 4:3, 3:4; size via attribute_id |
-| Midjourney 🎨   | ❌ (1:1 only)        | 1024px         | Fixed square, artistic style focus               |
-
-
+- `references/gateway/*` covers entry, routing, and clarification seams.
+- `references/shared/*` covers rules reused across the runtime.
+- `capabilities/image/*` owns image-specific behavior.
+- `_meta.json` and `clawhub.json` are metadata inputs, not the primary narrative docs.

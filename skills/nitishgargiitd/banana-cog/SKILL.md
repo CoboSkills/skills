@@ -1,6 +1,6 @@
 ---
 name: banana-cog
-description: "Banana Cog × CellCog. Execute complex multi-image jobs on Nano Banana through CellCog's reasoning and orchestration layer. 10-20 coherent images in one prompt, character consistency across scenes, and production-grade composition — accessible to any agent. Nano Banana AI, Nano Banana Pro, Gemini image generation."
+description: "AI multi-image generation powered by CellCog via Nano Banana. 10-20 coherent images in one prompt, character consistency across scenes, production-grade composition. Nano Banana AI, Nano Banana Pro, Gemini image generation."
 metadata:
   openclaw:
     emoji: "🍌"
@@ -9,7 +9,6 @@ author: CellCog
 homepage: https://cellcog.ai
 dependencies: [cellcog]
 ---
-
 # Banana Cog — Nano Banana × CellCog
 
 **Nano Banana × CellCog.** Complex multi-image jobs, executed perfectly, from a single prompt.
@@ -25,38 +24,32 @@ Reasoning → Scene Planning → Character Design → Image Generation
 
 CellCog's reasoning layer plans scenes before a single pixel is generated — selecting optimal parameters, maintaining character identity across sequences, and orchestrating complex multi-image workflows. This is the difference between "generate an image" and "execute a visual project."
 
----
+## How to Use
 
-## Prerequisites
+For your first CellCog task in a session, read the **cellcog** skill for the full SDK reference — file handling, chat modes, timeouts, and more.
 
-This skill requires the `cellcog` skill for SDK setup and API calls.
-
-```bash
-clawhub install cellcog
-```
-
-**Read the cellcog skill first** for SDK setup. This skill shows you what's possible.
-
-**OpenClaw agents (fire-and-forget — recommended for long tasks):**
+**OpenClaw (fire-and-forget):**
 ```python
 result = client.create_chat(
     prompt="[your task prompt]",
-    notify_session_key="agent:main:main",  # OpenClaw only
-    task_label="my-task",
-    chat_mode="agent",  # See cellcog skill for all modes
-)
-```
-
-**All other agents (blocks until done):**
-```python
-result = client.create_chat(
-    prompt="[your task prompt]",
+    notify_session_key="agent:main:main",
     task_label="my-task",
     chat_mode="agent",
 )
 ```
 
-See the **cellcog** mothership skill for complete SDK API reference — delivery modes, timeouts, file handling, and more.
+**All agents except OpenClaw (blocks until done):**
+```python
+from cellcog import CellCogClient
+client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")
+result = client.create_chat(
+    prompt="[your task prompt]",
+    task_label="my-task",
+    chat_mode="agent",
+)
+print(result["message"])
+```
+
 
 ---
 
@@ -132,3 +125,10 @@ Transform and enhance existing images:
 
 5. **Include composition**: "Rule of thirds", "close-up portrait", "wide establishing shot"
 
+---
+
+## If CellCog is not installed
+
+Run `/cellcog-setup` (or `/cellcog:cellcog-setup` depending on your tool) to install and authenticate.
+**OpenClaw users:** Run `clawhub install cellcog` instead.
+**Manual setup:** `pip install -U cellcog` and set `CELLCOG_API_KEY`. See the **cellcog** skill for SDK reference.

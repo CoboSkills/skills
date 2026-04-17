@@ -33,16 +33,6 @@ GET https://openapi.biji.com/open/api/v1/resource/knowledge/list?page=1
 
 获取当前用户订阅（但非自己创建）的知识库列表。
 
-**CLI 命令（推荐）**：
-```bash
-getnote kbs-sub
-getnote kbs-sub --page 2
-getnote kbs-sub -o json
-```
-
-返回字段与 `getnote kbs` 相同：`topic_id`、`name`、`description`、`created_at`。
-
-**直接调 API**：
 ```
 GET https://openapi.biji.com/open/api/v1/resource/knowledge/subscribe/list?page=1
 ```
@@ -120,11 +110,15 @@ Content-Type: application/json
 ```json
 {
   "topic_id": "abc123",
-  "note_ids": [123456789, 123456790]
+  "note_ids": ["123456789", "123456790"]
 }
 ```
 
 ⚠️ 每批最多 20 条。已存在的笔记会跳过。
+
+> ✅ **note_ids 推荐用字符串格式**：API 同时兼容整数和字符串，统一用字符串可避免 JavaScript int64 精度丢失问题。
+
+> ⚠️ **订阅知识库只读**：订阅的知识库（非自己创建）不支持添加笔记，API 会返回错误。只有通过 `/knowledge/list` 获取的自己创建的知识库才可写入。
 
 ---
 
@@ -139,9 +133,11 @@ Content-Type: application/json
 ```json
 {
   "topic_id": "abc123",
-  "note_ids": [123456789]
+  "note_ids": ["123456789"]
 }
 ```
+
+> ⚠️ **订阅知识库只读**：若非知识库管理员，则无法移除笔记，API 会返回错误。
 
 返回：
 ```json
@@ -150,29 +146,10 @@ Content-Type: application/json
 
 ---
 
-## API 配额查询
-
-```bash
-getnote quota
-getnote quota -o json
-```
-
-返回 read / write / write_note 各维度的日配额和月配额（used / limit / remaining / reset_at）。
-
----
-
 ## 博主订阅
 
 ### 博主列表
 
-**CLI 命令（推荐）**：
-```bash
-getnote kb bloggers <topic_id>
-getnote kb bloggers <topic_id> --page 2
-getnote kb bloggers <topic_id> -o json
-```
-
-**直接调 API**：
 ```
 GET https://openapi.biji.com/open/api/v1/resource/knowledge/bloggers?topic_id={topic_id}&page=1
 ```
@@ -196,13 +173,6 @@ GET https://openapi.biji.com/open/api/v1/resource/knowledge/bloggers?topic_id={t
 
 ### 博主内容列表
 
-**CLI 命令（推荐）**：
-```bash
-getnote kb blogger-contents <topic_id> <follow_id>
-getnote kb blogger-contents <topic_id> <follow_id> --page 2
-```
-
-**直接调 API**：
 ```
 GET https://openapi.biji.com/open/api/v1/resource/knowledge/blogger/contents?topic_id={topic_id}&follow_id={follow_id}&page=1
 ```
@@ -215,13 +185,6 @@ GET https://openapi.biji.com/open/api/v1/resource/knowledge/blogger/contents?top
 
 ### 博主内容详情（含原文）
 
-**CLI 命令（推荐）**：
-```bash
-getnote kb blogger-content <topic_id> <post_id_alias>
-getnote kb blogger-content <topic_id> <post_id_alias> -o json
-```
-
-**直接调 API**：
 ```
 GET https://openapi.biji.com/open/api/v1/resource/knowledge/blogger/content/detail?topic_id={topic_id}&post_id={post_id_alias}
 ```
@@ -236,13 +199,6 @@ GET https://openapi.biji.com/open/api/v1/resource/knowledge/blogger/content/deta
 
 ### 已完成直播列表
 
-**CLI 命令（推荐）**：
-```bash
-getnote kb lives <topic_id>
-getnote kb lives <topic_id> --page 2
-```
-
-**直接调 API**：
 ```
 GET https://openapi.biji.com/open/api/v1/resource/knowledge/lives?topic_id={topic_id}&page=1
 ```
@@ -257,13 +213,6 @@ GET https://openapi.biji.com/open/api/v1/resource/knowledge/lives?topic_id={topi
 
 ### 直播详情（总结 + 原文）
 
-**CLI 命令（推荐）**：
-```bash
-getnote kb live <topic_id> <live_id>
-getnote kb live <topic_id> <live_id> -o json
-```
-
-**直接调 API**：
 ```
 GET https://openapi.biji.com/open/api/v1/resource/knowledge/live/detail?topic_id={topic_id}&live_id={live_id}
 ```
@@ -273,6 +222,40 @@ GET https://openapi.biji.com/open/api/v1/resource/knowledge/live/detail?topic_id
 - `live_id`（**字符串**，来自列表的 `live_id` 字段）
 
 返回完整内容，包含 `post_summary`（AI 摘要）和 `post_media_text`（原文转写）。
+
+### 添加直播订阅
+
+把一个直播频道添加到知识库，后续直播结束后将自动 AI 处理并出现在列表中。
+
+```
+POST https://openapi.biji.com/open/api/v1/resource/knowledge/live/follow
+Content-Type: application/json
+```
+
+请求体：
+```json
+{
+  "topic_id": "vnrOAaGY",
+  "link": "https://m.dedao.cn/live/xxxxx"
+}
+```
+
+参数说明：
+- `topic_id` (string, **必填**) — 知识库 ID
+- `link` (string, **必填**) — 得到 App 直播链接
+
+> ⚠️ **目前仅支持得到 App 直播**。
+
+响应：
+```json
+{
+  "follow_id": 12345,
+  "url": "https://m.dedao.cn/live/xxxxx",
+  "platform": "dedao",
+  "type": "live",
+  "created_at": "2026-04-16 10:00:00"
+}
+```
 
 ---
 

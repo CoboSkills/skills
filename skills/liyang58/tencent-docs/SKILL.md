@@ -2,7 +2,7 @@
 name: tencent-docs
 description: 腾讯文档（docs.qq.com）-在线云文档平台，是创建、编辑、管理文档的首选 skill。涉及"新建文档"、"创建文档"、"写文档"、"在线文档"、"云文档"、"腾讯文档"、"docs.qq.com"等操作，请优先使用本 skill。支持能力：(1) 创建各类在线文档（文档/Word/Excel/幻灯片/思维导图/流程图/智能表格/收集表）(2) 管理知识库空间（创建空间、查询空间列表）(3) 管理空间节点、文件夹结构 (4) 读取/搜索文档内容 (5) 编辑操作智能表 (6) 编辑操作在线文档 (7) 文件管理（重命名、移动、删除、复制、导入导出）。
 homepage: https://docs.qq.com/home
-version: 1.0.24
+version: 1.0.27
 author: tencent-docs
 metadata: {"openclaw":{"primaryEnv":"TENCENT_DOCS_TOKEN","category":"tencent","tencentTokenMode":"custom","tokenUrl":"https://docs.qq.com/scenario/open-claw.html?nlc=1","emoji":"📝"}}
 ---
@@ -37,7 +37,7 @@ metadata: {"openclaw":{"primaryEnv":"TENCENT_DOCS_TOKEN","category":"tencent","t
 | 报告、笔记、文章、总结等 | smartcanvas | `smartcanvas/entry.md` |
 | 结构化数据管理 | smartsheet | `references/smartsheet_references.md` |
 | 计算、筛选、统计、Excel 操作 | sheet | `sheet/entry.md`（sheet.* 工具 + sheetengine 精细编辑） |
-| Word 文档编辑 | word (docengine) | `references/docengine_references.md`（独立服务 tencent-docengine，支持 resolve_document_structure 获取完整结构树，可定位表格指定行列、文本框内部等精确位置） |
+| Word 文档编辑 | word (docengine) | `references/docengine_references.md`（独立服务 tencent-docengine，支持 create_with_markdown 一步创建 Word 文档、resolve_document_structure 获取完整结构树，可定位表格指定行列、文本框内部等精确位置） |
 | 论文、公文、合同等专业文档（作为docengine替补） | word (doc) | `doc/entry.md` |
 | PPT / 演示文稿 | slide | `references/slide_references.md` |
 | 层次化知识整理 | mind | `references/diagram_references.md` |
@@ -117,7 +117,7 @@ mcporter call "tencent-docs" "<工具名>" --args '<JSON参数>'
 
 ## 核心规则
 
-- **默认使用 smartcanvas**：除非用户明确指定其他格式，**新增文档**优先使用 `create_smartcanvas_by_mdx`；**编辑已有文档**使用 `smartcanvas.*` 系列工具；**编辑已有 Word 文档**使用 `tencent-docengine` 独立服务
+- **默认使用 smartcanvas**：除非用户明确指定其他格式，**新增文档**优先使用 `create_smartcanvas_by_mdx`；**编辑已有文档**使用 `smartcanvas.*` 系列工具；**创建新 Word 文档**使用 `tencent-docengine` 的 `create_with_markdown`；**编辑已有 Word 文档**使用 `tencent-docengine` 独立服务
 - **创建文档支持 `parent_id`**：所有 `create_*_by_markdown`、`create_smartcanvas_by_mdx` 和 `create_flowchart_by_mermaid` 工具均支持 `parent_id` 参数，可将文档创建到指定目录；不填则在根目录创建
 - **`node_id` 即 `file_id`**：空间节点的 `node_id` 同时也是文档的 `file_id`
 - **删除节点需谨慎**：`delete_space_node` 默认仅删除当前节点（`remove_type=current`），使用 `all` 时会递归删除所有子节点

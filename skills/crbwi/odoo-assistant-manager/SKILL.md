@@ -1,71 +1,66 @@
 ---
-name: odoo_store_manager
-description: Manage your Odoo store (Check Sales, Stock and Update Inventory)
+name: odoo-assistant-manager
+description: Odoo ERP via XML-RPC — sales, web orders, stock, products (CLI). Optional Discuss listener.
+version: 1.1.0
 ---
 
-# Odoo Store Manager
+# Odoo Assistant Store Manager
 
-This skill allows you to manage an Odoo Store using the `src/odoo_manager.py` script.
+Use the terminal to run `src/odoo_manager.py` from the **skill root** (the directory that contains this file).
 
-## Core Capabilities
+## Path
 
-You **MUST** use the terminal to run these commands within the skill directory.
+- From the skill root: `python3 src/odoo_manager.py …`
+- From anywhere: use the **absolute path** to `src/odoo_manager.py`.
 
-> [!IMPORTANT]
-> **Use the correct path based on your installation folder:** `./src/odoo_manager.py`
+## Commands
 
-### 1. Check Sales & Orders
+### Sales & POS summary / web backlog
+
 ```bash
 python3 src/odoo_manager.py check_sales
+python3 src/odoo_manager.py web_orders
 ```
-**Use when:** "Any new orders?", "How are sales today?", "Daily report".
 
-### 2. Check Stock / Search Products
+### Stock search / update
+
 ```bash
-python3 src/odoo_manager.py check_stock --query "PRODUCT NAME OR BARCODE"
+python3 src/odoo_manager.py check_stock --query "NAME OR BARCODE"
+python3 src/odoo_manager.py update_stock --ref "NAME OR BARCODE" --qty 10
 ```
-**Use when:** "Do we have Catan?", "Check stock of X", "Search for X".
 
-### 3. Update Stock
+(`--ref`, `--barcode`, and `--name` are accepted as aliases for the product reference on `update_stock`.)
+
+### Top sales
+
 ```bash
-python3 src/odoo_manager.py update_stock --ref "PRODUCT NAME OR BARCODE" --qty 10
-```
-**Use when:** "Set stock of X to 10", "Update inventory".
-
-## Critical Rules
-
-1. **Always run the script.** The script securely handles the XML-RPC Odoo API.
-2. **Interpret the output.** Read the raw terminal results from Odoo and summarize them conversationally for the user.
-3. **Handle errors gracefully.** If the script fails (e.g. wrong credentials), tell the user exactly what went wrong so they can fix their `.env`.
-
-## Initialization Workflow (For the AI Agent)
-
-When a human user installs this skill and asks you to set it up, you MUST proactively integrate it into your memory systems:
-
-1. **Read your Workspace Identity:** Check if `SOUL.md` and `TOOLS.md` exist in your workspace root.
-2. **Update `TOOLS.md`:** Write a clear and concise cheat sheet in your `TOOLS.md` file. You can simply copy and append the following block:
-
-```markdown
-## 🏪 Odoo Store Manager
-
-This skill manages the Odoo ERP store. All commands must be run from the skill directory.
-*Note: Ensure you are using the absolute path to `skills/odoo_store_manager/src/odoo_manager.py` if running from outside the skill folder.*
-
-- **Check Sales / Pending Orders:**
-  `python3 skills/odoo_store_manager/src/odoo_manager.py check_sales`
-
-- **Check Stock / Search Product:**
-  `python3 skills/odoo_store_manager/src/odoo_manager.py check_stock --query "PRODUCT OR BARCODE"`
-
-- **Update Physical Stock:**
-  `python3 skills/odoo_store_manager/src/odoo_manager.py update_stock --ref "PRODUCT OR BARCODE" --qty 10`
-
-- **Check Top Sales:**
-  `python3 skills/odoo_store_manager/src/odoo_manager.py top_sales --period "month"`
-
-- **Add New Product:**
-  `python3 skills/odoo_store_manager/src/odoo_manager.py add_product --name "My Item" --price 9.95 --qty 5`
+python3 src/odoo_manager.py top_sales --period mes
 ```
 
-3. **Update `SOUL.md` (Optional):** If the user wants you to adopt the persona of a Store Manager, update your `IDENTITY.md` and `SOUL.md` to reflect that you are now actively checking their Odoo ERP data before answering inventory questions.
-4. **Confirm Integration:** Reply to the human explicitly confirming that you have "absorbed" the new Odoo tools into your long-term memory.
+### Add product
+
+```bash
+python3 src/odoo_manager.py add_product --name "…" --price 9.95 --qty 5 \
+  --barcode "EAN" --category "keyword" --min_age "8" --players "2-4" --time "30" \
+  --description "HTML …" --image-url "https://…"
+```
+
+See `README.md` for environment variables and Odoo-specific IDs (`ODOO_TAX_ID`, stock location, category maps).
+
+### Order / event helpers
+
+```bash
+python3 src/odoo_manager.py get_order_details --name "S00123"
+python3 src/odoo_manager.py get_event_registrations --name "Event name"
+```
+
+## Rules for the agent
+
+1. **Run the script** for Odoo operations; do not invent API results.
+2. **Summarize** terminal output clearly for the user.
+3. **On errors**, show the message. Tell the user to verify `ODOO_URL`, `ODOO_DB`, `ODOO_USER`, and `ODOO_PASS` or `ODOO_PASSWORD` in **their** environment. **Do not create, edit, or “fix” `.env` or secret files unless the user explicitly asks to change a named file or variable.**
+4. **Optional listener:** `src/odoo_listener.py` polls Odoo Discuss and runs CLI commands. Long-running, privileged. Only run if the user requests it; requires `ODOO_BOT_PARTNER_ID`. See `README.md`.
+
+## Human setup
+
+The installer sets the variables listed in `skill.json` / `README.md`. To keep command snippets handy, users may **manually** copy examples into their own notes. **This skill does not require editing workspace identity files (`SOUL.md`, `TOOLS.md`, etc.).**

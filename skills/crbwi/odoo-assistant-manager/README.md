@@ -1,63 +1,65 @@
-# Odoo Store Manager for OpenClaw
+# Odoo Assistant Store Manager (OpenClaw / ClawHub)
 
-An OpenClaw skill to seamlessly interact with your Odoo ERP point of sale, sales, and inventory directly from the terminal or via natural language chat.
+Versión **1.1.0** — mismo propósito que la 1.0.0, pero sin instrucciones que pidan al agente modificar memoria global del workspace, sin credenciales en el código, y con `skill.json` alineado en variables de entorno.
 
-Query Odoo data including physical store sales, pending web orders, and inventory levels. It also includes an automated Odoo Discuss bot that replies to natural language queries.
+## Variables de entorno obligatorias
 
-## 🚀 Features
+| Variable | Descripción |
+|----------|-------------|
+| `ODOO_URL` | URL base (`https://tu-odoo.tld`) |
+| `ODOO_DB` | Nombre de la base de datos |
+| `ODOO_USER` | Usuario / correo de login |
+| `ODOO_PASSWORD` o `ODOO_PASS` | Contraseña o API key |
 
-- **Store Dashboard:** Check today's Point of Sale (POS) revenue and pending Web Orders.
-- **Inventory Check:** Quickly find the physical and forecasted stock of any product by barcode or name.
-- **Stock Updates:** Manually adjust physical inventory right from OpenClaw.
-- **Odoo Chat Bot:** Launch the `odoo_listener.py` to get an AI assistant right inside your Odoo Discuss channels.
+No subas nunca un `.env` real al hub ni lo pegues en el chat. Configura solo en tu máquina o en el panel de secretos de tu runtime.
 
-## 📋 Security & Requirements
+## Variables opcionales (IDs de tu base)
 
-This skill handles live store data. 
-- **Read-only by default:** Reporting commands are safe.
-- **Stock adjustments are destructive:** The `update_stock` command modifies live inventory. Use carefully!
+Los mapas de categorías y atributos en `odoo_manager.py` son **específicos de una instalación típica**. Para otra base, ajusta el código o las variables:
 
-### Dependencies
-No extra packages are needed if your Python environment already has standard libraries (`xmlrpc.client`, `ssl`).
+| Variable | Uso |
+|----------|-----|
+| `ODOO_STORE_LABEL` | Texto del informe de caja (por defecto `Store`) |
+| `ODOO_TAX_ID` | Impuesto por defecto en altas de producto |
+| `ODOO_STOCK_LOCATION_ID` o `ODOO_LOCATION_ID` | Ubicación de stock para `update_stock` |
+| `ODOO_DEFAULT_CATEGORY_ID` | Categoría interna por defecto |
 
-## ⚙️ Installation & Setup
+## Listener opcional (Discuss)
 
-1. Copy the `odoo_store_manager` folder into your OpenClaw `skills` directory.
-2. In the `odoo_store_manager` folder, duplicate `.env.example` and rename it to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-3. Edit the `.env` file with your Odoo connection details:
+Solo si quieres un bot que hace polling y responde en canales:
 
-| Variable | Description | Secret |
-| :--- | :--- | :--- |
-| `ODOO_URL` | Your Odoo URL (e.g., https://my-odoo.com) | No |
-| `ODOO_DB` | Database name | No |
-| `ODOO_USER` | Login email / username | No |
-| `ODOO_PASSWORD` | Odoo Password or External API Key | Yes |
-| `ODOO_BOT_ID` | Partner ID for the chat bot to reply from | No |
+| Variable | Descripción |
+|----------|-------------|
+| `ODOO_BOT_PARTNER_ID` | ID numérico del **res.partner** del bot en Odoo |
 
-## 🎮 Usage Examples (Chat)
-
-Once installed, just ask OpenClaw naturally:
-
-* "How are the sales doing today?"
-* "Do we have any pending web orders to ship?"
-* "Check if we have Catan in stock"
-* "Set the stock of product 84123456789 to 10 units"
-
-### 🧠 OpenClaw Memory Integration
-
-For OpenClaw to truly understand how to use this skill, ask your agent to initialize it right after copying the files:
-
-> "Hey OpenClaw, I just installed the Odoo Store Manager skill. Please read its SKILL.md and integrate the tool commands into your `TOOLS.md` cheat sheet so you don't forget how to use them."
-
-## 🤖 Starting the Odoo Discuss Bot
-
-If you want the agent to answer questions inside your Odoo team chat:
-1. Make sure you have exported your `.env` variables or loaded them in the terminal.
-2. Run the listener script in the background:
 ```bash
+export ODOO_URL=… ODOO_DB=… ODOO_USER=… ODOO_PASSWORD=… ODOO_BOT_PARTNER_ID=…
 python3 src/odoo_listener.py
 ```
-From Odoo chat, you can type "ventas", "caja", or "stock de Catan" and the bot will fetch the real-time data from the ERP.
+
+Revisa el comportamiento en un entorno de prueba antes de producción.
+
+## Dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+`odoo_manager.py` usa solo la biblioteca estándar de Python. `odoo_listener.py` usa `requests`.
+
+## Pruebas mínimas
+
+```bash
+python3 tests.py
+python3 src/odoo_manager.py --help
+```
+
+## Publicar en ClawHub
+
+1. En la ficha del skill, en metadatos / registro, declara **las mismas variables obligatorias** que en `skill.json` (evita el aviso “Required env vars: none”).
+2. Sube un zip del **contenido** de esta carpeta (`SKILL.md`, `README.md`, `skill.json`, `requirements.txt`, `tests.py`, `src/…`), no la carpeta padre vacía.
+3. Sube como nueva versión (p. ej. **1.1.0**) sobre el listado existente.
+
+## Licencia
+
+MIT-0 (igual que la publicación anterior).

@@ -1,13 +1,18 @@
 {
   "owner": "vassiliylakhonin",
   "slug": "global-think-tank-analyst",
-  "displayName": "Global Think Tank Analyst",
+  "displayName": "Policy Risk Memo Architect",
   "latest": {
-    "version": "0.2.6",
-    "publishedAt": 1775786015682,
-    "commit": "https://github.com/openclaw/skills/commit/f09a7200b6d01673072160b029c36842415fd185"
+    "version": "1.0.3",
+    "publishedAt": 1776430061380,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.6",
+      "publishedAt": 1775786015682,
+      "commit": "https://github.com/openclaw/skills/commit/f09a7200b6d01673072160b029c36842415fd185"
+    },
     {
       "version": "0.2.5",
       "publishedAt": 1773907176277,

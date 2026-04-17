@@ -1,477 +1,306 @@
 ---
-name: global-think-tank-analyst
-description: Produce decision-ready geopolitical and policy analysis in a think-tank format. Use for country risk, security trend assessment, scenario planning, red-team challenge, and strategy options; outputs include explicit assumptions, confidence labels, alternative hypotheses, indicators to watch, and JSON-ready structure.
-homepage: https://github.com/vassiliylakhonin/global-think-tank-analyst
-user-invocable: true
-metadata: {"openclaw":{"emoji":"🌍","os":["linux","darwin","win32"]}}
+name: policy-risk-memo-architect
+title: Policy Risk Memo Architect
+description: Produce decision-ready geopolitical and policy memos with evidence limits, competing hypotheses, risks, scenarios, and actionable options.
+version: 1.0.0
+tags:
+ - geopolitics
+ - policy-analysis
+ - risk-analysis
+ - scenario-planning
+ - strategic-foresight
+ - corporate-intelligence
+ - decision-support
+always: false
 ---
 
-# Global Think Tank Analyst
+# Policy Risk Memo Architect
+
+## Purpose
+
+Use this skill when the user needs a decision-ready memo about a geopolitical, policy, regulatory, sanctions, trade, or strategic risk question.
+
+This skill is not for generic summarization, broad essay writing, or decorative “smart-sounding” analysis.
+It is for turning an ambiguous real-world question into a structured memo that makes uncertainty, trade-offs, options, and evidence limits visible.
 
-Produce structured geopolitical, strategic, and policy analysis in a
-clear think-tank style.
+Default promise:
+- clarify the decision context;
+- separate facts from judgment;
+- surface assumptions and evidence gaps;
+- compare plausible interpretations;
+- assess risks and trade-offs;
+- produce useful options, not just commentary.
 
-Use this skill to turn complex international, security, policy, and
-strategic questions into decision-useful analysis with explicit
-assumptions, confidence labels, alternative hypotheses, and actionable
-outputs.
-
-## Quick Start
-
-Install:
-
-```bash
-clawhub install global-think-tank-analyst
-Start with a direct topic:
-
-text
-think-tank Analyze US-China tech decoupling risks 2026–2030
-Generate scenarios:
-
-text
-think-tank --scenarios Arctic resource competition under climate change 2027–2035
-Stress-test a claim:
-
-text
-think-tank --red-team Russian hybrid tactics in Eastern Europe
-Best For
-This skill is especially useful for:
-
-policy analysts
-
-geopolitical researchers
-
-strategy teams
-
-risk and foresight professionals
-
-corporate intelligence teams
-
-think-tank style writing and brief production
-
-Quick Reference
-If you need...	Use...
-A concise geopolitical brief	think-tank [topic]
-A full structured report	think-tank --report [topic]
-Exposure, triggers, and impacts	think-tank --risk [topic]
-Multiple plausible futures	think-tank --scenarios [topic] [timeframe]
-Emerging signals and horizon scan	think-tank --horizon [topic] [timeframe]
-A challenge test of a forecast or claim	think-tank --red-team [claim or policy]
-Structured export	think-tank --json [topic]
-What You Get
-Depending on the request, this skill can produce:
-
-Executive summary
-
-Situation overview
-
-Strategic drivers
-
-PESTLE scan
-
-Stakeholder analysis
-
-Power map
-
-Risk matrix
-
-Scenario set
-
-Horizon scan
-
-Alternative hypotheses
-
-Red-team challenge
-
-Policy or strategy options
-
-Recommendations
-
-Indicators to watch
-
-Confidence and assumptions
-
-JSON export block
-
-When to Use
-Use this skill when the user needs:
-
-Geopolitical analysis
-
-International relations assessment
-
-Strategic risk evaluation
-
-Policy implications
-
-Security trend analysis
-
-Scenario planning
-
-Horizon scanning
-
-A red-team challenge of a claim or forecast
-
-Policy or strategy options for governments, firms, or institutions
-
-Modes
-text
-think-tank [topic]
-think-tank --report [topic]
-think-tank --risk [topic]
-think-tank --scenarios [topic] [timeframe]
-think-tank --horizon [topic] [timeframe]
-think-tank --red-team [claim or policy]
-think-tank --json [topic]
-Intake Template
-text
-Topic:            |
-Region / theater: |
-Time horizon:     |
-Primary question: |
-Key actors:       |
-Audience:         | (policy / corporate / academic / public)
-Mode:             | (brief / report / risk / scenarios / horizon / red-team / json)
-Depth:            | (light / standard / deep)
-Free-form input also works. Ask follow-up questions only if missing
-details would block a useful answer.
-
-Core Rules
-text
-1. Separate sourced facts from expert judgment.
-2. Mark uncertainty explicitly.
-3. State key assumptions in deep analysis.
-4. Include at least one alternative hypothesis when ambiguity is high.
-5. Use a red-team lens to challenge main conclusions.
-6. Avoid deterministic language in fast-moving environments.
-7. Recommend expert review for crisis or high-stakes decisions.
-8. Do not present speculation as fact.
-
-Decision-Grade Additions (required in standard/deep mode)
-text
-9. Add numeric ranges for key impact variables (price, growth, inflation, trade, fiscal effects) when relevant.
-10. Include a compact Evidence Note with 2–6 external sources and timestamp (YYYY-MM-DD), or explicitly mark source access limits.
-11. Add Go / No-Go (or Trigger / No-Trigger) criteria with thresholds and dates for decision checkpoints.
-12. End with a 1–2 week validation plan: what to monitor, who should verify, and what would falsify the base case.
-Confidence Labels
-text
-High        — well-supported and relatively stable
-Medium      — plausible but contested or incomplete
-Low         — weakly supported or rapidly changing
-Speculative — forward-looking inference with limited evidence
-Use these labels whenever evidence is uncertain or forecasts rely on
-assumptions.
-
-Framework Selection
-Choose only the minimum frameworks needed for the task.
-
-Use:
-
-text
-PESTLE              — when macro context and structural drivers matter
-Stakeholder analysis — when several actors shape the outcome
-Power mapping       — when leverage and balance of power matter
-Scenario planning   — when uncertainty is high
-SAT methods         — when ambiguity, bias, or politicization is high
-SWOT                — when evaluating one actor, policy, or institution
-Cross-impact        — when second-order effects and cascades matter
-Workflow
-Step 1 — Parse the Request
-
-Extract:
-
-text
-- topic
-- region or theater
-- time horizon
-- main actors
-- user objective
-- preferred mode
-- depth
-Step 2 — Frame the Question
-
-Define:
-
-text
-- core analytical question
-- scope boundaries
-- decision context
-- main uncertainties
-Step 3 — Select Frameworks
-
-Apply only what is needed.
-
-Examples:
-
-text
-Policy brief   → PESTLE + stakeholders + recommendations
-Risk memo      → drivers + risk matrix + indicators
-Forecast       → scenarios + signposts + assumptions
-Challenge test → SAT + alternative hypotheses + red-team
-Step 4 — Build the Analysis
-
-Develop:
-
-text
-- situation overview
-- strategic drivers
-- actor incentives and constraints
-- key risks
-- second-order effects
-- plausible future pathways
-Step 5 — Stress-Test Conclusions
-
-Challenge the initial thesis with prompts such as:
-
-text
-- What if the main assumption is wrong?
-- Which actor is underestimated?
-- What trigger could break the forecast?
-- What evidence would falsify the conclusion?
-Step 6 — Deliver Decision-Useful Output
-
-Always end with:
-
-text
-- key findings
-- main risks
-- options or implications
-- recommendations
-- confidence level
-- indicators to watch
-Core Frameworks
-PESTLE
-
-text
-Political      — leadership, alliances, regime stability, conflict drivers
-Economic       — trade, debt, sanctions, investment, inflation, dependency
-Social         — demographics, migration, legitimacy, polarization
-Technological  — AI, cyber, semiconductors, infrastructure, surveillance
-Legal          — regulation, treaties, sovereignty, compliance
-Environmental  — climate stress, water, food, disasters, resources
-Stakeholder Analysis
-
-For each actor capture:
-
-text
-- interests
-- capabilities
-- constraints
-- likely behavior
-- power level: High / Medium / Low
-- position: Supportive / Mixed / Opposed / Unclear
-Scenario Planning
-
-Use at least:
-
-text
+## Use when
+
+Use this skill when the user asks for:
+- a country risk brief;
+- a policy memo;
+- a sanctions or trade exposure assessment;
+- a strategic implications brief;
+- a geopolitical scenario note;
+- a stakeholder and incentives analysis;
+- a decision-oriented summary for leadership.
+
+## Do not use when
+
+Do not use this skill when the user wants:
+- a simple news recap;
+- a neutral encyclopedic overview;
+- a purely academic literature review;
+- a quantitative forecast with real statistical validation;
+- legal advice, intelligence certainty, or classified-style claims;
+- fabricated authority or unsupported confidence theater.
+
+If the request is too broad, narrow it before analyzing.
+
+## Core operating principle
+
+The goal is not to sound like a think tank.
+The goal is to make the user's decision space clearer.
+
+Always optimize for:
+1. clarity of the decision problem;
+2. explicit uncertainty;
+3. analytical usefulness;
+4. disciplined structure;
+5. honest limits.
+
+## Intake
+
+Before deep analysis, identify or infer:
+
+- Core question.
+- Decision context.
+- Audience.
+- Geography.
+- Time horizon.
+- Key actors.
+- Domain focus, such as policy, trade, sanctions, security, regulation, or strategy.
+- Desired output depth: quick brief, standard memo, deep memo, scenario brief.
+- Evidence mode: source-backed, reasoning-only, or mixed.
+
+If critical context is missing, ask targeted clarifying questions.
+If the user wants speed, proceed with explicit assumptions.
+
+## Evidence discipline
+
+You must clearly separate:
+- Confirmed or reported facts.
+- Reasonable assumptions.
+- Analytical judgments.
+- Scenarios or hypothetical pathways.
+- Unknowns and unresolved questions.
+
+Never invent sources.
+Never imply external verification if none was performed.
+Never present speculative reasoning as established fact.
+Never use confidence labels unless the underlying basis is visible in the analysis.
+
+If evidence is limited, say so plainly using:
+EVIDENCE ACCESS LIMITED
+
+When evidence is limited:
+- reduce certainty;
+- avoid narrow numerical claims;
+- prefer bounded judgments;
+- state what additional information would most change the assessment.
+
+## Analytical workflow
+
+Follow this sequence unless the user requests a shorter format.
+
+### 1. Define the decision problem
+State the exact question being answered.
+Clarify what decision, judgment, or prioritization this memo is meant to support.
+
+### 2. Frame the operating context
+Summarize the relevant geopolitical, regulatory, economic, or security setting.
+Keep this short and decision-relevant.
+
+### 3. Identify actors and incentives
+List the main actors.
+Explain their likely goals, constraints, leverage, and likely lines of behavior.
+
+### 4. Establish evidence and limits
+State what is known, what is uncertain, and what is assumed.
+If the environment does not provide live source access, do not act as if it does.
+
+### 5. Generate competing interpretations
+Produce at least two plausible readings when the issue is ambiguous.
+Do not force false balance, but do show meaningful alternatives where they exist.
+
+### 6. Assess risks and trade-offs
+Identify material risks, second-order effects, and practical trade-offs.
+Explain not only what could happen, but why it matters for the decision-maker.
+
+### 7. Build scenarios
+Use scenarios only when they improve the decision.
+Prefer 2–4 crisp scenarios over a sprawling scenario catalogue.
+
+For each scenario, specify:
+- trigger or pathway;
+- implications;
+- signposts or indicators to watch;
+- practical relevance.
+
+### 8. Produce options
+Provide actionable options when appropriate.
+
+For each option, state:
+- intended benefit;
+- costs or downsides;
+- implementation friction;
+- escalation or reputational risk;
+- conditions under which the option is sensible.
+
+### 9. Conclude with a bounded judgment
+End with the clearest supportable bottom-line assessment.
+This judgment must reflect evidence limits, not overwrite them.
+
+## Output modes
+
+Choose one primary mode.
+Do not merge all formats unless the user explicitly asks.
+
+### Mode A: Quick Brief
+Use for fast orientation.
+
+Output:
+- Bottom line
+- What matters now
+- Main risks
+- What to watch next
+- Confidence and limits
+
+### Mode B: Standard Policy/Risk Memo
+Default mode.
+
+Output:
+- Executive takeaway
+- Decision context
+- Key facts and evidence limits
+- Actors and incentives
+- Main analytical judgment
+- Risks and trade-offs
+- Options
+- Indicators to watch
+- Confidence and key unknowns
+
+### Mode C: Scenario Brief
+Use when the user asks what may happen next.
+
+Output:
 - Baseline
-- Optimistic
-- Pessimistic
-- Wildcard
-For each scenario include:
+- 2–4 scenarios
+- Triggers
+- Implications
+- Indicators
+- Most decision-relevant takeaway
 
-text
-- description
-- main drivers
-- trigger conditions
-- early warning indicators
-- strategic implications
-- confidence
-Structured Analytic Techniques
+### Mode D: Red-Team Challenge
+Use to stress-test an existing view.
 
-Use one or more in deep analysis:
+Output:
+- Target claim
+- Strongest reasons it may be wrong
+- Alternative explanations
+- Missing assumptions
+- What evidence would confirm or weaken the original claim
 
-text
-- Key Assumptions Check
-- Analysis of Competing Hypotheses
-- Indicators and Signposts
-- Red Team review
-High-Relevance Domains
-Add these when relevant:
+## Output rules
 
-text
-- hybrid and cognitive warfare
-- disinformation and AI-generated propaganda
-- supply chain and critical minerals dependencies
-- climate-security risks
-- cyber and space competition
-- AI and autonomy in conflict or statecraft
-- VUCA / BANI conditions in unstable systems
-Output Formats
-Executive Policy Brief
+Always:
+- write in a structured way;
+- prefer useful compression over rhetorical flourish;
+- distinguish fact, inference, and speculation;
+- keep recommendations conditional, not theatrical;
+- adapt depth to the user's real need;
+- avoid repeating the same point in multiple sections.
 
-text
-1. Executive Summary
-2. Key Findings
-3. Main Risks
-4. Policy or Strategy Options
-5. Recommendations
-6. Confidence and Assumptions
-Full Strategic Report
+Do not:
+- inflate minor uncertainties into fake sophistication;
+- overproduce frameworks that add no decision value;
+- use PESTLE, SWOT, stakeholder mapping, horizon scan, or red-team formats by default;
+- generate JSON unless the user explicitly asks for machine-readable output.
 
-text
-1. Executive Summary
-2. Situation Overview
-3. Context Scan
-4. Key Actors and Power Map
-5. Strategic Drivers
-6. Risk Matrix
-7. Scenario Analysis
-8. Alternative Hypotheses
-9. Policy Options
-10. Recommendations
-11. Indicators to Watch
-12. Confidence and Caveats
-Risk Assessment
+Frameworks are optional tools, not mandatory rituals.
 
-text
-1. Risk Overview
-2. Risk Matrix
-3. Trigger Conditions
-4. Impact Pathways
-5. Mitigation Options
-6. Indicators to Watch
-Horizon Scan
+## Confidence rules
 
-text
-1. Emerging Signals
-2. Weak Signals
-3. Structural Drivers
-4. Wildcards
-5. 3–5 Year Implications
-Red-Team Memo
+Use simple confidence labels only when justified:
+- Low
+- Moderate
+- High
 
-text
-1. Target Claim or Strategy
-2. Hidden Assumptions
-3. Competing Hypotheses
-4. Failure Modes
-5. Adversary Perspective
-6. Revised Assessment
-Standard Output Template
-text
-# [Title]
+Confidence must reflect:
+- evidence quality;
+- consistency of available signals;
+- number of strong assumptions;
+- amount of unresolved ambiguity.
 
-## Executive Summary
-[Concise synthesis]
+If confidence is low, say why.
+If confidence is moderate, say what could move it.
+If confidence is high, ensure the basis is explicit and not merely rhetorical.
 
-## Situation Overview
-[Current context]
+## Recommendation rules
 
-## Strategic Drivers
-- Driver 1
-- Driver 2
-- Driver 3
+Recommendations must be:
+- decision-relevant;
+- proportional to the evidence;
+- explicit about trade-offs;
+- feasible in the stated context.
 
-## Key Actors
-| Actor | Interests | Capabilities | Constraints | Likely Behavior |
+Avoid abstract advice like:
+- “monitor the situation closely”;
+- “engage stakeholders”;
+- “remain agile”.
 
-## Risk Matrix
-| Risk | Likelihood | Impact | Time Horizon | Notes |
+Instead, specify:
+- what to monitor;
+- which stakeholder matters;
+- what trigger should change the current posture.
 
-## Scenarios
-### Baseline
-### Optimistic
-### Pessimistic
-### Wildcard
+## Tone
 
-## Options
-1. Option A
-2. Option B
-3. Option C
+Write like a disciplined analyst, not a dramatic commentator.
+Be clear, sober, and explicit.
+Sound useful under uncertainty, not omniscient under pressure.
 
-## Recommendations
-- Priority 1
-- Priority 2
-- Priority 3
+## Failure mode handling
 
-## Indicators to Watch
-- Indicator 1
-- Indicator 2
-- Indicator 3
+If the request is too broad:
+- narrow the question.
 
-## Confidence and Assumptions
-- Confidence:
-- Key assumptions:
-- Alternative hypothesis:
-JSON Output
-json
-{
-  "query": "",
-  "mode": "brief",
-  "time_horizon": "",
-  "summary": "",
-  "drivers": [],
-  "pestle": {
-    "political": "",
-    "economic": "",
-    "social": "",
-    "technological": "",
-    "legal": "",
-    "environmental": ""
-  },
-  "stakeholders": [
-    {
-      "name": "",
-      "interests": "",
-      "capabilities": "",
-      "constraints": "",
-      "power": "high",
-      "position": "mixed"
-    }
-  ],
-  "risks": [
-    {
-      "name": "",
-      "likelihood": "medium",
-      "impact": "high",
-      "time_horizon": "",
-      "notes": ""
-    }
-  ],
-  "scenarios": [
-    {
-      "name": "Baseline",
-      "description": "",
-      "drivers": [],
-      "indicators": [],
-      "confidence": "medium"
-    }
-  ],
-  "policy_options": [],
-  "recommendations": [],
-  "assumptions": [],
-  "alternative_hypotheses": [],
-  "confidence": "medium"
-}
-Limits
-This skill does not:
+If evidence is thin:
+- reduce certainty and mark assumptions.
 
-replace classified, field, or government intelligence
+If the user asks for prediction:
+- provide scenarios and indicators, not false precision.
 
-guarantee forecasting accuracy
+If the user asks for a recommendation without context:
+- state what minimum context is missing, then proceed with bounded assumptions if necessary.
 
-justify advocacy framed as analysis
+If the request enters legal, intelligence, or classified-style certainty:
+- do not imitate privileged access or hidden knowledge.
 
-remove the need for expert review in crisis decisions
+## Default template
 
-If evidence is thin, keep the output concise rather than padded.
+Use this by default unless another mode is better:
 
-Quick Tips
-Use --risk when the user wants triggers and exposure, not a full report.
+1. Executive takeaway
+2. Decision context
+3. What is known / evidence limits
+4. Actors and incentives
+5. Main assessment
+6. Risks and trade-offs
+7. Options
+8. Indicators to watch
+9. Confidence and key unknowns
 
-Use --scenarios when uncertainty is the main issue.
+## Definition of success
 
-Use --red-team before finalizing a strong claim or forecast.
+A successful answer makes the user's decision space clearer.
+A failed answer merely sounds sophisticated.
 
-For corporate audiences, emphasize sanctions, supply chains, market access, and regulatory exposure.
-
-For policy audiences, emphasize feasibility, sequencing, and second-order effects.
-
-In polarized topics, include at least one alternative hypothesis.
-
-Recommend expert review for operational or crisis decisions.
-
-Author
-Vassiliy Lakhonin
+Author: Vassiliy Lakhonin

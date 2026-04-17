@@ -1,7 +1,7 @@
 ---
 name: soul-memory
-version: 3.6.1
-description: "Intelligent memory management system v3.6.1 - reliable pre-response memory injection for OpenClaw with pure JSON CLI output, last-user-message query extraction, typed memory focus grouping, distilled summaries, and audit logging."
+version: 3.5.7
+description: "Intelligent memory management system v3.5.7 - 排除 cron session 避免 HEARTBEAT session 誤選，放寬 normalize_for_dedup 保留時間戳差異，threshold 0.92 減少誤去重，stable_cues 放寬保存技術/項目/QST/文件關鍵詞。"
 license: MIT
 author: kingofqin2026
 homepage: https://github.com/kingofqin2026/Soul-Memory-
@@ -27,11 +27,11 @@ tags:
   - Developer-Tools
 ---
 
-# Soul Memory System v3.6.1
+# Soul Memory System v3.5.7
 
 ## 🧠 Intelligent Memory Management System
 
-Long-term memory framework for AI agents with full OpenClaw integration. **v3.6.1** 修正 pre-response memory injection 主流程：CLI 純 JSON 輸出、優先使用最後一條 user message 作 query、分類記憶注入（User / QST / Config / Recent / Project / General）、重點摘要壓縮、以及命中審計日誌。
+Long-term memory framework for AI agents with full OpenClaw integration. **v3.5.7** 修復 `get_active_session_id()` 排除 cron session，避免誤選 HEARTBEAT session；v3.5.6 放寬 `normalize_for_dedup()` 保留時間戳差異；v3.5.5 提高 threshold 到 0.92 減少誤去重；v3.5.4 放寬 `stable_cues` 保存更多技術/項目/QST/文件內容。
 
 ---
 

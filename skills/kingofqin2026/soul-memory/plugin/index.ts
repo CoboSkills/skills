@@ -25,15 +25,24 @@ interface MemoryResult {
   priority?: string;
 }
 
+interface SearchProfile {
+  topK: number;
+  minScore: number;
+}
+
 /**
  * Search Soul Memory using Python backend
  */
 async function searchMemories(query: string, config: SoulMemoryConfig): Promise<MemoryResult[]> {
   try {
+    const effective = resolveSearchProfile(query, config);
     const escapedQuery = query.replace(/"/g, '\\"');
     const { stdout } = await execAsync(
-      `python3 /root/.openclaw/workspace/soul-memory/cli.py search "${escapedQuery}" --top_k ${config.topK} --min_score ${config.minScore}`,
-      { timeout: 5000 }
+      `python3 /root/.openclaw/workspace/soul-memory/cli.py search "${escapedQuery}" --top_k ${effective.topK} --min_score ${effective.minScore}`,
+      {
+        timeout: 5000,
+        cwd: '/root/.openclaw/workspace/soul-memory'
+      }
     );
 
     const trimmed = (stdout || '').trim();
@@ -60,9 +69,43 @@ async function searchMemories(query: string, config: SoulMemoryConfig): Promise<
 
 type MemoryBucket = 'User' | 'QST' | 'Config' | 'Recent' | 'Project' | 'General';
 
+function classifyQuery(query: string): MemoryBucket {
+  const q = (query || '').toLowerCase();
+  if (/(記住|偏好|喜歡|身份|user|preference|like|favorite|timezone|name)/.test(q)) return 'User';
+  if (/(qst|phi|varphi|fsca|dark matter|dark energy|physics|理論|物理|計算|公式|audit|審計)/.test(q)) return 'QST';
+  if (/(config|設定|配置|token|api|gateway|port|model|provider|telegram|github|pwd|password)/.test(q)) return 'Config';
+  if (/(上次|之前|剛才|recent|latest|last|今日|昨天|today|yesterday|剛剛)/.test(q)) return 'Recent';
+  if (/(project|專案|repo|repository|deploy|issue|pr|pull request|workspace|build)/.test(q)) return 'Project';
+  return 'General';
+}
+
+function resolveSearchProfile(query: string, config: SoulMemoryConfig): SearchProfile {
+  const bucket = classifyQuery(query);
+  if (bucket === 'User') return { topK: Math.min(config.topK, 3), minScore: 2.0 };
+  if (bucket === 'Recent') return { topK: Math.min(config.topK, 3), minScore: 1.8 };
+  if (bucket === 'QST') return { topK: Math.max(Math.min(config.topK, 5), 4), minScore: 2.5 };
+  if (bucket === 'Config') return { topK: Math.min(Math.max(config.topK, 4), 6), minScore: 2.2 };
+  if (bucket === 'Project') return { topK: Math.min(Math.max(config.topK, 4), 5), minScore: 2.0 };
+  return { topK: Math.min(config.topK, 2), minScore: 3.0 };
+}
+
+function cleanMemorySnippet(text: string): string {
+  let cleaned = text || '';
+  cleaned = cleaned.replace(/\[[CIN]\]\s*\d{1,2}:\d{2}\s*Heartbeat 自動提取\s*\|\s*來源\s*：?\s*Session 對話回顧\s*\|\s*時區\s*：?\s*[^|]+\|?/gi, '');
+  cleaned = cleaned.replace(/Conversation info \(untrusted metadata\):[\s\S]*$/gi, '');
+  cleaned = cleaned.replace(/Sender \(untrusted metadata\):[\s\S]*$/gi, '');
+  cleaned = cleaned.replace(/Successfully replaced text in\s+[^|]+\.?/gi, '');
+  cleaned = cleaned.replace(/===\s*[^|]+\s*===/g, '');
+  cleaned = cleaned.replace(/\b(total\s+\d+|drwxr[-\w\s]+|command exited with code \d+)\b/gi, '');
+  cleaned = cleaned.replace(/```[\s\S]*?```/g, '');
+  cleaned = cleaned.replace(/\|\s*\|+/g, '|');
+  return cleaned;
+}
+
 function normalizeText(text: string): string {
-  return (text || '')
+  return cleanMemorySnippet(text)
     .replace(/[`*_#>-]/g, ' ')
+    .replace(/\s*\|\s*/g, ' · ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -73,9 +116,17 @@ function summarizeText(text: string, maxLen: number = 160): string {
   return normalized.slice(0, maxLen - 1).trimEnd() + '…';
 }
 
-function classifyMemory(result: MemoryResult): MemoryBucket {
+function isNoisyMemory(result: MemoryResult): boolean {
   const hay = `${result.path || ''} ${result.content || ''}`.toLowerCase();
+  return /(heartbeat 自動提取|conversation info \(untrusted metadata\)|sender \(untrusted metadata\)|successfully replaced text in|plugin registered|hook registered|loaded index with|=== |drwxr|command exited with code|exec completed)/.test(hay);
+}
 
+function classifyMemory(result: MemoryResult): MemoryBucket {
+  const hay = `${result.path || ''} ${cleanMemorySnippet(result.content || '')}`.toLowerCase();
+
+  if (isNoisyMemory(result)) {
+    return 'General';
+  }
   if (/(user\.md|identity|preferred name|what to call|timezone|秦王|陛下|偏好|喜歡|user)/.test(hay)) {
     return 'User';
   }
@@ -99,7 +150,7 @@ function groupMemories(results: MemoryResult[]): Record<MemoryBucket, MemoryResu
     User: [], QST: [], Config: [], Recent: [], Project: [], General: []
   };
 
-  for (const result of results) {
+  for (const result of results.filter(r => !isNoisyMemory(r))) {
     grouped[classifyMemory(result)].push(result);
   }
 
@@ -112,31 +163,45 @@ function formatSource(path?: string): string {
   return short || path;
 }
 
-function buildMemoryContext(results: MemoryResult[]): string {
-  if (results.length === 0) {
+function buildMemoryContext(results: MemoryResult[], query: string): string {
+  const filteredResults = results.filter(r => !isNoisyMemory(r));
+  if (filteredResults.length === 0) {
     return '';
   }
 
-  const grouped = groupMemories(results);
+  const grouped = groupMemories(filteredResults);
   const bucketOrder: MemoryBucket[] = ['User', 'QST', 'Config', 'Recent', 'Project', 'General'];
-  let context = '\nSoulM"';
-  context += '## Memory Focus\n';
+  const focus = classifyQuery(query);
+  const maxChars = focus === 'General' ? 420 : 720;
+  const maxPerBucket = focus === 'General' ? 1 : 2;
+  let context = '## Memory Focus\n';
+  let usedChars = context.length;
 
   for (const bucket of bucketOrder) {
     const items = grouped[bucket];
     if (!items || items.length === 0) continue;
 
     context += `- ${bucket}:\n`;
-    for (const item of items.slice(0, 2)) {
-      const summary = summarizeText(item.content, 150);
+    usedChars += (`- ${bucket}:\n`).length;
+
+    const ranked = [...items]
+      .sort((a, b) => (b.score || 0) - (a.score || 0))
+      .slice(0, maxPerBucket);
+
+    for (const item of ranked) {
+      const summary = summarizeText(item.content, focus === 'General' ? 110 : 150);
       const source = formatSource(item.path);
       const sourcePart = source ? ` (${source})` : '';
-      context += `  • ${summary}${sourcePart}\n`;
+      const line = `  • ${summary}${sourcePart}\n`;
+      if (usedChars + line.length > maxChars) {
+        return context.trimEnd() + '\n';
+      }
+      context += line;
+      usedChars += line.length;
     }
   }
 
-  context += '"\n';
-  return context;
+  return context.trimEnd() + '\n';
 }
 
 function buildAuditSummary(results: MemoryResult[]): string {
@@ -437,7 +502,7 @@ export default function register(api: any) {
     const auditSummary = buildAuditSummary(results);
     logger.info(`[Soul Memory] Audit: ${auditSummary}`);
 
-    const memoryContext = buildMemoryContext(results);
+    const memoryContext = buildMemoryContext(results, lastUserMessage);
     logger.info(`[Soul Memory] ✓ Injected ${results.length} distilled memories into prependContext (${memoryContext.length} chars)`);
 
     return {

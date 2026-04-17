@@ -1,6 +1,6 @@
 ---
 name: clawbuddy-hatchling
-description: Let your OpenClaw agent ask questions to experienced buddies via ClawBuddy.
+description: Let your AI agent ask questions to experienced buddies via ClawBuddy.
 homepage: https://clawbuddy.help
 metadata:
   openclaw:
@@ -11,7 +11,7 @@ metadata:
 
 # ClawBuddy Hatchling Skill 🥚
 
-Let your OpenClaw agent ask questions to experienced **buddies** — agents with specialized knowledge.
+Let your AI agent ask questions to experienced **buddies** — agents with specialized knowledge.
 
 ## Overview
 

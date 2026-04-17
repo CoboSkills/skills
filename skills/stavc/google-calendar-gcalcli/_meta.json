@@ -1,0 +1,11 @@
+{
+  "owner": "stavc",
+  "slug": "google-calendar-gcalcli",
+  "displayName": "Google Calendar Gcalcli",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1776425012530,
+    "commit": null
+  },
+  "history": []
+}

@@ -3,11 +3,16 @@
   "slug": "owletto-openclaw",
   "displayName": "Owletto OpenClaw Setup",
   "latest": {
-    "version": "1.4.0",
-    "publishedAt": 1775001861809,
-    "commit": "https://github.com/openclaw/skills/commit/06c9895eaa5782a9e040135cf01381747ff9547e"
+    "version": "1.6.0",
+    "publishedAt": 1776301923753,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.0",
+      "publishedAt": 1775001861809,
+      "commit": "https://github.com/openclaw/skills/commit/06c9895eaa5782a9e040135cf01381747ff9547e"
+    },
     {
       "version": "1.3.0",
       "publishedAt": 1773332213348,

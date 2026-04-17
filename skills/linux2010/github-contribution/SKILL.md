@@ -99,6 +99,100 @@ git config push.default nothing
 - Include proper change type and scope
 - Add security impact assessment
 
+---
+
+## 🩺 Bug Fix Module: Change Plan
+
+Before fixing any bug, **always write a change plan first**. This ensures minimal, safe changes and makes PR review easier.
+
+### The 5-Point Analysis
+
+Answer these 5 questions in plain language before writing any code:
+
+| # | Question | Purpose |
+|---|----------|---------|
+| 1 | **Observed behavior** | What's broken? (What the user sees) |
+| 2 | **Expected behavior** | What should happen? (Correct behavior) |
+| 3 | **Suspected root cause** | Where's the bug? (Specific code location) |
+| 4 | **Safest seam to modify** | Minimal change location? (Narrowest fix) |
+| 5 | **Risk surface** | What else could break? (Impact scope) |
+
+### Change Plan Template
+
+```markdown
+## Change Plan for Issue #<number>
+
+1. **Observed behavior**:
+   <Describe what's broken - the user-visible symptom>
+
+2. **Expected behavior**:
+   <Describe what should happen instead>
+
+3. **Suspected root cause**:
+   <Point to specific file/line/function that causes the bug>
+
+4. **Safest seam to modify**:
+   <Identify the minimal code change location - smallest safe fix>
+
+5. **Risk surface**:
+   <List what could be affected by this change>
+```
+
+### Example: Issue #5968
+
+```markdown
+## Change Plan for Issue #5968
+
+1. **Observed behavior**:
+   `extract_content_or_reasoning()` crashes when `response.choices` is None, missing, or empty list.
+
+2. **Expected behavior**:
+   Function should return empty string gracefully when no usable choices exist.
+
+3. **Suspected root cause**:
+   Line `msg = response.choices[0].message` in `agent/auxiliary_client.py` assumes choices is always non-empty.
+
+4. **Safest seam to modify**:
+   Add a guard at the top of `extract_content_or_reasoning()` before accessing choices:
+   `if not getattr(response, "choices", None): return ""`
+
+5. **Risk surface**:
+   Minimal - only affects edge cases where API response is malformed.
+```
+
+### When to Use Change Plan
+
+| Scenario | Required? |
+|----------|-----------|
+| Bug fix | ✅ Always |
+| Paper-cut UX improvement | ✅ Always |
+| Feature addition | ❌ Use feature spec instead |
+| Refactoring | ❌ Use refactor plan instead |
+| Documentation fix | ❌ Not needed |
+
+### Benefits of Change Plan
+
+| Benefit | Why It Matters |
+|---------|----------------|
+| **Forces understanding** | Can't fix what you don't understand |
+| **Defines boundaries** | Prevents scope creep and "opportunistic" changes |
+| **Reduces risk** | Identifies potential side effects upfront |
+| **Speeds review** | Maintainer can understand intent in 20 seconds |
+| **Enables rollback** | Clear what was changed and why |
+
+### Change Plan Checklist
+
+Before coding:
+- [ ] Can you describe the bug in one sentence?
+- [ ] Can you point to the exact line causing it?
+- [ ] Is your fix the smallest possible change?
+- [ ] Have you identified what else could break?
+- [ ] Will this change need a regression test?
+
+If you answered "no" to any question, **do more investigation before coding**.
+
+---
+
 ## Error Handling
 
 ### Common Issues & Solutions

@@ -1,5 +1,5 @@
 ---
-name: zeelin-search
+name: zeelin-search-pro
 description: 使用智灵搜索进行数据查询。当用户说"使用智灵搜索"、"智灵搜索帮我查询"、"调用智灵搜索"、"用智灵搜索"、"智灵搜索查询"、"舆情数据"、"舆情"、"新闻报道"、"...舆情数据"、"...舆情"、"...新闻报道"、"...热点话题"、"...最新趋势"等时使用此技能。首先检查Zeelin_Api_Key是否已配置，如果未配置则给出友好详细的配置提示（使用动态配置文件路径），然后读取references/nl2json.md进行自然语言转JSON，再读取references/zenlin_search_api.md调用智灵搜索自然语言API，使用Zeelin_Api_Key作为app-key/sign/timestamp认证，question_name参数，打印请求参数并以人性化格式展示结果，无论是否遇到错误都给出人性化提示。只检查和提示Zeelin_Api_Key，不检查也不提示Zeelin_Api_Url和Zeelin_Website_Url。
 ---
 # 智灵搜索技能
@@ -10,7 +10,7 @@ description: 使用智灵搜索进行数据查询。当用户说"使用智灵搜
 
 ### 第一步：检查配置
 
-1. 读取 `templates/config.json` 获取Zeelin_Api_Url、Zeelin_Api_Key和Zeelin_Website_Url
+1. 读取 `templates/config.json` 获取Zeelin_Api_Url、Zeelin_Api_Key、Zeelin_Website_Url
 2. **检查Zeelin_Api_Key是否已配置**：
    - 如果未配置，给出友好详细的配置提示，告诉用户如何配置
    - 详细的配置提示包括：访问官网、获取密钥、填写配置文件的完整步骤
@@ -78,7 +78,7 @@ description: 使用智灵搜索进行数据查询。当用户说"使用智灵搜
   - 配置文件的示例，展示在哪里填写Zeelin_Api_Key或者直接在对话框中输入，skill自动配置
   - 
 - **只检查和提示Zeelin_Api_Key**
-- **完全不检查也不提示** Zeelin_Api_Url和Zeelin_Website_Url，这两项由用户预置好
+- **完全不检查也不提示** Zeelin_Api_Url、Zeelin_Website_Url，这两项由用户预置好
 - 配置文件地址使用当前skill的动态安装路径，不要使用固定的地址
 - **调用API前必须告知用户**：说"接下来我将读取API文档并调用智灵搜索API来获取数据"
 - **无论成功或失败，都必须给用户一个结果反馈**

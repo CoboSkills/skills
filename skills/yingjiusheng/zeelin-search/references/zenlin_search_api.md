@@ -20,8 +20,8 @@
 
 ```json
 {
-  "Zeelin_Website_Url": "https://search-skill.zeelin.cn",
-  "Zeelin_Api_Url": "https://search-skill.zeelin.cn/v1/api/es/search/natural",
+  "Zeelin_Website_Url": "https://skills.zeelin.cn",
+  "Zeelin_Api_Url": "https://skills.zeelin.cn/v2/api/es/search/natural",
   "Zeelin_Api_Key": ""
 }
 ```
@@ -55,10 +55,10 @@ sign = HMAC-SHA256(Zeelin_Api_Key, Zeelin_Api_Key + timestamp)
 
 ## 工作流程
 
-1. **读取配置文件**：读取 `templates/config.json` 获取Zeelin_Api_Url、Zeelin_Api_Key和Zeelin_Website_Url
+1. **读取配置文件**：读取 `templates/config.json` 获取Zeelin_Api_Url、Zeelin_Api_Key、Zeelin_Website_Url
 2. **检查Zeelin_Api_Key配置**：
    - 如果 `Zeelin_Api_Key` 为空：展示友好的配置提示，详细告诉用户如何配置
-   - **不检查** `Zeelin_Api_Url` 和 `Zeelin_Website_Url`，由用户预置好
+   - **不检查** `Zeelin_Api_Url` 和 `Zeelin_Website_Url`由用户预置好
 3. **接收nl2json输出**：获取nl2json模块转换后的JSON参数
 4. **告知用户**：告诉用户"接下来我将读取API文档并调用智灵搜索API来获取数据"
 5. **生成时间戳**：获取当前时间戳（毫秒）
@@ -72,7 +72,7 @@ sign = HMAC-SHA256(Zeelin_Api_Key, Zeelin_Api_Key + timestamp)
      - `app-key: ${Zeelin_Api_Key}`
      - `sign: ${sign}`
      - `timestamp: ${timestamp}`
-   - Body：只包含 `question_name` 字段
+   - Body：只包含 `question_name 字段
    - 使用UTF-8编码确保中文能正确传输
 9. **发送请求**：调用智灵搜索自然语言API
 10. **处理响应**：
@@ -113,6 +113,7 @@ timestamp: ${timestamp}
 | 参数            | 类型   | 必填 | 说明             | 示例                                       |
 | --------------- | ------ | ---- | ---------------- | ------------------------------------------ |
 | `question_name` | String | 是   | 自然语言查询描述 | "帮我查询吉利汽车在百度贴吧最近两天的数据" |
+
 
 ## API响应格式
 
@@ -384,8 +385,8 @@ timestamp: ${timestamp}
    📝 在配置文件中找到"Zeelin_Api_Key"字段，将您的密钥填入引号中：
    ```json
    {
-     "Zeelin_Website_Url": "http://search-skill.zeelin.cn",
-     "Zeelin_Api_Url": "https://search-skill.zeelin.cn/v1/api/es/search/natural",
+     "Zeelin_Website_Url": "http://skills.zeelin.cn",
+     "Zeelin_Api_Url": "https://test_skills.zeelin.cn/v1/api/es/search/natural",
      "Zeelin_Api_Key": "在这里填入您的Zeelin_Api_Key"
    }
 ```

@@ -7,6 +7,29 @@
 set -euo pipefail
 
 TC_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# --- Early --help (before sourcing lib.sh so it works without config) -------
+for arg in "$@"; do
+    case "$arg" in
+        --help|-h)
+            echo "Usage: sudo bin/prune.sh [options]"
+            echo ""
+            echo "Options:"
+            echo "  --keep-last N       Keep the last N snapshots (default: from config.yaml)"
+            echo "  --older-than DURATION  Remove snapshots older than duration (e.g. 7d, 24h, 30d)"
+            echo "  --dry-run           Show what would be removed without removing"
+            echo "  --yes, -y           Skip confirmation prompt"
+            echo ""
+            echo "Examples:"
+            echo "  sudo bin/prune.sh                     # use config retention"
+            echo "  sudo bin/prune.sh --keep-last 24      # keep only last 24 snapshots"
+            echo "  sudo bin/prune.sh --older-than 7d     # remove snapshots older than 7 days"
+            echo "  sudo bin/prune.sh --dry-run            # preview without deleting"
+            exit 0
+            ;;
+    esac
+done
+
 source "$TC_ROOT/lib.sh"
 
 tc_check_deps
@@ -33,22 +56,6 @@ while [[ $# -gt 0 ]]; do
             ;;
         --yes|-y)
             ASSUME_YES=true; shift
-            ;;
-        --help|-h)
-            echo "Usage: sudo bin/prune.sh [options]"
-            echo ""
-            echo "Options:"
-            echo "  --keep-last N       Keep the last N snapshots (default: from config.yaml)"
-            echo "  --older-than DURATION  Remove snapshots older than duration (e.g. 7d, 24h, 30d)"
-            echo "  --dry-run           Show what would be removed without removing"
-            echo "  --yes, -y           Skip confirmation prompt"
-            echo ""
-            echo "Examples:"
-            echo "  sudo bin/prune.sh                     # use config retention (keep_last: $KEEP_LAST)"
-            echo "  sudo bin/prune.sh --keep-last 24      # keep only last 24 snapshots"
-            echo "  sudo bin/prune.sh --older-than 7d     # remove snapshots older than 7 days"
-            echo "  sudo bin/prune.sh --dry-run            # preview without deleting"
-            exit 0
             ;;
         *) echo "Unknown flag: $1. Use --help for usage."; exit 1 ;;
     esac
@@ -96,10 +103,12 @@ echo ""
 if [[ "$DRY_RUN" != "true" ]]; then
     echo "==> Preview (dry run):"
     echo ""
-    PREVIEW_OUTPUT=$(restic_cmd "${FORGET_ARGS[@]}" --dry-run 2>&1)
-    echo "$PREVIEW_OUTPUT" | head -30
-    PREVIEW_LINES=$(wc -l <<< "$PREVIEW_OUTPUT")
+    PREVIEW_TMP=$(mktemp)
+    restic_cmd "${FORGET_ARGS[@]}" --dry-run > "$PREVIEW_TMP" 2>&1 || true
+    head -30 "$PREVIEW_TMP"
+    PREVIEW_LINES=$(wc -l < "$PREVIEW_TMP")
     [[ $PREVIEW_LINES -gt 30 ]] && echo "  ... ($((PREVIEW_LINES - 30)) more lines)"
+    rm -f "$PREVIEW_TMP"
     echo ""
 
     # --- Confirm ----------------------------------------------------------------
@@ -112,18 +121,22 @@ fi
 # --- Execute ----------------------------------------------------------------
 echo ""
 echo "==> Running cleanup..."
-PRUNE_OUTPUT=$(restic_cmd "${FORGET_ARGS[@]}" 2>&1)
+PRUNE_TMP=$(mktemp)
+restic_cmd "${FORGET_ARGS[@]}" > "$PRUNE_TMP" 2>&1
 PRUNE_EXIT=$?
 
 if [[ $PRUNE_EXIT -ne 0 ]]; then
     echo "ERROR: Prune failed (exit $PRUNE_EXIT)"
-    echo "$PRUNE_OUTPUT"
+    cat "$PRUNE_TMP"
     log_error "prune.sh: restic forget/prune failed (exit $PRUNE_EXIT)"
-    tg_failure "prune.sh: restic forget/prune failed (exit $PRUNE_EXIT):\n\n$PRUNE_OUTPUT"
+    PRUNE_ERR=$(cat "$PRUNE_TMP")
+    tg_failure "prune.sh: restic forget/prune failed (exit $PRUNE_EXIT):\n\n$PRUNE_ERR"
+    rm -f "$PRUNE_TMP"
     exit 1
 fi
 
-echo "$PRUNE_OUTPUT" | head -30
+head -30 "$PRUNE_TMP"
+rm -f "$PRUNE_TMP"
 echo ""
 
 # --- Report -----------------------------------------------------------------

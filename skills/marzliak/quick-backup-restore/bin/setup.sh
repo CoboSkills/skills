@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# bin/setup.sh — Quick Backup and Restore (time machine) initial setup
+# bin/setup.sh — Time Clawshine initial setup
 # Run once as root: sudo bin/setup.sh
 # =============================================================================
 
@@ -14,21 +14,76 @@ SKIP_BACKUP=false
 NO_SYSTEM=false
 ASSUME_YES=false
 for arg in "$@"; do
-    [[ "$arg" == "--skip-backup" ]] && SKIP_BACKUP=true
-    [[ "$arg" == "--no-system-install" ]] && NO_SYSTEM=true
-    [[ "$arg" == "--assume-yes" || "$arg" == "-y" ]] && ASSUME_YES=true
+    case "$arg" in
+        --skip-backup)       SKIP_BACKUP=true ;;
+        --no-system-install) NO_SYSTEM=true ;;
+        --assume-yes|-y)     ASSUME_YES=true ;;
+        --help|-h)
+            echo "Usage: sudo bin/setup.sh [options]"
+            echo ""
+            echo "Options:"
+            echo "  --skip-backup          Skip initial validation backup after setup"
+            echo "  --no-system-install    Repo-only setup: no apt-get, no cron/systemd, no /usr/local/bin"
+            echo "  --assume-yes, -y       Skip confirmation prompts (for CI/automated use)"
+            echo "  --help, -h             Show this help"
+            exit 0
+            ;;
+    esac
 done
 
 # Must run as root
 [[ $EUID -eq 0 ]] || { echo "ERROR: Run as root (sudo bin/setup.sh)"; exit 1; }
 
-echo "╔═════════════════════════════════════════════════╗"
-echo "║  Quick Backup and Restore (time machine) — Setup  ║"
-echo "╚═════════════════════════════════════════════════╝"
+echo "╔══════════════════════════════════════╗"
+echo "║    Time Clawshine — Setup            ║"
+echo "╚══════════════════════════════════════╝"
 echo ""
 
 # --- Ensure all scripts are executable (git may strip +x on some platforms) --
 chmod +x "$TC_ROOT/bin/"*.sh "$TC_ROOT/lib.sh" 2>/dev/null || true
+
+# --- Detect and migrate v2.x artifacts --------------------------------------
+_migrate_v2() {
+    local v2_artifacts=()
+    [[ -f "/etc/cron.d/quick-backup-restore" ]]        && v2_artifacts+=("/etc/cron.d/quick-backup-restore")
+    [[ -f "/etc/logrotate.d/quick-backup-restore" ]]    && v2_artifacts+=("/etc/logrotate.d/quick-backup-restore")
+    [[ -f "/var/lock/quick-backup-restore.lock" ]]      && v2_artifacts+=("/var/lock/quick-backup-restore.lock")
+    for f in /var/tmp/quick-backup-restore-*; do
+        [[ -e "$f" ]] && v2_artifacts+=("$f")
+    done
+
+    [[ ${#v2_artifacts[@]} -eq 0 ]] && return 0
+
+    echo ""
+    echo "==> Detected v2.x installation artifacts:"
+    for a in "${v2_artifacts[@]}"; do echo "    - $a"; done
+    echo ""
+    echo "    These will be cleaned up. Your repository, password, and snapshots are preserved."
+
+    if [[ "$ASSUME_YES" != "true" ]]; then
+        read -rp "    Proceed with migration? [Y/n]: " CONFIRM_MIG
+        [[ "$CONFIRM_MIG" =~ ^[Nn]$ ]] && { echo "    Skipping migration."; return 0; }
+    fi
+
+    for a in "${v2_artifacts[@]}"; do
+        rm -f "$a" && echo "    Removed: $a"
+    done
+
+    # Rename v2 marker files to v3 equivalents
+    for old_marker in /var/tmp/quick-backup-restore-check-counter \
+                      /var/tmp/quick-backup-restore-digest-date \
+                      /var/tmp/quick-backup-restore-update-date; do
+        if [[ -f "$old_marker" ]]; then
+            new_marker="${old_marker//quick-backup-restore/time-clawshine}"
+            mv "$old_marker" "$new_marker" 2>/dev/null && echo "    Renamed: $old_marker → $new_marker"
+        fi
+    done
+
+    echo "    ✓ v2 migration complete"
+    echo ""
+}
+
+_migrate_v2
 
 # --- Install dependencies ---------------------------------------------------
 if [[ "$NO_SYSTEM" == "true" ]]; then
@@ -78,19 +133,33 @@ else
         echo "    Installing yq..."
         YQ_VERSION="v4.44.1"
         YQ_BIN="/usr/local/bin/yq"
-        YQ_BINARY="yq_linux_amd64"
+        case "$(uname -m)" in
+            x86_64)  YQ_BINARY="yq_linux_amd64" ;;
+            aarch64) YQ_BINARY="yq_linux_arm64" ;;
+            armv7l)  YQ_BINARY="yq_linux_arm" ;;
+            *)       echo "    ERROR: Unsupported architecture: $(uname -m)"; exit 1 ;;
+        esac
         YQ_URL="https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/${YQ_BINARY}"
-        YQ_CHECKSUMS_URL="https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/checksums"
-        curl -sL "$YQ_URL" -o "$YQ_BIN"
-        EXPECTED_SHA=$(curl -sL "$YQ_CHECKSUMS_URL" | grep "  ${YQ_BINARY}$" | awk '{print $1}')
-        ACTUAL_SHA=$(sha256sum "$YQ_BIN" | awk '{print $1}')
+        YQ_BSD_URL="https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/checksums-bsd"
+
+        # 1. Download checksum FIRST (fail early if unavailable)
+        EXPECTED_SHA=$(curl -sL "$YQ_BSD_URL" | grep "^SHA256 (${YQ_BINARY})" | awk -F'= ' '{print $2}')
         if [[ -z "$EXPECTED_SHA" ]]; then
             echo "    WARN: Could not fetch yq checksum — skipping verification"
-        elif [[ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]]; then
-            rm -f "$YQ_BIN"
-            echo "    ERROR: yq checksum mismatch! Expected $EXPECTED_SHA, got $ACTUAL_SHA"
-            echo "    Binary removed. Possible supply chain compromise — investigate before retrying."
-            exit 1
+        fi
+
+        # 2. Download binary
+        curl -sL "$YQ_URL" -o "$YQ_BIN"
+
+        # 3. Verify checksum
+        if [[ -n "$EXPECTED_SHA" ]]; then
+            ACTUAL_SHA=$(sha256sum "$YQ_BIN" | awk '{print $1}')
+            if [[ "$EXPECTED_SHA" != "$ACTUAL_SHA" ]]; then
+                rm -f "$YQ_BIN"
+                echo "    ERROR: yq checksum mismatch! Expected $EXPECTED_SHA, got $ACTUAL_SHA"
+                echo "    Binary removed. Possible supply chain compromise — investigate before retrying."
+                exit 1
+            fi
         fi
         chmod +x "$YQ_BIN"
         echo "    yq $YQ_VERSION installed (checksum verified) — OK"
@@ -100,6 +169,7 @@ else
 fi
 
 # --- Load config (after deps are ready) ------------------------------------
+export TC_SKIP_PASS_CHECK=true  # password file may not exist yet during setup
 tc_load_config
 
 # --- Create repository directory -------------------------------------------
@@ -124,11 +194,12 @@ else
         chmod 600 "$PASS_FILE"
     fi
     echo ""
-    echo "    ┌─────────────────────────────────────────────────────┐"
+    echo "    ┌──────────────────────────────────────────────────────────┐"
     echo "    │  Password saved to: $PASS_FILE"
-    echo "    │  *** BACK THIS UP — without it, no restore is       │"
-    echo "    │  possible, even if the repo is intact ***           │"
-    echo "    └─────────────────────────────────────────────────────┘"
+    echo "    │                                                          │"
+    echo "    │  *** BACK THIS UP — without it, no restore is possible, │"
+    echo "    │  even if the repo is intact ***                         │"
+    echo "    └──────────────────────────────────────────────────────────┘"
     echo ""
     echo "    To view the password later: sudo cat $PASS_FILE"
 fi
@@ -150,11 +221,13 @@ if [[ "$NO_SYSTEM" == "true" ]]; then
     CRON_FILE="N/A (--no-system-install)"
 else
     echo ""
-    echo "==> Installing backup script to /usr/local/bin/quick-backup-restore..."
-    cp "$TC_ROOT/bin/backup.sh" /usr/local/bin/quick-backup-restore
+    echo "==> Installing backup script to /usr/local/bin/time-clawshine..."
+    cp "$TC_ROOT/bin/backup.sh" /usr/local/bin/time-clawshine
     # Inject TC_ROOT so the installed script knows where to find config
-    sed -i "s|^TC_ROOT=.*|TC_ROOT=\"$TC_ROOT\"|" /usr/local/bin/quick-backup-restore
-    chmod 755 /usr/local/bin/quick-backup-restore
+    sed -i "s|^TC_ROOT=.*|TC_ROOT=\"$TC_ROOT\"|" /usr/local/bin/time-clawshine
+    chmod 755 /usr/local/bin/time-clawshine
+    # Backward-compat symlink (v2 name)
+    ln -sf /usr/local/bin/time-clawshine /usr/local/bin/quick-backup-restore
 
     # --- Register scheduler (systemd preferred, cron fallback) ------------------
     echo ""
@@ -185,7 +258,7 @@ After=network.target
 [Service]
 Type=oneshot
 Environment=TC_CONFIG=$CONFIG_FILE
-ExecStart=/usr/local/bin/quick-backup-restore
+ExecStart=/usr/local/bin/time-clawshine
 StandardOutput=append:$LOG_FILE
 StandardError=append:$LOG_FILE
 EOF
@@ -209,15 +282,17 @@ EOF
         echo "    Systemd timer enabled: $SYSTEMD_CALENDAR"
 
         # Remove cron if it exists (migrating to systemd)
-        [[ -f "/etc/cron.d/quick-backup-restore" ]] && rm -f "/etc/cron.d/quick-backup-restore" && echo "    Removed legacy cron job"
+        for legacy_cron in "/etc/cron.d/quick-backup-restore" "/etc/cron.d/time-clawshine"; do
+            [[ -f "$legacy_cron" ]] && rm -f "$legacy_cron" && echo "    Removed legacy cron: $legacy_cron"
+        done
     else
         echo "==> Registering cron job: [$CRON_EXPR]"
-        CRON_FILE="/etc/cron.d/quick-backup-restore"
+        CRON_FILE="/etc/cron.d/time-clawshine"
         cat > "$CRON_FILE" <<EOF
 # Time Clawshine — hourly backup
 # Generated by setup.sh on $(date)
 # Edit schedule in config.yaml, then re-run setup.sh
-$CRON_EXPR root TC_CONFIG=$CONFIG_FILE /usr/local/bin/quick-backup-restore >/dev/null 2>> $LOG_FILE
+$CRON_EXPR root TC_CONFIG=$CONFIG_FILE /usr/local/bin/time-clawshine >/dev/null 2>> $LOG_FILE
 EOF
         chmod 644 "$CRON_FILE"
         echo "    Cron registered at: $CRON_FILE"
@@ -226,7 +301,7 @@ EOF
     # --- Configure logrotate ---------------------------------------------------
     echo ""
     echo "==> Configuring logrotate for $LOG_FILE..."
-    LOGROTATE_FILE="/etc/logrotate.d/quick-backup-restore"
+    LOGROTATE_FILE="/etc/logrotate.d/time-clawshine"
     cat > "$LOGROTATE_FILE" <<EOF
 $LOG_FILE {
     weekly

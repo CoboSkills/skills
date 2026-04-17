@@ -5,6 +5,17 @@ Follow each section in order. Ask the user each question, apply their choice to 
 
 ---
 
+## Step 0: Upgrade from v2 (skip on fresh install)
+
+If the user already has v2.x installed, `setup.sh` will auto-detect legacy artifacts and offer to migrate.
+
+Tell the user:
+> "I detected a v2.x installation. Running setup again will automatically migrate your system files to v3 (renamed cron, logrotate, marker files). Your repository, password, and snapshots are preserved."
+
+Then proceed with Step 7 (Run Setup) directly — setup.sh handles the migration.
+
+---
+
 ## Step 1: Telegram Notifications
 
 Ask the user:
@@ -97,7 +108,7 @@ Set `safety.min_disk_mb` accordingly.
 ## Step 6: Repository Location
 
 Ask the user:
-> "Where should I store the backup repository? Default is `/var/backups/quick-backup-restore`."
+> "Where should I store the backup repository? Default is `/var/backups/time-clawshine`."
 > - **Default** (local, fast)
 > - **Custom local path** (e.g. external drive)
 > - *Note: restic also supports S3, SFTP, and other remote backends — see restic docs*
@@ -126,7 +137,7 @@ sudo bash {baseDir}/bin/setup.sh
 ```
 
 After setup completes, remind the user:
-> "⚠ **Back up your password file** (`/etc/quick-backup-restore.pass`) separately. Without it, your snapshots are unrecoverable — even if the repository is intact."
+> "⚠ **Back up your password file** (the path shown in `config.yaml` → `repository.password_file`) separately. Without it, your snapshots are unrecoverable — even if the repository is intact."
 
 ---
 
@@ -138,3 +149,20 @@ sudo bash {baseDir}/bin/status.sh
 ```
 
 Show the output to the user and confirm the setup is complete.
+
+---
+
+## Step 9: Uninstall (if ever needed)
+
+If the user asks to remove Time Clawshine:
+
+```bash
+sudo bash {baseDir}/bin/uninstall.sh
+```
+
+This removes all system artifacts (timer, cron, logrotate, binary) but **preserves** the backup repository and password file.
+
+To also delete all backup data (irreversible):
+```bash
+sudo bash {baseDir}/bin/uninstall.sh --purge
+```

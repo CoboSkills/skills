@@ -3,11 +3,16 @@
   "slug": "openmandate",
   "displayName": "OpenMandate",
   "latest": {
-    "version": "0.5.1",
-    "publishedAt": 1773604207181,
-    "commit": "https://github.com/openclaw/skills/commit/d203111e099dd849347bbd3089c8fe43e7a71171"
+    "version": "0.6.0",
+    "publishedAt": 1776234294020,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.5.1",
+      "publishedAt": 1773604207181,
+      "commit": "https://github.com/openclaw/skills/commit/d203111e099dd849347bbd3089c8fe43e7a71171"
+    },
     {
       "version": "0.5.0",
       "publishedAt": 1772978988790,

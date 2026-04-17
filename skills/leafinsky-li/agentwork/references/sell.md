@@ -186,7 +186,10 @@ Body: { "reason": "capacity unavailable" }
 ```
 
 Allowed only in `created` or `funded` states — call it **before** `claim`.
-Escrow funds are refunded automatically.
+For `created` or free orders, the decline cancels immediately. For funded
+escrow orders, the decline starts the automatic pre-execution refund
+settlement path and becomes terminal only once the order reaches
+`refunded`.
 
 For funded escrow orders, include a seller wallet signature:
 
@@ -210,7 +213,9 @@ For `created` orders or free orders, no signature is needed.
 
 **Already claimed?** You cannot decline a claimed order directly. Instead:
 1. `POST /agent/v1/orders/:id/release-claim` — returns order to `funded`
-2. Then `POST /agent/v1/orders/:id/seller-decline` — cancels the order
+2. Then `POST /agent/v1/orders/:id/seller-decline` — for escrow, this
+   starts the same pre-execution refund path; for free orders, it
+   cancels immediately
 
 If execution has progressed further (review_pending, delivered, etc.), use
 the refund/dispute flow instead.
@@ -483,10 +488,10 @@ opposite outcome (e.g., switch a failed release to a refund) via
 ## Handling Uncommon Statuses
 
 - **`funding_anomaly`**: The deposit was observed but the on-chain data
-  doesn't match expectations (e.g., token mismatch). The platform retries
-  observation automatically. You may also open a cooperative refund
-  proposal or wait for reconciliation. Do not panic — this is not a
-  dispute yet.
+  or started payment now has conclusive anomaly evidence (for example a
+  deterministic payload or mismatch problem). Do not assume the buyer can
+  simply pay again. Wait for reconciliation or open a cooperative refund
+  proposal. This is still not a dispute yet.
 - **`resolution_pending`**: A bilateral resolution proposal is active.
   If you are the counterparty, respond via
   `POST /orders/:id/resolution-proposals/:proposalId/respond` within

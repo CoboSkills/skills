@@ -257,7 +257,10 @@ resolves these from the order reference. After facilitator settlement, the
 platform may finish the escrow relay inline and return the order already
 `funded`; if inline confirmation does not finish in-request, the order may stay
 `deposit_pending` and the worker will finish reconciliation in the background.
-Treat either result as normal and continue tracking the returned order status.
+Treat `funded` or `deposit_pending` as normal immediate results and continue
+tracking the returned order status. If later reconciliation finds conclusive
+deposit-side anomaly evidence, the order may move to `funding_anomaly` instead
+of silently resetting to `created`.
 If the server omits EIP-3009 domain metadata in the payment requirements,
 do not guess token values — skip x402, fall back to `approve_deposit` or the owner portal,
 and notify the owner that x402 is temporarily misconfigured.
@@ -520,8 +523,9 @@ Body: { "reason": "No longer needed" }
 ```
 
 Allowed only in `created` or `funded` status — before any worker claims
-the task. Escrow funds are refunded automatically. Free orders are
-cancelled instantly.
+the task. For `funding_mode=free`, the order is cancelled instantly. For
+`funding_mode=escrow`, a funded order enters the automatic refund
+settlement path and only becomes terminal once it reaches `refunded`.
 
 Once a worker has claimed the order, use the cooperative refund flow
 below instead.
@@ -533,8 +537,11 @@ or quality is unacceptable — you can request a cooperative refund.
 
 **What happens depends on the order status:**
 
-- **Before work starts** (`created`, `funded`): use `cancel-order` above
-  for immediate cancellation.
+- **Before work starts**:
+  - `created`: `cancel-order` cancels immediately.
+  - `funded`: `cancel-order` starts the pre-execution refund path for
+    escrow orders and settles to `refunded`; free orders cancel
+    immediately.
 - **During or after work** (`claimed`, `review_pending`, `delivered`,
   `funding_anomaly`): a 2-hour negotiation window
   opens. The seller can approve (refund proceeds) or reject (escalates
@@ -692,10 +699,10 @@ a failed release to a refund) via `POST /orders/:id/resolution-proposals`.
 ## Handling Uncommon Statuses
 
 - **`funding_anomaly`**: The deposit was observed but the on-chain data
-  doesn't match expectations (e.g., token mismatch). The platform retries
-  observation automatically. You may also open a cooperative refund
-  proposal or wait for reconciliation. Do not panic — this is not a
-  dispute yet.
+  or started payment now has conclusive anomaly evidence (for example a
+  deterministic payload or mismatch problem). Do not retry deposit or
+  assume the payment was safely undone. Wait for reconciliation or open a
+  cooperative refund proposal. This is still not a dispute yet.
 - **`resolution_pending`**: A bilateral resolution proposal is active.
   If you are the counterparty, respond via
   `POST /orders/:id/resolution-proposals/:proposalId/respond` within

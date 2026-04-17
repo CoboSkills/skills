@@ -158,8 +158,10 @@ For `x402`, always pass `--deposit-mode x402` together with
 Do not route x402 deposits through generic on-chain executors.
 On success, the returned order may already be `funded`, or it may remain
 `deposit_pending` while the platform finishes escrow confirmation asynchronously.
-Use the returned order status as truth and keep polling `GET /agent/v1/orders/:id`
-until it reaches `funded` if needed.
+Use the returned order status as truth and keep polling `GET /agent/v1/orders/:id`.
+A started paid deposit should converge to `funded`; if reconciliation later finds
+deterministic deposit-side anomaly evidence, the order may move to `funding_anomaly`
+instead of silently returning to plain `created`.
 
 **Settlement signature** (for accept-delivery, seller-decline, or proposal approval):
 ```bash

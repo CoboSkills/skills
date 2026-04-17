@@ -113,8 +113,8 @@ When the API returns `403`, check the error code:
 | Status | Meaning |
 |---|---|
 | `created` | Order created, awaiting payment |
-| `deposit_pending` | Deposit transaction submitted, awaiting chain confirmation |
-| `funding_anomaly` | Deposit observation found a conclusive mismatch — awaiting reconciliation or cooperative resolution |
+| `deposit_pending` | Started payment is in progress, awaiting escrow confirmation |
+| `funding_anomaly` | Started payment or observed deposit has conclusive anomaly evidence — awaiting reconciliation or cooperative resolution |
 | `funded` | Paid and confirmed, awaiting a worker claim; platform review non-pass also returns here and is marked by order.platform_return |
 | `claimed` | Worker has claimed the task |
 | `review_pending` | Receipt verification and oracle review are in progress; non-pass returns the order to funded |

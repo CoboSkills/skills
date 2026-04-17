@@ -3,54 +3,42 @@
  * Generate Pearls from Agent Experience
  *
  * Reads the agent's memory files, tools, and configuration, then calls the
- * local OpenClaw gateway to generate sanitized, topic-based pearl files.
+ * local LLM gateway to generate sanitized, topic-based pearl files.
  *
  * Usage:
  *   node scripts/generate-pearls.js              # Full generation from all memory
  *   node scripts/generate-pearls.js --topic "Hetzner server setup"  # Single topic
  *
  * Environment:
- *   OPENCLAW_GATEWAY_URL   - Gateway URL (default: http://10.0.1.1:18789)
- *   OPENCLAW_GATEWAY_TOKEN - Gateway auth token
- *   OPENCLAW_MODEL         - Model to use (default: anthropic/claude-sonnet-4-5-20250929)
- *   PEARLS_DIR           - Output directory (default: ./pearls relative to skill)
+ *   GATEWAY_URL           - Gateway URL (default: http://127.0.0.1:18789)
+ *   GATEWAY_TOKEN         - Gateway auth token
+ *   GATEWAY_MODEL         - Model to use (default: anthropic/claude-sonnet-4-5-20250929)
+ *   PEARLS_DIR            - Output directory (default: ./pearls relative to skill)
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { loadEnv } from './lib/env.js';
+import { isLocalhostUrl } from './lib/url-utils.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const GATEWAY_URL = process.env.OPENCLAW_GATEWAY_URL || 'http://10.0.1.1:18789';
-const GATEWAY_TOKEN = process.env.OPENCLAW_GATEWAY_TOKEN || '';
-const MODEL = process.env.OPENCLAW_MODEL || 'anthropic/claude-sonnet-4-5-20250929';
+// Load .env before reading any env vars
+loadEnv();
+
+const GATEWAY_URL = process.env.GATEWAY_URL || process.env.OPENCLAW_GATEWAY_URL || 'http://127.0.0.1:18789';
+const GATEWAY_TOKEN = process.env.GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || '';
+const MODEL = process.env.GATEWAY_MODEL || process.env.OPENCLAW_MODEL || 'anthropic/claude-sonnet-4-5-20250929';
 
 // Security: Only allow localhost gateways for pearl generation
 // Pearl generation reads sensitive workspace files (MEMORY.md, AGENTS.md, TOOLS.md)
 // and sends content to the gateway. Remote gateways = data exfiltration risk.
-function isLocalhostUrl(url) {
-  try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.toLowerCase();
-    return host === 'localhost' || 
-           host === '127.0.0.1' || 
-           host === '::1' ||
-           host.startsWith('10.') ||      // Private network (common for OpenClaw)
-           host.startsWith('192.168.') ||  // Private network
-           host.startsWith('172.16.') ||   // Private network
-           host.startsWith('172.17.') ||   // Docker default
-           host.startsWith('172.18.') ||   // Docker
-           host.endsWith('.local');        // mDNS local
-  } catch {
-    return false;
-  }
-}
 
 if (!isLocalhostUrl(GATEWAY_URL)) {
   console.error('❌ SECURITY: Pearl generation only works with localhost/private network gateways.');
-  console.error(`   OPENCLAW_GATEWAY_URL (${GATEWAY_URL}) appears to be a remote host.`);
+  console.error(`   GATEWAY_URL (${GATEWAY_URL}) appears to be a remote host.`);
   console.error('   Pearl generation reads sensitive workspace files and sends to the gateway.');
   console.error('   Use a local gateway (127.0.0.1, localhost, 10.x.x.x, 192.168.x.x).');
   process.exit(1);
@@ -190,7 +178,7 @@ Produce your output as a series of pearl files separated by markers. Each pearl 
 followed by the markdown content of that pearl.
 
 Choose topics based on the actual content provided. Suggested topic areas (use only those that have real content to draw from):
-- openclaw-basics -- Core patterns for OpenClaw agents
+- agent-basics -- Core patterns for AI agents
 - memory-management -- How to use memory files effectively
 - skill-development -- Building and maintaining skills
 - safety-and-privacy -- Security best practices

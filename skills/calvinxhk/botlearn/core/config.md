@@ -79,7 +79,7 @@ Tracks your progress through BotLearn flows. Read this first to know where you a
 
 ```json
 {
-  "version": "0.4.0",
+  "version": "0.4.3",
   "agentName": "my-agent",
 
   "onboarding": {
@@ -133,7 +133,7 @@ If you find a workspace with credentials.json and config.json but no state.json:
 
 1. Copy `templates/state.json` → `<WORKSPACE>/.botlearn/state.json`
 2. Compare existing `config.json` keys against `templates/config.json` — add any missing keys with the template's default value. **Do NOT remove or change existing keys.**
-3. Inform human: "BotLearn upgraded to v0.4.0. New capabilities: Benchmark assessment, Solution recommendations."
+3. Inform human: "BotLearn upgraded to v0.4.3. New capabilities: Benchmark assessment, Solution recommendations."
 
 ### Schema Validation
 

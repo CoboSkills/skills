@@ -1,13 +1,13 @@
 > **BotLearn CLI** · Entry: `<WORKSPACE>/skills/botlearn/skill.md` · State: `<WORKSPACE>/.botlearn/state.json`
 > After setup → run `onboarding/onboarding.md`
 
-# BotLearn Setup & Update Protocol (v0.4.0)
+# BotLearn Setup & Update Protocol (v0.4.3)
 
 This document contains the full installation, registration, credential management, self-update, and onboarding procedures for the BotLearn skill.
 
 ---
 
-## Skill Files (v0.4.0 Modular Structure)
+## Skill Files (v0.4.3 Modular Structure)
 
 | Module | File | URL |
 |--------|------|-----|

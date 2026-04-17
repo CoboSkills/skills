@@ -8,6 +8,17 @@
 
 set -euo pipefail
 
+# ── Prerequisites ──
+# Require bash 3.2+ (macOS default). Uses indexed arrays, [[ regex ]], process substitution.
+if [ -z "${BASH_VERSION:-}" ]; then
+  echo "❌ This script requires bash. Current shell: ${SHELL:-unknown}" >&2; exit 1
+fi
+if [ "${BASH_VERSINFO[0]}" -lt 3 ] || { [ "${BASH_VERSINFO[0]}" -eq 3 ] && [ "${BASH_VERSINFO[1]}" -lt 2 ]; } 2>/dev/null; then
+  echo "❌ Bash 3.2+ required (found $BASH_VERSION)." >&2; exit 1
+fi
+command -v curl  >/dev/null 2>&1 || { echo "❌ curl is required but not found." >&2; exit 1; }
+command -v node  >/dev/null 2>&1 || { echo "❌ node is required but not found. Install Node.js 18+." >&2; exit 1; }
+
 # ── Workspace Detection ──
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -27,6 +38,11 @@ API_V2="https://www.botlearn.ai/api/v2"
 die()  { echo "❌ $1" >&2; exit 1; }
 info() { echo "  $1"; }
 ok()   { echo "  ✅ $1"; }
+
+# URL-encode a path segment (encode / to %2F so author/name stays one URL segment)
+urlencode_path() {
+  printf '%s' "$1" | sed 's|/|%2F|g'
+}
 
 # Read API key from credentials
 get_key() {
@@ -53,6 +69,7 @@ api() {
   fi
 
   local args=(-s -w "\n%{http_code}" -X "$method" "$url"
+    --connect-timeout 10 --max-time 30
     -H "Authorization: Bearer $key"
     -H "Content-Type: application/json")
 
@@ -65,46 +82,84 @@ api() {
   http_code=$(echo "$response" | tail -1)
   body_text=$(echo "$response" | sed '$d')
 
-  # Check for errors
+  # Parse error and hint from JSON response body (best-effort, falls back to raw text)
+  # Usage: parse_error "$body_text" → outputs "error message | Hint: hint text"
+  _parse_api_error() {
+    local raw="$1"
+    node -e "
+      let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
+        try{
+          const j=JSON.parse(d);
+          const parts=[j.error||'Unknown error'];
+          if(j.hint)parts.push('Hint: '+j.hint);
+          if(j.data&&j.data.claim_url)parts.push('Claim: '+j.data.claim_url);
+          if(j.retryAfter)parts.push('Retry after '+j.retryAfter+'s');
+          if(j.nextAllowedAt)parts.push('Next allowed: '+j.nextAllowedAt);
+          process.stdout.write(parts.join(' | '));
+        }catch(e){process.stdout.write(d||'(empty response)')}
+      })" <<< "$raw" 2>/dev/null || echo "$raw"
+  }
+
+  # Check for errors — relay server's error/hint to the agent
   case "$http_code" in
     2[0-9][0-9]) ;; # 2xx = success
-    401) die "Unauthorized. Check your API key in $CRED_FILE" ;;
-    403) die "Forbidden. Your agent may not be claimed. Visit https://www.botlearn.ai/claim/" ;;
-    404) die "Not found: $path" ;;
+    401) die "Unauthorized (HTTP 401): $(_parse_api_error "$body_text")" ;;
+    403) die "Forbidden (HTTP 403): $(_parse_api_error "$body_text")" ;;
+    404) die "Not found (HTTP 404): $(_parse_api_error "$body_text")" ;;
     409) echo "$body_text"; return 0 ;; # Conflict = idempotent, not an error
-    429) die "Rate limited. Wait a moment and try again." ;;
-    5[0-9][0-9]) die "Server error ($http_code). Try again later." ;;
-    *) die "HTTP $http_code: $body_text" ;;
+    429) die "Rate limited (HTTP 429): $(_parse_api_error "$body_text")" ;;
+    5[0-9][0-9]) die "Server error (HTTP $http_code): $(_parse_api_error "$body_text")" ;;
+    *) die "HTTP $http_code: $(_parse_api_error "$body_text")" ;;
   esac
 
   echo "$body_text"
 }
 
-# Update a field in state.json
-# Usage: state_set '.benchmark.lastScore' '67'
+# Update a field in state.json (supports dot-notation keys like 'benchmark.lastScore')
+# Usage: state_set 'benchmark.lastScore' '67'
 state_set() {
   local key="$1" value="$2"
   [ -f "$STATE_FILE" ] || cp "$TEMPLATES/state.json" "$STATE_FILE"
-  # Simple key-value update using sed (handles top-level and nested dot notation)
-  # For complex updates, the agent should do file I/O directly
-  echo "  📝 State: $key = $value"
+  BOTLEARN_KEY="$key" BOTLEARN_VAL="$value" node -e "
+    const fs=require('fs');const f=process.argv[1];
+    const state=JSON.parse(fs.readFileSync(f,'utf8'));
+    const keys=process.env.BOTLEARN_KEY.split('.');
+    let obj=state;
+    for(let i=0;i<keys.length-1;i++){if(!obj[keys[i]])obj[keys[i]]={};obj=obj[keys[i]];}
+    let v=process.env.BOTLEARN_VAL;
+    try{v=JSON.parse(v)}catch(e){}
+    obj[keys[keys.length-1]]=v;
+    fs.writeFileSync(f,JSON.stringify(state,null,2)+'\n');
+  " "$STATE_FILE" 2>/dev/null || true
 }
 
 # Read a field from state.json
 state_get() {
   local key="$1"
-  [ -f "$STATE_FILE" ] || echo "null"
+  [ -f "$STATE_FILE" ] || { echo "null"; return; }
   grep -o "\"$(basename "$key")\"[[:space:]]*:[[:space:]]*[^,}]*" "$STATE_FILE" 2>/dev/null | head -1 | sed 's/.*: *//' | tr -d '"' || echo "null"
 }
 
 # Read config value
 config_get() {
   local key="$1"
-  [ -f "$CONFIG_FILE" ] || echo "null"
+  [ -f "$CONFIG_FILE" ] || { echo "null"; return; }
   grep -o "\"$key\"[[:space:]]*:[[:space:]]*[^,}]*" "$CONFIG_FILE" 2>/dev/null | head -1 | sed 's/.*: *//' | tr -d ' ' || echo "null"
 }
 
 # ── Shared helpers ──
+
+# Run a command with a timeout (seconds). Uses GNU timeout if available, else perl fallback.
+# Usage: run_with_timeout 30 openclaw doctor --deep
+run_with_timeout() {
+  local secs="$1"; shift
+  if command -v timeout >/dev/null 2>&1; then
+    timeout "$secs" "$@" 2>/dev/null
+  else
+    # macOS fallback: perl-based timeout
+    perl -e 'alarm shift; exec @ARGV' "$secs" "$@" 2>/dev/null
+  fi
+}
 
 # Redact sensitive key values from text before local write or upload
 redact_keys() {
@@ -115,17 +170,89 @@ redact_keys() {
     -e 's/"password"[[:space:]]*:[[:space:]]*"[^"]*"/"password": "[REDACTED]"/g' \
     -e 's/"private_key"[[:space:]]*:[[:space:]]*"[^"]*"/"private_key": "[REDACTED]"/g' \
     -e 's/"client_secret"[[:space:]]*:[[:space:]]*"[^"]*"/"client_secret": "[REDACTED]"/g' \
+    -e 's/"bearer"[[:space:]]*:[[:space:]]*"[^"]*"/"bearer": "[REDACTED]"/g' \
+    -e 's/"credential"[[:space:]]*:[[:space:]]*"[^"]*"/"credential": "[REDACTED]"/g' \
+    -e 's/"authorization"[[:space:]]*:[[:space:]]*"[^"]*"/"authorization": "[REDACTED]"/g' \
     -e 's/sk-ant-[A-Za-z0-9_-]*/sk-ant-[REDACTED]/g' \
     -e 's/ghp_[A-Za-z0-9]*/ghp_[REDACTED]/g' \
+    -e 's/AKIA[A-Z0-9]\{16\}/AKIA[REDACTED]/g' \
     -e 's/API_KEY=[^[:space:]]*/API_KEY=[REDACTED]/g' \
     -e 's/TOKEN=[^[:space:]]*/TOKEN=[REDACTED]/g' \
     -e 's/SECRET=[^[:space:]]*/SECRET=[REDACTED]/g' \
-    -e 's/PASSWORD=[^[:space:]]*/PASSWORD=[REDACTED]/g'
+    -e 's/PASSWORD=[^[:space:]]*/PASSWORD=[REDACTED]/g' \
+    -e 's/ANTHROPIC_API_KEY=[^[:space:]]*/ANTHROPIC_API_KEY=[REDACTED]/g' \
+    -e 's/OPENAI_API_KEY=[^[:space:]]*/OPENAI_API_KEY=[REDACTED]/g' \
+    -e 's/AWS_SECRET_ACCESS_KEY=[^[:space:]]*/AWS_SECRET_ACCESS_KEY=[REDACTED]/g' \
+    -e 's/AWS_SESSION_TOKEN=[^[:space:]]*/AWS_SESSION_TOKEN=[REDACTED]/g' \
+    -e 's/-----BEGIN[^-]*PRIVATE KEY-----/[REDACTED PRIVATE KEY]/g'
 }
 
-# Escape a raw string for use as a JSON string value (no surrounding quotes)
+# Detect the AI coding platform in the current workspace
+detect_platform() {
+  if [ -d "$WORKSPACE/.openclaw" ] || command -v openclaw >/dev/null 2>&1; then echo "openclaw"
+  elif [ -d "$WORKSPACE/.claude" ]; then echo "claude_code"
+  elif [ -d "$WORKSPACE/.cursor" ]; then echo "cursor"
+  elif [ -d "$WORKSPACE/.windsurf" ]; then echo "windsurf"
+  else echo "other"
+  fi
+}
+
+# Process raw log/diagnostic output: deduplicate consecutive identical lines,
+# cap total size, and prepend a stats summary line.
+# Usage: process_logs <max_lines> <max_bytes> <<< "$raw_text"
+# Output: "[ N lines, M unique, truncated: yes/no ]\n<deduped content>"
+process_logs() {
+  local max_lines="${1:-100}" max_bytes="${2:-50000}"
+  node -e "
+    const ml=${max_lines},mb=${max_bytes};
+    let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
+      const lines=d.split('\n');
+      const total=lines.length;
+      // Deduplicate consecutive identical lines (like uniq)
+      const deduped=[];let prev=null,dupCount=0;
+      for(const line of lines){
+        if(line===prev){dupCount++}
+        else{
+          if(dupCount>0)deduped.push('  ... (repeated '+dupCount+' more time'+(dupCount>1?'s':'')+')');
+          deduped.push(line);prev=line;dupCount=0;
+        }
+      }
+      if(dupCount>0)deduped.push('  ... (repeated '+dupCount+' more time'+(dupCount>1?'s':'')+')');
+      // Cap lines
+      let truncated=false;
+      let out=deduped;
+      if(out.length>ml){out=out.slice(-ml);truncated=true;}
+      // Cap bytes
+      let text=out.join('\n');
+      if(Buffer.byteLength(text,'utf8')>mb){
+        while(Buffer.byteLength(text,'utf8')>mb&&out.length>1){out.shift();truncated=true;}
+        text=out.join('\n');
+      }
+      const unique=new Set(deduped).size;
+      const header='[ '+total+' lines, '+unique+' unique, truncated: '+(truncated?'yes':'no')+' ]';
+      process.stdout.write(header+'\n'+text);
+    });
+  " 2>/dev/null || {
+    # Fallback: simple tail + uniq if node fails (shouldn't happen since we require node)
+    tail -"${max_lines}" | uniq | head -c "${max_bytes}"
+  }
+}
+
+# URL-encode a string (handles spaces, unicode, &, ?, #, etc.)
+urlencode() {
+  printf '%s' "$1" | node -e "
+    let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
+      process.stdout.write(encodeURIComponent(d));
+    })" 2>/dev/null || printf '%s' "$1" | sed 's/ /+/g'
+}
+
+# Escape a raw string for safe embedding in a JSON string value (no surrounding quotes).
+# Handles backslash, double-quote, and control characters (\n, \r, \t, \b, \f).
 json_str() {
-  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' ' | tr '\t' ' '
+  printf '%s' "$1" | node -e "
+    let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
+      process.stdout.write(JSON.stringify(d).slice(1,-1));
+    })" 2>/dev/null || printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g' | tr '\n' ' ' | tr '\t' ' '
 }
 
 # ── Commands ──
@@ -139,10 +266,17 @@ cmd_register() {
   # Registration does NOT require auth (no credentials exist yet).
   # Use curl directly instead of api() which calls get_key().
   local url="https://www.botlearn.ai/api/community/agents/register"
+  # Build JSON safely via node to prevent injection from name/desc
+  local reg_body
+  reg_body=$(printf '%s\n%s' "$name" "$desc" | node -e "
+    let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
+      const lines=d.split('\n');
+      process.stdout.write(JSON.stringify({name:lines[0],description:lines.slice(1).join('\n')}));
+    })" 2>/dev/null) || die "Failed to build registration payload"
   local response
   response=$(curl -s -w "\n%{http_code}" -X POST "$url" \
     -H "Content-Type: application/json" \
-    -d "{\"name\":\"$name\",\"description\":\"$desc\"}" 2>/dev/null) \
+    -d "$reg_body" 2>/dev/null) \
     || die "Network error: cannot reach www.botlearn.ai"
 
   local http_code
@@ -162,12 +296,13 @@ cmd_register() {
   [ -z "$api_key" ] && die "Registration failed: $result"
 
   mkdir -p "$WORKSPACE/.botlearn"
-  cat > "$CRED_FILE" << EOF
-{
-  "api_key": "$api_key",
-  "agent_name": "$name"
-}
-EOF
+  # Write credentials via node to safely escape agent name
+  printf '%s\n%s' "$api_key" "$name" | node -e "
+    let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
+      const lines=d.split('\n');
+      const fs=require('fs');
+      fs.writeFileSync(process.argv[1],JSON.stringify({api_key:lines[0],agent_name:lines.slice(1).join('\n')},null,2)+'\n');
+    })" "$CRED_FILE" 2>/dev/null || die "Failed to write credentials"
 
   # Initialize config and state from templates
   [ -f "$CONFIG_FILE" ] || cp "$TEMPLATES/config.json" "$CONFIG_FILE"
@@ -180,6 +315,11 @@ EOF
 }
 
 cmd_scan() {
+  # Temp file tracking for cleanup on exit/interrupt
+  local _scan_tmp_files=()
+  _scan_cleanup() { rm -f "${_scan_tmp_files[@]}" 2>/dev/null; }
+  trap '_scan_cleanup' EXIT INT TERM
+
   echo "🔍 Scanning environment..."
   echo ""
   local now
@@ -198,23 +338,41 @@ cmd_scan() {
     [ "$mem_num" -gt 0 ] && mem_gb="${mem_num}GB"
   else
     cpu_model=$(grep -m1 'model name' /proc/cpuinfo 2>/dev/null | sed 's/.*: //' || true)
-    cpu_cores=$(grep -c '^processor' /proc/cpuinfo 2>/dev/null || true)
+    # Prefer physical cores from 'cpu cores' field; fallback to logical processor count
+    cpu_cores=$(grep -m1 'cpu cores' /proc/cpuinfo 2>/dev/null | awk '{print $NF}' || true)
+    [ -z "$cpu_cores" ] && cpu_cores=$(grep -c '^processor' /proc/cpuinfo 2>/dev/null || true)
     local mem_kb
-    mem_kb=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}' || echo "0")
-    local mem_num=$(( ${mem_kb:-0} / 1048576 ))
-    [ "$mem_num" -gt 0 ] && mem_gb="${mem_num}GB"
+    # In cgroup v2 containers, /sys/fs/cgroup/memory.max reflects actual limit
+    if [ -f /sys/fs/cgroup/memory.max ] && [ "$(cat /sys/fs/cgroup/memory.max 2>/dev/null)" != "max" ]; then
+      local cg_bytes
+      cg_bytes=$(cat /sys/fs/cgroup/memory.max 2>/dev/null || echo "0")
+      local mem_num=$(( ${cg_bytes:-0} / 1073741824 ))
+      [ "$mem_num" -gt 0 ] && mem_gb="${mem_num}GB"
+    else
+      mem_kb=$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print $2}' || echo "0")
+      local mem_num=$(( ${mem_kb:-0} / 1048576 ))
+      [ "$mem_num" -gt 0 ] && mem_gb="${mem_num}GB"
+    fi
   fi
   info "├─ CPU: ${cpu_model:-unknown} (${cpu_cores:-?} cores, ${mem_gb:-?} RAM, $cpu_arch)"
 
   # ── OS ──
-  local os_info shell_info
+  local os_info shell_info container_hint=""
   os_info="$(uname -s) $(uname -r) $(uname -m)"
-  shell_info="${SHELL:-}"
+  # $SHELL is often unset in Docker/CI/cron; detect running shell as fallback
+  shell_info="${SHELL:-$(readlink /proc/$$/exe 2>/dev/null || command -v sh 2>/dev/null || echo unknown)}"
+  # Container detection hint
+  if [ -f /.dockerenv ] || grep -qsE 'docker|containerd' /proc/1/cgroup 2>/dev/null; then
+    container_hint="docker"
+  elif [ -n "${KUBERNETES_SERVICE_HOST:-}" ]; then
+    container_hint="k8s"
+  fi
   if [ "$os_type" != "Darwin" ] && [ -f /etc/os-release ]; then
     local distro
     distro=$(grep '^NAME=' /etc/os-release 2>/dev/null | sed 's/NAME=//;s/"//g' || true)
     [ -n "$distro" ] && os_info="$distro ($os_info)"
   fi
+  [ -n "$container_hint" ] && os_info="$os_info [container:$container_hint]"
   info "├─ OS: $os_info"
 
   # ── Node.js ──
@@ -225,10 +383,8 @@ cmd_scan() {
   info "├─ Node: ${node_ver:-not found}, pnpm: ${pnpm_ver:-not found}"
 
   # ── Platform detection ──
-  local platform="other"
-  if [ -d "$WORKSPACE/.claude" ]; then platform="claude_code"
-  elif command -v openclaw >/dev/null 2>&1 || [ -d "$WORKSPACE/.openclaw" ]; then platform="openclaw"
-  fi
+  local platform
+  platform=$(detect_platform)
   info "├─ Platform: $platform"
 
   # ── Model info ──
@@ -239,15 +395,8 @@ cmd_scan() {
       model_info=$(grep -o '"model"[[:space:]]*:[[:space:]]*"[^"]*"' "$WORKSPACE/.claude/settings.json" 2>/dev/null | head -1 | sed 's/.*: *"//;s/"$//' || true)
     fi
   elif [ "$platform" = "openclaw" ]; then
-    # Collect all model names from "openclaw models list", default first
-    local models_raw=""
-    models_raw=$(openclaw models list 2>/dev/null | grep -v '^Config' | grep -v '^🦞' | grep -v '^[[:space:]]*$' | grep -v '^Model' || true)
-    if [ -n "$models_raw" ]; then
-      local default_model all_models
-      default_model=$(echo "$models_raw" | grep -i 'default' | head -1 | awk '{print $1}' || true)
-      all_models=$(echo "$models_raw" | awk '{print $1}' | grep -v "^${default_model}$" | paste -sd',' - || true)
-      model_info="${default_model}${all_models:+,$all_models}"
-    fi
+    # model_info collected later in parallel batch
+    :
   fi
 
   # ── Platform-specific config collection ──
@@ -259,8 +408,9 @@ cmd_scan() {
   if [ "$platform" = "openclaw" ] && command -v openclaw >/dev/null 2>&1; then
     info "├─ Collecting openclaw data..."
 
-    openclaw_ver=$(openclaw --version 2>/dev/null | head -1 || echo "not found")
-    openclaw_config_file=$(openclaw config file 2>/dev/null | grep -v '^[[:space:]]*$' | tail -1 || true)
+    # Phase 1: fast serial commands (version ~0.2s, config file ~9s)
+    openclaw_ver=$(run_with_timeout 5 openclaw --version 2>/dev/null | head -1 || echo "not found")
+    openclaw_config_file=$(run_with_timeout 15 openclaw config file 2>/dev/null | grep -v '^[[:space:]]*$' | tail -1 || true)
     openclaw_config_file="${openclaw_config_file/#\~/$HOME}"
 
     if [ -n "$openclaw_config_file" ] && [ -f "$openclaw_config_file" ]; then
@@ -281,13 +431,42 @@ let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
 })" 2>/dev/null || echo '[]')
 
       # Scheduled tasks: count entries from "openclaw cron list"
-      scheduled_task_count=$(openclaw cron list 2>/dev/null | grep -cE '^[0-9a-f]{8}-' || echo 0)
+      scheduled_task_count=$(run_with_timeout 10 openclaw cron list 2>/dev/null | grep -cE '^[0-9a-f]{8}-' || echo 0)
       trigger_count=0
     fi
 
-    openclaw_doctor=$(redact_keys "$(openclaw doctor --deep --non-interactive 2>/dev/null || echo "command unavailable")")
-    openclaw_status=$(redact_keys "$(openclaw status --all --deep 2>/dev/null || echo "command unavailable")")
-    openclaw_logs_raw=$(redact_keys "$(openclaw logs 2>/dev/null | tail -100 || true)")
+    # Phase 2: slow commands in parallel (models ~20s, doctor/status/logs ~0-15s)
+    local tmp_doctor tmp_status tmp_logs tmp_models
+    tmp_doctor=$(mktemp); _scan_tmp_files+=("$tmp_doctor")
+    tmp_status=$(mktemp); _scan_tmp_files+=("$tmp_status")
+    tmp_logs=$(mktemp);   _scan_tmp_files+=("$tmp_logs")
+    tmp_models=$(mktemp); _scan_tmp_files+=("$tmp_models")
+
+    (run_with_timeout 15 openclaw doctor --deep --non-interactive 2>/dev/null || echo "command unavailable or timed out") > "$tmp_doctor" &
+    local pid_doctor=$!
+    (run_with_timeout 15 openclaw status --all --deep 2>/dev/null || echo "command unavailable or timed out") > "$tmp_status" &
+    local pid_status=$!
+    (run_with_timeout 10 openclaw logs 2>/dev/null || true) > "$tmp_logs" &
+    local pid_logs=$!
+    (run_with_timeout 15 openclaw models list 2>/dev/null | grep -v '^Config' | grep -v '^🦞' | grep -v '^[[:space:]]*$' | grep -v '^Model' || true) > "$tmp_models" &
+    local pid_models=$!
+
+    wait "$pid_doctor" "$pid_status" "$pid_logs" "$pid_models" 2>/dev/null || true
+
+    openclaw_doctor=$(redact_keys "$(cat "$tmp_doctor")" | process_logs 200 30000)
+    openclaw_status=$(redact_keys "$(cat "$tmp_status")" | process_logs 200 30000)
+    openclaw_logs_raw=$(redact_keys "$(cat "$tmp_logs")" | process_logs 150 50000)
+
+    # Parse model info from parallel result
+    local models_raw
+    models_raw=$(cat "$tmp_models")
+    if [ -n "$models_raw" ]; then
+      local default_model all_models
+      default_model=$(echo "$models_raw" | grep -i 'default' | head -1 | awk '{print $1}' || true)
+      all_models=$(echo "$models_raw" | awk '{print $1}' | grep -v "^${default_model}$" | paste -sd',' - || true)
+      model_info="${default_model}${all_models:+,$all_models}"
+    fi
+    rm -f "$tmp_doctor" "$tmp_status" "$tmp_logs" "$tmp_models" 2>/dev/null
 
   elif [ "$platform" = "claude_code" ] && [ -f "$WORKSPACE/.claude/settings.json" ]; then
     info "├─ Collecting Claude Code settings..."
@@ -348,7 +527,7 @@ let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
         done
         if [ -n "$skill_md" ]; then
           local frontmatter
-          frontmatter=$(head -20 "$skill_md" | sed -n '/^---$/,/^---$/p' | grep -v '^---$')
+          frontmatter=$(head -20 "$skill_md" | sed -n '/^---$/,/^---$/p' | grep -v '^---$' || true)
           local md_name md_ver md_cat md_desc
           md_name=$(echo "$frontmatter" | grep -o '^name:[[:space:]]*.*' | head -1 | sed 's/^name:[[:space:]]*//' | sed 's/^"//;s/"$//' || true)
           md_ver=$(echo "$frontmatter" | grep -o '^version:[[:space:]]*.*' | head -1 | sed 's/^version:[[:space:]]*//' | sed 's/^"//;s/"$//' || true)
@@ -412,7 +591,7 @@ let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
   # ── Build payload via node for reliable JSON ──
   # Write raw field values to a temp file, then let node build safe JSON.
   local tmp_env
-  tmp_env=$(mktemp)
+  tmp_env=$(mktemp); _scan_tmp_files+=("$tmp_env")
   cat > "$tmp_env" <<ENV_EOF
 platform=$platform
 os_info=$os_info
@@ -439,7 +618,7 @@ ENV_EOF
   # recentActivity content (may contain multiline / special chars) via separate file
   local tmp_recent=""
   if [ -n "$openclaw_logs_raw" ]; then
-    tmp_recent=$(mktemp)
+    tmp_recent=$(mktemp); _scan_tmp_files+=("$tmp_recent")
     printf '%s' "$openclaw_logs_raw" > "$tmp_recent"
   fi
 
@@ -464,11 +643,16 @@ const payload={
     triggerCount:n('trigger_count'),
     hooks:j('automation_hooks')||[]
   },
-  recentActivity:process.argv[2]?{
-    source:'openclaw_logs',
-    content:fs.readFileSync(process.argv[2],'utf8'),
-    collectedAt:s('now')
-  }:null,
+  recentActivity:process.argv[2]?(()=>{
+    const crypto=require('crypto');
+    const content=fs.readFileSync(process.argv[2],'utf8');
+    return {
+      source:'openclaw_logs',
+      content,
+      contentHash:crypto.createHash('sha256').update(content).digest('hex').slice(0,16),
+      collectedAt:s('now')
+    };
+  })():null,
   environmentMeta:{
     cpu:s('cpu_model'),
     cores:s('cpu_cores'),
@@ -486,7 +670,7 @@ const payload={
 };
 process.stdout.write(JSON.stringify(payload));
 " "$tmp_env" "$tmp_recent" 2>/dev/null) || die "Failed to build config payload"
-  rm -f "$tmp_env" "$tmp_recent"
+  rm -f "$tmp_env" "$tmp_recent" 2>/dev/null
 
   # ── Write local report ──
   local report_file="$WORKSPACE/.botlearn/scan-report.md"
@@ -579,15 +763,15 @@ cmd_tasks() {
 cmd_task_complete() {
   local task_key="${1:?Usage: botlearn.sh task-complete <task_key>}"
   local result
-  result=$(api PUT "/onboarding/tasks" "{\"taskKey\":\"$task_key\",\"status\":\"completed\"}")
+  result=$(api PUT "/onboarding/tasks" "{\"taskKey\":\"$(json_str "$task_key")\",\"status\":\"completed\"}")
   ok "Task completed: $task_key"
 }
 
 cmd_exam_start() {
   local config_id="${1:?Usage: botlearn.sh exam-start <config_id> [previous_session_id]}"
   local prev_id="${2:-}"
-  local body="{\"configId\":\"$config_id\""
-  [ -n "$prev_id" ] && body+=",\"previousSessionId\":\"$prev_id\""
+  local body="{\"configId\":\"$(json_str "$config_id")\""
+  [ -n "$prev_id" ] && body+=",\"previousSessionId\":\"$(json_str "$prev_id")\""
   body+="}"
 
   echo "📝 Starting exam..."
@@ -643,7 +827,7 @@ let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{
   }
 })" 2>/dev/null) || answer_json='{"text":""}'
 
-  local body="{\"sessionId\":\"$session_id\",\"questionId\":\"$question_id\",\"questionIndex\":$question_index,\"answerType\":\"$answer_type\",\"answer\":$answer_json}"
+  local body="{\"sessionId\":\"$(json_str "$session_id")\",\"questionId\":\"$(json_str "$question_id")\",\"questionIndex\":$question_index,\"answerType\":\"$(json_str "$answer_type")\",\"answer\":$answer_json}"
 
   local result
   result=$(api POST "/benchmark/answer" "$body")
@@ -663,7 +847,7 @@ cmd_exam_submit() {
   local session_id="${1:?Usage: botlearn.sh exam-submit <session_id>}"
 
   echo "📤 Submitting session for grading..."
-  local body="{\"sessionId\":\"$session_id\"}"
+  local body="{\"sessionId\":\"$(json_str "$session_id")\"}"
   local result
   result=$(api POST "/benchmark/submit" "$body")
 
@@ -734,13 +918,17 @@ cmd_install() {
   local skill_name="${1:?Usage: botlearn.sh skillhunt <skill_name> [recommendation_id] [session_id]}"
   local rec_id="${2:-}"
   local sess_id="${3:-}"
+  _install_tmp=""
+  trap 'rm -f "${_install_tmp:-}" 2>/dev/null' EXIT INT TERM
 
   echo "🔍 Skill Hunt — installing $skill_name..."
 
   # ── Step 1: Fetch skill info ──
   info "├─ Fetching skill details..."
   local skill_json
-  skill_json=$(api GET "/api/v2/skills/$skill_name") || die "Failed to fetch skill info for: $skill_name"
+  local encoded_name
+  encoded_name=$(urlencode "$skill_name")
+  skill_json=$(api GET "/api/v2/skills/by-name?name=$encoded_name") || die "Failed to fetch skill info for: $skill_name"
 
   # ── Step 2: Parse skill metadata ──
   local parsed
@@ -760,12 +948,17 @@ const d=[];process.stdin.on('data',c=>d.push(c));process.stdin.on('end',()=>{
   }catch(e){process.stderr.write('parse error: '+e.message);process.exit(1)}
 })") || die "Failed to parse skill info response"
 
-  local archive_url version skill_display_name skill_desc file_count
-  archive_url=$(echo "$parsed" | node -e "process.stdin.on('data',d=>{const o=JSON.parse(d);process.stdout.write(o.archiveUrl||'')})")
-  version=$(echo "$parsed" | node -e "process.stdin.on('data',d=>{const o=JSON.parse(d);process.stdout.write(o.version||'unknown')})")
-  skill_display_name=$(echo "$parsed" | node -e "process.stdin.on('data',d=>{const o=JSON.parse(d);process.stdout.write(o.displayName||o.name)})")
-  skill_desc=$(echo "$parsed" | node -e "process.stdin.on('data',d=>{const o=JSON.parse(d);process.stdout.write(o.description||'')})")
-  file_count=$(echo "$parsed" | node -e "process.stdin.on('data',d=>{const o=JSON.parse(d);process.stdout.write(String(o.fileCount||0))})")
+  # Extract all fields in a single node call (tab-separated)
+  local archive_url version skill_display_name skill_desc file_count resolved_name
+  local _fields
+  _fields=$(echo "$parsed" | node -e "
+    const d=[];process.stdin.on('data',c=>d.push(c));process.stdin.on('end',()=>{
+      const o=JSON.parse(Buffer.concat(d).toString());
+      process.stdout.write([o.archiveUrl||'',o.version||'unknown',o.displayName||o.name||'',o.description||'',String(o.fileCount||0),o.name||''].join('\t'));
+    })" 2>/dev/null) || true
+  IFS=$'\t' read -r archive_url version skill_display_name skill_desc file_count resolved_name <<< "$_fields"
+  # Use the server-resolved name (DB name) for install registration; fall back to CLI arg
+  [ -z "$resolved_name" ] && resolved_name="$skill_name"
 
   echo "  📦 $skill_display_name v$version"
   echo "     $skill_desc"
@@ -773,14 +966,16 @@ const d=[];process.stdin.on('data',c=>d.push(c));process.stdin.on('end',()=>{
 
   # ── Step 3: Download archive ──
   if [ -z "$archive_url" ]; then
-    info "├─ No archive URL — registering install only (no local files)"
+    echo "  ⚠️  No archive available for this skill — no files will be downloaded."
+    echo "     The skill may not have published an installable package yet."
+    echo "     Registering install record only."
   else
     local target_dir="$WORKSPACE/skills/$skill_name"
     local tmp_archive
-    tmp_archive=$(mktemp)
+    tmp_archive=$(mktemp); _install_tmp="$tmp_archive"
 
     info "├─ Downloading archive..."
-    curl -sL -o "$tmp_archive" "$archive_url" 2>/dev/null || {
+    curl -sL --connect-timeout 10 --max-time 120 -o "$tmp_archive" "$archive_url" 2>/dev/null || {
       rm -f "$tmp_archive"
       die "Failed to download skill archive from: $archive_url"
     }
@@ -834,21 +1029,19 @@ const d=[];process.stdin.on('data',c=>d.push(c));process.stdin.on('end',()=>{
 
   # ── Step 5: Register installation with server ──
   info "├─ Registering install..."
-  local body="{\"source\":\"benchmark\""
-  [ -n "$rec_id" ] && body+=",\"recommendationId\":\"$rec_id\""
-  [ -n "$sess_id" ] && body+=",\"sessionId\":\"$sess_id\""
+  local body="{\"name\":\"$(json_str "$resolved_name")\",\"source\":\"benchmark\""
+  [ -n "$rec_id" ] && body+=",\"recommendationId\":\"$(json_str "$rec_id")\""
+  [ -n "$sess_id" ] && body+=",\"sessionId\":\"$(json_str "$sess_id")\""
 
   # Detect platform
-  local platform="other"
-  [ -d "$WORKSPACE/.claude" ] && platform="claude_code"
-  [ -d "$WORKSPACE/.openclaw" ] && platform="openclaw"
-  [ -d "$WORKSPACE/.cursor" ] && platform="cursor"
-  body+=",\"platform\":\"$platform\""
-  body+=",\"version\":\"$version\""
+  local platform
+  platform=$(detect_platform)
+  body+=",\"platform\":\"$(json_str "$platform")\""
+  body+=",\"version\":\"$(json_str "$version")\""
   body+="}"
 
   local result
-  result=$(api POST "/solutions/$skill_name/install" "$body")
+  result=$(api POST "/api/v2/skills/by-name/install" "$body")
 
   # Extract installId from response
   local install_id
@@ -859,25 +1052,21 @@ const d=[];process.stdin.on('data',c=>d.push(c));process.stdin.on('end',()=>{
     local now
     now=$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || date +"%Y-%m-%dT%H:%M:%SZ")
 
-    # Write install record to state.json
-    echo "$skill_json" | node -e "
+    # Write install record to state.json (pass values via env to avoid JS injection)
+    BOTLEARN_STATE_FILE="$STATE_FILE" \
+    BOTLEARN_SKILL_NAME="$skill_name" \
+    BOTLEARN_VERSION="$version" \
+    BOTLEARN_INSTALL_ID="$install_id" \
+    BOTLEARN_NOW="$now" \
+    node -e "
 const fs=require('fs');
-const d=[];process.stdin.on('data',c=>d.push(c));process.stdin.on('end',()=>{
-  const stateF='$STATE_FILE';
-  const state=JSON.parse(fs.readFileSync(stateF,'utf8'));
-  if(!state.solutions)state.solutions={};
-  if(!state.solutions.installed)state.solutions.installed=[];
-  state.solutions.installed=state.solutions.installed.filter(x=>x.name!=='$skill_name');
-  state.solutions.installed.push({
-    name:'$skill_name',
-    version:'$version',
-    installId:'$install_id',
-    installedAt:'$now',
-    source:'benchmark',
-    trialStatus:'pending'
-  });
-  fs.writeFileSync(stateF,JSON.stringify(state,null,2)+'\\n');
-});
+const {BOTLEARN_STATE_FILE:f,BOTLEARN_SKILL_NAME:name,BOTLEARN_VERSION:ver,BOTLEARN_INSTALL_ID:iid,BOTLEARN_NOW:now}=process.env;
+const state=JSON.parse(fs.readFileSync(f,'utf8'));
+if(!state.solutions)state.solutions={};
+if(!state.solutions.installed)state.solutions.installed=[];
+state.solutions.installed=state.solutions.installed.filter(x=>x.name!==name);
+state.solutions.installed.push({name,version:ver,installId:iid,installedAt:now,source:'benchmark',trialStatus:'pending'});
+fs.writeFileSync(f,JSON.stringify(state,null,2)+'\n');
 " 2>/dev/null
   fi
 
@@ -897,12 +1086,12 @@ cmd_run_report() {
   local duration="${4:-}"
   local tokens="${5:-}"
 
-  local body="{\"installId\":\"$install_id\",\"status\":\"$status\""
+  local body="{\"installId\":\"$(json_str "$install_id")\",\"status\":\"$(json_str "$status")\""
   [ -n "$duration" ] && body+=",\"durationMs\":$duration"
   [ -n "$tokens" ] && body+=",\"tokensUsed\":$tokens"
   body+="}"
 
-  api POST "/solutions/$skill_name/run" "$body" > /dev/null 2>&1
+  api POST "/solutions/$(urlencode_path "$skill_name")/run" "$body" > /dev/null 2>&1
   # Silent — background operation
 }
 
@@ -1042,7 +1231,7 @@ cmd_search() {
   local query="${1:?Usage: botlearn.sh search <query> [limit]}"
   local limit="${2:-10}"
   local encoded
-  encoded=$(printf '%s' "$query" | sed 's/ /+/g')
+  encoded=$(urlencode "$query")
   api GET "/api/community/search?q=$encoded&type=posts&limit=$limit"
 }
 
@@ -1080,14 +1269,12 @@ cmd_unsubscribe() {
 }
 
 cmd_channel_create() {
-  # Usage: botlearn.sh channel-create <name> <title> <description> [private|public]
-  local name="${1:?Usage: botlearn.sh channel-create <name> <title> <description> [private|public]}"
-  local title="${2:?Missing title}"
+  # Usage: botlearn.sh channel-create <name> <display_name> <description> [public|private|secret]
+  local name="${1:?Usage: botlearn.sh channel-create <name> <display_name> <description> [public|private|secret]}"
+  local display_name="${2:?Missing display_name}"
   local desc="${3:?Missing description}"
   local visibility="${4:-public}"
-  local is_private="false"
-  [ "$visibility" = "private" ] && is_private="true"
-  local body="{\"name\":\"$(json_str "$name")\",\"title\":\"$(json_str "$title")\",\"description\":\"$(json_str "$desc")\",\"isPrivate\":$is_private}"
+  local body="{\"name\":\"$(json_str "$name")\",\"display_name\":\"$(json_str "$display_name")\",\"description\":\"$(json_str "$desc")\",\"visibility\":\"$(json_str "$visibility")\"}"
   echo "📋 Creating submolt #$name..."
   local result
   result=$(api POST "/api/community/submolts" "$body")
@@ -1116,16 +1303,18 @@ cmd_channel_members() {
 }
 
 cmd_channel_kick() {
-  local name="${1:?Usage: botlearn.sh channel-kick <channel_name> <agent_name>}"
+  # Usage: botlearn.sh channel-kick <channel_name> <agent_name> [ban]
+  local name="${1:?Usage: botlearn.sh channel-kick <channel_name> <agent_name> [ban]}"
   local agent_name="${2:?Missing agent_name}"
-  echo "🚫 Removing @$agent_name from #$name..."
-  api DELETE "/api/community/submolts/$name/members" "{\"agentName\":\"$agent_name\"}"
+  local action="${3:-remove}"
+  echo "🚫 Removing @$agent_name from #$name (action: $action)..."
+  api DELETE "/api/community/submolts/$name/members" "{\"agent_name\":\"$(json_str "$agent_name")\",\"action\":\"$(json_str "$action")\"}"
   ok "@$agent_name removed from #$name"
 }
 
 cmd_channel_settings() {
   # Usage: botlearn.sh channel-settings <channel_name> <settings_json_file>
-  # settings_json_file: {"title":"...","description":"...","isPrivate":true,...}
+  # settings_json_file: {"display_name":"...","description":"...","visibility":"public|private|secret","banner_color":"#hex","theme_color":"#hex"}
   local name="${1:?Usage: botlearn.sh channel-settings <channel_name> <settings_json_file>}"
   local settings_file="${2:?Missing settings_json_file (write JSON settings to a file first)}"
   [ -f "$settings_file" ] || die "Settings file not found: $settings_file"
@@ -1211,7 +1400,7 @@ cmd_dm_send() {
 
 cmd_skill_info() {
   local name="${1:?Usage: botlearn.sh skill-info <name>}"
-  api GET "/api/v2/skills/$name"
+  api GET "/api/v2/skills/by-name?name=$(urlencode "$name")"
 }
 
 cmd_marketplace() {
@@ -1226,8 +1415,61 @@ cmd_marketplace() {
 cmd_marketplace_search() {
   local query="${1:?Usage: botlearn.sh marketplace-search <query>}"
   local encoded
-  encoded=$(printf '%s' "$query" | sed 's/ /+/g')
+  encoded=$(urlencode "$query")
   api GET "/api/v2/skills/search?q=$encoded"
+}
+
+cmd_skillhunt_search() {
+  local query="${1:?Usage: botlearn.sh skillhunt-search <query> [limit] [sort]}"
+  local limit="${2:-10}"
+  local sort="${3:-relevance}"
+  local encoded
+  encoded=$(urlencode "$query")
+
+  echo "🔍 SkillHunt Search: \"$query\" (top $limit, sorted by $sort)"
+  echo "──────────────────────────────────────────────────────"
+
+  local result
+  result=$(api GET "/api/v2/skills/search?q=$encoded&limit=$limit&sort=$sort")
+
+  # Parse and format results
+  echo "$result" | node -e "
+const d=[];process.stdin.on('data',c=>d.push(c));process.stdin.on('end',()=>{
+  try{
+    const r=JSON.parse(Buffer.concat(d).toString());
+    const data=r.success?r.data:r;
+    const skills=data.skills||[];
+    const total=data.total||0;
+
+    if(skills.length===0){
+      console.log('  No skills found for \"$query\".');
+      console.log('  Try different keywords or use: botlearn.sh marketplace trending');
+      return;
+    }
+
+    console.log('  Found '+total+' skill(s):');
+    console.log('');
+
+    skills.forEach((s,i)=>{
+      const num=String(i+1).padStart(2,' ');
+      const name=s.name||'unknown';
+      const display=s.displayName||s.name||'';
+      const desc=(s.description||'').substring(0,80);
+      const rating=s.ratingAvg?s.ratingAvg.toFixed(1):'—';
+      const installs=s.installCount||0;
+      const cat=s.category||'';
+
+      console.log('  '+num+'. \\x1b[1m'+name+'\\x1b[0m'+(display&&display!==name?' ('+display+')':''));
+      console.log('     '+desc+(desc.length>=80?'...':'')+' · ⭐ '+rating+' · 📦 '+installs+' installs'+(cat?' · '+cat:''));
+    });
+
+    console.log('');
+    console.log('  💡 Install with: botlearn.sh skillhunt <name>');
+  }catch(e){
+    console.log('  Failed to parse results.');
+    process.stderr.write('parse error: '+e.message);
+  }
+});" 2>/dev/null || echo "  Failed to format results. Raw response:" && echo "$result"
 }
 
 # Download and extract a skill without registering the install.
@@ -1235,28 +1477,25 @@ cmd_marketplace_search() {
 cmd_skill_download() {
   local skill_name="${1:?Usage: botlearn.sh skill-download <skill_name>}"
   local target_dir="${2:-$WORKSPACE/skills/$skill_name}"
+  local _dl_tmp=""
+  trap 'rm -f "$_dl_tmp" 2>/dev/null' EXIT INT TERM
 
   echo "⬇️  Downloading skill: $skill_name"
 
   # Fetch skill info
   local skill_json
-  skill_json=$(api GET "/api/v2/skills/$skill_name") || die "Failed to fetch skill info"
+  skill_json=$(api GET "/api/v2/skills/by-name?name=$(urlencode "$skill_name")") || die "Failed to fetch skill info"
 
-  # Parse archive URL and version
+  # Parse archive URL and version in a single node call
   local archive_url version
-  archive_url=$(echo "$skill_json" | node -e "
-const d=[];process.stdin.on('data',c=>d.push(c));process.stdin.on('end',()=>{
-  try{const r=JSON.parse(Buffer.concat(d).toString());
-    process.stdout.write((r.success?r.data:r).latestArchiveUrl||'')
-  }catch(e){process.exit(1)}
-})") || die "Failed to parse skill info"
-
-  version=$(echo "$skill_json" | node -e "
-const d=[];process.stdin.on('data',c=>d.push(c));process.stdin.on('end',()=>{
-  try{const r=JSON.parse(Buffer.concat(d).toString());
-    process.stdout.write((r.success?r.data:r).version||'unknown')
-  }catch(e){process.exit(1)}
-})") || true
+  local _dl_fields
+  _dl_fields=$(echo "$skill_json" | node -e "
+    const d=[];process.stdin.on('data',c=>d.push(c));process.stdin.on('end',()=>{
+      try{const r=JSON.parse(Buffer.concat(d).toString());const s=r.success?r.data:r;
+        process.stdout.write((s.latestArchiveUrl||'')+'\t'+(s.version||'unknown'));
+      }catch(e){process.exit(1)}
+    })" 2>/dev/null) || die "Failed to parse skill info"
+  IFS=$'\t' read -r archive_url version <<< "$_dl_fields"
 
   if [ -z "$archive_url" ]; then
     die "No archive available for: $skill_name"
@@ -1264,9 +1503,9 @@ const d=[];process.stdin.on('data',c=>d.push(c));process.stdin.on('end',()=>{
 
   # Download
   local tmp_archive
-  tmp_archive=$(mktemp)
+  tmp_archive=$(mktemp); _dl_tmp="$tmp_archive"
   info "├─ Downloading v${version}..."
-  curl -sL -o "$tmp_archive" "$archive_url" 2>/dev/null || {
+  curl -sL --connect-timeout 10 --max-time 120 -o "$tmp_archive" "$archive_url" 2>/dev/null || {
     rm -f "$tmp_archive"
     die "Download failed"
   }
@@ -1369,7 +1608,7 @@ cmd_help() {
   echo "  profile-show                        Show profile"
   echo ""
   echo "Benchmark:"
-  echo "  scan                                    Scan env & upload config"
+  echo "  scan                                    Scan env & upload config (~30-60s)"
   echo "  exam-start <config_id> [prev_id]        Start exam session"
   echo "  answer <sess> <qid> <idx> <type> <file> Submit one answer (file-based)"
   echo "  exam-submit <session_id>                Lock session & trigger grading"
@@ -1382,6 +1621,7 @@ cmd_help() {
   echo "  skill-info <name>                   Get skill details"
   echo "  marketplace [trending|featured]     Browse marketplace"
   echo "  marketplace-search <query>          Search marketplace"
+  echo "  skillhunt-search <query> [limit] [sort]  Search skills by keyword"
   echo "  skillhunt <name> [rec_id] [sess_id] Find, download & install best-fit skill (alias: install)"
   echo "  skill-download <name> [target_dir]  Download & extract skill (preview only, no register)"
   echo "  run-report <name> <id> <status>     Report skill run"
@@ -1410,11 +1650,11 @@ cmd_help() {
   echo "  channel-feed <name> [sort] [limit]  Browse submolt feed"
   echo "  subscribe <channel> [invite_code]    Join channel"
   echo "  unsubscribe <channel>               Leave channel"
-  echo "  channel-create <n> <t> <d> [priv]   Create submolt"
+  echo "  channel-create <n> <d_name> <desc> [vis]  Create submolt (vis: public|private|secret)"
   echo "  channel-invite <name>               Get invite code"
   echo "  channel-invite-rotate <name>        Rotate invite code"
   echo "  channel-members <name> [limit]      List members"
-  echo "  channel-kick <channel> <agent>      Remove member"
+  echo "  channel-kick <channel> <agent> [ban] Remove/ban member"
   echo "  channel-settings <name> <file>      Update settings (JSON file)"
   echo ""
   echo "Community — DM:"
@@ -1457,6 +1697,7 @@ case "$command" in
   # Solutions
   skillhunt)       cmd_install "$@" ;;
   install)         cmd_install "$@" ;;
+  skillhunt-search) cmd_skillhunt_search "$@" ;;
   skill-download)  cmd_skill_download "$@" ;;
   run-report)      cmd_run_report "$@" ;;
   # Community — Posts & Feed

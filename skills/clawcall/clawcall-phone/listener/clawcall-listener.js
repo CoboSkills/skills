@@ -18,23 +18,25 @@
  *
  *   (default) OpenClaw CLI:
  *       openclaw agent --session-id <call_sid> --message <msg> --json
+ *       Hard timeout: 9s — process is killed and a fallback plays if exceeded.
  *
  * Security note:
- *   child_process.spawnSync is used ONLY to invoke the local OpenClaw
- *   CLI ("openclaw agent ..."). No other shell commands are executed.
- *   The full argument list is built from controlled variables — no
- *   string interpolation into a shell. Set CLAWCALL_AGENT_URL to use
+ *   child_process.spawn is used ONLY to invoke the local OpenClaw CLI.
+ *   No other shell commands are executed. Set CLAWCALL_AGENT_URL to use
  *   HTTP mode instead and avoid child_process entirely.
  */
 
 "use strict";
 
-const { spawnSync } = require("child_process");
+const { spawn, execSync } = require("child_process");
 const { URL } = require("url");
 
-const API_KEY    = process.env.CLAWCALL_API_KEY;
-const BASE_URL   = (process.env.CLAWCALL_BASE_URL || "https://api.clawcall.online").replace(/\/$/, "");
-const AGENT_URL  = (process.env.CLAWCALL_AGENT_URL || "").replace(/\/$/, ""); // e.g. http://localhost:5000
+const API_KEY   = process.env.CLAWCALL_API_KEY;
+const BASE_URL  = (process.env.CLAWCALL_BASE_URL || "https://api.clawcall.online").replace(/\/$/, "");
+const AGENT_URL = (process.env.CLAWCALL_AGENT_URL || "").replace(/\/$/, "");
+
+// Hard latency budget for openclaw CLI — must reply before AGENT_RESPONSE_TIMEOUT (12s)
+const CLI_TIMEOUT_MS = 9_000;
 
 if (!API_KEY) {
   console.error("[ClawCall] ERROR: CLAWCALL_API_KEY is not set.");
@@ -51,9 +53,9 @@ const _port     = _parsed.port ? parseInt(_parsed.port) : (_isHttps ? 443 : 80);
 
 console.log(`[ClawCall] Connecting to ${BASE_URL}`);
 if (AGENT_URL) {
-  console.log(`[ClawCall] Agent mode: HTTP webhook → ${AGENT_URL}/clawcall/message`);
+  console.log(`[ClawCall] Agent mode: HTTP → ${AGENT_URL}/clawcall/message`);
 } else {
-  console.log("[ClawCall] Agent mode: openclaw CLI");
+  console.log(`[ClawCall] Agent mode: openclaw CLI (timeout ${CLI_TIMEOUT_MS}ms)`);
 }
 
 // ── HTTP helper (ClawCall API) ────────────────────────────────────────────────
@@ -68,8 +70,8 @@ function request(method, path, body) {
         path,
         method,
         headers: {
-          Authorization:   `Bearer ${API_KEY}`,
-          "Content-Type":  "application/json",
+          Authorization:  `Bearer ${API_KEY}`,
+          "Content-Type": "application/json",
           ...(data ? { "Content-Length": Buffer.byteLength(data) } : {}),
         },
       },
@@ -125,48 +127,11 @@ function postToAgent(agentUrl, callSid, message) {
   });
 }
 
-// ── Agent turn ────────────────────────────────────────────────────────────────
+// ── Parse openclaw --json output ──────────────────────────────────────────────
 
-async function runAgentTurn(message, callSid) {
-  // ── Mode 1: HTTP webhook agent (CLAWCALL_AGENT_URL set) ──────────────────
-  if (AGENT_URL) {
-    try {
-      const data = await postToAgent(AGENT_URL, callSid, message);
-      const reply = (data.response || data.reply || data.text || "").trim();
-      if (reply) return { reply, end_call: !!data.end_call };
-      console.error("[ClawCall] Agent returned empty response:", data);
-      return { reply: "I had a little trouble with that — could you repeat it?", end_call: false };
-    } catch (err) {
-      console.error("[ClawCall] Agent webhook error:", err.message);
-      return { reply: "I had a little trouble with that — could you repeat it?", end_call: false };
-    }
-  }
+function parseOpenClawOutput(raw) {
+  if (!raw) return null;
 
-  // ── Mode 2: OpenClaw CLI ──────────────────────────────────────────────────
-  let raw = "";
-  try {
-    const [bin, args] = process.platform === "win32"
-      ? ["cmd.exe", ["/c", "openclaw", "agent", "--session-id", callSid, "--message", message, "--json"]]
-      : ["openclaw", ["agent", "--session-id", callSid, "--message", message, "--json"]];
-    const result = spawnSync(bin, args,
-      { timeout: 55_000, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] }
-    );
-    if (result.error) throw result.error;
-    if (result.status !== 0) {
-      const err = new Error(`openclaw exited ${result.status}`);
-      err.stdout = result.stdout || "";
-      throw err;
-    }
-    raw = (result.stdout || "").trim();
-  } catch (err) {
-    raw = (err.stdout || "").trim();
-    if (!raw) {
-      console.error("[ClawCall] openclaw error:", err.message);
-      return { reply: "I had a little trouble with that — could you repeat it?", end_call: false };
-    }
-  }
-
-  // Parse JSON output from openclaw --json
   const lines = raw.split("\n").filter(Boolean).reverse();
   for (const line of lines) {
     try {
@@ -184,7 +149,7 @@ async function runAgentTurn(message, callSid) {
         || parsed.message
         || contentText;
       if (reply && typeof reply === "string" && reply.trim())
-        return { reply: reply.trim(), end_call: false };
+        return { reply: reply.trim(), end_call: !!parsed.end_call };
     } catch { /* not JSON */ }
   }
 
@@ -192,7 +157,88 @@ async function runAgentTurn(message, callSid) {
   if (trimmed && !trimmed.startsWith("{") && !trimmed.startsWith("["))
     return { reply: trimmed, end_call: false };
 
-  return { reply: "I'm here — could you say that again?", end_call: false };
+  return null;
+}
+
+// ── Kill a spawned process (Windows-safe) ─────────────────────────────────────
+
+function killProcess(proc) {
+  try { proc.kill(); } catch {}
+  // On Windows, also kill the full process tree so cmd.exe doesn't orphan openclaw
+  if (process.platform === "win32" && proc.pid) {
+    try {
+      execSync(`taskkill /PID ${proc.pid} /T /F`, { timeout: 2_000, stdio: "ignore" });
+    } catch {}
+  }
+}
+
+// ── Agent turn ────────────────────────────────────────────────────────────────
+
+async function runAgentTurn(message, callSid) {
+  const t0 = Date.now();
+
+  // ── Mode 1: HTTP webhook agent (CLAWCALL_AGENT_URL set) ──────────────────
+  if (AGENT_URL) {
+    try {
+      const data  = await postToAgent(AGENT_URL, callSid, message);
+      const reply = (data.response || data.reply || data.text || "").trim();
+      if (reply) return { reply, end_call: !!data.end_call };
+      console.error("[ClawCall] Agent returned empty response:", data);
+      return { reply: "I had a little trouble with that — could you repeat it?", end_call: false };
+    } catch (err) {
+      console.error("[ClawCall] Agent webhook error:", err.message);
+      return { reply: "I had a little trouble with that — could you repeat it?", end_call: false };
+    }
+  }
+
+  // ── Mode 2: OpenClaw CLI (async spawn, hard 9s timeout) ──────────────────
+  return new Promise((resolve) => {
+    let settled = false;
+    let stdout  = "";
+
+    function settle(result) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      console.log(`[ClawCall] agent turn: ${Date.now() - t0}ms  end_call=${result.end_call}`);
+      resolve(result);
+    }
+
+    // Kill the process after CLI_TIMEOUT_MS — ensures fallback arrives
+    // within AGENT_RESPONSE_TIMEOUT (12s) so the caller hears something fast
+    const timer = setTimeout(() => {
+      console.error(`[ClawCall] openclaw timeout (${CLI_TIMEOUT_MS}ms) — killing process`);
+      killProcess(proc);
+      settle({ reply: "I had a little trouble with that — could you repeat it?", end_call: false });
+    }, CLI_TIMEOUT_MS);
+
+    // On Windows, shell:true is required to resolve openclaw.cmd/.ps1 from PATH.
+    // On Mac/Linux, shell:false is sufficient and avoids an extra shell layer.
+    const proc = spawn(
+      "openclaw",
+      ["agent", "--session-id", callSid, "--message", message, "--json"],
+      {
+        shell:       process.platform === "win32",
+        windowsHide: true,
+        stdio:       ["pipe", "pipe", "pipe"],
+      }
+    );
+
+    proc.stdout.on("data", (chunk) => { stdout += chunk; });
+    proc.stderr.on("data", () => {});  // suppress noisy openclaw stderr
+
+    proc.on("close", (code) => {
+      const parsed = parseOpenClawOutput(stdout.trim());
+      if (parsed) return settle(parsed);
+      if (code !== 0) console.error(`[ClawCall] openclaw exited ${code}`);
+      settle({ reply: "I'm here — could you say that again?", end_call: false });
+    });
+
+    proc.on("error", (err) => {
+      console.error("[ClawCall] openclaw spawn error:", err.message);
+      settle({ reply: "I had a little trouble with that — could you repeat it?", end_call: false });
+    });
+  });
 }
 
 // ── Main loop ─────────────────────────────────────────────────────────────────
@@ -215,14 +261,21 @@ async function main() {
       const { call_sid, message } = res;
       console.log(`[ClawCall] ↓ call_sid=${call_sid}  message="${message}"`);
 
+      const t0 = Date.now();
       const { reply, end_call } = await runAgentTurn(message, call_sid);
-      console.log(`[ClawCall] ↑ reply="${reply}"  end_call=${end_call}`);
+      console.log(`[ClawCall] ↑ reply="${reply.slice(0, 100)}"  end_call=${end_call}`);
 
       const postRes = await request("POST", `/api/v1/calls/respond/${call_sid}`, {
         response: reply,
         end_call,
       });
-      if (!postRes.ok) console.error("[ClawCall] Respond error:", postRes);
+
+      const ms = Date.now() - t0;
+      if (!postRes.ok) {
+        console.error(`[ClawCall] Respond error (${ms}ms total):`, postRes);
+      } else {
+        console.log(`[ClawCall] ✓ responded in ${ms}ms total`);
+      }
 
     } catch (err) {
       console.error("[ClawCall] Loop error:", err.message);

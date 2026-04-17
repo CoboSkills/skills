@@ -14,6 +14,59 @@
 ClawCall uses a **pull model** — your agent polls an endpoint to receive
 incoming call messages. No public URL, no inbound webhook, no Tailscale required.
 
+### Recommended runtime: local HTTP phone bridge
+
+For production, run a lightweight local HTTP bridge and point the listener at it.
+Start the bridge first, then the listener.
+
+Windows:
+```
+set CLAWCALL_AGENT_URL=http://127.0.0.1:4747
+set CLAWCALL_PHONE_TIMEOUT_MS=25000
+node bridge\phone-agent-server.js
+node listener\clawcall-listener.js
+```
+
+Mac / Linux:
+```
+export CLAWCALL_AGENT_URL=http://127.0.0.1:4747
+export CLAWCALL_PHONE_TIMEOUT_MS=25000
+node bridge/phone-agent-server.js
+node listener/clawcall-listener.js
+```
+
+The bridge exposes `POST /clawcall/message` and builds a small phone-oriented
+prompt using local user info, cron jobs, tasks, and optional memory. This avoids
+loading the full OpenClaw assistant bootstrap on every phone turn.
+
+### Verify after startup
+
+Check for these log lines:
+- bridge: `listening on http://127.0.0.1:4747`
+- listener: `Agent mode: HTTP`
+
+Then place one short test call such as:
+- `What is your name?`
+- `How are you?`
+- `What tasks do I have?`
+
+### If behavior looks stale
+
+If calls keep hitting an older path or wrong behavior:
+1. Stop all `node` processes for `bridge/phone-agent-server.js` and `listener/clawcall-listener.js`.
+2. Confirm port `4747` is free.
+3. Start exactly one bridge.
+4. Start exactly one listener.
+5. Retest.
+
+### Fast path vs model fallback
+
+Current bridge behavior:
+- Fast direct handlers for identity, greetings, “how are you”, cron jobs, and tasks.
+- Model fallback for other freeform questions.
+
+If freeform replies are still too slow, add more direct handlers for common phone intents before falling back to the model.
+
 ### Step 1 — Poll for incoming messages
 
 ```

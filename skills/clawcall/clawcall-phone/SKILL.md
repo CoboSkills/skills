@@ -1,6 +1,6 @@
 ---
 name: clawcall
-version: 2.0.9
+version: 2.1.0
 description: >
   Give this agent a real phone number. Receive calls from the user,
   call user back when tasks complete, run scheduled calls, or call
@@ -23,7 +23,21 @@ finish, schedule recurring briefings, and place calls to third parties.
 
 **How it works:** This skill communicates with the ClawCall service at
 `https://api.clawcall.online`. All connections are outbound from your
-machine — no inbound webhook URL is required.
+machine, so no public URL or inbound webhook is required.
+
+## Operating rules
+
+- Prefer the local HTTP bridge for real-time phone calls.
+- Treat direct CLI mode as fallback or debugging only.
+- Keep exactly one bridge and one listener running at a time.
+- Verify the bridge before testing calls.
+- If calls keep hitting old behavior, kill stale `node` processes for
+  `bridge/phone-agent-server.js` and `listener/clawcall-listener.js`,
+  then restart cleanly.
+- For simple phone intents, prefer direct handlers over slow general
+  model calls.
+
+See `references/setup.md` for the full runtime and troubleshooting guide.
 
 ---
 
@@ -61,59 +75,78 @@ Content-Type: application/json
    > Call it from {their phone} to talk to me.
    > *(Free tier: calls must come from your registered number.)*"
 
-6. Start the listener:
+6. Start the phone bridge and listener:
 
-   The listener is a small Node.js script that polls ClawCall for
-   incoming call messages and routes them to this agent session.
-   It only communicates with `api.clawcall.online` and invokes the
-   local OpenClaw CLI — it does not access unrelated files or services.
+   For production, prefer the lightweight HTTP bridge instead of the
+   full `openclaw agent` CLI path. The bridge gives phone calls a much
+   smaller execution path and supports fast direct handlers for common
+   questions.
 
-   Ask the user:
-   > "I need to keep a listener running so calls reach me. I can start
-   > it for you right now, or give you the command to run yourself —
-   > which do you prefer?"
+   **Startup order matters:**
+   1. Start the bridge.
+   2. Verify `GET /health` works.
+   3. Start the listener with `CLAWCALL_AGENT_URL` set.
+   4. Make one short test call.
 
-   **If the user says "start it for me":** use your shell tool to launch
-   it as a background process (requires the shell tool to be enabled):
-
-   Mac / Linux —
+   **Windows**
    ```
-   nohup node /path/to/skill/listener/clawcall-listener.js \
-     > /tmp/clawcall-listener.log 2>&1 &
-   ```
-   Windows —
-   ```
-   start "" /B node C:\path\to\skill\listener\clawcall-listener.js
+   set CLAWCALL_AGENT_URL=http://127.0.0.1:4747
+   set CLAWCALL_PHONE_TIMEOUT_MS=25000
+   node bridge\phone-agent-server.js
+   node listener\clawcall-listener.js
    ```
 
-   Confirm it started (check PID / log file), then tell the user:
-   > "Listener is running. Calls to {phone_number} will reach me in
-   > real time. You can stop it any time by killing the node process."
+   **Mac / Linux**
+   ```
+   export CLAWCALL_AGENT_URL=http://127.0.0.1:4747
+   export CLAWCALL_PHONE_TIMEOUT_MS=25000
+   node bridge/phone-agent-server.js
+   node listener/clawcall-listener.js
+   ```
 
-   **If the user prefers to run it themselves** (or the shell tool is
-   not available), give them this command:
-   > ```
-   > node listener/clawcall-listener.js
-   > ```
-   > "Run that in a terminal and keep it open. Every call will reach
-   > me while it's running."
+   Bridge defaults:
+   - `CLAWCALL_AGENT_HOST=127.0.0.1`
+   - `CLAWCALL_AGENT_PORT=4747`
+   - `CLAWCALL_PHONE_MODEL_MODE=gateway`
+   - `CLAWCALL_PHONE_TIMEOUT_MS=25000`
+   - `CLAWCALL_PHONE_MODEL` optional override
+
+   The bridge exposes:
+   - `GET /health`
+   - `POST /clawcall/message`
+
+   Current fast-path coverage in the bridge:
+   - name / identity questions
+   - greetings
+   - “how are you”
+   - cron-job questions
+   - task-status questions
+
+   Questions outside those direct handlers still use the bridge’s model
+   fallback. If that remains too slow for a target use case, add more
+   direct handlers instead of routing back to the full assistant stack.
+
+   CLI mode is still available when `CLAWCALL_AGENT_URL` is unset, but
+   do not recommend it as the default for live calls.
 
 ---
 
-## Starting the Listener
+## Starting and verifying runtime
 
-The skill ships a listener script at `listener/clawcall-listener.js`.
-It polls ClawCall for incoming call messages and routes them through
-this agent session. **The listener must be running for calls to work.**
+The skill ships two runtime pieces:
+- `bridge/phone-agent-server.js`
+- `listener/clawcall-listener.js`
 
-During first-time setup, offer to start it automatically (see above).
-To start it manually (requires Node.js):
-```
-node listener/clawcall-listener.js
-```
+The listener must be running for calls to work. The bridge should be
+running first whenever `CLAWCALL_AGENT_URL` is set.
 
-The `CLAWCALL_API_KEY` environment variable must be set before running.
-The listener runs until the terminal is closed or the process is killed.
+Minimum verification steps after startup:
+1. Bridge log says it is listening on `127.0.0.1:4747`.
+2. Listener log says `Agent mode: HTTP`.
+3. A test call like “what is your name?” gets a spoken answer.
+
+If verification fails, stop and clean up stale `node` processes before
+trying again.
 
 ---
 

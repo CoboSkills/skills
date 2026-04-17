@@ -3,11 +3,16 @@
   "slug": "agent-bom",
   "displayName": "agent-bom",
   "latest": {
-    "version": "0.76.1",
-    "publishedAt": 1775771666556,
-    "commit": "https://github.com/openclaw/skills/commit/e0b20b6a767eb383519705024410eb07780028c1"
+    "version": "0.76.4",
+    "publishedAt": 1776058958812,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.76.1",
+      "publishedAt": 1775771666556,
+      "commit": "https://github.com/openclaw/skills/commit/e0b20b6a767eb383519705024410eb07780028c1"
+    },
     {
       "version": "0.75.13",
       "publishedAt": 1775164320735,

@@ -2,402 +2,186 @@
 
 ## 设计原则
 
-**基于 Chirp skill，但优化 token 消耗：**
-- 使用 `profile=openclaw`（稳定，不依赖 Chrome 扩展）
-- 使用 DOM 操作（避免频繁 snapshot，节省 token）
-- 添加人类行为模拟（避免被检测）
-- 偶尔用 snapshot 验证（确保操作正确）
+基于本地 `browser-relay-cli`，目标是 **稳定、可审计、手动确认**：
+
+- 使用你们自己的 Browser Relay 运行时，而不是 OpenClaw
+- 优先 DOM 可见元素与标准输入，不依赖 stealth / 规避检测逻辑
+- 点赞、关注、评论都先生成建议，再由用户确认是否执行
+- 能复用现有 tab 就复用，不盲目开新窗口
 
 ---
 
-## 1. 基础配置
+## 1. 运行时准备
 
-### 1.1 Profile 选择
+### 1.1 检查 Browser Relay
 
-```javascript
-// ✓ 推荐：OpenClaw 内置浏览器
-profile: "openclaw"
-
-// ✗ 不推荐：Chrome 扩展（不稳定）
-profile: "chrome"
+```bash
+npx browser-relay-cli version
+npx browser-relay-cli extension-path
+npx browser-relay-cli relay-start
+npx browser-relay-cli status
 ```
 
-**原因：**
-- `openclaw`: 独立浏览器进程，100% 稳定
-- `chrome`: Browser Relay 扩展，连接不稳定
+要求：
+- `extensionConnected: true`
+- Chrome/Chromium 已登录目标 X 账号
 
-### 1.2 浏览器启动
+### 1.2 推荐流程
 
-```javascript
-// 启动浏览器
-browser action=start profile=openclaw
-
-// 打开页面
-browser action=open profile=openclaw targetUrl="https://x.com/home"
+```bash
+npx browser-relay-cli list-tabs
+npx browser-relay-cli create-tab https://x.com/home
 ```
+
+如果已经有可复用的 X tab，优先复用，不重复创建。
 
 ---
 
-## 2. 人类行为模拟
+## 2. 核心规则
 
-### 2.1 安全的点击操作
-
-```javascript
-async function humanClick(element) {
-  // 1. 模拟鼠标移动
-  element.dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));
-  await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
-  
-  // 2. 模拟鼠标悬停
-  element.dispatchEvent(new MouseEvent('mousemove', {bubbles: true}));
-  await new Promise(r => setTimeout(r, 50 + Math.random() * 100));
-  
-  // 3. 点击
-  element.click();
-  await new Promise(r => setTimeout(r, 200 + Math.random() * 300));
-}
-```
-
-### 2.2 随机延迟
-
-```javascript
-// 正态分布随机数
-function normalRandom(mean, stdDev) {
-  let u = 0, v = 0;
-  while (u === 0) u = Math.random();
-  while (v === 0) v = Math.random();
-  return mean + stdDev * Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
-}
-
-// 随机等待
-function randomWait(min, max) {
-  return new Promise(r => setTimeout(r, min + Math.random() * (max - min)));
-}
-```
+1. **不要自动发送评论。**
+2. **不要自动安装调度器。**
+3. **所有写操作先展示预览，再等待用户确认。**
+4. **只在用户明确同意时执行点赞、关注、评论。**
 
 ---
 
-## 3. 核心操作
+## 3. 常用操作
 
-### 3.1 点赞推文
+### 3.1 打开首页
 
-```javascript
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": "async () => {
-    // 找到推文
-    const tweets = document.querySelectorAll('[data-testid=\"tweet\"]');
-    const tweet = tweets[0]; // 第一条推文
-    
-    // 找到点赞按钮
-    const likeBtn = tweet.querySelector('[data-testid=\"like\"]');
-    
-    // 模拟人类点击
-    likeBtn.dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));
-    await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
-    likeBtn.dispatchEvent(new MouseEvent('mousemove', {bubbles: true}));
-    await new Promise(r => setTimeout(r, 50 + Math.random() * 100));
-    likeBtn.click();
-    
-    return 'liked';
-  }"
-}
+```bash
+npx browser-relay-cli create-tab https://x.com/home
 ```
 
-### 3.2 评论推文
+### 3.2 查看当前页面
 
-```javascript
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": "async () => {
-    // 找到推文
-    const tweets = document.querySelectorAll('[data-testid=\"tweet\"]');
-    const tweet = tweets[0];
-    
-    // 获取作者信息
-    const author = tweet.querySelector('[data-testid=\"User-Name\"]')?.innerText;
-    
-    // 点击回复按钮
-    const replyBtn = tweet.querySelector('[data-testid=\"reply\"]');
-    replyBtn.dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));
-    await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
-    replyBtn.click();
-    
-    // 等待评论框出现
-    await new Promise(r => setTimeout(r, 2000 + Math.random() * 1000));
-    
-    // 输入评论
-    const editor = document.querySelector('[data-testid=\"tweetTextarea_0\"]');
-    editor.focus();
-    
-    const text = '评论内容'; // 从 x-engagement skill 获取
-    for (const char of text) {
-      document.execCommand('insertText', false, char);
-      await new Promise(r => setTimeout(r, 80 + Math.random() * 40));
-    }
-    
-    // 等待一下
-    await new Promise(r => setTimeout(r, 500 + Math.random() * 500));
-    
-    // 发送
-    const sendBtn = document.querySelector('[data-testid=\"tweetButton\"]');
-    sendBtn.click();
-    
-    return 'comment sent to ' + author;
-  }"
-}
+```bash
+npx browser-relay-cli screenshot <tabId>
+npx browser-relay-cli describe-visible <tabId>
 ```
 
-### 3.3 滚动页面
+### 3.3 切到 Following / Recent
 
-```javascript
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": "async () => {
-    // 小滚动（200-400px）
-    const scrollAmount = 200 + Math.random() * 200;
-    window.scrollBy({
-      top: scrollAmount,
-      behavior: 'smooth'
-    });
-    
-    await new Promise(r => setTimeout(r, 1000 + Math.random() * 500));
-    return 'scrolled ' + scrollAmount + 'px';
-  }"
-}
+优先用 DOM 选择器；选择器失效时，再用截图 + 坐标点击。
+
+```bash
+npx browser-relay-cli click <tabId> 'a[href="/home"]'
+npx browser-relay-cli click <tabId> 'a[href="/home?tab=following"]'
+npx browser-relay-cli click <tabId> 'a[href="/home?tab=recent"]'
+```
+
+### 3.4 读取推文内容
+
+```bash
+npx browser-relay-cli raw CDP.send "{\"tabId\":<tabId>,\"method\":\"Runtime.evaluate\",\"params\":{\"expression\":\"(() => { const tweets = [...document.querySelectorAll('[data-testid=\\\"tweet\\\"]')]; return tweets.slice(0, 5).map((tweet) => ({ author: tweet.querySelector('[data-testid=\\\"User-Name\\\"]')?.innerText || '', content: tweet.querySelector('[data-testid=\\\"tweetText\\\"]')?.innerText || '', link: tweet.querySelector('a[href*=\\\"/status/\\\"]')?.href || '' })); })()\",\"returnByValue\":true}}"
 ```
 
 ---
 
-## 4. Token 优化策略
+## 4. 评论流程
 
-### 4.1 避免频繁 snapshot
+### 4.1 生成评论建议
 
-**错误做法：**
-```javascript
-// 每次操作前都 snapshot
-browser action=snapshot profile=openclaw
-browser action=act ...
-browser action=snapshot profile=openclaw
+先基于 persona、历史记录、推文内容生成 1-3 个候选评论，只展示，不自动提交。
+
+输出格式建议：
+
+```text
+推文作者: @example
+推文链接: https://x.com/...
+候选评论:
+1. ...
+2. ...
+3. ...
 ```
 
-**正确做法：**
-```javascript
-// 直接操作 DOM
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": "async () => {
-    // 直接操作，不需要 snapshot
-    document.querySelector('[data-testid=\"like\"]').click();
-  }"
-}
+### 4.2 用户确认后再填入输入框
 
-// 只在需要时 snapshot（比如读取推文内容）
-browser action=snapshot profile=openclaw compact=true
+```bash
+npx browser-relay-cli click <tabId> '[data-testid="reply"]'
+npx browser-relay-cli type <tabId> '[data-testid="tweetTextarea_0"]' '这里填入用户已确认的评论'
 ```
 
-### 4.2 使用 compact snapshot
+### 4.3 发送前最后确认
 
-```javascript
-// ✓ 推荐：compact=true（节省 token）
-browser action=snapshot profile=openclaw compact=true
+发送动作必须单独确认一次。确认前可以：
 
-// ✗ 不推荐：完整 snapshot（消耗大量 token）
-browser action=snapshot profile=openclaw
+```bash
+npx browser-relay-cli screenshot <tabId>
+npx browser-relay-cli describe-visible <tabId>
 ```
 
----
+确认后再执行：
 
-## 5. 操作频率限制
-
-### 5.1 评论间隔
-
-**建议：**
-- 最小间隔：3 分钟
-- 最大间隔：6 分钟
-- 随机分布：正态分布
-
-**实现：**
-```javascript
-// 评论间隔：3-6分钟
-const interval = 180000 + Math.random() * 180000; // 3-6分钟
-await new Promise(r => setTimeout(r, interval));
-```
-
-### 5.2 每日配额
-
-**建议：**
-- 点赞：10-30 条/天
-- 评论：5-15 条/天
-- 关注：5-10 人/天
-
----
-
-## 6. 错误处理
-
-### 6.1 元素不存在
-
-```javascript
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": "async () => {
-    const element = document.querySelector('[data-testid=\"like\"]');
-    if (!element) {
-      return 'element not found';
-    }
-    element.click();
-    return 'success';
-  }"
-}
-```
-
-### 6.2 页面加载失败
-
-```javascript
-// 等待页面加载
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": "async () => {
-    // 等待推文加载
-    let attempts = 0;
-    while (attempts < 10) {
-      const tweets = document.querySelectorAll('[data-testid=\"tweet\"]');
-      if (tweets.length > 0) {
-        return 'page loaded';
-      }
-      await new Promise(r => setTimeout(r, 1000));
-      attempts++;
-    }
-    return 'timeout';
-  }"
-}
+```bash
+npx browser-relay-cli click <tabId> '[data-testid="tweetButton"]'
 ```
 
 ---
 
-## 7. 完整示例
+## 5. 点赞与关注
 
-### 7.1 刷推 5 分钟
+点赞、关注同样走确认流：
 
-```javascript
-// 1. 启动浏览器
-browser action=start profile=openclaw
+1. 先展示目标账号/推文
+2. 说明为什么要点赞或关注
+3. 等用户确认
+4. 再执行 click
 
-// 2. 打开页面
-browser action=open profile=openclaw targetUrl="https://x.com/home"
+示例：
 
-// 3. 等待加载
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": "async () => {
-    await new Promise(r => setTimeout(r, 5000));
-    return 'loaded';
-  }"
-}
-
-// 4. 点赞
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": "async () => {
-    const tweet = document.querySelectorAll('[data-testid=\"tweet\"]')[0];
-    const likeBtn = tweet.querySelector('[data-testid=\"like\"]');
-    likeBtn.dispatchEvent(new MouseEvent('mouseover', {bubbles: true}));
-    await new Promise(r => setTimeout(r, 100 + Math.random() * 200));
-    likeBtn.click();
-    return 'liked';
-  }"
-}
-
-// 5. 评论（使用 x-engagement persona）
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": "async () => {
-    const tweet = document.querySelectorAll('[data-testid=\"tweet\"]')[0];
-    const replyBtn = tweet.querySelector('[data-testid=\"reply\"]');
-    replyBtn.click();
-    await new Promise(r => setTimeout(r, 2000));
-    
-    const editor = document.querySelector('[data-testid=\"tweetTextarea_0\"]');
-    editor.focus();
-    
-    const text = '妙啊'; // 从 persona 获取
-    for (const char of text) {
-      document.execCommand('insertText', false, char);
-      await new Promise(r => setTimeout(r, 80 + Math.random() * 40));
-    }
-    
-    await new Promise(r => setTimeout(r, 500));
-    document.querySelector('[data-testid=\"tweetButton\"]').click();
-    
-    return 'commented';
-  }"
-}
+```bash
+npx browser-relay-cli click <tabId> '[data-testid="like"]'
+npx browser-relay-cli click <tabId> '[data-testid$="-follow"]'
 ```
+
+---
+
+## 6. 频率建议
+
+这些是人工运营建议，不是自动化节流器：
+
+- 点赞：每小时不超过 20 次
+- 评论：每小时不超过 5 次
+- 关注：每小时不超过 5 次
+- 评论之间保留自然阅读和思考时间
+
+---
+
+## 7. 故障处理
+
+### 7.1 选择器失效
+
+1. `screenshot`
+2. `describe-visible`
+3. `click-at` 或 `click-at-norm`
+
+### 7.2 扩展未连接
+
+```bash
+npx browser-relay-cli status
+```
+
+如果未连接：
+1. 运行 `npx browser-relay-cli relay-start`
+2. 在 `chrome://extensions` 加载 unpacked 扩展
+3. 重试 `status`
 
 ---
 
 ## 8. 与 x-engagement 整合
 
-### 8.1 配置读取
-
-```javascript
-// 读取配置
-const config = JSON.parse(
-  readFileSync('memory/daily/hotspots/.config.json')
-);
-
-// 读取 persona
-const persona = readFileSync(
-  `memory/daily/hotspots/personas/${config.active_persona}.md`
-);
-```
-
-### 8.2 评论生成
-
-```javascript
-// 根据推文内容生成评论（使用 persona 风格）
-const comment = generateComment(tweetContent, persona);
-
-// 发送评论
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": `async () => {
-    // ... 评论逻辑
-    const text = '${comment}';
-    // ...
-  }`
-}
-```
+- Persona 仍然从 `memory/daily/hotspots/personas/*.md` 读取
+- 评论历史仍然写到 `memory/daily/hotspots/history/comments/`
+- Browser Relay 只负责浏览器交互，不负责定时任务
 
 ---
 
-## 9. 对比 Chirp
+## 9. 最佳实践
 
-| 特性 | Chirp | x-engagement (改进版) |
-|------|-------|----------------------|
-| **Profile** | openclaw | openclaw |
-| **操作方式** | DOM + snapshot | DOM（优化） |
-| **Token 消耗** | 高（频繁 snapshot） | 低（偶尔 snapshot） |
-| **稳定性** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **人类行为** | 无 | 有（随机延迟） |
-| **Persona** | 无 | 有（个性化） |
-| **记忆系统** | 无 | 有（避免矛盾） |
-
----
-
-## 10. 最佳实践
-
-1. **使用 `profile=openclaw`** - 稳定
-2. **避免频繁 snapshot** - 节省 token
-3. **添加随机延迟** - 避免检测
-4. **使用 compact snapshot** - 进一步节省
-5. **偶尔验证** - 确保操作正确
-6. **限制频率** - 3-6 分钟评论间隔
-7. **使用 persona** - 个性化评论
-8. **记录历史** - 避免自相矛盾
-
----
-
-*整合自 Chirp skill + x-engagement skill*
-*版本: 1.0.0*
-*更新时间: 2026-03-02*
+1. 复用已有 tab
+2. 所有写操作先预览
+3. 评论发送前二次确认
+4. 定期手动运行清理脚本，而不是后台常驻
+5. 把 Browser Relay 当成受控工具，不要当隐身机器人

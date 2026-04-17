@@ -1,24 +1,32 @@
-# X 运营自动化 Skill v4.0
+# X 运营辅助 Skill v4.2
 
-完整的 X/Twitter 运营自动化解决方案。
+完整的 X/Twitter 运营辅助方案。默认走 Browser Relay + 人工确认，不安装后台持久任务。
+
+Browser Relay 仓库：
+`https://github.com/jasonCodeSpace/browser-relay`
 
 ## 特性
 
 - ✅ 完整 Onboarding 流程
 - ✅ Persona 学习（抓取100条推文）
-- ✅ 人类行为模拟（随机延迟、滚动模式）
+- ✅ 自然节奏与确认（先建议，后执行）
 - ✅ 记忆系统（评论历史、用户事实、避免矛盾）
-- ✅ 定时任务（每日热点总结）
+- ✅ 手动提醒模板（不改 crontab）
 - ✅ 智能评论生成（语言匹配、风格应用）
+- ✅ Browser Relay 集成（使用自有运行时）
 
 ## 快速开始
 
-### 1. 安装
+### 1. 准备 Browser Relay 运行时
 
 ```bash
-cd ~/.agents/skills
-git clone [repo-url] x-engagement
+npx browser-relay-cli version
+npx browser-relay-cli extension-path
+npx browser-relay-cli relay-start
 ```
+
+如果需要查看 Browser Relay 源码或本地开发，请使用仓库：
+`https://github.com/jasonCodeSpace/browser-relay`
 
 ### 2. 首次运行
 
@@ -31,7 +39,7 @@ Bot: 开始 Onboarding...
 
 ```
 用户: 刷推半小时
-Bot: 读取配置... 开始刷推...
+Bot: 读取配置... 先给出互动建议，确认后执行...
 ```
 
 ## 文档
@@ -40,9 +48,9 @@ Bot: 读取配置... 开始刷推...
 |------|------|
 | [SKILL.md](SKILL.md) | 主入口 |
 | [docs/onboarding.md](docs/onboarding.md) | Onboarding 流程 |
-| [docs/human-behavior.md](docs/human-behavior.md) | 人类行为模拟 |
+| [docs/human-behavior.md](docs/human-behavior.md) | 自然节奏与确认 |
 | [docs/memory-system.md](docs/memory-system.md) | 记忆系统 |
-| [docs/cron-jobs.md](docs/cron-jobs.md) | 定时任务 |
+| [docs/cron-jobs.md](docs/cron-jobs.md) | 手动提醒与维护 |
 | [docs/comment-generation.md](docs/comment-generation.md) | 评论生成 |
 
 ## 目录结构
@@ -77,14 +85,13 @@ x-engagement/
 - 学习 Persona（抓取100条）
 - 配置刷推习惯
 
-### 2. 人类行为模拟
+### 2. 自然节奏与确认
 
-模拟真人行为：
-- 随机延迟（正态分布）
-- 人类滚动模式（小/中/大）
-- 鼠标轨迹模拟
-- 频率限制
-- 评论间隔（3-6分钟）
+保留自然阅读节奏，但不做规避检测设计：
+- 评论前给出候选内容
+- 发送前必须再次确认
+- 点赞 / 关注也建议确认
+- 保留频率建议
 
 ### 3. 记忆系统
 
@@ -93,17 +100,14 @@ x-engagement/
 - 用户事实（记住用户说过的话）
 - 每日日志（活动记录）
 
-### 4. 定时任务
+### 4. 手动维护
 
-- 每日热点总结（10:00）
-- 记忆清理（每周日 03:00）
-- 刷推提醒（用户自定义）
+- 手动热点总结
+- 手动记忆清理预览
+- 手动记忆清理执行（`--apply`）
+- 手动提醒模板生成
 
-**刷推提醒支持：**
-- 固定时间："早上9点、下午3点、晚上9点"
-- 随机时间："每天3次，随机时间"
-- 随机范围："每天随机2-4次"
-- 工作日/周末："工作日晚上8点，周末随机3次"
+默认不直接安装 cron，也不修改用户 `crontab`。
 
 ### 5. 智能评论
 
@@ -166,17 +170,17 @@ x-engagement/
 ### 浏览器连接失败
 
 ```
-1. 打开 Chrome
-2. 打开 x.com
-3. 点击 OpenClaw 扩展图标（确保 badge 绿色 ON）
+1. 运行 `npx browser-relay-cli relay-start`
+2. 在 Chrome 加载 Browser Relay 扩展
+3. 运行 `npx browser-relay-cli status`
 ```
 
-### 评论被检测为机器人
+### 不希望自动发送评论
 
 ```
-1. 增加评论间隔（3-6分钟）
-2. 降低频率（每小时 < 10条）
-3. 增加随机延迟
+1. 保持默认确认流
+2. 先生成候选评论
+3. 用户确认后再点发送
 ```
 
 ### 记忆系统不工作
@@ -188,6 +192,12 @@ x-engagement/
 ```
 
 ## 更新日志
+
+### v4.2.0-local (2026-04-14)
+- 移除自动 cron / crontab 修改
+- 清理脚本改成默认 dry-run
+- Browser Relay 替代 OpenClaw
+- 评论改成先建议后确认
 
 ### v4.0.0 (2026-03-02)
 - 结构化设计

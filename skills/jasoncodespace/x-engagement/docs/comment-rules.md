@@ -99,26 +99,11 @@
 
 ```javascript
 // 1. 打开首页
-browser action=open profile=openclaw targetUrl="https://x.com/home"
+npx browser-relay-cli create-tab https://x.com/home
 
-// 2. 点击 Following 标签
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": "async () => {
-    const followingTab = document.querySelector('[href=\"/home\"]');
-    followingTab?.click();
-    await new Promise(r => setTimeout(r, 2000));
-    
-    // 确保是 Recent（不是 Popular）
-    const recentBtn = document.querySelector('[href=\"/home?tab=recent\"]');
-    if (recentBtn) {
-      recentBtn.click();
-      await new Promise(r => setTimeout(r, 2000));
-    }
-    
-    return 'on Following Recent page';
-  }"
-}
+// 2. 切到 Following / Recent
+npx browser-relay-cli click <tabId> 'a[href="/home?tab=following"]'
+npx browser-relay-cli click <tabId> 'a[href="/home?tab=recent"]'
 ```
 
 ### Step 2: 读取评论历史
@@ -140,27 +125,7 @@ try {
 ### Step 3: 选择推文并检查
 
 ```javascript
-browser action=act profile=openclaw request={
-  "kind": "evaluate",
-  "fn": "async () => {
-    const tweets = document.querySelectorAll('[data-testid=\"tweet\"]');
-    
-    for (const tweet of tweets) {
-      const author = tweet.querySelector('[data-testid=\"User-Name\"]')?.innerText;
-      const tweetLink = tweet.querySelector('a[href*=\"/status/\"]');
-      const tweetId = tweetLink?.href.match(/status\\/(\\d+)/)?.[1];
-      
-      // 返回推文信息
-      return {
-        author: author,
-        tweetId: tweetId,
-        content: tweet.querySelector('[data-testid=\"tweetText\"]')?.innerText
-      };
-    }
-    
-    return null;
-  }"
-}
+npx browser-relay-cli raw CDP.send "{\"tabId\":<tabId>,\"method\":\"Runtime.evaluate\",\"params\":{\"expression\":\"(() => { const tweet = document.querySelectorAll('[data-testid=\\\"tweet\\\"]')[0]; if (!tweet) return null; const author = tweet.querySelector('[data-testid=\\\"User-Name\\\"]')?.innerText || ''; const tweetLink = tweet.querySelector('a[href*=\\\"/status/\\\"]'); const tweetId = tweetLink?.href.match(/status\\\\/(\\\\d+)/)?.[1] || ''; const content = tweet.querySelector('[data-testid=\\\"tweetText\\\"]')?.innerText || ''; return { author, tweetId, content }; })()\",\"returnByValue\":true}}"
 ```
 
 ### Step 4: 检查历史并评论

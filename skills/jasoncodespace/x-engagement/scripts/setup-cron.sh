@@ -1,26 +1,39 @@
 #!/bin/bash
+set -euo pipefail
 
-# 设置定时任务
+# Prepare manual reminder templates without modifying system schedulers.
 
-echo "=== 设置定时任务 ==="
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+RUNTIME_DIR="${SKILL_ROOT}/runtime"
+MANUAL_FILE="${RUNTIME_DIR}/manual-reminders.txt"
 
-# 1. 创建热点总结任务
-echo "创建每日热点总结任务..."
-openclaw cron add --name "每日热点总结" \
-  --schedule "0 10 * * *" \
-  --tz "Asia/Shanghai" \
-  --session-target "isolated" \
-  --delivery "announce"
+mkdir -p "${RUNTIME_DIR}"
 
-# 2. 设置记忆清理
-echo "设置记忆清理..."
-chmod +x scripts/cleanup-memory.sh
-(crontab -l 2>/dev/null; echo "0 3 * * 0 $(pwd)/scripts/cleanup-memory.sh >> ~/memory/cleanup.log 2>&1") | crontab -
+cat > "${MANUAL_FILE}" <<EOF
+# x-engagement manual reminder templates
+#
+# This file is informational only.
+# It does not modify crontab, launchd, or any other scheduler.
+#
+# Recommended manual routines:
+#
+# 1. Daily hotspot review
+#    Run manually when needed:
+#    cd "${SKILL_ROOT}" && ./scripts/check-cron.sh
+#
+# 2. Memory cleanup preview
+#    cd "${SKILL_ROOT}" && ./scripts/cleanup-memory.sh
+#
+# 3. Memory cleanup apply
+#    cd "${SKILL_ROOT}" && ./scripts/cleanup-memory.sh --apply
+#
+# If you later decide to create OS-level reminders, do it manually after review.
+EOF
 
-# 3. 验证
+echo "=== x-engagement reminder setup ==="
+echo "No persistent tasks were installed."
+echo "Created manual reminder template:"
+echo "  ${MANUAL_FILE}"
 echo ""
-echo "=== 验证 ==="
-./scripts/check-cron.sh
-
-echo ""
-echo "✓ 定时任务设置完成"
+echo "Review and run the listed commands manually."

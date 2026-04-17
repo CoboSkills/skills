@@ -1,24 +1,29 @@
 #!/bin/bash
+set -euo pipefail
 
-# 检查定时任务状态
+# Report local x-engagement runtime state without touching system schedulers.
 
-echo "=== Cron 任务状态 ==="
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SKILL_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+RUNTIME_DIR="${SKILL_ROOT}/runtime"
+MANUAL_FILE="${RUNTIME_DIR}/manual-reminders.txt"
+MEMORY_DIR="${HOME}/memory/daily/hotspots"
+
+echo "=== x-engagement runtime status ==="
 echo ""
 
-# 检查每日热点
-if openclaw cron list | grep -q "每日热点总结"; then
-    echo "✓ 每日热点总结: 已启用"
+if [ -f "${MANUAL_FILE}" ]; then
+  echo "✓ Manual reminder template: ${MANUAL_FILE}"
 else
-    echo "✗ 每日热点总结: 未启用"
+  echo "✗ Manual reminder template: missing"
 fi
 
-# 检查记忆清理
-if crontab -l | grep -q "cleanup-memory"; then
-    echo "✓ 记忆清理: 已启用"
+if [ -d "${MEMORY_DIR}" ]; then
+  echo "✓ Memory directory: ${MEMORY_DIR}"
 else
-    echo "✗ 记忆清理: 未启用"
+  echo "✗ Memory directory: ${MEMORY_DIR} (missing)"
 fi
 
 echo ""
-echo "=== 最近运行记录 ==="
-openclaw cron runs --name "每日热点总结" --limit 5 2>/dev/null || echo "无运行记录"
+echo "Scheduled automation is disabled by default."
+echo "Run maintenance scripts manually after review."

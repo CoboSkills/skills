@@ -51,8 +51,8 @@
 
 **3. 浏览器操作模块**
 - 创建 `docs/browser-operations.md`
-- 使用 `profile=openclaw`（100% 稳定）
-- 添加人类行为模拟（随机延迟、鼠标移动）
+- 使用 Browser Relay 运行时
+- 添加受控确认流与自然节奏建议
 
 **4. 评论规则**
 - 创建 `docs/comment-rules.md`
@@ -65,9 +65,9 @@
 - 从 edison 更新为 jason
 - 更新所有相关文件
 
-**2. 浏览器 Profile**
-- 从 chrome（不稳定）改为 openclaw（稳定）
-- 原因：Browser Relay 扩展不稳定
+**2. 浏览器运行时**
+- 切回 Browser Relay
+- 原因：统一到自有浏览器控制栈
 
 **3. 评论流程**
 - 添加历史检查
@@ -76,10 +76,10 @@
 
 ### 发现
 
-**1. Browser Relay 不稳定**
-- chrome profile 频繁断连
-- openclaw profile 100% 稳定
-- 决定：放弃 Browser Relay，使用 openclaw
+**1. Browser Relay 集成**
+- 使用 `browser-relay-cli`
+- 通过本地已登录浏览器执行受控操作
+- 不再依赖 OpenClaw
 
 **2. 评论效果**
 - 简短认同：「妙啊」- 适用于技术分享

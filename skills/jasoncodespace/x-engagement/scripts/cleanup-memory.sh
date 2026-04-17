@@ -1,25 +1,72 @@
 #!/bin/bash
+set -euo pipefail
 
-# 清理过期记忆
+# Preview or apply cleanup inside the dedicated x-engagement memory subtree.
+
+MODE="dry-run"
+if [ "${1:-}" = "--apply" ]; then
+  MODE="apply"
+elif [ "${1:-}" != "" ]; then
+  echo "Usage: $0 [--apply]"
+  exit 1
+fi
 
 MEMORY_DIR="${HOME}/memory/daily/hotspots"
+ALLOWED_PREFIX="${HOME}/memory/daily/hotspots"
 
-echo "=== 记忆清理 $(date) ==="
+case "${MEMORY_DIR}" in
+  "${ALLOWED_PREFIX}"|"${ALLOWED_PREFIX}/"*) ;;
+  *)
+    echo "Refusing to run outside allowed memory path: ${ALLOWED_PREFIX}"
+    exit 1
+    ;;
+esac
 
-# 清理评论历史（保留30天）
-echo "清理评论历史..."
-find "${MEMORY_DIR}/history/comments" -mtime +30 -type f -delete 2>/dev/null
-echo "✓ 评论历史清理完成"
+if [ -L "${MEMORY_DIR}" ]; then
+  echo "Refusing to operate on symlinked memory directory: ${MEMORY_DIR}"
+  exit 1
+fi
 
-# 清理每日日志（保留30天）
-echo "清理每日日志..."
-find "${MEMORY_DIR}/history/daily" -mtime +30 -type f -delete 2>/dev/null
-echo "✓ 每日日志清理完成"
+if [ ! -d "${MEMORY_DIR}" ]; then
+  echo "Memory directory does not exist: ${MEMORY_DIR}"
+  exit 0
+fi
 
-# 清理热点表格（保留7天）
-echo "清理热点表格..."
-find "${MEMORY_DIR}/tables" -mtime +7 -type f -delete 2>/dev/null
-echo "✓ 热点表格清理完成"
+echo "=== x-engagement memory cleanup (${MODE}) $(date) ==="
+
+cleanup_dir() {
+  local label="$1"
+  local dir="$2"
+  local days="$3"
+
+  echo ""
+  echo "${label}: ${dir} (older than ${days} days)"
+
+  if [ ! -d "${dir}" ]; then
+    echo "  skipped: directory missing"
+    return 0
+  fi
+
+  mapfile -t matches < <(find "${dir}" -type f -mtime +"${days}" -print 2>/dev/null | sort)
+
+  if [ "${#matches[@]}" -eq 0 ]; then
+    echo "  nothing to clean"
+    return 0
+  fi
+
+  printf '  %s\n' "${matches[@]}"
+
+  if [ "${MODE}" = "apply" ]; then
+    find "${dir}" -type f -mtime +"${days}" -delete 2>/dev/null
+    echo "  deleted: ${#matches[@]} files"
+  else
+    echo "  preview only: rerun with --apply to delete"
+  fi
+}
+
+cleanup_dir "评论历史" "${MEMORY_DIR}/history/comments" 30
+cleanup_dir "每日日志" "${MEMORY_DIR}/history/daily" 30
+cleanup_dir "热点表格" "${MEMORY_DIR}/tables" 7
 
 echo ""
-echo "✓ 记忆清理完成: $(date)"
+echo "Cleanup complete."

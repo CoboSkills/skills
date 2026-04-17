@@ -18,8 +18,8 @@ memory/daily/hotspots/.onboarding_complete
 
 ```
 1. 检测浏览器方式
-   - 优先: OpenClaw Browser Relay
-   - 回退: mcporter
+   - 优先: Browser Relay（https://github.com/jasonCodeSpace/browser-relay）
+   - 回退: 其他本地浏览器控制方式
 
 2. 导航到 x.com
 
@@ -446,8 +446,8 @@ def parse_schedule(user_input):
 1. 保存刷推时间配置
    更新 memory/daily/hotspots/.config.json
 
-2. 设置刷推提醒（如果启用）
-   根据 schedule.type 创建 cron 任务
+2. 生成手动提醒模板（如果启用）
+   运行 ./scripts/setup-cron.sh 生成说明文件
 
 3. 创建完成标记
    touch memory/daily/hotspots/.onboarding_complete
@@ -457,7 +457,7 @@ def parse_schedule(user_input):
    mkdir -p memory/daily/hotspots/history/daily
 
 5. 设置每日热点总结（询问用户）
-   "是否设置每日热点总结？每天早上10点推送。"
+   "是否生成每日热点总结的手动提醒模板？"
    - 是 → 运行 ./scripts/setup-cron.sh
    - 否 → 跳过
 
@@ -480,7 +480,7 @@ def parse_schedule(user_input):
 □ 刷推时间已设置（新增）
 □ 配置已保存
 □ 记忆目录已创建
-□ 定时任务已设置（可选）
+□ 手动提醒模板已生成（可选）
 □ 完成标记已创建
 ```
 

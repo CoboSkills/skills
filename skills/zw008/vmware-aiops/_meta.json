@@ -3,11 +3,16 @@
   "slug": "vmware-aiops",
   "displayName": "Vmware Aiops",
   "latest": {
-    "version": "1.5.11",
-    "publishedAt": 1776382801202,
-    "commit": "https://github.com/openclaw/skills/commit/3215a4bcce67121a42f0614844bf16eb034d9892"
+    "version": "1.5.12",
+    "publishedAt": 1776420321801,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.5.11",
+      "publishedAt": 1776382801202,
+      "commit": "https://github.com/openclaw/skills/commit/3215a4bcce67121a42f0614844bf16eb034d9892"
+    },
     {
       "version": "1.3.2",
       "publishedAt": 1774612729050,

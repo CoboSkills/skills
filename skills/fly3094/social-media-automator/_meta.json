@@ -3,11 +3,16 @@
   "slug": "social-media-automator",
   "displayName": "Social Media Automator",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773634791144,
-    "commit": "https://github.com/openclaw/skills/commit/f57dd4e52141d1a58ac54b604c27a16afb12aca7"
+    "version": "1.1.0",
+    "publishedAt": 1776180251819,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773634791144,
+      "commit": "https://github.com/openclaw/skills/commit/f57dd4e52141d1a58ac54b604c27a16afb12aca7"
+    },
     {
       "version": "0.2.0",
       "publishedAt": 1772855990156,

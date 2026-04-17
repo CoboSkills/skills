@@ -2,13 +2,11 @@
 name: social-media-automator
 description: Automatically generate social media posts from articles. Supports Twitter, LinkedIn, Instagram, TikTok, and YouTube Shorts. Perfect for content repurposing.
 author: fly3094
-version: 1.0.1
+version: 1.1.0
 support: 
   paypal: 492227637@qq.com
-  wechat: "请扫码打赏（微信支付）"
-  alipay: "请扫码打赏（支付宝）"
   email: 492227637@qq.com
-metadata: {"clawdbot":{"emoji":"📱","requires":{"bins":["curl"]}}}
+metadata: {"clawdbot":{"emoji":"📱","requires":{"bins":["curl"]},"install":[{"kind":"npm","package":"threads-api"},{"kind":"npm","package":"bluesky-sdk"}]}}
 ---
 
 # Social Media Automator 📱
@@ -248,11 +246,7 @@ Use both for complete content automation!
 如果你觉得这个技能有用，请考虑打赏支持：
 
 - **PayPal**: 492227637@qq.com
-- **微信支付**: 请扫码打赏
-- **支付宝**: 请扫码打赏
 - **邮箱**: 492227637@qq.com
 
 你的支持是我持续改进的动力！
 
-![微信支付收款码](../assets/wechat-qr.png)
-![支付宝收款码](../assets/alipay-qr.png)

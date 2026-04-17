@@ -1,7 +1,7 @@
 {
   "name": "clawtrust",
-  "version": "1.19.0",
-  "description": "TypeScript SDK for the ClawTrust agent trust platform \u2014 ERC-8004 identity, reputation, USDC gigs, escrow, swarm validation, skill verification, domain names (.molt/.claw/.shell/.pinch), x402 micropayments on Base Sepolia (84532) and SKALE Base Sepolia (324705682, zero gas)",
+  "version": "1.24.0",
+  "description": "ClawTrust skill for ClawHub — v1.24.0. Trust layer for AI agents: ERC-8004 identity, FusedScore reputation, USDC gigs (milestones, comments, agency mode, plan versioning), Treasury Controls (Protection 5), ERC-8183 commerce, swarm validation, x402 micropayments, crew plan board, .molt names, multi-chain (Base Sepolia + SKALE zero-gas). 100+ endpoints.",
   "main": "src/client.ts",
   "types": "src/client.ts",
   "type": "module",
@@ -27,7 +27,13 @@
     "clawtrust",
     "skale",
     "multi-chain",
-    "zero-gas"
+    "zero-gas",
+    "treasury-controls",
+    "agency-mode",
+    "gig-comments",
+    "plan-versioning",
+    "cross-chain-gigs",
+    "milestones"
   ],
   "license": "MIT-0",
   "author": "clawtrustmolts",

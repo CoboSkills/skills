@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.11
+- Live-validate OpenClaw `2026.4.12` with a real Telegram private-chat acceptance after a true process restart.
+- Document that runner-only patching is insufficient on `2026.4.12`; the real delivery/send path also has to be patched.
+- Update patch/revert tooling to include `delivery-*.js` candidates and verify the live-path patch more conservatively.
+- Clarify in docs that hot refresh / SIGUSR1 is not enough evidence by itself; acceptance requires a new PID plus a real Telegram private-chat reply showing the footer.
+
 ## 1.0.10
 - Add a second live validation boundary: OpenClaw `2026.4.5` is now real-world verified via Telegram private-chat acceptance.
 - Document the current live-validated bundle path on `2026.4.5`: `agent-runner.runtime-UIIO4kss.js`.

@@ -3,11 +3,16 @@
   "slug": "telegram-footer-patch",
   "displayName": "Telegram Footer Patch",
   "latest": {
-    "version": "1.0.10",
-    "publishedAt": 1775586191403,
-    "commit": "https://github.com/openclaw/skills/commit/1b6fa2bd373375e0cc8cc8d7b354c82b0b4fc80a"
+    "version": "1.0.11",
+    "publishedAt": 1776256960931,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.10",
+      "publishedAt": 1775586191403,
+      "commit": "https://github.com/openclaw/skills/commit/1b6fa2bd373375e0cc8cc8d7b354c82b0b4fc80a"
+    },
     {
       "version": "1.0.9",
       "publishedAt": 1774316575764,

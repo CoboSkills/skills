@@ -20,6 +20,7 @@ TARGET_GLOBS = [
     "plugin-sdk/thread-bindings-*.js",
     "model-selection-*.js",
     "auth-profiles-*.js",
+    "delivery-*.js",
 ]
 
 

@@ -21,7 +21,7 @@ spdx: MIT
 - 给 Telegram 私聊回复追加 `🧠 Model + 💭 Think + 📊 Context` 尾注
 - 支持预览、备份、回滚，以及升级后重打
 
-当前实现：优先命中并修改当前版本实际可能生效的 dist 文件（包含 `agent-runner.runtime-*.js`、`reply-*.js`、`compact-*.js`、`pi-embedded-*.js` 等），支持按内容 needle 自动发现、自动备份、重复覆盖更新与回滚。**注意：这表示“尽量兼容不同 bundle 布局”，不等于已经证明跨版本都兼容；最终是否修好，以真实 Telegram 私聊回复是否出现脚注为准。**
+当前实现：优先命中并修改当前版本实际可能生效的 dist 文件（包含 `agent-runner.runtime-*.js`、`reply-*.js`、`compact-*.js`、`pi-embedded-*.js`、`delivery-*.js` 等），支持按内容 anchor 自动发现、自动备份、重复覆盖更新与回滚。**注意：这表示“尽量兼容不同 bundle 布局”，不等于已经证明跨版本都兼容；最终是否修好，以真实 Telegram 私聊回复是否出现脚注为准。**
 
 ## 版本支持 / Validation Boundary
 
@@ -29,8 +29,11 @@ spdx: MIT
 - **对应实际验证的 bundle 路径（2026.3.22）**：`/usr/lib/node_modules/openclaw/dist/agent-runner.runtime-BWpOtdxK.js`
 - **已实测通过（live Telegram 私聊验收）**：OpenClaw **2026.4.5**
 - **对应实际验证的 bundle 路径（2026.4.5）**：`/usr/lib/node_modules/openclaw/dist/agent-runner.runtime-UIIO4kss.js`
+- **已实测通过（live Telegram 私聊验收）**：OpenClaw **2026.4.12**
+- **对应实际验证的 bundle 路径（2026.4.12）**：`/usr/lib/node_modules/openclaw/dist/agent-runner.runtime-D6-wGQkR.js` + `/usr/lib/node_modules/openclaw/dist/delivery-iF4EZ9PY.js`
+- **2026.4.12 实战结论**：只 patch runner 不够；真实 Telegram delivery/send path 也可能需要 patch，且必须在**真重启（新 PID）**后再做真实私聊验收
 - **已完成的静态验证**：`--dry-run`、`--auto-discover --verify`、smoke test、`node --check`
-- **未实测覆盖**：其它 OpenClaw 版本、其它 dist 命名/布局、其它未命中的真实 reply path
+- **未实测覆盖**：其它 OpenClaw 版本、其它 dist 命名/布局、其它未命中的真实 reply/send path
 - **发布口径**：除非做过真实 Telegram 私聊验收，否则只能写“可能兼容/已做兼容处理”，不能写“已支持”
 
 ## What to consider before installing / 安装前需要考虑的事项
@@ -84,9 +87,9 @@ bash scripts/smoke_test_footer_patch.sh /usr/lib/node_modules/openclaw/dist
 
 **边界说明：** 这一步只证明“当前 dist 样本里的候选 bundle 已被 patch 且语法正常”，**不等于**真实回复链路一定已经生效，也不等于跨版本兼容已经被证明。
 
-### 3) 重启网关（**必须**，才能生效）
+### 3) 真重启网关（**必须**，才能生效）
 
-> 说明：补丁改的是 OpenClaw 的 dist bundle；Gateway 不重启就不会重新加载，Telegram 私聊脚注不会生效。
+> 说明：补丁改的是 OpenClaw 的 dist bundle；Gateway 不重启就不会重新加载，Telegram 私聊脚注不会生效。**仅热刷新 / SIGUSR1 不应直接当作验收通过。**如果环境允许，最好确认出现了**新 PID**。
 
 ```bash
 openclaw gateway restart
@@ -127,7 +130,7 @@ openclaw gateway restart
 
 ## 说明
 
-- 当前优先候选包含：`dist/agent-runner.runtime-*.js`、`dist/reply-*.js`、`dist/compact-*.js`、`dist/pi-embedded-*.js`、`dist/plugin-sdk/thread-bindings-*.js`、`dist/model-selection-*.js`、`dist/auth-profiles-*.js`
+- 当前优先候选包含：`dist/agent-runner.runtime-*.js`、`dist/reply-*.js`、`dist/compact-*.js`、`dist/pi-embedded-*.js`、`dist/plugin-sdk/thread-bindings-*.js`、`dist/model-selection-*.js`、`dist/auth-profiles-*.js`、`dist/delivery-*.js`
 - `--auto-discover` 会按内容 needle 追加扫描 `dist/**/*.js`，适合升级后重新定位实际生效 bundle
 - 已打过补丁时，会按 marker 直接覆盖更新，不会重复注入
 - 每次写入前会自动生成 `.bak.telegram-footer.*` 备份

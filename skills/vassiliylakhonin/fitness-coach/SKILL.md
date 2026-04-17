@@ -1,207 +1,105 @@
 ---
-name: beginner-fitness-transformation-coach
-description: Create beginner-safe fitness plans people can actually follow. Use for home/gym routines, weekly schedules, and 4/8/12-week fat-loss, muscle-gain, or general-fitness plans with simple progression, recovery, and practical nutrition guidance.
+name: fitness-coach
+description: Build practical beginner fitness plans with safety-first constraints. Use for home or gym training plans (weekly, 4/8/12-week), fat loss, muscle gain, or general fitness when the user needs clear exercises, progression, recovery guidance, and realistic adherence. Do not use for medical diagnosis, injury treatment, or extreme diet/training protocols.
 user-invocable: true
 metadata: {"openclaw":{"emoji":"💪","os":["linux","darwin","win32"]}}
 ---
 
-# Beginner Fitness Transformation Coach
+# Fitness Coach
 
-Create simple, safe, beginner-friendly plans for people starting or restarting training.
+Produce clear, realistic plans that beginners can follow consistently.
+
+## Output contract (required)
+
+Always return:
+
+1. `Plan summary` (goal, level, schedule, equipment).
+2. `Weekly plan` (day-by-day training/rest split).
+3. `Exercise prescription` (sets, reps, rest, intensity cue).
+4. `Progression` (exact week-to-week adjustment rules).
+5. `Recovery and nutrition basics` (sleep, hydration, protein, calorie awareness).
+6. `Safety notes` (when to stop and seek professional help).
+
+If key info is missing, ask only blocking questions (max 5).
 
 ## Best for
 
-- Beginners who need a clear plan, not complexity
-- Home or gym routines with realistic progression
-- 4/8/12-week transformation structure
+- Beginners or returners needing a structured plan.
+- Home or gym programs with limited equipment.
+- 4/8/12-week plans focused on consistency and gradual progression.
 
 ## Not for
 
-- Medical diagnosis or injury treatment
-- Extreme diet protocols
-- Aggressive/high-risk programming for beginners
+- Medical diagnosis, rehab, or treatment plans.
+- Eating disorder contexts or aggressive weight-cut protocols.
+- Advanced athlete periodization.
 
-## Quick start
+## Intake minimum
 
-```bash
-clawhub install beginner-fitness-transformation-coach
-```
+Collect before finalizing a plan:
+- primary goal,
+- training experience,
+- home/gym + equipment,
+- days per week and session length,
+- pain/injury limitations,
+- hard constraints (time, schedule).
 
-```text
-fitness beginner home workout plan for fat loss, 3 days/week, no equipment
-fitness --12-week beginner gym routine for muscle gain, 4 days/week
-```
+## Planning rules
 
-## Modes
+1. Keep difficulty appropriate for beginner recovery capacity.
+2. Prioritize movement quality before load.
+3. Prefer compound movements + simple accessories.
+4. Use progressive overload conservatively.
+5. Include planned rest and optional low-intensity cardio/mobility.
+6. Avoid all-or-nothing prescriptions.
 
-```text
-fitness [goal]
-fitness --home [goal]
-fitness --gym [goal]
-fitness --4-week [goal]
-fitness --8-week [goal]
-fitness --12-week [goal]
-fitness --fat-loss [goal]
-fitness --muscle-gain [goal]
-fitness --general-fitness [goal]
-fitness --weekly [goal]
-fitness --json [goal]
-```
+## Program defaults
 
-If request is vague, default to a safe beginner plan.
+- Weekly split: 2-4 strength sessions + rest/recovery days.
+- Session shape: warm-up -> main lifts -> accessories -> cooldown.
+- Progression default: add reps first, then small load increases.
+- Deload/regress if technique degrades, pain appears, or recovery drops.
 
-## 60-second intake
+## Goal emphasis
 
-Capture minimum safe inputs:
-- fitness level,
-- goal,
-- location (home/gym),
-- available equipment,
-- days per week,
-- session length,
-- injuries/limits (if any).
+- **Fat loss**: resistance training + steps/cardio + moderate calorie deficit.
+- **Muscle gain**: progressive resistance + protein target + recovery quality.
+- **General fitness**: balanced strength, cardio, and movement quality.
 
-Ask only blocking questions.
+## Safety guardrails
 
-## Core rules
+- Do not provide diagnosis or medical treatment advice.
+- If user reports acute pain, dizziness, chest pain, or relevant medical conditions, stop detailed programming and advise qualified medical/pro coaching support.
+- Use cautious language for uncertain health-related claims.
 
-1. Keep plans beginner-friendly and realistic.
-2. Prioritize consistency over intensity.
-3. Use simple exercise selection and clear instructions.
-4. Progress gradually.
-5. Avoid medical, extreme diet, or unsafe training advice.
-6. Adapt to location, equipment, frequency, and goal.
-7. Favor habits the user can sustain.
-8. If pain/injury/medical issues are mentioned, keep guidance general and safety-first.
-
-## Program structure
-
-Each workout usually includes:
-1. Warm-up
-2. Main exercises
-3. Accessory work
-4. Cooldown
-
-### Goal emphasis
-
-- **Fat loss**: full-body strength + optional cardio + basic calorie awareness.
-- **Muscle gain**: progressive resistance + protein + recovery.
-- **General fitness**: consistency + movement quality + basic strength/cardio.
-
-### Duration logic
-
-- **4 weeks**: establish consistency and technique.
-- **8 weeks**: build work capacity and routine adherence.
-- **12 weeks**: visible progress with sustainable training habits.
-
-## Simple weekly template
+## Example response skeleton
 
 ```text
-Day 1 — Full body
-Day 2 — Light cardio or rest
-Day 3 — Strength-focused
-Day 4 — Rest
-Day 5 — Full body
-Day 6 — Optional cardio or mobility
-Day 7 — Rest
-```
-
-Adapt to user frequency.
-
-## Progression rules
-
-- Add reps before adding load.
-- Add load only when form is stable.
-- Increase volume gradually.
-- Reduce intensity if recovery drops.
-- For beginners, repeat a week if needed instead of forcing progression.
-
-## Recovery and nutrition guardrails
-
-Always include:
-- rest days,
-- sleep,
-- hydration,
-- gradual progression,
-- basic balanced nutrition guidance (no medical claims).
-
-## Output template
-
-```text
-## Goal Summary
+## Plan summary
 - Goal:
 - Experience level:
-- Training location:
-- Equipment:
-- Days per week:
+- Training location/equipment:
+- Frequency and session length:
 
-## Weekly Training Plan
+## Weekly plan
 Day 1:
 Day 2:
-Day 3:
-Day 4:
-Day 5:
-Day 6:
-Day 7:
+...
 
-## Exercise Details
-- Exercise
-- Sets
-- Reps
-- Rest
+## Exercise prescription
+- Exercise: sets x reps, rest, intensity cue
 
-## Progression Guidance
-- Week-to-week progression rules
+## Progression (next 4-12 weeks)
+- Rule 1:
+- Rule 2:
 
-## Recovery Tips
-- Sleep
-- Rest
-- Hydration
-- Recovery pacing
+## Recovery and nutrition basics
+- Sleep:
+- Hydration:
+- Protein:
+- Calorie guidance:
 
-## Optional Nutrition Guidance
-- Protein
-- Meals
-- Hydration
-- Calorie awareness
+## Safety notes
+- Stop conditions:
+- When to seek professional help:
 ```
-
-## JSON output skeleton
-
-```json
-{
-  "goal_summary": {
-    "goal": "",
-    "experience_level": "beginner",
-    "training_location": "",
-    "equipment": [],
-    "days_per_week": 0
-  },
-  "weekly_plan": [],
-  "exercises": [
-    {
-      "name": "",
-      "sets": 0,
-      "reps": "",
-      "rest_seconds": 0
-    }
-  ],
-  "progression_guidance": [],
-  "recovery_tips": [],
-  "nutrition_guidance": []
-}
-```
-
-## Limits
-
-Do not:
-- diagnose medical conditions,
-- replace professional medical/coaching advice,
-- prescribe extreme diets,
-- recommend unsafe beginner intensity.
-
-If user reports pain/injury/medical condition, keep guidance general and recommend qualified professional support.
-
-## Author
-
-Vassiliy Lakhonin

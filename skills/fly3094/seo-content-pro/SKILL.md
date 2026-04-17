@@ -2,8 +2,8 @@
 name: seo-content-pro
 description: Advanced SEO content creation with AI humanization, image generation, multi-language support, content refresh, SEO scoring, and competitor analysis. Perfect for content creators and agencies.
 author: fly3094
-version: 1.2.0
-tags: [seo, content, writing, article, blog, marketing, multi-language, research]
+version: 1.3.0
+tags: [seo, content, writing, article, blog, marketing, multi-language, research, video-seo, ai-detection]
 support: 
   paypal: 492227637@qq.com
   email: 492227637@qq.com

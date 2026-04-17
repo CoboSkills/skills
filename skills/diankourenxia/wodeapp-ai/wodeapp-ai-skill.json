@@ -1,8 +1,8 @@
 {
     "name": "wodeapp-ai",
-    "version": "2.6.0",
+    "version": "2.8.0",
     "displayName": "WodeApp AI 全能引擎",
-    "description": "AI 文本生成、图片生成、JSON 结构化输出、语音合成、视频生成、数字人、页面构建、无头工作流执行（22 种步骤类型） — 一个 skill 包搞定所有 AI 能力。只需 WODEAPP_API_KEY 一个凭证。支持平台级和项目级 MCP 双层接入。通过 MCP 或 REST 创建/编辑的项目自动发布，无需额外步骤。",
+    "description": "One API Key = all AI capabilities under one account (text / vision / audio / video), unified credits, no per-provider keys. 一个 Key 解锁全部 AI 能力，共用积分池。支持平台级/项目级 MCP + 零代码可视化工作流。注意：默认示例为 wodeapp.ai，国内用户请替换为 wodeapp.cn。建议带 X-API-Key 调 GET /mainserver/api/api-keys/self-context 获取 issuedOrigin 对齐环境。",
     "author": "WodeApp Team",
     "license": "MIT-0",
     "homepage": "https://wodeapp.ai",
@@ -58,9 +58,9 @@
         },
         "rest": {
             "mainServer": "https://wodeapp.ai/mainserver/api",
-            "runtimeServer": "https://wodeapp.ai/api",
+            "runtimeServer": "https://wodeapp.ai/runtime-server/api",
             "localMainServer": "http://localhost:3100/mainserver/api",
-            "localRuntimeServer": "http://localhost:4100/api"
+            "localRuntimeServer": "http://localhost:4100/runtime-server/api"
         },
         "workflow": {
             "productionBase": "https://{project}.wodeapp.ai/runtime-server/api/workflow",
@@ -87,7 +87,7 @@
     "tools": [
         {
             "name": "ai_generate_text",
-            "description": "AI 文本生成 — 支持 GPT-4o/Claude/Gemini/DeepSeek 等 343+ 模型，省略 model 则自动选择最优性价比",
+            "description": "AI 文本生成 — 支持 GPT-4o/Claude/Gemini/DeepSeek 等 400+ 模型，省略 model 则自动选择最优性价比",
             "endpoint": "POST /ai/chat",
             "server": "runtime",
             "inputSchema": {
@@ -415,6 +415,7 @@
         "delete_{collection}",
         "run_workflow_{id}",
         "get_workflow_status",
+        "get_workflow_schema",
         "call_action_{name}",
         "page_list",
         "page_create",
@@ -424,10 +425,10 @@
         "ai_generate_json",
         "tts_generate",
         "tts_list_voices",
-        "kling_text2video",
-        "kling_image2video",
+        "video_generate",
+        "video_task_status",
+        "video_providers",
         "kling_avatar",
-        "kling_task_status",
         "component_create",
         "component_list",
         "component_get",
@@ -457,6 +458,9 @@
     ],
     "templates": [
         "digital-avatar-marketing",
+        "storyboard-video-generator",
+        "short-video-workflow",
+        "text-image-video",
         "redbook-viral-copy",
         "deepseek-gateway",
         "weekly-report",
@@ -468,7 +472,8 @@
         "year-end-review",
         "article-generator",
         "landing-page",
-        "ppt-generator"
+        "ppt-generator",
+        "user-management"
     ],
     "rateLimits": {
         "perUser": 5,

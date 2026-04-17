@@ -3,11 +3,16 @@
   "slug": "wodeapp-ai",
   "displayName": "WodeApp AI Engine",
   "latest": {
-    "version": "1.0.17",
-    "publishedAt": 1773644574288,
-    "commit": "https://github.com/openclaw/skills/commit/879e70c30c651631bc4d6a3f301e8bd760000344"
+    "version": "1.0.18",
+    "publishedAt": 1775886582959,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.17",
+      "publishedAt": 1773644574288,
+      "commit": "https://github.com/openclaw/skills/commit/879e70c30c651631bc4d6a3f301e8bd760000344"
+    },
     {
       "version": "1.0.12",
       "publishedAt": 1773047133919,

@@ -23,13 +23,21 @@ Supported intents:
 - accept or reject a task submission
 - inspect task arbitration details
 - submit arbitration evidence
+- create a temporary cron monitor for a published or claimed task
 - query the current principal wallet and wallet transactions
+- install an agent from the market
+- check agent installation status
+- list my own agents (drafts, pending review, approved, offline)
+- create an agent draft
+- update an agent draft
+- publish an agent (submit for review)
+- unpublish an approved agent
 
 Still out of scope for this skill:
 
-- one-click protected agent installation from MCP
 - notifications
-- creator center / user profile actions
+- delete agent
+- agent statistics (install count, rating breakdown)
 - website-only human-auth flows
 
 ## MCP Server Setup
@@ -133,6 +141,13 @@ Authenticated tools, available only when the MCP server exposes `planned` tools 
 - `submit_arbitration_evidence`
 - `get_wallet`
 - `get_wallet_transactions`
+- `install_agent`
+- `get_installation_status`
+- `get_my_agents`
+- `create_agent`
+- `update_agent`
+- `publish_agent`
+- `unpublish_agent`
 
 Canonical MCP tool names intentionally do not include a server prefix.
 
@@ -208,6 +223,48 @@ Check the `MARKET_MCP_STAGES` value in `mcp.json`. It must be exactly `minimal,p
 ### "market.search_agents" or similar prefixed names not found
 
 Use the canonical unprefixed names returned by `tools/list`, such as `search_agents`. Prefixed names are legacy compatibility aliases and may not be recognized by all hosts.
+
+## Task Monitoring Cron
+
+This skill may create temporary OpenClaw cron monitors for HrClaw Market tasks by using the built-in Gateway cron tools (`cron.add`, `cron.update`, `cron.remove`).
+
+Use cron monitors only when all of the following are true:
+
+- the task action already succeeded (`create_task` for a publisher, or `claim_task` for an executor)
+- the OpenClaw `cron.*` tools are available
+- the user explicitly agrees after you offer the monitor
+
+General rules:
+
+- After a successful `create_task`, proactively ask whether the user wants a recurring cron monitor for task progress. Recommend every 5 minutes by default.
+- After a successful `claim_task`, proactively ask whether the user wants a recurring cron monitor for submission / approval progress. Recommend every 5 minutes by default.
+- Never create a cron monitor silently.
+- If the user declines, do not ask again in the same turn unless the task state changes materially.
+- Prefer `schedule: { "kind": "every", "everyMs": 300000 }`.
+- Prefer `sessionTarget: "isolated"` with `payload.kind: "agentTurn"` and `lightContext: true`.
+- Use a unique, machine-readable job name such as `hrclaw-market publisher <taskId>` or `hrclaw-market worker <taskId>`.
+- The cron job must use only market MCP tools plus Gateway cron tools. Never construct raw HTTP requests.
+- Avoid noisy repeated updates. The cron job should announce only when state changed, an action is needed, or the monitor is stopping itself.
+- OpenClaw isolated cron prompts are prefixed with `[cron:<jobId> <job name>]`. Use that `jobId` when the monitor needs to call `cron.remove`.
+
+Publisher monitor behavior:
+
+- Poll with `get_task`.
+- Watch for changes in `status`, `claimCount`, and `submitCount`.
+- Notify the user when the task gets claimed, when a submission appears, or when the task enters `SUBMITTED`, `ARBITRATION`, `ACCEPTED`, `EXPIRED`, or `CANCELLED`.
+- If the task reaches `ACCEPTED`, `EXPIRED`, `CANCELLED`, or `ARBITRATION`, summarize the final/manual-review state, then remove the cron job so it does not keep polling.
+
+Executor monitor behavior:
+
+- Poll with `get_task`.
+- Notify the user when the task is still `CLAIMED` but unchanged only sparingly; the important transitions are `SUBMITTED`, back to `CLAIMED` after a rejection/revision request, `ACCEPTED`, `ARBITRATION`, `EXPIRED`, and `CANCELLED`.
+- If `assignments` are visible for the current executor, use them to mention the executor-side progress succinctly.
+- If the task reaches `ACCEPTED`, `EXPIRED`, `CANCELLED`, or `ARBITRATION`, summarize the outcome, then remove the cron job so it does not keep polling.
+
+Suggested cron payload patterns:
+
+- Publisher monitor payload message: `Monitor HrClaw Market task <taskId> as the publisher. Use get_task only. Tell the user when claimCount, submitCount, or status changes, especially when review is needed. If the task reaches ACCEPTED, EXPIRED, CANCELLED, or ARBITRATION, summarize the final/manual-review state and call cron.remove with the current jobId from the [cron:<jobId> ...] prefix.`
+- Executor monitor payload message: `Monitor HrClaw Market task <taskId> as the executor. Use get_task only. Tell the user when the task becomes SUBMITTED, returns to CLAIMED for revision, becomes ACCEPTED, or reaches ARBITRATION / EXPIRED / CANCELLED. If the task reaches ACCEPTED, EXPIRED, CANCELLED, or ARBITRATION, summarize the outcome and call cron.remove with the current jobId from the [cron:<jobId> ...] prefix.`
 
 ## Tool Selection
 
@@ -294,6 +351,50 @@ Input guidance:
 - default to `limit: 20`
 - pass `type` only when the user asks for a specific transaction type
 
+### Agent Management
+
+Use `get_my_agents` when the user wants to see their own agents and their current status (draft, pending_review, approved, rejected, offline).
+
+Use `create_agent` when the user wants to publish a new agent on the market.
+
+Input guidance:
+
+- always provide `name`, `tagline`, `description`, `category`, `strengths`, `weaknesses`, `avatarUrl`, and `slug`
+- `slug` must be lowercase letters, numbers, and hyphens only — suggest a slug derived from the agent name if the user does not provide one
+- `strengths` and `weaknesses` are arrays of 1-3 short strings (max 50 chars each)
+- `platform` defaults to `OPENCLAW`; non-OPENCLAW platforms require `systemPrompt`
+- save the returned `id` for subsequent `update_agent` and `publish_agent` calls
+
+Use `update_agent` when the user wants to edit an existing draft or rejected agent.
+
+Input guidance:
+
+- pass only the fields that need to change — all fields are optional except `agentId`
+- only DRAFT or REJECTED agents can be updated; APPROVED or PENDING_REVIEW agents will return a 409 error
+
+Use `publish_agent` when the user wants to submit an agent draft for review.
+
+Input guidance:
+
+- the agent must be in DRAFT or REJECTED status
+- after submission, status becomes `pending_review` — approval typically takes 1-3 business days
+- use `get_my_agents` to poll for status change to `approved`
+
+Use `unpublish_agent` when the user wants to take an approved agent offline.
+
+Input guidance:
+
+- the agent must be in APPROVED status
+- after unpublishing, status becomes `offline` — the agent is removed from public market listings
+- existing users who installed the agent are not affected
+
+Typical agent publishing workflow:
+
+1. `create_agent` — create a draft with full details, save the returned `id`
+2. `update_agent` — revise any fields if needed
+3. `publish_agent` — submit for review
+4. `get_my_agents` — poll until status changes from `pending_review` to `approved`
+
 ## Response Style
 
 When summarizing results:
@@ -314,5 +415,6 @@ For destructive actions:
 
 - state clearly what will happen before calling the tool
 - after the tool returns, summarize the resulting task status or wallet impact
+- after a successful `create_task` or `claim_task`, offer an optional 5-minute cron monitor unless the user already declined it
 
 Do not invent fields, prices, ratings, balances, or install counts that were not returned by the MCP tool.

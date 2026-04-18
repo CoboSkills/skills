@@ -3,11 +3,16 @@
   "slug": "naver-real-estate-search",
   "displayName": "Naver Real Estate Search",
   "latest": {
-    "version": "0.6.3",
-    "publishedAt": 1773977870839,
-    "commit": "https://github.com/openclaw/skills/commit/82264ee2576f01203608d9be5302d789c0ead49d"
+    "version": "2026.4.16",
+    "publishedAt": 1776348033037,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.6.3",
+      "publishedAt": 1773977870839,
+      "commit": "https://github.com/openclaw/skills/commit/82264ee2576f01203608d9be5302d789c0ead49d"
+    },
     {
       "version": "0.2.0",
       "publishedAt": 1773912763032,

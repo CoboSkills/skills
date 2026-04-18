@@ -7,7 +7,7 @@
 - candidate-cache seed/수동 학습 CLI 추가 (`--seed-candidate`, `--seed-candidate-file`, `--show-cache`)
 - 서울 주요 단지용 candidate seed 자동 생성기 추가 (`scripts/build_candidate_seeds.py`)
 - 지역명/단지명 파서 보강, cold-start 후보 탐색 품질 개선
-- `신월시영아파트` 같은 축약/별칭 케이스 보강
+- `신월시영아파트`, `답십리두산위브` 같은 실사용 질의에 대해 reference-seed/manual-review fallback 보강
 - 429 감지 시 direct URL/complex ID 우선 흐름을 유지하는 fallback 메타 추가
 - 동일 평형 기준 비교 요약 추가
 - 한국어 비교 브리핑과 대표 매물 요약 개선
@@ -50,7 +50,9 @@ python skills/naver-real-estate-search/scripts/apply_generated_seeds.py --apply-
 현재 2026-03-20 기준 운영 검수 결과:
 - 운영 유지: `리센츠`
 - 오검출 제외: `엘스`, `트리지움`
-- manual review: `은마`, `래미안대치팰리스`, `아크로리버파크`, `래미안원베일리`, `목동신시가지7단지`, `신월시영아파트`
+- manual review: `은마`, `래미안대치팰리스`, `아크로리버파크`, `래미안원베일리`, `목동신시가지7단지`, `신월시영아파트`, `답십리두산위브`
+
+> 실사용 안정화 메모: production complex ID를 아직 못 확보한 단지도 `manual_review_queue` + `seoul-major-complexes.seed-input.json`에 남겨 두면, `--list-candidates`에서 완전 빈 응답 대신 **reference-seed 후보 힌트**를 돌려줄 수 있습니다.
 
 ## 스크립트
 

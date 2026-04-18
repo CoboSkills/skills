@@ -21,9 +21,71 @@ if str(UPSTREAM) not in sys.path:
 if str(SRC_ROOT) not in sys.path:
     sys.path.insert(0, str(SRC_ROOT))
 
-from src.core.parser import NaverURLParser
-from src.core.services.response_capture import normalize_article_payload
-from src.utils.helpers import PriceConverter, get_article_url
+UPSTREAM_IMPORT_ERROR: Exception | None = None
+try:
+    from src.core.parser import NaverURLParser
+    from src.core.services.response_capture import normalize_article_payload
+    from src.utils.helpers import PriceConverter, get_article_url
+except Exception as exc:
+    UPSTREAM_IMPORT_ERROR = exc
+
+    class NaverURLParser:
+        @staticmethod
+        def extract_from_text(text: str) -> list[tuple[str, str]]:
+            pairs: list[tuple[str, str]] = []
+            for cid in RAW_COMPLEX_ID_RE.findall(text or ""):
+                pairs.append(("", cid))
+            return pairs
+
+        @staticmethod
+        def extract_complex_id(text: str | None) -> str | None:
+            match = RAW_COMPLEX_ID_RE.search(text or "")
+            return match.group(1) if match else None
+
+        @staticmethod
+        def fetch_complex_name(complex_id: str) -> str:
+            _raise_missing_upstream()
+
+    class PriceConverter:
+        @staticmethod
+        def to_int(value: Any) -> int:
+            raw = str(value or "").strip()
+            if not raw:
+                return 0
+            digits = re.sub(r"[^0-9]", "", raw)
+            return int(digits) if digits else 0
+
+        @staticmethod
+        def to_string(value: Any) -> str:
+            amount = PriceConverter.to_int(value)
+            if amount <= 0:
+                return "0"
+            eok = amount // 100000000
+            rem = amount % 100000000
+            man = rem // 10000
+            if eok and man:
+                return f"{eok}억 {man:,}만"
+            if eok:
+                return f"{eok}억"
+            return f"{man:,}만"
+
+    def get_article_url(complex_id: str, article_id: str, real_estate_type: str = "APT") -> str:
+        article = str(article_id or "").strip()
+        if not article:
+            return ""
+        return f"https://new.land.naver.com/articles/{article}?complexNo={complex_id}&realEstateType={real_estate_type}"
+
+    def normalize_article_payload(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        _raise_missing_upstream()
+
+
+def _raise_missing_upstream() -> None:
+    detail = f" ({UPSTREAM_IMPORT_ERROR})" if UPSTREAM_IMPORT_ERROR else ""
+    raise RuntimeError(
+        "필수 upstream clone(tmp/naverland-scrapper)이 없거나 불완전합니다. "
+        "이 스킬은 해당 로컬 저장소의 src 패키지에 의존합니다. "
+        f"경로를 확인한 뒤 다시 시도해 주세요{detail}"
+    )
 
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36"
 SEARCH_URL = "https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query={query}"
@@ -49,9 +111,11 @@ TRADE_STOPWORDS = ["매매", "전세", "월세"]
 COMPARE_TOKENS = ["비교", "대비", "vs", "VS"]
 LOCATION_SUFFIXES = ("특별시", "광역시", "시", "도", "군", "구", "동", "읍", "면", "리", "가")
 SIMPLE_KOREAN_TOKEN_RE = re.compile(r"[가-힣A-Za-z0-9]{2,}")
+RAW_COMPLEX_ID_RE = re.compile(r"(?:complex(?:\s*id|no)?|단지(?:\s*id)?|id)\s*[:=#-]?\s*(\d{3,10})", re.I)
 WATCH_STATE_FILE = WORKSPACE / "skills" / "naver-real-estate-search" / "data" / "watch-rules.json"
 CANDIDATE_CACHE_FILE = WORKSPACE / "skills" / "naver-real-estate-search" / "data" / "candidate-cache.json"
 DEFAULT_CANDIDATE_SEED_FILE = WORKSPACE / "skills" / "naver-real-estate-search" / "references" / "candidate-seeds.json"
+DEFAULT_SEED_INPUT_FILE = WORKSPACE / "skills" / "naver-real-estate-search" / "references" / "seoul-major-complexes.seed-input.json"
 APT_SUFFIX_RE = re.compile(r"(?:아파트|맨션|타운하우스|주상복합|오피스텔|빌라)$")
 AREA_RANGE_RE = re.compile(r"(\d{1,2})\s*평\s*[~-]\s*(\d{1,2})\s*평")
 AREA_BAND_RE = re.compile(r"(\d{1,2})\s*평대")
@@ -303,6 +367,38 @@ def split_candidate_keywords(query: str) -> list[str]:
     return uniq[:10]
 
 
+def extract_direct_complex_ids(text: str) -> list[str]:
+    direct_complex_ids: list[str] = []
+    seen: set[str] = set()
+    for _, cid in NaverURLParser.extract_from_text(text or ""):
+        if cid and cid not in seen:
+            direct_complex_ids.append(cid)
+            seen.add(cid)
+    for match in RAW_COMPLEX_ID_RE.finditer(text or ""):
+        cid = match.group(1)
+        if cid and cid not in seen:
+            direct_complex_ids.append(cid)
+            seen.add(cid)
+    text_clean = str(text or "").strip()
+    if re.fullmatch(r"\d{3,10}", text_clean) and text_clean not in seen:
+        direct_complex_ids.append(text_clean)
+    return direct_complex_ids
+
+
+def build_direct_lookup_payload(query: str | None, complex_id: str | None, url: str | None) -> dict[str, Any]:
+    parts = [str(x or "") for x in [query, complex_id, url] if str(x or "").strip()]
+    direct_ids = extract_direct_complex_ids("\n".join(parts))
+    chosen = str(complex_id or "").strip() or (NaverURLParser.extract_complex_id(url) if url else None) or (direct_ids[0] if direct_ids else None)
+    return {
+        "query": query,
+        "explicit_complex_id": complex_id,
+        "explicit_url": url,
+        "detected_complex_ids": direct_ids,
+        "selected_complex_id": chosen,
+        "canonical_complex_url": f"https://new.land.naver.com/complexes/{chosen}" if chosen else None,
+    }
+
+
 def parse_natural_query(query: str) -> ParsedQuery:
     min_pyeong, max_pyeong = parse_pyeong_range(query)
     subject_parts = split_query_subjects(query)
@@ -310,10 +406,7 @@ def parse_natural_query(query: str) -> ParsedQuery:
     candidate_keywords = split_candidate_keywords(query)
     compare_mode = any(token in query for token in COMPARE_TOKENS) or len(subject_parts) >= 2
     cleaned_query = normalize_keyword(query)
-    direct_complex_ids = []
-    for _, cid in NaverURLParser.extract_from_text(query or ""):
-        if cid not in direct_complex_ids:
-            direct_complex_ids.append(cid)
+    direct_complex_ids = extract_direct_complex_ids(query)
     return ParsedQuery(
         raw_query=query,
         cleaned_query=cleaned_query,
@@ -359,6 +452,7 @@ def fetch_complex_info(complex_id: str) -> dict[str, Any]:
         "name": str(info.get("complexName") or info.get("complexNm") or f"단지_{complex_id}"),
         "address": address,
         "household_count": info.get("totalHouseHoldCount") or info.get("houseHoldCount"),
+        "complex_url": f"https://new.land.naver.com/complexes/{complex_id}",
     }
     remember_candidate(result)
     return result
@@ -513,6 +607,86 @@ def seed_candidate_from_file(path: str | Path | None = None) -> dict[str, Any]:
     return {"path": str(target), "saved_count": len(saved), "saved": saved}
 
 
+def _load_reference_seed_rows() -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    target = _read_json_file(DEFAULT_CANDIDATE_SEED_FILE, {"entries": [], "manual_review_queue": []})
+    if isinstance(target, dict):
+        for row in target.get("entries") or []:
+            rows.append({**row, "reference_kind": "production-entry"})
+        for row in target.get("manual_review_queue") or []:
+            rows.append({**row, "reference_kind": "manual-review"})
+    seed_input = _read_json_file(DEFAULT_SEED_INPUT_FILE, {"seeds": []})
+    if isinstance(seed_input, dict):
+        for row in seed_input.get("seeds") or []:
+            rows.append({**row, "reference_kind": "seed-input"})
+    return rows
+
+
+def search_reference_candidates(query: str, *, candidate_limit: int = 5, parsed: ParsedQuery | None = None) -> list[dict[str, Any]]:
+    parsed = parsed or parse_natural_query(query)
+    terms: list[str] = []
+    for value in [query, parsed.cleaned_query, *parsed.candidate_keywords, *parsed.raw_subjects]:
+        for variant in expand_alias_variants(value):
+            norm = normalize_complex_alias(variant)
+            if norm and norm not in terms:
+                terms.append(norm)
+    if not terms:
+        return []
+
+    scored: list[dict[str, Any]] = []
+    seen_keys: set[str] = set()
+    for row in _load_reference_seed_rows():
+        name = str(row.get("name") or "").strip()
+        if not name:
+            continue
+        aliases = [str(x) for x in (row.get("aliases") or []) if str(x).strip()]
+        bag = [name, *aliases, row.get("district") or "", row.get("neighborhood") or "", row.get("address") or ""]
+        bag_norms = [normalize_complex_alias(x) for x in bag if str(x or "").strip()]
+        local_score = 0
+        for term in terms:
+            if term in bag_norms:
+                local_score = max(local_score, 240)
+            elif any(term and term in norm for norm in bag_norms):
+                local_score = max(local_score, 170)
+        if local_score <= 0:
+            continue
+        key = str(row.get("complex_id") or f"hint:{normalize_complex_alias(name)}:{row.get('reference_kind')}")
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+        reference_score = local_score + _score_candidate(
+            {
+                "name": name,
+                "address": row.get("address") or " ".join(filter(None, [row.get("district"), row.get("neighborhood")])),
+                "household_count": row.get("household_count"),
+                "aliases": aliases,
+            },
+            query,
+            parsed,
+        )
+        cid = str(row.get("complex_id") or "")
+        scored.append(
+            {
+                "complex_id": cid,
+                "name": name,
+                "address": row.get("address") or " ".join(filter(None, [row.get("district"), row.get("neighborhood")])),
+                "household_count": row.get("household_count"),
+                "aliases": aliases[:20],
+                "match_score": reference_score,
+                "source_term": row.get("reference_kind") or "reference-seed",
+                "source": "reference-seed",
+                "reference_kind": row.get("reference_kind"),
+                "review_status": row.get("review_status"),
+                "verification_status": row.get("verification_status"),
+                "next_action": row.get("next_action"),
+                "note": row.get("note") or row.get("reason"),
+                "complex_url": f"https://new.land.naver.com/complexes/{cid}" if cid else None,
+            }
+        )
+    scored.sort(key=lambda row: (-int(row.get("match_score") or 0), str(row.get("name") or ""), str(row.get("complex_id") or "")))
+    return scored[:candidate_limit]
+
+
 def search_cached_candidates(query: str, *, candidate_limit: int = 5, parsed: ParsedQuery | None = None) -> list[dict[str, Any]]:
     parsed = parsed or parse_natural_query(query)
     cache = _read_candidate_cache().get("entries") or []
@@ -538,7 +712,8 @@ def search_cached_candidates(query: str, *, candidate_limit: int = 5, parsed: Pa
         if local_score <= 0:
             continue
         score = local_score + _score_candidate({**row, "aliases": aliases}, query, parsed)
-        scored.append({**row, "aliases": aliases, "match_score": score, "source_term": "candidate-cache", "source": "candidate-cache"})
+        cid = str(row.get("complex_id") or "")
+        scored.append({**row, "aliases": aliases, "match_score": score, "source_term": "candidate-cache", "source": "candidate-cache", "complex_url": f"https://new.land.naver.com/complexes/{cid}" if cid else None})
     scored.sort(key=lambda row: (-int(row.get("match_score") or 0), str(row.get("name") or ""), str(row.get("complex_id") or "")))
     return scored[:candidate_limit]
 
@@ -593,11 +768,19 @@ def search_complex_candidates(query: str, *, candidate_limit: int = 5) -> list[d
     parsed = parse_natural_query(query)
     merged: dict[str, dict[str, Any]] = {}
 
+    def _merge_item(item: dict[str, Any]) -> None:
+        key = str(item.get("complex_id") or "").strip() or f"hint:{normalize_complex_alias(item.get('name') or '')}:{item.get('source') or item.get('reference_kind') or 'unknown'}"
+        prev = merged.get(key)
+        if not prev or int(item.get("match_score") or 0) >= int(prev.get("match_score") or 0):
+            merged[key] = dict(item)
+
     for item in search_cached_candidates(query, candidate_limit=max(candidate_limit * 2, 8), parsed=parsed):
-        merged[str(item.get("complex_id"))] = dict(item)
+        _merge_item(item)
+    for item in search_reference_candidates(query, candidate_limit=max(candidate_limit * 2, 8), parsed=parsed):
+        _merge_item(item)
 
     raw_ids: list[tuple[str, str]] = []
-    seen_ids: set[str] = set(merged.keys())
+    seen_ids: set[str] = {str(row.get("complex_id") or "") for row in merged.values() if str(row.get("complex_id") or "").strip()}
     for term in build_search_terms(parsed):
         try:
             web_items = extract_complex_candidates_from_web(term, limit=max(candidate_limit * 2, 8))
@@ -615,7 +798,7 @@ def search_complex_candidates(query: str, *, candidate_limit: int = 5) -> list[d
         except Exception as exc:
             info = {"complex_id": cid, "name": f"단지_{cid}", "address": "", "error": str(exc), "source": "web-search-fallback"}
         score = _score_candidate(info, source_term, parsed)
-        merged[cid] = {**info, "match_score": score, "source_term": source_term, "source": info.get("source") or "web-search"}
+        merged[cid] = {**info, "match_score": score, "source_term": source_term, "source": info.get("source") or "web-search", "complex_url": f"https://new.land.naver.com/complexes/{cid}"}
 
     scored = list(merged.values())
     scored.sort(key=lambda row: (-int(row.get("match_score") or 0), str(row.get("name") or ""), str(row.get("complex_id") or "")))
@@ -849,6 +1032,13 @@ def run_query(*, query: str | None, complex_id: str | None, url: str | None, tra
 
 
 def run_self_test() -> int:
+    if not UPSTREAM.exists() or UPSTREAM_IMPORT_ERROR is not None:
+        print(
+            "SKIP: upstream clone(tmp/naverland-scrapper) 미구성 상태라 upstream 의존 self-test는 건너뜁니다.",
+            file=sys.stderr,
+        )
+        return 0
+
     sample = {
         "articleNo": "123456789",
         "tradeTypeName": "전세",
@@ -876,6 +1066,9 @@ def run_self_test() -> int:
     assert tricky.cleaned_query.startswith("서울 양천구 신월동 신월시영")
     assert any(normalize_complex_alias(x) == "신월시영" for x in tricky.candidate_keywords)
     assert normalize_complex_alias("신월시영아파트") == "신월시영"
+    direct = build_direct_lookup_payload("complex 1147 리센츠", None, None)
+    assert direct["selected_complex_id"] == "1147"
+    assert direct["canonical_complex_url"].endswith("/1147")
 
     backup_cache = _read_candidate_cache()
     remember_candidate({"complex_id": "777", "name": "신월시영아파트", "address": "서울시 양천구 신월동", "household_count": 2256}, aliases=["신월시영", "양천 신월시영"])
@@ -886,6 +1079,8 @@ def run_self_test() -> int:
     assert cached and cached[0]["complex_id"] == "777"
     assert saved and any(row["complex_id"] == "778" for row in saved)
     assert list_candidate_cache(limit=5, keyword="리센츠")
+    ref_candidates = search_reference_candidates("서울 양천구 신월동 신월시영아파트 전세", candidate_limit=3)
+    assert ref_candidates and normalize_complex_alias(ref_candidates[0]["name"]) == "신월시영"
     _write_candidate_cache(backup_cache)
 
     score = _score_candidate({"name": "잠실리센츠", "address": "서울시 송파구 잠실동", "household_count": 5563}, "리센츠", parsed)
@@ -924,6 +1119,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--compare", action="store_true", help="후보 상위 단지들을 비교 모드로 조회")
     p.add_argument("--parse-only", action="store_true", help="자연어 파싱 결과만 출력")
     p.add_argument("--show-cache", action="store_true", help="candidate cache를 조회")
+    p.add_argument("--resolve-direct", action="store_true", help="query/url/complex-id에서 direct ID와 canonical URL을 정리")
+    p.add_argument("--lookup-complex", action="store_true", help="매물 조회 대신 단지 기본 정보만 direct lookup")
     p.add_argument("--seed-candidate-file", nargs="?", const="", help="candidate-cache에 seed할 JSON 파일 경로. 비우면 references/candidate-seeds.json")
     p.add_argument("--seed-candidate", action="store_true", help="단일 후보를 candidate-cache에 직접 저장")
     p.add_argument("--candidate-name", help="seed candidate 이름")
@@ -951,6 +1148,10 @@ def main() -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0
 
+    if args.resolve_direct:
+        print(json.dumps(build_direct_lookup_payload(args.query, args.complex_id, args.url), ensure_ascii=False, indent=2))
+        return 0
+
     if args.seed_candidate:
         if not args.complex_id:
             raise SystemExit("--seed-candidate 는 --complex-id 와 함께 사용하세요.")
@@ -973,6 +1174,15 @@ def main() -> int:
     if args.show_cache:
         rows = list_candidate_cache(limit=max(1, args.limit), keyword=args.query)
         print(json.dumps({"count": len(rows), "entries": rows}, ensure_ascii=False, indent=2))
+        return 0
+
+    if args.lookup_complex:
+        payload = build_direct_lookup_payload(args.query, args.complex_id, args.url)
+        selected = payload.get("selected_complex_id")
+        if not selected:
+            raise SystemExit("direct lookup용 complex ID를 찾지 못했습니다. --complex-id / --url / --query 중 하나에 direct 단서를 넣어 주세요.")
+        payload["complex_info"] = fetch_complex_info(str(selected))
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
 
     trade_types = [token.strip() for token in str(args.trade_types).split(",") if token.strip()]

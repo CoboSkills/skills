@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MaybeAI Sheet — Formatting (Freeze, Filters, Conditional Formats)
+# MaybeAI Sheet — Formatting (Freeze, Cell Styles, Filters, Conditional Formats)
 # Usage: export MAYBEAI_API_TOKEN=your_token_here
 #        export DOC_ID=your_document_id_here
 #        bash 08-formatting.sh
@@ -33,6 +33,40 @@ curl -s -X POST "$BASE_URL/api/v1/excel/freeze_panes" \
     \"worksheet_name\": \"Sheet1\",
     \"freeze_rows\": 1,
     \"freeze_columns\": 1
+  }" \
+  | jq .
+
+# ── Batch Set Cell Style ──────────────────────────────────────────────────────
+# Single-range style requests still use range_addresses with one item.
+echo "=== Batch Set Cell Style (single range as one-item array) ==="
+curl -s -X POST "$BASE_URL/api/v1/excel/batch_set_cell_style" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"uri\": \"$DOC_URI\",
+    \"worksheet_name\": \"Sheet1\",
+    \"range_addresses\": [\"B2:B100\"],
+    \"style\": {
+      \"format\": \"date\"
+    }
+  }" \
+  | jq .
+
+# Common LLM-friendly pattern: same style for data columns plus header row.
+echo "=== Batch Set Cell Style (multiple ranges) ==="
+curl -s -X POST "$BASE_URL/api/v1/excel/batch_set_cell_style" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"uri\": \"$DOC_URI\",
+    \"worksheet_name\": \"Sheet1\",
+    \"range_addresses\": [\"B2:B100\", \"E2:E100\", \"A1:F1\"],
+    \"style\": {
+      \"bold\": true,
+      \"horizontal\": \"center\",
+      \"wrap_text\": true,
+      \"bg_color\": \"#D9EAD3\"
+    }
   }" \
   | jq .
 

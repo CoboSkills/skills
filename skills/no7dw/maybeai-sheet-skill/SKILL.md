@@ -1,7 +1,7 @@
 ---
 name: maybeai-sheet
 description: "MaybeAI Sheet skill for full Excel/spreadsheet lifecycle management. Upload, read, edit, and analyze Excel files via the MaybeAI platform. Use when the user wants to: upload or import an Excel file, read spreadsheet data, inspect worksheet headers, update cell ranges, insert/delete rows or columns, manage worksheets, add charts or images, apply filters or conditional formatting, calculate formulas, generate SQL-assisted pivot/result tables, export files, manage versions, or perform any Excel data operation."
-version: 0.1.3
+version: 0.1.4
 metadata:
   openclaw:
     requires:
@@ -90,6 +90,7 @@ Authorization: Bearer <MAYBEAI_API_TOKEN>
 | "Add a new worksheet" | `POST /api/v1/excel/write_new_worksheet` |
 | "Add a bar chart" | `POST /api/v1/excel/add_chart` |
 | "Freeze the header row" | `POST /api/v1/excel/freeze_panes` |
+| "Format one or more ranges" | `POST /api/v1/excel/batch_set_cell_style` |
 | "Add auto filter" | `POST /api/v1/excel/set_auto_filter` |
 | "Calculate formula =SUM(A1:A10)" | `POST /api/v1/excel/calc_formulas` |
 | "Build a pivot/result sheet from worksheet data" | `POST /api/v1/excel/sql/compile` then `POST /api/v1/excel/sql/write_result` |
@@ -337,6 +338,7 @@ Authorization: Bearer <token>
 - Use `update_data_keep_headers` when you have list-of-dict data and want to replace all table rows while keeping row 1, column order, styles, and optional formula columns.
 - Use `update_range_by_lookup` when you need upsert behavior: update rows that match a key and append rows that do not exist yet.
 - Use `update_range` when you truly need exact A1 targeting such as `B7:D12`, header rewrites, or non-tabular cell edits.
+- Use `batch_set_cell_style` for visual formatting on one or more ranges. Even a single range must be sent as `range_addresses: ["B2:B100"]`.
 - For non-first worksheets, always set `worksheet_name` or `uri?gid=N` explicitly. Otherwise writes can land on the first sheet.
 
 #### Agent-friendly patterns
@@ -347,6 +349,8 @@ Authorization: Bearer <token>
   If the user says "update rows by order ID" or "sync these records into the sheet", prefer `update_range_by_lookup` so the agent does not need to read row numbers and construct A1 ranges first.
 - Keep formulas intact:
   If the sheet has computed columns like `Total` or `Margin`, prefer `update_data_keep_headers` with `preserve_formulas: true` or `update_range_by_lookup`, which avoids overwriting existing formula cells.
+- Simpler styling for agents:
+  Prefer `batch_set_cell_style` over low-level Excel style objects or style IDs. It fits common LLM-safe actions like date formatting, currency formatting, header emphasis, alignment, and wrap text.
 
 #### Write New Sheet (creates a new workbook)
 ```
@@ -815,6 +819,54 @@ Authorization: Bearer <token>
 ```
 Set `freeze_rows: 1` to lock the header row while scrolling.
 
+#### Batch Set Cell Style
+Use this for both single-range and multi-range styling. There is no separate `set_cell_style` API. For a single range, pass a one-item `range_addresses` array.
+
+Simplest single-range request:
+
+```
+POST /api/v1/excel/batch_set_cell_style
+Authorization: Bearer <token>
+
+{
+  "uri": "https://www.maybe.ai/docs/spreadsheets/d/<document_id>",
+  "worksheet_name": "Sheet1",
+  "range_addresses": ["B2:B100"],
+  "style": {
+    "format": "date"
+  }
+}
+```
+
+Typical multi-range request:
+
+```
+POST /api/v1/excel/batch_set_cell_style
+Authorization: Bearer <token>
+
+{
+  "uri": "https://www.maybe.ai/docs/spreadsheets/d/<document_id>",
+  "worksheet_name": "Sheet1",
+  "range_addresses": ["B2:B100", "E2:E100", "A1:F1"],
+  "style": {
+    "bold": true,
+    "horizontal": "center",
+    "wrap_text": true,
+    "bg_color": "#D9EAD3"
+  }
+}
+```
+
+Use only the simplified `style` keys:
+- `format`: `date`, `datetime`, `currency`, `percent`, `integer`, `decimal`, `text`
+- `format_code`
+- `bold`, `italic`, `wrap_text`
+- `font_color`, `bg_color`
+- `horizontal`, `vertical`
+- `font_size`, `font_family`
+
+This API applies only the specified keys and preserves existing unspecified style properties.
+
 #### Set Auto Filter
 ```
 POST /api/v1/excel/set_auto_filter
@@ -918,6 +970,8 @@ Authorization: Bearer <token>
 - **SQL authoring**: For pivot/result-table generation, inspect worksheet names first, then use `read_headers` or a small `read_sheet` sample before writing SQL. Prefer `sql/compile` plus `sql/write_result` over `calc_formulas` for this workflow.
 - **SQL table references**: Use either the worksheet name or `gid_*`. Quote worksheet names with spaces, for example `"Sales Data"`.
 - **Range format**: Use Excel-style ranges like `A1`, `A1:B10`, `A:A`.
+- **Style API rule**: Use only `batch_set_cell_style` for cell formatting. For a single target range, still send `range_addresses` as a one-item array.
+- **Style input rule**: Keep style payloads small and explicit. Prefer keys like `format`, `bold`, `bg_color`, `horizontal`, and `wrap_text` instead of low-level Excel style structures.
 - **Row/column indexing**: Row numbers are 1-indexed (row 1 = first data row). Columns use Excel letters (`A`, `B`, ...).
 - **Worksheet targeting is explicit**: If you do not pass `worksheet_name` or `?gid=` in `uri`, many endpoints fall back to the first worksheet. This is the common reason writes appear to go to `gid=0`.
 - **Header-aware tools are usually safer for agents**: `update_data_keep_headers` and `update_range_by_lookup` work with header names instead of raw column positions, which reduces mistakes when sheet layouts change.

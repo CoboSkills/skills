@@ -3,11 +3,16 @@
   "slug": "maybeai-sheet-skill",
   "displayName": "Maybeai Sheet Skill",
   "latest": {
-    "version": "0.2.4",
-    "publishedAt": 1775794134219,
-    "commit": "https://github.com/openclaw/skills/commit/fffe753bee61f1ab42b2398823680e494aef4610"
+    "version": "0.3.0",
+    "publishedAt": 1776308512685,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.4",
+      "publishedAt": 1775794134219,
+      "commit": "https://github.com/openclaw/skills/commit/fffe753bee61f1ab42b2398823680e494aef4610"
+    },
     {
       "version": "0.1.3",
       "publishedAt": 1773732587970,

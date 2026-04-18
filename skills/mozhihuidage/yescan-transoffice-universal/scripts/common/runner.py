@@ -61,6 +61,7 @@ def run_ocr(result_handler: Optional[ResultHandler] = None,
     # 获取场景配置
     try:
         config = get_scene_config(args.scene)
+        config["scene"] = args.scene  # 添加 scene 名称供 result_handler 使用
     except ValueError as e:
         print(OCRResult(code="INVALID_SCENE", message=str(e), data=None).to_json())
         sys.exit(1)
@@ -69,9 +70,7 @@ def run_ocr(result_handler: Optional[ResultHandler] = None,
         api_key = CredentialManager.load()
         with QuarkOCRClient(
             api_key=api_key,
-            service_option=config["service_option"],
-            input_configs=config["input_configs"],
-            output_configs=config["output_configs"],
+            scene=args.scene,
             data_type=config["data_type"]
         ) as client:
             if args.base64:

@@ -1,24 +1,27 @@
 ---
 name: yescan-transoffice-universal
-description: 专业的文件格式转换工具。能够接收用户上传的图片文件，根据用户的自然语言指令或图片内容的特征，自动识别意图，转为 Office 或 Excel 格式，并返回文件结果。转换结果行业领先，信息结构化提取，内容版式还原。
-metadata: {"openclaw": { "emoji": "🔍︎",  "requires": { "bins": ["python3"], "env":["SCAN_WEBSERVICE_KEY"]},"primaryEnv":"SCAN_WEBSERVICE_KEY" },"homepage":"https://scan.quark.cn/business"}
+description: 由夸克扫描王提供的专业的文件格式转换工具。能够接收用户上传的图片、截图或扫描件，根据用户指令智能转换为 Office 文档（Word/Excel）或 PDF 格式。具备行业领先的信息结构化提取与版面还原能力，能精准识别复杂表格、合同文书及图文排版，将图片转化为可编辑、高保真的数字化文档
+metadata: {"openclaw":{"emoji":"🔍︎","requires":{"bins":["python3"],"env":["SCAN_WEBSERVICE_KEY"]},"primaryEnv":"SCAN_WEBSERVICE_KEY"},"homepage":"https://scan.quark.cn/business"}
 ---
 
 # 🧭 使用前必读（30 秒）
 
 > [!WARNING] **⚠️ 隐私与数据流向重要提示**
-> - **第三方服务交互**：本技能会将您提供的**图片发送至夸克官方服务器 (`scan-business.quark.cn`)** 进行识别。
-> - **服务端处理**：夸克服务将获取并处理该图片内容，服务端不会永久保存
-> - **本地文件存储**：识别返回的图片会保存至系统临时目录（如 `/tmp`），这些文件将持续存在直到您手动清理
+> - **第三方服务交互**：本技能会将您提供的**图片发送至夸克扫描王官方服务器 (`scan-business.quark.cn`)** 进行识别。
+> - **服务端处理**：夸克扫描王服务将获取并处理该图片内容，服务端不会永久保存
+> - **本地文件存储**：识别返回的文件会保存至系统临时目录（如 `/tmp`），这些文件将持续存在直到您手动清理
 > - **API 密钥安全**：`SCAN_WEBSERVICE_KEY` 应妥善保管，若泄露请及时在官方平台轮换或撤销
+> - **图片来源**：仅限用户明确指定的图片文件
 
-**推荐方式：环境变量（免权限、即时生效、webchat 友好）**  
-在终端中运行（本次会话立即可用）：
+**推荐方式：CLI 配置（永久生效）**
+
+配置 `SCAN_WEBSERVICE_KEY` 环境变量到 OpenClaw：
 ```bash
-export SCAN_WEBSERVICE_KEY="your_scan_webservice_key_here"
+openclaw config set skills.entries.yescan-transoffice-universal.env.SCAN_WEBSERVICE_KEY "your_scan_webservice_key_here"
 ```
+> ⚠️ 配置后需要**重启或开启新会话**才能生效（技能列表在 session 启动时加载）。
 
-**如何获取密钥？官方入口在此**
+**如何获取密钥？夸克扫描王官方入口在此**
 > 请访问 https://scan.quark.cn/business → 开发者后台 → 登录/注册账号 → 查看API Key。  
 > ⚠️ **注意**：若你点击链接后跳转到其他域名，说明该链接已失效 —— 请直接在浏览器地址栏手动输入 `https://scan.quark.cn/business`（这是当前唯一有效的官方入口）。
 
@@ -63,40 +66,22 @@ export SCAN_WEBSERVICE_KEY="your_scan_webservice_key_here"
 - 按照下面列出的意图*从上到下顺序匹配。命中第一个即停止*
 - 命中后，*只确定当前意图对应的scene标识*
 
-第四步：**执行 Python 脚本**（安全参数传递）：
+第四步：**构建执行命令(固定格式，严禁修改)**：
 
-使用 `subprocess` 模块执行脚本，**参数以列表形式传递**（避免 shell 注入风险）：
-
-```python
-import subprocess
-
-# URL 类型
-subprocess.run([
-    "python3", "scripts/scan.py",
-    "--scene", "SCENE_VALUE",
-    "--url", "IMAGE_URL"
-], capture_output=True, text=True)
+根据图片类型，严格使用下面对应格式：
+```bash
+# URL类型
+python3 scripts/scan.py --scene "${SCENE_VALUE}" --url "${IMAGE_URL}"
 
 # 本地文件类型
-subprocess.run([
-    "python3", "scripts/scan.py",
-    "--scene", "SCENE_VALUE",
-    "--path", "IMAGE_FILE_PATH"
-], capture_output=True, text=True)
+python3 scripts/scan.py --scene "${SCENE_VALUE}" --path "${IMAGE_FILE_PATH}"
 
-# BASE64 类型
-subprocess.run([
-    "python3", "scripts/scan.py",
-    "--scene", "SCENE_VALUE",
-    "--base64", "IMAGE_BASE64"
-], capture_output=True, text=True)
+# BASE64类型
+python3 scripts/scan.py --scene "${SCENE_VALUE}" --base64 "${IMAGE_BASE64}"
 ```
-
-**安全说明**：
-- ✅ 参数以列表形式传递，`subprocess` 会自动处理转义
-- ✅ Python 脚本内部使用 `argparse` 验证参数
-- ✅ 文件路径/URL 由脚本内部验证器校验
-- ❌ 不要使用 `shell=True` 或直接拼接 shell 字符串
+- 把`${IMAGE_URL}`/`${IMAGE_FILE_PATH}`/`${IMAGE_BASE64}`替换为真实值
+- 把`${SCENE_VALUE}`替换为当前意图对应的scene值
+- 直接执行命令，不增删任何参数，不修改JSON，不加引号，不换行
 
 第五步：**结果透出**：
 - 执行完成后，*原样返回执行结果*，不修改，不翻译，不美化，不总结
@@ -109,22 +94,30 @@ subprocess.run([
 - 触发意图：当用户请求将包含表格、数据、报表的图片、截图或扫描件转换为Excel (.xlsx/.xls) 文件，触发此意图。
 - 场景scene标识：image-to-excel
 - 参考示例指令：
-  - “帮我把这张财务报表截图转换成 Excel 文件。”
-  - “这里有张手写的库存记录照片，麻烦转成 Excel 给我。”
-  - “把这张包含销售数据的图片转成可编辑的 Excel。”
-  - “提取图片中的表格内容，保存为 .xlsx。”
+  - "帮我把这张财务报表截图转换成 Excel 文件。"
+  - "这里有张手写的库存记录照片，麻烦转成 Excel 给我。"
+  - "把这张包含销售数据的图片转成可编辑的 Excel。"
+  - "提取图片中的表格内容，保存为 .xlsx。"
 
 2. 图片转 Word
 - 触发意图：当用户请求将图片、截图、照片或扫描件转换为Word 文档 触发此意图
 - 场景scene标识：image-to-word
 - 参考示例指令：
-  - “把这张会议记录的拍照图片转成 Word 文档。”
-  - “请将这张包含长篇文章的截图转换为 .docx 格式。”
-  - “将这张产品说明书的截图转为 Word 格式。”
-  - “将这张产品说明书的截图转为 Word 格式。”
+  - "把这张会议记录的拍照图片转成 Word 文档。"
+  - "请将这张包含长篇文章的截图转换为 .docx 格式。"
+  - "将这张产品说明书的截图转为 Word 格式。"
+  - "将这张产品说明书的截图转为 Word 格式。"
 
-**客户端脚本增强字段**：当 `scan.py` 调用夸克 API 成功（`code == "00000"`）且响应 `data` 中包含 `"ImageBase64"` 时，`scan.py` 会**主动调用 `file_saver.py` 将其解码并保存为本地文件**，并在最终返回的 JSON 响应中，于 `data` 对象内**追加 `"path": "/tmp/xx.docx"` 字段**。该行为由 `scan.py` 脚本实现，与模型无关，也不依赖 OpenClaw 平台自动介入。
+3. 图片转 Pdf
+- 触发意图：当用户请求将图片、截图、照片或扫描件转换为 PDF 文档 触发此意图
+- 场景scene标识：image-to-pdf
+- 参考示例指令：
+  - "把这张手写的课堂笔记图片转成 PDF 文档。"
+  - "请将这张包含详细参数的设备铭牌照片转换为 .pdf 格式。"
+  - "帮我把这张合同照片处理一下，转成清晰的 PDF 存档。"
+  - "将这张包含复杂流程的白板草图转换为 PDF，保持版面整洁。"
 
+**客户端脚本增强字段**：当 `scan.py` 调用夸克 API 成功（`code == "00000"`）且响应 `data` 中包含 `"FileBase64"` 时，`scan.py` 会**主动调用 `file_saver.py` 将其解码并保存为本地文件**，并在最终返回的 JSON 响应中，于 `data` 对象内**追加 `"path": "/tmp/xx.docx"` 字段**。该行为由 `scan.py` 脚本实现，与模型无关，也不依赖 OpenClaw 平台自动介入。
 
 ## ⛔ 不适用场景（When Not to Use）
 
@@ -143,7 +136,7 @@ subprocess.run([
 ## ⚠️ 重要注意事项
 
 1. **禁止修改固定格式**,只能替换场景标识和图片占位符
-2. **严禁自行构造 input-configs、output-configs 等内部参数**
+2. **严禁自行构造 --scene 参数值，必须使用本文档指定的场景名**
 3. **图片大小限制：本地文件不超过5MB，支持 jpg/jpeg/png/gif/bmp/webp/tiff/wbmp/webp 格式**
 
 ---

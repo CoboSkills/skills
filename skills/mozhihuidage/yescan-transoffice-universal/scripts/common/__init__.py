@@ -14,7 +14,7 @@ from .constants import (
     ERR_MSG_A0211_QUOTA_INSUFFICIENT,
 )
 from .validators import URLValidator, FileValidator
-from .ocr_client import OCRResult, CredentialManager, QuarkOCRClient, validate_json_config
+from .ocr_client import OCRResult, CredentialManager, QuarkOCRClient
 from .file_saver import FileSaver, SaveResult, ResponseCode, FileExtension, SubDirectory
 from .scene_configs import SCENE_CONFIGS, get_scene_config, list_scenes
 from .runner import run_ocr
@@ -37,7 +37,6 @@ __all__ = [
     "OCRResult",
     "CredentialManager",
     "QuarkOCRClient",
-    "validate_json_config",
     # 文件保存
     "FileSaver",
     "SaveResult",

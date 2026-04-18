@@ -3,11 +3,16 @@
   "slug": "tuya-smart-control",
   "displayName": "Tuya Smart Control",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1775113225855,
-    "commit": "https://github.com/openclaw/skills/commit/9991da9c4681bea2042e4b41a973d8a2b6c08f65"
+    "version": "1.0.4",
+    "publishedAt": 1776336510952,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1775113225855,
+      "commit": "https://github.com/openclaw/skills/commit/9991da9c4681bea2042e4b41a973d8a2b6c08f65"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774084707488,

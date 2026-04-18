@@ -1,13 +1,18 @@
 {
   "owner": "mozhihuidage",
   "slug": "yescan-scan-universal",
-  "displayName": "Yescan Scan Universal",
+  "displayName": "夸克扫描王 文件扫描增强 - yescan scan universal",
   "latest": {
-    "version": "1.0.10",
-    "publishedAt": 1774493387296,
-    "commit": "https://github.com/openclaw/skills/commit/8ec5dd6df1693e9e47f78a6c6738d31d3fb9dc40"
+    "version": "1.0.11",
+    "publishedAt": 1776342025059,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.10",
+      "publishedAt": 1774493387296,
+      "commit": "https://github.com/openclaw/skills/commit/8ec5dd6df1693e9e47f78a6c6738d31d3fb9dc40"
+    },
     {
       "version": "1.0.8",
       "publishedAt": 1774336374624,

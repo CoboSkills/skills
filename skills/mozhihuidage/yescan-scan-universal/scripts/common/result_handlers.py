@@ -2,8 +2,6 @@
 """
 结果处理器模块 - 处理 OCR 结果并保存文件
 """
-import json
-
 from .ocr_client import OCRResult
 from .file_saver import FileSaver
 
@@ -36,21 +34,20 @@ def save_image_from_result(result: OCRResult) -> OCRResult:
 
 
 def save_document_from_result(result: OCRResult, config: dict) -> OCRResult:
-    """从 OCR 结果中提取并保存文档（Word/Excel）"""
+    """从 OCR 结果中提取并保存文档（Word/Excel/PDF）"""
     if result.code != "00000":
         return result
 
-    # 根据 function_option 判断保存类型
-    doc_type = None
-    try:
-        input_configs = json.loads(config["input_configs"])
-        func_option = input_configs.get("function_option", "")
-        if func_option == "word":
-            doc_type = "word"
-        elif func_option == "excel":
-            doc_type = "excel"
-    except json.JSONDecodeError:
-        pass
+    # 根据 scene 名称判断保存类型
+    scene = config.get("scene", "")
+    if scene == "image-to-word":
+        doc_type = "word"
+    elif scene == "image-to-excel":
+        doc_type = "excel"
+    elif scene == "image-to-pdf":
+        doc_type = "pdf"
+    else:
+        doc_type = None
 
     if not doc_type:
         return result
@@ -68,6 +65,8 @@ def save_document_from_result(result: OCRResult, config: dict) -> OCRResult:
             saver = FileSaver()
             if doc_type == "word":
                 save_res = saver.save_word_from_base64(file_base64)
+            elif doc_type == "pdf":
+                save_res = saver.save_pdf_from_base64(file_base64)
             else:  # excel
                 save_res = saver.save_excel_from_base64(file_base64)
 

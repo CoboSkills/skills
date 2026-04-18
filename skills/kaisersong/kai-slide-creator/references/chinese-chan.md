@@ -30,6 +30,62 @@ Still, focused, contemplative. Inspired by Chinese ink painting (水墨画), Hui
 
 ---
 
+## Background
+
+```css
+body {
+    background-color: var(--bg);
+    font-family: "Noto Serif CJK SC", "Source Han Serif SC", "STSong", "SimSun", Georgia, serif;
+}
+
+/* Optional: subtle ink wash texture */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 20%, rgba(26,26,24,0.03) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+```
+
+## Components
+
+```css
+/* Narrow content container */
+.zen-content {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 0 clamp(24px, 6vw, 60px);
+}
+
+/* Thin horizontal rule */
+.zen-rule {
+    height: 1px;
+    background: var(--rule);
+    border: none;
+    margin: clamp(32px, 5vw, 80px) 0;
+}
+
+/* Ghost kanji background texture */
+.zen-kanji {
+    position: absolute;
+    font-size: clamp(8rem, 20vw, 16rem);
+    opacity: 0.06;
+    pointer-events: none;
+    user-select: none;
+    font-family: "Noto Serif CJK SC", serif;
+}
+
+/* Accent emphasis (single use) */
+.zen-accent {
+    color: var(--accent);
+    font-weight: 700;
+}
+```
+
+---
+
 ## Typography
 
 ```css
@@ -177,6 +233,101 @@ Still, focused, contemplative. Inspired by Chinese ink painting (水墨画), Hui
     color: var(--text);
 }
 ```
+
+---
+
+## Named Layout Variations
+
+### 1. Zen Center (全屏宣告)
+
+Narrow column centered vertically. Title in Noto Serif CJK SC, `clamp(1.8rem, 5vw, 4rem)`, weight 400 (never bold). Subtitle in `.zen-body` below. Maximum ONE decorative element: `.zen-rule` (horizontal rule with dots) OR `.zen-ghost-kanji` OR `.zen-dot`. 50%+ empty space required.
+
+```html
+<section class="slide">
+    <div class="zen-content zen-center">
+        <h1 class="zen-title zen-cn">Title</h1>
+        <p class="zen-body zen-cn">Subtitle</p>
+        <div class="zen-rule">
+            <span class="zen-rule-line"></span>
+        </div>
+    </div>
+</section>
+```
+
+### 2. Zen Split (分栏证据)
+
+Single column, vertical flow. Section label in `.zen-caption` (small, uppercase, muted). Headline in `.zen-title`. Divider `.zen-rule`. Body text or numbered list below. No side-by-side panels — everything flows vertically.
+
+```html
+<section class="slide">
+    <div class="zen-content">
+        <span class="zen-caption">Section 01</span>
+        <h2 class="zen-title zen-cn">Headline</h2>
+        <div class="zen-rule"><span class="zen-rule-line"></span></div>
+        <ol class="zen-list">
+            <li>Point one</li>
+            <li>Point two</li>
+            <li>Point three</li>
+        </ol>
+    </div>
+</section>
+```
+
+### 3. Zen Vertical (竖排标题 — optional)
+
+Vertical writing mode for title slides. `writing-mode: vertical-rl`. Title runs top-to-bottom, right-to-left. Used for hero covers or philosophical statements. No other content except maybe a small seal (`.zen-accent` small square in vermilion `#C41E3A`).
+
+```html
+<section class="slide">
+    <div class="zen-vertical-title zen-cn">竖排标题</div>
+    <div class="zen-seal" style="width:12px;height:12px;background:#C41E3A;border-radius:2px;position:absolute;bottom:20%;left:15%;"></div>
+</section>
+```
+
+---
+
+## Signature Elements
+
+### CSS Overlays
+- `body::before`: 水墨纹理 — `radial-gradient(ellipse at 30% 20%, rgba(26,26,24,0.03) 0%, transparent 70%)`，`position: fixed; inset: 0; pointer-events: none; z-index: 0`（可选）
+
+### Animations
+- `@keyframes zenFadeIn`: 淡入 — `from { opacity: 0; } to { opacity: 1; }`，配合 `.slide.visible .reveal` 使用长间隔 staggered delays (0.1s, 0.3s, 0.5s, 0.7s, 0.9s, 1.1s, 1.3s)，仅透明度变化，无位移
+
+### Required CSS Classes
+- `.ghost-kanji`: 幽灵汉字底纹 — `position: absolute; font-family: 'Noto Serif SC', serif; font-weight: 900; font-size: clamp(120px, 25vw, 200px); opacity: 0.05; color: #1a1a18; pointer-events: none; user-select: none; line-height: 1`；必须放在 `.slide` 直接子元素位置
+- `.flanked-rule`: 带点分隔线 — `display: flex; align-items: center; gap: 12px`；`.flanked-rule::before` / `.flanked-rule::after` 为 5px 圆点 `rgba(26,26,24,0.2)`；内部 `hr` 为 `1px solid rgba(26,26,24,0.12)`
+- `.vline`: 垂直线 — `width: 1px; height: 60px; background: rgba(26,26,24,0.15)`
+- `.col`: 内容列 — `max-width: min(90vw, 580px); padding: 0 clamp(24px, 6vw, 60px)`
+- `.eyebrow`: 小标签 — `font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted)`
+- `.accent`: 强调色 — `color: var(--accent)`（朱红 `#C41E3A`）
+
+### Background Rule
+`.slide` 必须设置 `background: #FAFAF8`。body 为暖白纸色，可选 `body::before` 水墨纹理叠加。不使用渐变。
+
+### Style-Specific Rules
+- `.ghost-kanji` 必须作为 `.slide` 的直接子元素，使用 `position: absolute` 定位在页面边角（如 `right: -0.1em; bottom: -0.15em` 或 `left: -0.05em; top: 0.1em`）
+- 每页最多一个装饰元素：`.ghost-kanji` 或 `.flanked-rule` 或 `.vline`，不得同时使用多个
+- 内容列最大宽度 580px，极端水平留白
+- 标题权重 400，永远不使用 bold
+- 行高 ≥ 1.8（中文）/ 1.85（英文）
+- 使用 Noto Serif CJK SC + EB Garamond 字体组合
+- `font-feature-settings: "palt"` 用于中文标点压缩
+- 朱红 `#C41E3A` 每页最多使用一次（单个字或小方块）
+
+### Signature Checklist
+- [ ] body::before 水墨纹理（可选，3% 不透明度）
+- [ ] @keyframes zenFadeIn（纯淡入，长间隔 staggered）
+- [ ] .ghost-kanji 幽灵汉字（absolute, 25vw, opacity 0.05）
+- [ ] .ghost-kanji 定位在 .slide 边角（right/bottom 或 left/top 负偏移）
+- [ ] .flanked-rule 带点分隔线（5px 圆点 + 1px 线）
+- [ ] .vline 垂直线（60px, opacity 0.15）
+- [ ] .col 窄内容列（max-width 580px）
+- [ ] .accent 朱红强调（#C41E3A, 每页最多一次）
+- [ ] 50%+ 空白区域
+- [ ] 标题 weight 400（非 bold）
+- [ ] 行高 ≥ 1.8
+- [ ] font-feature-settings: "palt"
 
 ---
 

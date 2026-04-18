@@ -3,9 +3,15 @@
   "slug": "fivetran-integration",
   "displayName": "Fivetran",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773792188948,
-    "commit": "https://github.com/openclaw/skills/commit/9ea3db2d7086544383585e98abb7712119f3ecfc"
+    "version": "1.0.2",
+    "publishedAt": 1775164552505,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773792188948,
+      "commit": "https://github.com/openclaw/skills/commit/9ea3db2d7086544383585e98abb7712119f3ecfc"
+    }
+  ]
 }

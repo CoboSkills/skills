@@ -3,9 +3,15 @@
   "slug": "hellosign",
   "displayName": "Hellosign",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773792169247,
-    "commit": "https://github.com/openclaw/skills/commit/2f73b2e358ac3eac4f224d2d15f65981db3e61e7"
+    "version": "1.0.2",
+    "publishedAt": 1775164539844,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773792169247,
+      "commit": "https://github.com/openclaw/skills/commit/2f73b2e358ac3eac4f224d2d15f65981db3e61e7"
+    }
+  ]
 }

@@ -1,14 +1,17 @@
 ---
 name: card-full
 description: Return a compact full report for one major-US credit card — fees, welcome offer, earning rates, redemption, credits, travel benefits, protections, mechanics, eligibility, and strategy. Covers 11 major US issuers including co-branded hotel and airline cards.
+allowed-tools:
+  - WebSearch
+  - WebFetch
+  - AskUserQuestion
 metadata:
   openclaw:
     requires:
-      env:
+      optionalEnv:
         - BRAVE_API_KEY
-      bins:
+      optionalBins:
         - curl
-    primaryEnv: BRAVE_API_KEY
 ---
 
 # Card Full
@@ -22,10 +25,10 @@ When the user asks for a full credit card review, breakdown, or "tell me about [
 ## Workflow
 
 1. **Resolve card identity** — normalize the input, fix abbreviations, and match to one exact card variant.
-2. **Run the main search first** — use one Brave search to discover the issuer page plus likely secondary sources.
+2. **Run the main search first** — use `WebSearch` by default to discover the issuer page plus likely secondary sources. If `BRAVE_API_KEY` is available and `curl` exists, you may use one Brave search instead for faster results.
 3. **Fetch issuer + secondary pages** — fetch the issuer page and up to 3 approved secondary pages as needed.
-4. **Search for best public offer** — run a second Brave search only after a short delay, and only after the first fetch pass is complete.
-5. **Search for historical offers** — run a third Brave search only after another short delay, preserving historical-offer coverage without bursting requests.
+4. **Search for best public offer** — run a second search only after a short delay, and only after the first fetch pass is complete.
+5. **Search for historical offers** — run a third search only after another short delay, preserving historical-offer coverage without bursting requests.
 6. **Recover welcome-offer data explicitly** — if the issuer page does not expose the live offer cleanly, use approved secondary sources to identify the current public offer and the best public offer.
 7. **Compile** — assemble the report using the required sections below.
 8. **Confidence** — flag uncertain or conflicting claims in the Confidence Notes section, especially around welcome offers.
@@ -92,7 +95,9 @@ American Express, Bank of America, Barclays, Bilt, Capital One, Chase, Citi, Dis
 
 ## Step 2: Search
 
-Run **at most one Brave Search API call initially**:
+Use the platform's **WebSearch** and **WebFetch** tools by default. If `BRAVE_API_KEY` is available and the runtime also provides `curl`, you may use Brave Search API instead for faster and more repeatable search results.
+
+Optional Brave template:
 
 ```bash
 curl -sS "https://api.search.brave.com/res/v1/web/search?q=CARD+NAME+review+welcome+offer&count=10" \
@@ -103,22 +108,23 @@ Parse the JSON response — results are in `.web.results[]` with `.title`, `.url
 
 ### Search Budget Rule
 
-Brave may rate-limit after only a few requests. Treat search as scarce and **paced**.
+Treat search as scarce and **paced**. Built-in web search is the default path; if Brave mode is used, it may rate-limit after only a few requests.
 
 - Searches may be required for the main report, best public offer, and historical offers.
 - Do **not** fire those searches in one burst.
 - Serialize them.
 - Wait briefly between searches.
 - If Brave returns **429**, back off before trying the next search.
+- If Brave is unavailable, continue with `WebSearch` + `WebFetch`.
 - Preserve historical-offer coverage when possible, but never at the cost of bursty request patterns.
 
 ### Pacing Rule
 
-When multiple Brave searches are needed, use this pacing:
+When multiple searches are needed, use this pacing. Apply it to Brave searches and also avoid bursting platform `WebSearch` requests:
 
 1. Run the main search.
 2. Fetch issuer + secondary pages.
-3. Wait about **2 to 5 seconds** before the next Brave search.
+3. Wait about **2 to 5 seconds** before the next search.
 4. Run the best-public-offer search.
 5. Wait about **2 to 5 seconds** before the historical-offers search.
 6. Run the historical-offers search.
@@ -134,6 +140,7 @@ If a search returns **429**:
 - **Issuer-first for fees/terms/benefits**, but **not issuer-only for welcome offers**.
 - Use the issuer page as the baseline truth source for annual fee, earning rates, credits, protections, and restrictions.
 - For welcome offers, always compare against approved secondary sources because the best public offer may be broader than the issuer page or the issuer page may not extract cleanly.
+- An **approved secondary page** means a URL whose hostname matches one of the approved domains listed below. Do not fetch or cite secondary pages from any other domain.
 - **Max 5 secondary sources** from this approved list:
   1. NerdWallet (nerdwallet.com) — preferred
   2. The Points Guy (thepointsguy.com) — preferred
@@ -163,13 +170,19 @@ If a search returns **429**:
 
 ## Step 3: Fetch Pages
 
-Pick the top issuer URL and up to 3 secondary URLs (prefer thepointsguy.com, nerdwallet.com, and doctorofcredit.com when present) from the search results. Fetch in parallel.
+Pick the top issuer URL and up to 3 secondary URLs (prefer thepointsguy.com, nerdwallet.com, and doctorofcredit.com when present) from the search results. Fetch in parallel with `WebFetch`.
 
 Do not rely on snippets alone for welcome offers.
 
-```bash
-curl -sS -L "URL" | sed 's/<[^>]*>//g' | tr -s '\n' | head -200
-```
+### URL Safety Rules
+
+- Prefer `WebFetch` for page retrieval. Use `curl` only for the optional Brave Search API calls above, not for arbitrary result URLs.
+- Never execute a shell command that interpolates a raw URL taken directly from search results.
+- Only fetch URLs when all of the following are true:
+  1. scheme is `https`
+  2. hostname matches a supported issuer domain or an approved secondary domain from this skill
+  3. the URL is being passed to `WebFetch`, not inserted into a shell pipeline
+- If a result URL fails those checks, skip it and use the next valid result.
 
 ### Welcome Offer Recovery Rules
 
@@ -189,7 +202,7 @@ Some issuer pages, especially **American Express**, may be JS-heavy or may not e
 
 ## Step 4: Best Public Offer Search
 
-After the first fetch pass is complete, run a second Brave search for the best currently available public offer.
+After the first fetch pass is complete, run a second search for the best currently available public offer. Use `WebSearch` by default, or Brave if the key is available.
 
 Do not run it immediately after the first search. Follow the pacing rule above.
 
@@ -202,7 +215,7 @@ Look for elevated offers via CardMatch, incognito, referral links, or specific a
 
 ## Step 5: Historical Offers Search
 
-After another short delay, run a third Brave search for past notable offers.
+After another short delay, run a third search for past notable offers. Use `WebSearch` by default, or Brave if the key is available.
 
 Do not burst this search immediately after the best-offer search. Follow the pacing rule above.
 
@@ -213,7 +226,7 @@ curl -sS "https://api.search.brave.com/res/v1/web/search?q=CARD+NAME+historical+
 
 If results are found, include a compact table of notable past offers with approximate date ranges and amounts in the Welcome Offer section.
 
-If Brave rate-limits this step even after pacing and one retry, continue without historical data and say so in `## 📋 Confidence Notes`.
+If Brave rate-limits this step even after pacing and one retry, continue without historical data and say so in `## 📋 Confidence Notes`. If Brave is unavailable, use `WebSearch` + `WebFetch`.
 
 ## Step 6: Required Output Sections
 
@@ -293,7 +306,7 @@ Every report must include a `## 📋 Confidence Notes` section. Keep notes short
 Use this order of operations:
 
 1. Resolve the exact card.
-2. Run the main Brave search.
+2. Run the main search.
 3. Fetch the issuer page.
 4. Fetch up to 3 approved secondary pages.
 5. Wait briefly.

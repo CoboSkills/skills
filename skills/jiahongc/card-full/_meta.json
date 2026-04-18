@@ -3,11 +3,16 @@
   "slug": "card-full",
   "displayName": "Card Full",
   "latest": {
-    "version": "1.0.8",
-    "publishedAt": 1775662441031,
-    "commit": "https://github.com/openclaw/skills/commit/1e90675e114822076dc1bebea2340fcd3ff00739"
+    "version": "1.0.10",
+    "publishedAt": 1776259447976,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.8",
+      "publishedAt": 1775662441031,
+      "commit": "https://github.com/openclaw/skills/commit/1e90675e114822076dc1bebea2340fcd3ff00739"
+    },
     {
       "version": "1.0.7",
       "publishedAt": 1773454765150,

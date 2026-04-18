@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain-lab",
+  "slug": "etl",
+  "displayName": "Etl",
+  "latest": {
+    "version": "2.0.1",
+    "publishedAt": 1773830565262,
+    "commit": null
+  },
+  "history": []
+}

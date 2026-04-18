@@ -3,30 +3,22 @@
 OCR 客户端核心模块 - 处理 API 请求和响应
 """
 import os
-import sys
 import json
 import base64
 import binascii
-import logging
-from typing import Tuple, Dict, Any, Optional
+from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
 import requests
-from requests.exceptions import Timeout, ConnectionError
 
 from .constants import (
     API_URL,
-    ALLOWED_IMAGE_EXTENSIONS,
-    MAX_FILE_SIZE,
     REQUEST_TIMEOUT,
     HTTP_OK,
     ERROR_MSG_MAX_LENGTH,
-    SUCCESS_CODE,
     ERR_MSG_A0211_QUOTA_INSUFFICIENT,
 )
 from .validators import URLValidator, FileValidator
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -62,22 +54,17 @@ class CredentialManager:
 class QuarkOCRClient:
     """夸克 OCR 客户端，提供图片识别功能"""
 
-    def __init__(self, api_key: str, service_option: str, input_configs: str,
-                 output_configs: str, data_type: str):
+    def __init__(self, api_key: str, scene: str, data_type: str):
         """
         初始化 OCR 客户端
 
         Args:
             api_key: API 密钥
-            service_option: 服务选项
-            input_configs: 输入配置（JSON 字符串）
-            output_configs: 输出配置（JSON 字符串）
+            scene: 场景名称（如 general-ocr, idcard-ocr 等）
             data_type: 数据类型（image 或 pdf）
         """
         self.api_key = api_key
-        self.service_option = service_option
-        self.input_configs = input_configs
-        self.output_configs = output_configs
+        self.scene = scene
         self.data_type = data_type
         self.session = requests.Session()
 
@@ -173,9 +160,7 @@ class QuarkOCRClient:
         param = {
             "aiApiKey": self.api_key,
             "dataType": self.data_type,
-            "serviceOption": self.service_option,
-            "inputConfigs": self.input_configs,
-            "outputConfigs": self.output_configs
+            "scene": self.scene
         }
 
         if base64_data:
@@ -223,20 +208,3 @@ class QuarkOCRClient:
             message = ERR_MSG_A0211_QUOTA_INSUFFICIENT
 
         return OCRResult(code=code, message=message, data=data)
-
-
-def validate_json_config(config_str: str, config_name: str) -> None:
-    """
-    验证 JSON 配置格式
-
-    Args:
-        config_str: JSON 字符串
-        config_name: 配置名称（用于错误提示）
-
-    Raises:
-        ValueError: JSON 格式错误时抛出
-    """
-    try:
-        json.loads(config_str)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid {config_name} JSON: {str(e)}")

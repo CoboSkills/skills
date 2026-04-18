@@ -26,6 +26,7 @@ class FileExtension:
     """支持的文件扩展名"""
     DOCX = ".docx"
     XLSX = ".xlsx"
+    PDF = ".pdf"
     PNG = ".png"
     JPG = ".jpg"
     WEBP = ".webp"
@@ -217,6 +218,10 @@ class FileSaver:
     def save_excel_from_base64(self, base64_content: str, filepath: Optional[str] = None) -> Dict[str, Any]:
         """从 BASE64 保存 Excel 文档"""
         return self.save_file_from_base64(base64_content, FileExtension.XLSX, subdir=SubDirectory.DOCUMENTS, filepath=filepath)
+
+    def save_pdf_from_base64(self, base64_content: str, filepath: Optional[str] = None) -> Dict[str, Any]:
+        """从 BASE64 保存 PDF 文档"""
+        return self.save_file_from_base64(base64_content, FileExtension.PDF, subdir=SubDirectory.DOCUMENTS, filepath=filepath)
 
     def save_image_from_base64(self, base64_content: str, image_format: Optional[str] = None) -> Dict[str, Any]:
         """

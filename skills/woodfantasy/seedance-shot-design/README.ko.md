@@ -1,12 +1,24 @@
 [English](README.md) | [中文](README.zh-CN.md) | [日本語](README.ja.md) | 한국어 | [Español](README.es.md) | [Português](README.pt.md) | [Français](README.fr.md)
 
-# 🎬 Seedance2.0 Shot Design — 시네마틱 샷 언어 디자이너
+<p align="center">
+  <img src="assets/logo.svg" width="128" height="128" alt="Seedance Shot Design Logo">
+</p>
 
-[![버전](https://img.shields.io/badge/version-1.8.4-blue.svg)]()
-[![라이선스](https://img.shields.io/badge/license-MIT--0-green.svg)](LICENSE)
-[![플랫폼](https://img.shields.io/badge/platform-Seedance_2.0-purple.svg)]()
+<h1 align="center">Seedance2.0 Shot Design</h1>
 
-> 막연한 영상 아이디어를 즉멍 Seedance 2.0에서 바로 사용할 수 있는 **영화급 비디오 프롬프트**로 원클릭 변환.
+<p align="center">
+  <strong>시네마틱 샷 언어 디자이너</strong>
+</p>
+
+<p align="center">
+  <a href=""><img src="https://img.shields.io/badge/version-1.9.0-blue.svg" alt="버전"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT--0-green.svg" alt="라이선스"></a>
+  <a href=""><img src="https://img.shields.io/badge/platform-Seedance_2.0-purple.svg" alt="플랫폼"></a>
+</p>
+
+<p align="center">
+  막연한 영상 아이디어를 즉멍 Seedance 2.0에서 바로 사용할 수 있는 <strong>영화급 비디오 프롬프트</strong>로 원클릭 변환.
+</p>
 
 [Agent Skills](https://agentskills.io) 규격에 기반하여 구축된 Claude Skill입니다. 할리우드 최고 수준의 촬영 미학과 중국 영상 산업의 실무 노하우를 융합하여, 크리에이터가 "예쁜데 랜덤"한 AI 영상의 한계를 극복하고 **정밀하고 제어 가능한 비주얼 스토리텔링**을 구현할 수 있도록 설계되었습니다.
 
@@ -23,7 +35,7 @@
 | 📐 **타임스탬프 스토리보드** | `0-3초 / 3-8초 / …` 정밀한 타임라인 제어로 샷 간 번짐 방지 |
 | 🎯 **6요소 정밀 조립** | 피사체 / 동작 / 장면 / 라이팅 / 카메라 / 사운드 — 구조화된 고전환율 공식 |
 | 🎬 **스마트 다중 세그먼트 스토리보드** | 15초 초과 영상 자동 분할, 스타일·라이팅·사운드 통일, 심리스 트랜지션 프레임 |
-| 📦 **17개 시나리오 템플릿** | 이커머스 / 선협 / 숏드라마 / 먹방 / MV / 원테이크 / 자동차 / 매크로 / 자연 / 게임PV / 공포 / 여행 / 반려동물 / 변신 / 루프 / 영상 편집 |
+| 📦 **20개 시나리오 템플릿** | 이커머스 / 선협 / 숏드라마 / 먹방 / MV / 원테이크 / 자동차 / 매크로 / 자연 / 게임PV / 공포 / 여행 / 반려동물 / 변신 / 루프 / 영상 편집 / 영상 연장 / 스토리 보완 / 멀티프레임 스토리 |
 | 🎵 **사운드 & ASMR 어휘집** | 물리 기반 의성어 라이브러리: 환경음 / 액션 / 보컬 / 악기 |
 | 🌐 **이중 언어 프롬프트 출력** | 중국어 사용자→중국어 / 그 외→영어 프롬프트, 자동 감지 |
 | 🛡️ **저작권 안전 IP 회피** | 3단계 점진적 IP 회피 전략으로 플랫폼 콘텐츠 차단 방지 |
@@ -188,7 +200,7 @@ python scripts/validate_prompt.py --text "your prompt" --lang en
 python scripts/validate_prompt.py --text "프롬프트" --json
 ```
 
-**검증 항목 (v1.5):**
+**검증 항목:**
 - ❌ 글자 수 초과 (중국어 >500자 / 영어 >1000단어)
 - ❌ 전문 카메라 용어 누락
 - ❌ 군더더기 표현 하드 블록 (masterpiece / 걸작 / 초선명 등 → error)
@@ -236,6 +248,25 @@ Agent Skills 모범 사례 준수:
 ---
 
 ## 📋 변경 이력
+
+### v1.9.0 (2026-04-18)
+- 🎬 **내러티브 가이드 카메라워크 속차 (신규 챕터)**: `cinematography.md` 제IX절 신설 — 8종 리딩/팔로잉/리빌 샷(리딩샷·팔로잉샷·사이드트래킹·로앵글팔로우·장초점압박팔로우·에픽드론리빌·장애물리빌·이동오빗), 이중언어 트리거워드 및 예시 포함
+- 🚁 **에픽 드론 리빌 (Epic Drone Reveal)**: 독립 Level 1 카메라 무브로 격상 — 피사체 뒤/저위에서 천천히 상승하며 장대한 경관 공개; 일반 항공촬영과 근본적으로 다른 서사 구조
+- 🌿 **장애물 리빌/스루샷 (Reveal / Through Shot)**: 신규 Level 1 — 장애물(대나무숲/문/군중/커튼)을 통과해 장면 공개, 서스펜스와 레이어 깊이감 연출
+- 🚶 **리딩샷 (Leading Shot)**: 신규 Level 1 — 카메라가 피사체 앞에서 후퇴하며 가이드, 여정감과 주인공 능동성 강화
+- ⚡ **스냅줌/크래시줌 (Snap Zoom / Crash Zoom)**: Level 3 콤보 추가 — 초점거리 급변으로 폭발적 충격감, 코미디·놀람 강조·MV 비트싱크에 활용
+- 🌀 **이동 오빗 (Orbit Follow)**: Level 3 콤보 추가 — 피사체 이동에 맞춰 오빗 중심점이 함께 이동하는 orbit+tracking 복합기
+
+### v1.8.5 (2026-04-08)
+- 🌐 **Runway 플랫폼 호환**: Runway 사용자를 위한 에셋 제한(이미지 최대 5장, 비디오 최대 3개)을 명시하고, 사실적인 사람 얼굴에 대한 중재를 우회하기 위한 명확한 전략(블러 처리 또는 NPR 스타일 적용)을 제공합니다.
+- 🎞️ **시작 및 끝 프레임 보간**: 정밀한 전환을 지원하기 위해 7번째 멀티모달 참조 패턴(`@Image1 as start frame, @Image2 as end frame`)을 추가했습니다.
+- 🎬 **두 가지 새로운 효과 시나리오**:
+  - `Freeze Time(타임 프리즈)`: 완전히 멈춘 장면 요소 사이를 카메라가 극적으로 통과합니다.
+  - `Multishot Video(멀티샷 비디오)`: "원테이크" 제한을 우회하여 한 번의 생성으로 날카로운 몽타주 컷을 자동 생성합니다.
+
+- 🚀 **극한 1인칭 시점 (Extreme POV)**: 새로운 21번째 시나리오 템플릿 추가. "인간의 시선 이동 논리", "초고속 비행 물체 FPV (검/화살)", "생물 비행" 커버.
+- 🎧 **몰입감 오디오 배제 원칙**: POV 템플릿에 엄격한 환경음 배제 지시어 도입 (환경음만 생성, BGM 및 대사 절대 금지). AI가 부적절한 음악을 추가하여 몰입을 방해하는 것을 방지.
+- 🧹 **배경 정화 규칙**: 이미지-투-비디오 생성 중 참조 이미지가 비디오 환경을 오염시키지 않도록 하려면 반드시 "순백색/빈 배경"의 에셋 이미지를 사용해야 함을 명시.
 
 ### v1.8.4 (2026-04-08)
 - 🔗 **CLI 연동 가이드**: `seedance-specs.md`에 즉몽 CLI 명령 매핑 추가(`text2video` / `image2video` / `multiframe2video` / `multimodal2video`), 비동기 작업 관리 및 VIP 채널 설명 포함

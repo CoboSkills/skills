@@ -1,12 +1,24 @@
 English | [中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Português](README.pt.md) | [Français](README.fr.md)
 
-# 🎬 Seedance2.0 Shot Design — Cinematic Shot Language Designer
+<p align="center">
+  <img src="assets/logo.svg" width="128" height="128" alt="Seedance Shot Design Logo">
+</p>
 
-[![Version](https://img.shields.io/badge/version-1.8.4-blue.svg)]()
-[![License](https://img.shields.io/badge/license-MIT--0-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Seedance_2.0-purple.svg)]()
+<h1 align="center">Seedance2.0 Shot Design</h1>
 
-> Turn your vague video ideas into **cinema-grade video prompts** ready for Jimeng Seedance 2.0 — in one shot.
+<p align="center">
+  <strong>Cinematic Shot Language Designer</strong>
+</p>
+
+<p align="center">
+  <a href=""><img src="https://img.shields.io/badge/version-1.9.0-blue.svg" alt="Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT--0-green.svg" alt="License"></a>
+  <a href=""><img src="https://img.shields.io/badge/platform-Seedance_2.0-purple.svg" alt="Platform"></a>
+</p>
+
+<p align="center">
+  Turn your vague video ideas into <strong>cinema-grade video prompts</strong> ready for Jimeng Seedance 2.0 — in one shot.
+</p>
 
 A Claude Skill built on the [Agent Skills](https://agentskills.io) specification, blending Hollywood-level cinematography aesthetics with Chinese film industry practices. It's designed to help creators break free from the "looks nice but random" AI video trap and achieve **precise, controllable visual storytelling**.
 
@@ -30,6 +42,8 @@ A Claude Skill built on the [Agent Skills](https://agentskills.io) specification
 | 🌐 **Bilingual Prompt Output** | Chinese users → Chinese prompts, non-Chinese users → English prompts, auto-detected |
 | 🛡️ **Copyright-Safe IP Fallback** | Three-tier progressive IP fallback strategy to prevent platform content blocks |
 | 🔍 **Structured Hard Validation** | Word count / camera moves / temporal logic / filler detection / optical physics conflicts / style conflict matrix — 7-rule checklist applied before every delivery |
+| 🔗 **CLI Integration** | Jimeng CLI command mapping (`text2video` / `image2video` / `multiframe2video` / `multimodal2video`), async task management, VIP channel routing |
+| 🎞️ **Multiframe Storytelling** | Upload 2-9 keyframe images → engine auto-composes coherent story video via `multiframe2video`, with decision matrix for choosing multiframe vs. multi-segment storyboard |
 
 ---
 
@@ -146,6 +160,15 @@ Write a 12-second plot-twist short drama scene with dialogue
 # One-Take
 Write a 15-second one-take museum walkthrough video prompt
 
+# Image-to-Video (I2V)
+I have a character design image — generate a 10-second animation from this first frame
+
+# Video Extension
+Extend this video by 10 seconds with a sunset ending
+
+# Multiframe Storytelling
+I have 5 storyboard keyframe images — create a coherent story video that flows through all frames
+
 # With Reference Assets
 I've uploaded 3 character design images and 1 reference video — generate a 15-second Xianxia fight scene
 ```
@@ -166,7 +189,7 @@ seedance-shot-design/
     ├── director-styles.md       # Director style parameterized mapping (28+ styles, incl. Cel-Shaded CG)
     ├── seedance-specs.md        # Seedance 2.0 official platform specs
     ├── quality-anchors.md       # Quality anchors & lighting library (incl. NPR materials / lighting / conflict matrix)
-    ├── scenarios.md             # Vertical scenario templates (20 scenarios + anime variants + video editing + physics damping toolkit)
+    ├── scenarios.md             # Vertical scenario templates (20 scenarios + anime variants + video editing + multiframe storytelling + physics damping toolkit)
     └── audio-tags.md            # Audio & sound effect tag specs (incl. spatial acoustics & material-based onomatopoeia)
 ```
 
@@ -190,7 +213,7 @@ python scripts/validate_prompt.py --text "your prompt" --lang en
 python scripts/validate_prompt.py --text "your prompt" --json
 ```
 
-**Validation Checks (v1.5):**
+**Validation Checks:**
 - ❌ Over word limit (Chinese >500 chars / English >1000 words)
 - ❌ Missing professional camera terminology
 - ❌ Filler word hard-block (masterpiece / ultra-clear, etc. → error)
@@ -229,7 +252,7 @@ Following Agent Skills best practices:
 |-----------|----------------|------------|
 | Compliance | Plain-text suggestions | **Python hard validation (incl. optical / style conflict matrix + review safety detection)** |
 | Director Styles | International directors only | **International + Chinese + Short Drama + AI Comic + Social Media + Anime + Cel-Shaded CG + Xiaohongshu** |
-| Scene Coverage | Biased toward epic films | **17 vertical scenarios + anime variants + video editing + physics damping toolkit** |
+| Scene Coverage | Biased toward epic films | **20 vertical scenarios + anime variants + video editing + physics damping toolkit** |
 | Sound Design | Brief mentions | **Spatial acoustics + material-based onomatopoeia library** |
 | Lighting | "Add a light" | **Source → Behavior → Tone three-layer + lighting recipes + material library** |
 | Multilingual | Chinese only | **Chinese / English bilingual output, auto language detection** |
@@ -238,6 +261,25 @@ Following Agent Skills best practices:
 ---
 
 ## 📋 Changelog
+
+### v1.9.0 (2026-04-18)
+- 🎬 **Narrative Guidance Shot Patterns**: New Section IX in `cinematography.md` — 8 leading/following/reveal shot types (Leading Shot, Following Shot, Side Tracking, Low Angle Follow, Long Lens Follow, Epic Drone Reveal, Reveal Through, Orbit Follow) with bilingual trigger phrases and example prompts
+- 🚁 **Epic Drone Reveal**: Added as a standalone Level 1 camera move — slow rise from behind subject unveiling grand landscape; distinct narrative structure from generic aerial shots
+- 🌿 **Reveal from Behind / Through Shot**: New Level 1 entry for obstacle-penetration shots (camera pushing through bamboo/crowd/curtain to reveal), with safety phrasing guide
+- 🚶 **Leading Shot**: New Level 1 entry for retreating-ahead camera movement conveying journey and protagonist agency
+- ⚡ **Snap Zoom / Crash Zoom**: Added to Level 3 combos — explosive focal-length jump for comedy impact, scare emphasis, and MV beat-sync
+- 🌀 **Orbit Follow**: Added to Level 3 combos — simultaneous orbit + tracking where the pivot point moves with the subject, distinct from static-subject orbits
+
+### v1.8.5 (2026-04-08)
+- 🌐 **Runway Platform Adaptation**: Clarified native asset limits for Runway users (≤5 images, ≤3 videos) and provided explicit moderation bypass strategies for realistic human faces (blurring or NPR restyling).
+- 🎞️ **Start & End Frame Interpolation**: Added a 7th multimodal reference pattern (`@Image1 as start frame, @Image2 as end frame`) to support precise point-to-point transitions.
+- 🎬 **Two New Effects Scenarios**:
+  - `Freeze Time (Bullet Time)`: Camera dramatically weaves through completely frozen scene elements.
+  - `Multishot Video`: Bypasses the "one-take" limitation by triggering the model to auto-generate sharp montage cuts in a single generation.
+
+- 🚀 **Extreme POV Scenarios**: Added new 21st scenario template focusing on "human head-tracking logic", "high-speed projectile FPV (flying swords/arrows)", and "creature flight".
+- 🎧 **Immersive Audio Exclusion**: Introduced strict audio-exclusion directives for POV templates (ONLY ambient sound, NO BGM or dialogue) to prevent AI from breaking immersion.
+- 🧹 **Background Purification Rule**: Clarified that reference entity images must use a "pure white/blank background" to avoid contaminating the video environment in Image-to-Video generation.
 
 ### v1.8.4 (2026-04-08)
 - 🔗 **CLI Integration Guide**: New `seedance-specs.md` section mapping Shot Design modes to Jimeng CLI commands (`text2video` / `image2video` / `multiframe2video` / `multimodal2video`), with async task management and VIP channel documentation

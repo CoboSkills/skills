@@ -1,12 +1,24 @@
 [English](README.md) | [中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | Español | [Português](README.pt.md) | [Français](README.fr.md)
 
-# 🎬 Seedance2.0 Shot Design — Diseñador de Lenguaje Cinematográfico
+<p align="center">
+  <img src="assets/logo.svg" width="128" height="128" alt="Seedance Shot Design Logo">
+</p>
 
-[![Versión](https://img.shields.io/badge/version-1.8.4-blue.svg)]()
-[![Licencia](https://img.shields.io/badge/license-MIT--0-green.svg)](LICENSE)
-[![Plataforma](https://img.shields.io/badge/platform-Seedance_2.0-purple.svg)]()
+<h1 align="center">Seedance2.0 Shot Design</h1>
 
-> Convierte tus ideas vagas de vídeo en **prompts cinematográficos profesionales** listos para Jimeng Seedance 2.0, con un solo clic.
+<p align="center">
+  <strong>Diseñador de Lenguaje Cinematográfico</strong>
+</p>
+
+<p align="center">
+  <a href=""><img src="https://img.shields.io/badge/version-1.9.0-blue.svg" alt="Versión"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT--0-green.svg" alt="Licencia"></a>
+  <a href=""><img src="https://img.shields.io/badge/platform-Seedance_2.0-purple.svg" alt="Plataforma"></a>
+</p>
+
+<p align="center">
+  Convierte tus ideas vagas de vídeo en <strong>prompts cinematográficos profesionales</strong> listos para Jimeng Seedance 2.0, con un solo clic.
+</p>
 
 Un Claude Skill construido sobre la especificación [Agent Skills](https://agentskills.io), que fusiona la estética cinematográfica de Hollywood con las prácticas de la industria audiovisual china. Diseñado para ayudar a los creadores a superar la trampa del vídeo IA que "queda bonito pero es aleatorio" y lograr una **narrativa visual precisa y controlable**.
 
@@ -23,7 +35,7 @@ Un Claude Skill construido sobre la especificación [Agent Skills](https://agent
 | 📐 **Storyboard con Marcas de Tiempo** | `0-3s / 3-8s / …` control preciso del timeline para evitar el sangrado visual entre planos |
 | 🎯 **Ensamblaje de Seis Elementos** | Sujeto / Acción / Escena / Iluminación / Cámara / Sonido — fórmula estructurada de alta conversión |
 | 🎬 **Storyboard Multi-Segmento Inteligente** | Vídeos de >15s se dividen automáticamente en segmentos independientes con estilo, iluminación, sonido unificados y transiciones fluidas |
-| 📦 **17 Plantillas de Escenarios** | E-commerce / Xianxia / Cortometraje / Gastronomía / MV / Plano Secuencia / Automoción / Macro / Naturaleza / Game PV / Terror / Viajes / Mascotas / Transformación / Loop / Edición de Vídeo |
+| 📦 **20 Plantillas de Escenarios** | E-commerce / Xianxia / Cortometraje / Gastronomía / MV / Plano Secuencia / Automoción / Macro / Naturaleza / Game PV / Terror / Viajes / Mascotas / Transformación / Loop / Edición de Vídeo / Extensión de Vídeo / Completado de Historia / Narración Multiframe |
 | 🎵 **Vocabulario de Sonido y ASMR** | Biblioteca de onomatopeyas basada en física: ambiente / acción / vocal / música |
 | 🌐 **Salida Bilingüe de Prompts** | Usuarios chinos → prompts en chino / resto → en inglés, detección automática |
 | 🛡️ **Protección de PI segura** | Estrategia de repliegue de PI progresiva en tres niveles para evitar bloqueos de contenido |
@@ -164,7 +176,7 @@ seedance-shot-design/
     ├── director-styles.md       # Mapeo parametrizado de estilos de dirección (28+ estilos, incl. Cel-Shaded CG)
     ├── seedance-specs.md        # Especificaciones oficiales de la plataforma Seedance 2.0
     ├── quality-anchors.md       # Anclas de calidad y biblioteca de iluminación (incl. materiales NPR / iluminación / matriz de conflictos)
-    ├── scenarios.md             # Plantillas de escenarios verticales (17 escenarios + variantes anime + edición de vídeo + kit de amortiguación física)
+    ├── scenarios.md             # Plantillas de escenarios verticales (20 escenarios + variantes anime + edición de vídeo + kit de amortiguación física)
     └── audio-tags.md            # Especificaciones de etiquetas de audio y efectos sonoros (incl. acústica espacial y onomatopeyas por material)
 ```
 
@@ -188,7 +200,7 @@ python scripts/validate_prompt.py --text "your prompt" --lang en
 python scripts/validate_prompt.py --text "tu prompt" --json
 ```
 
-**Comprobaciones de Validación (v1.5):**
+**Comprobaciones de Validación:**
 - ❌ Exceso de palabras (Chino >500 caracteres / Inglés >1000 palabras)
 - ❌ Terminología profesional de cámara ausente
 - ❌ Bloqueo duro de palabras de relleno (masterpiece / obra maestra / ultra-nítido, etc. → error)
@@ -227,7 +239,7 @@ Siguiendo las mejores prácticas de Agent Skills:
 |-----------|---------------|------------|
 | Validación de conformidad | Sugerencias en texto plano | **Validación rigurosa con Python (incl. matriz de conflictos ópticos / de estilo + detección de seguridad de revisión)** |
 | Estilos de dirección | Solo directores internacionales | **Internacional + Chino + Cortometraje + Cómic IA + Redes Sociales + Anime + Cel-Shaded CG + Xiaohongshu** |
-| Cobertura de escenas | Sesgado hacia cine épico | **17 escenarios verticales + variantes anime + edición de vídeo + kit de amortiguación física** |
+| Cobertura de escenas | Sesgado hacia cine épico | **20 escenarios verticales + variantes anime + edición de vídeo + kit de amortiguación física** |
 | Diseño de sonido | Menciones breves | **Acústica espacial + biblioteca de onomatopeyas por material** |
 | Iluminación | "Pon una luz" | **Fuente → Comportamiento → Tono en tres capas + recetas de iluminación + biblioteca de materiales** |
 | Multilingüe | Solo chino | **Salida bilingüe chino / inglés, detección automática de idioma** |
@@ -236,6 +248,25 @@ Siguiendo las mejores prácticas de Agent Skills:
 ---
 
 ## 📋 Historial de Versiones
+
+### v1.9.0 (2026-04-18)
+- 🎬 **Referencia Rápida de Planos Guía-Narrativos (nuevo capítulo)**: Nueva Sección IX en `cinematography.md` — 8 tipos de planos de guía/seguimiento/revelación (Leading Shot, Following Shot, Side Tracking, Low Angle Follow, Long Lens Follow, Epic Drone Reveal, Reveal Through, Orbit Follow), con frases gatillo bilingües y prompts de ejemplo
+- 🚁 **Epic Drone Reveal**: Añadido como movimiento de cámara Level 1 independiente — ascenso lento desde detrás/ángulo bajo revelando el paisaje épico; estructura narrativa distinta a los planos aéreos genéricos
+- 🌿 **Reveal from Behind / Through Shot**: Nueva entrada Level 1 para planos de penetración de obstáculos (cámara empujando a través de bambú/multitud/cortina para revelar), con guía de frases seguras
+- 🚶 **Leading Shot**: Nueva entrada Level 1 para movimiento de cámara que retrocede delante del sujeto, transmitiendo viaje y agencia del protagonista
+- ⚡ **Snap Zoom / Crash Zoom**: Añadido a combos Level 3 — salto explosivo de distancia focal para impacto cómico, énfasis de susto y sincronización de beat MV
+- 🌀 **Orbit Follow**: Añadido a combos Level 3 — órbita + tracking simultáneos donde el punto pivote se mueve con el sujeto, distinto de las órbitas de sujeto estático
+
+### v1.8.5 (2026-04-08)
+- 🌐 **Adaptación a Runway**: Límites de activos clarificados para usuarios de Runway (≤5 imágenes, ≤3 videos) y estrategias claras de bypass para la moderación de rostros humanos (difuminado o cambio de estilo NPR).
+- 🎞️ **Interpolación de Fotograma Inicial y Final**: Se agregó el 7º patrón de referencia multimodal (`@Image1 as start frame, @Image2 as end frame`) para transiciones precisas.
+- 🎬 **Dos Nuevos Escenarios de Efectos**:
+  - `Freeze Time (Tiempo Congelado)`: La cámara se mueve dramáticamente a través de elementos del escenario completamente congelados.
+  - `Multishot Video (Video Multitoma)`: Evitas la restricción de "toma única", permitiendo generar múltiples cortes de montaje rápidos en una sola generación.
+
+- 🚀 **Escenarios POV Extremos**: Se agregó la nueva plantilla de escenario #21 que se centra en "lógica de seguimiento de la cabeza", "FPV de proyectiles a alta velocidad (espadas/flechas voladoras)" y "vuelo de criaturas".
+- 🎧 **Exclusión de Audio Inmersivo**: Directivas estrictas de exclusión de audio introducidas para plantillas POV (SOLO sonido ambiental, SIN BGM ni diálogos) para evitar que la IA arruine la inmersión.
+- 🧹 **Regla de Purificación de Fondo**: Se aclaró que las imágenes de personajes de referencia deben usar un "fondo blanco puro/en blanco" para evitar contaminar el entorno de video en la generación de Imagen a Video.
 
 ### v1.8.4 (2026-04-08)
 - 🔗 **Guía de integración CLI**: Nueva sección en `seedance-specs.md` con mapeo de comandos CLI de Jimeng (`text2video` / `image2video` / `multiframe2video` / `multimodal2video`), gestión de tareas asíncronas y documentación de canales VIP

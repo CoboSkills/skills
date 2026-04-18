@@ -17,7 +17,7 @@ description: >
   短片脚本, 镜头设计, 运镜.
 metadata:
   author: woodfantasy
-  version: "1.8.4"
+  version: "1.9.0"
 ---
 
 # Seedance 2.0 Shot Design
@@ -39,8 +39,8 @@ You are a virtual film director who combines Hollywood cinematography aesthetics
 
 1. **提示词语言跟随用户**——中文用户→中文提示词，非中文用户→英文提示词
 2. **@引用使用对应语言命名**：中文用 `@图片1`，英文用 `@Image1`
-3. **不得包含写实真人面部素材**——平台会自动拦截
-4. **混合文件上限 12 个**（图片+视频+音频合计）
+3. **不得包含写实真人面部素材**——平台会对写实人类面临严格审查拦截。建议：对写实人像先做面部模糊，或转为 3D/动画/Cel-Shaded 风格。
+4. **混合文件输入限制**——即梦原生上限 12 个（图+视频+音频合计）；（注：若在 Runway 平台使用，上限为图片 5 张，视频 3 个）。
 5. **单次生成上限 15 秒**，超出需分段拼接
 6. **提示词长度限制**：中文≤500字符 / 英文≤1000词——超出将导致模型注意力崩溃
 7. **禁止使用废话词**——中文："杰作/4k/8k/超清晰"；英文："masterpiece/4k/8k/ultra HD"——用物理材质词替代
@@ -68,8 +68,8 @@ You are a virtual film director who combines Hollywood cinematography aesthetics
 
 通过提问确认以下关键参数（已明确的可跳过）：
 
-1. **视频时长**：短片(4-8s) / 中等(9-12s) / 长片(13-15s) / 超长(>15s)
-2. **画面比例**：横屏16:9 / 竖屏9:16 / 宽银幕2.35:1 / 方形1:1
+1. **视频时长**（单段生成时长）：短片(4-8s) / 中等(9-12s) / 长片(13-15s) / 超长(>15s，自动分段)
+2. **画面比例**：横屏16:9 / 竖屏9:16 / 超宽21:9 / 宽银幕2.35:1 / 方形1:1
 3. **生成模式**：纯文本 / 有首帧图 / 多模态参考 / 视频延长
 4. **风格偏好**（可选）：导演风格、情绪氛围、用途场景
 5. **参考素材情况**：用户是否有图片/视频/音频素材
@@ -198,7 +198,7 @@ You are a virtual film director who combines Hollywood cinematography aesthetics
 2. 如有任何 ❌ error：**自我反思**并重写提示词
 3. **再次逐条检查**，重复直到全部 7 项通过
 4. 全部通过后，才可进入 Step 5 交付
-5. 同时执行版权安全检查（见下方版权避障策略）
+5. **附加检查 — 版权安全**：涉及知名IP/品牌/角色时，执行下方「版权安全与避障策略」的三级回退（此项不计入7条编号规则，但同样为强制检查）
 
 ### Step 5: 专业交付 (Final Output)
 
@@ -533,11 +533,12 @@ Preserve composition and colors. [motion description] + [camera] + [SFX]
 - **单一意图**：每段参考视频只包含一个"意图"——要么主体运动，要么镜头运动，不要两者混合
 - **提示词从简**：有参考视频时文字提示词保持精简，用 `参考@视频1的运镜节奏，重新诠释纹理和色彩` / `Respect motion from reference: reinterpret texture and color` 类指令
 
-### 6 种核心参考模式
+### 7 种核心参考模式
 
 | 模式 | 写法（中文） | 写法（English） |
 |------|------------|----------------|
 | **首帧锚定** | `@图片1为首帧` | `@Image1 as first frame` |
+| **首尾帧锚定** | `@图片1为起幅/首帧，@图片2为落幅/尾帧` | `@Image1 as start frame, @Image2 as end frame` |
 | **运镜复刻** | `完全参考@视频1的所有运镜效果` | `Fully reference all camera movements from @Video1` |
 | **动作复刻** | `参考@视频1的人物动作` | `Reference character actions from @Video1` |
 | **运镜+动作分离** | `参考@视频1的动作，参考@视频2的运镜` | `Reference actions from @Video1, camera from @Video2` |
@@ -557,6 +558,12 @@ Preserve composition and colors. [motion description] + [camera] + [SFX]
 Reference facial features from @Image1, costume from @Image2, scene from @Image3
 ```
 
+### 参考底图防污染法则 (Background Purification)
+
+在使用多模态参考（特别是第一人称 POV 或特定角色/物件动作迁移）时，如果提供的人物或器械设定图带有复杂的背景：
+- 中文建议：`请确保您上传的参考图片背景为“纯白/完全空白”，避免原图背景的杂质污染视频生成的环境。`
+- English: `Please ensure your reference image has a pure white/blank background to prevent background noise from contaminating the generated video environment.`
+
 ### 一致性保持
 
 多场景/多角度素材中保持角色外貌一致：
@@ -570,6 +577,10 @@ Reference facial features from @Image1, costume from @Image2, scene from @Image3
 - **首帧+参考视频** → `@图片1为首帧，参考@视频1的动作/运镜`
 - **角色替换** → `将@视频1中的[A]换成@图片1 + 保持动作时序`
 - **一镜到底** → `一镜到底 + @图片1@图片2... + 全程不切镜头`
+- **首尾帧插值** → `@图片1为起幅，@图片2为落幅 + 镜头在两者间平滑过渡`
+- **时间静止(子弹时间)** → `@图片1为首帧 + 场景完全静止(completely frozen scene) + 运镜[如: 极速跟随/穿梭]`
+- **多镜头序列** → `多镜头视频(multishot video) + 第一镜[...] + 第二镜[...]`
+- **片段重绘** → `保持@视频1的动作和运镜，风格重绘为(relight to)[新光影/新风格]`
 - **音乐卡点** → `@音频1 + 参考@视频1的画面节奏/卡点`
 - **视频延长** → `将@视频1延长[X]秒 + [续接内容描述]`
 - **特效复刻** → `完全参考@视频1的特效和转场`
@@ -578,6 +589,10 @@ Reference facial features from @Image1, costume from @Image2, scene from @Image3
 - **First frame + ref video** → `@Image1 as first frame, reference @Video1 for motion/camera`
 - **Character swap** → `Replace [A] in @Video1 with @Image1 + keep action timing`
 - **One-take** → `One continuous shot + @Image1@Image2... + no cuts throughout`
+- **Start & End Interpolation** → `@Image1 as start frame, @Image2 as end frame + smooth transition`
+- **Freeze Time** → `use @Image1 as starting frame + camera dramatically weaves through completely frozen scene`
+- **Multishot Video** → `multishot video + shot 1 [...] + shot 2 [...]`
+- **Restyling** → `relight @Video1 to [new lighting/style]`
 - **Music sync** → `@Audio1 + reference @Video1 for visual rhythm/beat sync`
 - **Video extension** → `Extend @Video1 by [X]s + [continuation description]`
 - **Effect replication** → `Fully reference effects and transitions from @Video1`

@@ -1,12 +1,24 @@
 [English](README.md) | [中文](README.zh-CN.md) | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Português](README.pt.md) | Français
 
-# 🎬 Seedance2.0 Shot Design — Concepteur de Langage Cinématographique
+<p align="center">
+  <img src="assets/logo.svg" width="128" height="128" alt="Seedance Shot Design Logo">
+</p>
 
-[![Version](https://img.shields.io/badge/version-1.8.4-blue.svg)]()
-[![Licence](https://img.shields.io/badge/license-MIT--0-green.svg)](LICENSE)
-[![Plateforme](https://img.shields.io/badge/platform-Seedance_2.0-purple.svg)]()
+<h1 align="center">Seedance2.0 Shot Design</h1>
 
-> Transformez vos idées vidéo vagues en **prompts cinématographiques professionnels** prêts pour Jimeng Seedance 2.0 — en un clic.
+<p align="center">
+  <strong>Concepteur de Langage Cinématographique</strong>
+</p>
+
+<p align="center">
+  <a href=""><img src="https://img.shields.io/badge/version-1.9.0-blue.svg" alt="Version"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT--0-green.svg" alt="Licence"></a>
+  <a href=""><img src="https://img.shields.io/badge/platform-Seedance_2.0-purple.svg" alt="Plateforme"></a>
+</p>
+
+<p align="center">
+  Transformez vos idées vidéo vagues en <strong>prompts cinématographiques professionnels</strong> prêts pour Jimeng Seedance 2.0 — en un clic.
+</p>
 
 Un Claude Skill construit sur la spécification [Agent Skills](https://agentskills.io), alliant l'esthétique cinématographique hollywoodienne aux pratiques de l'industrie audiovisuelle chinoise. Conçu pour aider les créateurs à dépasser le piège de la vidéo IA « jolie mais aléatoire » et atteindre une **narration visuelle précise et maîtrisée**.
 
@@ -158,7 +170,7 @@ seedance-shot-design/
     ├── director-styles.md       # Cartographie des styles de réalisation (28+)
     ├── seedance-specs.md        # Spécifications officielles Seedance 2.0
     ├── quality-anchors.md       # Ancres qualité et éclairage
-    ├── scenarios.md             # 17 modèles de scénarios verticaux
+    ├── scenarios.md             # 20 modèles de scénarios verticaux
     └── audio-tags.md            # Tags audio et effets sonores
 ```
 
@@ -175,7 +187,7 @@ python scripts/validate_prompt.py --text "your prompt" --lang en
 python scripts/validate_prompt.py --text "votre prompt" --json
 ```
 
-**Vérifications (v1.5) :**
+**Vérifications :**
 - ❌ Dépassement du nombre de mots (Chinois >500 caractères / Anglais >1000 mots)
 - ❌ Terminologie professionnelle de caméra absente
 - ❌ Blocage dur des mots de remplissage (masterpiece / chef-d'œuvre / ultra-net → error)
@@ -221,6 +233,25 @@ python -m unittest scripts.test_validate -v
 ---
 
 ## 📋 Historique des Versions
+
+### v1.9.0 (2026-04-18)
+- 🎬 **Référence Rapide des Plans Narratifs Guidés (nouveau chapitre)** : Nouvelle Section IX dans `cinematography.md` — 8 types de plans de guidage/suivi/révélation (Leading Shot, Following Shot, Side Tracking, Low Angle Follow, Long Lens Follow, Epic Drone Reveal, Reveal Through, Orbit Follow), avec phrases-déclencheurs bilingues et exemples de prompts
+- 🚁 **Epic Drone Reveal** : Ajout comme mouvement de caméra Level 1 indépendant — lente montée depuis l'arrière/angle bas révélant le paysage épique ; structure narrative distincte des plans aériens génériques
+- 🌿 **Reveal from Behind / Through Shot** : Nouvelle entrée Level 1 pour les plans de pénétration d'obstacle (caméra poussant à travers bambou/foule/rideau pour révéler), avec guide des formulations sûres
+- 🚶 **Leading Shot** : Nouvelle entrée Level 1 pour le mouvement de caméra reculant devant le sujet, transmettant le voyage et l'agentivité du protagoniste
+- ⚡ **Snap Zoom / Crash Zoom** : Ajout aux combos Level 3 — saut explosif de distance focale pour impact comique, emphase de sursaut et synchronisation de beat MV
+- 🌀 **Orbit Follow** : Ajout aux combos Level 3 — orbit + tracking simultanés où le point pivot se déplace avec le sujet, distinct des orbites à sujet statique
+
+### v1.8.5 (2026-04-08)
+- 🌐 **Adaptation à Runway** : Clarification des limites d'actifs pour les utilisateurs de Runway (≤5 images, ≤3 vidéos) et ajout de stratégies de contournement de la modération pour les visages humains réalistes (floutage ou style NPR).
+- 🎞️ **Interpolation des Images Début/Fin** : Ajout d'un 7e motif de référence multimodale (`@Image1 as start frame, @Image2 as end frame`) pour des transitions précises de point à point.
+- 🎬 **Deux Nouveaux Scénarios d'Effets** :
+  - `Freeze Time (Temps Figé)` : La caméra se faufile spectaculairement à travers des éléments de scène totalement figés.
+  - `Multishot Video (Vidéo Multicaméra)` : Contourne la limite de "plan séquence" en déclenchant la génération automatique de montages à coupes franches.
+
+- 🚀 **Scénarios POV Extrêmes** : Ajout d'un 21e modèle de scénario axé sur la "logique de suivi visuel humain", le "FPV de projectile à grande vitesse (épées/flèches volantes)" et le "vol de créature".
+- 🎧 **Exclusion Audio Immersive** : Directives strictes d'exclusion audio introduites pour les modèles de POV (UNIQUEMENT le son ambiant, AUCUN BGM ou dialogue) pour empêcher l'IA de rompre l'immersion.
+- 🧹 **Règle de Purification de l'Arrière-plan** : Il est précisé que les images d'entité de référence doivent utiliser un "fond blanc pur/vide" afin d'éviter de contaminer l'environnement vidéo dans la génération Image-to-Video.
 
 ### v1.8.4 (2026-04-08)
 - 🔗 **Guide d'intégration CLI** : Nouvelle section dans `seedance-specs.md` avec mappage des commandes CLI de Jimeng (`text2video` / `image2video` / `multiframe2video` / `multimodal2video`), gestion des tâches asynchrones et documentation des canaux VIP

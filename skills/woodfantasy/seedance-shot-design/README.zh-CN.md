@@ -1,12 +1,24 @@
 [English](README.md) | 中文 | [日本語](README.ja.md) | [한국어](README.ko.md) | [Español](README.es.md) | [Português](README.pt.md) | [Français](README.fr.md)
 
-# 🎬 Seedance2.0 Shot Design — 镜头语言设计师
+<p align="center">
+  <img src="assets/logo.svg" width="128" height="128" alt="Seedance Shot Design Logo">
+</p>
 
-[![版本](https://img.shields.io/badge/version-1.8.4-blue.svg)]()
-[![协议](https://img.shields.io/badge/license-MIT--0-green.svg)](LICENSE)
-[![平台](https://img.shields.io/badge/platform-Seedance_2.0-purple.svg)]()
+<h1 align="center">Seedance2.0 Shot Design</h1>
 
-> 将你模糊的视频创意，一键转化为即梦 Seedance 2.0 可用的**电影级视频提示词**。
+<p align="center">
+  <strong>镜头语言设计师</strong>
+</p>
+
+<p align="center">
+  <a href=""><img src="https://img.shields.io/badge/version-1.9.0-blue.svg" alt="版本"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT--0-green.svg" alt="协议"></a>
+  <a href=""><img src="https://img.shields.io/badge/platform-Seedance_2.0-purple.svg" alt="平台"></a>
+</p>
+
+<p align="center">
+  将你模糊的视频创意，一键转化为即梦 Seedance 2.0 可用的<strong>电影级视频提示词</strong>。
+</p>
 
 一个基于 [Agent Skills](https://agentskills.io) 规范构建的 Claude Skill，融合好莱坞顶级摄影美学与中国影视工业实践，旨在帮助创作者突破"好看但随机"的 AI 视频困境，实现**精准可控的视觉叙事**。
 
@@ -23,13 +35,15 @@
 | 📐 **时间戳分镜法** | `0-3秒/3-8秒/...` 精准时间轴控制，画面不再粘连 |
 | 🎯 **六要素精准组装** | 主体/动作/场景/光影/运镜/音效，结构化高转化公式 |
 | 🎬 **智能多段分镜** | >15秒自动拆分为多段独立提示词，统一风格/光影/音效，稳定交接帧无缝拼接 |
-| 📦 **19大场景模板** | 电商/仙侠/短剧/美食/MV/一镜到底/汽车/微距/自然/游戏PV/恐怖/旅行/宠物/变身/Loop/视频编辑/视频延长/剧情补全 |
+| 📦 **20大场景模板** | 电商/仙侠/短剧/美食/MV/一镜到底/汽车/微距/自然/游戏PV/恐怖/旅行/宠物/变身/Loop/视频编辑/视频延长/剧情补全/多帧故事 |
 | 🎵 **音效ASMR词库** | 物理拟声描述库，覆盖环境/动作/人声/音乐 |
 | 🎤 **音色与语言控制** | 视频参考音色克隆、方言/口音控制（四川话/粤语/东北话/台湾腔等）、多语言对话混合、特殊音色风格（科普解说/脱口秀/戴曲唱腔/ASMR） |
 | 📹 **多模态参考指南** | 6种核心参考模式（首帧锚定/运镜复刻/动作复刻/运镜+动作分离/音色参考/特效复刻），多素材角色控制，一致性保持 |
 | 🌐 **双语提示词输出** | 中文用户→中文提示词，非中文用户→英文提示词，自动检测 |
 | 🛡️ **版权安全避障** | 三级渐进式IP回退策略，防止平台拦截 |
 | 🔍 **结构化硬性校验** | 字数/运镜/时序逻辑/废话检测/光学物理冲突/风格冲突矩阵—7项校验规则逐条强制执行 |
+| 🔗 **CLI 集成** | 即梦 CLI 命令映射（`text2video` / `image2video` / `multiframe2video` / `multimodal2video`），异步任务管理，VIP 通道路由 |
+| 🎞️ **多帧故事** | 上传 2-9 张关键帧图片 → 引擎自动编排连贯故事视频（`multiframe2video`），含多帧 vs 多段分镜决策矩阵 |
 
 ---
 
@@ -166,7 +180,7 @@ seedance-shot-design/
     ├── director-styles.md       # 导演风格参数化映射库（28+风格，含三渲二/Cel-Shaded CG）
     ├── seedance-specs.md        # Seedance 2.0官方平台规范
     ├── quality-anchors.md       # 品质锚定与光影库（含NPR材质/灯光/冲突矩阵）
-    ├── scenarios.md             # 垂直场景模板库（17大场景 + 二次元变体 + 视频编辑 + 物理阻尼工具箱）
+    ├── scenarios.md             # 垂直场景模板库（20大场景 + 二次元变体 + 视频编辑 + 物理阻尼工具箱）
     └── audio-tags.md            # 音频与音效标签规范（含空间声学与材质拟声）
 ```
 
@@ -190,7 +204,7 @@ python scripts/validate_prompt.py --text "your prompt" --lang en
 python scripts/validate_prompt.py --text "提示词" --json
 ```
 
-**校验项（v1.5）：**
+**校验项：**
 - ❌ 字数超标（中文>500字符 / 英文>1000词）
 - ❌ 缺少专业运镜术语
 - ❌ 废话词硬阻断（masterpiece/杰作/超清晰等 → error）
@@ -229,7 +243,7 @@ python -m unittest scripts.test_validate -v
 |----------|-------------|-------------|
 | 合规校验 | 纯文本建议 | **7项结构化硬性校验（含光学/风格冲突矩阵 + 审核安全检测）** |
 | 导演风格 | 仅国际大导 | **国际+中国+短剧+AI漫剧+社交媒体+二次元+三渲二+小红书** |
-| 场景覆盖 | 偏电影大片 | **17大垂直场景 + 二次元变体 + 视频编辑 + 物理阻尼工具箱** |
+| 场景覆盖 | 偏电影大片 | **20大垂直场景 + 二次元变体 + 视频编辑 + 物理阻尼工具箱** |
 | 音效描述 | 简单提及 | **空间声学 + 材质拟声精细化词库** |
 | 光影描述 | "加个灯" | **光源→光行为→色调三层 + 灯光Recipe + 材质库** |
 | 多语言 | 仅中文 | **中文/英文双语输出，自动检测用户语言** |
@@ -238,6 +252,25 @@ python -m unittest scripts.test_validate -v
 ---
 
 ## 📋 版本记录
+
+### v1.9.0 (2026-04-18)
+- 🎬 **叙事引导运镜速查（新章节）**：`cinematography.md` 新增第九节——8种引导/跟随/揭示类运镜（引导后退镜头、背影跟随、侧向平行跟随、低角度贴地跟随、长焦压迫跟随、史诗无人机揭示、遮挡揭示/穿梭镜头、移动环绕），配双语触发词与实例提示词
+- 🚁 **史诗级无人机揭示（Epic Drone Reveal）**：升级为独立 Level 1 运镜条目——无人机从主体背后/低位缓慢升起揭示宏大场景；与普通航拍在叙事结构上具有根本性差别
+- 🌿 **遮挡揭示/穿梭镜头（Reveal from Behind / Through Shot）**：新增 Level 1 条目，穿越遮挡物（树丛/门框/人群/窗帘）后揭示场景，制造悬念与层次纵深
+- 🚶 **引导镜头（Leading Shot）**：新增 Level 1 条目，镜头在主体前方后退引导，强化旅程感与角色主动性
+- ⚡ **急推变焦/骤变焦（Snap Zoom / Crash Zoom）**：新增 Level 3 组合——焦距骤变产生爆裂冲击感，适用于喜剧冲击、惊吓强调和 MV 节拍卡点
+- 🌀 **移动环绕（Orbit Follow）**：新增 Level 3 组合——主体运动中同步环绕（orbit + tracking），区别于静止主体环绕
+
+### v1.8.5 (2026-04-08)
+- 🌐 **Runway 平台适配限制**：明确 Runway 用户专有的资产限制（图片≤5，视频≤3），并提供人脸审查规避方案（模糊化或三渲二重绘）。
+- 🎞️ **首尾帧锚定插值**：多模态指南新增第七种参考模式——`首尾关键帧 (Start / End frames)`，支持起点到终点的平滑过渡。
+- 🎬 **新增两大特效混剪场景**：
+  - `时间静止 / 子弹时间 (Freeze Time)`：摄影机在完全凝固的场景要素间穿梭
+  - `多镜头序列混剪 (Multishot Video)`：使用单次混剪覆盖快节奏短片蒙太奇需求
+
+- 🚀 **极限第一人称视角 (Extreme POV)**：新增第 21 类场景模板，覆盖“真实人类视线转移”、“飞行物体穿梭 (飞剑/弓箭)”及“生物模拟飞行”极其动感的视角。
+- 🎧 **沉浸感音效排他原则**：为 POV 模板引入强排他环境音指令（仅生成环境音，绝不配 BGM 和台词对白），杜绝 Seedance 随机乱加音乐破坏第一人称实感。
+- 🧹 **参考底图防污染法则**：明确在使用图生视频主观视角或角色迁移时，需使用“纯净白底”素材图，防范原背景杂质污染视频环境。
 
 ### v1.8.4 (2026-04-08)
 - 🔗 **CLI 联动指南**：`seedance-specs.md` 新增即梦 CLI 命令映射（`text2video` / `image2video` / `multiframe2video` / `multimodal2video`），含异步任务管理和 VIP 通道说明

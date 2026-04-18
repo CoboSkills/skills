@@ -3,11 +3,16 @@
   "slug": "polymarket-energy-transition-trader",
   "displayName": "Polymarket Energy Transition Trader",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775317132007,
-    "commit": "https://github.com/openclaw/skills/commit/fd9aed320d4b97e7590dc6c15303b28354eb4066"
+    "version": "1.0.3",
+    "publishedAt": 1775988986671,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775317132007,
+      "commit": "https://github.com/openclaw/skills/commit/fd9aed320d4b97e7590dc6c15303b28354eb4066"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773855088172,

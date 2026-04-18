@@ -1,7 +1,7 @@
 --extra-index-url https://download.pytorch.org/whl/cpu
 
-# OpenVINO 推理引擎
-openvino>=2025.4
+# OpenVINO 推理引擎 — pinned: 2026.1.0 breaks pooled_projections stack in OVZImagePipeline
+openvino==2026.0.0
 
 # PyTorch CPU（OVZImagePipeline 内部依赖）
 torch==2.8

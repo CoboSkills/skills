@@ -9,24 +9,41 @@ What this does:
   2. Checks git is available (required for pinned git+https dependencies)
   3. Installs all required packages into the venv
   4. Writes state.json so the skill knows where everything is
+  5. Deploys generate_image.py to IMAGE_GEN_DIR (versioned, idempotent)
 
 After this, run:
     python download_model.py
 """
 
-import json, os, shutil, string, subprocess, sys
+import io, json, os, shutil, string, subprocess, sys
 from pathlib import Path
+
+# Force UTF-8 stdout/stderr — prevents UnicodeEncodeError on Chinese Windows (CP936)
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', line_buffering=True)
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace', line_buffering=True)
 
 REQUIREMENTS_FILE = "requirements_imagegen.txt"
 
 PACKAGES_FALLBACK = [
-    "openvino>=2024.5.0",
+    "openvino==2026.0.0",  # pinned: 2026.1.0 breaks OVZImagePipeline pooled_projections
     "torch>=2.1.0",
     "Pillow>=10.0.0",
     "modelscope>=1.14.0",
     "git+https://github.com/huggingface/optimum-intel.git@2f62e5ae#egg=optimum-intel[openvino]",
     "git+https://github.com/huggingface/diffusers.git@a1f36ee3",
 ]
+
+
+def _read_skill_version() -> str:
+    """Read SKILL_VERSION from SKILL.md next to this script — single source of truth."""
+    skill_md = Path(__file__).parent / "SKILL.md"
+    if skill_md.exists():
+        for line in skill_md.read_text(encoding="utf-8").splitlines():
+            if "SKILL_VERSION" in line and "`" in line:
+                parts = line.split("`")
+                if len(parts) >= 2:
+                    return parts[1]
+    return "unknown"
 
 # ── Banner ─────────────────────────────────────────────────
 print("=" * 55)
@@ -124,6 +141,7 @@ state = {
     "VENV_DIR":      str(venv_dir),
     "VENV_PY":       str(venv_py),
     "VENV_EXISTS":   True,
+    "SKILL_DIR":     str(Path(__file__).parent.resolve()),
 }
 state_file = imagegen_dir / "state.json"
 state_file.write_text(json.dumps(state, indent=2), encoding="utf-8")
@@ -163,6 +181,114 @@ print()
 print("VERIFY=PASS" if not fail else f"VERIFY=FAIL  {fail}")
 """
 venv_run(["-c", verify_script])
+
+# ── Deploy generate_image.py ───────────────────────────────
+print("\n[Deploy] Deploying generate_image.py...")
+
+SCRIPT_VERSION = _read_skill_version()
+script_path = imagegen_dir / "generate_image.py"
+
+existing_ver = None
+if script_path.exists():
+    for line in script_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        if line.startswith("SKILL_VERSION") and "=" in line:
+            existing_ver = line.split("=")[1].strip().strip("\"'")
+            break
+
+if existing_ver == SCRIPT_VERSION:
+    print(f"  generate_image.py already at {SCRIPT_VERSION} [OK]")
+else:
+    generate_image_code = r'''SKILL_VERSION = "__VER__"
+import sys, io, os, json, string, argparse, re, subprocess
+from datetime import datetime
+from pathlib import Path
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace", line_buffering=True)
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace", line_buffering=True)
+
+def get_state():
+    for d in string.ascii_uppercase:
+        sf = Path(f"{d}:\\") / f"{os.environ.get('USERNAME','user').lower()}_openvino" / "imagegen" / "state.json"
+        if sf.exists():
+            return json.loads(sf.read_text(encoding="utf-8"))
+    return None
+
+def get_device():
+    import openvino as ov
+    core = ov.Core()
+    devs = core.available_devices
+    print(f"[INFO] Available devices: {devs}")
+    for d in devs:
+        if "GPU" in d:
+            print(f"[INFO] Using Intel GPU: {d}")
+            return d
+    print("[INFO] Using CPU")
+    return "CPU"
+
+def make_filename(topic, prompt):
+    date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+    src = topic if topic else prompt[:30]
+    safe = re.sub(r"[^\w]", "_", src.strip())[:30].strip("_")
+    return f"{date_str}_{safe}.png"
+
+def generate(prompt, topic="", steps=9, width=512, height=512, seed=42, output_path=None):
+    state = get_state()
+    if not state:
+        print("[ERROR] state.json not found -- run setup.py")
+        sys.exit(1)
+    imagegen_dir = Path(state["IMAGE_GEN_DIR"])
+    model_dir    = imagegen_dir / "Z-Image-Turbo-int4-ov"
+    out_dir      = imagegen_dir / "outputs"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    required = ["transformer", "vae_decoder", "text_encoder"]
+    missing  = [r for r in required if not (model_dir / r).exists()]
+    if missing:
+        print(f"[ERROR] Model incomplete: {missing} -- run download_model.py")
+        sys.exit(1)
+    device = get_device()
+    print(f"[INFO] Loading model: {model_dir}")
+    import torch
+    from optimum.intel import OVZImagePipeline
+    pipe = OVZImagePipeline.from_pretrained(str(model_dir), device=device)
+    print("[INFO] Model loaded")
+    gen = torch.Generator("cpu").manual_seed(seed) if seed >= 0 else None
+    print(f"[INFO] Inference: steps={steps}, {width}x{height}, seed={seed}")
+    image = pipe(
+        prompt=prompt, height=height, width=width,
+        num_inference_steps=steps, guidance_scale=0.0, generator=gen
+    ).images[0]
+    if output_path is None:
+        output_path = str(out_dir / make_filename(topic, prompt))
+    image.save(output_path)
+    print(f"[SUCCESS] {output_path}")
+    try:
+        subprocess.Popen(["explorer", output_path])
+    except Exception as e:
+        print(f"[WARN] Could not open image: {e}")
+    return output_path
+
+if __name__ == "__main__":
+    try:
+        p = argparse.ArgumentParser()
+        p.add_argument("--prompt", required=True)
+        p.add_argument("--topic",  default="")
+        p.add_argument("--steps",  type=int, default=9)
+        p.add_argument("--width",  type=int, default=512)
+        p.add_argument("--height", type=int, default=512)
+        p.add_argument("--seed",   type=int, default=42)
+        p.add_argument("--output", default=None)
+        args = p.parse_args()
+        generate(args.prompt, args.topic, args.steps, args.width, args.height, args.seed, args.output)
+        sys.stdout.flush()
+    except Exception as e:
+        import traceback
+        print(f"[FATAL] {type(e).__name__}: {e}", flush=True)
+        traceback.print_exc()
+        sys.exit(1)
+'''
+    code = generate_image_code.replace('SKILL_VERSION = "__VER__"', f'SKILL_VERSION = "{SCRIPT_VERSION}"', 1)
+    script_path.write_text(code.strip(), encoding="utf-8")
+    print(f"  generate_image.py deployed at {SCRIPT_VERSION} [OK]")
 
 # ── Done ───────────────────────────────────────────────────
 print()

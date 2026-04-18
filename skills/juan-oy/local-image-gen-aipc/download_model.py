@@ -4,13 +4,17 @@ download_model.py — Download Z-Image-Turbo-int4-ov from ModelScope.
 Run once from a terminal (NOT inside OpenClaw):
     python download_model.py
 
-- Downloads ~10 GB to your local {USERNAME}_openvino\imagegen\ directory
+- Downloads ~10 GB to your local {USERNAME}_openvino\\imagegen\\ directory
 - Resume supported: safe to Ctrl+C and re-run, will continue from where it stopped
 - Run setup.py first if you haven't already
 """
 
-import json, os, string, subprocess, sys
+import io, json, os, string, subprocess, sys
 from pathlib import Path
+
+# Force UTF-8 stdout/stderr — prevents UnicodeEncodeError on Chinese Windows (CP936)
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace', line_buffering=True)
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace', line_buffering=True)
 
 MODEL_ID = "snake7gun/Z-Image-Turbo-int4-ov"
 TOTAL_GB = 10.0

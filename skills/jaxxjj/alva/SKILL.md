@@ -11,7 +11,7 @@ description: >-
   Also use when the user asks about Alva platform capabilities.
 metadata:
   author: alva
-  version: v1.3.0
+  version: v1.4.0
 ---
 
 # Alva
@@ -62,48 +62,60 @@ bash "<this skill's directory>/scripts/version_check.sh"
 - No output → up to date, proceed.
 - Output present → display to user, apply the update, then proceed.
 
-### 2. API Key
+### 2. Alva CLI Setup
 
-| Variable        | Required | Description                                              |
-| --------------- | -------- | -------------------------------------------------------- |
-| `ALVA_API_KEY`  | **yes**  | Your API key ([alva.ai](https://alva.ai))                |
-| `ALVA_ENDPOINT` | no       | API base URL. Defaults to `https://api-llm.prd.alva.ai`  |
+The `alva` CLI (`@alva-ai/toolkit`) is the required way to interact with the
+Alva platform. It manages authentication, provides self-documenting help for
+every command, and eliminates the need for manual curl/header management.
 
-Read `.env` in this skill's directory. If `api_key` is present, set
-`ALVA_API_KEY` from it. If missing or empty, **ask the user whether they already
-have a key**:
+Check whether the CLI is already installed by running `alva --help`.
 
-- **Has a key** — ask them to paste it, write it to `.env`, and verify:
+- **If not installed**, install it:
 
   ```bash
-  export ALVA_API_KEY="<key>"
-  curl -s -H "X-Alva-Api-Key: $ALVA_API_KEY" "${ALVA_ENDPOINT:-https://api-llm.prd.alva.ai}/api/v1/me"
+  npm install -g @alva-ai/toolkit
   ```
 
-  On success, suggest persisting in their shell profile. Then offer starting
-  points:
-  - "Ask me something like 'Who's been buying NVDA insider shares this month?'"
-  - "Or build a live dashboard, backtest a strategy, or set up a data pipeline."
+- **If already installed**, upgrade to the latest version to ensure access to
+  the newest commands and fixes:
 
-- **No key** — sign up at [alva.ai](https://alva.ai), create a key under
-  Settings → API Keys, paste it back, then verify as above.
+  ```bash
+  npm install -g @alva-ai/toolkit@latest
+  ```
 
-`.env` format:
+Then check authentication (see step 2a below).
 
-```dotenv
-api_key=alva_...
+**Discover commands:**
+
+```bash
+alva --help              # list all commands
+alva <command> --help    # detailed usage, flags, and examples for any command
 ```
 
-`ALVA_API_KEY` authenticates to Alva itself. Third-party vendor secrets belong
-in Alva Secret Manager (`require("secret-manager")`).
+Use `alva <command> --help` to discover usage — the help text includes all
+flags, parameter types, and practical examples.
+
+Third-party vendor secrets belong in Alva Secret Manager
+(`require("secret-manager")`), not in the CLI config.
+
+### 2a. Authentication Check
+
+Run `alva whoami`. If it fails (no API key), run `alva auth login` to open
+browser-based login, then re-run `alva whoami` to confirm.
+
+On success, offer starting points:
+
+- "Ask me something like 'Who's been buying NVDA insider shares this month?'"
+- "Or build a live dashboard, backtest a strategy, or set up a data pipeline."
 
 ### 3. User Profile
 
-Call `GET /api/v1/me` and store the response:
-
+```bash
+alva whoami
 ```
-GET /api/v1/me
-→ {"id":1, "subscription_tier":"free", "telegram_username":"alice_tg", "username":"alice"}
+
+```json
+{"id":1, "subscription_tier":"free", "telegram_username":"alice_tg", "username":"alice"}
 ```
 
 Session variables:
@@ -114,36 +126,62 @@ Session variables:
 - **`telegram_username`** — if set, recommend push-enabled feeds; if null,
   guide user to connect Telegram first.
 
-### Making API Requests
+### 4. Load Memory
 
-All API examples use HTTP notation (`METHOD /path`). Every request requires
-`X-Alva-Api-Key` unless marked **(public, no auth)**.
+If you have **not** read the user's memory in this conversation, read it now.
 
 ```bash
-# Authenticated
-curl -s -H "X-Alva-Api-Key: $ALVA_API_KEY" "$ALVA_ENDPOINT{path}"
-
-# Authenticated + JSON body
-curl -s -H "X-Alva-Api-Key: $ALVA_API_KEY" -H "Content-Type: application/json" \
-  "$ALVA_ENDPOINT{path}" -d '{body}'
-
-# Public read (no API key)
-curl -s "$ALVA_ENDPOINT{path}"
+alva fs read --path '~/memory/MEMORY.md'
 ```
+
+If the file exists, read each file listed in the index (at minimum `user.md`).
+If `'~/memory/'` does not exist or is empty, skip — it will be seeded on next
+sign-in.
+
+Use the loaded memory to tailor your responses to the user's profile,
+preferences, and investment style. See the [Memory](#memory) section below for
+reading and writing rules.
 
 ---
 
-## Request Routing
+## Communication
 
-Classify every user request and make sure the response covers the core
-objectives for that path. Treat the routes below as guidance rather than a rigid checklist, but still cover the necessary steps for the selected path.
+No ALFS paths, API payloads, cronjob IDs, raw function names, internal jargon,
+or implementation details in user-facing responses. Say what it DOES, not how it
+works. These details are operating instructions for you, not content for the
+user.
+
+Lead with the result, not the process. The first thing the user reads should be
+what they got ("Your dashboard is live at …"), not what you did ("I deployed
+3 feeds and wrote the HTML"). During multi-step builds, give a short status
+update at each milestone so the user knows work is progressing.
+
+## Request Routing
 
 | Request Type | Core Objectives |
 | --- | --- |
 | **Dashboard / Playbook** | Identify the needed data sources, validate the data flow, and produce a usable dashboard or playbook when the user wants a shareable artifact |
-| **Backtest / Strategy** | Use Altra, run the backtest correctly, and package the results in the form that best covers the user's goal (analysis, metrics, visualization, or a shareable playbook) |
+| **Backtest / Strategy** | Use Altra, run the backtest correctly, and always produce a visual playbook (equity curve, trade log, metrics) alongside the text summary. Optionally deploy as live paper trading. |
 | **Data Query** | Fetch the requested data accurately and return it directly unless the user asks for a richer artifact |
 | **Remix** | Reuse the source artifact, apply the requested changes, and return an updated result that matches the requested customization |
+
+### Guided Planning
+
+For all routes except **Data Query**, present a plan and get user approval
+before building. Even seemingly clear requests ("build a BTC dashboard") have
+real choices — which data, timeframe, widgets — that are cheaper to resolve
+upfront than to rebuild.
+
+1. **Understand intent** — Ask clarifying questions **one at a time**, prefer
+   multiple-choice. Focus on what's missing: asset, scope, output type, or
+   purpose. Skip this step if the request already specifies all of these.
+2. **Propose approaches** — Offer 2-3 concrete options with trade-offs. Lead
+   with your recommendation.
+3. **Confirm the plan** — List the specific feeds and widgets (5-8 lines, no
+   implementation details). Build only after approval.
+
+If the user says "just do it" at any point, skip planning for the rest of the
+session.
 
 ### Completion Gate
 
@@ -158,17 +196,34 @@ goal. When a shareable playbook was part of the task, verify:
 
 - [ ] A playbook was released and a `published_url` was returned
 
+Must Do After Completion Gate:
+
+- [ ] Summarize the whole process and what is delivered to the user.
+
 ---
 
 ## Content Legitimacy Rules
 
-These rules are **non-negotiable**. Violations produce misleading playbooks that
-display fabricated data as if it were real. Every rule below applies to all
-playbook builds.
+These rules are **non-negotiable**. Violations produce misleading content that
+displays fabricated data as if it were real. They apply to **every response
+that surfaces financial values to the user** — playbook builds, dashboards,
+query-mode answers, remixes, edits, and follow-ups — regardless of whether the
+session ends with a released playbook.
+
+**Core principle**: the agent's role is to **build the pipeline**, not to **be
+the data source**. Any quantitative value the user sees must trace back to an
+Alva SDK module, a published Alva feed, or a BYOD HTTP source that is either
+user-provided or explicitly validated and wired into the feed pipeline. Agent
+knowledge, LLM output, WebSearch snippets, random/synthetic generators, and
+user-pasted snapshots are **not** legitimate data sources — regardless of
+whether they appear as HTML literals, feed-script literals, backfilled
+history, or agent-authored opinion columns. When the SDK has no coverage for
+the requested domain, report the gap and stop; do not manufacture
+plausible-looking data.
 
 ### Data Sourcing
 
-1. **All quantitative data displayed in charts, tables, or KPI cards MUST
+1. **All quantitative data displayed in charts, tables, or metric cards MUST
    originate from Alva feeds** (SDK modules or BYOD via `require("net/http")`).
    Never hardcode data as inline JavaScript literals in playbook HTML.
 
@@ -185,12 +240,25 @@ playbook builds.
    Static content (labels, colors, layout config) is fine. Quantitative data is
    not — it must flow through the feed pipeline.
 
-### Prohibited Data Sources for Charts and Tables
+3. **Verification claims and quoted tool outputs must reflect actual tool
+   calls.** Do not describe a screenshot you did not take ("the dashboard
+   looks good"). When citing a tool-returned value such as `published_url`,
+   `feed_id`, or an ALFS path, copy it verbatim from the response. The
+   user-facing share link is the canonical
+   `https://alva.ai/u/<username>/playbooks/<playbook_name>` URL; `published_url`
+   is the deployed HTML URL used for verification steps such as screenshots.
+   Do not present one as if it were the other. If you need a value, re-read
+   the tool response first.
+
+### Prohibited Data Sources for Charts, Tables, and Query Answers
 
 1. **WebSearch / WebFetch results must NOT be embedded as data.** Web search is
    only legitimate for: reading documentation, finding API endpoints for BYOD,
-   understanding user requirements. Never inject web search results as static
-   data literals in feed scripts or playbook HTML.
+   understanding user requirements. It may help you discover a legitimate BYOD
+   source, but discovered values themselves must never be quoted as the answer
+   or injected as static data literals in feed scripts or playbook HTML. This
+   rule applies even when Alva API auth fails — in that case, report the
+   failure and stop; do NOT substitute a web-sourced value.
 
 2. **LLM / ADK output must NOT be presented as factual sourced data.** ADK is
    for reasoning, classification, summarization, and synthesis of real data — not
@@ -202,16 +270,47 @@ playbook builds.
    the requested data type, report the gap as a blocker. Do not invent data from
    your own knowledge to fill the hole.
 
+Qualitative analysis (ratings, theses, outlook text) is not data and must not
+appear as feed output columns or "data" fields in HTML tables. If the user
+asks for a rating, either compute it from SDK fundamentals with the formula
+shown, or place it in a clearly labelled "AI analysis" section separated from
+data-driven metrics.
+
 ### SDK Coverage Gaps
 
-1. **When an SDK partition lacks the requested data type, report it as a
-   blocker.** For example, if `equity_events_calendar` only has dividends/splits
-   but the user wants FDA events, report this gap. Suggest BYOD alternatives
-   (`require("net/http")` to a live API) if one exists. Do NOT fabricate events.
+1. **When an SDK partition lacks the requested data type**, reduce scope:
+   - **Omit the missing data section** from the playbook and note the gap
+     (e.g. "ECB, BOJ, BOE rates — data source not yet available").
+   - If the user has provided a specific data source URL, use BYOD
+     (`require("net/http")`) to fetch from it.
+   - Do NOT hardcode point-in-time values in HTML — they become stale
+     immediately and violate content legitimacy rules.
+   - Do NOT fabricate events or fill gaps from agent knowledge.
 
 2. **When >20% of requested symbols fail SDK lookup, report a data-quality
    blocker.** Do not silently substitute with estimated or fabricated values
    marked `live: false`.
+
+### Release Gate: `--feeds` Is a Declaration, Not a Shortcut
+
+`alva release playbook --feeds '[]'` is **only** valid when the released HTML
+renders zero quantitative values at runtime (landing pages, UI-only demos).
+If the HTML shows any numbers, charts, tables, or metric cards, the release
+MUST reference deployed feeds in `--feeds` and the HTML MUST `fetch()` them
+at runtime. `alva run` is a test run of a feed, not a substitute for
+deploying one — if you used `alva run` to source data, deploy that same
+logic as a feed and reference it.
+
+### Thematic Ticker Curation
+
+When building sector or thematic dashboards with curated ticker lists:
+
+1. Do NOT rely on agent knowledge for ticker-to-sector mapping.
+2. After assembling the list, cross-check each ticker's sector using an SDK
+   call (e.g. `getStockCompanyDetail`) to verify it belongs to the intended
+   segment.
+3. Remove mismatches before building the feed. A single wrong ticker (e.g. a
+   cybersecurity company in a battery segment) can distort the entire analysis.
 
 ### Description and Provenance Accuracy
 
@@ -239,10 +338,14 @@ assets, and shared libraries all live on ALFS.
 Key operations: read, write, mkdir, stat, readdir, remove, rename, copy,
 symlink, chmod, grant, revoke.
 
+In shell and documentation, wrap ALFS path arguments in single quotes (e.g.
+`'~/feeds/...'`, `'/alva/home/...'`) so they are not confused with paths on your
+local machine. See [Filesystem](references/api/filesystem.md).
+
 ### 2. JS Runtime
 
-Run JavaScript on Alva Cloud in a sandboxed V8 isolate. Code executed inside
-Alva's `/api/v1/run` runtime runs entirely on Alva's servers -- it cannot access
+Run JavaScript on Alva Cloud in a sandboxed V8 isolate. Code executed via
+`alva run` runs entirely on Alva's servers -- it cannot access
 the host machine's filesystem, environment variables, or processes. The runtime
 has access to ALFS, all 250+ SDKs, HTTP networking, LLM access, and the Feed
 SDK.
@@ -253,13 +356,24 @@ SDK.
 two-step retrieval flow:
 
 1. **Pick a partition** from the index below.
-2. **Call `GET /api/v1/sdk/partitions/:partition/summary`** to see module
+2. **Call `alva sdk partition-summary --partition <name>`** to see module
    summaries, then load the full doc for the chosen module.
 
 **SDK doc lookup is mandatory.** Always look up SDK documentation before writing
 any feed script. Do not guess function signatures, parameter names, or response
 shapes from memory. The doc lookup ensures you use the correct module, call the
 right function, and handle the actual response format.
+
+**Enforcement**: Before any `require("@arrays/...")` or `alva run` call, you
+MUST have completed a doc lookup for that specific module in this session.
+The required sequence is:
+
+1. `alva sdk partition-summary --partition <name>` → find exact module path
+2. `alva sdk doc --name <module>` → get function names, params, response shape
+3. Write code using ONLY the names and shapes from step 2
+
+If an `alva run` call fails with "module not found" or "not a function",
+do NOT guess a different name. Return to step 1.
 
 #### SDK Partition Index
 
@@ -320,7 +434,7 @@ specific paths so anyone -- or any playbook page -- can read the data.
 **User scope enforcement**: All write, deploy, and release operations MUST
 target only the requesting user's namespace. Before any `fs/write`,
 `draft/playbook`, or `release/playbook` call, verify the target path and
-username match the authenticated user (from `GET /api/v1/me`). If you have
+username match the authenticated user (from `alva whoami`). If you have
 access to multiple API keys (e.g. from prior sessions), identify the requesting
 user and scope all operations to that user only. Do NOT write to or release
 playbooks under other users' namespaces unless the request explicitly asks for
@@ -331,6 +445,10 @@ cross-user operations (e.g. remix with lineage).
 (building target records without Altra) bypasses bar alignment, portfolio
 simulation, and look-ahead bias prevention. Use `FeedAltra` even for simple
 signal logic — it ensures correct timestamps and prevents forward-looking bugs.
+This applies to ALL feed types that produce signal output — including
+monitoring feeds, alert feeds, and notification feeds, not just backtest
+strategies. If the feed pushes signals to Telegram or triggers alerts, it
+MUST use `FeedAltra`.
 
 **Push notifications for followers:** Feeds can produce actionable,
 subscription-worthy signals that get pushed to playbook followers via Telegram.
@@ -340,11 +458,29 @@ To make a feed push-capable:
    [feed-sdk.md](references/feed-sdk.md) Pattern D) and write signal records
    using the Altra target format (`{date, instruction, meta}`), where
    `meta.reason` is the human-readable message followers will see.
-2. Set `"push_notify": true` in the `POST /api/v1/deploy/cronjob` request, or
-   update the existing cronjob to set `"push_notify": true`.
+2. Set `--push-notify` in the `alva deploy create` command, or
+   update the existing cronjob with `alva deploy update --id ID --push-notify`.
 
 The platform reads `/data/signal/targets/@last/1` after each successful
 execution and pushes the signal content to all eligible followers.
+
+**AlvaAsk + owner notifications:** Feeds can use `@alva/alvaask` to call
+Alva's agent and push the result to the feed owner — useful for scheduled
+reports, heartbeat monitoring, and proactive alerts. Write to
+`notify/message` (see [feed-sdk.md](references/feed-sdk.md) Pattern E):
+
+```javascript
+const result = ask("Brief crypto market update with key levels.");
+await ctx.self.ts("notify", "message").append([{
+  date: Date.now(),
+  title: "Daily Briefing",
+  text: result.text,
+}]);
+```
+
+The platform reads `/data/notify/message/@last/1` and pushes `title` + `text`
+to the owner on all connected channels (Telegram, Discord, Web). No playbook
+or followers required.
 
 See **Step 9** below for the full post-release subscription flow.
 
@@ -357,16 +493,15 @@ styling, layout, and component guidelines. Unless the user explicitly asks for a
 static snapshot, default to a live playbook.
 **Data fetching requirement**: Apply the
 [Content Legitimacy Rules](#content-legitimacy-rules) when building the UI.
-All quantitative data in charts, tables, or KPI cards must come from feed
+All quantitative data in charts, tables, or metric cards must come from feed
 outputs read at runtime (no inline literals for data).
 
 ### 7. Release
 
 #### Common steps (all users)
 
-1. **Write HTML to ALFS**: `POST /api/v1/fs/write` the playbook HTML to
-   `~/playbooks/{name}/index.html`.
-2. **Create playbook draft**: `POST /api/v1/draft/playbook` — creates DB
+1. **Write HTML to ALFS**: `alva fs write --path '~/playbooks/{name}/index.html' --file ./index.html --mkdir-parents`
+2. **Create playbook draft**: `alva release playbook-draft` — creates DB
    records, writes draft files and `playbook.json` to ALFS automatically.
    This request must include both the URL-safe `name` and the human-readable
    `display_name`. Use `[subject/theme] [analysis angle/strategy logic]`, put
@@ -379,14 +514,15 @@ outputs read at runtime (no inline literals for data).
    resolves each symbol to a full trading pair object and stores the result
    in the playbook metadata. Max 50 symbols per request. Unknown symbols
    are silently skipped.
-3. **Screenshot**: Take a screenshot to verify the playbook renders correctly:
+3. **Screenshot**: Take a screenshot to verify the released playbook renders
+   correctly from the deployed published URL (for example,
+   `https://<username>.playbook.alva.ai/<playbook_name>/v1.0.0/index.html`):
 
-   ```
-   GET /api/v1/screenshot?url=$ALVA_ENDPOINT/u/<username>/playbooks/<playbook_name>
+   ```bash
+   alva screenshot --url <published_url> --out /tmp/screenshot.png
    ```
 
-   Pass `X-Alva-Api-Key` header so the screenshot service can access
-   authenticated content. See
+   The CLI handles authentication automatically. See
    [screenshot.md](references/api/screenshot.md) for full parameter details.
 
 #### Pro users (`subscription_tier = "pro"`)
@@ -396,14 +532,13 @@ outputs read at runtime (no inline literals for data).
    accessible only to the creator.
 2. **Ask**: "Your playbook is ready. Would you like to publish it publicly, or
    keep it private for now?"
-   - **Publish** → call `POST /api/v1/release/playbook` → output the public
-     URL.
+   - **Publish** → call `alva release playbook` → output the public URL.
    - **Keep private** → done. Remind the user that only they can access the
      draft URL.
 
 #### Free users (`subscription_tier = "free"`)
 
-1. **Publish directly**: Call `POST /api/v1/release/playbook` — free playbooks
+1. **Publish directly**: Call `alva release playbook` — free playbooks
    are always public. Output the public URL:
    `https://alva.ai/u/<username>/playbooks/<playbook_name>`
 2. **Upsell only on friction**: Do **not** proactively suggest upgrading.
@@ -415,26 +550,32 @@ outputs read at runtime (no inline literals for data).
    <https://alva.ai/pricing> to [specific benefit, e.g. keep playbooks
    private / deploy more cronjobs / ...]."
 
-Use the playbook `name` and the username from `GET /api/v1/me` to construct
-URLs.
+Use the playbook `name` and the username from `alva whoami` to construct the
+canonical share URL. Use `published_url` from the release response for
+verification steps such as screenshots; do not present it as the share link.
 
 #### Pre-Release Validation
 
-Before calling `POST /api/v1/release/playbook`, verify all of the following:
+Before calling `alva release playbook`, verify all of the following:
 
-1. **Cronjobs are active**: All feeds referenced by the playbook have
+1. **Deployment coverage**: Every feed the released playbook reads at runtime
+   must have had a successful `alva deploy create` AND its `feed_id` must
+   appear in `--feeds`. `alva run` is a test step, not a deployment — a
+   run-tested but undeployed feed has no data at its public `@last` path and
+   the HTML will fail to read it.
+2. **Cronjobs are active**: All feeds referenced by the playbook have
    successfully deployed cronjobs. If `deploy/cronjob` returned `RATE_LIMITED`,
    see [Cronjob Rate Limit Recovery](#cronjob-rate-limit-recovery) below.
-2. **HTML fetches from feeds**: The playbook HTML reads quantitative data from
+3. **HTML fetches from feeds**: The playbook HTML reads quantitative data from
   feed output paths at runtime (not from inline literals), consistent with the
   [Content Legitimacy Rules](#content-legitimacy-rules).
-3. **Data is fresh**: Read the latest data point from each referenced feed
+4. **Data is fresh**: Read the latest data point from each referenced feed
    (via `@last/1`) and check its timestamp. If the latest timestamp is older
    than 2x the cron interval, warn the user that the playbook will display
    stale data.
-4. **Description is accurate**: Update frequency claims match actual cronjob
+5. **Description is accurate**: Update frequency claims match actual cronjob
    status. Data source claims match actual SDK/BYOD calls in the feed script.
-5. **Target user is correct**: The playbook is being released under the
+6. **Target user is correct**: The playbook is being released under the
    requesting user's namespace (see user scope enforcement above).
 
 ### 8. Remix (Create from Existing Playbook)
@@ -502,7 +643,7 @@ already configured.
 
 | Document | Contents |
 | --- | --- |
-| `references/api/*.md` | Split REST API reference docs (user info, filesystem, run, deploy, release, SDK, screenshots, and errors) |
+| `references/api/*.md` | Split REST API reference docs (user info, filesystem, run, deploy, release, SDK, screenshots, trading, and errors) |
 | [jagent-runtime.md](references/jagent-runtime.md) | Writing jagent scripts: module system, built-in modules, async model, constraints |
 | [feed-sdk.md](references/feed-sdk.md) | Feed SDK guide: creating data feeds, time series, upstreams, state management |
 | [altra-trading.md](references/altra-trading.md) | Altra backtesting engine: strategies, features, signals, testing, debugging |
@@ -512,51 +653,41 @@ already configured.
 | [adk.md](references/adk.md) | Agent Development Kit: `adk.agent()` API, tool calling, ReAct loop, examples |
 | [search.md](references/search.md) | Content search SDKs: per-source usage, enrichment patterns, and gotchas for Twitter/X, news, Reddit, YouTube, podcasts, and web |
 | [secret-manager.md](references/secret-manager.md) | Secret upload, CRUD API, and runtime usage via `require("secret-manager")` |
-| [skill-trace-finalize.md](references/skill-trace-finalize.md) | Skill trace upload (`POST .../skill-trace/finalize`), aligned with `skill_trace_full_reference.md`; planning — final step must be finalize |
 
 ---
 
-## API Reference
+## CLI Reference
 
-**Important**: Always read the API reference docs before making API requests.
-
-**Base URL**: `$ALVA_ENDPOINT` (defaults to `https://api-llm.prd.alva.ai`).
-
-Examples use HTTP notation (`METHOD /path`). Auth (`X-Alva-Api-Key` header) is
-required on every request unless marked **(public, no auth)**. See `Setup`
-above for curl templates.
+**Important**: Always read the reference docs before making CLI calls. Use
+`alva <command> --help` for quick flag/usage reminders.
 
 Reference docs:
 
-- [User Info](references/api/user-info.md)
-- [Secrets](references/api/secrets.md)
-- [Filesystem](references/api/filesystem.md)
-- [Run](references/api/run.md)
-- [Deploy Cronjob](references/api/deploy-cronjob.md)
-- [Release](references/api/release.md)
-- [Remix](references/api/remix.md)
-- [SDK](references/api/sdk.md)
-- [Playbook Comments](references/api/playbook-comment.md)
-- [Screenshot](references/api/screenshot.md)
+- [User Info](references/api/user-info.md) — `alva whoami`
+- [Secrets](references/api/secrets.md) — `alva secrets`
+- [Filesystem](references/api/filesystem.md) — `alva fs`
+- [Run](references/api/run.md) — `alva run`
+- [Deploy Cronjob](references/api/deploy-cronjob.md) — `alva deploy`
+- [Release](references/api/release.md) — `alva release`
+- [Remix](references/api/remix.md) — `alva remix`
+- [SDK](references/api/sdk.md) — `alva sdk`
+- [Playbook Comments](references/api/playbook-comment.md) — `alva comments`
+- [Screenshot](references/api/screenshot.md) — `alva screenshot`
+- [Trading](references/api/trading.md) — `alva trading`
 - [Error Responses](references/api/error-responses.md)
-
-Additional endpoints that remain documented inline or in dedicated docs:
-
-- trading pair search: `GET /api/v1/trading-pairs/search?q={q}`
-- skill trace finalize: `POST /api/v1/skill-trace/finalize`
 
 ---
 
 ## Runtime Modules Quick Reference
 
-Scripts executed via `/api/v1/run` run in a sandboxed V8 isolate on Alva's
+Scripts executed via `alva run` run in a sandboxed V8 isolate on Alva's
 servers -- they cannot access the host machine's filesystem, environment
 variables, or shell. Host-agent permissions still apply. See
 [jagent-runtime.md](references/jagent-runtime.md) for full details.
 
 | Module          | require()                    | Description                                                             |
 | --------------- | ---------------------------- | ----------------------------------------------------------------------- |
-| alfs            | `require("alfs")`            | Filesystem (uses absolute paths `/alva/home/<username>/...`)            |
+| alfs            | `require("alfs")`            | Filesystem (uses absolute paths `'/alva/home/<username>/...'`)            |
 | env             | `require("env")`             | `userId`, `username`, `args` from request                               |
 | secret-manager  | `require("secret-manager")`  | Read user-scoped third-party secrets stored in Alva Secret Manager      |
 | net/http        | `require("net/http")`        | `fetch(url, init)` for async HTTP requests                              |
@@ -568,7 +699,7 @@ variables, or shell. Host-agent permissions still apply. See
 **SDKHub**: 250+ data modules available via
 `require("@arrays/crypto/ohlcv:v1.0.0")` etc. Version suffix is optional
 (defaults to `v1.0.0`). To discover function signatures and response shapes, use
-the SDK doc API (`GET /api/v1/sdk/doc?name=...`).
+`alva sdk doc --name "..."`).
 
 **Secret Manager**: use `const secret = require("secret-manager");` then
 `secret.loadPlaintext("OPENAI_API_KEY")`. This returns a string when present or
@@ -634,7 +765,8 @@ feed.def("metrics", {
 })();
 ```
 
-Feed output is readable at: `~/feeds/btc-ema/v1/data/metrics/prices/@last/100`
+Feed output is readable at (ALFS — quote in CLI):
+`'~/feeds/btc-ema/v1/data/metrics/prices/@last/100'`
 
 ---
 
@@ -705,21 +837,48 @@ and deduplication behavior.
 Every feed follows a 6-step lifecycle including every newly created feed or re-created feed:
 
 1. **Write** -- define schema + incremental logic with `ctx.kv`
-2. **Upload** -- write script to `~/feeds/<name>/v1/src/index.js`
-3. **Test** -- `POST /api/v1/run` with `entry_path` to verify output
+2. **Upload** — write script to `'~/feeds/<name>/v1/src/index.js'`
+3. **Test** — `alva run --entry-path '~/feeds/<name>/v1/src/index.js'` to verify output.
+   For SDK modules you haven't used before in this session, first run a
+   shape-check snippet to verify response structure:
+
+   ```js
+   const r = await mod.someFunction({ symbol: "AAPL" });
+   console.log(JSON.stringify(r).slice(0, 500));
+   ```
+
+   Verify the actual response nesting (e.g. `{success, response: {rates:[]}}`
+   vs flat array) matches your feed script's parsing logic before proceeding.
+   `alva run` is a test step — it does NOT write to the production `@last`
+   path. Never skip `alva deploy` below on the assumption that the run
+   "already produced the data".
 4. **Grant** -- make feed data publicly readable:
 
-   ```
-   POST /api/v1/fs/grant
-   {"path":"~/feeds/<name>","subject":"special:user:*","permission":"read"}
+   ```bash
+   alva fs grant --path '~/feeds/<name>' --subject "special:user:*" --permission read
    ```
 
    Grant on the feed root path (not on `data/`). Subject format:
    `special:user:*` (public), `special:user:+` (authenticated only), `user:<id>`
    (specific user).
-5. **Deploy** -- `POST /api/v1/deploy/cronjob` for scheduled execution
-6. **Release** -- `POST /api/v1/release/feed` to register the feed in the
+5. **Deploy** -- `alva deploy create` for scheduled execution
+6. **Release** -- `alva release feed` to register the feed in the
    database (requires the `cronjob_id` from the deploy step)
+
+### Pre-Release Verification
+
+Before calling `alva release feed` or `alva release playbook`,
+verify these prerequisites:
+
+1. **Grant check** — confirm `special:user:*` read permission exists on the
+   feed path. If missing, run the grant step now.
+2. **Data check** — fetch the feed data path without authentication and
+   confirm HTTP 200 (not 403).
+3. **HTML check** (playbook only) — confirm the playbook HTML file exists in
+   ALFS at the expected path.
+
+If the build was interrupted and resumed, re-run this checklist from the top.
+Do not assume prior steps completed successfully.
 
 | Data Type                     | Recommended Schedule     | Rationale                           |
 | ----------------------------- | ------------------------ | ----------------------------------- |
@@ -743,11 +902,19 @@ Do not silently fall back to inferior data sources.
 When an SDK module returns a Pro-only or subscription error:
 
 1. **Inform the user** which module is unavailable and why (subscription tier).
-2. **Explain what capability is lost** (e.g. "senator trading data requires
-   Pro — this playbook won't include congressional trading activity").
-3. If falling back to an alternative source, **clearly state** what the fallback
-   is and its limitations (e.g. "Using web search as fallback — data may be
-   incomplete or unverified").
+2. **Assess scope impact** — determine whether the gated module is the *sole*
+   data source for the playbook, or one of several.
+   - **Partial dependency** (other free-tier modules can still power most of
+     the playbook): proceed with a reduced-scope build. Omit the gated
+     section and note it in the playbook (e.g. "Congressional trading data
+     requires Pro — section omitted"). Deliver what you can.
+   - **Full dependency** (the entire playbook hinges on this module): tell
+     the user specifically: *"This data requires a Pro subscription. You can
+     upgrade, or provide a custom data source URL and I'll wire it up via
+     BYOD."* Do NOT leave an open-ended question; give exactly these two
+     actionable options.
+3. **Never stop with zero output.** If you can build *any* useful subset of
+   the requested playbook with free-tier modules, do so.
 4. Never silently substitute with LLM-fabricated data.
 
 ### Coverage Limitations
@@ -763,38 +930,154 @@ API exists.
 
 ### Resetting Feed Data (development only)
 
-During development, use the REST API to clear stale or incorrect data. **Do not
-use this in production.**
+During development, use the CLI to clear stale or incorrect data. **Do not use
+this in production.**
 
-```
+```bash
 # Clear a specific time series output
-DELETE /api/v1/fs/remove?path=~/feeds/my-feed/v1/data/market/ohlcv&recursive=true
+alva fs remove --path '~/feeds/my-feed/v1/data/market/ohlcv' --recursive
 
 # Clear an entire group (all outputs under "market")
-DELETE /api/v1/fs/remove?path=~/feeds/my-feed/v1/data/market&recursive=true
+alva fs remove --path '~/feeds/my-feed/v1/data/market' --recursive
 
 # Full reset: clear ALL data + KV state (removes the data mount, re-created on next run)
-DELETE /api/v1/fs/remove?path=~/feeds/my-feed/v1/data&recursive=true
+alva fs remove --path '~/feeds/my-feed/v1/data' --recursive
 ```
 
 ### Inline Debug Snippets
 
 Test SDK shapes before building a full feed:
 
-```
-POST /api/v1/run
-{"code":"const { getCryptoKline } = require(\"@arrays/crypto/ohlcv:v1.0.0\"); JSON.stringify(Object.keys(getCryptoKline({ symbol: \"BTCUSDT\", start_time: 0, end_time: 0, interval: \"1h\" })));"}
+```bash
+alva run --code 'const { getCryptoKline } = require("@arrays/crypto/ohlcv:v1.0.0"); JSON.stringify(Object.keys(getCryptoKline({ symbol: "BTCUSDT", start_time: 0, end_time: 0, interval: "1h" })));'
 ```
 
 ---
 
-## Skill trace upload
+## Memory
 
-For any turn that uses this skill and should be persisted for future reference, include a brief note in the plan that the trace will be uploaded according to [skill-trace-finalize.md](references/skill-trace-finalize.md).
+You have a persistent, file-based memory system on ALFS at `'~/memory/'`. This
+directory is created automatically when the user's account is provisioned. Use
+it to accumulate knowledge about the user across conversations — their identity,
+preferences, investment style, and any context that would be useful in future
+sessions.
 
-This is mainly so the turn can be referenced and audited later when needed, including lightweight one-off lookups that may still be worth preserving.
+Memory files are **user-visible and editable**. The user can read, modify, or
+delete any memory file through the Alva dashboard or ALFS API. Write memories
+as if the user will read them.
 
-Before the final user-visible answer, call `POST /api/v1/skill-trace/finalize` once to upload the trace. You must read reference [skill-trace-finalize.md](references/skill-trace-finalize.md) before calling the API.
+### Storage layout
+
+**ALFS paths** — use single quotes in the shell (example: `'~/memory/MEMORY.md'`).
+
+```
+~/memory/
+├── MEMORY.md     # Concise index — read at the start of every conversation
+└── user.md       # User profile, preferences, expertise, investment style
+```
+
+`MEMORY.md` is the entrypoint. Read it at the start of every conversation to
+discover what's stored. Keep it concise — under 200 lines. Each entry is one
+line linking to a topic file:
+
+```markdown
+- [user.md](user.md) — User identity, investment style, knowledge level
+- [market-views.md](market-views.md) — Current macro thesis, conviction trades
+```
+
+Topic files (like `user.md`) hold the actual content. They are read on demand
+when relevant to the user's request.
+
+### user.md — Who is this user
+
+Persistent facts about the user. Update when you learn something new.
+
+```markdown
+# User Profile
+
+> Auto-maintained by Alva Agent. You can edit directly.
+
+## Identity
+
+- Name:
+- Role: <!-- e.g. Independent Trader, PM at Fund, Research Analyst, Student -->
+- Timezone:
+- Language:
+
+## Investment Style
+
+- Markets: <!-- e.g. US Equities, Crypto, Macro, Commodities -->
+- Strategy: <!-- e.g. Momentum, Mean Reversion, Fundamental, Event-driven -->
+- Holding period: <!-- Intraday / Swing / Position / Long-term -->
+- Risk tolerance: <!-- Conservative / Moderate / Aggressive -->
+- Watching:
+
+## Knowledge
+
+- Level: <!-- Beginner / Intermediate / Advanced / Professional -->
+- Strong: <!-- e.g. Technical analysis, On-chain, Macro -->
+- Learning:
+- External tools: <!-- e.g. TradingView, Bloomberg, Dune -->
+
+## Preferences
+
+- Communication style: <!-- e.g. terse / detailed / visual -->
+- Notification channel:
+```
+
+**When to update:** User shares personal info, corrects a preference, reveals
+expertise level, states investment convictions, or you learn something that
+changes how you should work with them.
+
+### Additional topic files
+
+Create new files in `'~/memory/'` for knowledge that doesn't fit in `user.md` —
+market convictions, strategy assumptions, portfolio rules. Add a pointer to
+`MEMORY.md` for each new file.
+
+### What NOT to save
+
+- Ephemeral conversation details (current debugging session, temp state)
+- Things derivable from code or ALFS files
+- Raw data or large outputs (store on ALFS as feed data, not in memory)
+- Anything already in the Alva skill docs
+- Market data that changes every minute (save your *interpretation*, not the
+  data)
+
+### Writing rules
+
+1. **Read `'~/memory/MEMORY.md'` first** — check if a relevant file already exists
+2. **Update existing file** if the topic matches. Don't create duplicates
+3. **Create new file** only if no existing file covers the topic
+4. **Update `MEMORY.md`** — add a one-line entry for each new file
+5. Keep `MEMORY.md` as a concise index — one line per file, under 120 characters
+6. **Every write → confirm in chat:** 📌 Memory updated: {one-sentence summary}
+
+### Reading rules
+
+- **Every conversation start**: Read `'~/memory/MEMORY.md'` via ALFS. Then read
+  `user.md` and any topic files relevant to the user's request.
+- **User references prior work**: "that strategy from last time" / "the rules
+  we discussed" → read the relevant memory file.
+- **User explicitly asks**: "do you remember" / "check my profile" → you
+  **must** read.
+- **User says to ignore memory**: Proceed as if `'~/memory/'` is empty.
+
+### Memory is a claim, not truth
+
+Memory records what was true **when the memory was written**. Before acting on
+a memory:
+
+- Memory names a **feed or playbook** → verify it exists on ALFS before
+  referencing it.
+- Memory names a **cronjob or parameter** → verify current state before
+  recommending changes.
+- Memory records a **market view** → treat as the user's last-known position,
+  not current fact.
+- Memory records **user preferences** → apply directly (these are stable).
+
+If a memory conflicts with what the user just told you, **trust what the user
+says now** — and update the memory.
 
 ---
 
@@ -817,7 +1100,7 @@ webhook secret.
 - If a required secret is missing, stop and tell the user exactly which secret
   name to upload at <https://alva.ai/apikey>.
 - For agent-managed setup, inspection, or cleanup, authenticated CRUD endpoints
-  are available under `/api/v1/secrets`.
+  are available via `alva secrets`.
 
 Read [secret-manager.md](references/secret-manager.md) whenever the task
 involves uploading, naming, rotating, listing, or using third-party secrets.
@@ -924,12 +1207,11 @@ See [deployment.md](references/deployment.md) for full details.
 
 Deploy feed scripts or tasks as cronjobs for scheduled execution:
 
-```
-POST /api/v1/deploy/cronjob
-{"path":"~/feeds/btc-ema/v1/src/index.js","cron_expression":"0 */4 * * *","name":"btc-ema-update"}
+```bash
+alva deploy create --name btc-ema-update --path '~/feeds/btc-ema/v1/src/index.js' --cron "0 */4 * * *"
 ```
 
-Cronjobs execute the script via the same jagent runtime as `/api/v1/run`. Max 20
+Cronjobs execute the script via the same jagent runtime as `alva run`. Max 20
 cronjobs per user. Min interval: 1 minute.
 
 **Name format**: All resource names (cronjobs, feeds, playbooks) must be 1–63
@@ -938,33 +1220,30 @@ hyphen (DNS label format). Example: `btc-ema-update`, not `BTC EMA Update`.
 
 After deploying a cronjob, register the feed, create a playbook draft, then
 release the playbook for public hosting. The playbook HTML must already be
-written to ALFS at `~/playbooks/{name}/index.html` via `fs/write` before
+written to ALFS at `'~/playbooks/{name}/index.html'` via `fs/write` before
 releasing.
 
 **Important**: Feed names and playbook names must be unique within your user
 space. Before creating a new feed or playbook, use
-`GET /api/v1/fs/readdir?path=~/feeds` or
-`GET /api/v1/fs/readdir?path=~/playbooks` to check for existing names and avoid
+`alva fs readdir --path '~/feeds'` or
+`alva fs readdir --path '~/playbooks'` to check for existing names and avoid
 conflicts.
 
-```
+```bash
 # 1. Release feed (register in DB, link to cronjob)
-POST /api/v1/release/feed
-{"name":"btc-ema","version":"1.0.0","cronjob_id":42}
-→ {"feed_id":100,"name":"btc-ema","feed_major":1}
+alva release feed --name btc-ema --version 1.0.0 --cronjob-id 42
+# → {"feed_id":100,"name":"btc-ema","feed_major":1}
 
 # 2. Create playbook draft (creates DB record + ALFS draft files automatically)
 #    Include trading_symbols when the playbook involves specific assets.
-POST /api/v1/draft/playbook
-{"name":"btc-dashboard","display_name":"BTC Trend Dashboard","description":"BTC market dashboard","feeds":[{"feed_id":100}],"trading_symbols":["BTC"]}
-→ {"playbook_id":99,"playbook_version_id":200}
+alva release playbook-draft --name btc-dashboard --display-name "BTC Trend Dashboard" --description "BTC market dashboard" --feeds '[{"feed_id":100}]' --trading-symbols '["BTC"]'
+# → {"playbook_id":99,"playbook_version_id":200}
 
 # 3. Release playbook (reads HTML from ALFS, uploads to CDN, writes release files automatically)
-POST /api/v1/release/playbook
-{"name":"btc-dashboard","version":"v1.0.0","feeds":[{"feed_id":100}]}
-→ {"playbook_id":99,"version":"v1.0.0","published_url":"https://alice.playbook.alva.ai/btc-dashboard/v1.0.0/index.html"}
+alva release playbook --name btc-dashboard --version v1.0.0 --feeds '[{"feed_id":100}]' --changelog "Initial release"
+# → {"playbook_id":99,"version":"v1.0.0","published_url":"https://alice.playbook.alva.ai/btc-dashboard/v1.0.0/index.html"}
 
-# After release, output the alva.ai playbook link to the user:
+# After release, output the canonical share link to the user:
 # https://alva.ai/u/<username>/playbooks/<playbook_name>
 # e.g. https://alva.ai/u/alice/playbooks/btc-dashboard
 ```
@@ -973,33 +1252,29 @@ POST /api/v1/release/playbook
 
 ## Alva Design System
 
-All Alva playbook pages, dashboards, and widgets must follow the Alva Design
-System. Start with [design-system.md](references/design-system.md): it is the
-single global entry point for tokens, typography, page-level layout rules, and
-the reading path to the more detailed design references.
+**Always read [design-system.md](references/design-system.md) first** — it covers tokens,
+typography, theme, and page-level layout. Then read only the spec you need:
 
-Read only what you need:
-
-- **Global rules only** → [design-system.md](references/design-system.md)
-- **Widget and chart implementation** →
-  [design-widgets.md](references/design-widgets.md)
-- **Component behavior and templates** →
-  [design-components.md](references/design-components.md)
-- **Trading strategy playbooks** →
-  [design-playbook-trading-strategy.md](references/design-playbook-trading-strategy.md)
+1. **Generating a widget or chart** →
+   [design-widgets.md](references/design-widgets.md)
+2. **Using a component** (Button, Tag, Dropdown, Tab, etc.) →
+   [design-components.md](references/design-components.md)
+3. **Building a trading strategy playbook** →
+   [design-playbook-trading-strategy.md](references/design-playbook-trading-strategy.md)
+4. **Only need global rules** → stay in design-system.md
 
 ---
 
 ## Filesystem Layout Convention
 
-| Path                      | Purpose                                     |
-| ------------------------- | ------------------------------------------- |
-| `~/tasks/<name>/src/`     | Task source code                            |
-| `~/feeds/<name>/v1/src/`  | Feed script source code                     |
-| `~/feeds/<name>/v1/data/` | Feed synth mount (auto-created by Feed SDK) |
-| `~/playbooks/<name>/`     | Playbook web app assets                     |
-| `~/data/`                 | General data storage                        |
-| `~/library/`              | Shared code modules                         |
+| Path (ALFS — quote in CLI)              | Purpose                                     |
+| --------------------------------------- | ------------------------------------------- |
+| `'~/tasks/<name>/src/'`                 | Task source code                            |
+| `'~/feeds/<name>/v1/src/'`              | Feed script source code                     |
+| `'~/feeds/<name>/v1/data/'`             | Feed synth mount (auto-created by Feed SDK) |
+| `'~/playbooks/<name>/'`                 | Playbook web app assets                     |
+| `'~/data/'`                             | General data storage                        |
+| `'~/library/'`                          | Shared code modules                         |
 
 **Prefer using the Feed SDK for all data organization**, including point-in-time
 snapshots. Store snapshots as single-record time series rather than raw JSON
@@ -1020,15 +1295,15 @@ consistent read pattern (`@last`, `@range`, etc.).
   share a timestamp (grouped via `append()`), auto-flatten may return more than
   N individual records.
 - **The `data/` in feed paths is the synth mount.** `feedPath("my-feed")` gives
-  `~/feeds/my-feed/v1`, and the Feed SDK mounts storage at `<feedPath>/data/`.
+  `'~/feeds/my-feed/v1'`, and the Feed SDK mounts storage at `<feedPath>/data/`.
   Don't name your group `"data"` or you'll get `data/data/...`.
 - **Public reads require absolute paths.** Unauthenticated reads must use
-  `/alva/home/<username>/...` (not `~/...`). Discover your username via
-  `GET /api/v1/me`.
+  `'/alva/home/<username>/...'` (not `'~/...'`). Discover your username via
+  `alva whoami`.
 - **Top-level `await` is not supported.** Wrap async code in
   `(async () => { ... })();`.
 - **`require("alfs")` uses absolute paths.** Inside the V8 runtime,
-  `alfs.readFile()` needs full paths like `/alva/home/alice/...`. Get your
+  `alfs.readFile()` needs full paths like `'/alva/home/alice/...'`. Get your
   username from `require("env").username`.
 - **No Node.js builtins.** `require("fs")`, `require("path")`, `require("http")`
   do not exist. Use `require("alfs")` for files, `require("net/http")` for HTTP.
@@ -1037,15 +1312,18 @@ consistent read pattern (`@last`, `@range`, etc.).
 - **Altra lookback: feature vs strategy.** Feature lookback controls how many
   bars the feature computation sees. Strategy lookback controls how many feature
   outputs the strategy function sees. They are independent.
+- **Quote `~` paths to prevent shell expansion.** The shell expands bare `~` to
+  your local home (e.g. `/Users/alice/`), not the ALFS home
+  (`'/alva/home/alice/'`). Always quote paths: `--path '~/feeds/...'`.
 - **Home directory not provisioned?** If you get `PERMISSION_DENIED` on all
-  ALFS operations (including `~/`), your home directory was not created during
-  sign-up. Call `POST /api/v1/fs/ensure-home` (no body needed, uses your auth
-  token) to provision it. This is idempotent and safe to call anytime.
+  ALFS operations (including `'~/'`), your home directory was not created during
+  sign-up. Call `alva fs mkdir --path '~/'` to provision it. This is idempotent
+  and safe to call anytime.
 - **Cronjob path must point to an existing script.** The deploy API validates
   the entry_path exists via filesystem stat before creating the cronjob.
-- **Always create a draft before releasing.** `POST /api/v1/release/playbook`
+- **Always create a draft before releasing.** `alva release playbook`
   requires the playbook to already exist (created via
-  `POST /api/v1/draft/playbook`).
+  `alva release playbook-draft`).
 - **Create new playbooks from scratch unless you are doing a version update.**
   Only version updates may refer to an existing playbook. For all other new
   playbooks, do not read existing ones.
@@ -1060,7 +1338,7 @@ consistent read pattern (`@last`, `@range`, etc.).
   around chart initialization with a fallback message if rendering fails.
 - **ECharts sizing: allocate sufficient height.** Heatmaps need
   `height = max(300px, numRows * 40px)`. Primary charts on overview tabs should
-  be at least 400px tall and visually dominant over KPI cards. Do not compress
+  be at least 400px tall and visually dominant over metric cards. Do not compress
   charts to fit everything above the fold.
 - **Separate `lastDate` watermarks per data source.** When a feed combines
   multiple data sources with different update frequencies (e.g. ETF OHLCV +

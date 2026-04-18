@@ -10,16 +10,6 @@ SKILL_MD="$SKILL_DIR/SKILL.md"
 CONFIG_FILE="$SKILL_DIR/.env"
 CHECK_INTERVAL=28800 # 8 hours in seconds
 
-# Read a field from .env (KEY=VALUE format)
-read_field() {
-  if [ ! -f "$CONFIG_FILE" ]; then
-    echo ""
-    return
-  fi
-  local key="$1"
-  sed -n "s/^${key}=\(.*\)/\1/p" "$CONFIG_FILE" 2>/dev/null | head -1
-}
-
 # Read version from SKILL.md frontmatter (metadata.version)
 read_local_version() {
   if [ ! -f "$SKILL_MD" ]; then
@@ -29,25 +19,18 @@ read_local_version() {
   sed -n 's/^[[:space:]]*version:[[:space:]]*\(.*\)/\1/p' "$SKILL_MD" 2>/dev/null | head -1
 }
 
-# Write last_check to .env, preserving api_key
-write_check() {
-  local ts="$1"
-  local api_key
-  api_key=$(read_field "api_key")
-  cat >"$CONFIG_FILE" <<EOF
-api_key=${api_key}
-last_check=${ts}
-EOF
-}
+# Load last_check timestamp from .env
+last_check=0
+if [ -f "$CONFIG_FILE" ]; then
+  last_check=$(sed -n 's/^last_check=\(.*\)/\1/p' "$CONFIG_FILE" 2>/dev/null | head -1 || echo "0")
+  last_check=${last_check:-0}
+fi
 
 # Throttle: skip if checked recently
-last_check=$(read_field "last_check")
-if [ -n "$last_check" ]; then
-  now=$(date +%s 2>/dev/null || echo "0")
-  elapsed=$((now - last_check)) 2>/dev/null || elapsed=$CHECK_INTERVAL
-  if [ "$elapsed" -lt "$CHECK_INTERVAL" ]; then
-    exit 0
-  fi
+now=$(date +%s 2>/dev/null || echo "0")
+elapsed=$((now - last_check)) 2>/dev/null || elapsed=$CHECK_INTERVAL
+if [ "$elapsed" -lt "$CHECK_INTERVAL" ]; then
+  exit 0
 fi
 
 # Fetch latest release tag from GitHub API (timeout 5s)
@@ -59,17 +42,23 @@ if [ -z "$remote_tag" ]; then
   exit 0 # Network error or no releases, skip silently
 fi
 
-now=$(date +%s 2>/dev/null || echo "0")
+# Update last_check timestamp in .env
+if [ -f "$CONFIG_FILE" ]; then
+  # Update existing last_check line, or append if absent
+  if grep -q "^last_check=" "$CONFIG_FILE"; then
+    sed -i '' "s/^last_check=.*/last_check=$now/" "$CONFIG_FILE"
+  else
+    echo "last_check=$now" >> "$CONFIG_FILE"
+  fi
+else
+  echo "last_check=$now" > "$CONFIG_FILE"
+fi
 
 # Read local version from SKILL.md frontmatter
 local_tag=$(read_local_version)
 if [ -z "$local_tag" ]; then
-  write_check "$now"
   exit 0
 fi
-
-# Update last_check timestamp
-write_check "$now"
 
 # Compare — notify only when a new release is published
 if [ "$local_tag" != "$remote_tag" ]; then

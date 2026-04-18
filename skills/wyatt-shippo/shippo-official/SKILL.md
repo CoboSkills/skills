@@ -1,10 +1,10 @@
 ---
 name: shippo-official
 description: >
-  Ship packages with Shippo. Multi-carrier rate shopping, label generation,
+  (Beta) Ship packages with Shippo. Multi-carrier rate shopping, label generation,
   package tracking, address validation, customs declarations, and batch
   processing from CSV files.
-version: 1.0.1
+version: 1.0.3
 metadata:
   openclaw:
     requires:
@@ -19,7 +19,30 @@ metadata:
 
 ## Setup
 
-**MCP server:** `https://app.getgram.ai/mcp/shippo-mcp-beta` with header `Mcp-Shippo-Merged-Api-Key-Header` set to the `SHIPPO_API_KEY` environment variable.
+**MCP server:** standalone [`@shippo/shippo-mcp`](https://www.npmjs.com/package/@shippo/shippo-mcp) (npm package, Speakeasy-generated, stdio transport). The MCP client launches it locally via `npx` — no hosted URL is involved. **Requires Node.js 18+.**
+
+Configure your MCP client with:
+
+```json
+{
+  "mcpServers": {
+    "shippo": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@shippo/shippo-mcp",
+        "start",
+        "--api-key-header",
+        "ShippoToken ${SHIPPO_API_KEY}",
+        "--shippo-api-version",
+        "2018-02-08"
+      ]
+    }
+  }
+}
+```
+
+If your MCP client does not interpolate `${SHIPPO_API_KEY}` inside `args[]`, substitute the literal `ShippoToken shippo_{test|live}_xxxxx` value into the `--api-key-header` string.
 
 **Prerequisites:** A valid Shippo API key and at least one carrier account (Shippo provides managed accounts for USPS, UPS, FedEx, DHL Express by default). See `references/tool-reference.md` for the full tool catalog.
 
@@ -28,6 +51,10 @@ metadata:
 - **`shippo_live_*`**: Real charges. Inform the user which mode they are in.
 
 Test and live mode have completely separate data and object IDs.
+
+**Response envelope:** The MCP wraps most API responses in a Speakeasy envelope shaped like `{"ContentType": "application/json", "StatusCode": <code>, "RawResponse": {}, "<PayloadName>": {...actual response...}}`. The payload field is named after the response schema on success (e.g. `ParsedAddress`, `AddressPaginatedList`, `AddressValidationResultV2`, `AddressWithMetadataResponse`, `Shipment`, `CarrierAccountPaginatedList`) and after the HTTP status code on some errors (e.g. `fourHundredAndNineApplicationJsonObject` for a 409 — the body may be `{}`). To extract the payload, find the field whose key is not `ContentType`, `StatusCode`, or `RawResponse`, and branch on `StatusCode` for success vs error.
+
+**Non-envelope errors:** Some failures bypass the envelope entirely and surface as an MCP-level error instead — the tool response has `isError: true` with a single text block containing a plaintext message like `Unexpected API response status or content-type: Status 404 Content-Type application/json Body: {"detail":"Not found."}`. Argument-validation failures come back as JSON-RPC error code `-32602`. Handle both paths when reporting errors to the user.
 
 ---
 
@@ -360,7 +387,7 @@ Write reports to the `analysis/` directory (create if needed). Include markdown 
 
 ## Security & Data Transparency
 
-- All data is sent to Shippo's API via the MCP server hosted at `app.getgram.ai/mcp/shippo-mcp-beta`.
-- The `SHIPPO_API_KEY` environment variable is sent as a header (`Mcp-Shippo-Merged-Api-Key-Header`) to authenticate requests.
+- All data is sent to Shippo's API via the local `@shippo/shippo-mcp` server (stdio transport) running on the user's machine. The server forwards requests directly to `api.goshippo.com` — no third-party MCP host or relay is involved.
+- The `SHIPPO_API_KEY` is passed to the MCP via the `--api-key-header` CLI flag and forwarded to Shippo as an `Authorization: ShippoToken <key>` header on outbound requests.
 - No data is stored by the skill itself; all persistence is handled by Shippo's API.
 - Label and tracking data are subject to Shippo's data retention policies.

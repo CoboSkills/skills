@@ -84,7 +84,7 @@ Show the current default parcel template for checkout rates. No parameters.
 ### `rates-at-checkout-delete-default-parcel-template`
 Clear the current default parcel template. No parameters.
 
-### `rates-at-checkout-update-parcel-template`
+### `rates-checkout-update-parcel-template`
 Update the default parcel template for checkout rates.
 - **Required:** `object_id` (string, parcel template ID)
 

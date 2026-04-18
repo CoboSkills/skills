@@ -1,11 +1,17 @@
 {
   "owner": "wyatt-shippo",
   "slug": "shippo-official",
-  "displayName": "Shippo",
+  "displayName": "Shippo Clawhub Skill",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1773847748493,
-    "commit": "https://github.com/openclaw/skills/commit/b62ee2e652b5ad3e922bdd89008b7e782753e58b"
+    "version": "1.0.3",
+    "publishedAt": 1776373161775,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1773847748493,
+      "commit": "https://github.com/openclaw/skills/commit/b62ee2e652b5ad3e922bdd89008b7e782753e58b"
+    }
+  ]
 }

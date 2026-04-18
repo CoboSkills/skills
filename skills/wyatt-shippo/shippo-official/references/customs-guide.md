@@ -36,7 +36,7 @@ Call `customs-items-create` once per distinct item type in the shipment.
 |---|---|---|
 | `tariff_number` | string | HS/HTS harmonized tariff code (6-10 digits). Required by most carriers. Ask the user if not provided. |
 | `sku_code` | string | SKU or product code |
-| ` eccn_ear99` | string | Export Control Classification Number |
+| `eccn_ear99` | string | Export Control Classification Number |
 | `metadata` | string | Free-form metadata |
 
 ### Example

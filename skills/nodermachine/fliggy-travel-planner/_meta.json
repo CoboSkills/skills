@@ -1,11 +1,17 @@
 {
   "owner": "nodermachine",
   "slug": "fliggy-travel-planner",
-  "displayName": "旅游攻略规划技能",
+  "displayName": "travel planner",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1773660020414,
-    "commit": "https://github.com/openclaw/skills/commit/e6a44f7e8c6d3770b077d65fc4b7d6d4a9df36cf"
+    "version": "1.0.7",
+    "publishedAt": 1774430961322,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1773660020414,
+      "commit": "https://github.com/openclaw/skills/commit/e6a44f7e8c6d3770b077d65fc4b7d6d4a9df36cf"
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 ---
 name: fliggy-travel-planner
-description: 飞猪旅游攻略规划技能（性能优化版 v2.0）。使用场景：(1) 从小红书搜索目的地旅游攻略，(2) 自动提取攻略中的目的地、日期、行程信息，(3) 查询飞猪机票价格并插入攻略中，(4) 生成完整的行程规划报告（含攻略 + 最低价机票链接 + 天气预报 + 详细预算）。**性能目标：3-4 分钟完成**（优化前 9 分钟）。
+description: Travel itinerary planning skill that automates end-to-end trip research and booking assistance. It searches Xiaohongshu (RedNote) for destination guides, extracts key travel insights (dates, itinerary, attractions), queries Fliggy for the cheapest flights, fetches weather forecasts, and compiles everything into a comprehensive trip report with budget breakdown. Optimized for 3-4 min execution via parallel queries and smart caching.
 ---
 
 # 飞猪旅游攻略规划技能 v2.0（性能优化版）

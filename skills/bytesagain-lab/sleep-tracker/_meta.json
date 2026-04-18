@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain-lab",
+  "slug": "sleep-tracker",
+  "displayName": "Sleep Tracker",
+  "latest": {
+    "version": "2.0.1",
+    "publishedAt": 1773831030316,
+    "commit": null
+  },
+  "history": []
+}

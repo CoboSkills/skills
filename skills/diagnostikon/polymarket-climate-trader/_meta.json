@@ -3,11 +3,16 @@
   "slug": "polymarket-climate-trader",
   "displayName": "Polymarket Climate Trader",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775317100855,
-    "commit": "https://github.com/openclaw/skills/commit/be7881c141f8dda38cf501de6f15adfad0475f46"
+    "version": "1.0.3",
+    "publishedAt": 1775988372011,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775317100855,
+      "commit": "https://github.com/openclaw/skills/commit/be7881c141f8dda38cf501de6f15adfad0475f46"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773779031698,

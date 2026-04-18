@@ -7,32 +7,29 @@ Ghost Admin API keys have the format `{id}:{secret}` (split on first `:`).
 Tokens expire in 5 minutes. Regenerate before every API call.
 
 **Generate token — pure Node.js (no npm required):**
-Save this as `scripts/ghost-token.js` in your workspace:
-
 ```js
-// ghost-token.js — Generate a Ghost Admin JWT from credentials file
-// Usage: node scripts/ghost-token.js
-// Output: prints token only (capture to TOKEN variable)
-const { createHmac } = require('node:crypto');
-const fs = require('fs');
-const path = require('path');
-
-const credsPath = path.join(process.env.HOME, '.openclaw/credentials/ghost-admin.json');
-const creds = JSON.parse(fs.readFileSync(credsPath, 'utf8'));
-const [id, secret] = creds.key.split(':');
-
-const now = Math.floor(Date.now() / 1000);
-const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT', kid: id })).toString('base64url');
-const payload = Buffer.from(JSON.stringify({ iat: now, exp: now + 300, aud: '/admin/' })).toString('base64url');
-const sig = createHmac('sha256', Buffer.from(secret, 'hex')).update(header + '.' + payload).digest('base64url');
-
-process.stdout.write(header + '.' + payload + '.' + sig);
+const crypto = require('crypto');
+const key = 'id:secret';
+const [id, secret] = key.split(':');
+const header = Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');
+const now = Math.floor(Date.now()/1000);
+const payload = Buffer.from(JSON.stringify({iat:now,exp:now+300,aud:'/admin/'})).toString('base64url');
+const sig = crypto.createHmac('sha256',Buffer.from(secret,'hex')).update(header+'.'+payload).digest('base64url');
+const token = header+'.'+payload+'.'+sig;
 ```
 
-Capture in shell:
+Run inline with credentials file:
 ```bash
-TOKEN=$(node scripts/ghost-token.js)
-GHOST_URL=$(node -e "const c=require(process.env.HOME+'/.openclaw/credentials/ghost-admin.json');process.stdout.write(c.url)")
+node -e "
+const crypto=require('crypto');
+const creds=JSON.parse(require('fs').readFileSync(process.env.HOME+'/.openclaw/credentials/ghost-admin.json','utf8'));
+const [id,secret]=creds.key.split(':');
+const h=Buffer.from(JSON.stringify({alg:'HS256',typ:'JWT',kid:id})).toString('base64url');
+const n=Math.floor(Date.now()/1000);
+const p=Buffer.from(JSON.stringify({iat:n,exp:n+300,aud:'/admin/'})).toString('base64url');
+const s=crypto.createHmac('sha256',Buffer.from(secret,'hex')).update(h+'.'+p).digest('base64url');
+console.log(JSON.stringify({token:h+'.'+p+'.'+s,url:creds.url}));
+"
 ```
 
 **Request header:** `Authorization: Ghost {token}`
@@ -217,43 +214,38 @@ Do NOT use the Admin key in client-side code.
 
 ---
 
-## Themes
-
-Theme upload and activation requires owner-level access. Use Ghost Admin → Design → Upload theme for reliable deployment.
-
-On newer Ghost Pro versions, the Admin API may accept theme upload via standard JWT:
-
-```bash
-# Test JWT theme upload — works on some Ghost Pro versions
-curl -s -X POST "{url}/ghost/api/admin/themes/upload/" \
-  -H "Authorization: Ghost {token}" \
-  -F "file=@/path/to/theme.zip"
-```
-
-If it returns `200` — JWT works, activate with:
-```bash
-curl -s -X PUT "{url}/ghost/api/admin/themes/{theme-name}/activate/" \
-  -H "Authorization: Ghost {token}"
-```
-
-If `403` — use Ghost Admin directly.
-
----
-
 ## Permission walls — do not re-attempt via API
 
-These operations require owner-level access and have no API workaround:
+These operations require owner-level access (browser only):
 
 | Operation | Why blocked | Workaround |
 |-----------|------------|------------|
-| `PUT /admin/settings/` (code injection) | Integration tokens read-only on settings | Use Ghost Admin directly |
+| `PUT /admin/settings/` (code injection) | Integration tokens read-only on settings | Browser + CM6 dispatch pattern |
 | `GET /admin/integrations/` | Integration tokens cannot list integrations | Extract Content key from site HTML source |
 
 ---
 
-## Code injection (owner-only)
+## Code injection via browser (CM6 pattern)
 
-Ghost site settings including code injection require owner-level access. Integration tokens return `403` on `PUT /admin/settings/`. This is expected Ghost behavior. Use Ghost Admin directly for code injection changes.
+Ghost's code injection panel uses CodeMirror 6. Standard DOM input manipulation doesn't work.
+
+Navigate to: `https://your-site.ghost.io/ghost/#/settings/code-injection`
+Click the "Code injection" list item in the left nav, then click "Site footer" tab.
+
+```js
+// Read current value
+const view = document.querySelector('.cm-content').cmView.view;
+const current = view.state.doc.toString();
+
+// Replace entire content
+view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: newContent } });
+
+// Append to end
+const len = view.state.doc.length;
+view.dispatch({ changes: { from: len, insert: appendedContent } });
+```
+
+Then click the Save button.
 
 ---
 

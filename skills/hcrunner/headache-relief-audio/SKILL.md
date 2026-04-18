@@ -1,78 +1,126 @@
 ---
-name: headache-relief-audio
-description: This skill should be used when users experience headaches, migraines, or head pain and request audio therapy or music assistance. Activate this skill when users mention symptoms like "headache," "头疼," "migraine," "head hurts," or request headache relief and audio therapy.
+name: headache-relief-asmr
+description: This skill provides ASMR audio relief recommendations for users experiencing headaches. It matches users to appropriate audio resources based on their gender using a reference rules file.
+metadata:
+  version: "1.0.3"
+  author: hc
 ---
 
-# Headache Relief Audio Therapy
+# Headache Relief ASMR Skill
 
-## Overview
-
-This skill provides audio therapy recommendations and guidance for users experiencing headaches, migraines, or head pain. It offers specialized audio content designed to help alleviate headache symptoms and promote relaxation.
+## Description
+The Headache Relief ASMR skill provides ASMR audio resources for users experiencing headaches. This skill offers gender-specific audio solutions that help relax and relieve headache symptoms through soothing ASMR content.
 
 ## When to Use
+Activate this skill when users mention:
+- Headaches or migraine symptoms
+- Head pain or tension headaches
+- Need for headache relief or relaxation
+- Sensitivity to light or sound associated with headaches
+- Stress-induced headaches
+- Seeking audio solutions for headache relief
 
-Activate this skill when users:
-- Report experiencing headaches, migraines, or head pain
-- Request audio therapy for headache relief
-- Mention head tension, stress headaches, or need to relax
-- Ask for music or audio to help with migraine symptoms
+## Activation Keywords
+- headache
+- migraine
+- head hurts
+- head pain
+- my head hurts
+- bad headache
+- tension headache
+- stress headache
+- headache relief
+- migraine attack
+- splitting headache
+- throbbing headache
 
-## Core Capabilities
+## Workflow
 
-### 1. Headache Relief Audio
+### Step 1: Empathetic Acknowledgment
 
-When users experience headaches, recommend and provide access to specialized audio content designed for headache relief:
+Acknowledge the user's headache with empathy and understanding. Use supportive language:
+- "Headaches can really be tough"
+- "I understand how painful headaches can be"
+- "Headaches are very uncomfortable, let me help you"
+- "Headaches really affect your mood and state"
 
-**Primary Resource:**
-- Headache relief audio: https://ohoeeluhrvswvqoinjyf.supabase.co/storage/v1/object/sign/music/headache.mp3?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV9hYzljYmQ1NS03MDkyLTRhNzAtYmYwYS1iN2U3YzllNWZjMzMiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJtdXNpYy9oZWFkYWNoZS5tcDMiLCJpYXQiOjE3NzM2Mjc2MjYsImV4cCI6MTgwNTE2MzYyNn0.wAXKzurRSiiL_kCRkg-6A_FkxLbjHLehB0MtFLYnexc
+### Step 2: Ask for Gender
 
-**Action:**
-1. Acknowledge the user's discomfort and provide empathy
-2. Recommend the headache relief audio
-3. Provide the audio URL for direct playback
-4. Offer guidance on how to use the audio effectively
+If the user hasn't mentioned their gender, ask in a gentle, natural way:
+- "Are you male or female? I'd like to recommend the most suitable ASMR audio for you."
+- "What's your gender? I want to find the most appropriate headache relief audio for you."
+- "Are you a man or a woman?"
 
-### 2. Relaxation Techniques
+If the user has already mentioned gender information in the conversation, skip this step.
 
-Complement audio therapy with additional relaxation suggestions for headache relief:
+### Step 3: Match Audio Link
 
-- Deep breathing exercises (4-7-8 technique)
-- Progressive muscle relaxation
-- Gentle neck and shoulder stretches
-- Visualization of calming scenes
-- Mindfulness meditation basics
+Based on the user's gender, match the appropriate ASMR audio link from the [reference rules document](references/rules.md):
 
-## User Interaction Guidelines
+### Step 4: Provide Encouraging Closing
 
-### Initial Response Format
+After providing the audio link, give a warm, supportive message:
+- "I hope this ASMR audio helps relieve your headache~"
+- "If you need more help, just let me know~"
+- "Take care of yourself and get some rest~"
+- "I hope you feel better soon~"
 
-When a user mentions headaches:
+## Important Notes
+- Always maintain a gentle, caring, and empathetic tone
+- Do not provide medical advice; only provide ASMR audio resources
+- If the user describes severe or migraine symptoms, gently suggest seeking professional medical help
+- Maintain a warm and supportive attitude throughout the conversation
+- The audio links should be provided as complete URLs
+- Always prioritize the user's comfort and well-being
 
-1. **Acknowledge and Empathize**: Validate their discomfort
-2. **Offer Audio Solution**: Introduce the audio resource
-3. **Provide Clear Instructions**: Give specific steps on how to use the audio
-4. **Supportive Follow-up**: Offer additional assistance if needed
+## Example Interactions
 
-### Example Interactions
+**Example 1:**
 
-**User**: "I have a headache and need relief"
-**Response**: 
-- "I understand you're experiencing a headache. Let me help you with some audio therapy designed for headache relief."
-- [Provide headache.mp3 URL]
-- "Here's a specialized audio track that may help alleviate your headache symptoms. Listen in a comfortable position with the volume at a comfortable level."
+**User:** "I have a headache"
 
-**User**: "头疼得厉害"
-**Response**:
-- "我很理解您头疼的感受。这里有一些专门缓解头疼的音频疗法。"
-- [提供头痛缓解音频]
-- "在安静舒适的环境中聆听这段音频，有助于减轻头疼症状。"
+**Assistant:** "Headaches can really be tough. Are you male or female? I'd like to recommend the most suitable ASMR audio for you."
 
-## Additional Resources
+**User:** "I'm male"
 
-This skill references audio content stored in cloud storage that can be accessed directly by users. Ensure users have stable internet connection when accessing the audio URLs.
+**Assistant:** "Got it! Here's an ASMR audio designed specifically for males to help relieve your headache: https://myxt.com/link/b39d057a-3530-4e37-83df-b8cfae9dcfc7 Take care of yourself~"
+
+---
+
+**Example 2:**
+
+**User:** "I have a really bad headache, I'm female"
+
+**Assistant:** "Severe headaches can be really tough. Here's an ASMR audio designed specifically for females to help you relax: https://myxt.com/link/0755e916-5b29-4460-959f-46aa14640171 I hope you feel better soon~"
+
+---
+
+**Example 3:**
+
+**User:** "My head hurts so much"
+
+**Assistant:** "Headaches can really affect your day. Are you male or female? I'd like to recommend the most suitable ASMR audio for you."
+
+**User:** "Male"
+
+**Assistant:** "Got it! Here's an ASMR audio designed specifically for males to help relieve your headache: https://myxt.com/link/b39d057a-3530-4e37-83df-b8cfae9dcfc7 Take care of yourself~"
+
+---
+
+**Example 4:**
+
+**User:** "I'm having a migraine attack"
+
+**Assistant:** "Migraines can be really painful. Are you male or female? I'd like to recommend the most suitable ASMR audio for you."
+
+**User:** "Female"
+
+**Assistant:** "Got it! Here's an ASMR audio designed specifically for females that may help you feel better: https://myxt.com/link/0755e916-5b29-4460-959f-46aa14640171 If your symptoms are severe, I also suggest consulting a doctor~"
 
 ## Notes
-
-- Audio therapy is a complementary approach and should not replace medical treatment for chronic or severe headaches
-- If users report severe, persistent, or worsening headaches, recommend consulting a healthcare professional
-- The audio content is designed for relaxation and symptom management, not as a cure for medical conditions
+- This skill is intended as a supplementary resource, not a medical treatment
+- Always recommend seeking professional medical advice for severe, frequent, or persistent headaches
+- The provided audio links are the primary resource for ASMR content
+- Responses should be helpful, supportive, and concise
+- The skill focuses on providing access to ASMR-based headache relief solutions
+- If the user describes severe migraine symptoms, gently encourage them to seek professional medical help

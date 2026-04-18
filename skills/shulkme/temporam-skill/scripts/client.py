@@ -49,6 +49,14 @@ class TemporamClient:
             return response["data"]
         return None
 
+    def get_latest_email(self, email_address):
+        """Returns the most recent email received by a specific email address, including full content."""
+        params = {"email": email_address}
+        response = self._make_request("GET", "/emails/latest", params=params)
+        if response and not response.get("error") and response.get("data"):
+            return response["data"]
+        return None
+
     def generate_random_email(self, domain=None):
         """Generates a random email address using an available domain."""
         if not domain:

@@ -1,8 +1,8 @@
 ---
 name: temporam-temp-mail
-version: 1.0.0
+version: 1.1.0
 author: Temporam
-description: "Provides temporary email receiving functionality using the Temporam API. Use for: generating temporary email addresses, listing emails for a given address, and retrieving the content of specific emails."
+description: "Provides temporary email receiving functionality using the Temporam API. Use for: generating temporary email addresses, listing emails for a given address, retrieving the content of specific emails, and polling the latest email for an address."
 ---
 
 # Temporam Temporary Mail Skill
@@ -14,6 +14,7 @@ This skill enables Manus to interact with the Temporam API to manage temporary e
 - **Generate Temporary Email Address**: Automatically creates a new, unique email address using an available domain from the Temporam service.
 - **List Emails**: Retrieves a list of emails received by a specified temporary email address.
 - **Get Email Content**: Fetches the full content of a specific email using its ID.
+- **Get Latest Email**: Retrieves the most recent email (with full content) for a specific email address — ideal for polling verification emails without needing to list and then fetch by ID.
 
 ## Usage Instructions
 
@@ -84,9 +85,42 @@ if email_detail:
     print(f"Email Content: {email_detail["content"]}")
 ```
 
+### Getting the Latest Email for an Address
+
+To retrieve the most recent email received by a specific address (including full content), use `get_latest_email`. This is especially useful for polling scenarios where you just need to wait for the next incoming email.
+
+**Example Prompt:**
+
+"查看 `user@temporam.com` 最新收到的邮件。"
+
+**Internal Action (Manus will execute):**
+
+```python
+from skills.temporam-temp-mail.scripts.client import TemporamClient
+
+client = TemporamClient()
+latest = client.get_latest_email("user@temporam.com")
+if latest:
+    print(f"Subject: {latest["subject"]}")
+    print(f"From: {latest["from_email"]}")
+    print(f"Content: {latest["content"]}")
+else:
+    print("No emails received yet.")
+```
+
 ## Workflow Example: Email Verification
 
 When a task requires email verification, Manus can perform the following steps:
+
+### Method A: Using `get_latest_email` (Recommended)
+
+1.  Generate a temporary email address.
+2.  Provide this email address to the service requiring verification.
+3.  Periodically call `get_latest_email` to poll for the verification email.
+4.  Once received, extract the verification link or code from the `content` field.
+5.  Complete the verification process.
+
+### Method B: Using `list_emails` + `get_email_detail`
 
 1.  Generate a temporary email address.
 2.  Provide this email address to the service requiring verification.

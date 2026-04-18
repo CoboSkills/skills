@@ -8,20 +8,17 @@
 - **生成临时邮箱** — 自动生成随机的临时邮箱地址
 - **查询邮件列表** — 查看指定临时邮箱收到的邮件，支持分页
 - **获取邮件内容** — 根据邮件 ID 获取完整的邮件详情
+- **获取最新邮件** — 直接获取指定邮箱最近收到的一封邮件（含完整内容），适合轮询验证码等场景
 
 ## 项目结构
 
 ```
 .
-├── SKILL.md              # Skill 定义与使用说明
-├── mcp_server.py         # MCP Server（基于 FastMCP）
-├── openapi.yaml          # OpenAPI 3.0 接口定义
-├── tool_definition.json  # Tool 参数定义
-├── scripts/
-│   └── client.py         # Python 客户端封装
-├── references/
-│   └── api_reference.md  # API 参考文档
-└── templates/            # 模板目录
+├── SKILL.md          # Skill 定义与使用说明
+├── clawhub.json      # ClawHub 发布元数据
+├── mcp_server.py     # MCP Server（基于 FastMCP）
+└── scripts/
+    └── client.py     # Python 客户端封装
 ```
 
 ## 快速开始
@@ -65,6 +62,9 @@ emails = client.list_emails(email)
 
 # 获取邮件内容
 detail = client.get_email_detail("<email_id>")
+
+# 获取最新邮件（适合轮询场景）
+latest = client.get_latest_email(email)
 ```
 
 ## MCP Tools
@@ -74,6 +74,7 @@ detail = client.get_email_detail("<email_id>")
 | `get_domains` | 获取可用邮箱域名列表 |
 | `list_emails` | 查询指定邮箱的邮件列表 |
 | `get_email_content` | 根据 ID 获取邮件完整内容 |
+| `get_latest_email` | 获取指定邮箱最近收到的一封邮件（含完整内容） |
 
 ## 许可证
 

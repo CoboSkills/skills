@@ -46,5 +46,16 @@ def get_email_content(email_id: str):
         return data.get("data", {})
     return {}
 
+@mcp.tool()
+def get_latest_email(email: str):
+    """Get the most recent email received by a specific email address, including full content."""
+    params = {"email": email}
+    response = requests.get(f"{BASE_URL}/emails/latest", headers=get_headers(), params=params)
+    response.raise_for_status()
+    data = response.json()
+    if not data.get("error"):
+        return data.get("data", {})
+    return {}
+
 if __name__ == "__main__":
     mcp.run()

@@ -3,9 +3,15 @@
   "slug": "temporam-skill",
   "displayName": "Temporam Temp Mail",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773831036590,
-    "commit": "https://github.com/openclaw/skills/commit/798bb01853fb35b074bf1a246d04c7cc281713df"
+    "version": "0.1.1",
+    "publishedAt": 1776235361858,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773831036590,
+      "commit": "https://github.com/openclaw/skills/commit/798bb01853fb35b074bf1a246d04c7cc281713df"
+    }
+  ]
 }

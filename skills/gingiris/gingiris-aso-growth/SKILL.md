@@ -1,7 +1,7 @@
 ---
 name: gingiris-aso-growth
 description: |
-  ASO (App Store Optimization) & Mobile App Growth Playbook — Complete ASO guide for App Store and Google Play ranking. Covers: ASO keyword research, app store ranking factors, app store listing optimization, mobile app cold start, UGC creator operations, TikTok/Instagram/YouTube Shorts marketing, AI-powered scaling. Real tactics for app growth and user acquisition.
+  ASO & Mobile App Growth Playbook — Complete App Store Optimization guide for iOS and Android. Covers: ASO keyword research, App Store ranking algorithm, Google Play metadata optimization, mobile app cold start strategy, UGC creator management, TikTok/Instagram/YouTube Shorts growth, app store ratings optimization, Android Vitals. Tools: AppTweak, Astro, AppFollow. Organic First framework for indie app developers and mobile growth teams.
 
   🇨🇳 ASO 增长与 App 冷启动权威指南 | 🇯🇵 ASO成長ガイド | 🇰🇷 ASO 성장 플레이북
 

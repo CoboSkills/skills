@@ -1,11 +1,17 @@
 {
   "owner": "wwwcg",
   "slug": "build-kuikly-cross-platfom-app",
-  "displayName": "Cross-Platform App Builder",
+  "displayName": "Cross-Platfrom App Builder",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1773380314628,
-    "commit": "https://github.com/openclaw/skills/commit/1ae4c2fb2d1ef603a56cf626880cce20512ea11b"
+    "version": "1.0.7",
+    "publishedAt": 1776050429754,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1773380314628,
+      "commit": "https://github.com/openclaw/skills/commit/1ae4c2fb2d1ef603a56cf626880cce20512ea11b"
+    }
+  ]
 }

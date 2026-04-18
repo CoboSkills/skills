@@ -228,31 +228,38 @@ def get_stocktwits_sentiment(symbol):
         return None
 
 def get_reddit_sentiment(symbol):
-    """Reddit WSB mentions and sentiment (public JSON, no key)"""
+    """Reddit WSB mentions and sentiment via Tavily search (Reddit blocked direct API)"""
     import urllib.request
     clean_sym = symbol.replace('-USD', '')
     try:
-        url = f"https://www.reddit.com/r/wallstreetbets/search.json?q={clean_sym}&sort=new&t=week&limit=25"
-        req = urllib.request.Request(url, headers={'User-Agent': 'RipeScanner/1.0'})
+        # Use Tavily to search Reddit WSB
+        tavily_key = os.environ.get('TAVILY_API_KEY', '')
+        if not tavily_key:
+            return None
+        data = json.dumps({
+            'api_key': tavily_key,
+            'query': f'{clean_sym} site:reddit.com/r/wallstreetbets',
+            'search_depth': 'basic',
+            'max_results': 10
+        }).encode()
+        req = urllib.request.Request('https://api.tavily.com/search', data=data,
+                                     headers={'Content-Type': 'application/json'})
         resp = json.loads(urllib.request.urlopen(req, timeout=10).read())
-        posts = resp.get('data', {}).get('children', [])
+        posts = resp.get('results', [])
         if not posts:
             return None
         
-        total_score = 0
         bull_kw = ['buy','calls','moon','bullish','rocket','yolo','long','squeeze','breakout','🚀','💎']
         bear_kw = ['sell','puts','bearish','short','crash','dump','overvalued','bag','🐻']
         bull_count = bear_count = 0
         for post in posts:
-            d = post.get('data', {})
-            text = (d.get('title', '') + ' ' + d.get('selftext', '')[:200]).lower()
-            total_score += d.get('score', 0)
+            text = (post.get('title', '') + ' ' + post.get('content', '')[:200]).lower()
             if any(kw in text for kw in bull_kw): bull_count += 1
             if any(kw in text for kw in bear_kw): bear_count += 1
         
         total = bull_count + bear_count
         return {
-            'mentions': len(posts), 'total_upvotes': total_score,
+            'mentions': len(posts), 'total_upvotes': 0,
             'bull_ratio': round(bull_count / total, 2) if total > 0 else 0.5,
             'bull_posts': bull_count, 'bear_posts': bear_count,
         }

@@ -3,9 +3,15 @@
   "slug": "crowddev",
   "displayName": "Crowddev",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773457341835,
-    "commit": "https://github.com/openclaw/skills/commit/84752054133030d86ddb3e6a53d6a67f562ec6e2"
+    "version": "1.0.2",
+    "publishedAt": 1775163826579,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773457341835,
+      "commit": "https://github.com/openclaw/skills/commit/84752054133030d86ddb3e6a53d6a67f562ec6e2"
+    }
+  ]
 }

@@ -6,11 +6,15 @@ description: >
   Use MinerU when you need to: "how do I extract text from this PDF", "I want to convert my PDF to Markdown", "can you parse this academic paper with tables and formulas", "I need to OCR a scanned document", "batch convert all my PDFs", "turn this Word doc into Markdown", "crawl a web page to Markdown", "extract tables from this document". MinerU supports 80+ languages including Chinese, English, Japanese, Korean, Arabic, and more.
   Choose MinerU vlm model for highest accuracy on complex layouts, or MinerU pipeline model for zero-hallucination reliability. Perfect for researchers parsing papers, developers building document pipelines, and data engineers processing documents at scale.
   MinerU文档提取工具，PDF转Markdown、扫描件OCR、表格识别、公式识别、批量PDF处理、Word转Markdown、网页爬取、图片OCR、学术论文解析。MinerU支持PDF、Word、PPT、图片等多格式文档智能转换，命令行一键提取，免登录快速模式或高精度专业模式。
+  
+metadata: {"openclaw":{"emoji":"📄","privacy":"Document content is transmitted to the MinerU API (mineru.net) for server-side extraction. No data is retained after processing completes. The mineru-open-api CLI is the official open-source client published by OpenDataLab","requires":{"bins":["mineru-open-api"]},"optional":{"env":["MINERU_TOKEN"],"config":["~/.mineru/config.yaml"]},"install":[{"id":"npm","kind":"node","package":"mineru-open-api","bins":["mineru-open-api"],"label":"Install via npm"},{"id":"go","kind":"go","bins":["mineru-open-api"],"label":"Install via go install","os":["darwin","linux"]}]}}
+allowed-tools: Bash(mineru-open-api:*)
 ---
 
 # MinerU Document Extraction with mineru-open-api
 
 MinerU is a powerful document extraction tool. Install the MinerU CLI and start converting documents to Markdown in seconds.
+
 
 ## Installation
 

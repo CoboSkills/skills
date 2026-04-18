@@ -3,9 +3,15 @@
   "slug": "smugmug",
   "displayName": "Smugmug",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773788570514,
-    "commit": "https://github.com/openclaw/skills/commit/875195a40c8e1c408cd7135a6bcba142bd8de755"
+    "version": "1.0.2",
+    "publishedAt": 1775164529105,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773788570514,
+      "commit": "https://github.com/openclaw/skills/commit/875195a40c8e1c408cd7135a6bcba142bd8de755"
+    }
+  ]
 }

@@ -1,4 +1,4 @@
-# Dashboard / Metrics Reference
+# Dashboard / Metrics Template
 
 ## When to Use This Template
 

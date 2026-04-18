@@ -1,4 +1,4 @@
-# Company Profile Reference
+# Company Profile Template
 
 ## When to Use This Template
 

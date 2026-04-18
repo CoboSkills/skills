@@ -1,4 +1,4 @@
-# Event / Invitation Reference
+# Event / Invitation Template
 
 ## When to Use This Template
 

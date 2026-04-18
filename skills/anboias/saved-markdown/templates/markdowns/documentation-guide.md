@@ -1,4 +1,4 @@
-# Documentation / Guide Reference
+# Documentation / Guide Template
 
 ## When to Use This Template
 
@@ -76,7 +76,7 @@ Before you begin, ensure you have:
 
 ---
 
-## Configuration Reference
+## Configuration Template
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
@@ -256,7 +256,7 @@ Default credentials: `admin@example.com` / `password123`
 
 ---
 
-## Configuration Reference
+## Configuration Template
 
 | Variable | Default | Description |
 |----------|---------|-------------|

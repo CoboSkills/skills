@@ -1,4 +1,4 @@
-# Report Reference
+# Report Template
 
 ## When to Use This Template
 

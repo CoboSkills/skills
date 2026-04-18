@@ -1,4 +1,4 @@
-# Dashboard / Metrics — HTML Reference
+# Dashboard / Metrics — HTML Template
 
 ## When to Use This Template
 

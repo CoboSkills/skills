@@ -1,4 +1,4 @@
-# Resume / CV Reference
+# Resume / CV Template
 
 ## When to Use This Template
 

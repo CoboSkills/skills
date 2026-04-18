@@ -1,4 +1,4 @@
-# Resume / CV — HTML Reference
+# Resume / CV — HTML Template
 
 ## When to Use This Template
 

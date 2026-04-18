@@ -1,4 +1,4 @@
-# Portfolio / Showcase Reference
+# Portfolio / Showcase Template
 
 ## When to Use This Template
 

@@ -1,4 +1,4 @@
-# Event / Invitation — HTML Reference
+# Event / Invitation — HTML Template
 
 ## When to Use This Template
 

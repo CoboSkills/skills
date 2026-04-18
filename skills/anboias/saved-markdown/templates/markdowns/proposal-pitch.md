@@ -1,4 +1,4 @@
-# Proposal / Pitch Reference
+# Proposal / Pitch Template
 
 ## When to Use This Template
 

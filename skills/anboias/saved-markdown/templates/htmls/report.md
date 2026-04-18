@@ -1,4 +1,4 @@
-# Report — HTML Reference
+# Report — HTML Template
 
 ## When to Use This Template
 

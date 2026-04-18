@@ -1,4 +1,4 @@
-# Newsletter / Update Reference
+# Newsletter / Update Template
 
 ## When to Use This Template
 

@@ -1,4 +1,4 @@
-# Company Profile — HTML Reference
+# Company Profile — HTML Template
 
 ## When to Use This Template
 

@@ -3,11 +3,16 @@
   "slug": "threads-skill",
   "displayName": "threads-skill",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1774247168006,
-    "commit": "https://github.com/openclaw/skills/commit/5014c406ed2cafbda19e12164ffa615275d0f8ad"
+    "version": "1.0.3",
+    "publishedAt": 1776407013525,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1774247168006,
+      "commit": "https://github.com/openclaw/skills/commit/5014c406ed2cafbda19e12164ffa615275d0f8ad"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773735342612,

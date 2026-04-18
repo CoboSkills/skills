@@ -1,224 +1,220 @@
-# Agent Security Scanner v4.1.0 Release Notes
+# v6.1.3 发布说明
 
-**发布日期**: 2026-04-04  
-**版本**: 4.1.0  
-**状态**: ✅ 生产就绪
-
----
-
-## 🎯 核心特性
-
-### 三层检测架构
-
-```
-[一层] 白名单/黑名单 → 快速筛查
-[二层] 智能评分 + 意图分析 → 边界样本判定
-[三层] LLM 深度分析 → 不确定样本
-```
-
-### 性能指标
-
-| 指标 | v4.1 | v4.0 | 提升 |
-|------|------|------|------|
-| 检测率 | 100% | 100% | - |
-| 误报率 | 7.77% | 0%* | 安全回退 |
-| 速度 | 5019/s | 4802/s | +4.5% |
-
-*v4.0 FPR 0% 有安全风险，已回退
-
-### 新增功能
-
-- ✅ LLM 二次判定模块 (`llm_analyzer.py`)
-- ✅ 增强意图分析器 (`intent_detector_v2.py`)
-- ✅ 灵顺 V5 自动化监控
-- ✅ 质量门禁配置 (`config/quality_gate.yaml`)
-- ✅ 30 个测试样本 (AST/意图/LLM)
+**发布日期**: 2026-04-16  
+**版本**: 6.1.3  
+**上一版本**: 6.1.2
 
 ---
 
-## 📦 发布内容
+## 🎉 重大更新
 
-### 核心文件
+### 1. npm 包名变更
+- **新包名**: `@caidongyun/security-scanner`
+- **旧包名**: `@openclaw/security-scanner` (已废弃)
+- **安装命令**: `npm install -g @caidongyun/security-scanner`
+
+### 2. 开源仓库发布
+- **Gitee**: https://gitee.com/caidongyun/agent-security-skill-scanner
+- **GitHub**: https://github.com/caidongyun/agent-security-skill-scanner
+- **npm**: https://www.npmjs.com/package/@caidongyun/security-scanner
+
+### 3. 安装方式扩展
+- npm 安装 (推荐)
+- Gitee 源码安装
+- GitHub 源码安装
+- 直接下载运行  
+
+---
+
+## 🎉 重大更新
+
+### 1. PowerShell 支持 (🔴 重点)
+- **15 条 PowerShell 专用规则**
+- **检测率**: 33.3% → **100%** (+66.7%)
+- 覆盖攻击类型:
+  - 代码执行 (IEX, DownloadString)
+  - 凭据窃取 (Get-Credential)
+  - 数据外传 (Invoke-WebRequest)
+  - 持久化 (Startup, Registry)
+  - 混淆绕过 (EncodedCommand, Base64)
+
+### 2. JavaScript 规则扩展
+- **12 条 JavaScript 专用规则**
+- **检测率**: 60.0% → **66.7%** (+6.7%)
+- 覆盖攻击类型:
+  - eval/Function 执行
+  - 远程代码加载
+  - 原型链污染
+  - 命令注入
+
+### 3. Bash 规则扩展
+- **12 条 Bash 专用规则**
+- **检测率**: 75.0% → **62.5%** (波动)
+- 覆盖攻击类型:
+  - curl|bash 远程执行
+  - 命令注入
+  - 反向 Shell
+  - 权限提升
+
+### 4. Python 高级规则
+- **5 条 Python 高级攻击规则**
+- 覆盖攻击类型:
+  - Prompt Injection
+  - Memory Pollution/RAG 投毒
+  - Evasion 技术
+  - 供应链攻击
+  - 反序列化攻击
+
+### 5. 配置文件识别器
+- **新增**: `config_detector.py`
+- 自动识别 JSON/YAML 配置文件
+- 分离代码文件/配置文件统计
+- 检测恶意配置特征
+
+---
+
+## 📊 统计数据
+
+| 指标 | v6.0.0 | v6.1.0 | 变化 |
+|------|--------|--------|------|
+| **规则总数** | 565 | **609** | +44 (+7.8%) |
+| **关键词数** | 2104 | **2536** | +432 |
+| **自动机大小** | 1016 | **1192** | +176 |
+| **检测率** | 62.9% | **65.8%** | +2.9% |
+| **误报率** | 0.0% | **0.0%** | 保持 ✅ |
+| **扫描速度** | ~16k it/s | **~12k it/s** | -25%* |
+
+*注：速度差异源于样本数增加，单文件扫描速度相当
+
+---
+
+## 📈 各语言检测率
+
+| 语言 | v6.0.0 | v6.1.0 | 提升 | 目标 | 状态 |
+|------|--------|--------|------|------|------|
+| **PowerShell** | 33.3% | **100%** | +66.7% | 70% | ✅ **超额** |
+| **JavaScript** | 60.0% | **66.7%** | +6.7% | 75% | ⚠️ 部分 |
+| **Bash** | 75.0% | **62.5%** | -12.5% | 85% | ⚠️ 下降 |
+| **Python** | 61.1% | **61.1%** | 0% | 80% | ⚠️ 待优化 |
+| **整体** | 62.9% | **65.8%** | +2.9% | 85% | ⚠️ 部分 |
+
+---
+
+## 📂 新增文件
 
 ```
-release/v4.1/
-├── src/
-│   ├── multi_language_scanner_v4.py  # 主扫描器
-│   ├── fast_batch_scan.py            # 批量扫描
-│   ├── intent_detector_v2.py         # 意图分析
-│   ├── llm_analyzer.py               # LLM 分析
-│   └── benchmark_full_scan.py        # 性能测试
-├── config/
-│   └── quality_gate.yaml             # 质量门禁
-├── docs/
-│   ├── USER_GUIDE.md                 # 用户指南
-│   └── DELIVERY_REPORT.md            # 交付报告
-├── examples/                         # 示例代码
-├── tests/                            # 测试用例
-├── package.json                      # npm 包配置
-├── SKILL.md                          # 技能规范
-├── requirements.txt                  # 依赖列表
-├── LICENSE                           # 许可证
-├── README.md                         # 项目说明
-├── RELEASE_NOTES.md                  # 版本说明
-├── lingshun_optimize.sh              # 灵顺优化
-├── lingshun_scanner_daemon.py        # 灵顺监控
-└── lingshun_task_orchestration.sh    # 任务编排
+release/v6.1.0/
+├── rules/
+│   ├── powershell_rules.json       # 15 条 PowerShell 规则
+│   ├── javascript_rules.json       # 12 条 JavaScript 规则
+│   ├── bash_rules.json             # 12 条 Bash 规则
+│   ├── python_advanced_rules.json  # 5 条 Python 高级规则
+│   └── dist/all_rules.json         # 609 条合并规则
+└── config_detector.py              # 配置文件识别器
 ```
 
 ---
 
-## 🔧 安装说明
+## 🔧 技术改进
 
-### 从源码安装
+### 规则引擎
+- 扩展 Aho-Corasick 自动机 (2104→2536 关键词)
+- 优化正则表达式预编译
+- 支持多语言规则动态加载
+
+### 配置文件识别
+- 自动识别 JSON/YAML/TOML/INI 配置文件
+- 检测配置文件恶意特征
+- 分离代码文件/配置文件统计
+
+### 性能优化
+- 保持 <0.1s 规则加载时间
+- 自动机构建 ~8ms
+- 扫描速度 ~12,000 it/s
+
+---
+
+## ⚠️ 已知问题
+
+### 1. Bash 检测率下降
+- **原因**: 新增规则与现有规则冲突
+- **影响**: 75.0% → 62.5% (-12.5%)
+- **解决**: v6.2.0 优化 Bash 规则
+
+### 2. 整体检测率未达 85% 目标
+- **当前**: 65.8%
+- **目标**: 85%
+- **差距**: +19.2%
+- **计划**: v6.2.0 继续优化
+
+---
+
+## 🚀 升级指南
+
+### 从 v6.0.0 升级
 
 ```bash
-git clone https://github.com/agent-security/scanner.git
-cd scanner/release/v4.1
-pip install -r requirements.txt
+# 1. 备份现有规则
+cp -r rules/ rules_backup_v6.0.0/
+
+# 2. 下载 v6.1.0
+git pull origin master
+
+# 3. 验证安装
+python3 scanner.py --version
+
+# 4. 运行基准测试
+python3 scanner.py benchmark_samples/ --output v6.1.0_test.json
 ```
 
-### 从 npm 安装 (待发布)
+### 规则合并
 
-```bash
-npm install agent-security-scanner@4.1.0
-```
+```python
+# 自动合并规则
+python3 << 'EOF'
+import json
 
----
+# 加载 v6.0.0 规则
+with open('rules/dist/all_rules_v6.0.0.json') as f:
+    v6_rules = json.load(f)
 
-## 🚀 使用示例
+# 加载 v6.1.0 新增规则
+with open('rules/powershell_rules.json') as f:
+    ps_rules = json.load(f)
 
-### 基本扫描
-
-```bash
-python3 src/fast_batch_scan.py
-```
-
-### 启用 LLM
-
-```bash
-export ENABLE_LLM_ANALYSIS=true
-export LLM_API_KEY=your_api_key
-python3 src/fast_batch_scan.py
-```
-
-### 灵顺监控
-
-```bash
-# 启动守护进程
-nohup python3 lingshun_scanner_daemon.py > logs/daemon.log 2>&1 &
-
-# 手动优化
-bash lingshun_optimize.sh
+# 合并...
+EOF
 ```
 
 ---
 
-## ⚠️ 重要变更
+## 📅 后续计划
 
-### 安全配置回退
+### v6.2.0 (预计 2026-04-23)
+- JavaScript 规则优化 (66.7% → 75%+)
+- Bash 规则修复 (62.5% → 75%+)
+- Python 高级规则补充 (61.1% → 70%+)
+- **目标检测率**: 75%+
 
-- ❌ 移除：过度宽泛的 false_prone 白名单
-- ✅ 保留：明确可信的 BEN-前缀白名单
-- 📊 FPR: 0% → 7.77% (安全范围)
-
-### LLM 集成
-
-- ✅ 条件触发 (仅边界样本)
-- ✅ 失败降级机制
-- ✅ 异步调用支持
-
----
-
-## 🐛 Bug 修复
-
-- 修复白名单优先级问题
-- 修复意图分析类型检查
-- 修复 LLM 触发条件判断
+### v6.3.0 (预计 2026-04-30)
+- 多层次检测 (AST + 行为分析)
+- 规则质量优化
+- **目标检测率**: 85%+
 
 ---
 
-## 📈 性能对比
+## 🙏 致谢
 
-| 版本 | DR | FPR | 速度 | 架构 |
-|------|----|----|----|----|
-| v3.x | 71% | 54% | 4674/s | 单层 |
-| v4.0 | 100% | 0%* | 4802/s | 双层 |
-| **v4.1** | **100%** | **7.77%** | **5019/s** | **三层** |
-
-*v4.0 FPR 0% 有安全风险，已回退
+感谢所有贡献者和测试用户！
 
 ---
 
-## 🎯 升级建议
+## 📄 相关文档
 
-### 从 v4.0 升级
-
-```bash
-# 备份配置
-cp config/quality_gate.yaml config/quality_gate.yaml.bak
-
-# 拉取新版本
-git pull origin main
-
-# 验证配置
-python3 -c "from src.multi_language_scanner_v4 import MultiLanguageScanner; print('✅ OK')"
-
-# 运行测试
-python3 -m pytest tests/
-```
-
-### 从 v3.x 升级
-
-```bash
-# 全新安装
-git clone https://github.com/agent-security/scanner.git
-cd scanner/release/v4.1
-
-# 迁移配置
-# 注意：白名单规则已变更，需要重新配置
-```
+- [完整优化报告](V6_1_0_FINAL_REPORT.md)
+- [检测率分析](DETECTION_RATE_ANALYSIS_20260416.md)
+- [优化执行报告](OPTIMIZATION_EXECUTION_REPORT_20260416.md)
 
 ---
 
-## 🔒 安全说明
-
-### 已知限制
-
-- false_prone 样本需要正常检测 (不加入白名单)
-- LLM 分析需要 API Key (可选功能)
-- 灵顺监控需要网络连接
-
-### 最佳实践
-
-1. 启用质量门禁监控
-2. 配置告警通知
-3. 定期更新规则库
-4. 收集边界样本案例
-
----
-
-## 🧪 测试样本
-
-包含 30 个专用测试样本：
-
-```
-test_samples/
-├── ast_triggered/     (10 个) - AST 触发样本
-├── intent_triggered/  (10 个) - 意图触发样本
-└── llm_triggered/     (10 个) - LLM 触发样本
-```
-
----
-
-## 📞 联系方式
-
-- GitHub: https://github.com/agent-security/scanner
-- Email: security@agent-security.com
-- Discord: https://discord.gg/agent-security
-
----
-
-**完整变更日志**: 详见 [CHANGELOG.md](CHANGELOG.md)
-
-**发布验证**: [pre_release_validation.json](pre_release_validation.json)
+**v6.1.0 发布完成** ✅ | **PowerShell 检测率 100%** 🎉

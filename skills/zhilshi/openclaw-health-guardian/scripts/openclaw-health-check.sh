@@ -112,11 +112,14 @@ open_terminal_for_help() {
     local message="$1"
     log "Opening terminal for user assistance: $message"
 
+    # Escape special characters for AppleScript (single quotes → \')
+    local escaped_message="${message//\'/\'\\\'\'}"
+
     # AppleScript to open Terminal and run commands
     osascript <<EOF
     tell application "Terminal"
         activate
-        do script "echo '=== OpenClaw Health Check Alert ===' && echo '$message' && echo '' && echo 'Current time: $(date)' && echo '' && echo 'Attempting to diagnose...' && openclaw status 2>/dev/null || echo 'openclaw status failed' && echo '' && echo 'Press any key to close this window...' && read -n 1"
+        do script "echo '=== OpenClaw Health Check Alert ===' && echo '$escaped_message' && echo '' && echo 'Current time: $(date)' && echo '' && echo 'Attempting to diagnose...' && openclaw status 2>/dev/null || echo 'openclaw status failed' && echo '' && echo 'Press any key to close this window...' && read -n 1"
     end tell
 EOF
 }
@@ -202,11 +205,11 @@ log "Using openclaw: $OPENCLAW_BIN"
 GATEWAY_LOADED=$(launchctl list | grep -q "ai.openclaw.gateway" && echo "yes" || echo "no")
 if [ "$GATEWAY_LOADED" != "yes" ]; then
     log "Gateway service not loaded, attempting to load..."
-    if ! launchctl load ~/Library/LaunchAgents/ai.openclaw.gateway.plist 2>&1 | tee -a "$LOG_FILE"; then
+    if ! launchctl load "$HOME/Library/LaunchAgents/ai.openclaw.gateway.plist" 2>&1 | tee -a "$LOG_FILE"; then
         log "launchctl load failed, trying bootstrap..."
         launchctl bootout gui/$(id -u)/ai.openclaw.gateway 2>/dev/null
         sleep 1
-        launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/ai.openclaw.gateway.plist 2>&1 | tee -a "$LOG_FILE"
+        launchctl bootstrap gui/$(id -u) "$HOME/Library/LaunchAgents/ai.openclaw.gateway.plist" 2>&1 | tee -a "$LOG_FILE"
     fi
     sleep 3
 fi
@@ -314,7 +317,7 @@ if ! echo "$STATUS_OUTPUT" | grep -q "Gateway service.*running"; then
     log "Gateway service is not running"
     # Try to load the service if not loaded
     log "Attempting to load Gateway service..."
-    launchctl load ~/Library/LaunchAgents/ai.openclaw.gateway.plist 2>&1 | tee -a "$LOG_FILE"
+    launchctl load "$HOME/Library/LaunchAgents/ai.openclaw.gateway.plist" 2>&1 | tee -a "$LOG_FILE"
     sleep 3
 fi
 

@@ -1,6 +1,14 @@
 ---
 name: post-content-moderation
+version: 1.0.0
 description: Review, rewrite, and moderate user-generated posts across title, body text, images, and videos to block ads and contact information while allowing configurable whitelist exceptions and project-specific custom rules.
+emoji: 🛡️
+homepage: https://github.com/XavierMary56/OmniPublish
+metadata:
+  openclaw:
+    requires:
+      bins:
+        - python3
 ---
 
 # Post Content Moderation

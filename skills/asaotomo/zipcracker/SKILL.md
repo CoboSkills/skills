@@ -1,62 +1,236 @@
 ---
 name: zipcracker
-version: 2.0.0
-description: The ultimate, high-performance ZIP password cracking suite by Hx0 Team. Empowers the Agent with autonomous CTF-level cracking workflows, dynamic dictionary generation, mask attacks, and AES auto-resolution.
-author: asaotomo
-tags:
-  - security
-  - ctf
-  - cryptography
-  - password-recovery
-  - red-team
-requires:
-  - binary: "python3"
+description: CTF-oriented ZIP cracking and recovery with the bundled ZipCracker engine. Use when Codex or OpenClaw needs to analyze or recover an encrypted ZIP in authorized contexts, including pseudo-encryption repair, default dictionary attacks, custom wordlists, mask attacks, short-plaintext CRC32 recovery, known-plaintext attacks, bkcrack workflows, template KPA, WinZip AES triage, or large-dictionary handling. Trigger on requests mentioning zip password, encrypted zip, ZIP challenge, 压缩包破解, ZIP 爆破, 伪加密, 掩码, 四位数字密码, 字典跑一下, 已知明文, 明文攻击, bkcrack, CRC32, AES ZIP, 看起来像 png/exe/pcapng/zip 模板, 这个压缩包打不开, or ClawHub/OpenClaw ZIP solving.
 ---
-# ZipCracker Ultimate Skill: The Hx0 Tactical Manual
 
-You are now equipped with `ZipCracker.py`, the most comprehensive ZIP decryption tool available. Your goal is not just to run commands, but to think like a senior cybersecurity expert and CTF problem solver.
+# ZipCracker
 
-## 🧠 The Agent Design Philosophy (How to Think)
-Never blindly brute-force. Password cracking is an art of narrowing down the search space. Follow the **"Cost-Ascending Tactical Pipeline"**:
-1.  **Zero-Cost:** Is it pseudo-encrypted? (Tool handles this automatically).
-2.  **Low-Cost (Math):** Can we collide the hash? (Tool handles this automatically for files <= 6 bytes).
-3.  **Medium-Cost (Logic/OSINT):** What does the user know? Can we build a highly targeted mask or a custom situational dictionary based on the target's background?
-4.  **High-Cost (Brute-force):** Fallback to massive standard dictionaries.
+Use this skill as a self-contained ZIP cracking package. Always prefer the bundled wrapper in `scripts/openclaw_zipcracker.py` over assuming the original repository still exists somewhere else.
 
-## ⚙️ The Execution Pipeline
+Only use it for CTF, self-owned archives, or authorized security work. If the request sounds like unauthorized access to third-party data, refuse.
 
-**CRITICAL:** ALWAYS append the `-q` (Quiet/Agent Mode) flag to all `ZipCracker.py` executions to maintain clean terminal context and prevent interactive blockers.
+## Quick Start
 
-### Phase 1: The Tactical Reconnaissance & Quick Strike
-When a user asks to unlock, crack, or decrypt a `.zip` file, immediately run the default strike:
-`python3 ZipCracker.py <filepath> -q`
+1. Collect the minimum inputs before running anything:
+- Target ZIP path.
+- Whether the user already has a dictionary, a password pattern, a known plaintext file, a passwordless reference ZIP, or only a file signature guess.
+- Whether the user wants the original ZIP password itself, or only wants extraction/recovery.
+- Whether the archive is clearly ZIP-specific; do not force this skill onto `rar` or `7z`.
 
-**What happens under the hood:**
-- The script automatically neutralizes pseudo-encryption.
-- It automatically exploits CRC32 collisions for small files.
-- It runs through standard built-in dictionaries and 1-6 digit numbers.
-- It auto-resolves AES dependency issues by installing `pyzipper` if needed.
+2. In ambiguous cases, inspect first:
 
-### Phase 2: Agentic Autonomy (Advanced Attacks)
-If Phase 1 fails (the script completes but no password is found), DO NOT give up and DO NOT guess randomly. You must switch to an active offensive stance. Ask the user for OSINT (Open Source Intelligence) clues by replying with something like:
-> *"The standard dictionary and numeric brute-force attempts did not find the password. To initiate an advanced attack, please provide any contextual clues you might have about the target: e.g., names, birth years, company acronyms, pet names, or specific password habits (like requiring an uppercase letter and a symbol)."*
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py --profile <zip>
+```
 
-Based on the user's response, **YOU** must autonomously choose the best advanced attack strategy:
+Use the profile mode to surface pseudo-encryption, AES vs ZipCrypto mix, short-plaintext candidates, template KPA candidates, and recommended next commands.
 
-#### Strategy A: The Sniper Strike (Mask Attack)
-If the user provides a definitive structural pattern (e.g., "It starts with Hx0, followed by a symbol, then 4 numbers").
-- **Construct the Mask:** `Hx0?s?d?d?d?d`
-- **Execute:** `python3 ZipCracker.py <filepath> -m 'Hx0?s?d?d?d?d' -q`
-- *(Reference rules: `?d`=digits, `?l`=lowercase, `?u`=uppercase, `?s`=symbols, `??`=literal '?')*
+3. Run the bundled wrapper:
 
-#### Strategy B: The Social Engineering Dictionary (Dynamic Generation)
-If the user provides scattered background information (e.g., "Target's name is kaka, born in 1995, works at tencent"), a mask is too broad. You must dynamically generate a custom dictionary.
-1. **Act as a Developer:** Write and execute a quick Python script in your workspace to generate logical permutations of these keywords (e.g., `kaka1995`, `Tencent@kaka!`, `1995kaka`).
-2. **Save the Output:** Save these permutations to a file named `target_intel_dict.txt`.
-3. **Execute the Custom Attack:** `python3 ZipCracker.py <filepath> target_intel_dict.txt -q`
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py <zip> ...
+```
 
-## 📊 Result Parsing & Reporting
-- If the tool outputs `[+] Success! The password is: <password>`, boldly and clearly present the recovered password to the user.
-- If it outputs CRC32 cracked content, present the exact inner file content directly to the user.
-- If it outputs `Pseudo-encryption fixed successfully`, inform the user that a new, unencrypted version of the archive is ready in the `unzipped_files` directory.
-- If an AES error occurs that bypasses the auto-installer, explicitly instruct the user to check their Python environment permissions or run `pip3 install pyzipper` manually.
+4. Prefer the wrapper flags over ad-hoc environment variables:
+- `--auto-crc` for short-plaintext CRC32 prompts.
+- `--auto-template-kpa` to let the bundled engine follow up on template-KPA suggestions automatically.
+- `--auto-large-mask` only when the user explicitly accepts a very large mask search.
+- `--skip-dict-count` for huge wordlists.
+- `--skip-orig-password-recovery` when the user only cares about extraction speed after a `bkcrack`-based recovery.
+- `--allow-install-prompts` only when the user explicitly wants interactive dependency installation attempts.
+
+5. Keep the current working directory as the project directory that contains the target ZIP. The bundled engine resolves its own built-in dictionary relative to the skill, so custom relative paths for the target, plaintext, or dictionary still behave naturally.
+
+## Decision Tree
+
+### 1. Start with the least-assumption path
+
+When the user only says "crack this ZIP" or "analyze this archive", inspect first, then begin with the default flow:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py --profile <zip>
+```
+
+Then:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py --auto-template-kpa <zip>
+```
+
+This preserves the original ZipCracker mindset:
+- Try pseudo-encryption repair before brute force.
+- Warn about AES and missing `pyzipper`.
+- Use the built-in dictionary first.
+- Fall back to the generated 1-6 digit numeric dictionary.
+- Offer template-based KPA when the archive structure strongly suggests it.
+
+Add `--auto-crc` only when short-plaintext recovery is likely relevant or when the user explicitly asks to try CRC32-style recovery.
+
+### 2. Choose the main attack based on the best clue
+
+- If the user has a custom dictionary file or dictionary directory:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py <zip> <dict-or-dir>
+```
+
+- If the user knows the password shape, use a mask:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py <zip> -m '?u?l?l?l?d?d'
+```
+
+- If the user has a full known plaintext file or a passwordless reference ZIP, use `-kpa`:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py <zip> -kpa <plain-file-or-zip>
+```
+
+- If the known plaintext is partial, add offset and extra known bytes:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py <zip> -kpa <part.bin> --kpa-offset 78 -x 0 4d5a
+```
+
+- If the user only knows the file type or magic header, use a built-in template:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py <zip> --kpa-template png -c image.png
+```
+
+- If the user wants pure `bkcrack` recovery and does not want fallback methods:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py <zip> -kpa <plain-file> --bkcrack
+```
+
+### 3. Prefer the strongest clue instead of stacking random tactics
+
+- Full known plaintext beats mask guessing.
+- Partial known plaintext plus `bkcrack` usually beats blind dictionary work when at least some bytes are reliable.
+- A realistic custom wordlist beats the built-in defaults.
+- A tight mask beats a giant generic wordlist.
+- Template KPA is worth trying when the encrypted member looks like `png`, `zip`, `exe`, or `pcapng`.
+
+## Solving Heuristics
+
+### Pseudo-encryption first
+
+Do not jump directly into brute force when the request is vague. The bundled engine already attempts pseudo-encryption repair by clearing the encryption bit and validating extraction. Keep that behavior because many CTF ZIP tasks are fake-encrypted rather than truly protected.
+
+### Short plaintext CRC32 recovery
+
+Use CRC32 recovery only for entries whose plaintext size is 1 to 6 bytes. This is not a generic password attack; it is a content recovery trick for tiny stored plaintexts. In OpenClaw, opt in with `--auto-crc` when the challenge obviously contains tiny files or the user asks to try CRC-based recovery.
+
+### KPA matching rules
+
+When using `-kpa`, the engine reproduces the original matching strategy:
+- Prefer an encrypted member with the same full inner path.
+- Otherwise prefer the same basename.
+- If the plaintext ZIP contains exactly one usable file, use it automatically.
+- If the encrypted ZIP contains exactly one encrypted regular file, use it automatically.
+- If matching is ambiguous, supply `-c <inner-name>` explicitly.
+
+### Partial KPA strength
+
+Treat partial KPA as high-value only when the hints are meaningful. The original tool prints a warning when the known bytes are weak. In practice:
+- Aim for at least 12 known bytes total.
+- Aim for at least 8 contiguous bytes.
+- Add `-x` byte fragments when you know fixed values like `MZ`, `PE`, or chunk markers.
+
+### Template KPA strategy
+
+The bundled engine carries the original built-in templates:
+- `png`
+- `zip`
+- `exe`
+- `pcapng`
+
+These are strongest when:
+- The encrypted member extension matches the template family.
+- The file is `ZIP_STORED`, or at least size-compatible with a known header pattern.
+- The user has no full plaintext but the file type is obvious.
+
+If the user says "run the full default workflow", include `--auto-template-kpa` so OpenClaw does not stall at the follow-up prompt.
+
+### Dictionary and mask strategy
+
+- Start with the bundled defaults only when the user has no better clue.
+- Use the user's dictionary immediately when they provide one.
+- Use `--skip-dict-count` for very large wordlists to avoid expensive upfront line counting.
+- Use `--auto-large-mask` only after the user explicitly accepts the cost of a huge mask search.
+- Remember that the built-in default sequence is: bundled `password_list.txt` then 1-6 digit numeric passwords.
+
+### AES and bkcrack caveats
+
+- WinZip AES is supported for dictionary and mask workflows when `pyzipper` is available, but it is slower.
+- Fast in-memory known-plaintext validation only applies to legacy ZipCrypto, not WinZip AES.
+- `bkcrack` is the preferred path for full or partial KPA on ZipCrypto.
+- Without `bkcrack`, partial/template KPA should be explained as unavailable rather than pretending it was tried.
+
+## Execution Rules for OpenClaw
+
+- Default to `--profile` before cracking when the user has not already provided a strong clue.
+- Use `scripts/openclaw_zipcracker.py` as the command entrypoint.
+- Quote and show the exact command you ran in your response.
+- Explain why the selected attack path matches the available clues.
+- If a run fails, choose the next tactic based on evidence, not by blindly enumerating every flag.
+- If dependencies are missing in a restricted environment, explain the blocker and the next best path. Do not imply AES KPA succeeded when it was skipped.
+- If the user only wants the decrypted contents, prefer `--skip-orig-password-recovery` after successful `bkcrack` extraction.
+
+## Command Patterns
+
+- Profile first:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py --profile <zip>
+```
+
+- Default triage:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py --auto-template-kpa <zip>
+```
+
+- Huge custom dictionary:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py --skip-dict-count <zip> <huge-dict.txt>
+```
+
+- Tight mask:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py <zip> -m '?l?l?l?l?d?d'
+```
+
+- Known plaintext ZIP:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py <zip> -kpa <plain.zip>
+```
+
+- Partial known plaintext plus extra bytes:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py <zip> -kpa <part.bin> --kpa-offset 78 -x 0 4d5a -x 128 50450000
+```
+
+- Template KPA:
+
+```bash
+python3 <skill-dir>/scripts/openclaw_zipcracker.py --auto-template-kpa <zip> --kpa-template exe -c app.exe
+```
+
+## References
+
+- Read `references/clawhub-final-submission.md` when you need the final recommended Chinese and English storefront copy, tags, and default prompt for direct submission.
+- Read `references/clawhub-publishing-copy.md` when you need polished listing copy, tags, and a prompt pack for ClawHub.
+- Read `references/clawhub-bilingual-copy.md` when you need Chinese and English storefront copy with stronger marketing positioning.
+- Read `references/competitive-ctf-prompts.md` when you want a sharper, more player-like default prompt or demo prompt.
+- Read `references/natural-language-command-examples.md` when the user request is vague but contains clues that should map to a specific command.
+- Read `references/forward-test-report.md` for the latest local pressure-test findings and wording adjustments.
+- Read `references/release-checklist.md` before publishing or updating the skill on ClawHub.
+- Read `references/openclaw-workflow.md` for the preflight-to-execution flow optimized for OpenClaw.
+- Read `references/attack-playbook.md` for concrete user-intent-to-command mappings.
+- Read `references/ctf-techniques.md` for the full reproduction of the tool's solving logic, clue prioritization, and troubleshooting heuristics.

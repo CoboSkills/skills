@@ -3,11 +3,16 @@
   "slug": "zipcracker",
   "displayName": "ZipCracker",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1773362495760,
-    "commit": "https://github.com/openclaw/skills/commit/9b033fbf5460857b5c251101314fac8a5261b246"
+    "version": "2.0.1",
+    "publishedAt": 1775903507876,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1773362495760,
+      "commit": "https://github.com/openclaw/skills/commit/9b033fbf5460857b5c251101314fac8a5261b246"
+    },
     {
       "version": "1.1.1",
       "publishedAt": 1773241207939,

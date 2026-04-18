@@ -3,9 +3,15 @@
   "slug": "rustunnel",
   "displayName": "Rustunnel",
   "latest": {
-    "version": "0.2.3",
-    "publishedAt": 1773784175735,
-    "commit": "https://github.com/openclaw/skills/commit/fedb1286af3b3a120dbf4294bc677e6703429aff"
+    "version": "1.3.1",
+    "publishedAt": 1775234724277,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.2.3",
+      "publishedAt": 1773784175735,
+      "commit": "https://github.com/openclaw/skills/commit/fedb1286af3b3a120dbf4294bc677e6703429aff"
+    }
+  ]
 }

@@ -3,11 +3,16 @@
   "slug": "polymarket-central-bank-trader",
   "displayName": "Polymarket Central Bank Trader",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775317094337,
-    "commit": "https://github.com/openclaw/skills/commit/041b633908bc31549bff216e9c98d02d4d7666df"
+    "version": "0.0.2",
+    "publishedAt": 1776513277440,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775317094337,
+      "commit": "https://github.com/openclaw/skills/commit/041b633908bc31549bff216e9c98d02d4d7666df"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1773869600936,

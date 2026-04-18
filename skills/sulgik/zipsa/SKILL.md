@@ -48,5 +48,23 @@ For conversation continuity, always pass a `session_id`.
 }
 ```
 
+## Admin Console
+
+Zipsa includes an enterprise Admin Console for security teams and CISOs.
+
+Key capabilities:
+- **실시간 대시보드**: 차단/알람/마스킹 건수, 활성 에이전트 모니터링
+- **개인정보 유형 설정**: 개인정보보호법 제2조 기준 (고유식별정보, 민감정보, 일반 개인정보, 금융정보, 인증정보)
+- **탐지·처리 정책 매트릭스**: AI 서비스별 (ChatGPT/Claude/Gemini/Copilot) 처리 방식 설정
+- **조합 탐지 규칙**: 단일 항목이 아닌 복합 식별자 조합 탐지
+- **민감정보 사전**: 회사별 기밀 키워드 직접 등록 (CSV/XLSX 업로드 지원)
+- **알람 채널**: Slack, 이메일, Teams, Webhook(SIEM/SOAR)
+- **인시던트 자동 대응**: 임계값 기반 자동 차단 및 에스컬레이션
+- **ISMS-P 컴플라이언스 매핑**: 인증기준 2.0 (2024년 개정) 기준
+- **감사 로그**: 3년 보존, 해시 체인 무결성 검증, SIEM 실시간 전송
+- **통계 리포트**: 일/주/월간 보고서 자동 발송
+
+For full Admin Console spec, see [references/admin-dashboard.md](references/admin-dashboard.md).
+
 ## Reference
 For detailed configuration and advanced examples, see [references/README.md](references/README.md).

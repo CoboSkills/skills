@@ -3,9 +3,15 @@
   "slug": "zipsa",
   "displayName": "Zipsa",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1773979469262,
-    "commit": "https://github.com/openclaw/skills/commit/0f4e893c3ced0e5832ddf5bd1afe83c8a1c3b245"
+    "version": "0.4.1",
+    "publishedAt": 1776423330483,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1773979469262,
+      "commit": "https://github.com/openclaw/skills/commit/0f4e893c3ced0e5832ddf5bd1afe83c8a1c3b245"
+    }
+  ]
 }

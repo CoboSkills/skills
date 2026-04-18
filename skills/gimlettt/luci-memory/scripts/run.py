@@ -16,9 +16,11 @@ import urllib.request
 from datetime import UTC, datetime
 
 API_HOST = "https://skills.memories.ai/luci-memory"
+
 API_PERSONAL = API_HOST + "/personal"
 API_PORTRAIT = API_HOST + "/portrait"
 USERINFO_API = "https://mavi-backend.memories.ai/serve/api/userinfo"
+
 ENV_FILE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
 
 

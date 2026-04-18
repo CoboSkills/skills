@@ -74,7 +74,22 @@ The user's videos go through two processing pipelines that produce different dat
 
 Note: `--after` / `--before` are **UTC**. Convert from the user's local timezone first (see Timezone section above).
 
-```bash
+## Returning Images/Keyframes to User
+
+When search results include signed URLs (keyframes, images), follow this pipeline to send them in chat:
+
+1. **Download** the signed URL to the workspace:
+   ```bash
+   curl -sL -o /path/to/workspace/image.jpg "<signed_url>"
+  ```bash
+2. Send via OpenClaw message CLI:
+openclaw message send --channel <channel> --target <chat_id> --media /path/to/workspace/image.jpg --message "caption"
+3. Cleanup the file after sending:
+rm /path/to/workspace/image.jpg
+⚠️ Signed URLs expire after ~1 hour. Download promptly.
+⚠️ Do NOT use /tmp or paths outside the workspace — some tools block external paths.
+⚠️ The image tool only analyzes images — it cannot send them to the user. Use openclaw message send --media instead.
+
 # ============ Media content (personal) ============
 
 # --- Video ---

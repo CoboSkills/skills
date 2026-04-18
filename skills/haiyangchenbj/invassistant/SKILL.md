@@ -1,17 +1,42 @@
 ---
 name: invassistant
-description: |
-  Investment portfolio trading signal checker based on a "Three Red Lines" entry system
-  and a multi-layered exit system (take-profit, stop-loss, trend-break, momentum-fade, systemic-risk).
-  This skill should be used when the user wants to check stock portfolio trading signals,
-  verify entry/exit conditions for specific stocks, or configure automated signal alerts.
-  It fetches real-time market data from Yahoo Finance, applies configurable strategy rules
-  (emotion release, technical support, market risk for entry; take-profit tiers, stop-loss,
-  trend-break, momentum-fade for exit), and pushes results to WeChat Work, DingTalk, or Feishu group bots.
-  Trigger keywords: 检查持仓, 持仓信号, 今日信号, 红线检查, TSLA红线, 建仓检查,
-  减仓信号, 止盈检查, 止损检查, 退出信号, 清仓检查, 趋势破位, 动量衰竭,
-  portfolio check, trading signal, entry check, exit check, red line check, stock signal,
-  take profit, stop loss, 投资信号, 交易信号, 持仓检查, 详细分析.
+version: "2.0.0"
+description: >
+  US stock portfolio buy/sell signal checker — tells you WHEN to buy, WHEN to sell, and WHY.
+  Uses a "Three Red Lines" entry filter (emotion-driven drop + technical reversal + no systemic risk)
+  and a multi-layered exit engine (take-profit tiers, stop-loss, trend break, momentum fade, VIX panic defense).
+  Fetches real-time data from Yahoo Finance, checks entry/exit signals for each holding,
+  and pushes actionable alerts to WeChat Work, DingTalk, or Feishu group bots.
+
+  美股持仓买卖信号检查器 — 告诉你什么时候该买、什么时候该卖、以及为什么。
+  基于「三条红线」入场过滤（情绪释放+技术止跌+市场环境）和多层退出引擎
+  （阶梯止盈/止损清仓/趋势破位/动量衰竭/VIX恐慌防守），
+  从 Yahoo Finance 获取实时行情，逐标的检查买卖信号，推送到企微/钉钉/飞书群机器人。
+read_when:
+  - 检查持仓
+  - 持仓信号
+  - 今日信号
+  - 红线检查
+  - TSLA红线
+  - 建仓检查
+  - 减仓信号
+  - 止盈检查
+  - 止损检查
+  - 退出信号
+  - 趋势破位
+  - 动量衰竭
+  - portfolio check
+  - trading signal
+  - entry check
+  - exit check
+  - red line check
+  - stock signal
+  - take profit
+  - stop loss
+  - 投资信号
+  - 交易信号
+  - 持仓检查
+  - 详细分析
 allowed-tools:
   - read_file
   - write_to_file
@@ -31,175 +56,205 @@ metadata:
       - signal
       - stock
       - finance
+      - us-stock
+      - buy-sell
+      - alert
 ---
 
-# InvAssistant — 投资组合交易信号检查
+# InvAssistant — US Stock Buy/Sell Signal Checker | 美股买卖信号检查器
 
-基于「三条红线」入场过滤系统和「多层退出引擎」（止盈/止损/趋势破位/动量衰竭/系统性风险防守）的投资组合信号检查技能。通过 Yahoo Finance 获取实时数据，按配置化策略规则检查每个标的的**入场和退出信号**，支持推送结果到企微/钉钉/飞书群机器人。
+**What it does | 做什么**：Check your US stock portfolio every day — should you BUY, SELL, or HOLD? This skill answers that question with a rules-based, emotion-free approach.
 
-## 核心概念：三条红线系统
+**How it works | 怎么做**：Fetches real-time price/volume data from Yahoo Finance → applies the "Three Red Lines" entry filter and a multi-layered exit engine → outputs actionable signals per holding → optionally pushes alerts to WeChat Work / DingTalk / Feishu group bots.
 
-三条红线是**过滤条件（Filter）**，不是评分制（Scoring）。全部通过才允许建仓，任何一条未通过即 NO-TRADE。
+---
 
-### 红线1：情绪释放型下跌（最关键）
+## Core Concept: Three Red Lines Entry System | 核心概念：三条红线入场系统
 
-触发条件（满足任一）：
-- 单日跌幅 ≥ 4%（可配置）
-- 连续 3 个交易日下跌（可配置）
+> **Red Lines are FILTERS, not scores.** ALL three must pass → BUY. Any single failure → NO TRADE.
+>
+> **红线是过滤条件，不是评分制。** 全部通过才允许建仓，任何一条未通过 = 不交易。
 
-没有情绪释放 → 没有情绪错配 → 没有入场理由。
+### Red Line 1: Emotion-Driven Drop (Most Critical) | 红线1：情绪释放型下跌（最关键）
 
-### 红线2：技术止跌信号（严格标准）
+Trigger (either one):
+- Single-day drop ≥ 4% (configurable)
+- 3+ consecutive down days (configurable)
 
-需要**真实的止跌确认**，"接近均线"或"单次反弹"不算通过：
-- 放量下跌后缩量（量能萎缩至前日 70% 以下）
-- 均线强承接 = 下影线 + 收涨 + (放量 120%+ 或 强反弹 ≥ 1.5%)
-- 完整 Higher Low 结构（低点A → 反弹 → 低点B > A → 2日确认）
+触发条件（满足任一）：单日跌幅 ≥ 4%，或连续 3 个交易日下跌。
 
-### 红线3：市场未进入系统性风险
+No emotion release → no mispricing → no entry reason. | 没有情绪释放 → 没有情绪错配 → 没有入场理由。
 
-必须全部满足：
-- QQQ 未连续 3 日暴跌
-- SPX 未连续 3 日暴跌
-- VIX < 25（可配置）
+### Red Line 2: Technical Reversal Confirmation (Strict) | 红线2：技术止跌信号（严格标准）
 
-## 策略类型
+Requires **real** reversal confirmation — "near moving average" or "single bounce" does NOT count:
+- Volume shrinkage after sell-off (< 70% of previous day)
+- Strong MA support = lower shadow + up close + (volume surge 120%+ OR strong bounce ≥ 1.5%)
+- Complete Higher Low structure (Low A → bounce → Low B > A → 2-day confirmation)
 
-| 类型 | 说明 | 入场逻辑 | 退出逻辑 |
-|------|------|----------|----------|
-| `redline` | 三条红线建仓，全通过后入场 | 情绪释放+技术止跌+市场环境 | 止盈分批减仓 / 止损清仓 / 趋势破位 / 动量衰竭 |
-| `hold` | 永久持有，不加不减 | — | 仅系统性风险时防守（预警模式） |
-| `pullback` | 回调达阈值时提示可小加 | 回调 ≥ 阈值 | 止盈减仓 / 止损清仓 / 趋势破位 |
-| `satellite` | 卫星仓，不动 | — | 较紧止损线 + 宽止盈 |
+需要**真实的止跌确认**，"接近均线"或"单次反弹"不算通过。
 
-## 退出信号系统
+### Red Line 3: No Systemic Market Risk | 红线3：市场未进入系统性风险
 
-退出信号同样是**纪律驱动（Discipline）**，不是情绪驱动。按优先级从高到低排列：
+ALL must be true | 必须全部满足：
+- QQQ not down 3 consecutive days | QQQ 未连续 3 日暴跌
+- SPX not down 3 consecutive days | SPX 未连续 3 日暴跌
+- VIX < 25 (configurable) | VIX < 25（可配置）
 
-### 止损清仓（优先级最高 — CRITICAL）
+## Strategy Types | 策略类型
+
+| Type | EN Description | 中文说明 | Entry | Exit |
+|------|---------------|---------|-------|------|
+| `redline` | Three Red Lines filter | 三条红线建仓 | All 3 pass → BUY | Take-profit / Stop-loss / Trend-break / Momentum-fade |
+| `hold` | Permanent hold | 永久持有，不加不减 | — | Systemic risk defense only |
+| `pullback` | Buy on pullback | 回调达阈值时加仓 | Pullback ≥ threshold | Take-profit / Stop-loss / Trend-break |
+| `satellite` | Satellite position | 卫星仓，不动 | — | Tight stop-loss + wide take-profit |
+
+## Exit Signal Engine | 退出信号系统
+
+> Exit signals are **discipline-driven**, not emotion-driven. Checked by priority — higher priority triggers skip lower ones.
+>
+> 退出信号是**纪律驱动**，不是情绪驱动。按优先级从高到低检查。
+
+### Stop-Loss (CRITICAL) | 止损清仓（最高优先级）
+
+When unrealized loss exceeds the stop-loss line → **SELL ALL immediately**, no hesitation.
 
 当浮亏超过止损线时**立即清仓**，不留余地。
 
-- 默认止损线：-15%（redline标的）/ -12%（pullback标的）/ -20%（satellite标的）
-- 可配置 `exit_params.stop_loss_pct`
-- 一旦触发，跳过其他所有检查
-- HOLD 标的默认不启用止损（仅系统性风险时防守）
+- Default: -15% (redline) / -12% (pullback) / -20% (satellite)
+- Configurable: `exit_params.stop_loss_pct`
+- HOLD holdings: stop-loss disabled (systemic risk defense only)
 
-### 止盈减仓（优先级高 — HIGH）
+### Take-Profit Tiers (HIGH) | 阶梯止盈（高优先级）
+
+Tiered profit-taking — lock in gains gradually, not all at once:
 
 阶梯式止盈，分批锁利而非一次性出清：
 
-| 浮盈达到 | 动作 | 说明 |
-|----------|------|------|
-| 20% | 减仓 1/3 | 第一阶梯止盈 |
-| 40% | 再减 1/3 | 第二阶梯止盈 |
-| 80% | 仅保留底仓 | 大幅止盈 |
+| Gain | Action | 浮盈 | 操作 |
+|------|--------|------|------|
+| 20% | Sell 1/3 | 20% | 减仓 1/3 |
+| 40% | Sell another 1/3 | 40% | 再减 1/3 |
+| 80% | Keep core only | 80% | 仅保留底仓 |
 
-- 阶梯可配置 `exit_params.take_profit_tiers`
-- 需要配置 `exit_params.cost_basis`（持仓成本）才能生效
+- Configurable: `exit_params.take_profit_tiers`
+- Requires `exit_params.cost_basis` (your buy price) to be set | 需要配置持仓成本价才能生效
 
-### 趋势破位（优先级高 — HIGH）
+### Trend Break (HIGH) | 趋势破位（高优先级）
+
+When price **effectively breaks below** a key moving average → defensive reduction:
 
 当价格有效跌破关键均线时减仓防守：
 
-- 收盘价连续 N 日（默认3）低于 MA50
-- 期间无明显承接信号（下影线+收涨+放量）
-- 均线拐头向下
-- 触发后减仓 50%（可配置）
+- Close below MA50 for N consecutive days (default 3) | 收盘价连续 N 日低于 MA50
+- No support signals during that period | 期间无明显承接信号
+- Moving average turning downward | 均线拐头向下
+- Action: reduce 50% (configurable) | 触发后减仓 50%
 
-### 动量衰竭（优先级中 — MEDIUM）
+### Momentum Fade (MEDIUM) | 动量衰竭（中优先级）
+
+Early warning of weakening uptrend — reduce before reversal:
 
 上涨趋势中出现动量减弱的早期预警：
 
-- 创新高/近新高但成交量显著萎缩（量价背离）
-- 连续多日量能递减
-- MACD 顶背离（价格新高但 MACD 柱缩短）
-- 触发后减仓 1/3（可配置）
+- Volume-price divergence: new highs but declining volume | 创新高但成交量萎缩
+- Consecutive volume decline | 连续多日量能递减
+- MACD divergence: price new high but MACD bars shrinking | MACD 顶背离
+- Action: reduce 1/3 (configurable) | 触发后减仓 1/3
 
-### 系统性风险防守（全组合层级 — 可覆盖 HOLD）
+### Systemic Risk Defense (Portfolio-level) | 系统性风险防守（全组合层级）
+
+The **ONLY exit that overrides HOLD** strategy. Protects the entire portfolio:
 
 这是**唯一可以覆盖「永久 HOLD」策略**的退出条件：
 
-| 级别 | 条件 | 动作 |
-|------|------|------|
-| 预警 (WARNING) | VIX 接近恐慌阈值 (≥25.5) | 提高警惕，准备方案 |
-| 恐慌 (PANIC) | VIX ≥ 30 或 QQQ/SPX 连续3日暴跌 | 非核心仓减半 |
-| 极端 (EXTREME) | VIX ≥ 40 | 全组合减至 50% |
+| Level | Condition | Action |
+|-------|-----------|--------|
+| ⚠️ Warning | VIX ≥ 25.5 | Stay alert, prepare plan | 提高警惕 |
+| 🟠 Panic | VIX ≥ 30 or QQQ/SPX 3-day crash | Non-core reduce 50% | 非核心仓减半 |
+| 🔴 Extreme | VIX ≥ 40 | Entire portfolio reduce to 50% | 全组合减至 50% |
 
-## 工作流程
+## Workflow | 工作流程
 
-### Step 1: 确认配置
+### Step 1: Load Config [Deterministic] | 确认配置 [确定性]
 
-1. 读取工作区中的 `invassistant-config.json` 配置文件
-2. 如不存在，执行 `python scripts/init_config.py` 生成默认配置
-3. 确认关注标的列表和策略参数
+Config search order | 配置文件查找顺序：
+1. `INVASSISTANT_CONFIG` env variable | 环境变量指定路径
+2. `my_portfolio.json` in project root (personal format, auto-adapted) | 项目根目录个人配置（自动适配）
+3. `invassistant-config.json` in project root (standard Skill format) | 项目根目录通用配置
+4. Built-in defaults via `scripts/init_config.py` | 内置默认配置
 
-配置文件核心结构：
-- `portfolio.watchlist` — 关注标的列表（symbol, name, strategy, params, exit_params）
-- `portfolio.watchlist[].exit_params` — 退出条件参数（cost_basis, stop_loss_pct, take_profit_tiers 等）
-- `portfolio.systemic_risk_exit` — 系统性风险防守退出参数（VIX 恐慌/极端阈值）
-- `portfolio.vix_threshold` — VIX 入场阈值（默认 25）
-- `adapters` — 推送渠道（wechatwork / dingtalk / feishu）
-- `commands` — 指令映射（群机器人指令 → 动作）
+If neither file exists, run `python scripts/init_config.py` to generate defaults.
 
-### Step 2: 执行检查
+Key config sections | 配置核心结构：
+- `portfolio.watchlist` — Stock watchlist (symbol, strategy, params, exit_params) | 关注标的列表
+- `portfolio.systemic_risk_exit` — Systemic risk defense parameters | 系统性风险防守参数
+- `portfolio.vix_threshold` — VIX entry threshold (default 25) | VIX 入场阈值
+- `adapters` — Push channels (wechatwork / dingtalk / feishu) | 推送渠道
+- `commands` — Command-to-action mapping | 指令映射
 
-根据用户指令选择执行模式：
+### Step 2: Run Check [Deterministic] | 执行检查 [确定性]
 
-**全组合检查**（"检查持仓" / "今日信号"）：
+Choose execution mode based on user command | 根据用户指令选择执行模式：
+
+**Full portfolio check | 全组合检查** ("检查持仓" / "今日信号" / "portfolio check"):
 ```bash
 python scripts/portfolio_checker.py
 ```
 
-**单标的详细分析**（"TSLA红线" / "详细分析"）：
+**Single stock deep analysis | 单标的详细分析** ("TSLA红线" / "详细分析"):
 ```bash
 python scripts/portfolio_checker.py --detail TSLA
 ```
 
-**检查并推送**（"检查并推送" / "推送信号"）：
+**Check and push alerts | 检查并推送** ("检查并推送" / "推送信号"):
 ```bash
 python scripts/portfolio_checker.py --push
 ```
 
-### Step 3: 解读输出
+### Step 3: Read Output [Deterministic] | 解读输出 [确定性]
 
-检查结果按标的输出**入场信号**和**退出信号**，格式如下：
-- `redline` 标的：显示三条红线逐条判定结果和最终结论 + 退出信号检查
-- `pullback` 标的：显示回调幅度和是否达到阈值 + 退出信号检查
-- `hold` / `satellite` 标的：显示当前价格和持仓指令 + 退出预警
+Results show **entry signals** and **exit signals** per holding | 检查结果按标的输出入场信号和退出信号：
 
-退出信号按优先级标注：
-- 🔴 CRITICAL — 止损清仓（立即执行）
-- 🟠 HIGH — 止盈减仓 / 趋势破位（尽快执行）
-- 🟡 MEDIUM — 动量衰竭（观察并准备）
+- `redline` holdings: Three Red Lines verdict + exit signal check | 三条红线逐条判定 + 退出检查
+- `pullback` holdings: Pullback magnitude + threshold check + exit signals | 回调幅度 + 退出检查
+- `hold` / `satellite` holdings: Current price + exit warnings | 当前价格 + 退出预警
 
-全组合自检汇总五个问题：
-1. 是否出现情绪错配资产？（redline 标的全通过）
-2. 是否出现核心仓被迫低估？（pullback 标的达标）
-3. 是否有标的触发退出信号？（止损/止盈/破位/动量）
-4. 是否出现系统性风险？（VIX 恐慌 + 市场连续暴跌）
-5. 综合结论：入场 / 退出 / 不交易
+Exit signal priority labels | 退出信号优先级标注：
+- 🔴 CRITICAL — Stop-loss, SELL ALL now | 止损清仓（立即执行）
+- 🟠 HIGH — Take-profit / Trend-break, act soon | 止盈减仓/趋势破位（尽快执行）
+- 🟡 MEDIUM — Momentum-fade, watch and prepare | 动量衰竭（观察并准备）
 
-### Step 4: 推送（按配置）
+Portfolio self-check summary (5 questions) | 全组合自检汇总：
+1. Any emotion-mispriced assets? (redline holdings all pass) | 是否出现情绪错配资产？
+2. Any core holdings forced undervalued? (pullback threshold met) | 是否出现核心仓被迫低估？
+3. Any holdings triggering exit signals? | 是否有标的触发退出信号？
+4. Systemic risk detected? (VIX panic + market crash) | 是否出现系统性风险？
+5. Final verdict: BUY / SELL / NO TRADE | 综合结论：入场 / 退出 / 不交易
 
-根据 `invassistant-config.json` 中的 `adapters` 配置推送结果：
+### Step 4: Push Alerts (Optional) [Deterministic] | 推送（按配置）[确定性]
 
-1. **企业微信**：`scripts/send_wecom.py` — Markdown 消息推送
-2. **钉钉**：`scripts/send_dingtalk.py` — Markdown + 加签安全验证
-3. **飞书**：`scripts/send_feishu.py` — 富文本(post) 或 交互卡片模式
+Push results via configured channels | 根据配置推送结果：
 
-每个推送脚本支持 `--test` 参数发送测试消息验证配置。
+1. **WeChat Work | 企业微信**：`scripts/send_wecom.py` — Markdown message
+2. **DingTalk | 钉钉**：`scripts/send_dingtalk.py` — Markdown + HMAC signing
+3. **Feishu | 飞书**：`scripts/send_feishu.py` — Rich text (post) or interactive card
 
-## 配置指南
+Each push script supports `--test` to verify config | 每个推送脚本支持 `--test` 参数验证配置。
 
-### 修改关注股票
+## Configuration Guide | 配置指南
+
+### Modify Watchlist | 修改关注股票
+
+Edit `portfolio.watchlist` in `invassistant-config.json`:
 
 编辑 `invassistant-config.json` 中的 `portfolio.watchlist`：
 
 ```json
 {
   "symbol": "TSLA",
-  "name": "特斯拉",
+  "name": "Tesla / 特斯拉",
   "strategy": "redline",
   "params": {
     "emotion_drop_threshold": -4,
@@ -211,12 +266,12 @@ python scripts/portfolio_checker.py --push
 }
 ```
 
-添加新标的：在 watchlist 数组中追加条目，指定 strategy 类型和参数。
-删除标的：从 watchlist 数组中移除对应条目。
+- **Add**: Append an entry to the watchlist array | 添加：在 watchlist 数组中追加条目
+- **Remove**: Delete the entry from the array | 删除：从数组中移除对应条目
 
-### 配置退出条件
+### Configure Exit Conditions | 配置退出条件
 
-编辑 `invassistant-config.json` 中每个标的的 `exit_params`：
+Edit `exit_params` for each holding | 编辑每个标的的 `exit_params`：
 
 ```json
 {
@@ -228,25 +283,26 @@ python scripts/portfolio_checker.py --push
     "position_size": 100,
     "take_profit_enabled": true,
     "take_profit_tiers": [
-      {"gain_pct": 20, "action": "减仓1/3", "reduce_pct": 33, "label": "第一阶梯"},
-      {"gain_pct": 40, "action": "再减1/3", "reduce_pct": 33, "label": "第二阶梯"}
+      {"gain_pct": 20, "action": "Sell 1/3 | 减仓1/3", "reduce_pct": 33, "label": "Tier 1 | 第一阶梯"},
+      {"gain_pct": 40, "action": "Sell 1/3 | 再减1/3", "reduce_pct": 33, "label": "Tier 2 | 第二阶梯"}
     ],
     "stop_loss_enabled": true,
     "stop_loss_pct": -15,
-    "stop_loss_action": "清仓",
+    "stop_loss_action": "SELL ALL | 清仓",
     "trend_break_enabled": true,
     "trend_break_ma": 50,
     "trend_break_confirm_days": 3,
-    "trend_break_action": "减仓50%",
+    "trend_break_action": "Reduce 50% | 减仓50%",
     "momentum_fade_enabled": true,
-    "momentum_action": "减仓1/3"
+    "momentum_action": "Reduce 1/3 | 减仓1/3"
   }
 }
 ```
 
-**重要**：填入 `cost_basis`（持仓成本价）后止盈/止损检查才会生效。
+**Important**: Set `cost_basis` (your buy price) for take-profit/stop-loss to work | **重要**：填入持仓成本价后止盈/止损检查才会生效。
 
-配置系统性风险防守退出（全组合层级）：
+### Configure Systemic Risk Defense | 配置系统性风险防守
+
 ```json
 {
   "portfolio": {
@@ -256,28 +312,27 @@ python scripts/portfolio_checker.py --push
       "vix_extreme_threshold": 40,
       "market_consecutive_drop_days": 3,
       "market_drop_magnitude": -2,
-      "panic_action": "非核心仓减半",
-      "extreme_action": "全组合减至50%"
+      "panic_action": "Non-core reduce 50% | 非核心仓减半",
+      "extreme_action": "Portfolio reduce to 50% | 全组合减至50%"
     }
   }
 }
 ```
 
-### 配置推送渠道
+### Configure Push Channels | 配置推送渠道
 
-在 `adapters` 中启用渠道并填入 Webhook URL：
+Enable a channel in `adapters` and fill in the Webhook URL | 在 `adapters` 中启用渠道并填入 Webhook URL：
 
-| 渠道 | 配置键 | 主要配置项 | 环境变量 |
-|------|--------|-----------|----------|
-| 企业微信 | `wechatwork` | `webhook_url` | `WECOM_WEBHOOK_URL` |
-| 钉钉 | `dingtalk` | `webhook_url`, `secret` | `DINGTALK_WEBHOOK_URL`, `DINGTALK_SECRET` |
-| 飞书 | `feishu` | `webhook_url`, `secret` | `FEISHU_WEBHOOK_URL`, `FEISHU_SECRET` |
+| Channel | Config Key | Main Config | Env Variable |
+|---------|-----------|-------------|--------------|
+| WeChat Work | `wechatwork` | `webhook_url` | `WECOM_WEBHOOK_URL` |
+| DingTalk | `dingtalk` | `webhook_url`, `secret` | `DINGTALK_WEBHOOK_URL`, `DINGTALK_SECRET` |
+| Feishu | `feishu` | `webhook_url`, `secret` | `FEISHU_WEBHOOK_URL`, `FEISHU_SECRET` |
 
-### 配置指令接收
+### Configure Command Triggers | 配置指令接收
 
-通过群机器人接收指令触发检查（需配合 WorkBuddy Automation 或外部定时任务）：
+Map group bot commands to actions | 映射群机器人指令到动作：
 
-在 `commands` 中映射指令到动作：
 ```json
 {
   "检查持仓": "full_check",
@@ -286,11 +341,35 @@ python scripts/portfolio_checker.py --push
 }
 ```
 
-企微/钉钉/飞书群中 @机器人 + 指令文本 → 触发对应检查动作。
+@bot + command text in group → trigger check | 在群里 @机器人 + 指令文本 → 触发对应检查
 
-## 快捷入口
+## Quick Entry Scripts | 快捷入口
 
-保留的兼容入口脚本（在项目根目录）：
-- `check_portfolio.py` — 全组合检查
-- `check_tsla_entry.py` — TSLA 红线检查
-- `check_detail.py` — TSLA 详细分析
+Convenience scripts in project root | 项目根目录的兼容入口脚本：
+- `check_portfolio_v2.py` — **Recommended**: Modular entry point calling scripts/ | 推荐入口（模块化）
+- `check_portfolio.py` — Legacy full-check (fallback) | 旧版全量检查（回退用）
+- `check_tsla_entry.py` — TSLA red line check | TSLA 红线检查
+- `check_detail.py` — TSLA detailed analysis | TSLA 详细分析
+
+---
+
+## Hard Rules | 硬性规则
+
+These rules are **absolute** — no exceptions, no overrides:
+
+1. **Signal priority is fixed**: Stop-loss > Take-profit > Trend-break > Momentum-fade > Systemic-risk. Higher priority signal fires → skip lower checks.
+2. **Red Lines are filters, NOT scores**: ALL three must pass → BUY. One fails → NO TRADE. Never "average" or "weigh" partial passes.
+3. **Never fabricate data**: If API returns error or empty data → report the failure. Never invent prices, volumes, or signals.
+4. **HOLD protection**: HOLD strategy holdings are immune to all exit signals EXCEPT systemic risk (VIX ≥ 30). Never suggest selling HOLD positions for profit-taking or trend breaks.
+5. **Push confirmation**: Before sending any push notification (WeChat Work / DingTalk / Feishu), confirm with user UNLESS running in automated mode (`--push` flag).
+
+## Failure Handling | 失败处理
+
+| Scenario | Action |
+|----------|--------|
+| Config file missing | Run `python scripts/init_config.py`, report to user |
+| Yahoo Finance API rate limit / timeout | Retry once after 5s. If still fails, report which symbols failed and continue with remaining |
+| Insufficient historical data (< 20 days) | Skip technical analysis for that symbol, note in output |
+| `cost_basis` not configured | Skip take-profit / stop-loss for that symbol, warn user |
+| Push channel webhook fails | Log error, continue with other channels, report failure in output |
+| All symbols fail to fetch | Report complete failure, suggest checking network / API status |

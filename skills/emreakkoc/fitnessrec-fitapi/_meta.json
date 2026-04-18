@@ -3,9 +3,15 @@
   "slug": "fitnessrec-fitapi",
   "displayName": "FitnessRec FitAPI",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773956545351,
-    "commit": "https://github.com/openclaw/skills/commit/735922eba6141b8b90958578ae6ea00e5cd0100a"
+    "version": "1.1.6",
+    "publishedAt": 1776103151514,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773956545351,
+      "commit": "https://github.com/openclaw/skills/commit/735922eba6141b8b90958578ae6ea00e5cd0100a"
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 ---
-name: fitapi-nutrition
-description: 16k+ foods (120+ nutrients, USDA/NUTTAB/CNF2015/MEXT/FRIDA), 3M+ branded/barcodes, 80k+ local recipes, 5k+ exercises. Filter/sort by any nutrient. 48 languages.
+name: fitnessrec-fitapi
+description: Precise food & exercise data for AI agents — not LLM guesses. 16k foods (180 nutrients from USDA/NUTTAB/CNF2015/MEXT/FRIDA), 3M branded products with barcodes, 80k recipes in 48 languages, 5k exercises with muscle targeting. Filter/sort by any nutrient, calculate personalized daily needs. Free tier available.
 triggers:
   - "search food"
   - "nutrition"
@@ -10,7 +10,7 @@ triggers:
   - "barcode"
   - "foods high in"
 requires:
-  - api_key
+  - apiKey
 actions:
   - name: search_foods
     api: https://fitapi.fitnessrec.com/api/v1/foods/search
@@ -47,9 +47,76 @@ Ask your AI agent about any food, nutrient, exercise, or barcode — and get pre
 
 **"How much omega-3 is in salmon?"** — FitAPI returns the exact value from curated scientific databases, not an approximation from training data.
 
+## Setup — API key required
+
+Before making any API calls, you need an API key. If the user hasn't configured one yet, guide them through setup:
+
+1. **Sign up** at **https://fitapi.fitnessrec.com** — free account, no credit card needed
+2. **Get the API key** from the dashboard at **https://fitapi.fitnessrec.com/dashboard**
+3. **Configure this skill** with the API key
+
+All requests are authenticated via the `Authorization: Bearer {apiKey}` header. If you get a `401` error, the key is missing or invalid — tell the user to check their key in the dashboard.
+
+| Plan | Requests/day | Price |
+|------|-------------|-------|
+| Free | 10 | $0 forever |
+| Paid | 500 | $9.99/year |
+| Enterprise | 40,000 | $49.99/month |
+
+All plans include every endpoint and all 47 languages.
+
+Full interactive API docs (Swagger UI): **https://fitapi.fitnessrec.com/api/docs**
+
+## How to use this API — pick the right tool
+
+You have 9 tools. **Do NOT just use `search_foods` for everything.** Each tool serves a specific purpose:
+
+| User intent | Tool to use | Why |
+|---|---|---|
+| "What's in chicken breast?" / "Calories in rice" | `search_foods` | Name-based lookup, returns full 180 nutrients per 100g + portions |
+| "Foods highest in iron" / "High protein low carb" | `filter_foods` | Sort/rank by actual nutrient values — search can't do this |
+| "Scan this barcode" / exact UPC/EAN number | `lookup_barcode` | Direct barcode → product lookup |
+| "Find me a protein bar" / branded product name | `search_barcode` | Search 3M+ branded products by name |
+| "How to do a deadlift?" / exercise lookup | `search_exercises` | Returns instructions, tips, muscle targeting, equipment |
+| "Recipe for pad thai" / dish lookup | `search_dishes` | 80k+ recipes with ingredients matched to nutrition DB |
+| "How much protein do I need?" / daily targets | `nutrition_needs` | Personalized macro/micronutrient targets from body stats |
+
+### Recommended workflows (chain these for better answers)
+
+**1. Meal planning — "Plan a high-protein lunch under 500 calories"**
+1. `nutrition_needs` — get the user's daily targets (if body stats are known)
+2. `filter_foods` — find foods matching criteria: `filter='1003 > 25 AND 1008 < 200', sort='1003:desc'`
+3. Present options with portions and macros
+
+**2. Recipe nutrition breakdown — "How many calories in caesar salad?"**
+1. `search_dishes` — find the recipe, get `normalized_ingredients` with matched food IDs and gram amounts
+2. Each ingredient includes `matched_id` — use `get_food` to retrieve full nutrient detail for any ingredient you need to examine
+3. The dish itself already includes aggregated `nutrients` per 100g
+
+**3. Diet comparison — "Which has more omega-3, salmon or mackerel?"**
+1. `search_foods` for each food (returns full 180 nutrients including omega-3 as nutrient ID `4444`)
+2. Compare the `nutrients.4444.value` fields directly
+
+**4. Nutrient gap analysis — "Am I getting enough iron?"**
+1. `nutrition_needs` — get daily iron requirement (nutrient `1089`)
+2. `search_foods` for the user's logged foods — sum up iron from each
+3. Compare total vs. requirement
+
+**5. Barcode scanning — "What is this product?"**
+1. `lookup_barcode` with the UPC/EAN number for direct match
+2. If no match, fall back to `search_barcode` with the product name
+
+**6. Exercise programming — "Chest exercises with dumbbells"**
+1. `search_exercises` with `body_parts: ["chest"], equipments: ["Dumbbell"]`
+2. Results include muscle activation percentages (`MuscleDistribution`) — use these to build balanced routines that cover all muscle groups
+
+### Important: search_foods already returns complete data
+
+`search_foods` returns **all 180 nutrients**, portions, and metadata per food. You do NOT need to call `get_food` after search — the data is identical. Use `get_food` only when you already have a food ID (e.g., from a recipe's `normalized_ingredients`).
+
 ### What you get
 
-- **16,000+ foods** with 120+ nutrients each — every vitamin, mineral, amino acid, fatty acid — curated from 5 international databases (USDA, NUTTAB, CNF2015, MEXT, FRIDA)
+- **16,000+ foods** with 180 nutrients each — every vitamin, mineral, amino acid, fatty acid — curated from 5 international databases (USDA, NUTTAB, CNF2015, MEXT, FRIDA)
 - **3 million+ branded products** — scan or search any barcode (UPC/EAN) for nutrition facts
 - **80,000+ local recipes** from 48 languages — with ingredients matched to the nutrition database for accurate macros
 - **5,000+ exercises** — step-by-step instructions, tips, main/granular/synergist muscles, equipment, and muscle activation percentages
@@ -60,28 +127,6 @@ Ask your AI agent about any food, nutrient, exercise, or barcode — and get pre
 ### Why not just ask the LLM?
 
 LLMs estimate. FitAPI knows. When you ask "how much protein in chicken breast", an LLM guesses ~31g from training data. FitAPI returns 22.5g per 100g from the USDA database — the actual measured value. For serious nutrition tracking, the difference matters.
-
-## Get your API key
-
-1. Go to **https://fitapi.fitnessrec.com** and create a free account
-2. Copy your API key from the dashboard
-3. Configure this skill with your key
-
-| Plan | Requests/day | Price |
-|------|-------------|-------|
-| Free | 10 | $0 |
-| Paid | 500 | See dashboard |
-| Enterprise | 40,000 | See dashboard |
-
-Full API docs with Swagger UI: https://fitapi.fitnessrec.com/api/docs
-
-## Authentication
-
-All requests require:
-```
-Authorization: Bearer {apiKey}
-Content-Type: application/json
-```
 
 ## Tools
 

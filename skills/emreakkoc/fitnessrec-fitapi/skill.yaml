@@ -1,8 +1,8 @@
-name: fitapi-nutrition
-version: 1.0.0
-description: >
+name: fitnessrec-fitapi
+version: 1.1.5
+description: >-
   Precise food & exercise data for AI agents — not LLM guesses.
-  16k foods (120+ nutrients from USDA/NUTTAB/CNF2015/MEXT/FRIDA),
+  16k foods (180 nutrients from USDA/NUTTAB/CNF2015/MEXT/FRIDA),
   3M branded products with barcodes, 80k recipes in 48 languages,
   5k exercises with muscle targeting. Filter/sort by any nutrient,
   calculate personalized daily needs. Free tier available.

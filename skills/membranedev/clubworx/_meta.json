@@ -3,9 +3,15 @@
   "slug": "clubworx",
   "displayName": "Clubworx",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773637353119,
-    "commit": "https://github.com/openclaw/skills/commit/19fe87f3dc3a5d97595e93a34d212b8ea59bf827"
+    "version": "1.0.2",
+    "publishedAt": 1775164265224,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773637353119,
+      "commit": "https://github.com/openclaw/skills/commit/19fe87f3dc3a5d97595e93a34d212b8ea59bf827"
+    }
+  ]
 }

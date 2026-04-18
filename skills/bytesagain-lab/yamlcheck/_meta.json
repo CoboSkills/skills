@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain-lab",
+  "slug": "yamlcheck",
+  "displayName": "Yamlcheck",
+  "latest": {
+    "version": "3.0.2",
+    "publishedAt": 1773918128627,
+    "commit": null
+  },
+  "history": []
+}

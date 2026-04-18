@@ -3,9 +3,15 @@
   "slug": "robocorp",
   "displayName": "Robocorp",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1773788556273,
-    "commit": "https://github.com/openclaw/skills/commit/b3be06529cc43fdbdb752bebddbca14d83c55072"
+    "version": "1.0.2",
+    "publishedAt": 1775164520044,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1773788556273,
+      "commit": "https://github.com/openclaw/skills/commit/b3be06529cc43fdbdb752bebddbca14d83c55072"
+    }
+  ]
 }

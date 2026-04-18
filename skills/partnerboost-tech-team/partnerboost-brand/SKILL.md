@@ -1,7 +1,7 @@
 ---
 name: partnerboost-api
 description: Call PartnerBoost merchant APIs to manage transactions, performance, billing, partners and more
-version: 1.1.0
+version: 1.1.1
 tags: [partnerboost, api, merchant]
 requires:
   env:
@@ -49,37 +49,58 @@ Paged responses include: `total_size`, `total_page`, `page_size`, `page_num`, `c
 
 ## 1. Transaction (订单)
 
-### 1.1 List Transactions
+### 1.1 List Transactions (`list4`)
 
-Query orders with filters. Supports pagination and sorting.
+Query orders with filters and pagination. **`list3` is deprecated**; use **`list4`** (backend: `get_list4`).
+
+Simple range query (GET):
 
 ```bash
 curl -s -H "X-Api-Key: $PARTNERBOOST_API_KEY" \
-  "https://app.partnerboost.com/a/transaction/list3?page_num=1&page_size=20&start_date=1735689600&end_date=1741737600"
+  "https://app.partnerboost.com/a/transaction/list4?page_num=1&page_size=20&trans_time_start=1735689600&trans_time_end=1741737600"
 ```
 
-Parameters (all optional):
-- `page_num` (int): page number, default 1
-- `page_size` (int): items per page, default 20
-- `start_date` (int): start time, Unix timestamp (10-digit)
-- `end_date` (int): end time, Unix timestamp (10-digit)
-- `medium_id` (string): filter by media ID
-- `status` (string): order status
-- `search_word` (string): search keyword
-- `sort_type` (string): sort field
-- `sort_order` (string): asc or desc
+Filters use **`processTransListParams`** on the server. Common fields (all optional unless noted):
+
+- `page_num` (int): page number, default 1  
+- `page_size` (int): page size, default 20 (clamped by server)  
+- `trans_time_start`, `trans_time_end` (int): Unix timestamp (seconds), transaction time range  
+- `trans_keywords` (string): keyword search (order id, tags, SKU, promo, etc., depending on merchant settings)  
+- `trans_tag` (string): tag substring match  
+- `trans_status` (array): e.g. `new`, `void`, `paid`, `effective`, `mixed` (SKU-level rollups)  
+- `trans_sku_status` (array): SKU-level `paid`, `new`, `void`, `effective`  
+- `trans_type` (array): transaction types  
+- `trans_client_device` (array): e.g. `mobile`, `pc`, `admin`, `-`  
+- `trans_norm_id` (array): norm IDs  
+- `partner_channel_id` (array): **channel / medium** filter — numeric site IDs or `PB…` medium codes (server may normalize IDs)  
+- `partner_id` (array): partner user IDs  
+- `partner_group` (array): partner group IDs  
+- `partner_channel_type` (array): `WEBSITE`, `SOCIAL_NETWORK`, `MOBILE`  
+- `partner_location` (array): country codes  
+- `partner_type` (array): `influencer`, `publisher`  
+- `payment_id`, `acc_upload_id`, `performance_bonus_type_id` (int): other filters  
+- Plus Amazon / affiliate-related filters: `amazon_shop_country`, `amazon_product_brand`, `affiliate_type` as implemented server-side  
+
+Array parameters are easiest via **POST + JSON** (see **API Pattern**). Example:
+
+```bash
+curl -s -X POST -H "X-Api-Key: $PARTNERBOOST_API_KEY" -H "Content-Type: application/json" \
+  -d '{"page_num":1,"page_size":20,"trans_time_start":1735689600,"trans_time_end":1741737600,"trans_status":["paid"],"partner_channel_id":["PB00001234"]}' \
+  "https://app.partnerboost.com/a/transaction/list4"
+```
+
+Default sort is by transaction time / id descending (server-defined).
 
 ### 1.2 Transaction Statistics
 
-Get order statistics summary.
+Get order statistics summary. Uses the **same filter set as 1.1** (`processTransListParams`).
 
 ```bash
 curl -s -H "X-Api-Key: $PARTNERBOOST_API_KEY" \
-  "https://app.partnerboost.com/a/transaction/list_stats?start_date=2026-01-01&end_date=2026-03-12"
+  "https://app.partnerboost.com/a/transaction/list_stats?trans_time_start=1735689600&trans_time_end=1741737600"
 ```
 
-Parameters (all optional):
-- `start_date`, `end_date`, `medium_id`, `status` — same as above
+Parameters: same filters as **1.1** (optional). `page_num` / `page_size` are initialized on the server but do not change the aggregated stats shape.
 
 ### 1.3 Recent Transactions
 

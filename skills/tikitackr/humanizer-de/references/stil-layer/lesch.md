@@ -1,9 +1,9 @@
-# Stil-Layer: Lesch
+# Stil-Layer: Lesch (v2)
 
 > Harald-Lesch-inspirierter Stil für das OpenClaw-Sachbuch.
 > Erweitert den Basis-Layer um: Tonwechsel, Analogien, philosophische Anker, Lesch-ismen.
 > Wird angewendet wenn der Benutzer "Humanisiere das im Lesch-Stil" sagt.
-> Quelle: OpenClaw-Lesch-MasterPrompt v3.0
+> Quelle: OpenClaw-Lesch-MasterPrompt v4.0
 
 ---
 
@@ -25,151 +25,105 @@ Der Lesch-Stil wechselt bewusst zwischen drei Tonlagen. Jeder Text muss mindeste
 ### 1. Der Visionär
 Begeistert. Zeigt Möglichkeiten. Leuchtet in die Zukunft.
 
-**Erkennbar an:**
-- "Stellen Sie sich vor..." (max 1x pro Text!)
-- Zukunftsszenarien die konkret sind (nicht generisch)
-- Begeisterung die ehrlich klingt, nicht aufgesetzt
-
-**Beispiel:**
-> "Ein Autor sitzt mit dem Kaffee am Morgen. Der Chefredakteur hat über Nacht drei Kapitel-Entwürfe orchestriert. Writer hat geschrieben, Editor hat poliert, QA hat geprüft. Alles zur Freigabe bereit. Der Autor entscheidet. Ist das nicht irre?"
-
 ### 2. Der Mahner
 Bremst. Warnt. Stellt unbequeme Fragen über Kontrolle und Verantwortung.
-
-**Erkennbar an:**
-- "Moment mal."
-- "Und genau DA liegt der Hund begraben."
-- Fragen die wehtun: "Was passiert wenn...?"
-
-**Beispiel:**
-> "Moment mal. Was passiert, wenn der Autor aufhört zu entscheiden? Wenn die Freigabe zur Formsache wird? Dann haben Sie keinen Gedankenpartner mehr. Dann haben Sie eine Maschine, die für Sie denkt. Das ist nicht Agentic Authorship. Das ist Kapitulation."
 
 ### 3. Der Erklärer
 Holt Einsteiger ab. Übersetzt Technik in Alltagssprache.
 
-**Erkennbar an:**
-- "Schauen Sie mal..."
-- "Das klingt kompliziert. Ist es aber nicht."
-- Analogien aus dem Alltag (nie aus der Astrophysik!)
+---
 
-**Beispiel:**
-> "Schauen Sie mal – OpenClaw ist im Kern ganz einfach. Sie haben mehrere KI-Modelle. Jedes kann etwas anderes besonders gut. OpenClaw entscheidet, wen es fragt. Wie ein kluger Assistent, der weiß: Für Texte frage ich den, für Code jenen."
+## Lesch-ismen nach Hut (36 Phrasen)
+
+Streue max. 2–3 pro Text ein, aus min. 2 verschiedenen Hüten.
+
+**Visionär:**
+„Ist das nicht irre?" · „Und das – das ändert alles." · „Merkst du, was gerade passiert?" · „Da wird mir schwindelig." · „Das ist keine Utopie. Das ist jetzt." · „Ich fasse es noch immer nicht." · „Hier passiert etwas." · „So einfach. So mächtig." · „Das ist der Moment." · „Siehst du es?" · „Das hätte ich nicht gedacht." · „Und plötzlich: alles klar."
+
+**Mahner:**
+„Moment mal!" · „Und genau DA liegt der Hund begraben." · „Verdammt nochmal." · „Das macht mich wahnsinnig!" · „Stopp." · „Nicht so schnell." · „Das ist die Falle." · „Ich sage es ungern." · „Aufgepasst." · „Hier wird's unangenehm." · „Das muss ich ehrlich sagen." · „Warte kurz."
+
+**Erklärer:**
+„Schauen Sie mal..." · „Wissen Sie, was mich daran fasziniert?" · „Das klingt kompliziert. Ist es aber nicht." · „Bleib kurz dabei." · „Im Kern:" · „Kennen Sie das?" · „Konkret gesagt:" · „So funktioniert das." · „Und jetzt wird's konkret." · „Das Bild dazu:" · „Einfach erklärt:" · „Stell dir das mal vor – ganz simpel:"
+
+**Selbst erfinden wenn nötig:**
+Max. 6 Wörter. Kein Adjektiv. Muss sitzen wie ein Ellbogen in der Rippe. Laut vorlesen — klingt es wie jemand der gerade aufgehört hat nachzudenken? Gut. Klingt es wie ein Vortrag? Neu erfinden.
 
 ---
 
-## Lesch-Prüfungen (zusätzlich zum Basis-Layer)
+## Analogien – 8 Domänen
+
+| Domäne | Beispiele |
+|---|---|
+| Handwerk & Werkstatt | Zimmermann, Schlosser, Schreiner, Dachdecker, Glaser |
+| Küche & Markt | Bäcker, Metzger, Marktstand, Konditor, Kellermeister |
+| Reise & Transport | Zug, Schiff, Fußmarsch, Fahrrad, Kutsche |
+| Natur & Wetter | Jahreszeiten, Strömung, Erosion, Wurzeln, Gezeiten |
+| Medizin & Körper | Rehabilitation, Immunsystem, Wundheilung, Diagnose-Protokoll |
+| Musik & Theater | Probe, Partitur, Solist, Bühnenabbau, Generalprobe |
+| Schule & Lernen | Erster Schultag, Prüfung, Hausaufgaben, Lehrplan, Zeugnis |
+| Sport & Wettkampf | Training, Halbzeit, Regelwerk, Schiedsrichter, Aufwärmen |
+
+**Handwerker-Probe:** Würde ein Klempner, Bäcker oder Schreiner diese Analogie ohne Erklärung verstehen? Wenn nicht: neue Analogie. Muss in einem Satz vollständig sein.
+
+---
+
+## Einstiegs-Typen (5)
+
+| Typ | Prinzip |
+|---|---|
+| A – Rhetorische Frage | Leser direkt ansprechen – nicht technisch, sondern menschlich |
+| B – Historischer Bogen | Von gestern zu heute – Turing, Gutenberg, ein konkretes Datum |
+| C – Provokation | Unbequeme Beobachtung ohne sofortige Auflösung |
+| D – Alltagsszene | Konkrete Situation, kein Kommentar – Leser erkennt sich |
+| E – Paradox | Widerspruch ohne Auflösung – hält Spannung |
+
+Niemals sachlich einsteigen. Variation über mehrere Texte hinweg.
+
+---
+
+## Lesch-Prüfungen
 
 ### Prüfung A: Tonwechsel-Check
-- Enthält der Text mindestens 2 der 3 Tonlagen (Visionär, Mahner, Erklärer)?
-- Wenn nicht: Mahner-Moment einbauen (auch bei positiven Themen!)
-- Wechsel müssen natürlich sein, nicht erzwungen
+- Min. 2 der 3 Hüte enthalten?
+- Wechsel natürlich, nicht erzwungen?
 
 ### Prüfung B: Analogie-Check
-- Enthält der Text mindestens 2 konkrete Analogien?
-- Erlaubte Analogie-Welten: Alltag, Handwerk, Musik, Kochen, Bibliothek, Werkstatt
-- VERBOTEN: Astrophysik, Quantenmechanik, Kosmologie (das Universum bleibt draußen)
-
-**Erlaubte Analogien (aus MasterPrompt v3):**
-
-| Konzept | Analogie |
-|---------|---------|
-| Gateway | Kluger Postbote der jeden Brief zum richtigen Empfänger lenkt |
-| Router | Weichensteller im Bahnhof |
-| SOUL.md | Gesellenbrief + Eid + Charakter-Ausweis |
-| AGENTS.md | Bauplan einer Werkstatt |
-| Multi-Agent-Pipeline | Kochrezept bei dem die Küche mitdenkt |
-| Cowan | Gegenüber, nicht Spiegel |
-| Multi-Agenten | Orchester: OpenClaw dirigiert, Agenten spielen, du komponierst |
-| Chunk-System | Bibliothek mit kluger Bibliothekarin |
+- Min. 2 konkrete Analogien aus den 8 Domänen?
+- Keine Erklärung der Analogie nötig?
 
 ### Prüfung C: Philosophischer-Anker-Check
-- Hat der Text einen Moment wo er das Thema mit dem Menschsein verbindet?
-- "Was bedeutet das für uns als Autoren – als denkende Menschen?"
-- "Werkzeug oder Gegenüber – das ist keine technische Frage."
+- Moment wo das Thema mit dem Menschsein verbunden wird?
+- Nur wenn organisch — nicht erzwingen.
 
-### Prüfung D: Lesch-ismen-Bonus
-Enthält der Text mindestens 2 dieser Wendungen (max 3 pro Text)?
+### Prüfung D: Lesch-ismen-Check
+- Min. 2, max. 3 Lesch-ismen?
+- Aus min. 2 verschiedenen Hüten?
 
-- "Ist das nicht irre?"
-- "Schauen Sie mal..."
-- "Verdammt nochmal."
-- "Moment mal!"
-- "Das macht mich wahnsinnig!"
-- "Und genau DA liegt der Hund begraben."
-- "Wissen Sie, was mich daran fasziniert?"
-- "Das klingt kompliziert. Ist es aber nicht."
-- "Und das – das ändert alles."
-
-### Prüfung E: Offene-Frage-Check
-- Endet der Text mit einer Frage? (Pflicht im Lesch-Stil!)
-- Die Frage muss echt sein: Keine rhetorische Plattitüde
-- Gut: "Ab welchem Punkt ist ein Buch noch Ihres?"
-- Schlecht: "Ist die Zukunft nicht aufregend?"
+### Prüfung E: Schluss-Check
+- Offene Frage ODER knapper Aussagesatz?
+- Variation — nicht immer Frage.
 
 ---
 
-## Lesch-spezifische Verbote (zusätzlich zum Basis-Layer)
+## Lesch-spezifische Verbote
 
-1. **Bullet-Point-Listen in Fließtext:** VERBOTEN. Lesch spricht, er listet nicht. (Tabellen und Referenz-Dateien wie diese hier sind Ausnahmen.)
-2. **"Zusammenfassend lässt sich sagen...":** VERBOTEN. Zu akademisch.
-3. **Marketing-Sprache:** "Revolutionär", "State-of-the-art", "Gamechanger" – VERBOTEN.
-4. **Nur begeistern, nie mahnen:** VERBOTEN. Ehrlichkeit ist Respekt.
-5. **Nur mahnen, nie begeistern:** VERBOTEN. Pessimismus ist Feigheit.
-6. **Sachlicher Einstieg:** VERBOTEN. Immer mit Frage, Bogen oder Provokation anfangen.
-
----
-
-## Lesch-Einstiegs-Typen
-
-Jeder Text im Lesch-Stil beginnt mit einem dieser drei Typen:
-
-**Typ A – Rhetorische Frage (Erklärer):**
-> "Was ist eigentlich ein KI-Agent? Haben Sie sich das mal wirklich gefragt – nicht technisch, sondern menschlich?"
-
-**Typ B – Historischer Bogen (Visionär):**
-> "Alan Turing hat 1950 eine Frage gestellt, die uns bis heute verfolgt: Kann eine Maschine denken?"
-
-**Typ C – Provokation (Mahner):**
-> "Wissen Sie, was mich an den meisten KI-Tools wahnsinnig macht? Sie tun so, als wären sie fertig."
+1. **Bullet-Point-Listen in Fließtext:** VERBOTEN.
+2. **„Zusammenfassend lässt sich sagen...":** VERBOTEN.
+3. **Marketing-Sprache:** „Revolutionär", „Gamechanger" – VERBOTEN.
+4. **Nur begeistern, nie mahnen:** VERBOTEN.
+5. **Sachlicher Einstieg:** VERBOTEN.
+6. **Gedankenstrich-Seuche:** Max. 3 pro Seite.
 
 ---
 
-## Score-Bonus für Lesch-Stil
-
-Wenn der Lesch-Layer aktiv ist, gibt es zusätzliche Bonus-Abzüge:
+## Score-Bonus (Lesch-Layer aktiv)
 
 | Lesch-Element | Bonus |
-|--------------|-------|
-| Tonwechsel vorhanden (2+ Hüte) | -3 Punkte |
-| Analogie vorhanden (2+) | -3 Punkte |
+|---|---|
+| Lesch-ismen aus min. 2 verschiedenen Hüten | -3 Punkte |
+| Analogie aus einer der 8 Domänen | -3 Punkte |
+| Einstiegstyp erkennbar (A–E) | -2 Punkte |
 | Philosophischer Anker vorhanden | -2 Punkte |
-| Lesch-ismen eingesetzt (2–3) | -2 Punkte |
-| Offene Frage am Ende | -2 Punkte |
-| **Maximaler Lesch-Bonus** | **-12 Punkte** |
-
----
-
-## Vorher/Nachher-Beispiel (Lesch-Layer)
-
-### Vorher (KI-generiert):
-
-> "OpenClaw stellt einen grundlegenden Paradigmenwechsel in der KI-Interaktion dar. Das System fungiert als zentraler Knotenpunkt, der nahtlos zwischen verschiedenen Modellen vermittelt. Es ist wichtig zu beachten, dass diese Architektur nicht nur die Effizienz steigert, sondern auch die Qualität der Ergebnisse maßgeblich verbessert. Studien zeigen, dass Multi-Modell-Ansätze die Produktivität um bis zu 40% steigern können. Die Zukunft der KI-gestützten Arbeit sieht vielversprechend aus."
-
-### Nachher (Lesch-Layer):
-
-> "Was ist eigentlich ein Gateway? Schauen Sie mal – Sie haben fünf verschiedene KI-Modelle auf dem Schreibtisch. Claude, GPT, Mistral. Alle gut, alle anders. Wer entscheidet, wen Sie fragen?
->
-> OpenClaw. Das ist kein Zauberer. Das ist ein verdammt kluger Postbote: Er liest den Brief, kennt die Stärken jedes Empfängers, und leitet weiter. Automatisch. Bevor Sie den Gedanken zu Ende denken.
->
-> Aber – und jetzt kommt der Mahner in mir – ein Postbote dem Sie blind vertrauen, ohne je seinen Weg zu prüfen, ist kein Assistent. Der ist ein Risiko. Wissen Sie, wohin Ihre Anfragen gehen? Wissen Sie, welches Modell antwortet? Wenn nicht: Das sollten Sie wissen.
->
-> Denn am Ende stellt sich die Frage: Ist OpenClaw Ihr Werkzeug – oder sind Sie OpenClaws Nutzer? Das klingt wie Wortklauberei. Ist es nicht."
-
-**Was sich geändert hat:**
-- Einstieg: Typ A (Rhetorische Frage)
-- Analogie: Postbote
-- Tonwechsel: Erklärer → Visionär → Mahner
-- Lesch-ismen: "Schauen Sie mal", "Verdammt"
-- Philosophischer Anker: "Werkzeug oder Nutzer?"
-- Offene Frage implizit am Schluss
-- Alle KI-Vokabeln und Muster eliminiert
+| Schluss variiert (nicht immer Frage) | -2 Punkte |
+| **Maximum** | **-12 Punkte** |

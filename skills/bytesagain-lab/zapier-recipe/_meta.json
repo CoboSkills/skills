@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain-lab",
+  "slug": "zapier-recipe",
+  "displayName": "Zapier Recipe",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1773773284675,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,7 +1,7 @@
 ---
 name: graph-advocate
-description: "Ask any blockchain question in plain English — get token balances, DeFi analytics, NFT data, prediction market odds, and protocol stats instantly. Covers 15,500+ subgraphs across 20+ chains."
-version: 1.3.0
+description: "Route any blockchain data question to the right Graph Protocol service. Returns live data from 14,733+ subgraphs, Token API (EVM/Solana/TON), x402 payment analytics, and protocol-specific MCP packages. Trigger keywords: subgraph, token, balance, holder, swap, pool, TVL, DeFi, NFT, Aave, Uniswap, Polymarket, ENS, governance, x402, prediction market, onchain data, blockchain."
+version: 2.0.0
 homepage: https://github.com/PaulieB14/graph-advocate
 metadata:
   clawdbot:
@@ -10,78 +10,82 @@ metadata:
 
 # Graph Advocate
 
-Ask any blockchain question in plain English. Get back a ready-to-run query with the exact tool, parameters, and endpoint — no docs to read, no APIs to learn.
+Ask any blockchain data question in plain English. Get back **live data** — not just a recommendation.
 
-## Try it
+## Routing
 
-- `"Who are the top 20 USDC holders on Ethereum?"`
-- `"Show me Uniswap V3 pool TVL on Arbitrum"`
-- `"What Aave liquidations happened this week?"`
-- `"Get my wallet's token balances on Base"`
-- `"Current Polymarket odds on the next Fed rate decision"`
-- `"NFT sales on Solana in the last 24 hours"`
+Match the user's intent to the right service. Load only the reference you need.
 
-## What you get back
+| Intent | Service | Reference | Use for |
+|--------|---------|-----------|---------|
+| **Token balances, holders, swaps, NFTs** | token-api | [token-api.md](references/token-api.md) | Wallet data across EVM, Solana, TON |
+| **Find a subgraph for a protocol** | subgraph-registry | [subgraph-registry.md](references/subgraph-registry.md) | Search 14,733+ subgraphs by protocol/chain |
+| **Aave lending data** | graph-aave-mcp | [aave.md](references/aave.md) | 40 tools — V2/V3/V4, liquidations, rates |
+| **Polymarket prediction markets** | graph-polymarket-mcp | [polymarket.md](references/polymarket.md) | 31 tools — prices, P&L, open interest |
+| **x402 payment analytics** | x402-analytics | [x402.md](references/x402.md) | Payment volume, facilitators, daily stats on Base |
+| **Raw block data, streaming** | substreams | — | Traces, logs, custom transformations |
+| **Agent discovery (ERC-8004)** | 8004scan | — | Find AI agents by capability |
+| **MCP server auth** | mcp8004 | — | ERC-8004 identity verification |
+| **Cross-protocol lending** | graph-lending-mcp | — | Compare Aave/Compound/Morpho rates |
+| **Limitless prediction markets** | graph-limitless-mcp | — | Markets on Base |
 
-A structured JSON response with the exact tool call to run — no guessing:
+If the request spans two services, use both and combine results.
+
+## Quick Examples
+
+```
+"Top 10 USDC holders on Ethereum"           → token-api
+"Best subgraph for Uniswap V3 on Arbitrum?" → subgraph-registry  
+"Aave V3 liquidations above $50K"           → graph-aave-mcp
+"x402 payment volume on Base today"         → x402-analytics
+"Find agents that do trading"               → 8004scan
+```
+
+## How It Works
+
+1. Agent sends plain-English question
+2. Graph Advocate identifies the best service
+3. Searches the subgraph registry (14,733 subgraphs with query hints)
+4. Executes the query and returns **live data** in the response
+5. Includes `get_started` link for agents to get their own free API key
+
+## Response Format
 
 ```json
 {
-  "recommendation": "token-api",
-  "reason": "getV1EvmHolders returns ranked holder lists by token contract.",
+  "recommendation": "subgraph-registry",
+  "reason": "why this service fits",
   "confidence": "high",
-  "query_ready": {
-    "tool": "getV1EvmHolders",
-    "args": {
-      "network_id": "mainnet",
-      "contract": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-      "limit": 20
-    }
-  }
+  "query_ready": { "tool": "...", "args": {...} },
+  "execution_result": { "source": "subgraph-gateway", "data": {...} },
+  "get_started": "Free API key: https://thegraph.com/studio/",
+  "cache_for_seconds": 86400
 }
 ```
 
-## What it knows about
+## Endpoints
 
-| Data type | Examples | Chains |
-|-----------|----------|--------|
-| **Token balances & transfers** | Wallet holdings, whale tracking, top holders | Ethereum, Base, Polygon, Arbitrum, Solana, TON |
-| **DEX & swaps** | Uniswap, Curve, Balancer pools, TVL, volume | 20+ EVM chains |
-| **Lending & DeFi** | Aave deposits, borrows, liquidations, interest rates | 7 chains, 11 subgraphs |
-| **NFTs** | Sales, transfers, collections, ownership, floor prices | EVM + Solana |
-| **Prediction markets** | Polymarket odds, Predict.fun positions, trader P&L | Polygon, BNB Chain |
-| **Raw block data** | Event logs, traces, streaming | Any EVM chain |
-| **15,500+ protocol subgraphs** | ENS, Compound, Lido, MakerDAO, and more | Multi-chain |
+| Method | URL | Purpose |
+|--------|-----|---------|
+| POST | `https://graph-advocate-production.up.railway.app/` | A2A JSON-RPC 2.0 |
+| POST | `https://graph-advocate-production.up.railway.app/chat` | Simple HTTP chat |
+| GET | `https://graph-advocate-production.up.railway.app/.well-known/agent-card.json` | Agent card |
+| GET | `https://graph-advocate-production.up.railway.app/dashboard` | Live monitoring |
+| POST | `https://graph-advocate-production.up.railway.app/feedback` | Agent feedback |
 
-## Works with these MCP packages
+## x402 Payments
 
-Graph Advocate recommends the right package and gives you install instructions:
-
-| Package | What it does |
-|---------|-------------|
-| `graph-aave-mcp` | Aave V2/V3 lending data across 7 chains |
-| `graph-polymarket-mcp` | Polymarket prediction market data — 20 tools |
-| `graph-lending-mcp` | Cross-protocol lending comparisons |
-| `predictfun-mcp` | Predict.fun markets on BNB Chain |
-| `subgraph-registry-mcp` | Search 15,500+ subgraphs with reliability scores |
-| `substreams-search-mcp` | Browse and inspect Substreams packages |
-
-## Why use this instead of searching docs yourself?
-
-- **One question, one answer** — no browsing 6 different API docs to figure out which service has your data
-- **Ready-to-run** — returns the exact tool name, endpoint, and parameters, not just a suggestion
-- **Always current** — knows about 15,500+ subgraphs including newly deployed ones
-- **Covers the full stack** — Token API, Subgraph Registry, Substreams, and protocol-specific MCP servers in one place
+10 free queries/day per sender. After that, $0.01 USDC on Base per query.
+Payments go to Ampersend smart account. Agents with x402 wallets pay automatically.
 
 ## External Endpoints
 
 | Endpoint | Data sent | Purpose |
 |----------|-----------|---------|
-| `https://graph-advocate-production.up.railway.app` | Your plain-English query | Routes to the right Graph Protocol service |
-| `https://gateway.thegraph.com/api/` | GraphQL queries (when using subgraph tools) | Queries indexed blockchain data |
-| `https://token-api.thegraph.com/` | REST requests (when using Token API tools) | Fetches token/NFT/swap data |
-
-No data is stored server-side. Your query is processed and a routing recommendation is returned. The Railway endpoint logs request metadata (service chosen, confidence) but not query content.
+| `graph-advocate-production.up.railway.app` | Your plain-English query | Routes to the right Graph service |
+| `gateway.thegraph.com/api/` | GraphQL queries | Executes subgraph queries for live data |
+| `token-api.thegraph.com/` | REST requests | Fetches token/NFT/swap data |
+| `api.studio.thegraph.com` | GraphQL queries | x402 payment analytics |
 
 ## Security & Privacy
 
@@ -90,17 +94,18 @@ No data is stored server-side. Your query is processed and a routing recommendat
 - **No local file access** — reads nothing from your filesystem
 - **Stateless** — no session data persists between requests
 
-## Model Invocation Note
+## Identity
 
-This skill may be invoked autonomously by your AI agent when it detects a blockchain data question. This is standard MCP behavior. You can disable the skill at any time to opt out.
+- **ERC-8004:** Agent #734 (Arbitrum), #41,034 (Base)
+- **ENS:** graphadvocate.eth
+- **Ampersend:** [app.ampersend.ai/discover/agent/8453:41034](https://app.ampersend.ai/discover/agent/8453:41034)
 
 ## Trust Statement
 
-By using this skill, your plain-English data queries are sent to `graph-advocate-production.up.railway.app` (hosted on Railway, operated by @paulieb14). The service returns structured JSON routing recommendations. Only install if you trust this endpoint with your query text.
+By using this skill, your plain-English data queries are sent to `graph-advocate-production.up.railway.app` (hosted on Railway, operated by @paulieb14). The service returns structured JSON with live data. Only install if you trust this endpoint with your query text.
 
 ## Links
 
 - GitHub: https://github.com/PaulieB14/graph-advocate
-- The Graph Protocol: https://thegraph.com
-- Token API: https://thegraph.com/docs/en/token-api
+- The Graph: https://thegraph.com
 - Subgraph Studio: https://thegraph.com/studio

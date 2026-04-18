@@ -1,0 +1,11 @@
+{
+  "owner": "bytesagain-lab",
+  "slug": "ring-security",
+  "displayName": "Ring Security",
+  "latest": {
+    "version": "3.0.1",
+    "publishedAt": 1774316650979,
+    "commit": null
+  },
+  "history": []
+}

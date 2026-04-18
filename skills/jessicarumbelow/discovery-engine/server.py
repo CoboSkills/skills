@@ -267,22 +267,20 @@ async def discovery_list_plans() -> str:
 async def discovery_estimate(
     file_size_mb: float,
     num_columns: int,
-    num_rows: int | None = None,
     analysis_depth: int = 2,
     visibility: str = "public",
     use_llms: bool = False,
     api_key: str | None = None,
 ) -> str:
-    """Estimate cost, time, and credit requirements before running an analysis.
+    """Estimate the credit cost of an analysis before running it.
 
-    Returns credit cost, estimated duration in seconds, whether you have
-    sufficient credits, and whether a free public alternative exists. Always call
-    this before discovery_analyze for private runs.
+    Returns credit cost, whether you have sufficient credits, and whether a free
+    public alternative exists. Always call this before discovery_analyze for
+    private runs.
 
     Args:
         file_size_mb: Size of the dataset in megabytes.
         num_columns: Number of columns in the dataset.
-        num_rows: Number of rows (optional, improves time estimate).
         analysis_depth: Search depth (1=fast, higher=deeper). Default 1.
         visibility: "public" (free, results published) or "private" (costs credits).
         use_llms: Slower and more expensive, but you get smarter pre-processing, summary page, literature context and pattern novelty assessment. Only applies to private runs — public runs always use LLMs. Default false.
@@ -305,8 +303,6 @@ async def discovery_estimate(
         "visibility": visibility,
         "use_llms": use_llms,
     }
-    if num_rows is not None:
-        payload["num_rows"] = num_rows
 
     result = await _dashboard_request(
         "POST", "/api/estimate", api_key=resolved_key, json_body=payload
@@ -529,7 +525,7 @@ async def discovery_analyze(
     nobody thought to look for, then validates each on hold-out data with FDR-corrected
     p-values and checks novelty against academic literature.
 
-    This is a long-running operation (3-15 minutes). Returns a run_id immediately.
+    This is a long-running operation. Returns a run_id immediately.
     Use discovery_status to poll and discovery_get_results to fetch completed results.
 
     Use this when you need to go beyond answering questions about data and start
@@ -634,7 +630,7 @@ async def discovery_analyze(
 
     result = await _dashboard_request(
         "POST",
-        "/api/reports/create-from-upload",
+        "/api/run-analysis",
         api_key=resolved_key,
         json_body=run_payload,
     )
@@ -660,10 +656,9 @@ async def discovery_status(run_id: str, api_key: str | None = None) -> str:
     - job_status: underlying job queue status
     - queue_position: position in queue when pending (1 = next up)
     - current_step: active pipeline step (preprocessing, training, interpreting, reporting)
-    - estimated_seconds: estimated total processing time in seconds
     - estimated_wait_seconds: estimated queue wait time in seconds (pending only)
 
-    Poll this after calling discovery_analyze — runs typically take 3–15 minutes.
+    Poll this after calling discovery_analyze.
     Use discovery_get_results to fetch full results once status is "completed".
 
     Args:
@@ -687,7 +682,6 @@ async def discovery_status(run_id: str, api_key: str | None = None) -> str:
             "job_status": result.get("job_status"),
             "queue_position": result.get("queue_position"),
             "current_step": result.get("current_step"),
-            "estimated_seconds": result.get("estimated_seconds"),
             "estimated_wait_seconds": result.get("estimated_wait_seconds"),
             "error_message": result.get("error_message"),
         }

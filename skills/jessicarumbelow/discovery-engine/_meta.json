@@ -3,11 +3,16 @@
   "slug": "discovery-engine",
   "displayName": "Discovery",
   "latest": {
-    "version": "0.2.100",
-    "publishedAt": 1775860852117,
-    "commit": "https://github.com/openclaw/skills/commit/ef5cecce9996d096749066d696d50059bfc62cbd"
+    "version": "0.2.104",
+    "publishedAt": 1776125771155,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.2.100",
+      "publishedAt": 1775860852117,
+      "commit": "https://github.com/openclaw/skills/commit/ef5cecce9996d096749066d696d50059bfc62cbd"
+    },
     {
       "version": "0.2.92",
       "publishedAt": 1775256518746,

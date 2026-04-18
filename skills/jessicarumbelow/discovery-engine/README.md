@@ -13,7 +13,7 @@ Made by [Leap Laboratories](https://www.leap-labs.com).
 
 Most data analysis starts with a question. Disco starts with the data.
 
-Without biases or assumptions, it searches for combinations of feature conditions that significantly shift your target column — things like "patients aged 45–65 with low HDL *and* high CRP have 3× the readmission rate" — without you needing to hypothesise that interaction first.
+Without biases or assumptions, it finds combinations of feature conditions that significantly shift your target column — things like "patients aged 45–65 with low HDL *and* high CRP have 3× the readmission rate" — without you needing to hypothesise that interaction first.
 
 Each pattern is:
 - **Validated on a hold-out set** — increases the chance of generalisation
@@ -69,7 +69,7 @@ for pattern in result.patterns:
 print(f"Explore: {result.report_url}")
 ```
 
-Runs take 3–15 minutes. `discover()` polls automatically and logs progress — queue position, estimated wait, current pipeline step, and ETA. For background runs, see [Running asynchronously](#running-asynchronously).
+Runs take a few minutes. `discover()` polls automatically and logs progress — queue position, estimated wait, current pipeline step, and ETA. For background runs, see [Running asynchronously](#running-asynchronously).
 
 → [Full Python SDK reference](docs/python-sdk.md) · [Example notebook](notebooks/quickstart.ipynb)
 
@@ -182,7 +182,7 @@ await engine.discover(
 
 ## Running asynchronously
 
-Runs take 3–15 minutes. For agent workflows or scripts that do other work in parallel:
+Runs take a few minutes. For agent workflows or scripts that do other work in parallel:
 
 ```python
 # Submit without waiting
@@ -218,7 +218,7 @@ Disco is available as an MCP server — no local install required.
 }
 ```
 
-Tools: `discovery_estimate`, `discovery_upload`, `discovery_analyze`, `discovery_status`, `discovery_get_results`, plus account management tools.
+Tools: `discovery_list_plans`, `discovery_estimate`, `discovery_upload`, `discovery_analyze`, `discovery_status`, `discovery_get_results`, `discovery_account`, `discovery_signup`, `discovery_signup_verify`, `discovery_login`, `discovery_login_verify`, `discovery_add_payment_method`, `discovery_subscribe`, `discovery_purchase_credits`.
 
 → [Full agent skill file](SKILL.md)
 
@@ -291,7 +291,7 @@ Disco isn't a replacement for EDA or AutoML — it finds the patterns those tool
 - [API keys](https://disco.leap-labs.com/developers)
 - [Python SDK on PyPI](https://pypi.org/project/discovery-engine-api/)
 - [Python SDK reference](docs/python-sdk.md)
-- [HTTP API reference](docs/http-api.md)
+- [OpenAPI spec](https://disco.leap-labs.com/.well-known/openapi.json)
 - [Agent / MCP docs](SKILL.md)
 - [LLM-friendly reference](llms.txt)
 - [OpenAPI spec](https://disco.leap-labs.com/.well-known/openapi.json)

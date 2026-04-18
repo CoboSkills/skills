@@ -1,14 +1,17 @@
 ---
 name: card-news
 description: Return material news about one major-US credit card from the last 3 months — direct card changes, issuer updates, and major coverage. Covers 11 major US issuers including co-branded hotel and airline cards.
+allowed-tools:
+  - WebSearch
+  - WebFetch
+  - AskUserQuestion
 metadata:
   openclaw:
     requires:
-      env:
+      optionalEnv:
         - BRAVE_API_KEY
-      bins:
+      optionalBins:
         - curl
-    primaryEnv: BRAVE_API_KEY
 ---
 
 # Card News
@@ -22,10 +25,10 @@ When the user asks about recent changes, news, or updates for a credit card. Tri
 ## Workflow
 
 1. **Resolve card identity** — normalize and match to one exact variant. If ambiguous, return a numbered choice list and stop.
-2. **Search** — run one Brave Search API call with freshness filter for recent results.
+2. **Search** — use `WebSearch` by default with a recent-results bias. If `BRAVE_API_KEY` is available and `curl` exists, you may use one Brave Search API call with freshness filter instead.
 3. **Fetch pages** — fetch the top news pages before deciding whether another search is needed.
 4. **Filter** — apply 3-month lookback window and inclusion rules.
-5. **Pace any follow-up searches** — if another Brave search is needed, wait briefly instead of bursting requests.
+5. **Pace any follow-up searches** — if another search is needed, wait briefly instead of bursting requests.
 6. **Compile** — assemble the news report.
 7. **Confidence** — flag uncertain or conflicting claims.
 
@@ -80,7 +83,9 @@ American Express, Bank of America, Barclays, Bilt, Capital One, Chase, Citi, Dis
 
 ## Step 2: Search
 
-Run one Brave Search API call with freshness filter:
+Use the platform's **WebSearch** and **WebFetch** tools by default. If `BRAVE_API_KEY` is available and the runtime also provides `curl`, you may use Brave Search API instead for faster and more repeatable search results.
+
+Optional Brave template:
 
 ```bash
 curl -sS "https://api.search.brave.com/res/v1/web/search?q=CARD+NAME+news+CURRENT_YEAR&count=20&freshness=p3m" \
@@ -91,12 +96,13 @@ The `freshness=p3m` parameter limits results to the past 3 months, matching the 
 
 ### Search Budget Rule
 
-Brave may rate-limit after only a few closely spaced requests. Treat search as scarce and paced.
+Treat search as scarce and paced. Built-in web search is the default path; if Brave mode is used, it may rate-limit after only a few closely spaced requests.
 
 - Start with one search.
 - Fetch the top result pages before deciding whether another search is needed.
 - If an extra search is needed, wait about **2 to 5 seconds** first.
 - If Brave returns **429**, wait about **8 to 15 seconds** and retry once.
+- If Brave is unavailable, continue with `WebSearch` + `WebFetch`.
 - If it still fails, continue with the best evidence already gathered and note the limitation in `## 📋 Confidence Notes`.
 
 ### Source Policy
@@ -113,11 +119,19 @@ Brave may rate-limit after only a few closely spaced requests. Treat search as s
 
 ## Step 4: Fetch Pages
 
-Pick up to 2 top article URLs (prefer doctorofcredit.com and thepointsguy.com) from the search results. Fetch in parallel:
+Pick up to 2 top article URLs (prefer doctorofcredit.com and thepointsguy.com) from the search results. Fetch in parallel with `WebFetch`.
 
-```bash
-curl -sS -L "URL" | sed 's/<[^>]*>//g' | tr -s '\n' | head -200
-```
+Approved news pages are limited to issuer newsroom pages and the approved news/article domains named in this skill. Do not fetch or cite article pages from any other domain.
+
+### URL Safety Rules
+
+- Prefer `WebFetch` for page retrieval. Use `curl` only for the optional Brave Search API calls above, not for arbitrary result URLs.
+- Never execute a shell command that interpolates a raw URL taken directly from search results.
+- Only fetch URLs when all of the following are true:
+  1. scheme is `https`
+  2. hostname matches a supported issuer domain or an approved article domain from this skill
+  3. the URL is being passed to `WebFetch`, not inserted into a shell pipeline
+- If a result URL fails those checks, skip it and use the next valid result.
 
 News snippets often lack dates and detail — the full article has the complete story and timeline.
 

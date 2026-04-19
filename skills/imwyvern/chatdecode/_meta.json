@@ -1,13 +1,18 @@
 {
   "owner": "imwyvern",
   "slug": "chatdecode",
-  "displayName": "Chatdecode Skill",
+  "displayName": "Chatdecode Skill Pub",
   "latest": {
-    "version": "1.2.1",
-    "publishedAt": 1774893557606,
-    "commit": "https://github.com/openclaw/skills/commit/c11789f4ceba881015be14d99d17822b4d686e5b"
+    "version": "1.4.0",
+    "publishedAt": 1776100288916,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.1",
+      "publishedAt": 1774893557606,
+      "commit": "https://github.com/openclaw/skills/commit/c11789f4ceba881015be14d99d17822b4d686e5b"
+    },
     {
       "version": "1.1.1",
       "publishedAt": 1774319644575,

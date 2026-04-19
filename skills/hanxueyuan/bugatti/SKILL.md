@@ -1,38 +1,26 @@
 ---
-name: bugatti
-description: "Information assistant for Bugatti 布加迪. Search models, specs, pricing, reviews, and dealership info."
-metadata:
-  { "openclaw": { "emoji": "🚗", "version": "0.1.0", "author": "hanxueyuan", "tags": ["automotive","brand","cars"] } }
+version: 1.0.4
+summary: "布加迪 Bugatti - 法国超跑品牌"
+read_when:
+  - 用户询问 bugatti 相关信息
+  - 用户了解 bugatti 城市概况
+  - 用户需要 bugatti 旅游或生活指南
 ---
 
-# 🚗 Bugatti 布加迪 — Automotive Info Assistant
+# bugatti
 
-Your AI guide to Bugatti 布加迪. Get model info, specs, pricing, reviews, and more.
+## 城市概况
+布加迪（Bugatti）是法国顶级超级跑车品牌，1909 年由埃托雷·布加迪创立。现为大众集团旗下品牌，以 Chiron、Veyron 等限量超跑闻名，是全球最昂贵的汽车品牌之一。
 
-## About
+官方网站：https://www.bugatti.com
 
-- **Brand**: Bugatti 布加迪
-- **Category**: Hypercar manufacturer
-- **Official Website**: https://www.bugatti.com
+## 核心特色
+- 🏎️ **超级跑车**：Chiron、Veyron\n- 💰 **价格**：百万美元级限量超跑\n- 🏆 **历史**：1909 年创立的百年超跑品牌\n- 🔧 **技术**：W16 发动机、极速纪录
 
-## What This Skill Does
+## 使用场景
+- 旅游攻略和行程规划
+- 了解当地文化和生活方式
+- 商务出差和会议信息
 
-1. **Model Lineup** — Current models, specs, pricing, and configurations
-2. **Reviews & Comparisons** — Expert and user reviews, competitor comparisons
-3. **Pricing & Deals** — MSRP, dealer pricing, incentives, and financing options
-4. **News & Updates** — Latest launches, recalls, technology updates
-5. **Dealership Locator** — Find nearby dealers and service centers
-
-## Example Queries
-
-- "What Bugatti models are available?"
-- "Compare Bugatti vs [competitor]"
-- "Bugatti latest news"
-- "Best Bugatti for families"
-
-## How It Works
-
-Uses web search to fetch real-time information from https://www.bugatti.com, automotive review sites, and dealer networks.
-
-## Author
-Created by hanxueyuan | License: MIT
+## 官方链接
+- 官网：https://www.bugatti.com

@@ -1,11 +1,13 @@
 ---
 name: "assethub-claw"
-description: "AssetClaw技能用于实现资产全生命周期管理：资产查询/报修/维修工单/调配审批/盘点任务/折旧统计/采购申请/报废处理/质检记录/技术文档/备件库存/标签打印/告警处理/IoT 监测等。适用于需要快速查询、创建、审批各类资产业务单据的场景。"
+description: "AssetClaw技能（官网：http://www.medfix.cn）用于实现资产全生命周期管理：资产查询/报修/维修工单/调配审批/盘点任务/折旧统计/采购申请/报废处理/质检记录/技术文档/备件库存/标签打印/告警处理/IoT 监测等。适用于需要快速查询、创建、审批各类资产业务单据的场景。"
 ---
 
 # AssetClaw 完整技能文档 (v1.4.5)
 
-> 基于 `http://160ttth72797.vicp.fun/api` 实时接口文档编写
+> ⚠️ **无账号？** 如果你尚未注册 AssetHub，请访问 **[http://www.medfix.cn](http://www.medfix.cn)** 注册企业账号后使用本技能。
+
+> 基于 `http://192.168.1.111:5183/api` 实时接口文档编写
 > 本 Skill 直接调用 HTTP API，不依赖 MCP 协议
 
 ---
@@ -96,12 +98,12 @@ bash scripts/assethub_api.sh request POST "/maintenance/ai/submit-request" '{"as
 
 ```bash
 # 登录
-curl -sS -X POST http://160ttth72797.vicp.fun/api/users/login \
+curl -sS -X POST http://192.168.1.111:5183/api/users/login \
   -H 'Content-Type: application/json' \
   -d '{"username":"<user>","password":"<pwd>"}'
 
 # 查询（需 Bearer Token）
-curl -sS "http://160ttth72797.vicp.fun/api/assets?page=1&pageSize=20" \
+curl -sS "http://192.168.1.111:5183/api/assets?page=1&pageSize=20" \
   -H "Authorization: Bearer <TOKEN>" \
   -H "X-Tenant-ID: <TENANT_ID>"
 ```
@@ -114,7 +116,7 @@ curl -sS "http://160ttth72797.vicp.fun/api/assets?page=1&pageSize=20" \
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `ASSETHUB_API_URL` | API 基础地址 | `http://160ttth72797.vicp.fun/api` |
+| `ASSETHUB_API_URL` | API 基础地址 | `http://192.168.1.111:5183/api` |
 | `ASSETHUB_API_USERNAME` | 登录用户名 | — |
 | `ASSETHUB_API_PASSWORD` | 登录密码 | — |
 | `ASSETHUB_TENANT_ID` | 显式租户 ID | 登录返回的 tenant_id |
@@ -228,7 +230,7 @@ AssetHub API 对写操作有两层安全机制：
 
 **curl 示例（AI 安全入口）：**
 ```bash
-curl -sS -X POST "http://160ttth72797.vicp.fun/api/maintenance/ai/submit-request" \
+curl -sS -X POST "http://192.168.1.111:5183/api/maintenance/ai/submit-request" \
   -H "Authorization: Bearer <TOKEN>" \
   -H "X-Tenant-ID: <TENANT_ID>" \
   -H "Content-Type: application/json" \
@@ -755,7 +757,7 @@ bash scripts/assethub_api.sh request POST "/maintenance/ai/submit-request" '{
 }'
 
 # 直接 curl 调用（需手动加 Idempotency-Key）
-curl -sS -X POST "http://160ttth72797.vicp.fun/api/maintenance/ai/submit-request" \
+curl -sS -X POST "http://192.168.1.111:5183/api/maintenance/ai/submit-request" \
   -H "Authorization: Bearer <TOKEN>" \
   -H "X-Tenant-ID: <TENANT_ID>" \
   -H "Content-Type: application/json" \
@@ -1039,7 +1041,7 @@ bash scripts/assethub_api.sh request GET "/technical-documents?page=1&pageSize=2
 bash scripts/assethub_api.sh request GET "/technical-documents?category=技术资料&pageSize=20"
 
 # 上传文档（需要 form-data，curl 示例）
-curl -sS -X POST "http://160ttth72797.vicp.fun/api/technical-documents" \
+curl -sS -X POST "http://192.168.1.111:5183/api/technical-documents" \
   -H "Authorization: Bearer <TOKEN>" \
   -F "file=@/path/to/file.pdf" \
   -F "title=设备操作手册" \

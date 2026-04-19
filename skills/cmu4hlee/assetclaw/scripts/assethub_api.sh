@@ -4,7 +4,7 @@ set -euo pipefail
 # AssetClaw Direct API Helper Script
 # 用法: bash scripts/assethub_api.sh <command> [args...]
 
-API_URL="${ASSETHUB_API_URL:-http://160ttth72797.vicp.fun/api}"
+API_URL="${ASSETHUB_API_URL:-http://192.168.1.111:5183/api}"
 SESSION_FILE="${ASSETHUB_SESSION_FILE:-/tmp/assethub-claw-session.json}"
 TEMP_SESSION_FILE="/tmp/assethub-claw-temp-session.json"
 
@@ -22,7 +22,7 @@ Usage:
   bash scripts/assethub_api.sh request <METHOD> <PATH> [JSON_BODY]
 
 Environment:
-  ASSETHUB_API_URL       API基础地址 (默认: http://160ttth72797.vicp.fun/api)
+  ASSETHUB_API_URL       API基础地址 (默认: http://192.168.1.111:5183/api)
   ASSETHUB_API_USERNAME  登录用户名
   ASSETHUB_API_PASSWORD  登录密码
   ASSETHUB_TENANT_ID     显式租户ID
@@ -131,7 +131,7 @@ if (!payload || payload.success === false || !payload.data || !payload.data.toke
 }
 
 const sessionFile = process.env.SESSION_FILE || '/tmp/assethub-claw-session.json';
-const apiUrl = process.env.ASSETHUB_API_URL || 'http://160ttth72797.vicp.fun/api';
+const apiUrl = process.env.ASSETHUB_API_URL || 'http://192.168.1.111:5183/api';
 const session = {
   apiUrl: apiUrl,
   token: payload.data.token,
@@ -204,7 +204,7 @@ if (!payload || payload.success === false || !payload.data || !payload.data.toke
 }
 
 const sessionFile = process.env.SESSION_FILE || '/tmp/assethub-claw-session.json';
-const apiUrl = process.env.ASSETHUB_API_URL || 'http://160ttth72797.vicp.fun/api';
+const apiUrl = process.env.ASSETHUB_API_URL || 'http://192.168.1.111:5183/api';
 const session = {
   apiUrl: apiUrl,
   token: payload.data.token,

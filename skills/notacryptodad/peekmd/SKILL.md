@@ -9,7 +9,7 @@ Use peekmd when you need to share formatted content — reports, docs, code snip
 ## Quick Start (Free Tier)
 
 ```bash
-curl -X POST https://peekmd.peekmd.workers.dev/api/create \
+curl -X POST https://peekmd.dev/api/create \
   -H "Content-Type: application/json" \
   -d '{"markdown": "# Hello World\n\nThis is a **peekmd** page."}'
 ```
@@ -18,7 +18,7 @@ Response:
 
 ```json
 {
-  "url": "https://peekmd.peekmd.workers.dev/aBcDeFgH",
+  "url": "https://peekmd.dev/aBcDeFgH",
   "slug": "aBcDeFgH",
   "expiresAt": "2026-03-22T04:30:00.000Z",
   "tier": "free"
@@ -44,7 +44,7 @@ Create a rendered markdown page.
 
 ```json
 {
-  "url": "https://peekmd.peekmd.workers.dev/aBcDeFgH",
+  "url": "https://peekmd.dev/aBcDeFgH",
   "slug": "aBcDeFgH",
   "expiresAt": "2026-03-22T04:30:00.000Z",
   "tier": "free"
@@ -72,8 +72,8 @@ Health check. Returns `{ "status": "ok" }`.
 | Tier   | Max TTL     | Ad Banner | Auth                          | Price              |
 |--------|-------------|-----------|-------------------------------|--------------------|
 | free   | 5 min       | yes       | none                          | free               |
-| stripe | unlimited   | no        | `Authorization: Bearer sk_...`| $0.001-$0.01/page  |
-| x402   | unlimited   | no        | `X-PAYMENT` header            | 0.01 USDC/page     |
+| stripe | unlimited   | no        | `Authorization: Bearer sk_...`| $0.001-$0.01/page (coming soon) |
+| x402   | unlimited   | no        | `X-PAYMENT` header            | 0.01 USDC/page (coming soon)    |
 
 ### Stripe (metered billing)
 
@@ -95,20 +95,9 @@ Health check. Returns `{ "status": "ok" }`.
 - **Markdown features**: supports GFM tables, fenced code blocks with syntax highlighting, task lists, and standard markdown.
 - **Size limit**: 500 KB max per page. For larger content, split into multiple pages.
 - **Burn after reading**: call `/api/burn/:slug` to delete a page after the recipient has viewed it.
-- **Base URL**: `https://peekmd.peekmd.workers.dev`
-
-## Privacy & Data Handling
-
-- **No account required** for free tier. No cookies, no tracking, no PII collected.
-- **Temporary storage only**: free-tier pages auto-expire after 5 minutes. Data is stored in Cloudflare KV with TTL enforcement — expired pages are automatically purged.
-- **No logging of content**: page markdown is stored only for rendering and is deleted on expiry or burn.
-- **Burn after reading**: use `/api/burn/:slug` to immediately and permanently delete a page.
-- **Paid tiers**: Stripe tier retains pages for the requested TTL only. x402 tier is stateless (pay-per-request, no account).
-- **Infrastructure**: hosted on Cloudflare Workers (edge compute) with Cloudflare KV (storage). No data leaves the Cloudflare network.
-- **Recommendation**: do not send secrets, credentials, or PII through any third-party rendering service including peekmd. Use for shareable content only.
+- **Base URL**: `https://peekmd.dev`
 
 ## Source
 
-- Homepage: [peekmd.peekmd.workers.dev](https://peekmd.peekmd.workers.dev)
-- Source code: [github.com/notacryptodad/peekmd](https://github.com/notacryptodad/peekmd)
+Homepage: [peekmd.dev](https://peekmd.dev)
 

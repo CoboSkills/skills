@@ -1,13 +1,18 @@
 {
   "owner": "notacryptodad",
   "slug": "peekmd",
-  "displayName": "peekmd",
+  "displayName": "Peekmd",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1774170852697,
-    "commit": "https://github.com/openclaw/skills/commit/dd167a0f40295e0d2a37dfe49bb674f848e39f35"
+    "version": "1.0.4",
+    "publishedAt": 1776181737471,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1774170852697,
+      "commit": "https://github.com/openclaw/skills/commit/dd167a0f40295e0d2a37dfe49bb674f848e39f35"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774165604892,

@@ -1,33 +1,24 @@
 ---
-name: chengdu
-description: "中国西部中心，美食之都"
-metadata:
-  { "openclaw": { "emoji": "🐼", "version": "0.1.0", "author": "hanxueyuan", "tags": ["encyclopedia","china","chengdu"] } }
+summary: "chengdu 综合信息"
+read_when:
+  - 搜索 chengdu
+  - 咨询 chengdu 详情
 ---
 
-# 🐼 Chengdu 成都
+# chengdu 信息站
 
-中国西部中心，美食之都
+chengdu — 在其行业具有重要影响力。
 
-## What This Skill Does
+## 信息模块
+【历史沿革】创立时间、地点、创始人及关键里程碑
+【业务范围】主营产品/服务及特色
+【全球布局】分支机构、市场分布
+【最新动态】近期新闻、产品发布、战略合作
 
-This skill provides comprehensive information about **Chengdu 成都**:
+## 适用场景
+✓ 商业背景调查
+✓ 产品咨询与比较
+✓ 行业研究与分析
+✓ 学术教学参考
 
-1. **Overview** — What it is, history, key facts
-2. **Latest Updates** — Recent news, developments, and announcements
-3. **Key Data** — Statistics, rankings, records, and metrics
-4. **Resources** — Official websites, useful links, and references
-5. **Related Topics** — Connected entities and recommendations
-
-## Example Queries
-
-- "Tell me about Chengdu"
-- "Latest news on Chengdu"
-- "Chengdu key facts"
-
-## How It Works
-
-Uses web search to fetch real-time, comprehensive information from authoritative sources.
-
-## Author
-Created by hanxueyuan | Part of the Encyclopedia project | License: MIT
+获取更详细信息请访问官方网站。

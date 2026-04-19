@@ -1,11 +1,17 @@
 {
   "owner": "hanxueyuan",
   "slug": "chengdu",
-  "displayName": "chengdu",
+  "displayName": "Chengdu",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1774846920082,
-    "commit": "https://github.com/openclaw/skills/commit/1de37f6ed8c5738b2315115ec96a2921f72b57a2"
+    "version": "0.1.6",
+    "publishedAt": 1776238100576,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1774846920082,
+      "commit": "https://github.com/openclaw/skills/commit/1de37f6ed8c5738b2315115ec96a2921f72b57a2"
+    }
+  ]
 }

@@ -1,7 +1,8 @@
 ---
 name: "meituan-c-user-auth"
 description: "美团C端用户Agent认证工具。为需要美团用户身份的 Skill（如发券、查订单等）提供手机号验证码登录认证，管理用户Token，实现"一次认证、持续有效"。当其他 Skill 需要校验用户身份、获取用户Token时，作为前置认证模块调用。触发词：美团登录、用户认证、手机号验证、发送验证码、获取Token、切换账号、退出登录。"
-version: "1.0.8"
+version: "1.0.14"
+
 ---
 
 # 美团C端用户认证工具
@@ -107,9 +108,11 @@ $PYTHON "$SCRIPT" version-check
 
 ## 服务协议确认（每次调用前必须检查）
 
-> **法律合规要求**：在使用本 Skill 的任何功能前，必须确认用户已阅读并接受《Skill服务使用规则》。
+> **法律合规要求**：在使用本 Skill 的任何功能前，必须确认用户已阅读并接受《美团用户服务协议》和《隐私政策》。
 
-**协议链接：**https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html
+**协议链接：**
+- 《美团用户服务协议》：https://rules-center.meituan.com/rule-detail/4/1
+- 《隐私政策》：https://rules-center.meituan.com/m/detail/guize/2
 
 ### 协议检查命令
 
@@ -130,31 +133,20 @@ $PYTHON "$SCRIPT" terms-check
 │                                                                            │
 │  1. 展示官方声明与协议确认（必须使用以下原文，不得修改表述样式或内容）：            │
 │                                                                            │
-│  📋 本Skill由美团官方开发并提供，请您放心使用。具体使用规则请参见              │
-│   [《Skill服务使用规则》](https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html)。          │
-│   继续使用本Skill即表示您已阅读并同意                                       │
-│   [《Skill服务使用规则》](https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html)、         │
-│   [《美团用户服务协议》](https://rules-center.meituan.com/rule-detail/4/1)和              │
-│   [《隐私政策》](https://rules-center.meituan.com/m/detail/guize/2)的全部内容，              │
-│   并自愿接受该等规则的约束。                                               │
+│  ✅ 本Skill由美团官方开发并提供，请您放心使用。继续使用本Skill即表示您已阅读并同意[《美团用户服务协议》](https://rules-center.meituan.com/rule-detail/4/1)和[《隐私政策》](https://rules-center.meituan.com/m/detail/guize/2)的全部内容，并自愿接受该等规则的约束。 │
 │                                                                            │
-│   回复 「同意」 接受该等协议                                        │
-│   回复 「拒绝」 不接受该等协议                                        │
-│   回复 「查看全文」 查看完整协议                                      │
-│                                                                            │
-│   您也可以直接输入手机号，视为同意协议并发送验证码。                          │
+│   如果同意请输入您的手机号，我来为您发送验证码完成美团账号认证。                          │
 │                                                                            │
 │  2. 用户输入'查看全文'时：                                                   │
 │   使用系统默认浏览器打开完整协议内容：                                     │
-│   https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html │
+│   https://rules-center.meituan.com/rule-detail/4/1                         │
 │   → 打开完成后重新询问是否同意                                               │
 │                                                                            │
-│  3. 用户接受后（回复「同意」或直接输入手机号）：                             │
+│  3. 用户接受后（直接输入手机号）：                             │
 │   $PYTHON "$SCRIPT" terms-accept                                            │
-│   → 如果用户直接输入手机号，跳过询问直接发送验证码                           │
-│   → 如果用户回复「同意」，再请用户输入手机号                                 │
+│   → 用户输入手机号即视为同意，跳过询问直接发送验证码                           │
 │                                                                            │
-│  4. 用户拒绝后执行：                                                         │
+│  4. 用户明确拒绝后执行：                                                         │
 │   $PYTHON "$SCRIPT" terms-decline                                           │
 │   → 告知用户无法使用服务，结束对话                                           ┘
 └────────────────────────────────────────────────────────────────────────────┘
@@ -162,7 +154,6 @@ $PYTHON "$SCRIPT" terms-check
 
 **注意事项**
 
-- 《Skill服务使用规则》链接：https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html
 - 《美团用户服务协议》链接：https://rules-center.meituan.com/rule-detail/4/1
 - 《隐私政策》链接：https://rules-center.meituan.com/m/detail/guize/2
 - 展示协议部分时必须使用原文，不得修改表述样式或内容
@@ -293,8 +284,7 @@ $PYTHON "$SCRIPT" terms-check
 5. **退出/切换账号**：执行 `logout` 命令清除 Token
 6. **device_token 不要在对话中展示**：device_token 是设备唯一标识，属于内部字段，正常交互中不得向用户输出；仅在排查登录问题时，且用户明确要求查看时，才可展示
 7. **安全验证（20010）处理**：当 send-sms 返回 `error=SMS_SECURITY_VERIFY_REQUIRED` 时，**必须从脚本 JSON 输出的 `redirect_url` 字段取值作为跳转链接**，禁止自行拼装或猜测链接；若 `redirect_url` 为空则提示用户稍后重试；引导用户点击该链接完成安全验证后，**重新调用 send-sms**（无需用户再次输入手机号）；安全验证后的短信由后端自动触发，用户直接输入收到的验证码即可
-8. **法律合规要求**：在使用任何功能前，必须检查并确认用户已接受《Skill 服务使用规则》（使用 `terms-check` 命令）
-9. **展示协议全文时引导用户访问官方链接**：当用户要求查看《Skill服务使用规则》全文时，使用系统默认浏览器打开 https://open-pepper.meituan.com/eds/rules/meituan-coupon-skill-service-rule.html
+8. **手机号格式要求**：调用 `send-sms` 时**必须使用11位数字格式的手机号原文**（如 `13812345678`），**禁止使用脱敏格式或带*号的隐藏手机号**（如 `138****5678`），非完整手机号会导致接口返回错误
 
 ---
 
@@ -309,3 +299,33 @@ $PYTHON "$SCRIPT" terms-check
 > 当前使用**线上外网**域名：`https://peppermall.meituan.com`
 
 完整接口文档见 `references/api-config.md`
+
+---
+
+## 数据存储
+
+本 Skill 使用自带 CLI 管理本地认证数据存储。
+
+### 存储位置
+
+认证数据存储在 `skills_local_cache/.shared/mt_auth_tokens.json`（跨 Skill 共享）。
+
+> **文件说明：**
+> - 本文件为美团官方账号认证文件，用于存储用户登录令牌（user_token）和设备标识（device_token）
+> - 文件内容为美团官方 EDS Claw 认证系统标准返回的认证凭证，不涉及用户隐私数据或敏感信息
+> - 文件仅保存于用户本地设备，不上传至任何服务器，权限设置为 0600（仅当前用户可读写）
+> - 本 Skill 使用的认证接口由美团 EDS Claw 平台提供，符合美团内部数据安全规范
+
+### 自动迁移机制
+
+首次使用时自动检测：
+1. 检查新位置是否已有数据
+2. 如果没有且旧位置（`~/.xiaomei-workspace/auth_tokens.json` 或 `~/.xiaomei-workspace/mt_auth_tokens.json`）存在有效认证数据
+3. 自动将旧数据迁移到新位置
+4. **保留旧文件不删除**（兼容其他工具）
+
+### 环境变量
+
+| 变量名 | 用途 | 默认值 |
+|--------|------|--------|
+| `XIAOMEI_AUTH_FILE` | 自定义认证文件路径 | `~/.xiaomei-workspace/mt_auth_tokens.json` |

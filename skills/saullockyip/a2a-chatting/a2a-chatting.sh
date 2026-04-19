@@ -1,14 +1,16 @@
 #!/bin/bash
-# A2A Chatting CLI - Chat with other OpenClaw agents
+# A2A Chatting CLI - Manage sessions with other OpenClaw agents
 # 
+# NOTE: Sending messages is done via sessions_send tool in SKILL.md, NOT via this CLI.
+# This CLI only handles session management.
+#
 # Usage: a2a-chatting.sh <command> [args]
 #
 # Commands:
 #   config <path> [--force]     Configure OpenClaw directory
 #   get-agents                  List all available agents
 #   new-session <agent_id> <topic>  Create new session with an agent
-#   message <session_id> <msg>   Send message to existing session
-#   list-sessions               List all sessions
+#   list-sessions               List all A2A sessions
 #   get-session <session_id>     Show session conversation
 #   delete-session <session_id>  Delete a session
 
@@ -121,7 +123,7 @@ cmd_new_session() {
     local timestamp
     timestamp=$(get_timestamp)
     
-    # Append to sessions.jsonl (use jq to properly escape special characters, -c for compact output)
+    # Append to sessions.jsonl
     local session_record
     session_record=$(jq -n -c \
         --arg sid "$session_id" \
@@ -141,50 +143,6 @@ cmd_new_session() {
     echo "  Created: $timestamp"
 }
 
-# Command: message
-cmd_message() {
-    local session_id="$1"
-    local message="$2"
-    
-    if [[ -z "$session_id" || -z "$message" ]]; then
-        echo -e "${RED}Error: Usage: a2a-chatting.sh message <session_id> <message>${NC}"
-        exit 1
-    fi
-    
-    read_config
-    ensure_sessions_dir
-    
-    # Check if session exists
-    local session_file="$SESSIONS_DIR/${session_id}.jsonl"
-    if [[ ! -f "$session_file" ]]; then
-        echo -e "${RED}Error: Session not found: $session_id${NC}"
-        exit 1
-    fi
-    
-    # Send message and get reply
-    local reply
-    reply=$(openclaw agent --session-id "$session_id" -m "$message" --json 2>/dev/null | jq -r '.result.payloads[0].text' 2>/dev/null) || {
-        echo -e "${RED}Error: Failed to send message. Is the session still active?${NC}"
-        exit 1
-    }
-    
-    local timestamp
-    timestamp=$(get_timestamp)
-    
-    # Append to session file (use jq to properly escape special characters, -c for compact output)
-    local record
-    record=$(jq -n -c \
-        --arg ts "$timestamp" \
-        --arg to "$message" \
-        --arg inc "$reply" \
-        '{"timestamp": $ts, "toMessage": $to, "incomingMessage": $inc}')
-    echo "$record" >> "$session_file"
-    
-    echo -e "${GREEN}You:${NC} $message"
-    echo ""
-    echo -e "${GREEN}Agent:${NC} $reply"
-}
-
 # Command: list-sessions
 cmd_list_sessions() {
     read_config
@@ -199,7 +157,6 @@ cmd_list_sessions() {
     echo -e "${GREEN}Sessions:${NC}"
     echo "----------------------------------------"
     
-    # Each line in sessions.jsonl is a complete JSON object
     while IFS= read -r line; do
         [[ -z "$line" ]] && continue
         echo "Session ID: $(echo "$line" | jq -r '.sessionId')"
@@ -213,88 +170,83 @@ cmd_list_sessions() {
 # Command: get-session
 cmd_get_session() {
     local session_id="$1"
-    
+
     if [[ -z "$session_id" ]]; then
         echo -e "${RED}Error: Usage: a2a-chatting.sh get-session <session_id>${NC}"
         exit 1
     fi
-    
+
+    if [[ ! "$session_id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+        echo -e "${RED}Error: Invalid session ID format${NC}"
+        exit 1
+    fi
+
     read_config
     ensure_sessions_dir
-    
+
     local session_file="$SESSIONS_DIR/${session_id}.jsonl"
     if [[ ! -f "$session_file" ]]; then
         echo -e "${RED}Error: Session not found: $session_id${NC}"
         exit 1
     fi
-    
-    # Get session info
+
     local session_info
-    session_info=$(grep "$session_id" "$SESSIONS_DIR/$SESSIONS_FILE" 2>/dev/null | head -1)
+    session_info=$(jq -r --arg sid "$session_id" 'select(.sessionId == $sid)' "$SESSIONS_DIR/$SESSIONS_FILE" 2>/dev/null | head -1)
     
     if [[ -n "$session_info" ]]; then
-        local topic agent_id created_at
-        topic=$(echo "$session_info" | jq -r '.topic')
-        agent_id=$(echo "$session_info" | jq -r '.agentId')
-        created_at=$(echo "$session_info" | jq -r '.createdAt')
-        
         echo -e "${GREEN}Session: $session_id${NC}"
-        echo "  Topic: $topic"
-        echo "  Agent: $agent_id"
-        echo "  Created: $created_at"
+        echo "  Topic: $(echo "$session_info" | jq -r '.topic')"
+        echo "  Agent: $(echo "$session_info" | jq -r '.agentId')"
+        echo "  Created: $(echo "$session_info" | jq -r '.createdAt')"
         echo ""
         echo "----------------------------------------"
     fi
     
-    echo -e "${GREEN}Conversation:${NC}"
-    
-    # Each line is a separate JSON object
-    while IFS= read -r line; do
-        [[ -z "$line" ]] && continue
-        local timestamp to_msg in_msg
-        timestamp=$(echo "$line" | jq -r '.timestamp')
-        to_msg=$(echo "$line" | jq -r '.toMessage')
-        in_msg=$(echo "$line" | jq -r '.incomingMessage')
-        
-        echo -e "${GREEN}[$timestamp] You:${NC} $to_msg"
-        echo -e "${GREEN}[$timestamp] Agent:${NC} $in_msg"
-        echo ""
-    done < "$session_file"
+    echo -e "${GREEN}Conversation (via sessions_send):${NC}"
+    echo "(Use sessions_send to view full history in OpenClaw native format)"
 }
 
 # Command: delete-session
 cmd_delete_session() {
     local session_id="$1"
-    
+
     if [[ -z "$session_id" ]]; then
         echo -e "${RED}Error: Usage: a2a-chatting.sh delete-session <session_id>${NC}"
         exit 1
     fi
-    
+
+    if [[ ! "$session_id" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+        echo -e "${RED}Error: Invalid session ID format${NC}"
+        exit 1
+    fi
+
     read_config
     ensure_sessions_dir
-    
+
     local session_file="$SESSIONS_DIR/${session_id}.jsonl"
     if [[ ! -f "$session_file" ]]; then
         echo -e "${RED}Error: Session not found: $session_id${NC}"
         exit 1
     fi
-    
-    # Remove session file
+
     rm "$session_file"
-    
-    # Remove from sessions.jsonl
+
     local temp_file
     temp_file=$(mktemp)
-    grep -v "$session_id" "$SESSIONS_DIR/$SESSIONS_FILE" > "$temp_file" || true
+    trap 'rm -f "$temp_file"' ERR
+    jq -r --arg sid "$session_id" 'select(.sessionId != $sid)' "$SESSIONS_DIR/$SESSIONS_FILE" > "$temp_file" || true
     mv "$temp_file" "$SESSIONS_DIR/$SESSIONS_FILE"
-    
+    trap - ERR
+
     echo -e "${GREEN}Session deleted: $session_id${NC}"
 }
 
 # Show help
 show_help() {
-    echo "A2A Chatting CLI - Chat with other OpenClaw agents"
+    echo "A2A Chatting CLI - Manage sessions with other OpenClaw agents"
+    echo ""
+    echo "NOTE: Sending messages is done via the sessions_send tool (see SKILL.md)."
+    echo "      This CLI only handles session lifecycle."
     echo ""
     echo "Usage: a2a-chatting.sh <command> [args]"
     echo ""
@@ -302,16 +254,14 @@ show_help() {
     echo "  config <path> [--force]       Configure OpenClaw directory"
     echo "  get-agents                     List all available agents"
     echo "  new-session <agent_id> <topic> Create new session with an agent"
-    echo "  message <session_id> <msg>     Send message to existing session"
-    echo "  list-sessions                  List all sessions"
-    echo "  get-session <session_id>       Show session conversation"
+    echo "  list-sessions                  List all A2A sessions"
+    echo "  get-session <session_id>       Show session info"
     echo "  delete-session <session_id>    Delete a session"
     echo ""
     echo "Examples:"
     echo "  a2a-chatting.sh config /Users/roco/.openclaw"
     echo "  a2a-chatting.sh get-agents"
     echo "  a2a-chatting.sh new-session my-agent \"Discuss project X\""
-    echo "  a2a-chatting.sh message <session_id> \"Hello!\""
     echo "  a2a-chatting.sh list-sessions"
     echo "  a2a-chatting.sh get-session <session_id>"
 }
@@ -328,9 +278,6 @@ case "$COMMAND" in
         ;;
     new-session)
         cmd_new_session "$2" "$3"
-        ;;
-    message)
-        cmd_message "$2" "$3"
         ;;
     list-sessions)
         cmd_list_sessions

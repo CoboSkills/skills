@@ -180,29 +180,6 @@ pre {
         except Exception:
             return False
 
-    def install_md_to_pdf(self):
-        """Install md-to-pdf globally"""
-
-        print("📦 Installing md-to-pdf...")
-
-        try:
-            result = subprocess.run(
-                ["npm", "install", "-g", "md-to-pdf"],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-
-            if result.returncode == 0:
-                print("✅ md-to-pdf installed successfully")
-                return True
-            else:
-                print(f"⚠️ Installation failed: {result.stderr}")
-                return False
-        except Exception as e:
-            print(f"⚠️ Installation error: {e}")
-            return False
-
     def save_css_template(self, output_dir):
         """Save CSS template to output directory"""
 
@@ -218,9 +195,8 @@ pre {
 
         # Check md-to-pdf
         if not self.check_md_to_pdf():
-            if not self.install_md_to_pdf():
-                print("❌ md-to-pdf not available, PDF generation failed")
-                return None
+            print("❌ md-to-pdf not available. Install with: npm install -g md-to-pdf")
+            return None
 
         # Determine output path
         if output_pdf is None:

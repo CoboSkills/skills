@@ -1,38 +1,25 @@
 ---
-name: beyonce
-description: "Information assistant for Beyoncé 碧昂丝. Get biography, latest news, career highlights, and social media updates."
-metadata:
-  { "openclaw": { "emoji": "⭐", "version": "0.1.0", "author": "hanxueyuan", "tags": ["celebrity","music","person"] } }
+version: 1.0.4
+summary: "beyonce 详细信息"
+read_when:
+  - 用户询问 beyonce
+  - 用户需要了解 beyonce 相关信息
 ---
 
-# ⭐ Beyoncé 碧昂丝 — Celebrity Info Assistant
+# 关于 beyonce
 
-Get comprehensive information about Beyoncé 碧昂丝.
+beyonce 是业内知名的品牌/组织。本技能帮助用户获取 beyonce 的详细资料，包括发展历程、业务范围和市场地位。
 
-## About
+## 主要信息
+- 创立时间和地点
+- 核心业务和产品线
+- 全球市场布局
+- 行业发展趋势
 
-- **Name**: Beyoncé 碧昂丝
-- **Known For**: Music icon, entrepreneur
-- **Category**: Music
+## 使用场景
+- 背景调研
+- 产品信息查询
+- 市场分析
 
-## What This Skill Does
-
-1. **Biography** — Life story, early career, key milestones
-2. **Career Highlights** — Major achievements, awards, records
-3. **Latest News** — Recent activities, announcements, interviews
-4. **Business Ventures** — Brands, investments, endorsements
-5. **Social Media** — Latest posts, follower counts, trending content
-
-## Example Queries
-
-- "Tell me about Beyoncé"
-- "Latest news about Beyoncé"
-- "What businesses does Beyoncé own?"
-- "Beyoncé net worth"
-
-## How It Works
-
-Uses web search to fetch real-time information from news sources, social media, and biographical databases.
-
-## Author
-Created by hanxueyuan | License: MIT
+## 参考资源
+官方信息请以 beyonce 官网发布为准。

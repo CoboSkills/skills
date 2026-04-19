@@ -1,38 +1,48 @@
 ---
-name: ferrari
-description: "Information assistant for Ferrari 法拉利. Search models, specs, pricing, reviews, and dealership info."
-metadata:
-  { "openclaw": { "emoji": "🚗", "version": "0.1.0", "author": "hanxueyuan", "tags": ["automotive","brand","cars"] } }
+summary: "法拉利 Ferrari——意大利超跑品牌、F1 赛车传奇、红色跃马的终极梦想"
+read_when:
+  - 查询法拉利 · Ferrari相关信息
+  - 了解相关行业发展
 ---
 
-# 🚗 Ferrari 法拉利 — Automotive Info Assistant
+# 法拉利 · Ferrari
 
-Your AI guide to Ferrari 法拉利. Get model info, specs, pricing, reviews, and more.
+---
 
-## About
+## 发展历程
 
-- **Brand**: Ferrari 法拉利
-- **Category**: Italian supercar manufacturer
-- **Official Website**: https://www.ferrari.com
+| 时期 | 关键事件 |
+|:----:|--------|
+| **1939 年** | Enzo Ferrari 从 Alfa Romeo 赛车部门独立出来创立 Auto Avio Costruzioni |
+| **1947 年** | 第一辆法拉利 125 S 诞生 |
+| **1950s-2020s** | F1 历史上最成功的车队——16 次车队冠军 |
+| **1969 年** | 菲亚特收购 50% 股权（2016 年法拉利独立上市） |
+| **2016 年** | 独立上市——市值超过菲亚特克莱斯勒 |
+| **2020s** | 推出 Purosangue——第一款法拉利 SUV（四门轿跑） |
 
-## What This Skill Does
+---
 
-1. **Model Lineup** — Current models, specs, pricing, and configurations
-2. **Reviews & Comparisons** — Expert and user reviews, competitor comparisons
-3. **Pricing & Deals** — MSRP, dealer pricing, incentives, and financing options
-4. **News & Updates** — Latest launches, recalls, technology updates
-5. **Dealership Locator** — Find nearby dealers and service centers
+## 核心特点
 
-## Example Queries
+超跑（296 GTB/SF90/ Roma）+ 限量版（Icona 系列）+ F1 赛车 + 品牌授权
 
-- "What Ferrari models are available?"
-- "Compare Ferrari vs [competitor]"
-- "Ferrari latest news"
-- "Best Ferrari for families"
+## 核心优势
 
-## How It Works
+F1 赛车基因+限量版策略（每年只生产约 13000 辆）+ 品牌溢价极高
 
-Uses web search to fetch real-time information from https://www.ferrari.com, automotive review sites, and dealer networks.
+---
 
-## Author
-Created by hanxueyuan | License: MIT
+## 关键数据
+
+| 指标 | 数值 |
+|------|------|
+| 年营收 | 约 59 亿欧元 |
+| 年产量 | 约 13000 辆 |
+| 净利润率 | 约 25%（汽车业最高） |
+| 员工数 | 约 5500 人 |
+
+---
+
+## 值得了解
+
+法拉利的二手车往往升值——经典车型拍卖价超过 5000 万美元

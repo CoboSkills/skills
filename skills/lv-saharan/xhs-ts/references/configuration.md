@@ -17,10 +17,6 @@ HEADLESS=
 # Browser path (optional, uses Playwright's built-in by default)
 BROWSER_PATH=
 
-# Login config
-LOGIN_METHOD=qr        # Login method: qr or sms
-LOGIN_TIMEOUT=120000   # Login timeout (ms)
-
 # Debug mode
 DEBUG=false
 ```
@@ -36,6 +32,24 @@ DEBUG=false
 
 | File | Purpose |
 |------|---------|
-| `{baseDir}/cookies.json` | Cookie storage |
-| `{baseDir}/tmp/qr_login_*.png` | QR code images (headless mode) |
+| `{baseDir}/users/{user}/user-data/` | Playwright persistent context (auto-saves cookies, localStorage) |
+| `{baseDir}/users/{user}/profile.json` | Unified Profile data (meta + connection) |
+| `{baseDir}/users/{user}/fingerprint.json` | Device fingerprint |
+| `{baseDir}/users/{user}/tmp/` | Temporary files (QR codes) |
+| `{baseDir}/users.json` | User metadata (current user, version: 3) |
 | `{baseDir}/.env` | Environment configuration |
+
+## Browser Management
+
+Browser instances are managed via CDP (Chrome DevTools Protocol). Connection info is stored in `profile.json` under the `connection` field.
+
+**Commands:**
+
+```bash
+npm run browser -- --start    # Start browser instance
+npm run browser -- --status   # Show instance status
+npm run browser -- --list     # List saved connections
+npm run browser -- --stop     # Stop all instances
+```
+
+See [Browser Management](commands.md#browser-management) for details.

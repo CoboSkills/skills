@@ -2,14 +2,24 @@
  * User storage operations
  *
  * @module user/storage
- * @description Directory operations and users.json management
+ * @description Directory operations, users.json management, and Profile architecture
  */
 
-import { readdir, writeFile, mkdir, stat } from 'fs/promises';
-import { existsSync, readFileSync } from 'fs';
+import { readdir, writeFile, mkdir, stat, readFile } from 'fs/promises';
+import { existsSync } from 'fs';
 import path from 'path';
-import type { UserName, UserInfo, UserListResult, UsersMeta } from './types';
-import { debugLog } from '../utils/helpers';
+import type {
+  UserName,
+  UserInfo,
+  UserListResult,
+  ProfileMeta,
+  ProfileStatus,
+  ProfileStatusInfo,
+} from './types';
+import { hasDisplaySupport } from './environment';
+import { getUserFingerprint } from './fingerprint';
+import { debugLog } from '../core/utils';
+import { buildPath } from '../core/utils/path';
 
 // ============================================
 // Constants
@@ -19,17 +29,13 @@ import { debugLog } from '../utils/helpers';
 const USERS_DIR = 'users';
 
 /** Users metadata file name */
-const USERS_META_FILE = 'users.json';
+/** Profile metadata file name */
+const PROFILE_META_FILE = 'meta.json';
 
 /** Invalid characters for user name (Windows incompatible) */
 const INVALID_CHARS = /[\\/:\*?"<>|]/;
 
-/** Default users metadata */
-const DEFAULT_USERS_META: UsersMeta = {
-  current: 'default',
-  version: 1,
-};
-
+/** Default users metadata (version 3 - simplified, no profiles) */
 // ============================================
 // Path Helpers
 // ============================================
@@ -38,7 +44,7 @@ const DEFAULT_USERS_META: UsersMeta = {
  * Get users directory path
  */
 export function getUsersDir(): string {
-  return path.resolve(process.cwd(), USERS_DIR);
+  return buildPath(USERS_DIR);
 }
 
 /**
@@ -56,10 +62,20 @@ export function getUserTmpDir(user: UserName): string {
 }
 
 /**
+ * Get user's user-data directory path (for Playwright persistent context)
+ */
+export function getUserDataDir(user: UserName): string {
+  return path.resolve(getUserDir(user), 'user-data');
+}
+
+/**
  * Get users.json path
  */
-function getUsersMetaPath(): string {
-  return path.resolve(getUsersDir(), USERS_META_FILE);
+/**
+ * Get profile meta.json path
+ */
+export function getProfileMetaPath(user: UserName): string {
+  return path.resolve(getUserDir(user), PROFILE_META_FILE);
 }
 
 // ============================================
@@ -140,7 +156,33 @@ export async function createUserDir(name: UserName): Promise<void> {
 }
 
 /**
- * List all users
+ * Check if user has Profile (directory structure with meta.json)
+ */
+export function hasProfile(name: UserName): boolean {
+  return existsSync(getProfileMetaPath(name));
+}
+
+/**
+ * Get profile status information for a user
+ */
+export function getProfileStatus(name: UserName): ProfileStatusInfo {
+  const userDataDir = getUserDataDir(name);
+  const metaPath = getProfileMetaPath(name);
+
+  const hasUserDataDir = existsSync(userDataDir);
+  const hasMeta = existsSync(metaPath);
+
+  const status: ProfileStatus = hasMeta ? 'full' : 'none';
+
+  return {
+    status,
+    hasUserDataDir,
+    hasMeta,
+  };
+}
+
+/**
+ * List all users with extended profile information
  */
 export async function listUsers(): Promise<UserListResult> {
   const usersDir = getUsersDir();
@@ -169,14 +211,17 @@ export async function listUsers(): Promise<UserListResult> {
       continue;
     }
 
-    const cookiePath = path.join(entryPath, 'cookies.json');
+    const fingerprintPath = path.join(entryPath, 'fingerprint.json');
+    const profileStatus = getProfileStatus(entry);
+
     users.push({
       name: entry,
-      hasCookie: existsSync(cookiePath),
+      hasFingerprint: existsSync(fingerprintPath),
+      hasProfile: profileStatus.status === 'full',
     });
   }
 
-  const current = getCurrentUser();
+  const current = (await import('./users-meta')).getCurrentUser();
 
   return {
     users,
@@ -185,98 +230,153 @@ export async function listUsers(): Promise<UserListResult> {
 }
 
 // ============================================
-// Users Metadata Operations
+// Users Metadata Operations (Version 2)
+// ============================================
+// Profile Operations (Task 3)
 // ============================================
 
 /**
- * Load users metadata
+ * Create user Profile directory structure and metadata
+ *
+ * Creates:
+ * - user-data/ directory (Playwright persistent context)
+ * - tmp/ directory (temporary files)
+ * - meta.json (profile metadata)
+ *
+ * @param user - User name
+ * @param environmentType - Environment type for the profile
+ * @param presetDescription - Description of preset used (optional)
  */
-export function loadUsersMeta(): UsersMeta {
-  const metaPath = getUsersMetaPath();
+export async function createUserProfile(
+  user: UserName,
+  environmentType: string,
+  presetDescription?: string
+): Promise<void> {
+  validateUserName(user);
 
-  if (!existsSync(metaPath)) {
-    return { ...DEFAULT_USERS_META };
-  }
+  const userDir = getUserDir(user);
+  const userDataDir = getUserDataDir(user);
+  const tmpDir = getUserTmpDir(user);
+  const metaPath = getProfileMetaPath(user);
 
-  try {
-    const content = readFileSync(metaPath, 'utf-8');
-    const meta: UsersMeta = JSON.parse(content);
-    return {
-      ...DEFAULT_USERS_META,
-      ...meta,
-    };
-  } catch (error) {
-    debugLog('Failed to load users.json, using default:', error);
-    return { ...DEFAULT_USERS_META };
-  }
-}
+  const now = new Date().toISOString();
 
-/**
- * Save users metadata
- */
-export async function saveUsersMeta(meta: UsersMeta): Promise<void> {
-  const usersDir = getUsersDir();
+  // Create directory structure
+  await mkdir(userDir, { recursive: true });
+  await mkdir(userDataDir, { recursive: true });
+  await mkdir(tmpDir, { recursive: true });
 
-  // Ensure users directory exists
-  if (!existsSync(usersDir)) {
-    await mkdir(usersDir, { recursive: true });
-  }
+  // Generate fingerprint (creates fingerprint.json)
+  await getUserFingerprint(user);
 
-  const metaPath = getUsersMetaPath();
+  // Create profile metadata
+  const meta: ProfileMeta = {
+    createdAt: now,
+    lastUsedAt: now,
+    environmentType: environmentType as
+      | 'gui-native'
+      | 'gui-virtual'
+      | 'headless-smart'
+      | 'headless-custom',
+    fingerprintSource: hasDisplaySupport() ? 'real' : 'preset',
+    presetDescription,
+  };
+
   await writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
-  debugLog(`Saved users metadata to ${metaPath}`);
+  debugLog(`Created profile for user: ${user}`);
+
+  // Note: users.json no longer stores profile data (v3)
+  // All profile data is in users/{user}/profile.json
 }
 
 /**
- * Get current user name
+ * Update last used timestamp for a user
+ *
+ * Updates the profile's meta.json only.
+ * Note: users.json no longer stores profile data (v3)
+ *
+ * @param user - User name
  */
-export function getCurrentUser(): UserName {
-  const meta = loadUsersMeta();
-  return meta.current || 'default';
-}
+export async function updateLastUsed(user: UserName): Promise<void> {
+  validateUserName(user);
 
-/**
- * Set current user
- */
-export async function setCurrentUser(name: UserName): Promise<void> {
-  validateUserName(name);
+  const metaPath = getProfileMetaPath(user);
+  const now = new Date().toISOString();
 
-  // Create user directory if not exists
-  if (!userExists(name)) {
-    await createUserDir(name);
+  // Update profile meta.json if it exists
+  if (existsSync(metaPath)) {
+    try {
+      const metaContent = await readFile(metaPath, 'utf-8');
+      const meta: ProfileMeta = JSON.parse(metaContent);
+      meta.lastUsedAt = now;
+      await writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+      debugLog(`Updated lastUsedAt for user: ${user}`);
+    } catch (error) {
+      debugLog(`Failed to update lastUsedAt for user: ${user}`, error);
+    }
   }
-
-  const meta = loadUsersMeta();
-  meta.current = name;
-  await saveUsersMeta(meta);
-
-  debugLog(`Set current user to: ${name}`);
-}
-
-/**
- * Clear current user (reset to default)
- */
-export async function clearCurrentUser(): Promise<void> {
-  const meta = loadUsersMeta();
-  meta.current = 'default';
-  await saveUsersMeta(meta);
-
-  debugLog('Cleared current user, reset to default');
 }
 
 // ============================================
-// User Resolution
+// Cleanup Operations
 // ============================================
 
 /**
- * Resolve user name with priority:
- * 1. Explicit user parameter (from --user option)
- * 2. Current user from users.json
- * 3. Default user
+ * Clean up corrupted user data directory
+ *
+ * Removes the user-data directory (Playwright persistent context).
+ * This forces a fresh login on next launch.
+ *
+ * @param user - User name
+ * @param fullCleanup - If true, also removes entire user directory (including fingerprint, profile)
+ * @returns Path that was cleaned up
  */
-export function resolveUser(explicitUser?: UserName): UserName {
-  if (explicitUser) {
-    return explicitUser;
+export async function cleanupUserData(user: UserName, fullCleanup = false): Promise<string> {
+  validateUserName(user);
+
+  const userDataDir = getUserDataDir(user);
+  const userDir = getUserDir(user);
+
+  const targetPath = fullCleanup ? userDir : userDataDir;
+
+  if (!existsSync(targetPath)) {
+    debugLog('No directory to clean up for user: ' + user);
+    return targetPath;
   }
-  return getCurrentUser();
+
+  // Use fs/promises rm for recursive deletion
+  const { rm } = await import('fs/promises');
+  await rm(targetPath, { recursive: true, force: true });
+
+  debugLog('Cleaned up user data for user: ' + user + ' at ' + targetPath);
+
+  return targetPath;
+}
+
+/**
+ * Check if user data cleanup is safe to perform
+ *
+ * Verifies that:
+ * - User directory exists
+ * - No browser process is running for this user
+ *
+ * @param user - User name
+ * @returns true if cleanup is safe, false otherwise
+ */
+export async function canCleanupUserData(user: UserName): Promise<boolean> {
+  if (!userExists(user)) {
+    return false;
+  }
+
+  // Check if browser is running for this user
+  // Import dynamically to avoid circular dependency
+  const { hasBrowserInstance } = await import('../actions/shared/browser-launcher');
+  const isRunning = await hasBrowserInstance(user);
+
+  if (isRunning) {
+    debugLog('Browser is running for user: ' + user + ', cleanup not safe');
+    return false;
+  }
+
+  return true;
 }

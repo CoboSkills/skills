@@ -2,8 +2,19 @@
 
 ## Prerequisites
 
-- Node.js >= 18
+- Node.js >= 22.16.0 (required for `using` syntax)
 - npm or pnpm
+
+### Pre-Installation Check
+
+```bash
+# Verify Node.js version (requires >= 22.16.0)
+node -v
+
+# If version is too low, upgrade:
+# macOS: brew install node@22
+# Windows: download from nodejs.org
+```
 
 ## Install Steps
 
@@ -36,20 +47,44 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright npm run instal
 npm run start -- --help
 ```
 
-## Manual Cookie Import
+### Post-Installation Verification
 
-If login fails, manually import cookies:
+```bash
+# Verify all commands are available
+npm run start -- --help
 
-1. Login to xiaohongshu.com in browser
-2. Open DevTools (F12) → Application → Cookies → xiaohongshu.com
-3. Copy key cookies (a1, web_session, etc.)
-4. Create `{baseDir}/cookies.json`:
-
-```json
-{
-  "cookies": [
-    { "name": "a1", "value": "YOUR_VALUE", "domain": ".xiaohongshu.com", "path": "/" },
-    { "name": "web_session", "value": "YOUR_VALUE", "domain": ".xiaohongshu.com", "path": "/" }
-  ]
-}
+# Verify browser installation
+npx playwright install --dry-run
 ```
+
+## Login
+
+The Profile architecture automatically manages session state. Simply run:
+
+```bash
+npm run login
+```
+
+This will:
+1. Create a user profile in `users/default/`
+2. Launch a browser with persistent context
+3. Auto-save cookies and localStorage to `users/default/user-data/`
+
+No manual cookie import needed.
+
+**Browser Management:**
+
+Browser instances persist after CLI exits and are reused automatically:
+
+```bash
+# Start browser instance
+npm run browser -- --start
+
+# Check status
+npm run browser -- --status
+
+# Stop all instances
+npm run browser -- --stop
+```
+
+See [Browser Management](#browser-management) for details.

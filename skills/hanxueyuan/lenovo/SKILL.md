@@ -1,56 +1,45 @@
 ---
-name: lenovo
-description: "Information assistant for 联想 Lenovo. Search products, news, financials, and official resources for 联想 Lenovo."
-metadata:
-  { "openclaw": { "emoji": "🏢", "version": "0.1.0", "author": "hanxueyuan", "tags": ["brand","lenovo","enterprise-info"] } }
+summary: "联想 Lenovo——全球最大 PC 制造商、收购 IBM PC 业务的中国科技全球化标杆"
+read_when:
+  - 查询联想 · Lenovo相关信息
+  - 了解相关行业发展
 ---
 
-# 联想 Lenovo — Information Assistant
+# 联想 · Lenovo
 
-Query products, news, stock prices, financial reports, and official resources for **联想 Lenovo**.
+---
 
-## About
+## 发展历程
 
-- **Company**: 联想 Lenovo
-- **Industry**: PCs, servers
-- **Official Website**: https://www.lenovo.com
+| 时期 | 关键事件 |
+|:----:|--------|
+| **1984 年** | 柳传志在北京中科院计算所创立 |
+| **2005 年** | 以 17.5 亿美元收购 IBM PC 业务（ThinkPad） |
+| **2014 年** | 收购摩托罗拉移动和 IBM x86 服务器 |
+| **2020s** | 全球 PC 市占第一 + AI PC 战略 |
 
-## What This Skill Does
+---
 
-When activated, this skill helps you:
+## 核心特点
 
-1. **Product Search** — Find and compare 联想 Lenovo products, pricing, and availability
-2. **News & Updates** — Get the latest news, press releases, and announcements
-3. **Financial Info** — Stock price, market cap, earnings reports (for public companies)
-4. **Official Resources** — Direct links to official websites, support pages, and documentation
-5. **Competitor Comparison** — Compare with competitors in the same industry
+PC（ThinkPad/Legion/Yoga）+ 服务器 + 手机（摩托罗拉）
 
-## Usage Examples
+## 核心优势
 
-- "What are the latest 联想 Lenovo products?"
-- "Show me 联想 Lenovo stock price"
-- "Compare 联想 Lenovo with competitors"
-- "Find 联想 Lenovo official support page"
-- "What's new at 联想 Lenovo?"
+全球 PC 市占第一（约 25%）+ ThinkPad 商务笔记本标杆
 
-## How It Works
+---
 
-This skill uses web search to fetch real-time information about 联想 Lenovo from:
-- Official website: https://www.lenovo.com
-- Financial data providers
-- News aggregators
-- Product databases
+## 关键数据
 
-## Instructions for Agent
+| 指标 | 数值 |
+|------|------|
+| 年营收 | 约 620 亿美元 |
+| PC 市占 | 全球第一 |
+| 员工数 | 约 77000 人 |
 
-When this skill is triggered:
-1. Identify the user's specific query about 联想 Lenovo
-2. Use web search tools to find current information
-3. Prioritize official sources (https://www.lenovo.com)
-4. Present results in a structured, easy-to-read format
-5. Include direct links to sources
+---
 
-## Author
+## 值得了解
 
-Created by hanxueyuan | Part of the Agent Commerce ecosystem
-License: MIT
+联想收购 ThinkPad 被认为是中国科技史上最成功的海外并购

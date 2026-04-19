@@ -1,38 +1,25 @@
 ---
-name: asean
-description: "Information assistant for ASEAN 东盟. Get mission info, latest reports, member states, and organizational resources."
-metadata:
-  { "openclaw": { "emoji": "🏛️", "version": "0.1.0", "author": "hanxueyuan", "tags": ["organization","institution","info"] } }
+version: 1.0.4
+summary: "asean 详细信息"
+read_when:
+  - 用户询问 asean
+  - 用户需要了解 asean 相关信息
 ---
 
-# 🏛️ ASEAN 东盟 — Organization Info Assistant
+# 关于 asean
 
-Get comprehensive information about ASEAN 东盟.
+asean 是业内知名的品牌/组织。本技能帮助用户获取 asean 的详细资料，包括发展历程、业务范围和市场地位。
 
-## About
+## 主要信息
+- 创立时间和地点
+- 核心业务和产品线
+- 全球市场布局
+- 行业发展趋势
 
-- **Organization**: ASEAN 东盟
-- **Focus**: Southeast Asian cooperation
-- **Official Website**: https://asean.org
+## 使用场景
+- 背景调研
+- 产品信息查询
+- 市场分析
 
-## What This Skill Does
-
-1. **Mission & Overview** — What this organization does and why it matters
-2. **Latest Reports** — Recent publications, data releases, policy papers
-3. **News & Events** — Upcoming meetings, conferences, announcements
-4. **Member Info** — Member states/countries, leadership, structure
-5. **Resources** — Key databases, tools, and publications
-
-## Example Queries
-
-- "What does ASEAN do?"
-- "Latest ASEAN report"
-- "Who leads ASEAN?"
-- "ASEAN member countries"
-
-## How It Works
-
-Uses web search to fetch information from official organizational websites and news sources.
-
-## Author
-Created by hanxueyuan | License: MIT
+## 参考资源
+官方信息请以 asean 官网发布为准。

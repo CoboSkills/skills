@@ -3,11 +3,16 @@
   "slug": "zero-to-launch",
   "displayName": "Zero-to-Launch",
   "latest": {
-    "version": "3.0.1",
-    "publishedAt": 1775703634794,
-    "commit": "https://github.com/openclaw/skills/commit/443b1d436de49098b8ce71da9e3ae946239e2ea1"
+    "version": "3.0.6",
+    "publishedAt": 1776310460331,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.1",
+      "publishedAt": 1775703634794,
+      "commit": "https://github.com/openclaw/skills/commit/443b1d436de49098b8ce71da9e3ae946239e2ea1"
+    },
     {
       "version": "3.0.0",
       "publishedAt": 1774682058280,

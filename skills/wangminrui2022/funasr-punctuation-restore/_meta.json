@@ -3,11 +3,16 @@
   "slug": "funasr-punctuation-restore",
   "displayName": "funasr-punctuation-restore",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1775746697044,
-    "commit": "https://github.com/openclaw/skills/commit/36544cc3c1c5037cb9520549fd6672577d355871"
+    "version": "1.0.5",
+    "publishedAt": 1776519431429,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1775746697044,
+      "commit": "https://github.com/openclaw/skills/commit/36544cc3c1c5037cb9520549fd6672577d355871"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774796609431,

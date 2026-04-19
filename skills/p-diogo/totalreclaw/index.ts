@@ -8,6 +8,8 @@
  *   - totalreclaw_export       -- export all memories (JSON or Markdown)
  *   - totalreclaw_status       -- check billing/subscription status
  *   - totalreclaw_consolidate  -- scan and merge near-duplicate memories
+ *   - totalreclaw_pin          -- pin a memory so auto-resolution can never supersede it
+ *   - totalreclaw_unpin        -- remove a pin, returning the memory to active status
  *   - totalreclaw_import_from  -- import memories from other tools (Mem0, MCP Memory, etc.)
  *   - totalreclaw_upgrade      -- create Stripe checkout for Pro upgrade
  *   - totalreclaw_migrate      -- migrate testnet memories to mainnet after Pro upgrade
@@ -30,7 +32,23 @@ import {
   generateContentFingerprint,
 } from './crypto.js';
 import { createApiClient, type StoreFactPayload } from './api-client.js';
-import { extractFacts, extractDebrief, EXTRACTION_SYSTEM_PROMPT, type ExtractedFact } from './extractor.js';
+import {
+  extractFacts,
+  extractDebrief,
+  isValidMemoryType,
+  parseEntity,
+  VALID_MEMORY_TYPES,
+  LEGACY_V0_MEMORY_TYPES,
+  VALID_MEMORY_SOURCES,
+  VALID_MEMORY_SCOPES,
+  EXTRACTION_SYSTEM_PROMPT,
+  extractFactsForCompaction,
+  type ExtractedFact,
+  type ExtractedEntity,
+  type MemoryType,
+  type MemorySource,
+  type MemoryScope,
+} from './extractor.js';
 import { initLLMClient, resolveLLMConfig, chatCompletion, generateEmbedding, getEmbeddingDims } from './llm-client.js';
 import { LSHHasher } from './lsh.js';
 import { rerank, cosineSimilarity, detectQueryIntent, INTENT_WEIGHTS, type RerankerCandidate } from './reranker.js';
@@ -44,10 +62,39 @@ import {
   STORE_DEDUP_MAX_CANDIDATES,
   type DecryptedCandidate,
 } from './consolidation.js';
-import { isSubgraphMode, getSubgraphConfig, encodeFactProtobuf, submitFactOnChain, submitFactBatchOnChain, deriveSmartAccountAddress, type FactPayload } from './subgraph-store.js';
-import { searchSubgraph, searchSubgraphBroadened, getSubgraphFactCount } from './subgraph-search.js';
+import { isSubgraphMode, getSubgraphConfig, encodeFactProtobuf, submitFactOnChain, submitFactBatchOnChain, deriveSmartAccountAddress, PROTOBUF_VERSION_V4, type FactPayload } from './subgraph-store.js';
+import {
+  DIGEST_TRAPDOOR,
+  buildCanonicalClaim,
+  computeEntityTrapdoor,
+  computeEntityTrapdoors,
+  isDigestBlob,
+  normalizeToV1Type,
+  readClaimFromBlob,
+  resolveDigestMode,
+  type DigestMode,
+} from './claims-helper.js';
+import {
+  maybeInjectDigest,
+  recompileDigest,
+  fetchAllActiveClaims,
+  isRecompileInProgress,
+  tryBeginRecompile,
+  endRecompile,
+} from './digest-sync.js';
+import {
+  detectAndResolveContradictions,
+  runWeightTuningLoop,
+  type ResolutionDecision as ContradictionDecision,
+} from './contradiction-sync.js';
+import { searchSubgraph, searchSubgraphBroadened, getSubgraphFactCount, fetchFactById } from './subgraph-search.js';
+import {
+  executePinOperation,
+  validatePinArgs,
+  type PinOpDeps,
+} from './pin.js';
 import { PluginHotCache, type HotFact } from './hot-cache-wrapper.js';
-import { CONFIG, setRecoveryPhraseOverride } from './config.js';
+import { CONFIG, setRecoveryPhraseOverride, setChainIdOverride } from './config.js';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -179,8 +226,9 @@ const AUTO_EXTRACT_EVERY_TURNS_ENV = CONFIG.extractInterval;
 // Hard cap on facts per extraction to prevent LLM over-extraction from dense conversations
 const MAX_FACTS_PER_EXTRACTION = 15;
 
-// Store-time near-duplicate detection (consolidation module)
-const STORE_DEDUP_ENABLED = CONFIG.storeDedupEnabled;
+// Store-time near-duplicate detection is always ON in v1.
+// The TOTALRECLAW_STORE_DEDUP env var was removed.
+const STORE_DEDUP_ENABLED = true;
 
 // One-time welcome-back message for returning Pro users (set during init, consumed by first before_agent_start)
 let welcomeBackMessage: string | null = null;
@@ -212,11 +260,34 @@ interface BillingCache {
   checked_at: number;
 }
 
+/**
+ * Apply the billing tier to the runtime chain override.
+ *
+ * Pro tier → chain 100 (Gnosis mainnet). Free tier (or unknown) stays on
+ * 84532 (Base Sepolia). The relay routes Pro UserOps to Gnosis, so the
+ * client MUST sign them against chain 100 — otherwise the bundler returns
+ * AA23 (invalid signature). See MCP's equivalent path in mcp/src/index.ts.
+ *
+ * Called from `readBillingCache` and `writeBillingCache` so that every cache
+ * read or write keeps the chain override in sync with the cached tier.
+ * Idempotent — calling with the same tier is a no-op.
+ */
+function syncChainIdFromTier(tier: string | undefined): void {
+  if (tier === 'pro') {
+    setChainIdOverride(100);
+  } else {
+    // Free or unknown → reset to the default free-tier chain.
+    setChainIdOverride(84532);
+  }
+}
+
 function readBillingCache(): BillingCache | null {
   try {
     if (!fs.existsSync(BILLING_CACHE_PATH)) return null;
     const raw = JSON.parse(fs.readFileSync(BILLING_CACHE_PATH, 'utf-8')) as BillingCache;
     if (!raw.checked_at || Date.now() - raw.checked_at > BILLING_CACHE_TTL) return null;
+    // Keep chain override in sync with persisted tier across process restarts.
+    syncChainIdFromTier(raw.tier);
     return raw;
   } catch {
     return null;
@@ -231,6 +302,9 @@ function writeBillingCache(cache: BillingCache): void {
   } catch {
     // Best-effort — don't block on cache write failure.
   }
+  // Sync chain override AFTER the write so in-process UserOp signing picks
+  // up the correct chain immediately, even if the disk write failed.
+  syncChainIdFromTier(cache.tier);
 }
 
 /**
@@ -804,7 +878,8 @@ async function searchForNearDuplicates(
       for (const result of results) {
         try {
           const docJson = decryptFromHex(result.encryptedBlob, encryptionKey);
-          const doc = JSON.parse(docJson) as { text: string; metadata?: Record<string, unknown> };
+          if (isDigestBlob(docJson)) continue;
+          const doc = readClaimFromBlob(docJson);
 
           let embedding: number[] | null = null;
           if (result.encryptedEmbedding) {
@@ -817,9 +892,7 @@ async function searchForNearDuplicates(
             id: result.id,
             text: doc.text,
             embedding,
-            importance: doc.metadata?.importance
-              ? Math.round((doc.metadata.importance as number) * 10)
-              : 5,
+            importance: doc.importance,
             decayScore: 5,
             createdAt: result.timestamp ? parseInt(result.timestamp, 10) * 1000 : Date.now(),
             version: 1,
@@ -836,7 +909,8 @@ async function searchForNearDuplicates(
       for (const candidate of candidates) {
         try {
           const docJson = decryptFromHex(candidate.encrypted_blob, encryptionKey);
-          const doc = JSON.parse(docJson) as { text: string; metadata?: Record<string, unknown> };
+          if (isDigestBlob(docJson)) continue;
+          const doc = readClaimFromBlob(docJson);
 
           let embedding: number[] | null = null;
           if (candidate.encrypted_embedding) {
@@ -849,9 +923,7 @@ async function searchForNearDuplicates(
             id: candidate.fact_id,
             text: doc.text,
             embedding,
-            importance: doc.metadata?.importance
-              ? Math.round((doc.metadata.importance as number) * 10)
-              : 5,
+            importance: doc.importance,
             decayScore: candidate.decay_score,
             createdAt: typeof candidate.timestamp === 'number'
               ? candidate.timestamp
@@ -888,6 +960,182 @@ async function searchForNearDuplicates(
 function encryptToHex(plaintext: string, key: Buffer): string {
   const b64 = encrypt(plaintext, key);
   return Buffer.from(b64, 'base64').toString('hex');
+}
+
+// Plugin v3.0.0 removed the legacy claim-format fallback. Write path
+// always emits Memory Taxonomy v1 JSON blobs. The logClaimFormatOnce
+// helper is gone along with TOTALRECLAW_CLAIM_FORMAT / TOTALRECLAW_TAXONOMY_VERSION.
+
+let _loggedDigestMode = false;
+function logDigestModeOnce(mode: DigestMode, logger: OpenClawPluginApi['logger']): void {
+  if (_loggedDigestMode) return;
+  _loggedDigestMode = true;
+  logger.info(`TotalReclaw: digest injection mode = ${mode}`);
+}
+
+/**
+ * How many active facts to pull into a digest recompilation.
+ * Digest compiler itself will apply DIGEST_CLAIM_CAP for the LLM path.
+ */
+const DIGEST_FETCH_LIMIT = 500;
+
+/**
+ * Schedule a background digest recompile. Fire-and-forget.
+ *
+ * The caller must check `!isRecompileInProgress()` before invoking.
+ * Errors are logged and swallowed; the guard flag is always released.
+ */
+function scheduleDigestRecompile(
+  previousClaimId: string | null,
+  logger: OpenClawPluginApi['logger'],
+): void {
+  if (!isRecompileInProgress()) {
+    if (!tryBeginRecompile()) return;
+  } else {
+    return;
+  }
+
+  const mode = resolveDigestMode();
+  const owner = subgraphOwner || userId;
+  const authKey = authKeyHex;
+  const encKey = encryptionKey;
+  const ownerForBatch = subgraphOwner ?? undefined;
+
+  if (!owner || !authKey || !encKey) {
+    endRecompile();
+    return;
+  }
+
+  // Capture llmFn from the current LLM config (cheap variant of the user's
+  // provider, already resolved by resolveLLMConfig).
+  const llmConfig = resolveLLMConfig();
+  const llmFn = llmConfig
+    ? async (prompt: string): Promise<string> => {
+        const out = await chatCompletion(
+          llmConfig,
+          [
+            { role: 'system', content: 'You return only valid JSON. No markdown fences, no commentary.' },
+            { role: 'user', content: prompt },
+          ],
+          { maxTokens: 800, temperature: 0 },
+        );
+        return out ?? '';
+      }
+    : null;
+
+  // Build the I/O deps closures. We capture the owner/auth/key values so the
+  // background task doesn't race with module-level state resets.
+  const fetchFn = () =>
+    fetchAllActiveClaims(
+      owner,
+      authKey,
+      encKey,
+      DIGEST_FETCH_LIMIT,
+      {
+        searchSubgraphBroadened: async (o, n, a) => searchSubgraphBroadened(o, n, a),
+        decryptFromHex: (hex, key) => decryptFromHex(hex, key),
+      },
+      logger,
+    );
+
+  const storeFn = async (canonicalClaimJson: string, compiledAt: string): Promise<void> => {
+    if (!isSubgraphMode()) {
+      // Self-hosted mode — store via the REST API.
+      if (!apiClient) throw new Error('apiClient not initialized');
+      const encryptedBlob = encryptToHex(canonicalClaimJson, encKey);
+      const contentFp = generateContentFingerprint(canonicalClaimJson, dedupKey!);
+      const payload: StoreFactPayload = {
+        id: crypto.randomUUID(),
+        timestamp: compiledAt,
+        encrypted_blob: encryptedBlob,
+        blind_indices: [DIGEST_TRAPDOOR],
+        decay_score: 10,
+        source: 'openclaw-plugin-digest',
+        content_fp: contentFp,
+        agent_id: 'openclaw-plugin-digest',
+      };
+      await apiClient.store(userId!, [payload], authKey);
+      return;
+    }
+
+    // Subgraph / managed-service mode — encrypt, encode, submit as a single-fact UserOp.
+    const encryptedBlob = encryptToHex(canonicalClaimJson, encKey);
+    const contentFp = generateContentFingerprint(canonicalClaimJson, dedupKey!);
+    const protobuf = encodeFactProtobuf({
+      id: crypto.randomUUID(),
+      timestamp: compiledAt,
+      owner,
+      encryptedBlob,
+      blindIndices: [DIGEST_TRAPDOOR],
+      decayScore: 10,
+      source: 'openclaw-plugin-digest',
+      contentFp,
+      agentId: 'openclaw-plugin-digest',
+      version: PROTOBUF_VERSION_V4,
+    });
+    const config = { ...getSubgraphConfig(), authKeyHex: authKey, walletAddress: ownerForBatch };
+    const result = await submitFactBatchOnChain([protobuf], config);
+    if (!result.success) {
+      throw new Error('Digest store UserOp did not succeed on-chain');
+    }
+  };
+
+  const tombstoneFn = async (claimId: string): Promise<void> => {
+    if (!isSubgraphMode()) {
+      if (apiClient) {
+        try { await apiClient.deleteFact(claimId, authKey); } catch { /* best-effort */ }
+      }
+      return;
+    }
+    const tombstone: FactPayload = {
+      id: claimId,
+      timestamp: new Date().toISOString(),
+      owner,
+      encryptedBlob: '00',
+      blindIndices: [],
+      decayScore: 0,
+      source: 'tombstone',
+      contentFp: '',
+      agentId: 'openclaw-plugin-digest',
+      version: PROTOBUF_VERSION_V4,
+    };
+    const protobuf = encodeFactProtobuf(tombstone);
+    const config = { ...getSubgraphConfig(), authKeyHex: authKey, walletAddress: ownerForBatch };
+    const result = await submitFactBatchOnChain([protobuf], config);
+    if (!result.success) {
+      throw new Error('Digest tombstone UserOp did not succeed on-chain');
+    }
+  };
+
+  // Slice 2f: run the weight-tuning loop as a fire-and-forget pre-compile step.
+  // This consumes any feedback.jsonl entries written since the last compile
+  // and nudges ~/.totalreclaw/weights.json, so the NEXT contradiction detection
+  // uses the adjusted weights. Rate-limited and idempotent — see
+  // runWeightTuningLoop for details. Failures are logged, never fatal.
+  void runWeightTuningLoop(Math.floor(Date.now() / 1000), logger).catch((err: unknown) => {
+    const msg = err instanceof Error ? err.message : String(err);
+    logger.warn(`Digest: tuning loop threw: ${msg}`);
+  });
+
+  void recompileDigest({
+    mode,
+    previousClaimId,
+    nowUnixSeconds: Math.floor(Date.now() / 1000),
+    deps: {
+      storeDigestClaim: storeFn,
+      tombstoneDigest: tombstoneFn,
+      fetchAllActiveClaimsFn: fetchFn,
+      llmFn,
+    },
+    logger,
+  })
+    .catch((err: unknown) => {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.warn(`Digest: background recompile threw: ${msg}`);
+    })
+    .finally(() => {
+      endRecompile();
+    });
 }
 
 /**
@@ -1079,7 +1327,8 @@ async function fetchExistingMemoriesForExtraction(
       for (const r of rawResults) {
         try {
           const docJson = decryptFromHex(r.encryptedBlob, encryptionKey);
-          const doc = JSON.parse(docJson) as { text: string };
+          if (isDigestBlob(docJson)) continue;
+          const doc = readClaimFromBlob(docJson);
           results.push({ id: r.id, text: doc.text });
         } catch { /* skip undecryptable */ }
       }
@@ -1088,7 +1337,8 @@ async function fetchExistingMemoriesForExtraction(
       for (const c of candidates) {
         try {
           const docJson = decryptFromHex(c.encrypted_blob, encryptionKey);
-          const doc = JSON.parse(docJson) as { text: string };
+          if (isDigestBlob(docJson)) continue;
+          const doc = readClaimFromBlob(docJson);
           results.push({ id: c.fact_id, text: doc.text });
         } catch { /* skip undecryptable */ }
       }
@@ -1168,9 +1418,19 @@ function filterByImportance(
     }
   }
 
-  if (dropped > 0) {
+  // Phase 2.2.5: always log the filter outcome so the agent_end path can
+  // distinguish "LLM returned 0 facts" from "LLM returned N facts all dropped
+  // below threshold" from "LLM returned N facts, all kept". Prior to 2.2.5
+  // this only logged on drops, which made empty-input invisible.
+  if (facts.length === 0) {
+    logger.info('Importance filter: input=0 (nothing to filter)');
+  } else if (dropped > 0) {
     logger.info(
       `Importance filter: dropped ${dropped}/${facts.length} facts below threshold ${MIN_IMPORTANCE_THRESHOLD}`,
+    );
+  } else {
+    logger.info(
+      `Importance filter: kept all ${facts.length} facts (threshold ${MIN_IMPORTANCE_THRESHOLD})`,
     );
   }
 
@@ -1235,15 +1495,20 @@ async function storeExtractedFacts(
   const pendingPayloads: Buffer[] = []; // Batched subgraph payloads
   let preparedForSubgraph = 0;
 
+  // Plugin v3.0.0: always emit Memory Taxonomy v1 JSON blobs. The
+  // TOTALRECLAW_TAXONOMY_VERSION opt-in and the TOTALRECLAW_CLAIM_FORMAT
+  // legacy fallback have both been retired — v1 is the single write path.
+
   for (const fact of dedupedFacts) {
     try {
       const blindIndices = generateBlindIndices(fact.text);
+      const entityTrapdoors = computeEntityTrapdoors(fact.entities);
 
       // Use pre-computed embedding result if available.
       const embeddingResult = embeddingResultMap.get(fact.text) ?? null;
       const allIndices = embeddingResult
-        ? [...blindIndices, ...embeddingResult.lshBuckets]
-        : blindIndices;
+        ? [...blindIndices, ...embeddingResult.lshBuckets, ...entityTrapdoors]
+        : [...blindIndices, ...entityTrapdoors];
 
       // LLM-guided dedup: handle UPDATE/DELETE/NOOP actions.
       if (fact.action === 'NOOP') {
@@ -1265,6 +1530,7 @@ async function storeExtractedFacts(
             source: 'tombstone',
             contentFp: '',
             agentId: 'openclaw-plugin-auto',
+            version: PROTOBUF_VERSION_V4,
           };
           pendingPayloads.push(encodeFactProtobuf(tombstone));
           logger.info(`LLM dedup: DELETE — queued tombstone for ${fact.existingFactId}`);
@@ -1293,6 +1559,7 @@ async function storeExtractedFacts(
             source: 'tombstone',
             contentFp: '',
             agentId: 'openclaw-plugin-auto',
+            version: PROTOBUF_VERSION_V4,
           };
           pendingPayloads.push(encodeFactProtobuf(tombstone));
           logger.info(`LLM dedup: UPDATE — queued tombstone for ${fact.existingFactId}, storing replacement`);
@@ -1343,6 +1610,7 @@ async function storeExtractedFacts(
               source: 'tombstone',
               contentFp: '',
               agentId: 'openclaw-plugin-auto',
+              version: PROTOBUF_VERSION_V4,
             };
             pendingPayloads.push(encodeFactProtobuf(tombstone));
             logger.info(
@@ -1365,22 +1633,134 @@ async function storeExtractedFacts(
         }
       }
 
-      const doc = {
-        text: fact.text,
-        metadata: {
-          type: fact.type,
-          importance: effectiveImportance / 10,
-          source: 'auto-extraction',
-          created_at: new Date().toISOString(),
-        },
-      };
+      const factSource = sourceOverride || 'auto-extraction';
 
-      const encryptedBlob = encryptToHex(JSON.stringify(doc), encryptionKey);
+      // Plugin v3.0.0: always build a Memory Taxonomy v1 JSON blob. The
+      // blob is decryptable by `readClaimFromBlob` which prefers v1 →
+      // falls back to v0 short-key → then plugin-legacy {text, metadata}
+      // for pre-v3 vault entries.
+      //
+      // We build it BEFORE the on-chain write so Phase 2 contradiction
+      // detection can inspect the same canonical Claim the write path will
+      // actually store. The string is encrypted byte-identically below.
+      //
+      // Defensive: if the extraction hook didn't populate `fact.source`
+      // (e.g. explicit tool path, legacy caller), default to 'user-inferred'
+      // so v1 schema validation passes.
+      const factForBlob: ExtractedFact = fact.source
+        ? fact
+        : { ...fact, source: 'user-inferred' };
+      const blobPlaintext = buildCanonicalClaim({
+        fact: factForBlob,
+        importance: effectiveImportance,
+        sourceAgent: factSource,
+      });
 
-      const contentFp = generateContentFingerprint(fact.text, dedupKey);
       const factId = crypto.randomUUID();
 
-      const factSource = sourceOverride || 'auto-extraction';
+      // Phase 2 Slice 2d: contradiction detection + auto-resolution.
+      //
+      // Runs only when the canonical Claim format is active (legacy blobs
+      // carry no entity refs, so there is nothing to check), only for
+      // Subgraph / managed-service mode (self-hosted contradiction handling
+      // can come later), and only when the new fact has entities. The helper
+      // is a no-op in all other cases.
+      //
+      // Returns one decision per candidate contradicting claim:
+      //   - supersede_existing → queue a tombstone + proceed with the new write
+      //   - skip_new → do not write the new fact; record the skip reason
+      //   - empty list → no contradiction, proceed unchanged
+      //
+      // On any error (subgraph, decrypt, WASM), the helper returns [] and we
+      // fall back to Phase 1 behaviour.
+      let contradictionSkipNew = false;
+      if (
+        isSubgraphMode() &&
+        fact.entities &&
+        fact.entities.length > 0 &&
+        embeddingResult
+      ) {
+        const newClaimObj = JSON.parse(blobPlaintext) as Record<string, unknown>;
+        let decisions: ContradictionDecision[] = [];
+        try {
+          decisions = await detectAndResolveContradictions({
+            newClaim: newClaimObj,
+            newClaimId: factId,
+            newEmbedding: embeddingResult.embedding,
+            subgraphOwner: subgraphOwner || userId!,
+            authKeyHex: authKeyHex!,
+            encryptionKey: encryptionKey!,
+            deps: {
+              searchSubgraph: (owner, trapdoors, maxCandidates, authKey) =>
+                searchSubgraph(owner, trapdoors, maxCandidates, authKey).then((rows) =>
+                  rows.map((r) => ({
+                    id: r.id,
+                    encryptedBlob: r.encryptedBlob,
+                    encryptedEmbedding: r.encryptedEmbedding ?? null,
+                    timestamp: r.timestamp,
+                    isActive: r.isActive,
+                  })),
+                ),
+              decryptFromHex: (hex, key) => decryptFromHex(hex, key),
+            },
+            logger: {
+              info: (m) => logger.info(m),
+              warn: (m) => logger.warn(m),
+            },
+          });
+        } catch (crErr) {
+          // detectAndResolveContradictions is supposed to never throw — if
+          // it does, we log and continue with Phase 1 behaviour.
+          const msg = crErr instanceof Error ? crErr.message : String(crErr);
+          logger.warn(`Contradiction detection failed (proceeding with store): ${msg}`);
+          decisions = [];
+        }
+
+        for (const decision of decisions) {
+          if (decision.action === 'supersede_existing') {
+            const tombstone: FactPayload = {
+              id: decision.existingFactId,
+              timestamp: new Date().toISOString(),
+              owner: subgraphOwner || userId!,
+              encryptedBlob: '00',
+              blindIndices: [],
+              decayScore: 0,
+              source: 'tombstone',
+              contentFp: '',
+              agentId: 'openclaw-plugin-auto',
+              version: PROTOBUF_VERSION_V4,
+            };
+            pendingPayloads.push(encodeFactProtobuf(tombstone));
+            superseded++;
+            logger.info(
+              `Auto-resolve: queued supersede for ${decision.existingFactId.slice(0, 10)}… ` +
+                `(sim=${decision.similarity.toFixed(3)}, entity=${decision.entityId})`,
+            );
+          } else if (decision.action === 'skip_new') {
+            if (decision.reason === 'existing_pinned') {
+              logger.warn(
+                `Auto-resolve: skipped new write — existing claim ${decision.existingFactId.slice(0, 10)}… is pinned ` +
+                  `(sim=${decision.similarity.toFixed(3)}, entity=${decision.entityId})`,
+              );
+            } else {
+              logger.info(
+                `Auto-resolve: skipped new write — existing ${decision.existingFactId.slice(0, 10)}… wins ` +
+                  `(sim=${decision.similarity.toFixed(3)}, entity=${decision.entityId})`,
+              );
+            }
+            contradictionSkipNew = true;
+          }
+        }
+      }
+
+      if (contradictionSkipNew) {
+        skipped++;
+        continue;
+      }
+
+      const encryptedBlob = encryptToHex(blobPlaintext, encryptionKey);
+      const contentFp = generateContentFingerprint(fact.text, dedupKey);
+
       if (isSubgraphMode()) {
         const protobuf = encodeFactProtobuf({
           id: factId,
@@ -1392,6 +1772,7 @@ async function storeExtractedFacts(
           source: factSource,
           contentFp: contentFp,
           agentId: 'openclaw-plugin-auto',
+          version: PROTOBUF_VERSION_V4,
           encryptedEmbedding: embeddingResult?.encryptedEmbedding,
         });
         pendingPayloads.push(protobuf);
@@ -1426,22 +1807,21 @@ async function storeExtractedFacts(
     }
   }
 
-  // Batch-submit subgraph payloads in UserOps of up to 15 facts each.
-  // Submitting all facts in a single UserOp exceeds gas limits for large imports.
-  // Each batch awaits full receipt confirmation (up to 120s) before proceeding,
-  // so no inter-batch delay is needed — the nonce is consumed on-chain before
-  // the next batch fetches it.
-  const BATCH_USEROP_SIZE = 15;
+  // Submit subgraph payloads one fact at a time (sequential single-call UserOps).
+  // Batch executeBatch UserOps have persistent gas estimation issues on Base Sepolia
+  // that cause on-chain reverts. Single-fact UserOps use the simpler submitFactOnChain
+  // path which works reliably (same path as totalreclaw_remember). Each submission
+  // polls for receipt (120s) before proceeding, so nonce is consumed before the next.
   let batchError: string | undefined;
   if (pendingPayloads.length > 0 && isSubgraphMode()) {
     const batchConfig = { ...getSubgraphConfig(), authKeyHex: authKeyHex!, walletAddress: subgraphOwner ?? undefined };
-    for (let i = 0; i < pendingPayloads.length; i += BATCH_USEROP_SIZE) {
-      const slice = pendingPayloads.slice(i, i + BATCH_USEROP_SIZE);
+    for (let i = 0; i < pendingPayloads.length; i++) {
+      const slice = [pendingPayloads[i]]; // Single fact per UserOp
       try {
         const result = await submitFactBatchOnChain(slice, batchConfig);
         if (result.success) {
           stored += slice.length;
-          logger.info(`Batch ${Math.floor(i / BATCH_USEROP_SIZE) + 1}: submitted ${result.batchSize} payloads (tx=${result.txHash.slice(0, 10)}…)`);
+          logger.info(`Fact ${i + 1}/${pendingPayloads.length}: submitted on-chain (tx=${result.txHash.slice(0, 10)}…)`);
         } else {
           batchError = `On-chain batch submission failed (tx=${result.txHash.slice(0, 10)}…)`;
           logger.warn(batchError);
@@ -2158,149 +2538,154 @@ const plugin = {
             },
             type: {
               type: 'string',
-              enum: ['fact', 'preference', 'decision', 'episodic', 'goal', 'context', 'summary'],
-              description: 'The kind of memory (default: fact)',
+              enum: [...VALID_MEMORY_TYPES, ...LEGACY_V0_MEMORY_TYPES],
+              description:
+                'Memory Taxonomy v1 type: claim, preference, directive, commitment, episode, summary. ' +
+                'Use "claim" for factual assertions and decisions (populate `reasoning` with the why clause). ' +
+                'Use "directive" for imperative rules ("always X", "never Y"), "commitment" for future intent, ' +
+                'and "episode" for notable events. Legacy v0 tokens (fact, decision, episodic, goal, context, ' +
+                'rule) are silently coerced to their v1 equivalents. Default: claim.',
+            },
+            source: {
+              type: 'string',
+              enum: [...VALID_MEMORY_SOURCES],
+              description:
+                'v1 provenance tag. "user" = user explicitly stated it, "user-inferred" = inferred from user ' +
+                'signals, "assistant" = assistant-authored (downgrade unless user affirmed), "external" / ' +
+                '"derived" = rare. Explicit remembers default to "user".',
+            },
+            scope: {
+              type: 'string',
+              enum: [...VALID_MEMORY_SCOPES],
+              description:
+                'v1 life-domain scope: work, personal, health, family, creative, finance, misc, unspecified. ' +
+                'Default: unspecified.',
+            },
+            reasoning: {
+              type: 'string',
+              description:
+                'For type=claim expressing a decision, the WHY clause ("because Y"). Max 256 chars. ' +
+                'Omit for non-decision claims.',
+              maxLength: 256,
             },
             importance: {
               type: 'number',
               minimum: 1,
               maximum: 10,
-              description: 'Importance score 1-10 (default: 5)',
+              description: 'Importance score 1-10 (default: 8 for explicit remember)',
+            },
+            entities: {
+              type: 'array',
+              description:
+                'Named entities this memory is about (people, projects, tools, companies, concepts, places). ' +
+                'Supplying entities enables Phase 2 contradiction detection against existing facts about the same entity. ' +
+                'Omit if unclear — a best-effort fallback will still store the memory.',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string' },
+                  type: {
+                    type: 'string',
+                    enum: ['person', 'project', 'tool', 'company', 'concept', 'place'],
+                  },
+                  role: { type: 'string' },
+                },
+                required: ['name', 'type'],
+                additionalProperties: false,
+              },
             },
           },
           required: ['text'],
           additionalProperties: false,
         },
-        async execute(_toolCallId: string, params: { text: string; type?: string; importance?: number }) {
+        async execute(
+          _toolCallId: string,
+          params: {
+            text: string;
+            type?: string;
+            source?: string;
+            scope?: string;
+            reasoning?: string;
+            importance?: number;
+            entities?: Array<{ name: string; type: string; role?: string }>;
+          },
+        ) {
           try {
             await requireFullSetup(api.logger);
 
-            const memoryType = params.type ?? 'fact';
-            let importance = params.importance ?? 5;
+            // v1 taxonomy: route explicit remembers through the same canonical
+            // store path that auto-extraction uses (`storeExtractedFacts`). This
+            // emits a Memory Taxonomy v1 JSON blob, generates entity trapdoors,
+            // and runs through the Phase 2 contradiction-resolution pipeline.
+            //
+            // Accept legacy v0 tokens on input and coerce to v1 via
+            // `normalizeToV1Type` so agents that still emit the pre-v3
+            // taxonomy keep working.
+            const rawType = typeof params.type === 'string' ? params.type.toLowerCase() : 'claim';
+            const memoryType: MemoryType = isValidMemoryType(rawType)
+              ? rawType
+              : normalizeToV1Type(rawType);
 
-            // Generate blind indices for server-side search.
-            const blindIndices = generateBlindIndices(params.text);
+            // Source defaults to 'user' for explicit remembers (the user is
+            // the author by definition). Ignored if the caller passes an
+            // invalid value.
+            const rawSource = typeof params.source === 'string' ? params.source.toLowerCase() : 'user';
+            const memorySource: MemorySource =
+              (VALID_MEMORY_SOURCES as readonly string[]).includes(rawSource)
+                ? (rawSource as MemorySource)
+                : 'user';
 
-            // Generate embedding + LSH bucket hashes (PoC v2).
-            // Falls back to word-only indices if embedding generation fails.
-            const embeddingResult = await generateEmbeddingAndLSH(params.text, api.logger);
+            const rawScope = typeof params.scope === 'string' ? params.scope.toLowerCase() : 'unspecified';
+            const memoryScope: MemoryScope =
+              (VALID_MEMORY_SCOPES as readonly string[]).includes(rawScope)
+                ? (rawScope as MemoryScope)
+                : 'unspecified';
 
-            // Merge LSH bucket hashes into blind indices.
-            const allIndices = embeddingResult
-              ? [...blindIndices, ...embeddingResult.lshBuckets]
-              : blindIndices;
+            const reasoning =
+              typeof params.reasoning === 'string' && params.reasoning.length > 0
+                ? params.reasoning.slice(0, 256)
+                : undefined;
 
-            // Store-time dedup: for explicit remember, ALWAYS supersede
-            // (user explicitly wants this stored — just remove the old one).
-            let supersededId: string | undefined;
-            if (STORE_DEDUP_ENABLED && embeddingResult) {
-              const dupResult = await searchForNearDuplicates(
-                params.text,
-                embeddingResult.embedding,
-                allIndices,
-                api.logger,
-              );
-              if (dupResult) {
-                // Inherit higher importance from existing fact.
-                importance = Math.max(importance, dupResult.match.decayScore);
-                supersededId = dupResult.match.id;
+            // Explicit remember defaults to importance 8 (above auto-extraction's
+            // typical 6-7), so store-time dedup's shouldSupersede prefers the
+            // explicit call when it collides with an auto-extracted claim.
+            const importance = Math.max(1, Math.min(10, params.importance ?? 8));
 
-                if (isSubgraphMode()) {
-                  try {
-                    const tombConfig = { ...getSubgraphConfig(), authKeyHex: authKeyHex!, walletAddress: subgraphOwner ?? undefined };
-                    const tombstone: FactPayload = {
-                      id: dupResult.match.id,
-                      timestamp: new Date().toISOString(),
-                      owner: subgraphOwner || userId!,
-                      encryptedBlob: '00',
-                      blindIndices: [],
-                      decayScore: 0,
-                      source: 'tombstone',
-                      contentFp: '',
-                      agentId: 'openclaw-plugin',
-                    };
-                    const tombProtobuf = encodeFactProtobuf(tombstone);
-                    await submitFactOnChain(tombProtobuf, tombConfig);
-                    api.logger.info(
-                      `Remember dedup: superseded ${dupResult.match.id} on-chain (sim=${dupResult.similarity.toFixed(3)})`,
-                    );
-                  } catch (tombErr) {
-                    api.logger.warn(
-                      `Remember dedup: failed to tombstone ${dupResult.match.id}: ${tombErr instanceof Error ? tombErr.message : String(tombErr)}`,
-                    );
-                    supersededId = undefined;
-                  }
-                } else if (apiClient && authKeyHex) {
-                  try {
-                    await apiClient.deleteFact(dupResult.match.id, authKeyHex);
-                    api.logger.info(
-                      `Remember dedup: superseded ${dupResult.match.id} (sim=${dupResult.similarity.toFixed(3)})`,
-                    );
-                  } catch (delErr) {
-                    api.logger.warn(
-                      `Remember dedup: failed to delete superseded fact ${dupResult.match.id}: ${delErr instanceof Error ? delErr.message : String(delErr)}`,
-                    );
-                    supersededId = undefined; // Don't report supersession if delete failed
-                  }
-                }
-              }
-            }
+            const validatedEntities: ExtractedEntity[] = Array.isArray(params.entities)
+              ? params.entities
+                  .map((e) => parseEntity(e))
+                  .filter((e): e is ExtractedEntity => e !== null)
+              : [];
 
-            // Build the document JSON that will be encrypted.
-            const doc = {
-              text: params.text,
-              metadata: {
-                type: memoryType,
-                importance: importance / 10, // normalise to 0-1 range
-                source: 'explicit',
-                created_at: new Date().toISOString(),
-              },
+            const fact: ExtractedFact = {
+              text: params.text.slice(0, 512),
+              type: memoryType,
+              source: memorySource,
+              scope: memoryScope,
+              reasoning,
+              importance,
+              action: 'ADD',
+              confidence: 1.0, // user explicitly asked to remember — highest confidence
             };
+            if (validatedEntities.length > 0) fact.entities = validatedEntities;
 
-            // Encrypt the document.
-            const encryptedBlob = encryptToHex(JSON.stringify(doc), encryptionKey!);
+            const stored = await storeExtractedFacts([fact], api.logger, 'explicit');
+            api.logger.info(
+              `totalreclaw_remember: routed to storeExtractedFacts (stored=${stored}, entities=${validatedEntities.length})`,
+            );
 
-            // Generate content fingerprint for dedup.
-            const contentFp = generateContentFingerprint(params.text, dedupKey!);
-
-            // Generate a unique fact ID.
-            const factId = crypto.randomUUID();
-
-            // Build the payload matching the server's FactJSON schema.
-            const factPayload: StoreFactPayload = {
-              id: factId,
-              timestamp: new Date().toISOString(),
-              encrypted_blob: encryptedBlob,
-              blind_indices: allIndices,
-              decay_score: importance,
-              source: 'explicit',
-              content_fp: contentFp,
-              agent_id: 'openclaw-plugin',
-              encrypted_embedding: embeddingResult?.encryptedEmbedding,
-            };
-
-            if (isSubgraphMode()) {
-              // Subgraph mode: encode as Protobuf and submit on-chain via relay UserOp
-              const config = { ...getSubgraphConfig(), authKeyHex: authKeyHex!, walletAddress: subgraphOwner ?? undefined };
-              const protobuf = encodeFactProtobuf({
-                id: factId,
-                timestamp: new Date().toISOString(),
-                owner: subgraphOwner || userId!,
-                encryptedBlob: encryptedBlob,
-                blindIndices: allIndices,
-                decayScore: importance,
-                source: 'explicit',
-                contentFp: contentFp,
-                agentId: 'openclaw-plugin',
-                encryptedEmbedding: embeddingResult?.encryptedEmbedding,
-              });
-              const result = await submitFactOnChain(protobuf, config);
-              if (!result.success) {
-                throw new Error(`On-chain submission failed (tx=${result.txHash?.slice(0, 10) || 'none'}…)`);
-              }
-              api.logger.info(`totalreclaw_remember: stored on-chain (tx=${result.txHash.slice(0, 10)}…)`);
-            } else {
-              await apiClient!.store(userId!, [factPayload], authKeyHex!);
+            if (stored === 0) {
+              // Dedup or supersession consumed the write. Treat as success from
+              // the user's perspective — the memory's content is already in the
+              // vault (possibly under a different ID).
+              return {
+                content: [
+                  {
+                    type: 'text',
+                    text: 'Memory noted (matched existing content in vault).',
+                  },
+                ],
+              };
             }
 
             return {
@@ -2406,7 +2791,8 @@ const plugin = {
               for (const result of subgraphResults) {
                 try {
                   const docJson = decryptFromHex(result.encryptedBlob, encryptionKey!);
-                  const doc = JSON.parse(docJson) as { text: string; metadata?: Record<string, unknown> };
+                  if (isDigestBlob(docJson)) continue;
+                  const doc = readClaimFromBlob(docJson);
 
                   let decryptedEmbedding: number[] | undefined;
                   if (result.encryptedEmbedding) {
@@ -2419,7 +2805,6 @@ const plugin = {
                     }
                   }
 
-                  // Re-embed if stored dimension differs from current model
                   if (decryptedEmbedding && decryptedEmbedding.length !== getEmbeddingDims()) {
                     try {
                       decryptedEmbedding = await generateEmbedding(doc.text);
@@ -2432,13 +2817,17 @@ const plugin = {
                     id: result.id,
                     text: doc.text,
                     embedding: decryptedEmbedding,
-                    importance: (doc.metadata?.importance as number) ?? 0.5,
+                    importance: doc.importance / 10,
                     createdAt: result.timestamp ? parseInt(result.timestamp, 10) : undefined,
+                    // Retrieval v2 Tier 1: surface v1 source so applySourceWeights
+                    // can multiply the final RRF score by the source weight.
+                    source: typeof doc.metadata?.source === 'string' ? doc.metadata.source : undefined,
                   });
 
                   metaMap.set(result.id, {
                     metadata: doc.metadata ?? {},
-                    timestamp: Date.now(), // Subgraph doesn't return ms timestamp; use current
+                    timestamp: Date.now(),
+                    category: doc.category,
                   });
                 } catch {
                   // Skip candidates we cannot decrypt.
@@ -2481,7 +2870,8 @@ const plugin = {
               for (const candidate of candidates) {
                 try {
                   const docJson = decryptFromHex(candidate.encrypted_blob, encryptionKey!);
-                  const doc = JSON.parse(docJson) as { text: string; metadata?: Record<string, unknown> };
+                  if (isDigestBlob(docJson)) continue;
+                  const doc = readClaimFromBlob(docJson);
 
                   let decryptedEmbedding: number[] | undefined;
                   if (candidate.encrypted_embedding) {
@@ -2494,7 +2884,6 @@ const plugin = {
                     }
                   }
 
-                  // Re-embed if stored dimension differs from current model
                   if (decryptedEmbedding && decryptedEmbedding.length !== getEmbeddingDims()) {
                     try {
                       decryptedEmbedding = await generateEmbedding(doc.text);
@@ -2507,15 +2896,17 @@ const plugin = {
                     id: candidate.fact_id,
                     text: doc.text,
                     embedding: decryptedEmbedding,
-                    importance: (doc.metadata?.importance as number) ?? 0.5,
+                    importance: doc.importance / 10,
                     createdAt: typeof candidate.timestamp === 'number'
                       ? candidate.timestamp / 1000
                       : new Date(candidate.timestamp).getTime() / 1000,
+                    source: typeof doc.metadata?.source === 'string' ? doc.metadata.source : undefined,
                   });
 
                   metaMap.set(candidate.fact_id, {
                     metadata: doc.metadata ?? {},
                     timestamp: candidate.timestamp,
+                    category: doc.category,
                   });
                 } catch {
                   // Skip candidates we cannot decrypt (e.g. corrupted data).
@@ -2531,6 +2922,7 @@ const plugin = {
               rerankerCandidates,
               k,
               INTENT_WEIGHTS[queryIntent],
+              /* applySourceWeights (Retrieval v2 Tier 1) */ true,
             );
 
             if (reranked.length === 0) {
@@ -2562,7 +2954,8 @@ const plugin = {
                 ? ` (importance: ${Math.round((meta.metadata.importance as number) * 10)}/10)`
                 : '';
               const age = meta ? relativeTime(meta.timestamp) : '';
-              return `${i + 1}. ${m.text}${imp} -- ${age} [ID: ${m.id}]`;
+              const typeTag = meta?.category ? `[${meta.category}] ` : '';
+              return `${i + 1}. ${typeTag}${m.text}${imp} -- ${age} [ID: ${m.id}]`;
             });
 
             const formatted = lines.join('\n');
@@ -2627,6 +3020,7 @@ const plugin = {
                 source: 'tombstone',
                 contentFp: '',
                 agentId: 'openclaw-plugin',
+                version: PROTOBUF_VERSION_V4,
               };
               const protobuf = encodeFactProtobuf(tombstone);
               const result = await submitFactOnChain(protobuf, config);
@@ -2741,11 +3135,12 @@ const plugin = {
                     let hexBlob = fact.encryptedBlob;
                     if (hexBlob.startsWith('0x')) hexBlob = hexBlob.slice(2);
                     const docJson = decryptFromHex(hexBlob, encryptionKey!);
-                    const doc = JSON.parse(docJson) as { text: string; metadata?: Record<string, unknown> };
+                    if (isDigestBlob(docJson)) continue;
+                    const doc = readClaimFromBlob(docJson);
                     allFacts.push({
                       id: fact.id,
                       text: doc.text,
-                      metadata: doc.metadata ?? {},
+                      metadata: doc.metadata,
                       created_at: new Date(parseInt(fact.timestamp) * 1000).toISOString(),
                     });
                   } catch {
@@ -2767,11 +3162,12 @@ const plugin = {
                 for (const fact of page.facts) {
                   try {
                     const docJson = decryptFromHex(fact.encrypted_blob, encryptionKey!);
-                    const doc = JSON.parse(docJson) as { text: string; metadata?: Record<string, unknown> };
+                    if (isDigestBlob(docJson)) continue;
+                    const doc = readClaimFromBlob(docJson);
                     allFacts.push({
                       id: fact.id,
                       text: doc.text,
-                      metadata: doc.metadata ?? {},
+                      metadata: doc.metadata,
                       created_at: fact.created_at,
                     });
                   } catch {
@@ -2959,11 +3355,10 @@ const plugin = {
               for (const fact of page.facts) {
                 try {
                   const docJson = decryptFromHex(fact.encrypted_blob, encryptionKey);
-                  const doc = JSON.parse(docJson) as { text: string; metadata?: Record<string, unknown> };
+                  if (isDigestBlob(docJson)) continue;
+                  const doc = readClaimFromBlob(docJson);
 
                   let embedding: number[] | null = null;
-                  // ExportedFact does not include encrypted_embedding — generate it on-the-fly.
-                  // For consolidation we need embeddings, so generate them.
                   try {
                     embedding = await generateEmbedding(doc.text);
                   } catch { /* skip — fact will not be clustered */ }
@@ -2972,9 +3367,7 @@ const plugin = {
                     id: fact.id,
                     text: doc.text,
                     embedding,
-                    importance: doc.metadata?.importance
-                      ? Math.round((doc.metadata.importance as number) * 10)
-                      : 5,
+                    importance: doc.importance,
                     decayScore: fact.decay_score,
                     createdAt: new Date(fact.created_at).getTime(),
                     version: fact.version,
@@ -3062,6 +3455,205 @@ const plugin = {
         },
       },
       { name: 'totalreclaw_consolidate' },
+    );
+
+    // ---------------------------------------------------------------
+    // Helper: build PinOpDeps bound to the live plugin state
+    // ---------------------------------------------------------------
+    // Wires the pure pin/unpin operation to the managed-service transport +
+    // crypto layer. Mirrors MCP's buildPinDepsFromState and Python's
+    // _change_claim_status argument plumbing.
+    const buildPinDeps = (): PinOpDeps => {
+      const owner = subgraphOwner || userId || '';
+      const config = {
+        ...getSubgraphConfig(),
+        authKeyHex: authKeyHex!,
+        walletAddress: subgraphOwner ?? undefined,
+      };
+      return {
+        owner,
+        sourceAgent: 'openclaw-plugin',
+        fetchFactById: (factId: string) => fetchFactById(owner, factId, authKeyHex!),
+        decryptBlob: (hex: string) => decryptFromHex(hex, encryptionKey!),
+        encryptBlob: (plaintext: string) => encryptToHex(plaintext, encryptionKey!),
+        submitBatch: async (payloads: Buffer[]) => {
+          const result = await submitFactBatchOnChain(payloads, config);
+          return { txHash: result.txHash, success: result.success };
+        },
+        generateIndices: async (text: string, entityNames: string[]) => {
+          if (!text) return { blindIndices: [] };
+          const wordIndices = generateBlindIndices(text);
+          let lshIndices: string[] = [];
+          let encryptedEmbedding: string | undefined;
+          try {
+            const embedding = await generateEmbedding(text);
+            const hasher = getLSHHasher(api.logger);
+            if (hasher) lshIndices = hasher.hash(embedding);
+            encryptedEmbedding = encryptToHex(JSON.stringify(embedding), encryptionKey!);
+          } catch {
+            // Best-effort: word + entity trapdoors alone still surface the claim.
+          }
+          const entityTrapdoors = entityNames.map((n) => computeEntityTrapdoor(n));
+          return {
+            blindIndices: [...wordIndices, ...lshIndices, ...entityTrapdoors],
+            encryptedEmbedding,
+          };
+        },
+      };
+    };
+
+    // ---------------------------------------------------------------
+    // Tool: totalreclaw_pin
+    // ---------------------------------------------------------------
+
+    api.registerTool(
+      {
+        name: 'totalreclaw_pin',
+        label: 'Pin',
+        description:
+          'Pin a memory so the auto-resolution engine will never override or supersede it. ' +
+          "Use when the user explicitly confirms a claim is still valid after you or another agent " +
+          "tried to retract/contradict it (e.g. 'wait, I still use Vim sometimes'). " +
+          'Takes fact_id (from a prior recall result). Pinning is idempotent — pinning an already-pinned ' +
+          'claim is a no-op. Cross-device: the pin propagates via the on-chain supersession chain.',
+        parameters: {
+          type: 'object',
+          properties: {
+            fact_id: {
+              type: 'string',
+              description: 'The ID of the fact to pin (from a totalreclaw_recall result).',
+            },
+            reason: {
+              type: 'string',
+              description: 'Optional human-readable reason for pinning (logged locally for tuning).',
+            },
+          },
+          required: ['fact_id'],
+          additionalProperties: false,
+        },
+        async execute(_toolCallId: string, params: Record<string, unknown>) {
+          try {
+            await requireFullSetup(api.logger);
+            if (!isSubgraphMode()) {
+              return {
+                content: [{
+                  type: 'text',
+                  text: 'Pin/unpin is only supported with the managed service. Self-hosted mode does not yet implement the status-flip supersession flow.',
+                }],
+              };
+            }
+            const validation = validatePinArgs(params);
+            if (!validation.ok) {
+              return { content: [{ type: 'text', text: validation.error }] };
+            }
+            const deps = buildPinDeps();
+            const result = await executePinOperation(validation.factId, 'pinned', deps, validation.reason);
+            if (result.success && result.idempotent) {
+              api.logger.info(`totalreclaw_pin: ${result.fact_id} already pinned (no-op)`);
+              return {
+                content: [{ type: 'text', text: `Memory ${result.fact_id} is already pinned.` }],
+                details: result,
+              };
+            }
+            if (result.success) {
+              api.logger.info(`totalreclaw_pin: ${result.fact_id} → ${result.new_fact_id} (tx ${result.tx_hash?.slice(0, 10)})`);
+              return {
+                content: [{
+                  type: 'text',
+                  text: `Pinned memory ${result.fact_id}. New fact id: ${result.new_fact_id} (tx: ${result.tx_hash}).`,
+                }],
+                details: result,
+              };
+            }
+            api.logger.error(`totalreclaw_pin failed: ${result.error}`);
+            return {
+              content: [{ type: 'text', text: `Failed to pin memory: ${humanizeError(result.error ?? 'unknown error')}` }],
+              details: result,
+            };
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            api.logger.error(`totalreclaw_pin failed: ${message}`);
+            return {
+              content: [{ type: 'text', text: `Failed to pin memory: ${humanizeError(message)}` }],
+            };
+          }
+        },
+      },
+      { name: 'totalreclaw_pin' },
+    );
+
+    // ---------------------------------------------------------------
+    // Tool: totalreclaw_unpin
+    // ---------------------------------------------------------------
+
+    api.registerTool(
+      {
+        name: 'totalreclaw_unpin',
+        label: 'Unpin',
+        description:
+          'Remove the pin from a previously pinned memory, returning it to active status so the ' +
+          'auto-resolution engine can supersede or retract it again. Takes fact_id. Idempotent — ' +
+          'unpinning a non-pinned claim is a no-op.',
+        parameters: {
+          type: 'object',
+          properties: {
+            fact_id: {
+              type: 'string',
+              description: 'The ID of the fact to unpin (from a totalreclaw_recall result).',
+            },
+          },
+          required: ['fact_id'],
+          additionalProperties: false,
+        },
+        async execute(_toolCallId: string, params: Record<string, unknown>) {
+          try {
+            await requireFullSetup(api.logger);
+            if (!isSubgraphMode()) {
+              return {
+                content: [{
+                  type: 'text',
+                  text: 'Pin/unpin is only supported with the managed service. Self-hosted mode does not yet implement the status-flip supersession flow.',
+                }],
+              };
+            }
+            const validation = validatePinArgs(params);
+            if (!validation.ok) {
+              return { content: [{ type: 'text', text: validation.error }] };
+            }
+            const deps = buildPinDeps();
+            const result = await executePinOperation(validation.factId, 'active', deps);
+            if (result.success && result.idempotent) {
+              api.logger.info(`totalreclaw_unpin: ${result.fact_id} already active (no-op)`);
+              return {
+                content: [{ type: 'text', text: `Memory ${result.fact_id} is not pinned.` }],
+                details: result,
+              };
+            }
+            if (result.success) {
+              api.logger.info(`totalreclaw_unpin: ${result.fact_id} → ${result.new_fact_id} (tx ${result.tx_hash?.slice(0, 10)})`);
+              return {
+                content: [{
+                  type: 'text',
+                  text: `Unpinned memory ${result.fact_id}. New fact id: ${result.new_fact_id} (tx: ${result.tx_hash}).`,
+                }],
+                details: result,
+              };
+            }
+            api.logger.error(`totalreclaw_unpin failed: ${result.error}`);
+            return {
+              content: [{ type: 'text', text: `Failed to unpin memory: ${humanizeError(result.error ?? 'unknown error')}` }],
+              details: result,
+            };
+          } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            api.logger.error(`totalreclaw_unpin failed: ${message}`);
+            return {
+              content: [{ type: 'text', text: `Failed to unpin memory: ${humanizeError(message)}` }],
+            };
+          }
+        },
+      },
+      { name: 'totalreclaw_unpin' },
     );
 
     // ---------------------------------------------------------------
@@ -3379,6 +3971,7 @@ const plugin = {
                 contentFp: fact.contentFp || '',
                 agentId: fact.agentId || 'openclaw-plugin',
                 encryptedEmbedding: fact.encryptedEmbedding || undefined,
+                version: PROTOBUF_VERSION_V4,
               };
               payloads.push(encodeFactProtobuf(factPayload));
             }
@@ -3452,20 +4045,21 @@ const plugin = {
           properties: {
             recovery_phrase: {
               type: 'string',
-              description: 'A 12-word BIP-39 mnemonic recovery phrase. Generate one with `npx @totalreclaw/mcp-server setup --generate-only`, or let the user provide an existing one.',
+              description: 'Optional 12-word BIP-39 recovery phrase. If not provided, generates a new one automatically. For returning users, pass their existing phrase.',
             },
           },
-          required: ['recovery_phrase'],
           additionalProperties: false,
         },
-        async execute(_toolCallId: string, params: { recovery_phrase: string }) {
+        async execute(_toolCallId: string, params: { recovery_phrase?: string }) {
           try {
-            const mnemonic = params.recovery_phrase.trim();
+            let mnemonic = params.recovery_phrase?.trim() || '';
 
+            // Auto-generate if not provided
             if (!mnemonic) {
-              return {
-                content: [{ type: 'text', text: 'Error: recovery_phrase is required.' }],
-              };
+              const { generateMnemonic } = await import('@scure/bip39');
+              const { wordlist } = await import('@scure/bip39/wordlists/english');
+              mnemonic = generateMnemonic(wordlist, 128);
+              api.logger.info('totalreclaw_setup: generated new BIP-39 mnemonic');
             }
 
             // Guard: refuse to overwrite existing credentials with a DIFFERENT phrase
@@ -3514,11 +4108,13 @@ const plugin = {
               };
             }
 
+            const wasGenerated = !params.recovery_phrase?.trim();
             return {
               content: [{
                 type: 'text',
                 text: 'TotalReclaw setup complete! Encryption keys derived, server registration confirmed. ' +
                       'You can now use totalreclaw_remember, totalreclaw_recall, and all other tools immediately — no restart needed.\n\n' +
+                      (wasGenerated ? `Recovery phrase: ${mnemonic}\n\n` : '') +
                       'From now on, I will automatically remember important things from our conversations and recall relevant context at the start of each session.',
               }],
             };
@@ -3622,7 +4218,46 @@ const plugin = {
           }
 
           if (isSubgraphMode()) {
-            // --- Subgraph mode: hot cache first, then background refresh ---
+            // --- Subgraph mode: digest fast path → hot cache → background refresh ---
+
+            // Digest fast path (Stage 3b). When a digest exists and the mode is
+            // not 'off', inject its pre-compiled promptText instead of running
+            // the per-query search. A stale digest triggers a background
+            // recompile (non-blocking). Failures fall through to the legacy
+            // path silently.
+            const digestMode = resolveDigestMode();
+            logDigestModeOnce(digestMode, api.logger);
+            if (digestMode !== 'off' && encryptionKey && authKeyHex && (subgraphOwner || userId)) {
+              try {
+                const injectResult = await maybeInjectDigest({
+                  owner: subgraphOwner || userId!,
+                  authKeyHex: authKeyHex!,
+                  encryptionKey: encryptionKey!,
+                  mode: digestMode,
+                  nowMs: Date.now(),
+                  loadDeps: {
+                    searchSubgraph: async (o, tds, n, a) => searchSubgraph(o, tds, n, a),
+                    decryptFromHex: (hex, key) => decryptFromHex(hex, key),
+                  },
+                  probeDeps: {
+                    searchSubgraphBroadened: async (o, n, a) => searchSubgraphBroadened(o, n, a),
+                  },
+                  recompileFn: (prev) => scheduleDigestRecompile(prev, api.logger),
+                  logger: api.logger,
+                });
+                if (injectResult.promptText) {
+                  api.logger.info(`Digest injection: state=${injectResult.state}`);
+                  return {
+                    prependContext:
+                      `## Your Memory\n\n${injectResult.promptText}` + welcomeBack + billingWarning,
+                  };
+                }
+              } catch (err) {
+                // Never block session start on digest failure.
+                const msg = err instanceof Error ? err.message : String(err);
+                api.logger.warn(`Digest fast path failed: ${msg}`);
+              }
+            }
 
             // Initialize hot cache if needed.
             if (!pluginHotCache && encryptionKey) {
@@ -3727,7 +4362,10 @@ const plugin = {
             for (const result of subgraphResults) {
               try {
                 const docJson = decryptFromHex(result.encryptedBlob, encryptionKey!);
-                const doc = JSON.parse(docJson) as { text: string; metadata?: Record<string, unknown> };
+                // Filter out digest infrastructure blobs — they have no user
+                // text and should never surface in recall results.
+                if (isDigestBlob(docJson)) continue;
+                const doc = readClaimFromBlob(docJson);
 
                 let decryptedEmbedding: number[] | undefined;
                 if (result.encryptedEmbedding) {
@@ -3740,22 +4378,20 @@ const plugin = {
                   }
                 }
 
-                const importanceRaw = (doc.metadata?.importance as number) ?? 0.5;
                 const createdAtSec = result.timestamp ? parseInt(result.timestamp, 10) : undefined;
                 rerankerCandidates.push({
                   id: result.id,
                   text: doc.text,
                   embedding: decryptedEmbedding,
-                  importance: importanceRaw,
+                  importance: doc.importance / 10,
                   createdAt: createdAtSec,
+                  source: typeof doc.metadata?.source === 'string' ? doc.metadata.source : undefined,
                 });
 
-                const importance = doc.metadata?.importance
-                  ? Math.round((doc.metadata.importance as number) * 10)
-                  : 5;
                 hookMetaMap.set(result.id, {
-                  importance,
+                  importance: doc.importance,
                   age: 'subgraph',
+                  category: doc.category,
                 });
               } catch {
                 // Skip un-decryptable candidates.
@@ -3770,6 +4406,7 @@ const plugin = {
               rerankerCandidates,
               8,
               INTENT_WEIGHTS[hookQueryIntent],
+              /* applySourceWeights (Retrieval v2 Tier 1) */ true,
             );
 
             // Update hot cache with reranked results.
@@ -3810,7 +4447,8 @@ const plugin = {
               const meta = hookMetaMap.get(m.id);
               const importance = meta?.importance ?? 5;
               const age = meta?.age ?? '';
-              return `${i + 1}. ${m.text} (importance: ${importance}/10, ${age})`;
+              const typeTag = meta?.category ? `[${meta.category}] ` : '';
+              return `${i + 1}. ${typeTag}${m.text} (importance: ${importance}/10, ${age})`;
             });
             const contextString = `## Relevant Memories\n\n${lines.join('\n')}`;
 
@@ -3858,9 +4496,10 @@ const plugin = {
           for (const candidate of candidates) {
             try {
               const docJson = decryptFromHex(candidate.encrypted_blob, encryptionKey!);
-              const doc = JSON.parse(docJson) as { text: string; metadata?: Record<string, unknown> };
+              // Skip digest infrastructure blobs.
+              if (isDigestBlob(docJson)) continue;
+              const doc = readClaimFromBlob(docJson);
 
-              // Decrypt embedding if present.
               let decryptedEmbedding: number[] | undefined;
               if (candidate.encrypted_embedding) {
                 try {
@@ -3872,7 +4511,6 @@ const plugin = {
                 }
               }
 
-              const importanceRaw = (doc.metadata?.importance as number) ?? 0.5;
               const createdAtSec = typeof candidate.timestamp === 'number'
                 ? candidate.timestamp / 1000
                 : new Date(candidate.timestamp).getTime() / 1000;
@@ -3880,15 +4518,13 @@ const plugin = {
                 id: candidate.fact_id,
                 text: doc.text,
                 embedding: decryptedEmbedding,
-                importance: importanceRaw,
+                importance: doc.importance / 10,
                 createdAt: createdAtSec,
+                source: typeof doc.metadata?.source === 'string' ? doc.metadata.source : undefined,
               });
 
-              const importance = doc.metadata?.importance
-                ? Math.round((doc.metadata.importance as number) * 10)
-                : 5;
               hookMetaMap.set(candidate.fact_id, {
-                importance,
+                importance: doc.importance,
                 age: relativeTime(candidate.timestamp),
               });
             } catch {
@@ -3904,7 +4540,8 @@ const plugin = {
             rerankerCandidates,
             8,
             INTENT_WEIGHTS[srvHookIntent],
-          );
+            /* applySourceWeights (Retrieval v2 Tier 1) */ true,
+            );
 
           if (reranked.length === 0) return undefined;
 
@@ -3982,13 +4619,38 @@ const plugin = {
           if (needsSetup) return { memoryHandled: true };
 
           // C3: Throttle auto-extraction to every N turns (configurable via env).
+          // Phase 2.2.5: every branch of the extraction pipeline now logs its
+          // outcome. Prior to 2.2.5, only the "stored N facts" happy path
+          // produced a log line, so silent JSON parse failures / chatCompletion
+          // timeouts / importance-filter-drops-everything scenarios left no
+          // trace whatsoever in the gateway log. See the investigation report
+          // in CHANGELOG for the full failure chain we uncovered.
           turnsSinceLastExtraction++;
-          if (turnsSinceLastExtraction >= getExtractInterval()) {
+          const extractInterval = getExtractInterval();
+          api.logger.info(
+            `agent_end: turn ${turnsSinceLastExtraction}/${extractInterval} (messages=${evt.messages.length})`,
+          );
+          if (turnsSinceLastExtraction >= extractInterval) {
             const existingMemories = isLlmDedupEnabled()
               ? await fetchExistingMemoriesForExtraction(api.logger, 20, evt.messages)
               : [];
-            const rawFacts = await extractFacts(evt.messages, 'turn', existingMemories);
-            const { kept: importanceFiltered } = filterByImportance(rawFacts, api.logger);
+            const rawFacts = await extractFacts(
+              evt.messages,
+              'turn',
+              existingMemories,
+              undefined,
+              api.logger,
+            );
+            api.logger.info(
+              `agent_end: extractFacts returned ${rawFacts.length} raw facts`,
+            );
+            const { kept: importanceFiltered, dropped } = filterByImportance(
+              rawFacts,
+              api.logger,
+            );
+            api.logger.info(
+              `agent_end: after importance filter: kept=${importanceFiltered.length}, dropped=${dropped}`,
+            );
             const maxFacts = getMaxFactsPerExtraction();
             if (importanceFiltered.length > maxFacts) {
               api.logger.info(
@@ -3999,6 +4661,11 @@ const plugin = {
             if (facts.length > 0) {
               await storeExtractedFacts(facts, api.logger);
               api.logger.info(`agent_end: stored ${facts.length} facts to encrypted vault`);
+            } else {
+              // Phase 2.2.5: no longer silent when extraction produces nothing.
+              api.logger.info(
+                `agent_end: extraction produced 0 storable facts (raw=${rawFacts.length}, after-importance=${importanceFiltered.length})`,
+              );
             }
             turnsSinceLastExtraction = 0;
           }
@@ -4029,13 +4696,13 @@ const plugin = {
           if (needsSetup) return;
 
           api.logger.info(
-            `Pre-compaction extraction: processing ${evt.messages.length} messages`,
+            `pre_compaction: using compaction-aware extraction (importance >= 5), processing ${evt.messages.length} messages`,
           );
 
           const existingMemories = isLlmDedupEnabled()
             ? await fetchExistingMemoriesForExtraction(api.logger, 50, evt.messages)
             : [];
-          const rawCompactFacts = await extractFacts(evt.messages, 'full', existingMemories);
+          const rawCompactFacts = await extractFactsForCompaction(evt.messages, existingMemories, api.logger);
           const { kept: compactImportanceFiltered } = filterByImportance(rawCompactFacts, api.logger);
           const maxFactsCompact = getMaxFactsPerExtraction();
           if (compactImportanceFiltered.length > maxFactsCompact) {
@@ -4049,14 +4716,19 @@ const plugin = {
           }
           turnsSinceLastExtraction = 0; // Reset C3 counter on compaction.
 
-          // Session debrief — after regular extraction
+          // Session debrief — after regular extraction.
+          // v1 mapping: DebriefItem { type: 'summary'|'context' } →
+          //   v1 type 'summary' (always, since context → claim would lose
+          //   the "this is a session summary" signal) + source 'derived'
+          //   (session debrief is a derived synthesis by definition).
           try {
             const storedTexts = facts.map((f) => f.text);
             const debriefItems = await extractDebrief(evt.messages, storedTexts);
             if (debriefItems.length > 0) {
               const debriefFacts: ExtractedFact[] = debriefItems.map((d) => ({
                 text: d.text,
-                type: d.type as ExtractedFact['type'],
+                type: 'summary' as MemoryType,
+                source: 'derived' as MemorySource,
                 importance: d.importance,
                 action: 'ADD' as const,
               }));
@@ -4109,14 +4781,19 @@ const plugin = {
           }
           turnsSinceLastExtraction = 0; // Reset C3 counter on reset.
 
-          // Session debrief — after regular extraction
+          // Session debrief — after regular extraction.
+          // v1 mapping: DebriefItem { type: 'summary'|'context' } →
+          //   v1 type 'summary' (always, since context → claim would lose
+          //   the "this is a session summary" signal) + source 'derived'
+          //   (session debrief is a derived synthesis by definition).
           try {
             const storedTexts = facts.map((f) => f.text);
             const debriefItems = await extractDebrief(evt.messages, storedTexts);
             if (debriefItems.length > 0) {
               const debriefFacts: ExtractedFact[] = debriefItems.map((d) => ({
                 text: d.text,
-                type: d.type as ExtractedFact['type'],
+                type: 'summary' as MemoryType,
+                source: 'derived' as MemorySource,
                 importance: d.importance,
                 action: 'ADD' as const,
               }));

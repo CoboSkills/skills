@@ -21,7 +21,11 @@ except ImportError:
 # 配置
 # =========================
 
-BIRTHDAY_FILE = r"C:\Users\Juxin\.openclaw\workspace\fortune_birthday.json"
+import os
+
+# 获取用户数据目录（跨平台兼容）
+USER_DATA_DIR = os.path.join(os.path.expanduser("~"), ".openclaw")
+BIRTHDAY_FILE = os.path.join(USER_DATA_DIR, "fortune_birthday.json")
 
 
 # =========================

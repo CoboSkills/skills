@@ -51,6 +51,11 @@
 }
 ```
 
+## 数据存储
+生日数据保存在用户目录下的 `.openclaw/fortune_birthday.json` 文件中，跨平台兼容。
+- Windows: `C:\Users\<用户名>\.openclaw\fortune_birthday.json`
+- macOS/Linux: `~/.openclaw/fortune_birthday.json`
+
 ## 调用示例
 ```python
 from fortune_luck import FortuneCalculator

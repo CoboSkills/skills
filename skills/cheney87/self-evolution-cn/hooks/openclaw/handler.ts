@@ -199,19 +199,31 @@ async function appendToFile(filePath: string, content: string): Promise<void> {
 
 // 检测用户纠正
 function detectCorrection(content: string): boolean {
-  const keywords = ['不对', '错了', '错误', '不是这样', '应该是'];
+  const keywords = [
+    '不对', '错了', '错误', '不是这样', '应该是',
+    '你为什么', '我记得是', '提醒你', '更正一下',
+    "No, that's wrong", 'Actually', 'should be'
+  ];
   return keywords.some(keyword => content.includes(keyword));
 }
 
 // 检测知识缺口
 function detectKnowledgeGap(content: string): boolean {
-  const keywords = ['我不知道', '查不到', '不知道', '无法找到', '找不到'];
+  const keywords = [
+    '我不知道', '查不到', '不知道', '无法找到', '找不到',
+    '记下来', '记住', '你记好', '别忘了',
+    '不清楚', '不确定',
+    "I don't know", "can't find", 'not sure'
+  ];
   return keywords.some(keyword => content.includes(keyword));
 }
 
 // 检测更好的方法
 function detectBetterMethod(content: string): boolean {
-  const keywords = ['更好的方法', '更简单', '优化', '改进', '更好的'];
+  const keywords = [
+    '更好的方法', '更简单', '优化', '改进', '更好的',
+    'better way', 'simpler', 'optimize', 'improve'
+  ];
   return keywords.some(keyword => content.includes(keyword));
 }
 
@@ -221,10 +233,29 @@ async function recordLearning(
   summary: string,
   details: string,
   suggestedAction: string
-): Promise<void> {
+): Promise<string> {
   const id = generateId('LRN');
   const now = new Date().toISOString();
   const filePath = join(LEARNING_DIR, 'LEARNINGS.md');
+
+  // 根据 category 生成 Pattern-Key 和 Area
+  let patternKey = 'unknown';
+  let area = '其他';
+
+  switch (category) {
+    case 'correction':
+      patternKey = 'user.correction';
+      area = '行为准则';
+      break;
+    case 'knowledge_gap':
+      patternKey = 'knowledge.gap';
+      area = '工作流';
+      break;
+    case 'best_practice':
+      patternKey = 'better.method';
+      area = '工作流改进';
+      break;
+  }
 
   const content = `## [${id}] ${category}
 
@@ -232,7 +263,7 @@ async function recordLearning(
 - Logged: ${now}
 - Priority: medium
 - Status: pending
-- Area: 根据上下文判断
+- Area: ${area}
 
 ### 摘要
 ${summary}
@@ -245,11 +276,12 @@ ${suggestedAction}
 
 ### 元数据
 - Source: conversation
-- Pattern-Key: 自动生成
+- Pattern-Key: ${patternKey}
 - Recurrence-Count: 1
 `;
 
   await appendToFile(filePath, content);
+  return 'LEARNINGS.md';
 }
 
 // 记录错误
@@ -258,7 +290,7 @@ async function recordError(
   error: string,
   context: string,
   suggestedFix: string
-): Promise<void> {
+): Promise<string> {
   const id = generateId('ERR');
   const now = new Date().toISOString();
   const filePath = join(LEARNING_DIR, 'ERRORS.md');
@@ -290,6 +322,44 @@ ${suggestedFix}
 `;
 
   await appendToFile(filePath, content);
+  return 'ERRORS.md';
+}
+
+// 记录功能需求
+async function recordFeatureRequest(
+  summary: string,
+  details: string,
+  suggestedAction: string
+): Promise<string> {
+  const id = generateId('FEAT');
+  const now = new Date().toISOString();
+  const filePath = join(LEARNING_DIR, 'FEATURE_REQUESTS.md');
+
+  const content = `## [${id}] ${summary}
+
+- Agent: ${AGENT_ID}
+- Logged: ${now}
+- Priority: medium
+- Status: pending
+- Area: 根据上下文判断
+
+### 摘要
+${summary}
+
+### 详情
+${details}
+
+### 建议行动
+${suggestedAction}
+
+### 元数据
+- Source: conversation
+- Pattern-Key: 自动生成
+- Recurrence-Count: 1
+`;
+
+  await appendToFile(filePath, content);
+  return 'FEATURE_REQUESTS.md';
 }
 
 const handler: HookHandler = async (event) => {
@@ -321,35 +391,35 @@ const handler: HookHandler = async (event) => {
 
     // 检测用户纠正
     if (detectCorrection(content)) {
-      await recordLearning(
+      const fileName = await recordLearning(
         'correction',
         '用户纠正了之前的回答',
         `用户消息: ${content}`,
         '仔细分析用户的纠正意见，理解正确的做法，避免重复错误'
       );
-      event.messages?.push('已记录到 LEARNINGS.md');
+      event.messages?.push(`已记录到 ${fileName}`);
     }
 
     // 检测知识缺口
     if (detectKnowledgeGap(content)) {
-      await recordLearning(
+      const fileName = await recordLearning(
         'knowledge_gap',
         '发现知识缺口',
         `用户消息: ${content}`,
         '记录这个知识缺口，后续需要补充相关知识'
       );
-      event.messages?.push('已记录到 LEARNINGS.md');
+      event.messages?.push(`已记录到 ${fileName}`);
     }
 
     // 检测更好的方法
     if (detectBetterMethod(content)) {
-      await recordLearning(
+      const fileName = await recordLearning(
         'best_practice',
         '发现更好的方法',
         `用户消息: ${content}`,
         '学习这个更好的方法，更新工作流程'
       );
-      event.messages?.push('已记录到 LEARNINGS.md');
+      event.messages?.push(`已记录到 ${fileName}`);
     }
   }
 
@@ -357,17 +427,35 @@ const handler: HookHandler = async (event) => {
   if (event.type === 'tool' && event.action === 'after') {
     const toolName = event.context?.toolName || 'unknown';
     const result = event.context?.result || {};
+    const output = event.context?.output || '';
 
-    // 检测工具执行失败
+    // 检测工具执行失败（结构化检测）
     if (result.error || result.status === 'error' || result.exitCode !== 0) {
       const errorInfo = result.error || result.message || JSON.stringify(result);
-      await recordError(
+      const fileName = await recordError(
         `工具执行失败: ${toolName}`,
         errorInfo,
         `工具: ${toolName}\n参数: ${JSON.stringify(event.context?.args || {})}`,
         '检查工具使用方式，确认参数正确，或查看工具文档'
       );
-      event.messages?.push('已记录到 ERRORS.md');
+      event.messages?.push(`已记录到 ${fileName}`);
+    }
+
+    // 检测系统级错误（字符串检测）
+    if (output && typeof output === 'string') {
+      const errorPatterns = [
+        /error|Error|ERROR|failed|FAILED/g,
+        /command not found|No such file|Permission denied|fatal/g
+      ];
+      if (errorPatterns.some(pattern => pattern.test(output))) {
+        const fileName = await recordError(
+          `系统错误: ${toolName}`,
+          output,
+          `工具: ${toolName}\n参数: ${JSON.stringify(event.context?.args || {})}`,
+          '检查系统配置和权限'
+        );
+        event.messages?.push(`已记录到 ${fileName}`);
+      }
     }
   }
 };

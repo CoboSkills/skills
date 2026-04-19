@@ -13,23 +13,32 @@ metadata: {"openclaw":{"emoji":"🧠","events":["agent:bootstrap","message:recei
 ### 1. 自动识别触发条件
 
 **用户纠正（自动记录到 LEARNINGS.md）：**
-- 检测到关键词："不对"、"错了"、"错误"、"不是这样"、"应该是"
-- 检测到纠正性表达："No, that's wrong"、"Actually"、"应该是"
+- 检测到关键词："不对"、"错了"、"错误"、"不是这样"、"应该是"、"你为什么"、"我记得是"、"提醒你"、"更正一下"
+- 检测到纠正性表达："No, that's wrong"、"Actually"、"should be"
 - **动作**：自动记录到 LEARNINGS.md，类别为 correction
+- **Pattern-Key**：user.correction
+- **Area**：行为准则
 
 **命令失败（自动记录到 ERRORS.md）：**
 - 检测到工具执行失败（非零退出码）
 - 检测到错误信息：error、Error、ERROR、failed、FAILED
+- 检测到系统级错误：command not found、No such file、Permission denied、fatal
 - **动作**：自动记录到 ERRORS.md
 
 **知识缺口（自动记录到 LEARNINGS.md）：**
 - 检测到用户提供新信息
-- 检测到"我不知道"、"查不到"等表达
+- 检测到关键词："我不知道"、"查不到"、"不知道"、"无法找到"、"找不到"、"记下来"、"记住"、"你记好"、"别忘了"、"不清楚"、"不确定"
+- 检测到英文表达："I don't know"、"can't find"、"not sure"
 - **动作**：自动记录到 LEARNINGS.md，类别为 knowledge_gap
+- **Pattern-Key**：knowledge.gap
+- **Area**：工作流
 
 **发现更好的方法（自动记录到 LEARNINGS.md）：**
-- 检测到"更好的方法"、"更简单"、"优化"等表达
+- 检测到关键词："更好的方法"、"更简单"、"优化"、"改进"、"更好的"
+- 检测到英文表达："better way"、"simpler"、"optimize"、"improve"
 - **动作**：自动记录到 LEARNINGS.md，类别为 best_practice
+- **Pattern-Key**：better.method
+- **Area**：工作流改进
 
 ### 2. 自动记录格式
 
@@ -89,8 +98,10 @@ metadata: {"openclaw":{"emoji":"🧠","events":["agent:bootstrap","message:recei
 
 ### 3. 记录后回复
 
-记录完成后，必须回复：
-"已记录到 LEARNINGS.md" 或 "已记录到 ERRORS.md"
+记录完成后，会自动回复：
+- "已记录到 LEARNINGS.md"（学习记录）
+- "已记录到 ERRORS.md"（错误记录）
+- "已记录到 FEATURE_REQUESTS.md"（功能需求记录）
 
 ### 4. 提升规则
 

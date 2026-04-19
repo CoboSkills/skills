@@ -3,11 +3,16 @@
   "slug": "self-evolution-cn",
   "displayName": "Self Evolution Cn",
   "latest": {
-    "version": "2.0.4",
-    "publishedAt": 1776324635188,
-    "commit": "https://github.com/openclaw/skills/commit/fe7fb6b7a143d5d252e2c82fd56c8b23d2afcf91"
+    "version": "2.1.1",
+    "publishedAt": 1776524608845,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.0.4",
+      "publishedAt": 1776324635188,
+      "commit": "https://github.com/openclaw/skills/commit/fe7fb6b7a143d5d252e2c82fd56c8b23d2afcf91"
+    },
     {
       "version": "2.0.0",
       "publishedAt": 1775562820056,

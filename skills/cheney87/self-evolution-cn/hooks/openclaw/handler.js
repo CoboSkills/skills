@@ -5,8 +5,9 @@
  * 支持多事件：agent:bootstrap、message:received、tool:after
  */
 
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
+const { lstatSync, realpathSync, existsSync } = require('fs');
 
 // 获取共享学习目录
 const SHARED_LEARNING_DIR = process.env.SHARED_LEARNING_DIR || '/root/.openclaw/shared-learning';
@@ -21,33 +22,33 @@ const WORKSPACE_DIR = process.cwd();
 function getLearningDir() {
   try {
     const learningsPath = path.join(WORKSPACE_DIR, '.learnings');
-    
+
     // 检查 .learnings 是否存在
-    if (!fs.existsSync(learningsPath)) {
+    if (!existsSync(learningsPath)) {
       // 不存在，使用共享目录
       return SHARED_LEARNING_DIR;
     }
-    
+
     // 检查是否是软连接
-    const stats = fs.lstatSync(learningsPath);
+    const stats = lstatSync(learningsPath);
     if (stats.isSymbolicLink()) {
       // 解析软连接目标
-      const targetPath = fs.realpathSync(learningsPath);
-      
+      const targetPath = realpathSync(learningsPath);
+
       // 如果软连接目标是共享目录，使用共享目录
       if (targetPath === SHARED_LEARNING_DIR) {
         return SHARED_LEARNING_DIR;
       }
-      
+
       // 否则使用软连接目标
       return targetPath;
     }
-    
+
     // 如果是独立文件夹，使用工作区的 .learnings
     if (stats.isDirectory()) {
       return learningsPath;
     }
-    
+
     // 默认使用共享目录
     return SHARED_LEARNING_DIR;
   } catch (error) {
@@ -172,221 +173,180 @@ const REMINDER_CONTENT = `
 - 如果工作区没有 .learnings → 使用共享目录
 `.trim();
 
-// 检测用户纠正
-function detectCorrection(message) {
-  const correctionPatterns = [
-    /不对|错了|错误|不是这样|应该是/g,
-    /No, that's wrong|Actually|should be/gi
-  ];
-  return correctionPatterns.some(pattern => pattern.test(message));
+// 生成唯一 ID
+function generateId(prefix) {
+  const now = new Date();
+  const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `${prefix}-${dateStr}-${random}`;
 }
 
-// 检测命令失败
-function detectError(output) {
-  const errorPatterns = [
-    /error|Error|ERROR|failed|FAILED/g,
-    /command not found|No such file|Permission denied|fatal/g
+// 确保目录存在
+async function ensureDir(dir) {
+  try {
+    await fs.mkdir(dir, { recursive: true });
+  } catch (err) {
+    // 目录已存在，忽略错误
+  }
+}
+
+// 追加内容到文件
+async function appendToFile(filePath, content) {
+  await ensureDir(LEARNING_DIR);
+  await fs.appendFile(filePath, content + '\n\n');
+}
+
+// 检测用户纠正
+function detectCorrection(content) {
+  const keywords = [
+    '不对', '错了', '错误', '不是这样', '应该是',
+    '你为什么', '我记得是', '提醒你', '更正一下',
+    "No, that's wrong", 'Actually', 'should be'
   ];
-  return errorPatterns.some(pattern => pattern.test(output));
+  return keywords.some(keyword => content.includes(keyword));
 }
 
 // 检测知识缺口
-function detectKnowledgeGap(message) {
-  const gapPatterns = [
-    /我不知道|查不到|不清楚|不确定/g,
-    /I don't know|can't find|not sure/gi
+function detectKnowledgeGap(content) {
+  const keywords = [
+    '我不知道', '查不到', '不知道', '无法找到', '找不到',
+    '记下来', '记住', '你记好', '别忘了',
+    '不清楚', '不确定',
+    "I don't know", "can't find", 'not sure'
   ];
-  return gapPatterns.some(pattern => pattern.test(message));
+  return keywords.some(keyword => content.includes(keyword));
 }
 
 // 检测更好的方法
-function detectBetterMethod(message) {
-  const methodPatterns = [
-    /更好的方法|更简单|优化|改进/g,
-    /better way|simpler|optimize|improve/gi
+function detectBetterMethod(content) {
+  const keywords = [
+    '更好的方法', '更简单', '优化', '改进', '更好的',
+    'better way', 'simpler', 'optimize', 'improve'
   ];
-  return methodPatterns.some(pattern => pattern.test(message));
+  return keywords.some(keyword => content.includes(keyword));
 }
 
-// 生成 ID
-function generateId(type) {
-  const date = new Date();
-  const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return `${type}-${dateStr}-${random}`;
-}
+// 记录学习
+async function recordLearning(category, summary, details, suggestedAction) {
+  const id = generateId('LRN');
+  const now = new Date().toISOString();
+  const filePath = path.join(LEARNING_DIR, 'LEARNINGS.md');
 
-// 记录到文件
-function recordToFile(type, content) {
-  try {
-    let filePath;
-    if (type === 'LRN') {
-      filePath = path.join(LEARNING_DIR, 'LEARNINGS.md');
-    } else if (type === 'ERR') {
-      filePath = path.join(LEARNING_DIR, 'ERRORS.md');
-    } else if (type === 'FEAT') {
-      filePath = path.join(LEARNING_DIR, 'FEATURE_REQUESTS.md');
-    } else {
-      return false;
-    }
+  // 根据 category 生成 Pattern-Key 和 Area
+  let patternKey = 'unknown';
+  let area = '其他';
 
-    // 确保目录存在
-    if (!fs.existsSync(LEARNING_DIR)) {
-      fs.mkdirSync(LEARNING_DIR, { recursive: true });
-    }
-
-    // 追加内容
-    fs.appendFileSync(filePath, content + '\n\n');
-    return true;
-  } catch (error) {
-    console.error('记录失败:', error);
-    return false;
-  }
-}
-
-// 处理消息事件
-function handleMessage(event) {
-  if (!event.message || typeof event.message !== 'string') {
-    return;
+  switch (category) {
+    case 'correction':
+      patternKey = 'user.correction';
+      area = '行为准则';
+      break;
+    case 'knowledge_gap':
+      patternKey = 'knowledge.gap';
+      area = '工作流';
+      break;
+    case 'best_practice':
+      patternKey = 'better.method';
+      area = '工作流改进';
+      break;
   }
 
-  const message = event.message;
-  const timestamp = new Date().toISOString();
-
-  // 检测用户纠正
-  if (detectCorrection(message)) {
-    const id = generateId('LRN');
-    const content = `## [${id}] correction
+  const content = `## [${id}] ${category}
 
 - Agent: ${AGENT_ID}
-- Logged: ${timestamp}
-- Priority: high
-- Status: pending
-- Area: conversation
-
-### 摘要
-用户纠正了之前的回答
-
-### 详情
-${message}
-
-### 建议行动
-根据用户的纠正调整回答
-
-### 元数据
-- Source: user_feedback
-- Pattern-Key: user.correction
-- Recurrence-Count: 1
-`;
-    recordToFile('LRN', content);
-    console.log('已记录到 LEARNINGS.md');
-  }
-
-  // 检测知识缺口
-  if (detectKnowledgeGap(message)) {
-    const id = generateId('LRN');
-    const content = `## [${id}] knowledge_gap
-
-- Agent: ${AGENT_ID}
-- Logged: ${timestamp}
+- Logged: ${now}
 - Priority: medium
 - Status: pending
-- Area: conversation
+- Area: ${area}
 
 ### 摘要
-发现知识缺口
+${summary}
 
 ### 详情
-${message}
+${details}
 
 ### 建议行动
-补充相关知识
+${suggestedAction}
 
 ### 元数据
 - Source: conversation
-- Pattern-Key: knowledge.gap
+- Pattern-Key: ${patternKey}
 - Recurrence-Count: 1
 `;
-    recordToFile('LRN', content);
-    console.log('已记录到 LEARNINGS.md');
-  }
 
-  // 检测更好的方法
-  if (detectBetterMethod(message)) {
-    const id = generateId('LRN');
-    const content = `## [${id}] best_practice
-
-- Agent: ${AGENT_ID}
-- Logged: ${timestamp}
-- Priority: medium
-- Status: pending
-- Area: conversation
-
-### 摘要
-发现更好的方法
-
-### 详情
-${message}
-
-### 建议行动
-采用更好的方法
-
-### 元数据
-- Source: conversation
-- Pattern-Key: better.method
-- Recurrence-Count: 1
-`;
-    recordToFile('LRN', content);
-    console.log('已记录到 LEARNINGS.md');
-  }
+  await appendToFile(filePath, content);
+  return 'LEARNINGS.md';
 }
 
-// 处理工具执行事件
-function handleToolAfter(event) {
-  if (!event.toolOutput || typeof event.toolOutput !== 'string') {
-    return;
-  }
+// 记录错误
+async function recordError(summary, error, context, suggestedFix) {
+  const id = generateId('ERR');
+  const now = new Date().toISOString();
+  const filePath = path.join(LEARNING_DIR, 'ERRORS.md');
 
-  const output = event.toolOutput;
-  const timestamp = new Date().toISOString();
-
-  // 检测错误
-  if (detectError(output)) {
-    const id = generateId('ERR');
-    const content = `## [${id}] tool_error
+  const content = `## [${id}] ${summary}
 
 - Agent: ${AGENT_ID}
-- Logged: ${timestamp}
+- Logged: ${now}
 - Priority: high
 - Status: pending
-- Area: tools
+- Area: 根据上下文判断
 
 ### 摘要
-工具执行失败
+${summary}
 
 ### 错误
 \`\`\`
-${output}
+${error}
 \`\`\`
 
 ### 上下文
-- 工具：${event.toolName || 'unknown'}
-- 参数：${JSON.stringify(event.toolArgs || {})}
+${context}
 
 ### 建议修复
-检查工具配置和参数
+${suggestedFix}
 
 ### 元数据
 - Reproducible: yes
-- Pattern-Key: tool.error
-- Recurrence-Count: 1
 `;
-    recordToFile('ERR', content);
-    console.log('已记录到 ERRORS.md');
-  }
+
+  await appendToFile(filePath, content);
+  return 'ERRORS.md';
 }
 
-// 主处理函数
+// 记录功能需求
+async function recordFeatureRequest(summary, details, suggestedAction) {
+  const id = generateId('FEAT');
+  const now = new Date().toISOString();
+  const filePath = path.join(LEARNING_DIR, 'FEATURE_REQUESTS.md');
+
+  const content = `## [${id}] ${summary}
+
+- Agent: ${AGENT_ID}
+- Logged: ${now}
+- Priority: medium
+- Status: pending
+- Area: 根据上下文判断
+
+### 摘要
+${summary}
+
+### 详情
+${details}
+
+### 建议行动
+${suggestedAction}
+
+### 元数据
+- Source: conversation
+- Pattern-Key: 自动生成
+- Recurrence-Count: 1
+`;
+
+  await appendToFile(filePath, content);
+  return 'FEATURE_REQUESTS.md';
+}
+
 const handler = async (event) => {
   // 事件结构的安全检查
   if (!event || typeof event !== 'object') {
@@ -412,12 +372,76 @@ const handler = async (event) => {
 
   // 处理 message:received 事件
   if (event.type === 'message' && event.action === 'received') {
-    handleMessage(event);
+    const content = event.context?.content || '';
+
+    // 检测用户纠正
+    if (detectCorrection(content)) {
+      const fileName = await recordLearning(
+        'correction',
+        '用户纠正了之前的回答',
+        `用户消息: ${content}`,
+        '仔细分析用户的纠正意见，理解正确的做法，避免重复错误'
+      );
+      event.messages?.push(`已记录到 ${fileName}`);
+    }
+
+    // 检测知识缺口
+    if (detectKnowledgeGap(content)) {
+      const fileName = await recordLearning(
+        'knowledge_gap',
+        '发现知识缺口',
+        `用户消息: ${content}`,
+        '记录这个知识缺口，后续需要补充相关知识'
+      );
+      event.messages?.push(`已记录到 ${fileName}`);
+    }
+
+    // 检测更好的方法
+    if (detectBetterMethod(content)) {
+      const fileName = await recordLearning(
+        'best_practice',
+        '发现更好的方法',
+        `用户消息: ${content}`,
+        '学习这个更好的方法，更新工作流程'
+      );
+      event.messages?.push(`已记录到 ${fileName}`);
+    }
   }
 
   // 处理 tool:after 事件
   if (event.type === 'tool' && event.action === 'after') {
-    handleToolAfter(event);
+    const toolName = event.context?.toolName || 'unknown';
+    const result = event.context?.result || {};
+    const output = event.context?.output || '';
+
+    // 检测工具执行失败（结构化检测）
+    if (result.error || result.status === 'error' || result.exitCode !== 0) {
+      const errorInfo = result.error || result.message || JSON.stringify(result);
+      const fileName = await recordError(
+        `工具执行失败: ${toolName}`,
+        errorInfo,
+        `工具: ${toolName}\n参数: ${JSON.stringify(event.context?.args || {})}`,
+        '检查工具使用方式，确认参数正确，或查看工具文档'
+      );
+      event.messages?.push(`已记录到 ${fileName}`);
+    }
+
+    // 检测系统级错误（字符串检测）
+    if (output && typeof output === 'string') {
+      const errorPatterns = [
+        /error|Error|ERROR|failed|FAILED/g,
+        /command not found|No such file|Permission denied|fatal/g
+      ];
+      if (errorPatterns.some(pattern => pattern.test(output))) {
+        const fileName = await recordError(
+          `系统错误: ${toolName}`,
+          output,
+          `工具: ${toolName}\n参数: ${JSON.stringify(event.context?.args || {})}`,
+          '检查系统配置和权限'
+        );
+        event.messages?.push(`已记录到 ${fileName}`);
+      }
+    }
   }
 };
 

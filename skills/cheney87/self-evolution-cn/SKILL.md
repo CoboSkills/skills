@@ -1,7 +1,7 @@
 ---
 name: self-evolution-cn
 slug: self-evolution-cn
-version: 2.0.2
+version: 2.1.1
 homepage: https://clawhub.ai/skills/self-evolution-cn
 description: "多 agent 自我进化系统，自动记录学习、错误和功能需求，支持多 agent 统计和自动提升"
 ---
@@ -51,9 +51,19 @@ crontab -e  # 添加：0 0 * * * ~/.openclaw/skills/self-evolution-cn/scripts/tr
 ## Hook 集成
 
 自动识别并记录：
-- 用户纠正（"不对"、"错了"等）
-- 命令失败（非零退出码）
-- 知识缺口（用户提供新信息）
+- **用户纠正**：检测中文关键词（"不对"、"错了"、"错误"、"不是这样"、"应该是"）和英文关键词（"No, that's wrong"、"Actually"、"should be"）
+- **命令失败**：检测工具执行失败（非零退出码）和系统级错误（command not found、Permission denied、fatal）
+- **知识缺口**：检测中文关键词（"我不知道"、"查不到"、"不知道"、"无法找到"、"找不到"）和英文关键词（"I don't know"、"can't find"、"not sure"）
+- **更好的方法**：检测中文关键词（"更好的方法"、"更简单"、"优化"、"改进"）和英文关键词（"better way"、"simpler"、"optimize"、"improve"）
+
+**自动生成元数据：**
+- **Pattern-Key**：根据类别自动生成唯一标识（user.correction、knowledge.gap、better.method）
+- **Area**：根据类别自动映射到对应区域（行为准则、工作流、工作流改进）
+
+**记录文件：**
+- LEARNINGS.md：学习记录（用户纠正、知识缺口、更好的方法）
+- ERRORS.md：错误记录（命令失败、系统错误）
+- FEATURE_REQUESTS.md：功能需求记录
 
 启用：
 ```bash
@@ -122,9 +132,29 @@ clawdhub update self-evolution-cn
 
 ## 版本
 
-当前版本：2.0.0
+当前版本：2.1.1
 
 ### 更新日志
+
+**v2.1.1 (2026-04-18)**
+- 改进记录反馈：记录完成后自动告知记录的文件名（LEARNINGS.md、ERRORS.md、FEATURE_REQUESTS.md）
+- 修改 recordLearning、recordError、recordFeatureRequest 函数返回文件名
+- 更新 HOOK.md 文档：说明自动回复机制
+
+**v2.1.0 (2026-04-18)**
+- 添加英文关键词支持：支持 "No, that's wrong"、"Actually"、"should be"、"I don't know"、"can't find"、"not sure"、"better way"、"simpler"、"optimize"、"improve"
+- 添加系统级错误检测：支持 command not found、No such file、Permission denied、fatal
+- 添加 FEATURE_REQUESTS.md 支持：新增功能需求记录文件
+- 实现 Pattern-Key 自动生成：根据类别自动生成唯一标识（user.correction、knowledge.gap、better.method）
+- 实现 Area 自动生成：根据类别自动映射到对应区域（行为准则、工作流、工作流改进）
+- 统一 handler.js 和 handler.ts 功能：确保两个文件功能完全一致
+- 更新 HOOK.md 文档：添加新功能说明
+- 改进记录反馈：记录完成后自动告知记录的文件名（LEARNINGS.md、ERRORS.md、FEATURE_REQUESTS.md）
+
+**v2.0.4 (2026-04-16)**
+- 修复 detectCorrection 函数：移除 toLowerCase()，中文关键词检测不生效
+- 修复 detectKnowledgeGap 函数：移除 toLowerCase()
+- 修复 detectBetterMethod 函数：移除 toLowerCase()
 
 **v2.0.2 (2026-04-16)**
 - 修复 skills 目录下的 handler.js，确保发布到 clawhub 的版本包含正确的修复

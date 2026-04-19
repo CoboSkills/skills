@@ -204,7 +204,7 @@ class ArchitectureWorkflowV2:
         try:
             result = subprocess.run([
                 'python3',
-                '/home/Vincent/.openclaw/workspace/skills/source-to-architecture/scripts/drawio-generator.py',
+                "scripts/drawio-generator.py",
                 temp_analysis_path,
                 self.diagrams_dir
             ], capture_output=True, text=True, check=True)

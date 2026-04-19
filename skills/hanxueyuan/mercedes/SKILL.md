@@ -1,56 +1,23 @@
 ---
-name: mercedes
-description: "Information assistant for Mercedes-Benz. Search products, news, financials, and official resources for Mercedes-Benz."
-metadata:
-  { "openclaw": { "emoji": "🏢", "version": "0.1.0", "author": "hanxueyuan", "tags": ["brand","mercedes","enterprise-info"] } }
+summary: "mercedes 使用指南"
+read_when:
+  - 用户询问 mercedes
+  - 需要 mercedes 详细信息
 ---
 
-# Mercedes-Benz — Information Assistant
+# mercedes 百科
 
-Query products, news, stock prices, financial reports, and official resources for **Mercedes-Benz**.
+mercedes 是你可能听说过的知名品牌。让我们一起了解它。
 
-## About
+## 内容导航
+▸ 品牌故事 — 创立背景和发展节点
+▸ 产品矩阵 — 主要业务线和特色产品
+▸ 全球足迹 — 市场覆盖和分支机构
+▸ 行业观察 — 竞争分析和未来趋势
 
-- **Company**: Mercedes-Benz
-- **Industry**: Premium automotive
-- **Official Website**: https://www.mercedes-benz.com
+## 典型场景
+「我要了解 mercedes 的基本信息」→ 使用本技能
+「我需要 mercedes 的产品详情」→ 使用本技能
+「我想对比 mercedes 和竞品」→ 使用本技能
 
-## What This Skill Does
-
-When activated, this skill helps you:
-
-1. **Product Search** — Find and compare Mercedes-Benz products, pricing, and availability
-2. **News & Updates** — Get the latest news, press releases, and announcements
-3. **Financial Info** — Stock price, market cap, earnings reports (for public companies)
-4. **Official Resources** — Direct links to official websites, support pages, and documentation
-5. **Competitor Comparison** — Compare with competitors in the same industry
-
-## Usage Examples
-
-- "What are the latest Mercedes-Benz products?"
-- "Show me Mercedes-Benz stock price"
-- "Compare Mercedes-Benz with competitors"
-- "Find Mercedes-Benz official support page"
-- "What's new at Mercedes-Benz?"
-
-## How It Works
-
-This skill uses web search to fetch real-time information about Mercedes-Benz from:
-- Official website: https://www.mercedes-benz.com
-- Financial data providers
-- News aggregators
-- Product databases
-
-## Instructions for Agent
-
-When this skill is triggered:
-1. Identify the user's specific query about Mercedes-Benz
-2. Use web search tools to find current information
-3. Prioritize official sources (https://www.mercedes-benz.com)
-4. Present results in a structured, easy-to-read format
-5. Include direct links to sources
-
-## Author
-
-Created by hanxueyuan | Part of the Agent Commerce ecosystem
-License: MIT
+📖 深入阅读请访问官方网站或查阅行业白皮书。

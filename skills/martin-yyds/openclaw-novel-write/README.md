@@ -1,6 +1,26 @@
 # Novel Write - OpenClaw 小说创作助手
 
-基于 [novel-writer-skills](https://github.com/wordflowlab/novel-writer-skills) 改编的 OpenClaw Skill。
+<<<<<<< HEAD
+> **版本：0.1.0** | 基于 [novel-writer-skills](https://github.com/wordflowlab/novel-writer-skills) 改编
+=======
+> **版本：0.1.2** | 基于 [novel-writer-skills](https://github.com/wordflowlab/novel-writer-skills) 改编
+>>>>>>> 3a77ccf (chore: 版本更新至0.1.2)
+
+---
+
+## 核心能力
+
+| 能力 | 说明 |
+|------|------|
+| 七步方法论 | 从宪法到写作的完整创作流程 |
+| 六阶段写作 | 预写分析 → 初稿 → 自检 → 润色 → 修订 → 元数据 |
+| 伏笔回收检查 | 每章强制检查伏笔是否正常揭晓 |
+| 记忆系统 | .learnings/ 记录中途灵感，确保设定不丢失 |
+| Mermaid 情节图 | 自动生成人物关系图/战斗图/势力图 |
+| 失败记录 | fail-log 持续积累问题，持续优化 |
+| 五视角读者反馈 | Target/Casual/Expert/Critic/Editor 五视角评估 |
+| 反AI检测 | 内置自然化写作规范，避免AI味 |
+| 追踪系统 | 角色状态、情节进度、线索管理 |
 
 ---
 
@@ -28,6 +48,10 @@
 | `/novel write [章节]` | "写第X章"、"开始第一章"、"继续写" |
 | `/novel track --check` | "追踪验证"、"检查状态" |
 | `/novel analyze` | "质量分析"、"分析章节" |
+| `/novel learnings` | "记忆系统"、"记录设定"、"更新记忆" |
+| `/novel diagram` | "生成关系图"、"生成战斗图"、"势力图" |
+| `/novel fail-log` | "失败记录"、"查看问题" |
+| `/novel feedback` | "读者视角反馈"、"生成反馈报告" |
 
 ---
 
@@ -214,7 +238,7 @@ stories/<项目>/
 如果任何检查项未通过，`/novel write` 会报错并提示缺少哪一步。
 
 **写作后强制检查（阻断型）**：
-- 每次完成 → `/novel track --check` 追踪验证（失败 → 阻断）
+- 每次完成 → `/novel track --check` 追踪验证 + 伏笔回收检查（失败 → 阻断）
 - 每 5 章完成 → 提醒用户执行 `/novel analyze`（失败 → 阻断）
 
 ---
@@ -269,9 +293,14 @@ stories/<项目>/
 用户: 开始写第一章
       → 触发 /novel write
       → ⚠️ 前置检查（前8步）→ 全部通过
-      → AI 开始写作
-      → 完成后自动 /novel track --check
-      → AI: ✅ 章节写作完成，字数 3,256 字，追踪验证通过
+      → 📋 阶段1 预写分析（时间点/角色/伏笔/前文摘要）
+      → ✏️  阶段2 初稿生成
+      → 🔍 阶段3 自检（时间线/伏笔/角色一致性）
+      → ✨ 阶段4 文笔润色（反AI检测）
+      → 🔎 阶段5 修订（节奏/对话/冗余）
+      → 📦 阶段6 元数据输出（更新tracking）
+      → 完成后自动 /novel track --check（伏笔回收检查）
+      → AI: ✅ 章节写作完成，字数 3,256 字
 
 用户: 继续写第5章
       → 触发 /novel write
@@ -294,9 +323,13 @@ stories/<项目>/
 | `/novel plan` | 制定创作计划 |
 | `/novel track-init` | 初始化追踪系统 |
 | `/novel tasks` | 生成任务清单 |
-| `/novel write [章节]` | 执行写作 |
-| `/novel track --check` | 追踪验证 |
+| `/novel write [章节]` | 执行写作（6阶段流程） |
+| `/novel track --check` | 追踪验证 + 伏笔回收检查 |
 | `/novel analyze` | 质量分析 |
+| `/novel learnings` | 记忆系统 |
+| `/novel diagram` | Mermaid 情节图解 |
+| `/novel fail-log` | 失败记录 |
+| `/novel feedback` | 五视角读者反馈 |
 
 ---
 

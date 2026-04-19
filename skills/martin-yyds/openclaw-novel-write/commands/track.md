@@ -100,7 +100,111 @@
 
 ---
 
+## 伏笔回收检查
+
+**每次 `/novel write` 完成后必须执行（强制）**
+
+检查 `plot-tracker.json` 中所有状态为 `foreshadowing` 的伏笔，确认本章是否应该揭晓。
+
+### 伏笔结构
+
+每个伏笔在 `plot-tracker.json.foreshadowing` 中应有：
+```json
+{
+  "id": "F-01",
+  "content": "主角其实是皇室血脉",
+  "planted_chapter": 3,
+  "reveal_chapter": 20,
+  "status": "foreshadowing",
+  "clues": ["第3章老管家的眼神", "第7章的神秘玉佩"]
+}
+```
+
+### 检查逻辑
+
+```
+读取 plot-tracker.json.foreshadowing
+    ↓
+过滤 status=foreshadowing 的伏笔
+    ↓
+对每个伏笔检查：
+  - 本章编号 == reveal_chapter？→ 应该揭晓
+  - 本章编号 > reveal_chapter？→ 遗漏揭晓，警告
+  - 本章编号 < reveal_chapter？→ 继续埋设，检查线索是否出现
+    - 如果线索词出现 → 正常继续
+    - 如果线索词未出现但伏笔被意外提前揭晓 → 冲突
+    ↓
+发现问题 → 阻断 → 提示修复
+    ↓
+通过 → 更新 reveal_chapter 已到的伏笔状态为 resolved
+```
+
+### 伏笔揭晓检测
+
+读取本章正文，检测伏笔相关关键词：
+- 如果 `reveal_chapter == 当前章节`：正文必须包含伏笔揭晓内容
+- 如果未包含：阻断，提示「应该揭晓伏笔 F-xx 了」
+
+### 通过后的更新
+
+伏笔状态由 `foreshadowing` → `resolved`，追加：
+```json
+{
+  "id": "F-01",
+  "content": "主角其实是皇室血脉",
+  "planted_chapter": 3,
+  "reveal_chapter": 20,
+  "status": "resolved",
+  "clues": ["第3章老管家的眼神", "第7章的神秘玉佩"],
+  "resolved_in": "第20章"
+}
+```
+
+### 失败示例
+
+```
+❌ 伏笔回收检查失败
+
+问题类型：遗漏揭晓
+伏笔 F-02（家族恩怨）计划在第15章揭晓
+- 计划：第15章揭晓
+- 实际：当前第16章，伏笔仍为 foreshadowing
+
+建议：
+  1. 在第16章中揭晓 F-02
+  2. 或更新 plot-tracker.json 中 F-02 的 reveal_chapter
+```
+
+```
+⚠️ 伏笔冲突警告
+
+伏笔 F-03（身份秘密）计划在第20章揭晓
+- 但第18章似乎已经暗示了身份
+- 冲突：第18章内容与第20章揭晓冲突
+
+建议：检查第18章内容，修正或更新伏笔计划
+```
+
+---
+
 ## 输出格式
+
+```
+📊 伏笔回收检查报告
+
+总伏笔数：8
+  - 待揭晓（埋设中）：5
+  - 本章应揭晓：1 → ✅ F-01 已揭晓
+  - 已揭晓：2
+
+本章伏笔状态：
+  F-01：foreshadowing → resolved ✅
+  F-03：继续埋设（线索正常出现）
+
+状态：✅ 通过
+```
+
+**失败处理**：检查阻断，提示用户修复后才能继续写作。
 
 ```
 📊 进度追踪报告

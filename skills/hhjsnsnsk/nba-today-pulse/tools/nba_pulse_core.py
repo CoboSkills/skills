@@ -892,9 +892,18 @@ def augment_game_with_nba_live(game: dict[str, Any], *, requested_date: str) -> 
                 starters = [player["displayName"] for player in players if player.get("starter")]
                 if starters:
                     game["starters"][abbr] = starters[:5]
-                lines = [_player_line_from_boxscore(player) for player in players]
+                ordered_players = sorted(
+                    players,
+                    key=lambda player: (
+                        -(float((player.get("stats") or {}).get("points") or 0)),
+                        -(float((player.get("stats") or {}).get("rebounds") or 0)),
+                        -(float((player.get("stats") or {}).get("assists") or 0)),
+                        0 if player.get("starter") else 1,
+                    ),
+                )
+                lines = [_player_line_from_boxscore(player) for player in ordered_players]
                 if lines:
-                    game["keyPlayers"][abbr] = [line for line in lines if line][:3]
+                    game["keyPlayers"][abbr] = [line for line in lines if line][:5]
                 # 收集实际上场球员（有 minutes 记录的）
                 team_active: list[str] = []
                 for player in players:
@@ -1089,10 +1098,10 @@ def build_live_view(game: dict[str, Any], analysis: dict[str, Any]) -> dict[str,
     lineups = game_context.get("lineups") or {}
     full_stats = game_context.get("fullStats") or {"available": False, "teams": {}, "players": {}}
     matchup = (game_context.get("info") or {}).get("matchup") or {}
-    _, coverage = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=3)
+    selected_players, coverage = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=5)
     return {
         "info": game_context.get("info") or {},
-        "lineups": lineups,
+        "lineups": _lineups_with_live_player_display(lineups, selected_players),
         "injuries": game_context.get("injuries") or {},
         "liveState": game_context.get("liveState") or {},
         "momentum": {
@@ -2019,7 +2028,7 @@ def _render_lineups_section(
         if not key_players:
             continue
         lines.append(f"- {_display_team(abbr, lang, zh_locale)}:")
-        for line in key_players[:3]:
+        for line in key_players[:5]:
             lines.append(f"  - {localize_player_line(line, lang)}")
     lines.append("")
     return lines
@@ -2243,46 +2252,79 @@ def _select_live_players_for_display(
     players_by_team: dict[str, list[dict[str, Any]]],
     lineups: dict[str, Any],
     limit: int = 5,
+    prioritize_starters: bool = False,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     players = list(players_by_team.get(abbr) or [])
     starters = (lineups.get("starters") or {}).get(abbr) or []
+    leader_names = {
+        normalize_player_identity(extract_primary_name(line))
+        for line in (lineups.get("leaders") or {}).get(abbr) or []
+        if extract_primary_name(line)
+    }
     normalized_players = {
         normalize_player_identity(str(player.get("playerName") or "")): player
         for player in players
         if player.get("playerName")
     }
-    selected: list[dict[str, Any]] = []
-    seen: set[str] = set()
     matched_starters: list[str] = []
     unmatched_starters: list[str] = []
     for starter_name in starters:
         normalized = normalize_player_identity(starter_name)
         player = normalized_players.get(normalized)
         if player:
-            selected.append(player)
-            seen.add(normalized)
             matched_starters.append(starter_name)
         else:
             unmatched_starters.append(starter_name)
-    remaining: list[tuple[int, dict[str, Any]]] = []
+    ranked: list[tuple[int, dict[str, Any]]] = []
     for index, player in enumerate(players):
         normalized = normalize_player_identity(str(player.get("playerName") or ""))
-        if not normalized or normalized in seen:
+        if not normalized:
             continue
-        remaining.append((index, player))
-    remaining.sort(
+        ranked.append((index, player))
+    if prioritize_starters:
+        selected: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for starter_name in starters:
+            normalized = normalize_player_identity(starter_name)
+            player = normalized_players.get(normalized)
+            if not player or normalized in seen:
+                continue
+            selected.append(player)
+            seen.add(normalized)
+        remaining = [(index, player) for index, player in ranked if normalize_player_identity(str(player.get("playerName") or "")) not in seen]
+        remaining.sort(
+            key=lambda item: (
+                0 if item[1].get("starter") else 1,
+                -_player_impact_sort_key(item[1])[0],
+                -_player_impact_sort_key(item[1])[1],
+                -_player_impact_sort_key(item[1])[2],
+                -_player_impact_sort_key(item[1])[3],
+                -_player_impact_sort_key(item[1])[4],
+                -_player_impact_sort_key(item[1])[5],
+                item[0],
+            )
+        )
+        selected.extend(player for _, player in remaining[: max(0, limit - len(selected))])
+        return selected[:limit], {
+            "availableCount": len(players),
+            "renderedCount": len(selected[:limit]),
+            "matchedStarters": matched_starters,
+            "unmatchedStarters": unmatched_starters,
+        }
+    ranked.sort(
         key=lambda item: (
-            0 if item[1].get("starter") else 1,
+            0 if normalize_player_identity(str(item[1].get("playerName") or "")) in leader_names else 1,
             -_player_impact_sort_key(item[1])[0],
-            -_player_impact_sort_key(item[1])[1],
             -_player_impact_sort_key(item[1])[2],
+            -_player_impact_sort_key(item[1])[1],
             -_player_impact_sort_key(item[1])[3],
             -_player_impact_sort_key(item[1])[4],
             -_player_impact_sort_key(item[1])[5],
+            0 if item[1].get("starter") else 1,
             item[0],
         )
     )
-    selected.extend(player for _, player in remaining[: max(0, limit - len(selected))])
+    selected = [player for _, player in ranked[:limit]]
     return selected[:limit], {
         "availableCount": len(players),
         "renderedCount": len(selected[:limit]),
@@ -2297,6 +2339,7 @@ def _build_live_player_display(
     lineups: dict[str, Any],
     matchup: dict[str, Any],
     limit: int = 5,
+    prioritize_starters: bool = False,
 ) -> tuple[dict[str, list[dict[str, Any]]], dict[str, dict[str, Any]]]:
     players_by_team = full_stats.get("players") or {}
     selected_by_team: dict[str, list[dict[str, Any]]] = {}
@@ -2311,10 +2354,36 @@ def _build_live_player_display(
             players_by_team=players_by_team,
             lineups=lineups,
             limit=limit,
+            prioritize_starters=prioritize_starters,
         )
         selected_by_team[abbr] = selected
         coverage_by_team[abbr] = coverage
     return selected_by_team, coverage_by_team
+
+
+def _player_line_from_full_stats(player: dict[str, Any]) -> str:
+    name = str(player.get("playerName") or "").strip()
+    stats = player.get("stats") or {}
+    parts = [name]
+    for key in ("PTS", "REB", "AST"):
+        value = stats.get(key)
+        if value not in (None, ""):
+            parts.append(f"{value} {key}")
+    return " | ".join(part for part in parts if part)
+
+
+def _lineups_with_live_player_display(
+    lineups: dict[str, Any],
+    selected_by_team: dict[str, list[dict[str, Any]]],
+) -> dict[str, Any]:
+    display_lineups = dict(lineups)
+    key_players = dict(lineups.get("keyPlayers") or {})
+    for abbr, players in selected_by_team.items():
+        lines = [_player_line_from_full_stats(player) for player in players]
+        if lines:
+            key_players[abbr] = [line for line in lines if line]
+    display_lineups["keyPlayers"] = key_players
+    return display_lineups
 
 
 def _status_to_phase(status_state: str) -> str:
@@ -2385,7 +2454,7 @@ def _build_live_card(scene: dict[str, Any]) -> dict[str, Any]:
     full_stats = ((scene["game"].get("gameContext") or {}).get("fullStats") or {"available": False, "teams": {}, "players": {}})
     lineups = live.get("lineups") or {}
     matchup = ((live.get("info") or {}).get("matchup") or {})
-    _, coverage = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=3)
+    _, coverage = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=3, prioritize_starters=True)
     latest_play = ""
     if live_state.get("playTimeline"):
         item = (live_state.get("playTimeline") or [])[-1]
@@ -2506,7 +2575,7 @@ def _build_day_fast_card(game: dict[str, Any], analysis: dict[str, Any], phase: 
         full_stats = game_context.get("fullStats") or {"available": False, "source": "unavailable", "teams": {}, "players": {}}
         lineups = game_context.get("lineups") or {}
         matchup = (game_context.get("info") or {}).get("matchup") or {}
-        _, coverage = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=3)
+        _, coverage = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=3, prioritize_starters=True)
         latest_play = ""
         if live_state.get("playTimeline"):
             item = (live_state.get("playTimeline") or [])[-1]
@@ -2822,7 +2891,7 @@ def render_day_view_markdown(payload: dict[str, Any]) -> str:
                     latest_play = _narrative_latest_play(live_state["latestPlay"], lang)
                     lines.append(f"- {day_labels['latest_play']}: {latest_play}")
                 full_stats = card.get("fullStats") or {}
-                players, _ = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=3)
+                players, _ = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=3, prioritize_starters=True)
                 for abbr in (away_abbr, home_abbr):
                     player_lines = [
                         render_compact_player_stat_line(player, lang=lang, include_secondary=False, include_shooting=False)
@@ -2867,7 +2936,7 @@ def render_live_scene_markdown(scene: dict[str, Any]) -> str:
     game_context = scene["game"].get("gameContext") or {}
     full_stats = game_context.get("fullStats") or {"available": False, "teams": {}, "players": {}}
     player_focus = scene.get("playerFocus")
-    selected_players, _ = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=3)
+    selected_players, _ = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=5)
     lines = [
         f"# {phase_labels['live_title']} ({report['requestedDate']})",
         f"> {labels['timezone']}: {report['timezone']}",
@@ -2880,7 +2949,7 @@ def render_live_scene_markdown(scene: dict[str, Any]) -> str:
     ]
     lines.extend(_render_info_section(info, labels, phase_labels, zh_locale=zh_locale))
     lines.extend(_render_lineups_section(lineups, game_context.get("seasonAverages") or {}, matchup, labels, phase_labels, zh_locale=zh_locale))
-    lines.extend(_render_injuries_section(injuries, matchup, labels, phase_labels, zh_locale=zh_locale, active_players=lineups.get("activeParticipants") or lineups.get("verifiedPlayers")))
+    lines.extend(_render_injuries_section(injuries, matchup, labels, phase_labels, zh_locale=zh_locale, active_players=lineups.get("activeParticipants") or []))
     lines.append(f"## {phase_labels['live_flow']}")
     if live.get("summary"):
         localized_summary = _localize_team_mentions(live["summary"], lang=report["lang"], zh_locale=zh_locale, team_abbrs=team_abbrs)
@@ -2918,10 +2987,13 @@ def render_live_scene_markdown(scene: dict[str, Any]) -> str:
         lines.append(f"- {labels['analysis_reasons']}: {' / '.join(localized_reasons[:2])}")
     lines.append("")
     lines.extend(_render_team_totals_section(full_stats, matchup, labels, phase_labels, zh_locale=zh_locale))
-    lines.extend(_render_key_player_lines_section({"players": selected_players}, matchup, labels, phase_labels, limit=3, player_focus=player_focus, zh_locale=zh_locale))
+    lines.extend(_render_key_player_lines_section({"players": selected_players}, matchup, labels, phase_labels, limit=5, player_focus=player_focus, zh_locale=zh_locale))
     if scene["digest"]["plays"]:
         lines.extend([f"## {phase_labels['play_digest']}", ""])
-        for item in scene["digest"]["plays"][:4]:
+        if scene["digest"].get("recentRun"):
+            recent_run = _localize_team_mentions(scene["digest"]["recentRun"], lang=report["lang"], zh_locale=zh_locale, team_abbrs=team_abbrs)
+            lines.append(f"- {recent_run}")
+        for item in scene["digest"]["plays"][:8]:
             lines.append(f"- {item}")
         lines.append("")
     localized_summary = _localize_team_mentions(live.get("summary") or phase_labels["none"], lang=report["lang"], zh_locale=zh_locale, team_abbrs=team_abbrs)
@@ -3419,6 +3491,16 @@ def _play_matches_player_focus(play: dict[str, Any], player_focus: str | None) -
     return False
 
 
+def _play_score_suffix(play: dict[str, Any], game: dict[str, Any]) -> str:
+    away_score = play.get("awayScore")
+    home_score = play.get("homeScore")
+    if away_score in (None, "") or home_score in (None, ""):
+        return ""
+    away_abbr = ((game.get("away") or {}).get("abbr")) or "AWAY"
+    home_abbr = ((game.get("home") or {}).get("abbr")) or "HOME"
+    return f" ({away_abbr} {away_score}-{home_score} {home_abbr})"
+
+
 def _render_filtered_play_section(
     scene: dict[str, Any],
     *,
@@ -3446,13 +3528,19 @@ def _render_filtered_play_section(
         ).strip()
         text = str(play.get("text") or play.get("shortDescription") or "").strip()
         if text:
-            filtered.append(f"{latest_clock} {text}".strip())
+            filtered.append(f"{latest_clock} {text}{_play_score_suffix(play, scene['game'])}".strip())
     if not filtered and quarter is None and not player_focus:
         filtered = list((scene.get("digest") or {}).get("plays") or [])
     if not filtered:
         lines.append(f"- {phase_labels['none']}")
     else:
-        for item in filtered[-5:]:
+        if quarter is None and not player_focus and (scene.get("digest") or {}).get("recentRun"):
+            matchup = (((scene.get("live") or {}).get("info") or {}).get("matchup") or {})
+            team_abbrs = _matchup_team_abbrs(matchup)
+            zh_locale = scene["report"].get("zhLocale")
+            recent_run = _localize_team_mentions((scene.get("digest") or {}).get("recentRun"), lang=lang, zh_locale=zh_locale, team_abbrs=team_abbrs)
+            lines.append(f"- {recent_run}")
+        for item in filtered[-8:]:
             lines.append(f"- {item}")
     lines.append("")
     return lines
@@ -3522,14 +3610,14 @@ def _render_scene_focus_markdown(scene: dict[str, Any]) -> str:
         game_context = scene["game"].get("gameContext") or {}
         full_stats = game_context.get("fullStats") or {"available": False, "teams": {}, "players": {}}
         lineups = (scene.get("live") or {}).get("lineups") or {}
-        selected_players, _ = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=3)
+        selected_players, _ = _build_live_player_display(full_stats=full_stats, lineups=lineups, matchup=matchup, limit=5)
         lines.extend(
             _render_key_player_lines_section(
                 {"players": selected_players},
                 matchup,
                 labels,
                 phase_labels,
-                limit=3,
+                limit=5,
                 player_focus=player_focus,
                 zh_locale=report.get("zhLocale"),
             )

@@ -1,15 +1,15 @@
 ---
 name: nba-today-pulse
-description: Timezone-aware NBA daily intelligence using bundled public ESPN/NBA fetchers plus official NBA injury-report PDFs, with compact day fast path, same-day stats, phase-specific game routes, play-by-play-driven recaps, compact key-player cards, and refresh-safe follow-ups with direct tool-output delivery.
+description: Timezone-aware NBA daily intelligence using bundled public ESPN/NBA fetchers plus official NBA injury-report PDFs, with compact day fast path, same-day stats, phase-specific game routes, stronger single-game live detail, and refresh-safe follow-ups with direct tool-output delivery.
 user-invocable: true
 metadata: {"openclaw":{"skillKey":"nba-today-pulse","requires":{"bins":["python3"]}}}
 ---
 
-# NBA Today Pulse v11
+# NBA Today Pulse v12
 
-Version: `1.0.11`
+Version: `1.0.12`
 
-Get a compact mixed-status NBA day view, same-day stat leaders, dedicated pregame/live/post reports, and independent injury reports in one skill. This public `1.0.11` bundle keeps the compact day/live cards, carries forward the NBA_TR live boxscore participant tracking and postgame auto-render routing updates, and adds the faster day path plus refresh-safe follow-up handling.
+Get a compact mixed-status NBA day view, same-day stat leaders, dedicated pregame/live/post reports, and independent injury reports in one skill. This public `1.0.12` bundle keeps compact `day` cards while strengthening single-game `live` detail with deeper key-player coverage, longer scored play digests, recent-run summaries, and live boxscore-based injury filtering.
 
 Do not invent scores, injuries, lineups, player stats, matchup reasons, or turning-point narratives that are not supported by the bundled tool output.
 
@@ -61,7 +61,7 @@ Injury requests take priority over preview phrasing. Explicit preview phrasing t
 
 - `stats_day`: Best Performance → Top Scorer → Top Rebounder → Top Assists → Most Threes → Double/Triple Doubles → Largest Margin → Summary
 - `pregame`: Game Info → Lineups & Key Players → Injuries → Team Form → Prediction Analysis → Summary
-- `live`: Game Info → Lineups & Key Players → Injuries → Live Momentum → Team Comparison → Key Player Stats (3 players per team, compact PTS/REB/AST/STL/BLK + shooting) → Play Digest → Summary
+- `live`: Game Info → Lineups & Key Players → Injuries → Live Momentum → Team Comparison → Key Player Stats (up to 5 players per team, compact PTS/REB/AST/STL/BLK + shooting) → Play Digest (up to 8 scored plays plus recent 3-minute run when available) → Summary
 - `post`: Game Info → Starting Lineups → Result & Flow Summary → Key Performances → Team Comparison → Injuries → Turning Point → Summary
 - `day`: grouped cards ordered by `Live → Final → Upcoming`; live cards show at most 3 compact player lines per team, without team-total rows or duplicate play lines; final cards stay compact
 - `injury`: Fact Layer → Analysis Layer

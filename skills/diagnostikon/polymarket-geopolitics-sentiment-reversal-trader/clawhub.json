@@ -80,7 +80,7 @@
       "default": 0.38,
       "range": [
         0.05,
-        0.50
+        0.5
       ],
       "step": 0.01,
       "label": "YES threshold (buy YES below this)"
@@ -89,7 +89,7 @@
       "env": "SIMMER_NO_THRESHOLD",
       "default": 0.62,
       "range": [
-        0.50,
+        0.5,
         0.95
       ],
       "step": 0.01,
@@ -99,7 +99,7 @@
       "env": "SIMMER_REVERSAL_ZONE_HIGH",
       "default": 0.92,
       "range": [
-        0.80,
+        0.8,
         0.99
       ],
       "step": 0.01,
@@ -110,7 +110,7 @@
       "default": 0.08,
       "range": [
         0.01,
-        0.20
+        0.2
       ],
       "step": 0.01,
       "label": "Low reversal zone (below = overreaction)"
@@ -125,5 +125,6 @@
       "step": 1,
       "label": "Min days for reversal (need runway)"
     }
-  ]
+  ],
+  "version": "0.0.2"
 }

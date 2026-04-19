@@ -38,7 +38,7 @@ MARGIN_RIGHT = 2.6
 
 # 字体（WPS 和 Word 都支持）
 FONT_BODY = '仿宋'
-FONT_HEADING_CHAPTER = '黑体'      # 章：黑体
+FONT_HEADING_CHAPTER = '宋体'      # 章：宋体（标题）
 FONT_HEADING_SECTION = '楷体'     # 节：楷体
 FONT_HEADING_ARTICLE = '仿宋'     # 条：仿宋
 FONT_HEADER = '黑体'
@@ -399,6 +399,9 @@ def build_table(doc, table_lines, style_table_header=None):
     """将表格行数据写入 Word 表格（支持斑马条纹）"""
     rows_data = []
     for line in table_lines:
+        # 过滤掉分隔行（如 |------|------|...）
+        if re.match(r'^[\|\-\s]+$', line.strip()):
+            continue
         cells = [c.strip() for c in line.strip('|').split('|')]
         rows_data.append(cells)
 

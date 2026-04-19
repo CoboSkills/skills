@@ -3,9 +3,15 @@
   "slug": "huo15-openclaw-office-doc",
   "displayName": "Huo15 Openclaw Office Doc",
   "latest": {
-    "version": "4.1.1",
-    "publishedAt": 1776015974147,
-    "commit": "https://github.com/openclaw/skills/commit/0805f74c6c4403fdcbba644852257c8b36dcec4c"
+    "version": "4.1.3",
+    "publishedAt": 1776600663017,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "4.1.1",
+      "publishedAt": 1776015974147,
+      "commit": "https://github.com/openclaw/skills/commit/0805f74c6c4403fdcbba644852257c8b36dcec4c"
+    }
+  ]
 }

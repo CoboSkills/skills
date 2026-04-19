@@ -1,56 +1,46 @@
 ---
-name: pepsi
-description: "PepsiCo products, brands, nutrition info, stock data, and latest campaigns. Covers Pepsi, Lay's, Gatorade, Quaker, and more."
-metadata:
-  { "openclaw": { "emoji": "🥤", "version": "0.1.0", "author": "hanxueyuan", "tags": ["beverage","food","pepsico"] } }
+summary: "百事 Pepsi——全球第二大饮料公司、可乐大战的挑战者、从药房到饮料帝国"
+read_when:
+  - 查询百事可乐 · Pepsi相关信息
+  - 了解相关行业发展
 ---
 
-# Pepsi
+# 百事可乐 · Pepsi
 
-Your guide to PepsiCo — the global food and beverage giant behind Pepsi, Lay's, Gatorade, and 20+ billion-dollar brands.
+---
 
-## Brand Portfolio
+## 发展历程
 
-### Beverages
-- **Pepsi** — Cola, Zero Sugar, Wild Cherry, Mango
-- **Mountain Dew** — Original, Code Red, Baja Blast, energy drinks
-- **Gatorade** — Sports hydration, Gatorade Zero, Gatorlyte
-- **Tropicana** — Orange juice and fruit beverages
-- **Aquafina** — Purified drinking water
-- **Lipton** (partnership) — Iced tea products
-- **Starry** — Lemon-lime soda (replaced Sierra Mist)
-- **Bubly** — Sparkling water
+| 时期 | 关键事件 |
+|:----:|--------|
+| **1893 年** | Caleb Bradham 在北卡罗来纳州药房发明'Brad 饮料' |
+| **1898 年** | 更名为 Pepsi-Cola |
+| **1950s-1970s** | '百事挑战'营销活动——盲测中消费者更喜欢百事 |
+| **1965 年** | 与 Frito-Lay 合并成立百事公司 |
+| **2020s** | 食品+饮料双引擎（乐事/桂格/佳得乐） |
 
-### Snacks (Frito-Lay)
-- **Lay's** — World's largest selling chip brand
-- **Doritos** — Nacho Cheese, Cool Ranch, Flamin' Hot
-- **Cheetos** — Crunchy, Puffs, Flamin' Hot
-- **Tostitos** — Tortilla chips and salsa
-- **Ruffles** — Ridged potato chips
-- **SunChips** — Multigrain snacks
+---
 
-### Nutrition (Quaker)
-- **Quaker Oats** — Oatmeal, granola bars
-- **Life Cereal** — Breakfast cereal
+## 核心特点
 
-## Company Facts
-- **Stock**: PEP (NASDAQ)
-- **Headquarters**: Purchase, New York, USA
-- **CEO**: Ramon Laguarta
-- **Revenue**: ~$91 billion (2024)
-- **Employees**: ~315,000
-- **Founded**: 1965 (merger of Pepsi-Cola and Frito-Lay)
+饮料（百事可乐/七喜/佳得乐）+ 食品（乐事/桂格/多力多滋）
 
-## What You Can Ask
-- "Pepsi vs Coca-Cola comparison"
-- "PepsiCo stock price and dividends"
-- "List all PepsiCo brands"
-- "Pepsi Zero Sugar nutrition facts"
-- "PepsiCo Super Bowl commercials"
+## 核心优势
 
-## Data Sources
-- Official: https://www.pepsico.com
-- Brand sites, SEC filings, nutrition databases
+乐事是全球最大的薯片品牌 + 食品业务占比超过 50%（比可口可乐更多元化）
 
-## Author
-Created by hanxueyuan | License: MIT
+---
+
+## 关键数据
+
+| 指标 | 数值 |
+|------|------|
+| 年营收 | 约 910 亿美元 |
+| 食品占比 | 超过 50% |
+| 员工数 | 约 315000 人 |
+
+---
+
+## 值得了解
+
+百事公司实际上是一家食品公司——乐事薯片的收入比百事可乐饮料还多

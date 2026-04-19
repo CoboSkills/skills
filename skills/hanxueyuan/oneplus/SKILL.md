@@ -1,56 +1,44 @@
 ---
-name: oneplus
-description: "Information assistant for 一加 OnePlus. Search products, news, financials, and official resources for 一加 OnePlus."
-metadata:
-  { "openclaw": { "emoji": "🏢", "version": "0.1.0", "author": "hanxueyuan", "tags": ["brand","oneplus","enterprise-info"] } }
+summary: "一加 OnePlus——旗舰杀手、'不将就'的极客手机品牌、OPPO 旗下高端线"
+read_when:
+  - 查询一加 · OnePlus相关信息
+  - 了解相关行业发展
 ---
 
-# 一加 OnePlus — Information Assistant
+# 一加 · OnePlus
 
-Query products, news, stock prices, financial reports, and official resources for **一加 OnePlus**.
+---
 
-## About
+## 发展历程
 
-- **Company**: 一加 OnePlus
-- **Industry**: Smartphones
-- **Official Website**: https://www.oneplus.com
+| 时期 | 关键事件 |
+|:----:|--------|
+| **2013 年** | 刘作虎创立一加 |
+| **2014 年** | 第一款 OnePlus One——'旗舰杀手'定价 |
+| **2018 年** | 超越 Apple 成为印度高端手机第一 |
+| **2021 年** | 与 OPPO 合并 |
 
-## What This Skill Does
+---
 
-When activated, this skill helps you:
+## 核心特点
 
-1. **Product Search** — Find and compare 一加 OnePlus products, pricing, and availability
-2. **News & Updates** — Get the latest news, press releases, and announcements
-3. **Financial Info** — Stock price, market cap, earnings reports (for public companies)
-4. **Official Resources** — Direct links to official websites, support pages, and documentation
-5. **Competitor Comparison** — Compare with competitors in the same industry
+高端智能手机 + 配件
 
-## Usage Examples
+## 核心优势
 
-- "What are the latest 一加 OnePlus products?"
-- "Show me 一加 OnePlus stock price"
-- "Compare 一加 OnePlus with competitors"
-- "Find 一加 OnePlus official support page"
-- "What's new at 一加 OnePlus?"
+'旗舰杀手'性价比 + 极客社区文化 + 快充技术
 
-## How It Works
+---
 
-This skill uses web search to fetch real-time information about 一加 OnePlus from:
-- Official website: https://www.oneplus.com
-- Financial data providers
-- News aggregators
-- Product databases
+## 关键数据
 
-## Instructions for Agent
+| 指标 | 数值 |
+|------|------|
+| 母公司 | OPPO |
+| 员工数 | 约 5000 人 |
 
-When this skill is triggered:
-1. Identify the user's specific query about 一加 OnePlus
-2. Use web search tools to find current information
-3. Prioritize official sources (https://www.oneplus.com)
-4. Present results in a structured, easy-to-read format
-5. Include direct links to sources
+---
 
-## Author
+## 值得了解
 
-Created by hanxueyuan | Part of the Agent Commerce ecosystem
-License: MIT
+一加的名字来源于'Add'的概念——一加一大于二

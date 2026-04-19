@@ -1,11 +1,17 @@
 {
   "owner": "mentholmike",
   "slug": "lethe",
-  "displayName": "lethe",
+  "displayName": "Lethe Memory",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1774679277296,
-    "commit": "https://github.com/openclaw/skills/commit/da563c3f1b352ad57b843a31afc68d1a514c9411"
+    "version": "0.1.7",
+    "publishedAt": 1776037625718,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1774679277296,
+      "commit": "https://github.com/openclaw/skills/commit/da563c3f1b352ad57b843a31afc68d1a514c9411"
+    }
+  ]
 }

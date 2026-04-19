@@ -1,13 +1,18 @@
 {
   "owner": "simonstang",
   "slug": "xiaofei-liberal-arts",
-  "displayName": "Xiaofei Liberal Arts",
+  "displayName": "小菲学姐文科辅导",
   "latest": {
-    "version": "3.0.6",
-    "publishedAt": 1775524367534,
-    "commit": "https://github.com/openclaw/skills/commit/41235e347cb5735c6c7fc9fddb974049d6de002f"
+    "version": "3.5.0",
+    "publishedAt": 1776307358347,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.6",
+      "publishedAt": 1775524367534,
+      "commit": "https://github.com/openclaw/skills/commit/41235e347cb5735c6c7fc9fddb974049d6de002f"
+    },
     {
       "version": "3.0.5",
       "publishedAt": 1775522824526,

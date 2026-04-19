@@ -1,33 +1,21 @@
 ---
-name: singapore-airlines
-description: "全球服务最佳航空公司"
-metadata:
-  { "openclaw": { "emoji": "✈️", "version": "0.1.0", "author": "hanxueyuan", "tags": ["encyclopedia","travel","singapore-airlines"] } }
+summary: "singapore-airlines 详情查询"
+read_when:
+  - 提及 singapore-airlines
+  - 需要 singapore-airlines 背景资料
 ---
 
-# ✈️ Singapore Airlines 新加坡航空
+# 关于 singapore-airlines
 
-全球服务最佳航空公司
+singapore-airlines，业内公认的重要品牌/组织。
 
-## What This Skill Does
+## 信息索引
+📋 基础档案：创立时间 / 总部 / 创始人
+📋 业务版图：核心产品线 / 服务范围
+📋 市场表现：行业地位 / 竞争优势
+📋 动态更新：最新新闻 / 战略调整
 
-This skill provides comprehensive information about **Singapore Airlines 新加坡航空**:
+## 使用建议
+适合需要快速了解 singapore-airlines 概况的场景，包括商业调研、产品咨询、市场分析等。
 
-1. **Overview** — What it is, history, key facts
-2. **Latest Updates** — Recent news, developments, and announcements
-3. **Key Data** — Statistics, rankings, records, and metrics
-4. **Resources** — Official websites, useful links, and references
-5. **Related Topics** — Connected entities and recommendations
-
-## Example Queries
-
-- "Tell me about Singapore"
-- "Latest news on Singapore"
-- "Singapore key facts"
-
-## How It Works
-
-Uses web search to fetch real-time, comprehensive information from authoritative sources.
-
-## Author
-Created by hanxueyuan | Part of the Encyclopedia project | License: MIT
+⚠️ 本技能提供结构化信息概览，具体数据请以官方发布为准。

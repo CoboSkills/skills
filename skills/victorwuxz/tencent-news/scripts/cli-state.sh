@@ -4,9 +4,6 @@ set -e
 # cli-state.sh — Output install state, version/update status, and API key status.
 # Usage: sh scripts/cli-state.sh
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SKILL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-
 # ── helpers ──────────────────────────────────────────────────────────
 fail() { echo "Error: $1" >&2; exit 1; }
 
@@ -16,6 +13,20 @@ json_escape() {
 
 json_bool() {
   echo "$1" | grep "\"$2\"" | head -1 | sed 's/.*"'"$2"'"[[:space:]]*:[[:space:]]*\([a-z]*\).*/\1/'
+}
+
+resolve_command_cli_path() {
+  resolved_path="$(command -v "$1" 2>/dev/null || true)"
+  if [ -z "$resolved_path" ]; then
+    return 1
+  fi
+
+  if "$resolved_path" help >/dev/null 2>&1; then
+    printf '%s\n' "$resolved_path"
+    return 0
+  fi
+
+  return 1
 }
 
 # ── argument parsing ─────────────────────────────────────────────────
@@ -54,32 +65,30 @@ detect_arch() {
 OS="$(detect_os)"
 ARCH="$(detect_arch)"
 CLI_FILENAME="tencent-news-cli"
-LOCAL_CLI_PATH="$SKILL_DIR/$CLI_FILENAME"
+LOCAL_CLI_PATH="$(cd "$(dirname "$0")/.." && pwd)/$CLI_FILENAME"
+INSTALL_ROOT="${TENCENT_NEWS_INSTALL:-${HOME:-}/.tencent-news-cli}"
+BIN_DIR="$INSTALL_ROOT/bin"
+GLOBAL_CLI_PATH="$BIN_DIR/$CLI_FILENAME"
 
-# ── cli detection: prefer skill-local install, fall back to global ───
+# ── cli detection: global command > global install path > legacy local path ──
 CLI_SOURCE="none"
-CLI_PATH=""
+CLI_PATH="$GLOBAL_CLI_PATH"
+COMMAND_CLI_PATH="$(resolve_command_cli_path "$CLI_FILENAME" || true)"
 
-# Use local CLI first if already installed by the skill.
-if [ -f "$LOCAL_CLI_PATH" ]; then
+if [ -n "$COMMAND_CLI_PATH" ]; then
+  CLI_PATH="$COMMAND_CLI_PATH"
+  CLI_SOURCE="global"
+elif [ -f "$GLOBAL_CLI_PATH" ]; then
+  CLI_SOURCE="global"
+elif [ -f "$LOCAL_CLI_PATH" ]; then
   CLI_PATH="$LOCAL_CLI_PATH"
   CLI_SOURCE="local"
 fi
 
-# Fall back to global CLI if local not found.
-if [ -z "$CLI_PATH" ]; then
-  GLOBAL_CLI_PATH="$(command -v "$CLI_FILENAME" 2>/dev/null || true)"
-  if [ -n "$GLOBAL_CLI_PATH" ] && "$GLOBAL_CLI_PATH" help >/dev/null 2>&1; then
-    CLI_PATH="$GLOBAL_CLI_PATH"
-    CLI_SOURCE="global"
-  fi
-fi
-
-if [ -n "$CLI_PATH" ]; then
+if [ "$CLI_SOURCE" != "none" ]; then
   CLI_EXISTS="true"
 else
   CLI_EXISTS="false"
-  CLI_PATH="$LOCAL_CLI_PATH"
 fi
 
 # ── update check ────────────────────────────────────────────────────

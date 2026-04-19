@@ -1,9 +1,9 @@
 import { existsSync } from "node:fs";
-import { chmod, mkdir, rename, unlink } from "node:fs/promises";
-import { createHash } from "node:crypto";
+import { chmod, readFile } from "node:fs/promises";
 
 export const BASE_DOWNLOAD_URL = "https://mat1.gtimg.com/qqcdn/qqnews/cli/hub";
-export const DEFAULT_CHECKSUM_URL = `${BASE_DOWNLOAD_URL}/checksums.txt`;
+const INSTALL_ENV_NAME = "TENCENT_NEWS_INSTALL";
+const CALLER_MIN_VERSION = "1.0.12";
 
 const SCRIPT_DIR = import.meta.dir.replaceAll("\\", "/");
 export const SKILL_DIR = SCRIPT_DIR.replace(/\/[^/]+$/, "");
@@ -26,42 +26,11 @@ function formatError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function parentDir(path: string): string {
-  const normalized = path.replaceAll("\\", "/");
-  const idx = normalized.lastIndexOf("/");
-  if (idx === -1) return ".";
-  if (idx === 0) return "/";
-  return normalized.slice(0, idx);
-}
-
-function createTempSiblingPath(path: string, label: string): string {
-  return `${path}.${label}.${process.pid}.${Date.now()}`;
-}
-
-async function cleanupFile(path: string) {
-  await unlink(path).catch(() => {});
-}
-
-async function replaceFile(sourcePath: string, targetPath: string) {
-  if (process.platform !== "win32") {
-    await rename(sourcePath, targetPath);
-    return;
+function trimOptionalQuotes(value: string): string {
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    return value.slice(1, -1).trim();
   }
-
-  if (!(await Bun.file(targetPath).exists())) {
-    await rename(sourcePath, targetPath);
-    return;
-  }
-
-  const backupPath = createTempSiblingPath(targetPath, "bak");
-  await rename(targetPath, backupPath);
-  try {
-    await rename(sourcePath, targetPath);
-  } catch (error) {
-    await rename(backupPath, targetPath).catch(() => {});
-    throw error;
-  }
-  await cleanupFile(backupPath);
+  return value.trim();
 }
 
 interface CommandResult {
@@ -69,6 +38,17 @@ interface CommandResult {
   stderr: string;
   exitCode: number;
   output: string;
+}
+
+interface CliVersionInfo {
+  current_version?: unknown;
+  need_update?: unknown;
+}
+
+export interface CliVersionState {
+  rawOutput: string;
+  error: string | null;
+  versionInfo: CliVersionInfo | null;
 }
 
 async function runCommand(args: string[], description: string): Promise<CommandResult> {
@@ -86,14 +66,6 @@ async function runCommand(args: string[], description: string): Promise<CommandR
   return { stdout, stderr, exitCode, output };
 }
 
-async function runCommandOrFail(args: string[], description: string): Promise<string> {
-  const { exitCode, output } = await runCommand(args, description);
-  if (exitCode !== 0) {
-    fail(`${description} failed with exit code ${exitCode}${output ? `: ${output}` : ""}`);
-  }
-  return output;
-}
-
 export interface PlatformInfo {
   os: string;
   arch: string;
@@ -106,6 +78,38 @@ export interface PlatformInfo {
 
 export interface DetectPlatformOptions {
   preferGlobal?: boolean;
+}
+
+function resolveInstallRoot(): string {
+  const configuredRoot = process.env[INSTALL_ENV_NAME]?.trim();
+  if (configuredRoot) return configuredRoot.replaceAll("\\", "/");
+
+  const homeDir = process.env.HOME?.trim()
+    || process.env.USERPROFILE?.trim()
+    || `${process.env.HOMEDRIVE ?? ""}${process.env.HOMEPATH ?? ""}`.trim();
+
+  if (!homeDir) fail(`unable to resolve home directory for ${INSTALL_ENV_NAME} fallback`);
+  return `${homeDir}/.tencent-news-cli`.replaceAll("\\", "/");
+}
+
+function resolveCommandCliPath(cliCommandName: string, isWindows: boolean): string | null {
+  const lookupCommand = isWindows ? "where" : "which";
+  const lookupArgs = [lookupCommand, cliCommandName];
+
+  try {
+    const proc = Bun.spawnSync(lookupArgs, { stdout: "pipe", stderr: "pipe" });
+    if (proc.exitCode !== 0) return null;
+
+    const resolvedPath = proc.stdout.toString().trim().split(/\r?\n/)[0]?.trim();
+    if (!resolvedPath) return null;
+
+    const helpProc = Bun.spawnSync([resolvedPath, "help"], { stdout: "pipe", stderr: "pipe" });
+    if (helpProc.exitCode !== 0) return null;
+
+    return resolvedPath.replaceAll("\\", "/");
+  } catch {
+    return null;
+  }
 }
 
 export function detectPlatform(options: DetectPlatformOptions = {}): PlatformInfo {
@@ -127,39 +131,24 @@ export function detectPlatform(options: DetectPlatformOptions = {}): PlatformInf
   }
 
   const isWindows = os === "windows";
+  const cliCommandName = "tencent-news-cli";
   const cliFilename = isWindows ? "tencent-news-cli.exe" : "tencent-news-cli";
   const localCliPath = `${SKILL_DIR}/${cliFilename}`;
+  const globalCliPath = `${resolveInstallRoot()}/bin/${cliFilename}`;
   const cliDownloadUrl = `${BASE_DOWNLOAD_URL}/${os}-${arch}/${cliFilename}`;
 
-  // Detect global CLI: use `where` on Windows, `which` on others
-  let cliPath = localCliPath;
+  let cliPath = globalCliPath;
   let cliSource: "global" | "local" | "none" = "none";
 
-  if (existsSync(localCliPath)) {
+  const commandCliPath = preferGlobal ? resolveCommandCliPath(cliCommandName, isWindows) : null;
+  if (commandCliPath) {
+    cliPath = commandCliPath;
+    cliSource = "global";
+  } else if (preferGlobal && existsSync(globalCliPath)) {
+    cliSource = "global";
+  } else if (existsSync(localCliPath)) {
     cliPath = localCliPath;
     cliSource = "local";
-  } else if (preferGlobal) {
-    try {
-      const whichCmd = isWindows ? "where" : "which";
-      const proc = Bun.spawnSync([whichCmd, cliFilename], { stdout: "pipe", stderr: "pipe" });
-      if (proc.exitCode === 0) {
-        const globalPath = proc.stdout.toString().trim().split(/\r?\n/)[0];
-        if (globalPath) {
-          // Verify global CLI is functional by calling help
-          const helpProc = Bun.spawnSync([globalPath, "help"], { stdout: "pipe", stderr: "pipe" });
-          if (helpProc.exitCode === 0) {
-            cliPath = globalPath;
-            cliSource = "global";
-          }
-        }
-      }
-    } catch {
-      // Ignore errors in global detection, fall through to local
-    }
-  }
-
-  if (cliSource === "none") {
-    cliPath = localCliPath;
   }
 
   return {
@@ -176,130 +165,138 @@ export function getPlatformJson(p: PlatformInfo) {
   };
 }
 
-export async function downloadFile(url: string, outputPath: string) {
-  const resp = await fetch(url);
-  if (!resp.ok) fail(`download failed: ${resp.status} ${resp.statusText} from ${url}`);
-  await mkdir(parentDir(outputPath), { recursive: true });
-  await Bun.write(outputPath, resp);
-}
+export async function resolveSkillName(skillDir: string = SKILL_DIR): Promise<string> {
+  const skillMdPath = `${skillDir}/SKILL.md`;
 
-export async function runCliVersion(cliPath: string): Promise<string> {
-  if (!(await Bun.file(cliPath).exists())) fail(`cli not found at ${cliPath}`);
-  if (process.platform !== "win32") {
-    await chmod(cliPath, 0o755).catch(() => {});
-  }
-  return runCommandOrFail([cliPath, "version"], `${cliPath} version`);
-}
-
-export interface CliVersionInfo {
-  current_version?: string;
-  latest_version?: string;
-  need_update?: boolean;
-  release_notes?: string;
-  download_urls?: Record<string, string>;
-}
-
-function getPlatformBinaryPath(downloadUrl: string): string {
-  let parsedUrl: URL;
+  let skillMdContent: string;
   try {
-    parsedUrl = new URL(downloadUrl);
+    skillMdContent = await readFile(skillMdPath, "utf8");
   } catch (error) {
-    fail(`invalid download url for checksum verification: ${downloadUrl}: ${formatError(error)}`);
+    fail(`failed to read ${skillMdPath}: ${formatError(error)}`);
   }
 
-  const segments = parsedUrl.pathname.split("/").filter(Boolean);
-  if (segments.length < 2) {
-    fail(`could not determine platform path from download url: ${downloadUrl}`);
+  const frontmatterMatch = skillMdContent.match(/^---\s*\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
+  if (!frontmatterMatch) {
+    fail(`SKILL.md missing YAML frontmatter: ${skillMdPath}`);
   }
 
-  return `${segments[segments.length - 2]}/${segments[segments.length - 1]}`;
+  const nameMatch = frontmatterMatch[1].match(/^name:\s*(.+)$/m);
+  if (!nameMatch) {
+    fail(`name field not found in ${skillMdPath}`);
+  }
+
+  const skillName = trimOptionalQuotes(nameMatch[1] || "");
+  if (!skillName) {
+    fail(`name field is empty in ${skillMdPath}`);
+  }
+
+  return skillName;
 }
 
-async function fetchChecksumForPlatform(checksumUrl: string, downloadUrl: string): Promise<string> {
-  const platformBinaryPath = getPlatformBinaryPath(downloadUrl);
-  const resp = await fetch(checksumUrl).catch((error: unknown) =>
-    fail(`failed to fetch checksums from ${checksumUrl}: ${formatError(error)}`),
-  );
-
-  if (!resp.ok) {
-    fail(`failed to fetch checksums from ${checksumUrl}: ${resp.status} ${resp.statusText}`);
+export function injectCallerArg(args: string[], caller: string): string[] {
+  if (!caller.trim()) {
+    fail("caller cannot be empty");
   }
 
-  const text = await resp.text().catch((error: unknown) =>
-    fail(`failed to read checksums from ${checksumUrl}: ${formatError(error)}`),
-  );
-
-  for (const line of text.split("\n")) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    // format: "<sha256>  <path>" (two spaces between hash and path)
-    const match = trimmed.match(/^([0-9a-fA-F]{64})\s+(.+)$/);
-    if (match) {
-      const [, hash, filePath] = match;
-      if (filePath === platformBinaryPath) {
-        return hash.toLowerCase();
-      }
-    }
+  if (args.some((arg) => arg === "--caller" || arg.startsWith("--caller="))) {
+    fail("do not pass --caller manually; scripts/run-cli injects it from SKILL.md");
   }
 
-  fail(`no matching checksum found for ${platformBinaryPath} in ${checksumUrl}`);
+  const callerArgs = ["--caller", caller];
+  const argsTerminatorIndex = args.indexOf("--");
+
+  if (argsTerminatorIndex === -1) {
+    return [...args, ...callerArgs];
+  }
+
+  return [
+    ...args.slice(0, argsTerminatorIndex),
+    ...callerArgs,
+    ...args.slice(argsTerminatorIndex),
+  ];
 }
 
-async function computeFileSha256(filePath: string): Promise<string> {
-  const fileContent = await Bun.file(filePath).arrayBuffer();
-  const hash = createHash("sha256");
-  hash.update(Buffer.from(fileContent));
-  return hash.digest("hex");
-}
+export async function getCliVersionState(cliPath: string): Promise<CliVersionState> {
+  const versionResult = await runCommand([cliPath, "version"], `${cliPath} version`);
+  const rawOutput = versionResult.output;
 
-export function parseCliVersionJson(raw: string, context: string): CliVersionInfo {
-  let parsed: unknown;
+  if (versionResult.exitCode !== 0) {
+    return {
+      rawOutput,
+      error: rawOutput || `${cliPath} version failed with exit code ${versionResult.exitCode}`,
+      versionInfo: null,
+    };
+  }
+
+  let versionInfo: unknown;
   try {
-    parsed = JSON.parse(raw);
+    versionInfo = JSON.parse(rawOutput);
   } catch {
-    fail(`${context} did not return valid JSON: ${raw || "(empty output)"}`);
+    return {
+      rawOutput,
+      error: `${cliPath} version did not return valid JSON: ${rawOutput || "(empty output)"}`,
+      versionInfo: null,
+    };
   }
 
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    fail(`${context} did not return a JSON object: ${raw || "(empty output)"}`);
+  if (!versionInfo || typeof versionInfo !== "object" || Array.isArray(versionInfo)) {
+    return {
+      rawOutput,
+      error: `${cliPath} version did not return a JSON object: ${rawOutput || "(empty output)"}`,
+      versionInfo: null,
+    };
   }
 
-  return parsed as CliVersionInfo;
+  return {
+    rawOutput,
+    error: null,
+    versionInfo: versionInfo as CliVersionInfo,
+  };
 }
 
-export interface InstallCliResult {
-  rawVersionOutput: string;
-  versionInfo: CliVersionInfo;
+function parseVersionParts(rawVersion: string): number[] | null {
+  const normalized = trimOptionalQuotes(rawVersion).replace(/^v/i, "").split("-")[0];
+  if (!normalized) return null;
+
+  const parts = normalized.split(".");
+  if (parts.some((part) => part === "" || !/^\d+$/.test(part))) {
+    return null;
+  }
+
+  return parts.map((part) => Number(part));
 }
 
-export async function downloadAndInstallCli(
-  downloadUrl: string,
-  cliPath: string,
-  checksumUrl: string,
-): Promise<InstallCliResult> {
-  const tempPath = createTempSiblingPath(cliPath, "download");
-  try {
-    await downloadFile(downloadUrl, tempPath);
+function compareVersions(a: string, b: string): number | null {
+  const left = parseVersionParts(a);
+  const right = parseVersionParts(b);
+  if (!left || !right) return null;
 
-    const expectedHash = await fetchChecksumForPlatform(checksumUrl, downloadUrl);
-    const actualHash = await computeFileSha256(tempPath).catch((error: unknown) =>
-      fail(`failed to compute sha256 for ${tempPath}: ${formatError(error)}`),
-    );
-    if (actualHash !== expectedHash) {
-      fail(`checksum verification failed for ${downloadUrl}\n  expected: ${expectedHash}\n  actual:   ${actualHash}`);
-    }
-    console.error("Checksum verification passed.");
-
-    const rawVersionOutput = await runCliVersion(tempPath);
-    const versionInfo = parseCliVersionJson(rawVersionOutput, `${tempPath} version`);
-    await replaceFile(tempPath, cliPath);
-    if (process.platform !== "win32") {
-      await chmod(cliPath, 0o755).catch(() => {});
-    }
-    return { rawVersionOutput, versionInfo };
-  } finally {
-    await cleanupFile(tempPath);
+  const length = Math.max(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const leftPart = left[index] ?? 0;
+    const rightPart = right[index] ?? 0;
+    if (leftPart > rightPart) return 1;
+    if (leftPart < rightPart) return -1;
   }
+
+  return 0;
+}
+
+export async function supportsCallerArg(cliPath: string): Promise<boolean> {
+  const versionState = await getCliVersionState(cliPath);
+  if (versionState.error || !versionState.versionInfo) {
+    return false;
+  }
+
+  const currentVersion = typeof versionState.versionInfo.current_version === "string"
+    ? versionState.versionInfo.current_version.trim()
+    : "";
+  if (!currentVersion) {
+    return false;
+  }
+
+  const compared = compareVersions(currentVersion, CALLER_MIN_VERSION);
+  return compared !== null && compared >= 0;
 }
 
 function extractApiKey(output: string): string | null {
@@ -313,7 +310,7 @@ function includesMissingApiKeyMessage(output: string): boolean {
   return /未设置 API Key/i.test(output) || /not set/i.test(output);
 }
 
-async function ensureCliExecutable(cliPath: string): Promise<void> {
+export async function ensureCliExecutable(cliPath: string): Promise<void> {
   if (!(await Bun.file(cliPath).exists())) fail(`cli not found at ${cliPath}`);
   if (process.platform !== "win32") {
     await chmod(cliPath, 0o755).catch(() => {});
@@ -332,7 +329,7 @@ export interface ApiKeyState {
 }
 
 export async function getApiKeyState(p: PlatformInfo): Promise<ApiKeyState> {
-  if (p.cliSource !== "global" && !(await Bun.file(p.cliPath).exists())) {
+  if (!(await Bun.file(p.cliPath).exists())) {
     return {
       status: "error",
       present: false,

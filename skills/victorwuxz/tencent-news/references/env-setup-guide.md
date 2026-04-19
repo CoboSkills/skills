@@ -1,6 +1,4 @@
-# TENCENT_NEWS_APIKEY 配置指南
-
-> 本指南面向**用户**，用于手动获取和配置 API Key。
+# tencent-news-cli API Key 配置指南
 
 ## 获取 API Key
 

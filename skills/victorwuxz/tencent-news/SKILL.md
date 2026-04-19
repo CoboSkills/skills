@@ -1,9 +1,9 @@
 ---
 name: tencent-news
-description: 7×24 新闻资讯搜索工具，聚焦中国国内信息和国际热点。支持新闻搜索，包括热点新闻、早报晚报、实时资讯、领域新闻查询。当用户需要搜索新闻、新闻热榜、新闻早晚报、订阅新闻推送、获取相关新闻资讯和最新消息时使用。
+description: 7×24 新闻资讯搜索工具，聚焦中国国内信息和国际热点。支持新闻搜索，包括热点新闻、早报晚报、实时资讯、领域新闻和天气信息查询。当用户需要搜索新闻、新闻热榜、新闻早晚报、订阅新闻推送、获取相关新闻资讯和查询天气信息时使用。
 description_zh: 7×24 新闻搜索工具，聚焦国内外热点，支持热榜、早晚报、实时资讯及领域新闻查询。
 description_en: 7×24 news search tool focused on China and global hot topics, supporting rankings, briefings, real-time feeds, and domain news queries.
-version: 1.0.8
+version: 1.0.9
 author: TencentNews
 tags: [news, tencent, headlines, briefings, news rankings, real-time updates]
 ---
@@ -12,7 +12,7 @@ tags: [news, tencent, headlines, briefings, news rankings, real-time updates]
 
 通过 `tencent-news-cli` 获取腾讯新闻内容。
 
-> **核心原则**：基础设施（安装、更新、Key 配置）交给脚本处理；智能体只负责选择子命令和参数——始终先读 `help`，不要硬编码。
+> **核心原则**：基础设施交给脚本处理；智能体只负责选择子命令和参数。**除 `cli-state` 外，所有 CLI 调用都通过 `run-cli` 执行；先读 `help`，不要硬编码。**
 
 ## 平台约定
 
@@ -25,12 +25,12 @@ tags: [news, tencent, headlines, briefings, news rankings, real-time updates]
 
 以下所有脚本调用均以 macOS / Linux 为例，Windows 将 `.sh` 替换为 `.ts`，`sh` 替换为 `bun`。
 
-CLI 命令本身不要依赖 `cli-state` 返回的模板字符串，直接根据 `platform.cliPath` 组装：
+除 `cli-state` 外，所有 CLI 命令都通过 `run-cli` 脚本执行：
 
-| 平台 | CLI 命令模板 |
+| 平台 | CLI 调用模板 |
 |------|-------------|
-| macOS / Linux | `"<cliPath>" <subcommand> [args]` |
-| Windows PowerShell | `& "<cliPath>" <subcommand> [args]` |
+| macOS / Linux | `sh scripts/run-cli.sh <subcommand> [args]` |
+| Windows | `bun scripts/run-cli.ts <subcommand> [args]` |
 
 ## Phase 1：环境就绪
 
@@ -46,8 +46,8 @@ sh scripts/cli-state.sh
 
 | 字段 | 含义 |
 |------|------|
-| `platform.cliPath` | CLI 完整路径，后续所有命令使用此路径 |
-| `platform.cliSource` | `global`（用户已全局安装）/ `local`（技能目录下载）/ `none`（未找到） |
+| `platform.cliPath` | 底层实际使用的 CLI 完整路径，供诊断错误或权限问题时参考 |
+| `platform.cliSource` | `global`（优先命中 PATH 中可用的全局命令，否则命中默认全局安装目录）/ `local`（旧版 skill 目录内安装，兼容兜底）/ `none`（以上路径都未找到） |
 | `cliExists` | CLI 是否存在 |
 | `update.needUpdate` | 当前版本是否需要更新 |
 | `update.error` | `version` 检查失败时的错误信息 |
@@ -57,53 +57,41 @@ sh scripts/cli-state.sh
 
 ### 2. 安装 CLI（`cliExists` 为 `false` 时）
 
-> `cliSource` 为 `global` 时跳过此步。
+> 仅当 `cliSource` 为 `none` 时才需要安装；`local` 表示命中了旧版本地安装，可继续使用但建议后续迁移到全局安装。
 
-```sh
-sh scripts/install-cli.sh
-```
+按照 [`references/installation-guide.md`](references/installation-guide.md) 中的安装命令执行安装：
 
-若脚本安装失败，引导用户手动安装——参见 [`references/installation-guide.md`](references/installation-guide.md)。
+安装成功后重新执行 `sh scripts/cli-state.sh`（Windows 用 `bun scripts/cli-state.ts`）刷新状态。
+
+若安装失败，参考 [`references/installation-guide.md`](references/installation-guide.md) 中的故障排查部分，引导用户手动处理。
 
 ### 3. 更新 CLI（`update.needUpdate` 为 `true`，或 CLI 提示版本过旧时）
 
 ```sh
-"<cliPath>" update
+sh scripts/run-cli.sh update
 ```
 
-Windows PowerShell 使用 `& "<cliPath>" update`。
+Windows 使用 `bun scripts/run-cli.ts update`。
 
-始终使用 `platform.cliPath` 组装命令。若 `update.error` 不为空，先展示错误并让用户处理。
+若 `update.error` 不为空，先展示错误并让用户处理。
 
-若 `update` 命令失败，或错误信息表明当前 CLI 不支持 `update`（如 `unknown command`、`not found`、`not recognized`），立即改为执行安装脚本覆盖：
-
-```sh
-sh scripts/install-cli.sh --force
-```
-
-Windows：
-
-```sh
-bun scripts/install-cli.ts --force
-```
-
-解析安装脚本返回的 JSON，并把后续命令切换到新返回的 `platform.cliPath`。只有覆盖安装也失败时，才引导用户参考 [`references/update-guide.md`](references/update-guide.md) 手动处理。
+若 `update` 命令失败，或错误信息表明当前 CLI 不支持 `update`（如 `unknown command`、`not found`、`not recognized`），按上述步骤 2 重新安装。仍然失败时，引导用户参考 [`references/update-guide.md`](references/update-guide.md) 手动处理。
 
 ### 4. 配置 API Key（`apiKey.status` 不为 `configured` 时）
 
 - `missing` → 引导用户打开 [API Key 获取页面](https://news.qq.com/exchange?scene=appkey) 自行获取，**不要执行 `open` / `xdg-open` / `start` 等命令自动打开浏览器**
 - `error` → 展示 `apiKey.error`，让用户先处理（权限、网络、CLI 异常），处理后重试
 
-设置 Key（命令前缀使用 `platform.cliPath`，KEY 是裸值不加引号）：
+设置 Key（通过 `run-cli` 执行，KEY 是裸值不加引号）：
 
 ```sh
-"<cliPath>" apikey-set KEY
+sh scripts/run-cli.sh apikey-set KEY
 ```
 
-Windows PowerShell 分别使用 `& "<cliPath>" apikey-set KEY`、`& "<cliPath>" apikey-get`、`& "<cliPath>" apikey-clear`。
+Windows 分别使用 `bun scripts/run-cli.ts apikey-set KEY`、`bun scripts/run-cli.ts apikey-get`、`bun scripts/run-cli.ts apikey-clear`。
 
-验证：`"<cliPath>" apikey-get`
-清除（仅用户明确要求时）：`"<cliPath>" apikey-clear`
+验证：`sh scripts/run-cli.sh apikey-get`
+清除（仅用户明确要求时）：`sh scripts/run-cli.sh apikey-clear`
 
 详见 [`references/env-setup-guide.md`](references/env-setup-guide.md)。
 
@@ -112,7 +100,7 @@ Windows PowerShell 分别使用 `& "<cliPath>" apikey-set KEY`、`& "<cliPath>" 
 > CLI 更新频繁，子命令和参数可能随版本变化。**始终以当前 `help` 输出为准，不要假设或记忆任何子命令。**
 
 1. **执行 `help`**
-   使用 `platform.cliPath` 自行拼命令：macOS / Linux 为 `"<cliPath>" help`，Windows PowerShell 为 `& "<cliPath>" help`。
+   通过 `run-cli` 执行：macOS / Linux 为 `sh scripts/run-cli.sh help`，Windows 为 `bun scripts/run-cli.ts help`。
 
 2. **理解意图，映射子命令**
    - **单一请求**（如"看热点"）→ 映射到一个子命令
@@ -120,7 +108,11 @@ Windows PowerShell 分别使用 `& "<cliPath>" apikey-set KEY`、`& "<cliPath>" 
    - **反馈问题**（如"反馈报错，新闻质量不行"）→ 使用 `feedback` 子命令，内容需包含问题现象与上下文
    - 若 `help` 中无匹配子命令，如实告知用户当前不支持
 
-3. **执行并输出**——按下方格式呈现结果
+3. **执行时遵守两条约束**
+   - 所有实际 CLI 调用都走 `run-cli` 脚本，不要直接执行 `platform.cliPath`
+   - 业务命令、参数名、参数顺序都以 `help` 展示为准，必要时照抄帮助中的示例
+
+4. **执行并输出**——按下方格式呈现结果
 
 ## 输出格式
 
@@ -185,6 +177,7 @@ Windows PowerShell 分别使用 `& "<cliPath>" apikey-set KEY`、`& "<cliPath>" 
 - 多条新闻间用空行分隔
 - `**来源：腾讯新闻**` 在所有内容末尾出现一次
 - 某个类型获取失败时，在该分组下说明原因，继续输出其余分组
+- 内容输出完成后，追加一句引导文案："是否需要创建定时任务，每天自动获取相关新闻?" 如果能识别出来是定时任务触发的，就不用追加引导文案。
 
 ## CLI 执行失败处理
 

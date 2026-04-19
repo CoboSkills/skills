@@ -1,8 +1,9 @@
 import {
   type PlatformInfo,
   detectPlatform, getPlatformJson, getApiKeyState,
+  getCliVersionState,
   fail,
-} from "./_common.ts";
+} from "./_common";
 
 if (process.argv[2] === "help") {
   console.log(
@@ -18,8 +19,8 @@ if (args.length > 0) {
 }
 
 const p = detectPlatform();
-const cliExists = p.cliSource === "global" || await Bun.file(p.cliPath).exists();
-const cliSource: PlatformInfo["cliSource"] = p.cliSource === "global" ? "global" : (cliExists ? "local" : "none");
+const cliExists = await Bun.file(p.cliPath).exists();
+const cliSource: PlatformInfo["cliSource"] = cliExists ? p.cliSource : "none";
 const platform: PlatformInfo = { ...p, cliSource };
 
 const update = {
@@ -29,33 +30,15 @@ const update = {
 
 if (cliExists) {
   try {
-    const proc = Bun.spawnSync([platform.cliPath, "version"], { stdout: "pipe", stderr: "pipe" });
-    const rawVersionOutput = (proc.stdout.toString() + proc.stderr.toString()).trim();
-
-    if (proc.exitCode !== 0) {
-      update.error = rawVersionOutput || `${platform.cliPath} version failed with exit code ${proc.exitCode}`;
+    const versionState = await getCliVersionState(platform.cliPath);
+    if (versionState.error) {
+      update.error = versionState.error;
     } else {
-      let versionInfo: unknown;
-      try {
-        versionInfo = JSON.parse(rawVersionOutput);
-      } catch {
-        update.error = `${platform.cliPath} version did not return valid JSON: ${rawVersionOutput || "(empty output)"}`;
-      }
-
-      if (!update.error) {
-        if (!versionInfo || typeof versionInfo !== "object" || Array.isArray(versionInfo)) {
-          update.error = `${platform.cliPath} version did not return a JSON object: ${rawVersionOutput || "(empty output)"}`;
-        } else {
-          const parsed = versionInfo as {
-            need_update?: unknown;
-          };
-
-          if (typeof parsed.need_update === "boolean") {
-            update.needUpdate = parsed.need_update;
-          } else {
-            update.error = `${platform.cliPath} version did not return a valid need_update value: ${rawVersionOutput || "(empty output)"}`;
-          }
-        }
+      const parsed = versionState.versionInfo;
+      if (parsed && typeof parsed.need_update === "boolean") {
+        update.needUpdate = parsed.need_update;
+      } else {
+        update.error = `${platform.cliPath} version did not return a valid need_update value: ${versionState.rawOutput || "(empty output)"}`;
       }
     }
   } catch (error) {

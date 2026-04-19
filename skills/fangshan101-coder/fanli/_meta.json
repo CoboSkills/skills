@@ -3,11 +3,16 @@
   "slug": "fanli",
   "displayName": "Fanli",
   "latest": {
-    "version": "4.2.0",
-    "publishedAt": 1775641152875,
-    "commit": "https://github.com/openclaw/skills/commit/d9b0a5fcd01cd8953b7bac34e470793ace9cd778"
+    "version": "4.2.2",
+    "publishedAt": 1776253407453,
+    "commit": null
   },
   "history": [
+    {
+      "version": "4.2.0",
+      "publishedAt": 1775641152875,
+      "commit": "https://github.com/openclaw/skills/commit/d9b0a5fcd01cd8953b7bac34e470793ace9cd778"
+    },
     {
       "version": "4.1.0",
       "publishedAt": 1775206294409,

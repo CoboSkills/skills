@@ -1,13 +1,18 @@
 {
   "owner": "zzstart2",
   "slug": "wanderclaw",
-  "displayName": "WanderClaw 虾游",
+  "displayName": "Wanderclaw",
   "latest": {
-    "version": "2.2.1",
-    "publishedAt": 1775549779861,
-    "commit": "https://github.com/openclaw/skills/commit/c6aa5059092276e58cd64daa2e4320b7f84ace2c"
+    "version": "3.1.1",
+    "publishedAt": 1776605813834,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.2.1",
+      "publishedAt": 1775549779861,
+      "commit": "https://github.com/openclaw/skills/commit/c6aa5059092276e58cd64daa2e4320b7f84ace2c"
+    },
     {
       "version": "2.1.0",
       "publishedAt": 1775211071653,

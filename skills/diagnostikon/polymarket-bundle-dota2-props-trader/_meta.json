@@ -3,11 +3,16 @@
   "slug": "polymarket-bundle-dota2-props-trader",
   "displayName": "Polymarket Bundle Dota2 Props Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775316998159,
-    "commit": "https://github.com/openclaw/skills/commit/340c938ff96ad6662e70243ea8f3ee0d72a9cff8"
+    "version": "0.0.2",
+    "publishedAt": 1776513171062,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775316998159,
+      "commit": "https://github.com/openclaw/skills/commit/340c938ff96ad6662e70243ea8f3ee0d72a9cff8"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774736024966,

@@ -1,13 +1,18 @@
 {
   "owner": "may-yaha",
   "slug": "baidu-netdisk-storage",
-  "displayName": "Baidu Netdisk",
+  "displayName": "Baidu Drive",
   "latest": {
-    "version": "1.4.0",
-    "publishedAt": 1775731160439,
-    "commit": "https://github.com/openclaw/skills/commit/5ac946aff9fb4f96717fc0febf309a3aa65d97b5"
+    "version": "1.4.3",
+    "publishedAt": 1776334500365,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.0",
+      "publishedAt": 1775731160439,
+      "commit": "https://github.com/openclaw/skills/commit/5ac946aff9fb4f96717fc0febf309a3aa65d97b5"
+    },
     {
       "version": "1.3.0",
       "publishedAt": 1774608408337,

@@ -3,11 +3,16 @@
   "slug": "industry-stock-tracker",
   "displayName": "Stock/Industry Tracker",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775210059161,
-    "commit": "https://github.com/openclaw/skills/commit/d1a0db831b64d6926e82a30c20c215d5c8b25c2f"
+    "version": "1.0.2",
+    "publishedAt": 1776424714311,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775210059161,
+      "commit": "https://github.com/openclaw/skills/commit/d1a0db831b64d6926e82a30c20c215d5c8b25c2f"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774607167874,

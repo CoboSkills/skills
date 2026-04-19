@@ -3,11 +3,16 @@
   "slug": "hangzhou",
   "displayName": "Hangzhou",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775634517131,
-    "commit": "https://github.com/openclaw/skills/commit/32445d0168b21fefd5adac2f4133af59db412f4d"
+    "version": "1.0.3",
+    "publishedAt": 1776247308626,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775634517131,
+      "commit": "https://github.com/openclaw/skills/commit/32445d0168b21fefd5adac2f4133af59db412f4d"
+    },
     {
       "version": "0.1.1",
       "publishedAt": 1775433213868,

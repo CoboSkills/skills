@@ -109,7 +109,7 @@ okx --profile live earn dcd quote-and-buy --productId BTC-USDT-260327-72000-C --
 
 ```json
 {
-  "quote": { "quoteId": "...", "annualizedYield": "18.5", "absYield": "0.00356", "notionalSz": "0.1", "notionalCcy": "BTC" },
+  "quote": { "quoteId": "...", "annualizedYield": "0.185", "absYield": "0.00356", "notionalSz": "0.1", "notionalCcy": "BTC" },
   "order": { "ordId": "...", "state": "initial" },
   "state": { "ordId": "...", "state": "initial", "productId": "...", "strike": "72000", "notionalSz": "0.1", "settleTime": "..." }
 }
@@ -220,7 +220,7 @@ When this error occurs, the order exists but the current time is outside the all
 | Error code | Meaning | Retry |
 |---|---|---|
 | **504** | **Gateway timeout — server may have executed the request** | **NEVER retry WRITE ops. Query `earn dcd orders` first to verify.** |
-| 50001 | DCD service down | Retry in a few minutes |
+| 50001 | Service temporarily unavailable | Retry in a few minutes |
 | 50026 | System error | Retry in a few minutes |
 | 50030 | Account not authorized for DCD | Guide user to complete verification in OKX app |
 | 50038 | DCD API feature disabled | Contact OKX support |

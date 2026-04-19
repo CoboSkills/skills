@@ -100,6 +100,60 @@ curl -s -X POST -H "Accept:*/*" \
 
 ---
 
+## Article List
+
+**Endpoint:** `POST https://api.coinmeta.com/open/v1/article/list`
+
+**curl example:**
+```bash
+curl -s -X POST -H "Accept:*/*" \
+  -H "X-Api-Key: ${COINMETA_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"page":1,"size":10}' \
+  "https://api.coinmeta.com/open/v1/article/list"
+```
+
+**Request params:**
+| Param | Type | Description |
+|-------|------|-------------|
+| page | int | Page number, default 1 |
+| size | int | Page size, default 10 |
+
+**Response fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| id | int | Article ID |
+| title | string | Title |
+| summary | string | Summary |
+| views | int | View count |
+| createdAt | int | Unix timestamp |
+
+---
+
+## Article Search
+
+**Endpoint:** `POST https://api.coinmeta.com/open/v1/article/search`
+
+**curl example:**
+```bash
+curl -s -X POST -H "Accept:*/*" \
+  -H "X-Api-Key: ${COINMETA_API_KEY}" \
+  -H "Content-Type: application/json" \
+  -d '{"page":1,"size":10,"keyword":"比特币"}' \
+  "https://api.coinmeta.com/open/v1/article/search"
+```
+
+**Request params:**
+| Param | Type | Description |
+|-------|------|-------------|
+| page | int | Page number, default 1 |
+| size | int | Page size, default 10 |
+| keyword | string | Search keyword, required |
+
+**Response fields:** Same as Article List
+
+---
+
 ## Error Handling
 
 | code | msg | Description |

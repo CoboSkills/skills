@@ -3,11 +3,16 @@
   "slug": "seo-intel",
   "displayName": "SEO Intel",
   "latest": {
-    "version": "1.4.7",
-    "publishedAt": 1775829453745,
-    "commit": "https://github.com/openclaw/skills/commit/5157f47c1ac8e024ac52c3a9932805fc2b6decb5"
+    "version": "1.5.21",
+    "publishedAt": 1776121215533,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.4.7",
+      "publishedAt": 1775829453745,
+      "commit": "https://github.com/openclaw/skills/commit/5157f47c1ac8e024ac52c3a9932805fc2b6decb5"
+    },
     {
       "version": "1.2.5",
       "publishedAt": 1774968618317,

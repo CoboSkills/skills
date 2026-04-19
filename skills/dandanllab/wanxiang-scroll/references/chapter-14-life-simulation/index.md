@@ -77,16 +77,57 @@
 4. **代代相传**：继承前代遗产，前代角色作为NPC出场
 5. **自由行动**：行动力系统，每回合可自由选择做的事
 
-## 数据存储
+## 数据结构
+
+所有数据存储在 SQLite 数据库 (`data/wanxiang.db`) 和 JSON 文件中：
+
+### 数据库表结构
+
+```
+核心故事系统:
+├── stories          # 故事元信息
+├── worlds           # 世界观配置
+└── world_state      # 世界状态快照
+
+角色系统:
+├── characters           # 角色基础信息
+├── character_attributes # 角色属性 (str/dex/int/cha/luk/san)
+├── character_traits     # 角色特质
+├── character_skills     # 角色技能
+└── relationships        # 角色关系
+
+事件系统:
+├── events           # 事件记录
+└── event_chains     # 事件链
+
+剧情管理:
+├── plot_arcs        # 剧情弧线
+├── hidden_floors    # 隐藏楼层 (伏笔/备注)
+└── summaries        # 阶段总结
+
+小说生成:
+├── novel_chapters   # 小说章节
+└── novel_sections   # 章节段落
+
+代代相传:
+├── legacies         # 代际传承
+└── family_tree      # 家族树
+
+物品系统:
+└── items            # 物品
+```
+
+### 文件结构
 
 ```
 stories/[剧本名]/
-├── novel.md           # 后台生成的小说
-├── data.json          # 游戏状态数据
-├── legacy.json        # 前代角色数据（续缘用）
-├── world_state.json   # 世界状态数据
-└── images/            # 生成的图片
+├── novel.md           # 后台生成的小说 (Markdown)
+├── data.json          # 游戏状态数据 (JSON)
+├── legacy.json        # 前代角色数据 (JSON)
+└── world_state.json   # 世界状态数据 (JSON)
 ```
+
+> **初始化命令**: `python scripts/init_database.py`
 
 ---
 

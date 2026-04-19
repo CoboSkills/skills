@@ -3,11 +3,16 @@
   "slug": "autonomous-trading-system",
   "displayName": "Autonomous Trading System",
   "latest": {
-    "version": "14.0.1",
-    "publishedAt": 1774794300147,
-    "commit": "https://github.com/openclaw/skills/commit/cf9fdad3553e3a3fde210130b38b7b7cdff26a16"
+    "version": "2.0.1",
+    "publishedAt": 1776235995397,
+    "commit": null
   },
   "history": [
+    {
+      "version": "14.0.1",
+      "publishedAt": 1774794300147,
+      "commit": "https://github.com/openclaw/skills/commit/cf9fdad3553e3a3fde210130b38b7b7cdff26a16"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774058544429,

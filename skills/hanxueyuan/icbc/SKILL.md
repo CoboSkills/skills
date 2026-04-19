@@ -1,48 +1,24 @@
 ---
-name: icbc
-description: "ICBC (Industrial and Commercial Bank of China) banking services, financial products, stock info, and branch locator."
-metadata:
-  { "openclaw": { "emoji": "🏦", "version": "0.1.0", "author": "hanxueyuan", "tags": ["banking","finance","icbc"] } }
+summary: "icbc 综合信息"
+read_when:
+  - 搜索 icbc
+  - 咨询 icbc 详情
 ---
 
-# ICBC
+# icbc 信息站
 
-Information guide for ICBC (工商银行) — the world's largest bank by total assets.
+icbc — 在其行业具有重要影响力。
 
-## Services & Products
+## 信息模块
+【历史沿革】创立时间、地点、创始人及关键里程碑
+【业务范围】主营产品/服务及特色
+【全球布局】分支机构、市场分布
+【最新动态】近期新闻、产品发布、战略合作
 
-### Personal Banking
-- **Deposits** — Savings accounts, time deposits, structured deposits
-- **Loans** — Mortgage (housing loans), auto loans, personal credit loans
-- **Cards** — Credit cards (Visa, Mastercard, UnionPay), debit cards
-- **Wealth Management** — Funds, insurance, precious metals, bonds
-- **Mobile Banking** — ICBC Mobile app features and services
+## 适用场景
+✓ 商业背景调查
+✓ 产品咨询与比较
+✓ 行业研究与分析
+✓ 学术教学参考
 
-### Corporate Banking
-- Corporate accounts and cash management
-- Trade finance and letters of credit
-- Investment banking services
-- Cross-border RMB services
-
-### Key Data
-- **Stock**: 601398.SH (Shanghai), 1398.HK (Hong Kong)
-- **Total Assets**: ~¥45 trillion (largest in the world)
-- **Branches**: 15,000+ domestic, 400+ overseas
-- **Employees**: ~430,000
-- **Founded**: 1984
-- **Headquarters**: Beijing, China
-
-## What You Can Ask
-- "ICBC mortgage rates"
-- "ICBC stock price today"
-- "Nearest ICBC branch"
-- "ICBC credit card benefits"
-- "ICBC vs CCB comparison"
-- "ICBC annual report highlights"
-
-## Data Sources
-- Official: https://www.icbc.com.cn
-- Financial data providers, annual reports, banking regulators
-
-## Author
-Created by hanxueyuan | License: MIT
+获取更详细信息请访问官方网站。

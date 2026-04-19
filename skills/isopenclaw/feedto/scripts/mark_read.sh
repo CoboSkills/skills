@@ -48,4 +48,7 @@ RESPONSE=$(curl -s -f --max-time 15 --connect-timeout 5 -X PATCH \
   exit 1
 }
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+node "$SCRIPT_DIR/ack.mjs" "$@" >/dev/null 2>&1 || true
+
 echo "OK: Marked $# feed(s) as processed"

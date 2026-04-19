@@ -1,42 +1,43 @@
-# FeedTo Skill
+# FeedTo OpenClaw Skill
 
-OpenClaw skill for [FeedTo.ai](https://feedto.ai) — auto-pull and process feeds with AI.
-
-## Install
-
-```bash
-clawhub install feedto
-```
+FeedTo now uses a persistent outbound realtime listener on the OpenClaw side.
 
 ## Setup
 
-1. Sign up at [feedto.ai](https://feedto.ai)
-2. Copy your API key from [Settings](https://feedto.ai/settings)
-3. The skill will prompt for your key on first run, or set it manually in `openclaw.json`:
+1. Install the FeedTo browser extension and sign in at <https://feedto.ai>.
+2. In OpenClaw, run:
+   ```bash
+   clawhub install feedto
+   ```
+3. Paste your FeedTo API key when OpenClaw prompts for `FEEDTO_API_KEY`.
+4. If needed, restart once:
+   ```bash
+   openclaw gateway restart
+   ```
 
-```json
-{
-  "skills": {
-    "feedto": {
-      "config": {
-        "FEEDTO_API_KEY": "your-api-key"
-      }
-    }
-  }
-}
+Get your API key at <https://feedto.ai/settings>.
+
+## Transport
+
+- Primary path: Supabase Realtime broadcast over an outbound websocket
+- Local delivery: the listener writes feeds into a local inbox that the skill cron drains into chat
+- Fallback: if realtime is unavailable, the listener backfills from `/api/feeds/pending`
+
+## Debugging
+
+```bash
+# foreground listener
+node scripts/realtime.mjs
+
+# drain the local inbox
+bash scripts/poll.sh
+
+# inspect listener health, queue depth, and last error
+bash scripts/poll.sh --status
 ```
 
-## How it works
-
-Every minute, the skill:
-1. Polls FeedTo for pending feeds
-2. Relays each feed's content verbatim to the user
-3. Marks processed feeds as read
-
-Use the [FeedTo Chrome Extension](https://feedto.ai/setup) to feed content from any webpage.
-
-## Links
-
-- Web app: [feedto.ai](https://feedto.ai)
-- Web app repo: [isopenclaw/feedto](https://github.com/isopenclaw/feedto)
-- ClawHub: [clawhub.com/skills/feedto](https://clawhub.com/skills/feedto)
+Optional envs:
+- `FEEDTO_DISABLE_REALTIME=1` forces polling fallback
+- `FEEDTO_STATE_DIR=/path/to/state` overrides the local state directory
+- `FEEDTO_HTTP_TIMEOUT_MS=15000` overrides request timeout for session/fallback calls
+- `FEEDTO_MAX_LOG_BYTES=1048576` caps daemon log growth before local trimming

@@ -80,7 +80,7 @@ python3 {baseDir}/scripts/kaipai_ai.py preflight
 
 ```python
 import json, urllib.request
-cfg = json.loads(open("~/.openclaw/openclaw.json").read())
+cfg = json.loads(open("/home/ec2-user/.openclaw/openclaw.json").read())
 feishu = cfg["channels"]["feishu"]["accounts"]["default"]
 token = json.loads(urllib.request.urlopen(urllib.request.Request(
     "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal",

@@ -95,6 +95,7 @@ See [docs/im-attachments.md](docs/im-attachments.md) and [SKILL.md](SKILL.md) fo
 
 ## Docs
 
+- [docs/说明.md](docs/说明.md) — 中文概览（人类读者）
 - [SKILL.md](SKILL.md) — agent instructions
 - [docs/multi-platform.md](docs/multi-platform.md) — delivery (Feishu, Telegram, Discord, …)
 - [docs/errors-and-polling.md](docs/errors-and-polling.md) — env vars, polling, failures

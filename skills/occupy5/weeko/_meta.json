@@ -3,11 +3,16 @@
   "slug": "weeko",
   "displayName": "Weeko",
   "latest": {
-    "version": "1.3.0",
-    "publishedAt": 1774431108609,
-    "commit": "https://github.com/openclaw/skills/commit/cbd3b6d8dac14fd4da81c26b12874bdc86d8feac"
+    "version": "1.4.0",
+    "publishedAt": 1776327968631,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.3.0",
+      "publishedAt": 1774431108609,
+      "commit": "https://github.com/openclaw/skills/commit/cbd3b6d8dac14fd4da81c26b12874bdc86d8feac"
+    },
     {
       "version": "1.2.0",
       "publishedAt": 1774429247520,

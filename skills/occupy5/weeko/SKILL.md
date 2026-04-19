@@ -1,325 +1,336 @@
 ---
 name: weeko
-description: Manage bookmarks and groups via Weeko API. Use when the user wants to save links, list/search bookmarks, create groups, or organize their Weeko collection. Triggers on phrases like "save this to weeko", "add bookmark", "my weeko bookmarks", "create a weeko group", or any mention of weeko/bookmarks in the context of saving or organizing links.
+description: Weeko CLI commands for bookmark management. Search, add, update, delete bookmarks. Create and organize groups. Batch operations.
+metadata:
+  author: occupy5
+  homepage: https://weeko.blog
+  version: "1.4.0"
 ---
 
-# Weeko
+# Weeko CLI Assistant
 
-Capture freely. Digest weekly.
+Expert guidance for interacting with the Weeko CLI - a Bun-powered, AI-native CLI for managing your Weeko bookmarks and groups.
 
-## Setup
+## Overview
 
-**Required:** Configure API key in one of two ways:
+The Weeko CLI provides command-line access to your Weeko bookmark manager with AI-friendly output formats. All commands support:
+- **Output formats**: `json` (default) or `toon` (AI-optimized via `--format toon`) or `pretty` (formatted tables)
+- **Dry-run mode**: Test commands safely with `--dry-run`
+- **Schema validation**: All API responses validated with Zod schemas
 
-### Option 1: openclaw.json (Recommended)
+## Requirements & Installation
 
-Add to `~/.openclaw/openclaw.json`:
+### Prerequisites
+- **Bun runtime** (v1.0 or later) - [Install Bun](https://bun.sh)
+- **Weeko account** - [Sign up](https://weeko.blog)
 
-```json
-{
-  "skills": {
-    "entries": {
-      "weeko": {
-        "apiKey": "wk_your_api_key_here"
-      }
-    }
-  }
-}
+### Installation
+
+**Install from npm** (recommended)
+```bash
+bun install -g weeko-cli
 ```
 
-### Option 2: Environment Variable
+**Verify installation:**
+```bash
+weeko --version
+```
+
+## Quick Start
 
 ```bash
-export WEEKO_API_KEY="wk_your_api_key_here"
+# Authentication
+weeko login [api-key]         # Login with API key
+weeko whoami                  # Show current user
+weeko logout                  # Remove credentials
+
+# Get context about the account
+weeko status                  # Account overview (alias: context)
+weeko tree                    # Show all groups (alias: structure)
+
+# Search and manage bookmarks
+weeko search "query"          # Search bookmarks
+weeko add <url>               # Add new bookmark
+weeko get <id>                # Get bookmark details
+weeko update <id>             # Update bookmark
+weeko delete <id>             # Delete bookmark
+weeko list                    # List all bookmarks
+
+# Manage groups
+weeko group list              # List groups
+weeko group create "Name"     # Create group
+weeko group update <id>       # Update group
+weeko group delete <id>       # Delete group
+
+# Batch operations
+weeko batch move --ids "1,2,3" --group <id>    # Move bookmarks
+weeko batch delete --ids "1,2,3"               # Delete bookmarks
 ```
 
-Get your API key from Weeko Settings → API tab. Keys start with `wk_`.
+## Authentication & Setup
 
-## Authentication
-
-API key lookup order (first found wins):
-1. `openclaw.json` → `skills.entries.weeko.apiKey`
-2. Environment variable `WEEKO_API_KEY`
-
-All API requests require the Authorization header:
-
-```
-Authorization: Bearer wk_xxx
-```
-
-## Bookmarks
-
-### List All Bookmarks
-
+### Login
 ```bash
-curl -s "https://weeko.blog/api/bookmarks" \
-  -H "Authorization: Bearer $WEEKO_API_KEY"
+weeko login                   # Interactive prompt
+weeko login "wk_xxx"          # Provide key directly
 ```
 
-**Query Parameters:**
-| Name | Type | Description |
-|------|------|-------------|
-| groupId | string | Filter by group ID |
+**Getting an API key:**
+1. Visit https://weeko.blog/zh/dashboard
+2. Generate a new API key
+3. Copy the key (starts with `wk_`)
 
-### Get Single Bookmark
-
+### Check Current User
 ```bash
-curl -s "https://weeko.blog/api/bookmarks/BOOKMARK_ID" \
-  -H "Authorization: Bearer $WEEKO_API_KEY"
+weeko whoami                  # Returns user ID, name, email
 ```
 
-### Create Bookmark
-
+### Account Overview
 ```bash
-curl -s -X POST "https://weeko.blog/api/bookmarks" \
-  -H "Authorization: Bearer $WEEKO_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"title": "My Bookmark", "url": "https://example.com", "groupId": "clx...", "description": "Optional description"}'
+weeko status                  # High-level overview:
+                              # - User details
+                              # - Bookmark stats (total, links, colors, text, public)
+                              # - Group count
+                              # - Recent groups
+
+weeko tree                    # All groups with IDs, names, and bookmark counts
 ```
 
-**Fields:**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| title | string | Yes | Bookmark title (1-500 chars) |
-| url | string | No | URL (valid URL, max 2000 chars) |
-| groupId | string | Yes | Target group ID |
-| description | string | No | Description (max 5000 chars) |
+## Working with Bookmarks
 
-**Note:** URL metadata (title, description, favicon) is auto-fetched for links. If bookmark already exists in the group, it will be updated with fresh metadata.
-
-### Update Bookmark
-
+### List Bookmarks
 ```bash
-curl -s -X PATCH "https://weeko.blog/api/bookmarks/BOOKMARK_ID" \
-  -H "Authorization: Bearer $WEEKO_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"title": "Updated Title", "description": "New description", "url": "https://new-url.com", "groupId": "clx..."}'
-```
-
-All fields are optional. Only provided fields will be updated.
-
-### Delete Bookmark
-
-```bash
-curl -s -X DELETE "https://weeko.blog/api/bookmarks/BOOKMARK_ID" \
-  -H "Authorization: Bearer $WEEKO_API_KEY"
+weeko list                    # List all bookmarks
+weeko list -g <groupId>       # Filter by group ID
+weeko list --pretty           # Formatted table output
 ```
 
 ### Search Bookmarks
-
 ```bash
-curl -s "https://weeko.blog/api/bookmarks/search?query=keyword" \
-  -H "Authorization: Bearer $WEEKO_API_KEY"
+weeko search "query"          # Search by title, URL, or description
+weeko search "javascript" --pretty    # Formatted results
 ```
 
-**Query Parameters:**
-| Name | Type | Description |
-|------|------|-------------|
-| query | string | Search query (min 1 char) |
-| limit | number | Max results (1-50, default: 20) |
+Search is performed client-side across bookmark title, URL, and description fields.
 
-Searches by title, URL, or description.
-
-## Groups
-
-### List All Groups
-
+### Get Bookmark Details
 ```bash
-curl -s "https://weeko.blog/api/groups" \
-  -H "Authorization: Bearer $WEEKO_API_KEY"
+weeko get <id>                # Full bookmark details:
+                              # - id, title, url, description
+                              # - image, favicon, siteName
+                              # - type (link/color/text)
+                              # - color, isPublic, groupId
+                              # - group info (id, name, color)
+                              # - createdAt, updatedAt
 ```
 
-### Get Single Group
-
+### Add Bookmarks
 ```bash
-curl -s "https://weeko.blog/api/groups/GROUP_ID" \
-  -H "Authorization: Bearer $WEEKO_API_KEY"
+weeko add "https://example.com"
+weeko add "https://example.com" -t "My Title"
+weeko add "https://example.com" -g <groupId>
+weeko add "https://example.com" -t "Title" -g <groupId> -d "Description"
 ```
 
-Returns group with its bookmarks.
+If no group is specified with `-g`, you'll be prompted to select one interactively.
 
-### Create Group
+**Options:**
+- `-t, --title <title>`: Bookmark title (prompts if not provided)
+- `-g, --group <id>`: Target group ID
+- `-d, --description <desc>`: Description
 
+### Update Bookmarks
 ```bash
-curl -s -X POST "https://weeko.blog/api/groups" \
-  -H "Authorization: Bearer $WEEKO_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "My Group", "color": "#3b82f6"}'
+weeko update <id> -t "New Title"
+weeko update <id> -u "https://new-url.com"
+weeko update <id> -g <newGroupId>
+weeko update <id> -d "New description"
+weeko update <id> -t "Title" -g <groupId> -d "Desc"
 ```
 
-**Fields:**
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| name | string | Yes | Group name (1-100 chars) |
-| color | string | No | Hex color (e.g., `#3b82f6`) |
+**Options:**
+- `-t, --title <title>`: New title
+- `-u, --url <url>`: New URL
+- `-g, --group <id>`: Move to different group
+- `-d, --description <desc>`: New description
 
-Default color: `#3b82f6`
+All options are optional. Only provided fields will be updated.
 
-### Update Group
-
+### Delete Bookmarks
 ```bash
-curl -s -X PATCH "https://weeko.blog/api/groups/GROUP_ID" \
-  -H "Authorization: Bearer $WEEKO_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "New Name", "color": "#ec4899"}'
+weeko delete <id>             # Deletes after confirmation
 ```
 
-All fields are optional.
+## Working with Groups
 
-### Delete Group
-
+### List Groups
 ```bash
-curl -s -X DELETE "https://weeko.blog/api/groups/GROUP_ID" \
-  -H "Authorization: Bearer $WEEKO_API_KEY"
+weeko group list              # All groups with IDs and counts
+weeko group list --pretty     # Formatted table
 ```
 
-**Warning:** Deleting a group removes all bookmarks in it. Cannot delete system groups.
-
-## User
-
-### Get Current User
-
+### Get Group Details
 ```bash
-curl -s "https://weeko.blog/api/user/me" \
-  -H "Authorization: Bearer $WEEKO_API_KEY"
+weeko group get <id>          # Full group details:
+                              # - id, name, color
+                              # - isPublic, bookmarkCount
+                              # - createdAt, updatedAt
 ```
 
-Returns authenticated user's profile (id, name, email).
-
-## Response Format
-
-**Success:**
-```json
-{
-  "success": true,
-  "data": { ... }
-}
+### Create Groups
+```bash
+weeko group create "My Group"
+weeko group create "Work" -c "#ef4444"
 ```
 
-**Error:**
-```json
-{
-  "success": false,
-  "error": "Error message"
-}
+**Options:**
+- `-c, --color <hex>`: Group color in hex format (default: `#3b82f6`)
+
+### Update Groups
+```bash
+weeko group update <id> -n "New Name"
+weeko group update <id> -c "#ec4899"
+weeko group update <id> -n "Name" -c "#10b981"
 ```
 
-**Bookmark Object:**
+**Options:**
+- `-n, --name <name>`: New group name
+- `-c, --color <hex>`: New hex color
+
+### Delete Groups
+```bash
+weeko group delete <id>       # Deletes group AND all its bookmarks
+```
+
+**Warning:** Deleting a group permanently deletes all bookmarks within it.
+
+## Batch Operations
+
+### Batch Move
+```bash
+weeko batch move --ids "id1,id2,id3" --group <targetGroupId>
+```
+
+Move multiple bookmarks to a different group.
+
+### Batch Delete
+```bash
+weeko batch delete --ids "id1,id2,id3"
+```
+
+Delete multiple bookmarks at once.
+
+## Output Formats
+
+### JSON (Default)
+Standard JSON output:
 ```json
 {
   "id": "clx...",
   "title": "Example",
-  "description": "Description text",
-  "url": "https://example.com",
-  "image": "https://example.com/og.png",
-  "favicon": "https://example.com/favicon.ico",
-  "siteName": "Example",
-  "type": "link",
-  "color": null,
-  "isPublic": false,
-  "groupId": "clx...",
-  "createdAt": "2024-01-01T00:00:00.000Z",
-  "updatedAt": "2024-01-01T00:00:00.000Z",
-  "group": { "id": "clx...", "name": "Development", "color": "#3b82f6" }
+  "url": "https://example.com"
 }
 ```
 
-**Group Object:**
-```json
-{
-  "id": "clx...",
-  "name": "Development",
-  "color": "#3b82f6",
-  "isPublic": false,
-  "bookmarkCount": 42,
-  "createdAt": "2024-01-01T00:00:00.000Z",
-  "updatedAt": "2024-01-01T00:00:00.000Z"
-}
+### TOON (AI-Optimized)
+Token-optimized format for AI agents via `--format toon`:
+```
+id\tclx...
+title\tExample
+url\thttps://example.com
 ```
 
-## Rate Limits
-
-| Type | Limit | Methods |
-|------|-------|---------|
-| General | 60/min | GET |
-| Write | 30/min | POST, PATCH, DELETE |
-| Key Generation | 5/hour | Key Gen |
-
-Headers in every response: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
-
-## Error Codes
-
-| Code | Description |
-|------|-------------|
-| 400 | Invalid input or bad request |
-| 401 | Unauthorized (invalid/missing API key) |
-| 404 | Resource not found |
-| 429 | Rate limit exceeded |
-| 500 | Internal server error |
-
-## Workflow
-
-**Before ANY API call:**
-1. Check API key in order:
-   - Read from `~/.openclaw/openclaw.json` → `skills.entries.weeko.apiKey`
-   - Fall back to environment variable `$WEEKO_API_KEY`
-2. If NOT found, output this message and STOP:
-
-   "Weeko API key not configured. Add to `~/.openclaw/openclaw.json`:
-
-   ```json
-   {
-     \"skills\": {
-       \"entries\": {
-         \"weeko\": {
-           \"apiKey\": \"wk_your_key_here\"
-         }
-       }
-     }
-   }
-   ```
-
-   Or set environment variable: `export WEEKO_API_KEY=\"wk_your_key_here\"`"
-
-3. Only proceed with API calls after key is confirmed
-
-**Adding a bookmark:**
-1. For URLs without titles, optionally fetch page title via web fetch
-2. Show confirmation with bookmark title and URL
-3. Offer to assign to a group if groups exist
-
-**Searching bookmarks:**
-1. Use search endpoint with query parameter
-2. Present matching results clearly
-
-**Creating groups:**
-1. Ask for group name
-2. Ask for color preference (hex format: `#3b82f6`)
-3. Create via API and confirm
-
-## MCP Integration
-
-For AI assistants supporting Model Context Protocol (Claude Desktop, Cursor, Windsurf):
-
-```json
-{
-  "mcpServers": {
-    "weeko": {
-      "type": "http",
-      "url": "https://weeko.blog/api/mcp",
-      "headers": {
-        "Authorization": "Bearer wk_your_api_key"
-      }
-    }
-  }
-}
+### Pretty (Formatted Tables)
+Human-readable formatted tables via `--pretty`:
+```
+┌────────────┬──────────────────────┬─────────────────────────────┐
+│ ID         │ Title                │ URL                         │
+├────────────┼──────────────────────┼─────────────────────────────┤
+│ clx...     │ Example              │ https://example.com         │
+└────────────┴──────────────────────┴─────────────────────────────┘
+(1 bookmarks)
 ```
 
-**Available MCP Tools:** `list_bookmarks`, `get_bookmark`, `create_bookmark`, `update_bookmark`, `delete_bookmark`, `search_bookmarks`, `list_groups`, `get_group`, `create_group`, `update_group`, `delete_group`, `get_current_user`
+## Global Options
+
+All commands support:
+
+```bash
+--dry-run                        # Log actions without making API calls
+--format toon                    # Output as TOON instead of JSON
+-v, --version                    # Show version
+```
 
 ## Best Practices
 
-- Confirm operations with brief message
-- Format list output clearly (not raw JSON)
-- Default to URL's page title when adding bookmarks
-- Suggest creating groups if user frequently adds unsorted bookmarks
+1. **Start with context**: Run `weeko status` or `weeko tree` to understand the account structure
+2. **Search before adding**: Use `weeko search` to avoid duplicates
+3. **Use dry-run**: Test destructive operations with `--dry-run` first
+4. **Use TOON format**: Use `--format toon` for AI-optimized token-efficient output
+5. **Batch when possible**: Use `batch move` and `batch delete` for bulk operations
+
+## Error Handling
+
+The CLI provides helpful error messages with hints:
+
+- **401 Unauthorized**: Run `weeko login` to authenticate
+- **404 Not Found**: Verify the ID is correct
+- **429 Rate Limited**: Wait a few minutes before retrying
+- **500 Server Error**: The Weeko server is experiencing issues
+
+All errors include:
+- Error message
+- HTTP status code
+- Hint for resolution (when available)
+
+## Examples
+
+### Daily Workflow
+```bash
+# Check account status
+weeko status
+
+# See group structure
+weeko tree
+
+# Add a new bookmark
+weeko add "https://example.com/article" -g <groupId> -t "Great Article"
+
+# Search for existing bookmarks
+weeko search "javascript" --pretty
+
+# Move bookmarks between groups
+weeko batch move --ids "id1,id2" --group <newGroupId>
+```
+
+### Clean Up Workflow
+```bash
+# Review all bookmarks
+weeko list --pretty
+
+# Search for specific items
+weeko search "example.com"
+
+# Delete unwanted bookmarks
+weeko delete <id>
+
+# Check group sizes before cleanup
+weeko group list --pretty
+```
+
+### Content Curation
+```bash
+# Create a new group
+weeko group create "AI Resources" -c "#8b5cf6"
+
+# Add bookmarks to the new group
+weeko add "https://arxiv.org" -g <newGroupId> -t "arXiv"
+weeko add "https://paperswithcode.com" -g <newGroupId> -t "Papers With Code"
+
+# List group contents
+weeko list -g <newGroupId> --pretty
+```
+
+## Resources
+
+See `references/commands.md` for detailed command reference, architecture info, and output format specifications.

@@ -1,64 +1,45 @@
 ---
-name: nestle
-description: "Nestlé brands, products, nutrition info, stock data, and sustainability initiatives. World's largest food company."
-metadata:
-  { "openclaw": { "emoji": "🍫", "version": "0.1.0", "author": "hanxueyuan", "tags": ["food","consumer-goods","nestle"] } }
+summary: "雀巢 Nestlé——全球最大食品饮料公司、1866 年成立、产品遍布 186 个国家"
+read_when:
+  - 查询雀巢 · Nestlé相关信息
+  - 了解相关行业发展
 ---
 
-# Nestlé
+# 雀巢 · Nestlé
 
-Your guide to Nestlé — the world's largest food and beverage company by revenue.
+---
 
-## Brand Portfolio (2000+ brands)
+## 发展历程
 
-### Coffee & Beverages
-- **Nescafé** — World's leading coffee brand
-- **Nespresso** — Premium coffee capsule system
-- **Starbucks at Home** — Licensed Starbucks retail products
-- **Nesquik** — Chocolate milk drinks
-- **Perrier / S.Pellegrino** — Premium mineral water
+| 时期 | 关键事件 |
+|:----:|--------|
+| **1866 年** | Henri Nestlé 发明婴儿奶粉 |
+| **1905 年** | 与 Anglo-Swiss 合并成立 Nestlé |
+| **1938 年** | 发明速溶咖啡——雀巢咖啡（Nescafé） |
+| **1980s-2020s** | 大量收购——KitKat/Perrier/Purina 等 |
 
-### Confectionery
-- **KitKat** — Iconic chocolate wafer bar
-- **Smarties** — Candy-coated chocolates
-- **Aero** — Bubbly chocolate
-- **Quality Street** — Assorted chocolates
+---
 
-### Dairy & Nutrition
-- **Häagen-Dazs** — Premium ice cream (in some markets)
-- **Carnation** — Evaporated and condensed milk
-- **NAN / S-26** — Infant formula
-- **Gerber** — Baby food
+## 核心特点
 
-### Pet Care (Purina)
-- **Purina Pro Plan** — Premium pet food
-- **Purina ONE** — Pet nutrition
-- **Fancy Feast** — Cat food
-- **Friskies** — Pet food
+婴儿营养 + 咖啡（Nescafé/Nespresso）+ 宠物食品（Purina）+ 糖果（KitKat）
 
-### Health Science
-- **Garden of Life** — Supplements
-- **Boost** — Nutritional drinks
-- **Nutren** — Clinical nutrition
+## 核心优势
 
-## Company Facts
-- **Stock**: NESN.SW (SIX Swiss Exchange)
-- **Headquarters**: Vevey, Switzerland
-- **Founded**: 1866
-- **CEO**: Laurent Freixe
-- **Revenue**: ~CHF 93 billion
-- **Employees**: ~270,000 in 190 countries
+全球最大食品饮料公司 + 宠物食品全球第一 + 咖啡全球第二
 
-## What You Can Ask
-- "List all Nestlé brands"
-- "Nestlé stock price and dividends"
-- "Nestlé sustainability report"
-- "KitKat flavors by country"
-- "Nespresso machine comparison"
+---
 
-## Data Sources
-- Official: https://www.nestle.com
-- Brand websites, annual reports, nutrition databases
+## 关键数据
 
-## Author
-Created by hanxueyuan | License: MIT
+| 指标 | 数值 |
+|------|------|
+| 年营收 | 约 940 亿瑞士法郎 |
+| 品牌数 | 超过 2000 个 |
+| 员工数 | 约 275000 人 |
+
+---
+
+## 值得了解
+
+雀巢拥有超过 2000 个品牌——从 KitKat 到 Nespresso 到 Purina 宠物食品

@@ -1,38 +1,24 @@
 ---
-name: jaguar
-description: "Information assistant for Jaguar 捷豹. Search models, specs, pricing, reviews, and dealership info."
-metadata:
-  { "openclaw": { "emoji": "🚗", "version": "0.1.0", "author": "hanxueyuan", "tags": ["automotive","brand","cars"] } }
+summary: "jaguar 品牌档案"
+read_when:
+  - 查找 jaguar
+  - 了解 jaguar 的背景
 ---
 
-# 🚗 Jaguar 捷豹 — Automotive Info Assistant
+# jaguar 档案
 
-Your AI guide to Jaguar 捷豹. Get model info, specs, pricing, reviews, and more.
+jaguar — 值得关注的重要品牌。
 
-## About
+## 快速了解
+• **它是谁：** 在所属领域具有重要影响力的品牌
+• **做什么：** 提供核心产品/服务，覆盖全球/区域市场  
+• **怎么样：** 在行业中占据重要地位，具有竞争优势
 
-- **Brand**: Jaguar 捷豹
-- **Category**: British luxury car maker
-- **Official Website**: https://www.jaguar.com
+## 深入探索
+想要了解更详细的内容？本技能涵盖：
+→ 发展历程中的关键节点
+→ 产品/服务的核心特点
+→ 全球市场分布情况
+→ 行业竞争格局分析
 
-## What This Skill Does
-
-1. **Model Lineup** — Current models, specs, pricing, and configurations
-2. **Reviews & Comparisons** — Expert and user reviews, competitor comparisons
-3. **Pricing & Deals** — MSRP, dealer pricing, incentives, and financing options
-4. **News & Updates** — Latest launches, recalls, technology updates
-5. **Dealership Locator** — Find nearby dealers and service centers
-
-## Example Queries
-
-- "What Jaguar models are available?"
-- "Compare Jaguar vs [competitor]"
-- "Jaguar latest news"
-- "Best Jaguar for families"
-
-## How It Works
-
-Uses web search to fetch real-time information from https://www.jaguar.com, automotive review sites, and dealer networks.
-
-## Author
-Created by hanxueyuan | License: MIT
+🔗 官方渠道是获取最新、最准确信息的推荐来源。

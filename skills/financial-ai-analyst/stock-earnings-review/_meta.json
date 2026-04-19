@@ -3,11 +3,16 @@
   "slug": "stock-earnings-review",
   "displayName": "Earnings Review Agent",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775819075217,
-    "commit": "https://github.com/openclaw/skills/commit/927ad0864bcbe8af203646c83da262361f4e763e"
+    "version": "1.0.3",
+    "publishedAt": 1776424773126,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775819075217,
+      "commit": "https://github.com/openclaw/skills/commit/927ad0864bcbe8af203646c83da262361f4e763e"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1775209986635,

@@ -1,56 +1,45 @@
 ---
-name: vivo
-description: "Information assistant for vivo. Search products, news, financials, and official resources for vivo."
-metadata:
-  { "openclaw": { "emoji": "🏢", "version": "0.1.0", "author": "hanxueyuan", "tags": ["brand","vivo","enterprise-info"] } }
+summary: "vivo——中国智能手机品牌、影像技术领先者、全球第五大手机品牌"
+read_when:
+  - 查询vivo相关信息
+  - 了解相关行业发展
 ---
 
-# vivo — Information Assistant
+# vivo
 
-Query products, news, stock prices, financial reports, and official resources for **vivo**.
+---
 
-## About
+## 发展历程
 
-- **Company**: vivo
-- **Industry**: Smartphones
-- **Official Website**: https://www.vivo.com
+| 时期 | 关键事件 |
+|:----:|--------|
+| **2009 年** | 沈炜创立 vivo 品牌 |
+| **2012 年** | 推出全球最薄智能手机 |
+| **2010s** | 自拍和美颜技术成为核心竞争力 |
+| **2020s** | 影像芯片 V 系列 + 折叠屏 |
 
-## What This Skill Does
+---
 
-When activated, this skill helps you:
+## 核心特点
 
-1. **Product Search** — Find and compare vivo products, pricing, and availability
-2. **News & Updates** — Get the latest news, press releases, and announcements
-3. **Financial Info** — Stock price, market cap, earnings reports (for public companies)
-4. **Official Resources** — Direct links to official websites, support pages, and documentation
-5. **Competitor Comparison** — Compare with competitors in the same industry
+智能手机 + IoT
 
-## Usage Examples
+## 核心优势
 
-- "What are the latest vivo products?"
-- "Show me vivo stock price"
-- "Compare vivo with competitors"
-- "Find vivo official support page"
-- "What's new at vivo?"
+影像技术（自拍/美颜）+ 线下渠道深耕 + 设计美学
 
-## How It Works
+---
 
-This skill uses web search to fetch real-time information about vivo from:
-- Official website: https://www.vivo.com
-- Financial data providers
-- News aggregators
-- Product databases
+## 关键数据
 
-## Instructions for Agent
+| 指标 | 数值 |
+|------|------|
+| 年营收 | 约 300 亿美元 |
+| 手机市占 | 全球第五 |
+| 员工数 | 约 30000 人 |
 
-When this skill is triggered:
-1. Identify the user's specific query about vivo
-2. Use web search tools to find current information
-3. Prioritize official sources (https://www.vivo.com)
-4. Present results in a structured, easy-to-read format
-5. Include direct links to sources
+---
 
-## Author
+## 值得了解
 
-Created by hanxueyuan | Part of the Agent Commerce ecosystem
-License: MIT
+vivo 和 OPPO 是兄弟公司——都源自步步高的分拆

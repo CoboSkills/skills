@@ -1,56 +1,46 @@
 ---
-name: toyota
-description: "Information assistant for Toyota. Search products, news, financials, and official resources for Toyota."
-metadata:
-  { "openclaw": { "emoji": "🏢", "version": "0.1.0", "author": "hanxueyuan", "tags": ["brand","toyota","enterprise-info"] } }
+summary: "丰田 Toyota——全球最大汽车制造商、精益生产（TPS）的发明者、混动车先驱"
+read_when:
+  - 查询丰田 · Toyota相关信息
+  - 了解相关行业发展
 ---
 
-# Toyota — Information Assistant
+# 丰田 · Toyota
 
-Query products, news, stock prices, financial reports, and official resources for **Toyota**.
+---
 
-## About
+## 发展历程
 
-- **Company**: Toyota
-- **Industry**: Automotive
-- **Official Website**: https://www.toyota.com
+| 时期 | 关键事件 |
+|:----:|--------|
+| **1937 年** | 丰田喜一郎从纺织机制造转向汽车 |
+| **1966 年** | 卡罗拉（Corolla）发布——后来成为全球最畅销车型 |
+| **1997 年** | 普锐斯（Prius）发布——全球第一款量产混动汽车 |
+| **2008 年** | 超越 GM 成为全球销量第一 |
+| **2020s** | 氢能源 + 电动车布局 |
 
-## What This Skill Does
+---
 
-When activated, this skill helps you:
+## 核心特点
 
-1. **Product Search** — Find and compare Toyota products, pricing, and availability
-2. **News & Updates** — Get the latest news, press releases, and announcements
-3. **Financial Info** — Stock price, market cap, earnings reports (for public companies)
-4. **Official Resources** — Direct links to official websites, support pages, and documentation
-5. **Competitor Comparison** — Compare with competitors in the same industry
+乘用车（丰田/雷克萨斯）+ 商用车 + 金融服务
 
-## Usage Examples
+## 核心优势
 
-- "What are the latest Toyota products?"
-- "Show me Toyota stock price"
-- "Compare Toyota with competitors"
-- "Find Toyota official support page"
-- "What's new at Toyota?"
+精益生产（TPS）全球制造业标杆 + 卡罗拉全球累计销量超过 5000 万辆
 
-## How It Works
+---
 
-This skill uses web search to fetch real-time information about Toyota from:
-- Official website: https://www.toyota.com
-- Financial data providers
-- News aggregators
-- Product databases
+## 关键数据
 
-## Instructions for Agent
+| 指标 | 数值 |
+|------|------|
+| 年营收 | 约 37 万亿日元 |
+| 年销量 | 约 1030 万辆（全球第一） |
+| 员工数 | 约 375000 人 |
 
-When this skill is triggered:
-1. Identify the user's specific query about Toyota
-2. Use web search tools to find current information
-3. Prioritize official sources (https://www.toyota.com)
-4. Present results in a structured, easy-to-read format
-5. Include direct links to sources
+---
 
-## Author
+## 值得了解
 
-Created by hanxueyuan | Part of the Agent Commerce ecosystem
-License: MIT
+丰田卡罗拉是全球最畅销的汽车——累计销量超过 5000 万辆

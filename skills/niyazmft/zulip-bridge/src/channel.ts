@@ -6,11 +6,9 @@ import {
   normalizeAccountId,
   setAccountEnabledInConfigSection,
   createChatChannelPlugin,
-} from "openclaw/plugin-sdk/core";
-import {
   formatPairingApproveHint,
   type ChannelAccountSnapshot,
-} from "openclaw/plugin-sdk/irc";
+} from "openclaw/plugin-sdk/core";
 import type { ZulipConfig } from "./types.js";
 import { zulipMessageActions } from "./actions.js";
 import { ZulipChannelConfigSchema } from "./config-schema.js";
@@ -26,7 +24,7 @@ import {
   type ResolvedZulipAccount,
 } from "./zulip/accounts.js";
 import { normalizeZulipBaseUrl } from "./zulip/client.js";
-import { maskPII } from "./zulip/monitor-helpers.js";
+import { maskPII, formatZulipLog } from "./zulip/monitor-helpers.js";
 import { monitorZulipProvider } from "./zulip/monitor.js";
 import { probeZulip } from "./zulip/probe.js";
 import { sendMessageZulip } from "./zulip/send.js";
@@ -170,8 +168,8 @@ export const zulipPlugin = createChatChannelPlugin<ResolvedZulipAccount>({
       }
       return await probeZulip(baseUrl, email, apiKey, timeoutMs);
     },
-    buildAccountSnapshot: ({ account, runtime, probe }) =>
-      ({
+    buildAccountSnapshot: ({ account, runtime, probe }) => {
+      const snapshot: ChannelAccountSnapshot = {
         accountId: account.accountId,
         name: account.name,
         enabled: account.enabled,
@@ -186,10 +184,17 @@ export const zulipPlugin = createChatChannelPlugin<ResolvedZulipAccount>({
         lastStartAt: runtime?.lastStartAt ?? null,
         lastStopAt: runtime?.lastStopAt ?? null,
         lastError: runtime?.lastError ?? null,
-        probe,
+        probe: probe
+          ? {
+              ...probe,
+              email: probe.email ? maskPII(probe.email) : undefined,
+            }
+          : undefined,
         lastInboundAt: runtime?.lastInboundAt ?? null,
         lastOutboundAt: runtime?.lastOutboundAt ?? null,
-      }) as ChannelAccountSnapshot,
+      };
+      return snapshot;
+    },
   },
   gateway: {
     startAccount: async (ctx) => {
@@ -200,17 +205,32 @@ export const zulipPlugin = createChatChannelPlugin<ResolvedZulipAccount>({
         apiKeySource: account.apiKeySource,
         emailSource: account.emailSource,
       } as ChannelAccountSnapshot);
-      ctx.log?.info(`[${account.accountId}] starting channel`);
-      return monitorZulipProvider({
-        apiKey: account.apiKey ?? undefined,
-        email: account.email ?? undefined,
-        baseUrl: account.baseUrl ?? undefined,
-        accountId: account.accountId,
-        config: ctx.cfg,
-        runtime: ctx.runtime,
-        abortSignal: ctx.abortSignal,
-        statusSink: (patch) => ctx.setStatus({ accountId: ctx.accountId, ...patch }),
-      });
+      ctx.log?.info(formatZulipLog("zulip channel starting", { accountId: account.accountId }));
+      try {
+        await monitorZulipProvider({
+          apiKey: account.apiKey ?? undefined,
+          email: account.email ?? undefined,
+          baseUrl: account.baseUrl ?? undefined,
+          accountId: account.accountId,
+          config: ctx.cfg,
+          runtime: ctx.runtime,
+          abortSignal: ctx.abortSignal,
+          statusSink: (patch) => ctx.setStatus({ accountId: ctx.accountId, ...patch }),
+        });
+        ctx.log?.info(
+          formatZulipLog("zulip channel monitor finished normally", {
+            accountId: account.accountId,
+          }),
+        );
+      } catch (err) {
+        ctx.log?.error(
+          formatZulipLog("zulip channel monitor failed", {
+            accountId: account.accountId,
+            error: String(err),
+          }),
+        );
+        throw err;
+      }
     },
   },
   security: {
@@ -244,8 +264,8 @@ export const zulipPlugin = createChatChannelPlugin<ResolvedZulipAccount>({
   pairing: {
     idLabel: "zulipUserId",
     normalizeAllowEntry: (entry) => normalizeAllowEntry(entry),
-    notifyApproval: async ({ id }) => {
-      console.log(`[zulip] User ${maskPII(id)} approved for pairing`);
+    notifyApproval: async ({ id, env }) => {
+      env.logger.info(`[zulip] User ${maskPII(id)} approved for pairing`);
     },
   },
   outbound: {

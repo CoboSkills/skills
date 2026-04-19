@@ -3,11 +3,16 @@
   "slug": "zulip-bridge",
   "displayName": "Openclaw Zulip Bridge",
   "latest": {
-    "version": "2026.4.11",
-    "publishedAt": 1775906548182,
-    "commit": "https://github.com/openclaw/skills/commit/57aa02c7bda93aa0d2ded007bd0accaa484e4584"
+    "version": "2026.4.13",
+    "publishedAt": 1776509902767,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2026.4.11",
+      "publishedAt": 1775906548182,
+      "commit": "https://github.com/openclaw/skills/commit/57aa02c7bda93aa0d2ded007bd0accaa484e4584"
+    },
     {
       "version": "2026.4.5",
       "publishedAt": 1775251907337,

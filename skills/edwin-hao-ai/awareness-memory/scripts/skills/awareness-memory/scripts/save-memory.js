@@ -67,11 +67,7 @@ async function main() {
       } catch { /* best-effort, never fail the save */ }
     }
 
-    const out = { status: "saved", id: result.id };
-    if (result._extraction_instruction) {
-      out._extraction_instruction = result._extraction_instruction;
-    }
-    process.stdout.write(JSON.stringify(out) + "\n");
+    process.stdout.write(JSON.stringify({ status: "saved", id: result.id }) + "\n");
   } catch (err) {
     process.stderr.write(`[awareness] save failed: ${err.message}\n`);
     process.exit(1);

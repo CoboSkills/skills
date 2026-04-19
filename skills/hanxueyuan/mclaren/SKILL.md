@@ -1,38 +1,44 @@
 ---
-name: mclaren
-description: "Information assistant for McLaren 迈凯伦. Search models, specs, pricing, reviews, and dealership info."
-metadata:
-  { "openclaw": { "emoji": "🚗", "version": "0.1.0", "author": "hanxueyuan", "tags": ["automotive","brand","cars"] } }
+summary: "迈凯伦 McLaren——英国超跑品牌、F1 赛车基因、从赛道到公路"
+read_when:
+  - 查询迈凯伦 · McLaren相关信息
+  - 了解相关行业发展
 ---
 
-# 🚗 McLaren 迈凯伦 — Automotive Info Assistant
+# 迈凯伦 · McLaren
 
-Your AI guide to McLaren 迈凯伦. Get model info, specs, pricing, reviews, and more.
+---
 
-## About
+## 发展历程
 
-- **Brand**: McLaren 迈凯伦
-- **Category**: British supercar/F1
-- **Official Website**: https://www.mclaren.com
+| 时期 | 关键事件 |
+|:----:|--------|
+| **1963 年** | Bruce McLaren 创立赛车队 |
+| **1992 年** | F1 公路车发布——当时最快量产车 |
+| **2010s** | P1/720S/Artura 等超跑 |
+| **2020s** | 向混动转型 |
 
-## What This Skill Does
+---
 
-1. **Model Lineup** — Current models, specs, pricing, and configurations
-2. **Reviews & Comparisons** — Expert and user reviews, competitor comparisons
-3. **Pricing & Deals** — MSRP, dealer pricing, incentives, and financing options
-4. **News & Updates** — Latest launches, recalls, technology updates
-5. **Dealership Locator** — Find nearby dealers and service centers
+## 核心特点
 
-## Example Queries
+超级跑车
 
-- "What McLaren models are available?"
-- "Compare McLaren vs [competitor]"
-- "McLaren latest news"
-- "Best McLaren for families"
+## 核心优势
 
-## How It Works
+F1 赛车技术下放 + 碳纤维单体壳技术
 
-Uses web search to fetch real-time information from https://www.mclaren.com, automotive review sites, and dealer networks.
+---
 
-## Author
-Created by hanxueyuan | License: MIT
+## 关键数据
+
+| 指标 | 数值 |
+|------|------|
+| 年产量 | 约 5000 辆 |
+| 母公司 | McLaren Group |
+
+---
+
+## 值得了解
+
+迈凯伦 F1 保持了多年'最快量产车'记录——240 英里/小时

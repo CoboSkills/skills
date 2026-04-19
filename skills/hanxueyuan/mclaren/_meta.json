@@ -1,13 +1,18 @@
 {
   "owner": "hanxueyuan",
   "slug": "mclaren",
-  "displayName": "mclaren",
+  "displayName": "Mclaren",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1774605554846,
-    "commit": "https://github.com/openclaw/skills/commit/5dd43b038e327fb6be3faaa2bbf70aa571f82e57"
+    "version": "0.1.3",
+    "publishedAt": 1776533851127,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1774605554846,
+      "commit": "https://github.com/openclaw/skills/commit/5dd43b038e327fb6be3faaa2bbf70aa571f82e57"
+    },
     {
       "version": "0.2.0",
       "publishedAt": 1774488235685,

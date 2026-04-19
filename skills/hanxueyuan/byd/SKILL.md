@@ -1,56 +1,27 @@
 ---
-name: byd
-description: "Information assistant for 比亚迪 BYD. Search products, news, financials, and official resources for 比亚迪 BYD."
-metadata:
-  { "openclaw": { "emoji": "🏢", "version": "0.1.0", "author": "hanxueyuan", "tags": ["brand","byd","enterprise-info"] } }
+summary: "byd - 品牌/组织详细信息"
+read_when:
+  - 用户询问 byd
+  - 用户想了解 byd 的背景或产品
 ---
 
-# 比亚迪 BYD — Information Assistant
+# byd
 
-Query products, news, stock prices, financial reports, and official resources for **比亚迪 BYD**.
+byd 是在其领域具有知名度的品牌。本技能帮助用户获取关于 byd 的结构化信息。
 
-## About
+## 信息概览
+- 创立时间和总部地点
+- 核心业务和产品范围
+- 全球市场分布情况
+- 行业地位和竞争格局
+- 近期重要动态和新闻
 
-- **Company**: 比亚迪 BYD
-- **Industry**: Electric vehicles, batteries
-- **Official Website**: https://www.byd.com
+## 使用场景
+- 商业背景调研
+- 产品信息查询
+- 市场分析和决策参考
 
-## What This Skill Does
+## 延伸资源
+官方网站：https://www.byd.com
 
-When activated, this skill helps you:
-
-1. **Product Search** — Find and compare 比亚迪 BYD products, pricing, and availability
-2. **News & Updates** — Get the latest news, press releases, and announcements
-3. **Financial Info** — Stock price, market cap, earnings reports (for public companies)
-4. **Official Resources** — Direct links to official websites, support pages, and documentation
-5. **Competitor Comparison** — Compare with competitors in the same industry
-
-## Usage Examples
-
-- "What are the latest 比亚迪 BYD products?"
-- "Show me 比亚迪 BYD stock price"
-- "Compare 比亚迪 BYD with competitors"
-- "Find 比亚迪 BYD official support page"
-- "What's new at 比亚迪 BYD?"
-
-## How It Works
-
-This skill uses web search to fetch real-time information about 比亚迪 BYD from:
-- Official website: https://www.byd.com
-- Financial data providers
-- News aggregators
-- Product databases
-
-## Instructions for Agent
-
-When this skill is triggered:
-1. Identify the user's specific query about 比亚迪 BYD
-2. Use web search tools to find current information
-3. Prioritize official sources (https://www.byd.com)
-4. Present results in a structured, easy-to-read format
-5. Include direct links to sources
-
-## Author
-
-Created by hanxueyuan | Part of the Agent Commerce ecosystem
-License: MIT
+建议查阅官方发布内容和权威行业报告获取最新、最准确的信息。

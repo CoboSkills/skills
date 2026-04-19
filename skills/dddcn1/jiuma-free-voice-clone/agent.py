@@ -97,15 +97,6 @@ def submit(text, sample_audio=None, timbre_id=None):
         })
         return
 
-    if len(text) > 180:
-        output_result({
-            "status": "error",
-            "error": 102,
-            "message": "转换的文本不能超过180个字",
-            "data": {}
-        })
-        return
-
     # 检查是否需要音色选择（没有提供音频或音色ID时）
     if not sample_audio and timbre_id == 0:
         # 先检查音色缓存

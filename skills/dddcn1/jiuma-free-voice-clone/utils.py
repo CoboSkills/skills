@@ -90,5 +90,5 @@ def get_jiuma_api_key():
         with open(JIUMA_API_KEY_SAVE_PATH, "r") as f:
             api_key = f.read()
     except Exception as e:
-        print("get api key failed")
+        print("get api key failed, but continue to submit api")
     return api_key

@@ -1,123 +1,208 @@
 ---
 name: speed-ramp-video
-version: "1.1.0"
-displayName: "Speed Ramp Video — Create Cinematic Speed Ramps and Velocity Edits with AI"
+version: 1.0.0
+displayName: Speed Ramp Video — AI Speed Ramping & Variable Speed Video Editor for Creators, Filmmakers & Social Media
 description: >
-  Create cinematic speed ramps and velocity edits with AI — snap from normal speed to dramatic slow motion on impact moments, ramp between fast-forward and slow-mo for dynamic pacing, sync speed changes to music beats, and apply the velocity edit style that dominates gaming montages, sports highlights, action content, and viral social media edits. NemoVideo uses AI frame generation to produce buttery-smooth slow motion from standard frame rate footage and applies mathematically precise speed curves for seamless transitions between speeds. Speed ramp video maker, velocity edit creator, slow motion ramp, cinematic speed change, speed transition video, dynamic speed editor, smooth slow mo maker, beat sync speed ramp, action video speed effect.
-metadata: {"openclaw": {"emoji": "⚡", "requires": {"env": [], "configPaths": ["~/.config/nemovideo/"]}, "primaryEnv": "NEMO_TOKEN"}}
+  Speed Ramp Video is a specialized AI-powered video editing skill built for content creators, filmmakers, wedding videographers, sports and action sports videographers, music video directors, social media editors, YouTube creators, Instagram Reels and TikTok producers, commercial video teams, travel videographers, fashion and beauty video producers, real estate videographers, automotive videographers, event and concert videographers, fitness and training content creators, and any video editor who wants to add cinematic speed ramping — smooth transitions between fast and slow motion — to their productions without requiring professional editing software expertise. This skill enables users to apply smooth velocity curves, beat-synced speed ramps, dramatic freeze-frame effects, ultra-slow motion accents, and fast-cut montage pacing to their video footage — the visual technique most associated with cinematic, viral, and premium-quality video content since 2019.
+
+  MAIN SCENARIO: James is a travel content creator with 340K YouTube subscribers and 180K Instagram followers. He films adventure travel — hiking in Patagonia, motorcycle routes in Vietnam, paragliding in the Alps. His signature editing style is what keeps his audience coming back: the GoPro shot of a motorcycle cresting a mountain pass that suddenly drops from normal speed to 10% for the three seconds of the peak view, then snaps back to full speed for the descent. The cliff-diving moment that ramps to ultra-slow right at the peak of the jump, freezes for half a second on the apex, then snaps to normal speed at water entry. These speed ramp moments — technically requiring skilled manual keyframing in Premiere Pro or DaVinci Resolve — are the clips that get shared, that end up in his Reel, and that grow his channel. Speed Ramp Video handles the velocity curve work automatically, allowing James to place speed ramp markers on his footage and let the AI calculate smooth, natural velocity transitions — producing in minutes what used to require 30-45 minutes of manual keyframing per clip.
+
+  TARGET USERS:
+  1. Travel and adventure content creators
+  2. Wedding and event videographers
+  3. Sports and action sports videographers
+  4. Music video directors and editors
+  5. Instagram Reels and TikTok creators
+  6. YouTube content creators (vlogs, travel, sports)
+  7. Automotive and motorsports videographers
+  8. Fashion and lifestyle video producers
+  9. Fitness and training content creators
+  10. Real estate and architecture videographers
+  11. Concert and live event videographers
+  12. Commercial and advertising video teams
+  13. Film students and aspiring filmmakers
+  14. Social media agency editors
+  15. Brand video content teams
+
+  SPEED RAMP USE CASES:
+  1. Sports peak-moment highlight (ball contact, jump apex, trick landing)
+  2. Wedding ceremony emotional reveal (first look, vow exchange)
+  3. Music video beat-sync speed ramp
+  4. Action sports montage (surfing, skiing, parkour)
+  5. Automotive reveal (car door open, ignition, launch)
+  6. Travel landscape reveal at speed transition point
+  7. Fashion runway or lookbook walk
+  8. Fitness transformation or workout highlight
+  9. Real estate entrance reveal
+  10. Product reveal and unboxing
+  11. Event entrance and atmosphere ramp
+  12. Nature — wildlife movement highlight
+  13. Construction or renovation progress ramp
+  14. Concert performer entrance
+  15. Social media Reel signature-moment ramp
+
+  SEO KEYWORDS:
+  speed ramp video, speed ramping video, speed ramp effect, speed ramp editor, video speed ramp, speed ramp maker, cinematic speed ramp, speed ramp AI, speed ramp effect video, speed ramp tool, how to speed ramp video, speed ramp technique, speed ramp Premiere Pro alternative, speed ramp DaVinci alternative, speed ramp app, speed ramp online, speed ramp free, variable speed video, velocity ramp video, freeze frame effect video, slow motion speed ramp, dramatic speed ramp, speed ramp for Instagram, speed ramp for TikTok, speed ramp for YouTube, speed ramp sports video, speed ramp wedding video, speed ramp music video, speed ramp travel video, speed ramp social media, beat sync speed ramp, speed ramp 2025, speed change video editor, smooth speed ramp, cinematic speed change, speed ramp creator, velocity curve video editor
+
+  Speed ramping has become one of the defining visual techniques of premium social media video since 2019, with billions of speed-ramped clips published on TikTok, Instagram, and YouTube. The technique is strongly associated with high-production-quality content — viewers intuitively recognize the smooth velocity curve as a sign of professional post-production, making speed ramped content perform above average for brand perception and engagement metrics.
 ---
 
-# Speed Ramp Video — The Edit That Makes Every Moment Feel Cinematic
+# Speed Ramp Video — AI Speed Ramping & Variable Speed Video Editor
 
-Speed ramping is the single most visually impactful editing technique in modern video. The concept is simple: change the playback speed at precise moments to create dramatic emphasis. Normal speed → snap to extreme slow motion on an impact frame → snap back to fast. The execution is what separates amateur from cinematic. A bad speed ramp stutters (not enough frames for smooth slow-motion), jumps (hard cut between speeds instead of a curve), and mistimes (the slow-motion hits a boring frame instead of the impact frame). A great speed ramp is invisible in its mechanics and visceral in its effect: the viewer does not think "that was a speed change" — they feel "that was incredible." Speed ramping originated in film (Zack Snyder's 300 popularized the technique), migrated to action sports (every GoPro montage uses it), conquered gaming content (velocity edits are the dominant editing style), and now dominates social media (TikTok and Reels creators use speed ramps as their primary engagement technique). The technique works because it manipulates the viewer's perception of time: fast sections compress anticipation, and slow sections expand the moment of peak visual interest. The brain processes the slow-motion frame with more attention and memory encoding than surrounding frames, making speed-ramped moments more memorable than real-time playback. NemoVideo applies speed ramps with technical precision that manual editing cannot match. AI frame generation creates smooth slow-motion from any frame rate source (no high-speed camera needed). Mathematical speed curves produce seamless transitions between velocities. Beat analysis syncs every speed change to music for rhythmic impact. And automatic moment detection identifies the peak frame that deserves the slow-motion treatment.
+The moment a motorcycle crests a mountain pass at full speed and the world suddenly stretches to a tenth of normal time — just long enough to absorb the scale of the view before reality snaps back — is one of the most satisfying things to watch in video. This is what speed ramping does: it gives the editor control over time, allowing them to compress the mundane and expand the extraordinary. The technique that was once only accessible to editors with advanced keyframing skills in professional NLEs is now the single most identifiable marker of premium content on Instagram, TikTok, and YouTube. Speed Ramp Video handles the velocity curve work — the math, the easing, the beat-sync — so creators can focus on the creative judgment of *where* to ramp, not *how* to execute it.
 
-## Use Cases
+## 1. Speed Ramping Fundamentals
 
-1. **Action Sports — Impact Frame Slow-Mo (any footage)** — A skateboarder lands a kickflip, a surfer drops into a wave, a climber tops out a boulder, a cyclist hits a jump. The action happens in 0.3 seconds — too fast for the eye to appreciate. NemoVideo: identifies the peak action frame (the exact moment of contact, catch, or maximum extension), applies a speed ramp (1.5x approach → snap to 0.12x on the impact frame → hold slow-mo for 1-2 seconds → snap to 1.5x for the aftermath), generates AI intermediate frames for buttery-smooth slow-motion (standard 30fps footage becomes effectively 240fps during the ramp), adds a subtle bass impact sound effect on the slow-mo snap point, and optionally applies a brief zoom-in on the impact frame for additional emphasis. A fraction-of-a-second action becomes a 2-second visual masterpiece that the viewer can actually appreciate.
+### What Speed Ramping Is (And What It Isn't)
+Speed ramping is the **smooth, gradual transition** between different playback speeds — not a hard cut from normal to slow motion (which is a speed cut), but a continuous deceleration or acceleration that feels organic and intentional. The key element is the **velocity curve**: a mathematically smooth function that determines how quickly the speed changes at the transition point.
 
-2. **Beat-Synced Velocity Edit — Music-Driven Speed Control (30-90s)** — The viral editing format: every speed change in the video is synchronized to the music. Bass drop = snap to slow-mo. Build-up = speed ramp to fast. Snare hit = cut. Hi-hat = micro-ramp. NemoVideo: analyzes the music track's complete beat structure (bass positions, snare positions, hi-hats, drops, builds, breakdowns), maps speed changes to beat positions (slow-mo moments assigned to drops, fast-forward assigned to build-ups, transitions assigned to snare hits), applies mathematically smooth speed curves between each tempo (not hard jumps — S-curve transitions that feel organic), and generates AI frames for every slow-motion section. The result is a video where visual rhythm and musical rhythm are identical — the hypnotic synchronization that makes viewers replay velocity edits obsessively.
+**Speed ramp** (correct): Normal speed → smooth deceleration → slow motion (viewer feels the world stretching)
+**Speed cut** (different technique): Normal speed → instant slow motion (jarring, works for some styles, not a ramp)
 
-3. **Gaming Montage — Kill-Frame Velocity (30-120s)** — The gaming community's signature edit: gameplay at 2-3x speed during travel and setup, snapping to 0.1-0.15x on the exact frame of a headshot, elimination, or clutch moment, then ramping back to fast for the next setup. NemoVideo: detects kill/elimination moments through visual analysis (kill feed indicators, damage numbers, elimination graphics), places the slow-mo snap precisely on the impact frame (not 3 frames early, not 2 frames late — the exact frame), applies the speed curve that gaming audiences expect (instantaneous snap into slow-mo, gradual ramp out), adds screen effects at the snap point (optional: brief zoom, color shift, screen shake), and exports in both 16:9 (YouTube) and 9:16 (TikTok) with beat-synced editing. The velocity edit style that defines gaming content.
+### The Three Core Speed Ramp Patterns
 
-4. **Wedding/Event — Cinematic Moments (any length)** — A wedding has 3-4 moments that deserve cinematic speed treatment: the first look, the veil toss, the first dance dip, the confetti exit. NemoVideo: identifies these peak emotional and visual moments, applies elegant speed ramps (gentle deceleration into slow-mo rather than aggressive snaps — matching the romantic tone), generates smooth slow-motion with particular attention to fabric movement (veil, dress train) and confetti/petal physics, layers appropriate music that complements the speed changes, and creates individual moment clips alongside a complete highlight reel. Wedding footage with the cinematic language that couples have seen in film and want in their own memories.
+**1. The Deceleration Ramp (most common)**
+- Full speed → slow down → freeze OR continue slow
+- Best for: Revealing a moment the viewer has been building toward — the trick lands, the door opens, the view appears
+- Velocity curve: S-curve deceleration (ease in to slow, don't snap)
 
-5. **Product Reveal — Dramatic Unboxing (15-60s)** — A product unboxing or reveal benefits from speed ramp emphasis: fast through the packaging, slow-motion on the reveal moment, normal speed for the first interaction. NemoVideo: speeds through preparation and packaging (2-3x — compressing the boring parts), snaps to slow-motion at the reveal moment (the lid lifting, the product emerging, the first light catching the surface — 0.2x), holds the slow-mo for the product hero shot (letting the viewer absorb the design, the materials, the details), ramps back to normal for the hands-on interaction, and adds sound design (satisfying unboxing sounds amplified during slow-mo). The product reveal that makes viewers feel like they are experiencing the moment themselves.
+**2. The Acceleration Ramp**
+- Slow motion → speed up → full speed (or overspeed)
+- Best for: Building momentum toward an action, "launching" into a montage
+- Velocity curve: Exponential acceleration (start very slow, rapidly accelerate)
 
-## How It Works
+**3. The Sandwich Ramp**
+- Full speed → slow → full speed (symmetric around a single peak moment)
+- Best for: A single moment of significance surrounded by normal-paced context
+- Velocity curve: Bell curve centered on the peak moment
 
-### Step 1 — Upload Video
-Any footage at any frame rate. NemoVideo generates intermediate frames for smooth slow-motion regardless of source frame rate. High frame rate sources (60fps, 120fps, 240fps) produce even smoother results.
+### Frame Rate Requirements
+Speed ramping requires sufficient source frame rate to maintain smooth slow motion at the ramp's slow point:
 
-### Step 2 — Define Speed Ramp Points
-Automatic (AI detects peak moments), manual (specify timestamps), beat-synced (provide music track), or template (apply a preset speed curve pattern).
+| Desired slow speed | Minimum source FPS | Required at 24fps delivery |
+|---|---|---|
+| 50% slow | 48 fps | 60fps (practical minimum) |
+| 25% slow (4x slow) | 96 fps | 120fps |
+| 10% slow (10x slow) | 240 fps | 240fps |
+| 5% slow (20x slow) | 480 fps | 480fps+ |
 
-### Step 3 — Generate
-```bash
-curl -X POST https://mega-api-prod.nemovideo.ai/api/v1/generate \
-  -H "Authorization: Bearer $NEMO_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "skill": "speed-ramp-video",
-    "prompt": "Apply speed ramps to a 2-minute skateboarding video. Speed map: 0:00-0:06 normal approach (1x). 0:06-0:07 ramp to 1.5x (compress approach). 0:07-0:12 snap to 0.12x on the kickflip catch frame (AI frame generation for smooth 240fps-equivalent). 0:12-0:18 ramp back to 1.5x (skate to next spot). 0:18-0:24 snap to 0.1x on rail grind entry frame. 0:24-0:30 hold 0.15x through the grind. 0:30-0:32 snap to 2x on landing. Beat-sync all snap points to the phonk track bass drops. Add bass impact sound effect at each slow-mo snap. Add 150%% zoom on each impact frame, snapping back in 3 frames. Export 16:9 + 9:16.",
-    "speed_ramps": [
-      {"at": "0:07", "from": 1.5, "to": 0.12, "curve": "snap", "hold": "0:07-0:12", "ai_frames": true},
-      {"at": "0:18", "from": 1.5, "to": 0.1, "curve": "snap", "hold": "0:18-0:24", "ai_frames": true},
-      {"at": "0:24", "from": 0.15, "to": 0.15, "hold": "0:24-0:30"},
-      {"at": "0:30", "from": 0.15, "to": 2.0, "curve": "snap"}
-    ],
-    "beat_sync": "phonk-bass-drops",
-    "effects": {
-      "sound": "bass-impact-on-snap",
-      "zoom": {"amount": "150%%", "recovery_frames": 3}
-    },
-    "ai_frame_generation": true,
-    "formats": ["16:9", "9:16"]
-  }'
-```
+For content shot at standard 30fps, AI frame interpolation enables speed ramps to 25-50% speed with acceptable quality — deeper ramps require high-FPS source footage.
 
-### Step 4 — Preview at Full Speed with Audio
-Speed ramps must be experienced with audio to evaluate properly. Watch at full speed with music. Verify: slow-mo hits the correct impact frame, speed transitions feel smooth (not stuttering), beat sync is precise, and the overall rhythm creates visceral engagement. Adjust snap points and re-render.
+## 2. Beat-Sync Speed Ramping
 
-## Parameters
+### Why Beat Sync Is the Most Powerful Speed Ramp Technique
+When a speed ramp transition coincides exactly with a musical beat, kick drum hit, or phrase change, the viewer experiences visual-audio synchronization that triggers a physiological pleasure response — the same mechanism that makes music feel satisfying. This sync is what separates speed ramp edits that "feel amazing" from edits that are technically correct but emotionally flat.
 
-| Parameter | Type | Required | Description |
-|-----------|------|:--------:|-------------|
-| `prompt` | string | ✅ | Speed ramp requirements |
-| `speed_ramps` | array | | [{at, from, to, curve, hold, ai_frames}] |
-| `mode` | string | | "manual", "auto-detect", "beat-sync", "template" |
-| `beat_sync` | string | | Music track URL or beat style |
-| `ai_frame_generation` | boolean | | Generate intermediate frames for smooth slow-mo |
-| `curve_type` | string | | "snap" (instant), "ease" (smooth), "s-curve" (organic) |
-| `effects` | object | | {sound, zoom, shake, color_flash} at snap points |
-| `auto_detect` | string | | "action-peaks", "faces", "impacts", "kills" |
-| `formats` | array | | ["16:9", "9:16", "1:1"] |
+### Beat Sync Method
+1. **Import audio and identify beats**: Use waveform view to visually locate beat peaks — kick drum hits appear as large transients in the low frequency
+2. **Mark primary beats**: Place markers at every main beat (or every other beat for 130+ BPM music)
+3. **Identify ramp placement**: Determine which beats align with the most visually interesting moments in footage
+4. **Set ramp start 12-24 frames before beat**: The deceleration should begin slightly before the beat so the *slowest point* or *freeze* lands on the beat — not the start of the ramp
+5. **Velocity curve width**: For 120 BPM music (0.5 sec/beat), ramp over 0.3-0.5 sec; for 80 BPM, ramp over 0.4-0.7 sec
 
-## Output Example
+### Music Selection for Speed Ramp Edits
+- **Ideal BPM range**: 90-130 BPM — fast enough for energy, slow enough for ramp transitions to breathe
+- **Transient clarity**: Music with clear, punchy kick drums and snares makes beat identification easy and sync satisfying
+- **Genre performance**: Hip-hop, trap, electronic, and modern pop perform best for beat-sync speed ramps — genres with strong percussion transients
+- **Avoid**: Smooth jazz, classical without clear rhythm, or songs with complex polyrhythmic structure (beat identification is ambiguous)
 
-```json
-{
-  "job_id": "spdrmp-20260329-001",
-  "status": "completed",
-  "source_duration": "2:08",
-  "output_duration": "2:42",
-  "speed_ramps_applied": 4,
-  "speed_range": "0.1x — 2.0x",
-  "ai_frames_generated": 1847,
-  "beat_syncs": 4,
-  "outputs": {
-    "landscape": {"file": "skate-speedramp-16x9.mp4", "resolution": "1920x1080"},
-    "vertical": {"file": "skate-speedramp-9x16.mp4", "resolution": "1080x1920"}
-  }
-}
-```
+## 3. Speed Ramp Techniques by Content Category
 
-## Tips
+### Wedding Videography Speed Ramps
+Wedding speed ramps should be used sparingly — the emotional weight of the moments means less is more:
+- **First look**: Groom normal speed turning → slow motion as eyes meet → hold slow through reaction
+- **Ceremony exit**: Confetti/flower petals normal speed throw → ultra-slow at apex of the petal arc → back to normal
+- **First dance**: Opening note normal speed → slow motion for the first touch, first turn → normal for the energy sections
+- **Vow exchange**: Normal speed approach to vows → slow motion on the first "I do"
 
-1. **The impact frame must be surgically precise** — A speed ramp that hits slow-mo 3 frames too early or 2 frames too late misses the moment entirely. The viewer sees the build-up in slow motion instead of the impact. NemoVideo's AI frame detection identifies the exact peak frame — the frame of maximum visual drama — and places the slow-mo anchor precisely.
-2. **Snap curves create drama; ease curves create elegance** — Instant speed change (snap) feels aggressive and exciting — perfect for gaming, sports, and action. Gradual speed change (ease/S-curve) feels smooth and cinematic — perfect for weddings, products, and narrative content. Match the curve type to the content's emotional register.
-3. **AI frame generation makes any camera a high-speed camera** — Standard 30fps footage contains 30 frames per second. At 0.1x slow-motion, that is 3 frames per second — unwatchably choppy. AI frame generation creates the missing 27 frames per second, producing smooth slow-motion equivalent to 300fps from standard footage.
-4. **Beat-synced speed ramps create addictive viewing** — When slow-mo snaps align with bass drops and fast sections align with build-ups, the visual and musical rhythms synchronize. This dual-channel synchronization creates a visceral satisfaction that single-channel content cannot match. Beat-synced velocity edits have the highest replay rates on social media.
-5. **Less is more with speed ramps** — A video where every second has a speed change becomes exhausting and loses the technique's impact. Speed ramps are dramatic because they contrast with normal speed. 3-5 well-placed speed ramps in a 60-second video create impact. 15 speed ramps in 60 seconds create nausea.
+### Sports and Action Speed Ramps
+Sports content supports more aggressive speed ramping — the high energy context makes dramatic transitions feel appropriate:
+- **Skateboards/BMX**: Normal speed approach → extreme slow at trick execution → snap back to normal on landing
+- **Surfing**: Normal paddling → slow motion tube moment → normal speed exit
+- **Basketball**: Normal speed drive → slow motion at the peak of the dunk → normal speed landing
+- **Football**: Normal snap → slow motion at impact or catch → normal speed aftermath
+- **Ski/Snowboard**: Normal speed approach → slow motion at terrain park feature execution → normal speed landing
 
-## Output Formats
+### Music Video Speed Ramps
+Music video speed ramping is the most technically demanding — every ramp must be precisely beat-synced:
+- **Chorus entry**: Build ramp during pre-chorus, snap to normal (or overspeed) on chorus one beat
+- **Drop moment**: Dramatic deceleration in the 2-4 beats before the drop, freeze on the drop beat, release
+- **Performance cutting**: Cut to a new angle on the beat, then speed ramp into the next phrase
+- **Outro/breakdown**: Gradual overall slowdown matching the music's deceleration
 
-| Format | Resolution | Use Case |
-|--------|-----------|----------|
-| MP4 16:9 | 1080p / 4K | YouTube / website |
-| MP4 9:16 | 1080x1920 | TikTok / Reels / Shorts |
-| MP4 1:1 | 1080x1080 | Instagram / Twitter |
+### Travel and Landscape Ramps
+- **Mountain reveal**: Hiking path at normal speed → slow as the summit view appears
+- **Driving shot**: Road at full speed → slow at a scenic overlook or architectural landmark
+- **Timelapse reverse**: Standard timelapse plays forward → speed ramp brings it to a halt on the most dramatic sky or light moment
 
-## Related Skills
+## 4. Technical Execution
 
-- [ai-video-speed-changer](/skills/ai-video-speed-changer) — Global speed changes
-- [ai-video-zoom](/skills/ai-video-zoom) — Zoom snap effects
-- [ai-video-effects](/skills/ai-video-effects) — Visual impact effects
-- [ai-video-highlight-maker](/skills/ai-video-highlight-maker) — Auto-detect peak moments
+### Velocity Curve Shapes in Practice
+The **easing function** applied to the velocity curve determines how the speed change *feels*:
 
-## Frequently Asked Questions
+- **Linear**: Speed changes at a constant rate — mechanical, unnatural, not recommended for emotional content
+- **Ease In (deceleration)**: Decelerates rapidly at first then slowly — aggressive entrance to slow motion, soft landing
+- **Ease Out (acceleration)**: Accelerates slowly then rapidly — gentle departure from slow motion, energetic exit
+- **Ease In-Out (S-curve)**: Smooth deceleration and acceleration, symmetric — the most "cinematic" feeling, default choice
+- **Custom bezier**: Manually adjusted curve — for advanced users who want precise control over the ramping feel
 
-**Does source frame rate matter?** — Higher source frame rate produces smoother results. 60fps sources produce excellent slow-motion at 0.25x without AI frame generation. 30fps sources rely on AI frame generation for speeds below 0.5x — NemoVideo's AI frames are visually indistinguishable from real captured frames at normal viewing speeds. 120fps and 240fps sources produce cinematic-grade slow motion at extreme speeds.
+### Overspeed Technique
+Accelerating footage beyond 100% (to 200-400% "overspeed") creates an urgent, kinetic feeling:
+- Used primarily in action sports and music video montages
+- Requires smooth source footage — camera shake is amplified at overspeed
+- Most effective when combined with a subsequent deceleration ramp (overspeed → normal → slow)
 
-**Can I apply speed ramps to existing edited videos?** — Yes. Upload any video — even previously edited content — and NemoVideo applies speed ramps at specified timestamps or auto-detected peak moments. The speed ramps layer on top of existing edits, adding dramatic emphasis to an already-edited piece.
+### Audio Handling During Speed Ramps
+When video speed changes, audio pitch changes unless pitch-corrected:
+- At 50% speed: audio pitch drops by one octave (unnatural, usually muted)
+- At 200% speed: audio pitch rises one octave
+- Standard practice: **mute natural audio during speed ramp sections**, replace with music
+- Exception: Intentional pitch effect (cartoonish overspeed voices, dramatic pitch-drop in slow motion) used for comedic or stylistic effect
 
-**What is the slowest speed supported?** — NemoVideo supports speeds down to 0.05x (20x slower than real-time). At extreme slow speeds, AI frame generation is essential for smooth playback. A 1-second moment at 0.05x becomes a 20-second cinematic sequence revealing detail invisible at normal speed.
+## 5. Export & Platform Specifications
+
+| Platform | Resolution | FPS | Format |
+|---|---|---|---|
+| Instagram Reels | 1080x1920 | 30fps | MP4 H.264 |
+| TikTok | 1080x1920 | 30fps | MP4 H.264 |
+| YouTube (HD) | 1920x1080 | 24fps | MP4 H.264 |
+| YouTube (4K) | 3840x2160 | 24fps | MP4 H.265 |
+| Client delivery | 3840x2160 | 24fps | ProRes 422 |
+
+## 6. Common Speed Ramp Mistakes
+
+1. **Starting the ramp too late**: The deceleration must begin before the peak moment, not at it — ramp starts 12-24 frames early
+2. **Linear velocity curves**: Always use ease curves — linear ramps feel mechanical and cheap
+3. **Ramping in low-FPS footage**: 24fps footage cannot be slowed below ~50% without choppy results — check source FPS before planning ramp depth
+4. **Over-ramping**: Using speed ramps on every cut loses impact — reserve ramps for genuinely significant moments (3-5 per video maximum)
+5. **Off-beat ramps in music edits**: If the ramp doesn't land on a beat, the sync that gives beat-ramp editing its power is lost entirely
+6. **Forgetting audio**: Leaving original pitch-shifted audio under a speed ramp is one of the most amateurish production errors — always mute and replace
+
+## 7. Building Speed Ramp Skills: Learning Path
+
+### Beginner (first 20 hours)
+- Master single deceleration ramps on sports footage
+- Practice beat identification in waveform view
+- Learn to identify and shoot 120fps source footage
+- Produce 5 beat-synced speed ramp clips
+
+### Intermediate (20-100 hours)
+- Multi-ramp sequences (3+ ramps in one 60-second clip)
+- Sandwich ramps for isolated peak moments
+- Overspeed-to-slow sandwich
+- Beat sync with complex rhythmic structures
+
+### Advanced (100+ hours)
+- Full music video production with 20+ beat-synced ramps
+- Custom bezier velocity curves for specific stylistic feels
+- Multi-camera speed ramp synchronization
+- Integrated color grading workflow optimized for speed-ramped footage
+
+### Software Reference (Speed Ramp Capability)
+| Software | Speed Ramp | Beat Sync | Ease Curves | AI Assist |
+|----------|-----------|----------|-------------|-----------|
+| Speed Ramp Video | ✅ | ✅ Auto | ✅ | ✅ |
+| DaVinci Resolve | ✅ Manual | ❌ Manual | ✅ | ❌ |
+| Adobe Premiere Pro | ✅ Manual | ❌ Manual | ✅ | ❌ |
+| Final Cut Pro | ✅ Manual | ❌ Manual | Partial | ❌ |
+| CapCut | Basic | Partial | Limited | Partial |

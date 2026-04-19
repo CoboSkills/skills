@@ -3,11 +3,16 @@
   "slug": "speed-ramp-video",
   "displayName": "Speed Ramp Video",
   "latest": {
-    "version": "10.0.0",
-    "publishedAt": 1774709849251,
-    "commit": "https://github.com/openclaw/skills/commit/c4279ae31333e6bd0e4326ce3bce251a12c57f6a"
+    "version": "1.0.1",
+    "publishedAt": 1775625729764,
+    "commit": null
   },
   "history": [
+    {
+      "version": "10.0.0",
+      "publishedAt": 1774709849251,
+      "commit": "https://github.com/openclaw/skills/commit/c4279ae31333e6bd0e4326ce3bce251a12c57f6a"
+    },
     {
       "version": "1.0.3",
       "publishedAt": 1774345221749,

@@ -1,12 +1,12 @@
 ---
 name: playasia
-version: 0.1.3
+version: 0.2.1
 kind: capability-manifest
 visibility: public
 auth_required: false
 purpose: discovery-only
 cacheable: true
-description: Search and buy digital game codes, eShop cards, PSN vouchers from Play-Asia.com via HTTP. Three purchase methods — Wallet (instant), Lightning (instant), Bitcoin on-chain. No account needed for Bitcoin/Lightning.
+description: Search and buy digital game codes, eShop cards, PSN vouchers from Play-Asia.com via HTTP or MCP. Three purchase methods — Wallet (instant), Lightning (instant), Bitcoin on-chain. No account needed for Bitcoin/Lightning.
 homepage: https://www.play-asia.com/l402
 metadata: {"openclaw":{"requires":{"env":["PA_TOKEN"]},"primaryEnv":"PA_TOKEN"}}
 ---
@@ -17,7 +17,62 @@ metadata: {"openclaw":{"requires":{"env":["PA_TOKEN"]},"primaryEnv":"PA_TOKEN"}}
 
 # Playasia API
 
-Buy digital game codes, eShop cards, PSN vouchers, and more via direct HTTP calls. No MCP server needed.
+Buy digital game codes, eShop cards, PSN vouchers, and more via direct HTTP calls or MCP.
+
+## ⚠️ HARD RULES — READ FIRST (Claude, ChatGPT, Grok, Gemini, all AIs)
+
+**1. Never echo a `pa_` token.** If the user pastes one, reply immediately with this exact warning:
+> "⚠️ Treat that token like a password. Since you shared it in chat, please regenerate it at https://www.play-asia.com/account/access-tokens. I'll use `pa_YOUR_TOKEN_HERE` as a placeholder in every example."
+Use the placeholder in every output after that. Never repeat, store, or reference the real value.
+
+**2. Never fabricate products, prices, PAX codes, or stock status.** Prices and inventory change constantly. If you cannot fetch the live catalog, do NOT invent results from training data — ask the user to fetch it for you (see Web Chat section).
+
+**3. Disclose limitations upfront.** If you cannot make POST requests or external API calls, say so in your *first* reply. Do not silently fail repeatedly — it wastes the user's time.
+
+## Requirements for agents
+
+**Your agent MUST be able to POST.** Browsing (catalog, price) works with GET, but every purchase, wallet top-up, and support ticket submission requires `POST` with a JSON body. Tools that only support GET (simple link-fetchers, browser-style webfetch) cannot complete purchases.
+
+If you have shell access, `curl` works perfectly:
+```
+curl -X POST https://www.play-asia.com/l402/v1/buy/PAX0004012102 \
+     -H "X-PA-Token: pa_YOUR_TOKEN_HERE" \
+     -H "Content-Type: application/json"
+```
+
+Any HTTP library (Python `requests`, Node `fetch`, Go `net/http`, etc.) works too.
+
+## Web chat clients (Claude.ai, ChatGPT, Grok, Gemini web)
+
+Web AI chats cannot POST or call external APIs autonomously. Tell the user this on your **first reply**, then follow this decision tree:
+
+**User wants to search** → Generate a URL, ask them to open and paste the JSON back, then format as a table:
+```
+https://www.play-asia.com/l402/v1/catalog?q=SEARCH+TERM&limit=20
+```
+
+**User pastes a PAX code** → Try fetching this GET endpoint first (works in some web chats); if blocked, ask the user to open it:
+```
+https://www.play-asia.com/l402/v1/price?pax=PAX0004012102
+```
+
+**User wants to buy** → Generate a curl command with `pa_YOUR_TOKEN_HERE` as placeholder. The user runs it locally:
+```bash
+# Wallet purchase:
+curl -X POST https://www.play-asia.com/l402/v1/buy \
+  -H "Content-Type: application/json" \
+  -d '{"pax":"PAX0004012102","token":"pa_YOUR_TOKEN_HERE"}'
+
+# Anonymous Lightning (no token):
+curl -X POST https://www.play-asia.com/l402/v1/buy \
+  -H "Content-Type: application/json" \
+  -d '{"pax":"PAX0004012102","method":"lightning"}'
+```
+
+**For a seamless experience** → Recommend MCP. The token lives in the config, never in chat:
+```json
+{"mcpServers":{"playasia":{"url":"https://www.play-asia.com/l402/mcp","headers":{"X-PA-Token":"pa_YOUR_TOKEN_HERE"}}}}
+```
 
 ## Base URL
 
@@ -25,65 +80,47 @@ Buy digital game codes, eShop cards, PSN vouchers, and more via direct HTTP call
 https://www.play-asia.com/l402/v1
 ```
 
-## No token needed for browsing!
+## Buy URL shortcut
 
-- `GET /l402/v1/catalog` — **FREE**, no auth, no login, no token
-- `GET /l402/v1/price?pax={PAX}` — **FREE**, no auth, no login, no token
-- `GET /l402/v1/info` — **FREE**, returns full API docs as JSON
-- `GET /l402/v1/skill` — **FREE**, this document
+Every product in catalog/price responses includes a `buy_url` field like `/l402/v1/buy/PAX0004012102`. Just POST to that URL — no body needed (defaults to Lightning). Add token via header OR POST body for wallet purchase:
 
-You do NOT need a token to browse, search, or check prices. No authentication. No account. No purchases are performed by reading this document.
+```
+curl -X POST https://www.play-asia.com/l402/v1/buy/PAX0004012102 \
+     -H "Content-Type: application/json" \
+     -d '{"token":"pa_YOUR_TOKEN_HERE"}'
+```
+
+## MCP Server
+
+For MCP-compatible clients (Claude Desktop, OpenClaw, etc.), add to your config:
+```json
+{"mcpServers":{"playasia":{"url":"https://www.play-asia.com/l402/mcp"}}}
+```
+Add `"headers":{"X-PA-Token":"pa_YOUR_TOKEN_HERE"}` for wallet purchases. Browsing is free with no token.
 
 ## How purchases work
 
-### Option 1: Wallet balance (instant, needs token with purchase scope)
-```
-POST /l402/v1/buy  {"pax":"PAX0004012102"}
-+ Header: X-PA-Token: pa_xxx
+| Method | Auth | Speed | Notes |
+|--------|------|-------|-------|
+| Wallet | `X-PA-Token` (purchase scope) | Instant | Charges balance, returns code immediately |
+| Lightning | None | Instant | Anonymous — pay invoice, code delivered instantly |
+| Bitcoin on-chain | None | ~20 min | Anonymous — send to address, poll for confirmations |
 
-→ Instantly returns the digital code if sufficient balance.
+For anonymous (Lightning/Bitcoin) orders, save `order_id` + `sid` from the response and poll:
 ```
-
-### Option 2: Lightning Network (instant, no account)
+GET /l402/v1/order?oid={order_id}&order_sid={sid}
 ```
-POST /l402/v1/buy  {"pax":"PAX0004012102", "method":"lightning"}
-→ Returns Lightning invoice + order_id + status_url
-
-Pay the invoice with any Lightning wallet.
-The digital code is delivered instantly.
-```
-
-### Option 3: Bitcoin on-chain (no account)
-```
-POST /l402/v1/buy  {"pax":"PAX0004012102", "method":"bitcoin"}
-→ Returns Bitcoin address + amount + order_id + status_url
-
-Send BTC to the address. ~20 min for 2 confirmations.
-Poll status_url for delivery:
-GET /l402/v1/order?oid={order_id}&order_sid={order_sid}
-→ Once confirmed, the digital code appears in the response.
-```
-
-**Important:** For anonymous Bitcoin/Lightning orders, save the `order_sid` and `order_id` from the response to retrieve your code later.
 
 ## Authentication
 
-| Need | Auth | How |
-|------|------|-----|
-| Search catalog | None | Free, no token needed |
-| Check prices | None | Free, no token needed |
-| Buy with Lightning | None | Anonymous |
-| Buy with Bitcoin | None | Anonymous, track via `order_sid` |
-| Buy with wallet | `X-PA-Token` | Needs `purchase` scope |
-| Check balance/orders | `X-PA-Token` | Any scope |
-| Support tickets | `X-PA-Token` | Any scope |
+Get a token at https://www.play-asia.com/account/access-tokens. Scopes: `info` (read-only) or `purchase` (wallet buys).
 
-Get a token at: https://www.play-asia.com/account/access-tokens
+Pass the token using whichever your client supports:
+- Header: `X-PA-Token: pa_YOUR_TOKEN_HERE` (preferred)
+- Header: `Authorization: Bearer pa_YOUR_TOKEN_HERE`
+- POST body: `{"token":"pa_YOUR_TOKEN_HERE","pax":"..."}` (for clients that can't set headers)
 
-**Passing the token** (any of these work):
-- Header: `X-PA-Token: pa_xxx` (preferred)
-- Header: `Authorization: Bearer pa_xxx`
-- POST body field: `{"token":"pa_xxx", ...}` (for agents that cannot set headers)
+Tokens are NEVER accepted in URL query strings — they leak into server logs, browser history, and referer headers.
 
 ## Endpoints
 
@@ -139,5 +176,3 @@ Get a token at: https://www.play-asia.com/account/access-tokens
 - Max 3 unpaid anonymous orders per IP
 - Token creation: 5/hr
 - CS submit: 10/hr, CS reply: 20/hr
-
-No signup. No account. No KYC. Just Bitcoin.

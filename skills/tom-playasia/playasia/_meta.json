@@ -3,11 +3,16 @@
   "slug": "playasia",
   "displayName": "Mcp Server",
   "latest": {
-    "version": "0.1.3",
-    "publishedAt": 1775529161350,
-    "commit": "https://github.com/openclaw/skills/commit/8bef3c8a8feb0a01abaa186d19f285a9956fbc45"
+    "version": "0.2.1",
+    "publishedAt": 1776564795088,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.3",
+      "publishedAt": 1775529161350,
+      "commit": "https://github.com/openclaw/skills/commit/8bef3c8a8feb0a01abaa186d19f285a9956fbc45"
+    },
     {
       "version": "0.1.2",
       "publishedAt": 1774939768915,

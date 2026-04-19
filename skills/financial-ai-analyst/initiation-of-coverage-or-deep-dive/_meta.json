@@ -3,11 +3,16 @@
   "slug": "initiation-of-coverage-or-deep-dive",
   "displayName": "Initiation of Coverage Agent",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1775818944819,
-    "commit": "https://github.com/openclaw/skills/commit/df81fbc0c168a5b7a012686196d17be93b684242"
+    "version": "1.0.4",
+    "publishedAt": 1776424717457,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1775818944819,
+      "commit": "https://github.com/openclaw/skills/commit/df81fbc0c168a5b7a012686196d17be93b684242"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1775219984640,

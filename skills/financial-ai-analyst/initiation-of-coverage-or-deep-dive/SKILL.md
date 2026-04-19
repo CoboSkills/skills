@@ -1,5 +1,5 @@
 ---
-name: initiation_of_coverage_or_deep_dive
+name: initiation-of-coverage-or-deep-dive
 description: >
   依托东方财富数据库，面向沪深京港美上市公司（A 股、港股、美股、北交所），生成首次覆盖报告或深度研究报告。
   当用户提及「首次覆盖」「首次覆盖报告」「初始覆盖」「深度研究」「深度报告」「个股深度」「公司深度」「标的深度分析」，或要求对某只股票/上市公司撰写全面、体系化的研究报告时，必须触发本 Skill。

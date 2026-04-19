@@ -208,14 +208,15 @@ function deriveAgentName(configDir: string): string {
 }
 
 /**
- * First-time auto-onboarding: initializes identity, publishes capabilities, and
- * grants the Demand Voucher (50 credits). Called when activate() detects no config.json.
+ * First-time auto-onboarding: initializes identity and local config,
+ * then leaves publishing as an explicit next step. Called when activate()
+ * detects no config.json.
  *
  * Steps:
  * 1. Check agentbnb CLI is available
  * 2. Run `agentbnb init --owner <name> --yes --no-detect` (keypair + config)
- * 3. Run `agentbnb openclaw sync` (publish SOUL.md capabilities)
- * 4. Demand Voucher is auto-issued by the registry on first registration
+ * 3. Demand Voucher / registry bootstrap happens during init when supported
+ * 4. Publishing remains explicit via `agentbnb quickstart` or `agentbnb openclaw sync`
  *
  * @param configDir - The AGENTBNB_DIR for this agent.
  * @returns The loaded AgentBnBConfig after init.
@@ -238,9 +239,9 @@ async function autoOnboard(configDir: string, deps: OnboardDeps = defaultDeps): 
   try {
     cliPath = deps.resolveSelfCli();
   } catch {
-    process.stderr.write('[agentbnb] CLI not found. Run: npm install -g agentbnb\n');
+    process.stderr.write('[agentbnb] CLI not found. Install the agentbnb CLI or use the skill manager install path.\n');
     throw new AgentBnBError(
-      'agentbnb CLI not found in PATH. Install with: npm install -g agentbnb',
+      'agentbnb CLI not found in PATH. Install the CLI first, then retry activation.',
       'INIT_FAILED',
     );
   }
@@ -258,17 +259,7 @@ async function autoOnboard(configDir: string, deps: OnboardDeps = defaultDeps): 
     throw new AgentBnBError(`Auto-init failed: ${msg}`, 'INIT_FAILED');
   }
 
-  // Step 2: Publish capabilities from SOUL.md (if it exists)
-  try {
-    await deps.runCommand(`${quotedCliPath} openclaw sync`, env);
-    process.stderr.write('[agentbnb] Capabilities published from SOUL.md.\n');
-  } catch {
-    // Non-fatal: SOUL.md may not exist yet, or sync may fail for other reasons.
-    // Agent is still initialized and can publish capabilities later.
-    process.stderr.write('[agentbnb] Note: openclaw sync skipped (SOUL.md may not exist yet).\n');
-  }
-
-  // Step 3: Demand Voucher (50 credits) is auto-issued by bootstrapAgent() during init.
+  // Step 2: Demand Voucher / registry bootstrap is handled by init when supported.
   // No action needed here.
 
   const config = loadConfig();
@@ -276,7 +267,7 @@ async function autoOnboard(configDir: string, deps: OnboardDeps = defaultDeps): 
     throw new AgentBnBError('AgentBnB config still not found after auto-init', 'CONFIG_NOT_FOUND');
   }
 
-  process.stderr.write('[agentbnb] Agent initialized and published to AgentBnB network.\n');
+  process.stderr.write('[agentbnb] Agent initialized. Next step: run agentbnb quickstart or agentbnb openclaw sync when ready.\n');
   return config;
 }
 

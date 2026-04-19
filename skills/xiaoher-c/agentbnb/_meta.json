@@ -1,13 +1,18 @@
 {
   "owner": "xiaoher-c",
   "slug": "agentbnb",
-  "displayName": "Agentbnb Skill Latest",
+  "displayName": "AgentBnB",
   "latest": {
-    "version": "8.4.5",
-    "publishedAt": 1774977648515,
-    "commit": "https://github.com/openclaw/skills/commit/b6d4f0a780631bc19f8c576135fdd9e802279347"
+    "version": "9.2.3",
+    "publishedAt": 1776072543493,
+    "commit": null
   },
   "history": [
+    {
+      "version": "8.4.5",
+      "publishedAt": 1774977648515,
+      "commit": "https://github.com/openclaw/skills/commit/b6d4f0a780631bc19f8c576135fdd9e802279347"
+    },
     {
       "version": "7.0.0",
       "publishedAt": 1774870300684,

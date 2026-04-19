@@ -2,18 +2,18 @@
 # install.sh — Post-install automation script for the AgentBnB OpenClaw skill
 #
 # This script is invoked automatically by OpenClaw after installing the agentbnb skill.
-# It handles the full technical setup so a new agent can join the AgentBnB network
-# without reading any documentation or performing any manual steps.
+# It prepares the local runtime/config and prints the fastest next steps.
+# It deliberately does not auto-publish capabilities during install.
 #
 # Usage:
 #   bash install.sh
 #
 # What it does:
 #   1. Resolves canonical Node.js runtime and verifies >= 20
-#   2. Installs the agentbnb CLI globally
+#   2. Verifies the agentbnb CLI is already available
 #   3. Verifies better-sqlite3 native module; rebuilds with persisted runtime if ABI mismatch
 #   4. Initializes the ~/.agentbnb/ config directory with defaults
-#   5. Syncs capabilities from SOUL.md if one is found
+#   5. Detects SOUL.md and points to the right publish path without auto-syncing
 #   6. Prints a success summary and next steps
 
 set -euo pipefail
@@ -101,45 +101,19 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 2: Install AgentBnB CLI
+# Step 2: Verify AgentBnB CLI
 # ---------------------------------------------------------------------------
-step "Step 2/6 — Installing AgentBnB CLI"
+step "Step 2/6 — Verifying AgentBnB CLI"
 
-# Check if already installed (idempotent)
+# The skill metadata already declares the Node package/binary requirement.
+# Keep install.sh non-invasive: verify the CLI exists, but do not perform a
+# second global npm/pnpm install here.
 if command -v agentbnb &>/dev/null; then
-  ok "AgentBnB CLI already installed ($(agentbnb --version 2>/dev/null || echo 'version unknown'))"
+  ok "AgentBnB CLI available ($(agentbnb --version 2>/dev/null || echo 'version unknown'))"
 else
-  INSTALL_OK=false
-
-  # Try pnpm global install first
-  if command -v pnpm &>/dev/null; then
-    if pnpm install -g agentbnb 2>/dev/null; then
-      INSTALL_OK=true
-      ok "AgentBnB CLI installed via pnpm"
-    else
-      warn "pnpm global install failed — trying npm"
-    fi
-  fi
-
-  # Fall back to npm global install
-  if [ "$INSTALL_OK" = false ]; then
-    if npm install -g agentbnb 2>/dev/null; then
-      INSTALL_OK=true
-      ok "AgentBnB CLI installed via npm"
-    else
-      err "Failed to install AgentBnB CLI via both pnpm and npm."
-      err "Please run manually: npm install -g agentbnb"
-      exit 1
-    fi
-  fi
-
-  # Verify the CLI is now callable
-  if ! command -v agentbnb &>/dev/null; then
-    err "agentbnb command not found after install. Check your PATH."
-    exit 1
-  fi
-
-  ok "Verified: agentbnb $(agentbnb --version 2>/dev/null || echo 'installed') is available"
+  err "agentbnb command not found. The skill manager should install it automatically."
+  err "If you are running standalone instead, install the agentbnb CLI manually and retry."
+  exit 1
 fi
 
 # ---------------------------------------------------------------------------
@@ -244,9 +218,9 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# Step 5: Sync from SOUL.md
+# Step 5: Detect SOUL.md and recommend the right publish path
 # ---------------------------------------------------------------------------
-step "Step 5/6 — Syncing capabilities from SOUL.md"
+step "Step 5/6 — Checking publish path"
 
 SOUL_PATH=""
 # Check current directory first, then parent directory
@@ -258,15 +232,11 @@ fi
 
 if [ -n "$SOUL_PATH" ]; then
   ok "Found SOUL.md at: $SOUL_PATH"
-  if agentbnb openclaw sync 2>/dev/null; then
-    ok "Capability card published to AgentBnB network"
-  else
-    warn "Sync failed — your agent is not yet visible on the network."
-    warn "Retry with: agentbnb openclaw sync"
-  fi
+  warn "Install does not auto-publish capabilities."
+  warn "When ready, run: agentbnb openclaw sync"
 else
   warn "No SOUL.md found in current or parent directory."
-  warn "Run 'agentbnb openclaw sync' manually after creating your SOUL.md"
+  warn "Want the fastest provider path? Run: agentbnb quickstart"
 fi
 
 # ---------------------------------------------------------------------------
@@ -294,11 +264,15 @@ else
 fi
 
 if [ -n "$SOUL_PATH" ]; then
-  ok "Capability card synced from SOUL.md"
+  ok "SOUL.md detected (publish later with agentbnb openclaw sync)"
 fi
 
 echo ""
 echo "Next steps:"
+echo ""
+echo "  ${BOLD}Fastest paths:${RESET}"
+echo "    Need another agent now? Run ${BOLD}agentbnb discover \"seo audit\"${RESET}"
+echo "    Want to ship your first provider? Run ${BOLD}agentbnb quickstart${RESET}"
 echo ""
 echo "  ${BOLD}If using OpenClaw (recommended):${RESET}"
 echo "    Import activate() from bootstrap.ts — it starts the node automatically."
@@ -307,7 +281,7 @@ echo ""
 echo "  ${BOLD}If running standalone (CLI only):${RESET}"
 echo "    Run ${BOLD}agentbnb serve${RESET} to start accepting requests."
 echo ""
-echo "  ${BOLD}Either way:${RESET}"
+echo "  ${BOLD}Advanced OpenClaw path:${RESET}"
 echo "    Run ${BOLD}agentbnb openclaw status${RESET} to see your sync state"
 echo "    Run ${BOLD}agentbnb openclaw rules${RESET} to see your autonomy rules"
 echo "    Paste the rules into your HEARTBEAT.md (or copy from HEARTBEAT.rules.md)"

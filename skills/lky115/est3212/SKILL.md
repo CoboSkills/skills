@@ -2,7 +2,7 @@
 name: core-brainstorming
 description: 在任何创造性工作之前必须使用 - 创建功能、构建组件、添加新功能或修改行为。通过协作对话探索用户意图、需求和设计。
 ---
-
+2026年4月16日
 # Brainstorming - 将想法转化为设计
 
 ## 概述

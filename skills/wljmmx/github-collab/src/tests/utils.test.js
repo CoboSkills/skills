@@ -2,7 +2,7 @@
  * Utils 单元测试
  */
 
-const utils = require('../utils');
+const utils = require('../utils/helpers');
 
 describe('Utils - 格式化函数', () => {
   describe('formatStatus', () => {
@@ -79,7 +79,10 @@ describe('Utils - 格式化函数', () => {
   describe('createTable', () => {
     test('应该创建正确的表格', () => {
       const headers = ['Name', 'Age'];
-      const rows = [['Alice', '30'], ['Bob', '25']];
+      const rows = [
+        ['Alice', '30'],
+        ['Bob', '25']
+      ];
       const result = utils.createTable(headers, rows);
       expect(result).toContain('Name');
       expect(result).toContain('Alice');
@@ -153,7 +156,7 @@ describe('Utils - 数据处理函数', () => {
       ];
       const result = utils.filterBy(items, 'status', 'active');
       expect(result.length).toBe(2);
-      expect(result.every(r => r.status === 'active')).toBe(true);
+      expect(result.every((r) => r.status === 'active')).toBe(true);
     });
 
     test('应该返回空数组当没有匹配项', () => {
@@ -166,13 +169,13 @@ describe('Utils - 数据处理函数', () => {
   describe('findFirst', () => {
     test('应该找到第一个匹配项', () => {
       const items = [{ id: 1 }, { id: 2 }, { id: 3 }];
-      const result = utils.findFirst(items, item => item.id > 1);
+      const result = utils.findFirst(items, (item) => item.id > 1);
       expect(result.id).toBe(2);
     });
 
     test('应该返回 undefined 当没有匹配项', () => {
       const items = [{ id: 1 }];
-      const result = utils.findFirst(items, item => item.id > 100);
+      const result = utils.findFirst(items, (item) => item.id > 100);
       expect(result).toBeUndefined();
     });
   });
@@ -192,11 +195,7 @@ describe('Utils - 数据处理函数', () => {
 
   describe('countBy', () => {
     test('应该正确计数', () => {
-      const items = [
-        { status: 'active' },
-        { status: 'inactive' },
-        { status: 'active' }
-      ];
+      const items = [{ status: 'active' }, { status: 'inactive' }, { status: 'active' }];
       const result = utils.countBy(items, 'status');
       expect(result.active).toBe(2);
       expect(result.inactive).toBe(1);
@@ -301,7 +300,9 @@ describe('Utils - 异步工具函数', () => {
     });
 
     test('应该抛出错误当所有尝试都失败', async () => {
-      const fn = () => { throw new Error('always fail'); };
+      const fn = () => {
+        throw new Error('always fail');
+      };
       await expect(utils.retry(fn, 2, 10)).rejects.toThrow('always fail');
     });
   });
@@ -461,7 +462,10 @@ describe('Utils - 对象工具函数', () => {
     test('应该返回对象的所有条目', () => {
       const obj = { a: 1, b: 2 };
       const entries = utils.getEntries(obj);
-      expect(entries).toEqual([['a', 1], ['b', 2]]);
+      expect(entries).toEqual([
+        ['a', 1],
+        ['b', 2]
+      ]);
     });
   });
 });
@@ -551,7 +555,7 @@ describe('Utils - 类型检查函数', () => {
   describe('isFunction', () => {
     test('应该正确识别函数', () => {
       expect(utils.isFunction(() => {})).toBe(true);
-      expect(utils.isFunction(function() {})).toBe(true);
+      expect(utils.isFunction(function () {})).toBe(true);
     });
 
     test('应该正确识别非函数', () => {

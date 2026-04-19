@@ -33,29 +33,25 @@ const PRIORITIES = {
 function breakdownTask(task) {
   const tasks = [];
   const { title, description, project_id } = task;
-
+  
   // 1. 编码任务
   tasks.push({
     type: TASK_TYPES.CODE,
     title: `实现 ${title} 核心功能`,
-    description: description
-      ? `开发 ${title} 的核心功能模块：\n${description}`
-      : `开发 ${title} 的核心功能模块`,
+    description: description ? `开发 ${title} 的核心功能模块：\n${description}` : `开发 ${title} 的核心功能模块`,
     priority: PRIORITIES.HIGH,
     project_id: project_id
   });
-
+  
   // 2. 测试任务
   tasks.push({
     type: TASK_TYPES.TEST,
     title: `编写 ${title} 单元测试`,
-    description: description
-      ? `为核心功能编写测试用例：\n${description}`
-      : `为核心功能编写测试用例，确保代码质量`,
+    description: description ? `为核心功能编写测试用例：\n${description}` : `为核心功能编写测试用例，确保代码质量`,
     priority: PRIORITIES.MEDIUM,
     project_id: project_id
   });
-
+  
   // 3. 文档任务
   tasks.push({
     type: TASK_TYPES.DOC,
@@ -64,7 +60,7 @@ function breakdownTask(task) {
     priority: PRIORITIES.MEDIUM,
     project_id: project_id
   });
-
+  
   // 4. 操作手册
   tasks.push({
     type: TASK_TYPES.DOC,
@@ -73,7 +69,7 @@ function breakdownTask(task) {
     priority: PRIORITIES.LOW,
     project_id: project_id
   });
-
+  
   return tasks;
 }
 
@@ -84,7 +80,7 @@ function breakdownTask(task) {
 function createBreakdownTasks(task) {
   const subTasks = breakdownTask(task);
   const createdTasks = [];
-
+  
   // 创建所有子任务
   for (const subTask of subTasks) {
     try {
@@ -95,13 +91,13 @@ function createBreakdownTasks(task) {
       console.error(`❌ 创建任务失败 ${subTask.title}:`, error.message);
     }
   }
-
+  
   // 建立依赖关系
   if (createdTasks.length >= 2) {
     // 测试任务依赖编码任务
     const codeTask = createdTasks[0];
     const testTask = createdTasks[1];
-
+    
     try {
       addDependency(testTask.id, codeTask.id);
       console.log(`✅ 已建立依赖：${testTask.title} 依赖 ${codeTask.title}`);
@@ -109,7 +105,7 @@ function createBreakdownTasks(task) {
       console.error(`❌ 建立依赖失败:`, error.message);
     }
   }
-
+  
   return createdTasks;
 }
 
@@ -118,32 +114,30 @@ function createBreakdownTasks(task) {
  */
 function showBreakdown(task) {
   const tasks = breakdownTask(task);
-
+  
   console.log('\n=== 任务拆解结果 ===\n');
   console.log(`原任务：${task.title}`);
   console.log(`描述：${task.description || '无'}`);
   console.log('─'.repeat(60));
-
+  
   tasks.forEach((t, i) => {
-    const typeLabel =
-      {
-        [TASK_TYPES.CODE]: '📝 编码',
-        [TASK_TYPES.TEST]: '🧪 测试',
-        [TASK_TYPES.DOC]: '📄 文档'
-      }[t.type] || '📋 任务';
-
-    const priorityLabel =
-      {
-        [PRIORITIES.HIGH]: '🔴 高',
-        [PRIORITIES.MEDIUM]: '🟡 中',
-        [PRIORITIES.LOW]: '🟢 低'
-      }[t.priority] || '⚪ 普通';
-
+    const typeLabel = {
+      [TASK_TYPES.CODE]: '📝 编码',
+      [TASK_TYPES.TEST]: '🧪 测试',
+      [TASK_TYPES.DOC]: '📄 文档'
+    }[t.type] || '📋 任务';
+    
+    const priorityLabel = {
+      [PRIORITIES.HIGH]: '🔴 高',
+      [PRIORITIES.MEDIUM]: '🟡 中',
+      [PRIORITIES.LOW]: '🟢 低'
+    }[t.priority] || '⚪ 普通';
+    
     console.log(`\n${i + 1}. ${typeLabel} - ${t.title}`);
     console.log(`   优先级：${priorityLabel}`);
     console.log(`   描述：${t.description}`);
   });
-
+  
   console.log('\n' + '─'.repeat(60));
   console.log(`总计：${tasks.length} 个子任务`);
 }
@@ -153,7 +147,7 @@ function showBreakdown(task) {
  */
 function main() {
   const args = process.argv.slice(2);
-
+  
   if (args.length === 0) {
     console.log('🚀 任务拆解工具\n');
     console.log('用法:');
@@ -165,22 +159,22 @@ function main() {
     console.log('');
     return;
   }
-
+  
   const command = args[0];
   const title = args[1];
   const description = args.slice(2).join(' ');
-
+  
   if (!title) {
     console.error('❌ 请提供任务标题');
     return;
   }
-
+  
   const task = {
     title,
     description: description || undefined,
     project_id: 'default-project'
   };
-
+  
   if (command === 'show') {
     showBreakdown(task);
   } else if (command === 'create') {

@@ -38,20 +38,20 @@ class TaskPriorityManager {
           FOREIGN KEY (task_id) REFERENCES tasks(id)
         );
       `;
-
+      
       this.db.run(createTableSQL);
-
+      
       // 创建索引
       this.db.run(`
         CREATE INDEX IF NOT EXISTS idx_priority 
         ON task_priority_queue(priority DESC, created_at ASC);
       `);
-
+      
       this.db.run(`
         CREATE INDEX IF NOT EXISTS idx_status 
         ON task_priority_queue(status);
       `);
-
+      
       console.log('✅ 任务优先级队列表初始化完成');
       return true;
     } catch (error) {
@@ -79,16 +79,8 @@ class TaskPriorityManager {
       `;
 
       const insertStmt = this.db.prepare(insertSQL);
-      const result = insertStmt.run(
-        taskId,
-        priority,
-        priorityLevel,
-        dueDate,
-        weight,
-        estimatedHours,
-        dependencies
-      );
-
+      const result = insertStmt.run(taskId, priority, priorityLevel, dueDate, weight, estimatedHours, dependencies);
+      
       console.log(`✅ 任务 ${taskId} 已添加到优先级队列 (优先级：${priorityLevel})`);
       return result.lastInsertRowid;
     } catch (error) {
@@ -103,21 +95,21 @@ class TaskPriorityManager {
   async updatePriority(taskId, newPriorityLevel) {
     try {
       const newPriority = this.priorityLevels[newPriorityLevel] || this.priorityLevels.MEDIUM;
-
+      
       const updateSQL = `
         UPDATE task_priority_queue
         SET priority = ?, priority_level = ?, updated_at = CURRENT_TIMESTAMP
         WHERE task_id = ?;
       `;
-
+      
       const updateStmt = this.db.prepare(updateSQL);
       const result = updateStmt.run(newPriority, newPriorityLevel, taskId);
-
+      
       if (result.changes > 0) {
         console.log(`✅ 任务 ${taskId} 优先级已更新为 ${newPriorityLevel}`);
         return true;
       }
-
+      
       console.log(`⚠️ 任务 ${taskId} 未找到`);
       return false;
     } catch (error) {
@@ -139,7 +131,7 @@ class TaskPriorityManager {
         ORDER BY tpq.priority DESC, tpq.created_at ASC
         LIMIT 1;
       `;
-
+      
       const task = this.db.get(querySQL);
       return task || null;
     } catch (error) {
@@ -160,7 +152,7 @@ class TaskPriorityManager {
         WHERE tpq.status = 'pending'
         ORDER BY tpq.priority DESC, tpq.created_at ASC;
       `;
-
+      
       const tasks = this.db.all(querySQL);
       return tasks || [];
     } catch (error) {
@@ -185,7 +177,7 @@ class TaskPriorityManager {
         GROUP BY priority_level
         ORDER BY priority DESC;
       `;
-
+      
       const stats = this.db.all(querySQL);
       return stats || [];
     } catch (error) {
@@ -204,15 +196,15 @@ class TaskPriorityManager {
         SET status = 'completed', updated_at = CURRENT_TIMESTAMP
         WHERE task_id = ?;
       `;
-
+      
       const updateStmt = this.db.prepare(updateSQL);
       const result = updateStmt.run(taskId);
-
+      
       if (result.changes > 0) {
         console.log(`✅ 任务 ${taskId} 已完成`);
         return true;
       }
-
+      
       console.log(`⚠️ 任务 ${taskId} 未找到`);
       return false;
     } catch (error) {
@@ -231,10 +223,10 @@ class TaskPriorityManager {
         WHERE status = 'completed'
         AND updated_at < datetime('now', ? || ' days');
       `;
-
+      
       const deleteStmt = this.db.prepare(deleteSQL);
       const result = deleteStmt.run(`-${days}`);
-
+      
       console.log(`✅ 已清理 ${result.changes} 个过期任务`);
       return result.changes;
     } catch (error) {
@@ -250,15 +242,15 @@ class TaskPriorityManager {
     try {
       // 获取最高优先级任务
       const task = await this.getNextTask();
-
+      
       if (!task) {
         console.log('ℹ️ 没有待处理的任务');
         return null;
       }
-
+      
       // 解析任务依赖
       const dependencies = task.dependencies ? JSON.parse(task.dependencies) : [];
-
+      
       // 检查依赖是否满足
       if (dependencies.length > 0) {
         const unmetDeps = await this.getUnmetDependencies(dependencies);
@@ -267,16 +259,16 @@ class TaskPriorityManager {
           return null;
         }
       }
-
+      
       // 分配任务
       const updateSQL = `
         UPDATE task_priority_queue
         SET status = 'assigned', updated_at = CURRENT_TIMESTAMP
         WHERE task_id = ?;
       `;
-
+      
       this.db.prepare(updateSQL).run(task.task_id);
-
+      
       console.log(`✅ 已分配任务 ${task.task_id} (${task.title}) 给 ${agentName}`);
       return task;
     } catch (error) {
@@ -291,19 +283,19 @@ class TaskPriorityManager {
   async getUnmetDependencies(dependencies) {
     try {
       const unmet = [];
-
+      
       for (const dep of dependencies) {
         const checkSQL = `
           SELECT id FROM task_priority_queue
           WHERE task_id = ? AND status != 'completed';
         `;
-
+        
         const result = this.db.get(checkSQL, dep);
         if (result) {
           unmet.push(dep);
         }
       }
-
+      
       return unmet;
     } catch (error) {
       console.error('❌ 检查依赖失败:', error.message);
@@ -323,26 +315,26 @@ class TaskPriorityManager {
         completed: 0,
         byPriority: {}
       };
-
+      
       const totalSQL = 'SELECT COUNT(*) as count FROM task_priority_queue';
       summary.total = this.db.get(totalSQL).count;
-
+      
       const statusSQL = `
         SELECT status, COUNT(*) as count
         FROM task_priority_queue
         GROUP BY status;
       `;
-
+      
       const statusStats = this.db.all(statusSQL);
       for (const stat of statusStats) {
         summary[stat.status] = stat.count;
       }
-
+      
       const priorityStats = await this.getPriorityStats();
       for (const stat of priorityStats) {
         summary.byPriority[stat.priority_level] = stat.count;
       }
-
+      
       return summary;
     } catch (error) {
       console.error('❌ 获取队列摘要失败:', error.message);

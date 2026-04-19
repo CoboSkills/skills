@@ -34,20 +34,20 @@ class AgentHealthManager {
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         );
       `;
-
+      
       this.db.run(createTableSQL);
-
+      
       // 创建索引
       this.db.run(`
         CREATE INDEX IF NOT EXISTS idx_agent_status 
         ON agent_health(status);
       `);
-
+      
       this.db.run(`
         CREATE INDEX IF NOT EXISTS idx_last_heartbeat 
         ON agent_health(last_heartbeat);
       `);
-
+      
       console.log('✅ Agent 健康检查表初始化完成');
       return true;
     } catch (error) {
@@ -75,14 +75,14 @@ class AgentHealthManager {
           response_time_ms = excluded.response_time_ms,
           updated_at = CURRENT_TIMESTAMP;
       `;
-
+      
       const cpu = metrics.cpu || 0;
       const memory = metrics.memory || 0;
       const disk = metrics.disk || 0;
       const responseTime = metrics.responseTime || 0;
-
+      
       this.db.run(upsertSQL, [agentName, cpu, memory, disk, responseTime]);
-
+      
       console.log(`✅ Agent ${agentName} 心跳已记录`);
       return true;
     } catch (error) {
@@ -105,15 +105,15 @@ class AgentHealthManager {
             updated_at = CURRENT_TIMESTAMP
         WHERE agent_name = ?;
       `;
-
+      
       const updateStmt = this.db.prepare(updateSQL);
       const result = updateStmt.run(errorMessage, agentName);
-
+      
       if (result.changes > 0) {
         console.log(`⚠️ Agent ${agentName} 记录错误：${errorMessage}`);
         return true;
       }
-
+      
       console.log(`⚠️ Agent ${agentName} 未找到`);
       return false;
     } catch (error) {
@@ -131,15 +131,15 @@ class AgentHealthManager {
         SELECT * FROM agent_health
         ORDER BY last_heartbeat DESC;
       `;
-
+      
       const agents = this.db.all(querySQL);
       const results = [];
-
+      
       for (const agent of agents) {
         const healthStatus = await this.checkAgentHealth(agent);
         results.push(healthStatus);
       }
-
+      
       return results;
     } catch (error) {
       console.error('❌ 检查 Agent 健康状态失败:', error.message);
@@ -155,22 +155,22 @@ class AgentHealthManager {
       const now = new Date();
       const lastHeartbeat = new Date(agent.last_heartbeat);
       const timeSinceHeartbeat = (now - lastHeartbeat) / 1000; // 秒
-
+      
       let status = 'healthy';
       let isHealthy = true;
-
+      
       // 检查心跳超时（超过 10 分钟无心跳）
       if (timeSinceHeartbeat > 600) {
         status = 'unreachable';
         isHealthy = false;
       }
-
+      
       // 检查连续失败次数
       if (agent.consecutive_failures >= this.healthThreshold) {
         status = 'unhealthy';
         isHealthy = false;
       }
-
+      
       // 更新状态
       if (status !== agent.status) {
         const updateSQL = `
@@ -178,11 +178,11 @@ class AgentHealthManager {
           SET status = ?, updated_at = CURRENT_TIMESTAMP
           WHERE agent_name = ?;
         `;
-
+        
         this.db.run(updateSQL, status, agent.agent_name);
         console.log(`⚠️ Agent ${agent.agent_name} 状态变化：${agent.status} -> ${status}`);
       }
-
+      
       return {
         agent_name: agent.agent_name,
         status: status,
@@ -209,7 +209,7 @@ class AgentHealthManager {
         WHERE status = 'healthy'
         ORDER BY last_heartbeat DESC;
       `;
-
+      
       const agents = this.db.all(querySQL);
       return agents || [];
     } catch (error) {
@@ -228,7 +228,7 @@ class AgentHealthManager {
         WHERE status != 'healthy'
         ORDER BY last_heartbeat ASC;
       `;
-
+      
       const agents = this.db.all(querySQL);
       return agents || [];
     } catch (error) {
@@ -249,15 +249,15 @@ class AgentHealthManager {
             updated_at = CURRENT_TIMESTAMP
         WHERE agent_name = ?;
       `;
-
+      
       const updateStmt = this.db.prepare(updateSQL);
       const result = updateStmt.run(agentName);
-
+      
       if (result.changes > 0) {
         console.log(`✅ Agent ${agentName} 已自动恢复`);
         return true;
       }
-
+      
       console.log(`⚠️ Agent ${agentName} 未找到`);
       return false;
     } catch (error) {
@@ -279,24 +279,24 @@ class AgentHealthManager {
         error: 0,
         agents: []
       };
-
+      
       const totalSQL = 'SELECT COUNT(*) as count FROM agent_health';
       summary.total = this.db.get(totalSQL).count;
-
+      
       const statusSQL = `
         SELECT status, COUNT(*) as count
         FROM agent_health
         GROUP BY status;
       `;
-
+      
       const statusStats = this.db.all(statusSQL);
       for (const stat of statusStats) {
         summary[stat.status] = stat.count;
       }
-
+      
       const allAgents = await this.checkAllAgents();
       summary.agents = allAgents;
-
+      
       return summary;
     } catch (error) {
       console.error('❌ 获取健康检查摘要失败:', error.message);
@@ -313,10 +313,10 @@ class AgentHealthManager {
         DELETE FROM agent_health
         WHERE last_heartbeat < datetime('now', ? || ' days');
       `;
-
+      
       const deleteStmt = this.db.prepare(deleteSQL);
       const result = deleteStmt.run(`-${days}`);
-
+      
       console.log(`✅ 已清理 ${result.changes} 个过期 Agent 记录`);
       return result.changes;
     } catch (error) {
@@ -330,18 +330,18 @@ class AgentHealthManager {
    */
   startHealthCheckLoop() {
     console.log('🔄 启动 Agent 健康检查定时任务...');
-
+    
     setInterval(async () => {
       try {
         const summary = await this.getHealthSummary();
-
+        
         console.log(`\n=== Agent 健康检查报告 ===`);
         console.log(`总 Agent 数：${summary.total}`);
         console.log(`健康：${summary.healthy}`);
         console.log(`不健康：${summary.unhealthy}`);
         console.log(`不可达：${summary.unreachable}`);
         console.log(`错误：${summary.error}`);
-
+        
         // 自动恢复连续失败次数过多的 Agent
         const unhealthyAgents = await this.getUnhealthyAgents();
         for (const agent of unhealthyAgents) {
@@ -349,6 +349,7 @@ class AgentHealthManager {
             await this.autoRecover(agent.agent_name);
           }
         }
+        
       } catch (error) {
         console.error('❌ 健康检查循环失败:', error.message);
       }

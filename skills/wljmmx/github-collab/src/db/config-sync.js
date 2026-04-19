@@ -14,8 +14,8 @@ async function loadFromDatabase() {
   try {
     const agents = await getAllAgents();
     const config = {};
-
-    agents.forEach((agent) => {
+    
+    agents.forEach(agent => {
       config[agent.name] = {
         role: agent.role,
         target: agent.target,
@@ -24,7 +24,7 @@ async function loadFromDatabase() {
         isActive: agent.is_active === 1
       };
     });
-
+    
     console.log('✅ 已从数据库加载 Agent 配置:', Object.keys(config).length, '个 Agent');
     return config;
   } catch (error) {
@@ -45,7 +45,7 @@ async function saveToDatabase(config) {
       description: agentConfig.description,
       capabilities: JSON.stringify(agentConfig.capabilities)
     }));
-
+    
     const results = [];
     for (const update of updates) {
       try {
@@ -55,8 +55,8 @@ async function saveToDatabase(config) {
         results.push({ name: update.name, success: false, error: error.message });
       }
     }
-
-    const successCount = results.filter((r) => r.success).length;
+    
+    const successCount = results.filter(r => r.success).length;
     console.log(`✅ 已保存 ${successCount}/${updates.length} 个 Agent 配置到数据库`);
     return results;
   } catch (error) {
@@ -71,14 +71,14 @@ async function saveToDatabase(config) {
 async function syncToCode() {
   try {
     const config = await loadFromDatabase();
-
+    
     // 更新 agent-addresses.js 文件
     const addressesPath = path.join(__dirname, '..', 'agent-addresses.js');
     const content = generateAddressesFile(config);
-
+    
     fs.writeFileSync(addressesPath, content, 'utf8');
     console.log('✅ 已同步配置到 agent-addresses.js');
-
+    
     return config;
   } catch (error) {
     console.error('❌ 同步配置到代码失败:', error.message);
@@ -100,7 +100,7 @@ function generateAddressesFile(config) {
   }`;
     })
     .join(',\n');
-
+  
   return `/**
  * Agent Addresses Configuration
  * 独立 QQ 机器人地址配置（方案 C）
@@ -157,16 +157,16 @@ module.exports = {
 async function validateAndUpdate() {
   try {
     console.log('🔍 开始校验并更新配置...\n');
-
+    
     // 从数据库加载最新配置
     const dbConfig = await loadFromDatabase();
-
+    
     // 同步到代码文件
     await syncToCode();
-
+    
     console.log('\n✅ 配置校验和更新完成！');
     console.log('当前配置的 Agent:', Object.keys(dbConfig));
-
+    
     return dbConfig;
   } catch (error) {
     console.error('❌ 配置校验和更新失败:', error.message);

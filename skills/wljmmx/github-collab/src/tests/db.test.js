@@ -3,8 +3,6 @@
  */
 
 const { Database } = require('../db/database');
-const initModule = require('../db/init');
-const createTables = initModule.createTables || initModule;
 
 // 模拟数据库连接
 class MockDB {
@@ -47,13 +45,13 @@ class MockDB {
   }
 
   async select(table, where = {}) {
-    return this.data[table].filter(item => {
+    return this.data[table].filter((item) => {
       return Object.entries(where).every(([key, value]) => item[key] === value);
     });
   }
 
   async update(table, data, where) {
-    const index = this.data[table].findIndex(item => {
+    const index = this.data[table].findIndex((item) => {
       return Object.entries(where).every(([key, value]) => item[key] === value);
     });
     if (index !== -1) {
@@ -65,7 +63,7 @@ class MockDB {
 
   async delete(table, where) {
     const initialLength = this.data[table].length;
-    this.data[table] = this.data[table].filter(item => {
+    this.data[table] = this.data[table].filter((item) => {
       return !Object.entries(where).every(([key, value]) => item[key] === value);
     });
     return { changes: initialLength - this.data[table].length };
@@ -83,7 +81,7 @@ class MockDB {
   prepare(sql) {
     const self = this;
     const queryInfo = { sql, params: [] };
-    
+
     return {
       run(...params) {
         queryInfo.params = params;
@@ -129,18 +127,18 @@ class MockDB {
         } else if (sql.includes('UPDATE')) {
           const tableMatch = sql.match(/UPDATE (\w+)/);
           const table = tableMatch ? tableMatch[1] : 'users';
-          
+
           // 解析 WHERE id = ?
           if (sql.includes('WHERE id = ?')) {
             const id = params[params.length - 1]; // 最后一个参数是 WHERE 条件
             const updateData = {};
-            
+
             // 处理字符串常量值 (如 status = 'in_progress' 或 status = "in_progress")
             const statusMatch = sql.match(/status = ['"]([^'"]+)['"]/);
             if (statusMatch) {
               updateData.status = statusMatch[1];
             }
-            
+
             // 根据 SQL 中的字段设置更新数据
             const fields = [];
             if (sql.includes('email = ?')) fields.push('email');
@@ -151,19 +149,21 @@ class MockDB {
             if (sql.includes('current_task_id = ?')) fields.push('current_task_id');
             if (sql.includes('assignee_id = ?')) fields.push('assignee_id');
             if (sql.includes('title = ?')) fields.push('title');
-            
+
             // 根据字段顺序分配参数值
             let paramIndex = 0;
             if (fields.includes('email')) updateData.email = params[paramIndex++];
             if (fields.includes('password')) updateData.password = params[paramIndex++];
-            if (fields.includes('status') && !updateData.status) updateData.status = params[paramIndex++];
+            if (fields.includes('status') && !updateData.status)
+              updateData.status = params[paramIndex++];
             if (fields.includes('name')) updateData.name = params[paramIndex++];
             if (fields.includes('last_heartbeat')) updateData.last_heartbeat = params[paramIndex++];
-            if (fields.includes('current_task_id')) updateData.current_task_id = params[paramIndex++];
+            if (fields.includes('current_task_id'))
+              updateData.current_task_id = params[paramIndex++];
             if (fields.includes('assignee_id')) updateData.assignee_id = params[paramIndex++];
             if (fields.includes('title')) updateData.title = params[paramIndex++];
-            
-            const index = self.data[table].findIndex(item => item.id === id);
+
+            const index = self.data[table].findIndex((item) => item.id === id);
             if (index !== -1) {
               self.data[table][index] = { ...self.data[table][index], ...updateData };
               return { changes: 1 };
@@ -174,86 +174,86 @@ class MockDB {
         } else if (sql.includes('DELETE')) {
           const tableMatch = sql.match(/DELETE FROM (\w+)/);
           const table = tableMatch ? tableMatch[1] : 'users';
-          
+
           if (sql.includes('WHERE id = ?')) {
             const id = params[0];
             const initialLength = self.data[table].length;
-            self.data[table] = self.data[table].filter(item => item.id !== id);
+            self.data[table] = self.data[table].filter((item) => item.id !== id);
             return { changes: initialLength - self.data[table].length };
           }
           return { changes: 0 };
         }
         return { changes: 0 };
       },
-      get: function(...params) {
+      get: function (...params) {
         queryInfo.params = params;
         const tableMatch = sql.match(/FROM (\w+)/);
         const table = tableMatch ? tableMatch[1] : 'users';
-        
+
         // 处理 SUM() for statistics (优先处理，因为包含 COUNT(*) 和 SUM(CASE))
         if (sql.includes('SUM(CASE')) {
           // 处理任务统计查询
           const total = self.data[table].length;
-          const pending = self.data[table].filter(t => t.status === 'pending').length;
-          const inProgress = self.data[table].filter(t => t.status === 'in_progress').length;
-          const completed = self.data[table].filter(t => t.status === 'completed').length;
+          const pending = self.data[table].filter((t) => t.status === 'pending').length;
+          const inProgress = self.data[table].filter((t) => t.status === 'in_progress').length;
+          const completed = self.data[table].filter((t) => t.status === 'completed').length;
           return { total, pending, in_progress: inProgress, completed };
         }
-        
+
         // 处理 WHERE id = ?
         if (sql.includes('WHERE id = ?')) {
           const id = params[0];
-          const result = self.data[table].find(item => item.id === id);
+          const result = self.data[table].find((item) => item.id === id);
           return result || null;
         }
-        
+
         // 处理 WHERE email = ?
         if (sql.includes('WHERE email = ?')) {
           const email = params[0];
-          return self.data[table].find(item => item.email === email) || null;
+          return self.data[table].find((item) => item.email === email) || null;
         }
-        
+
         // 处理 WHERE username = ?
         if (sql.includes('WHERE username = ?')) {
           const username = params[0];
-          return self.data[table].find(item => item.username === username) || null;
+          return self.data[table].find((item) => item.username === username) || null;
         }
-        
+
         // 处理 WHERE name = ?
         if (sql.includes('WHERE name = ?')) {
           const name = params[0];
-          return self.data[table].find(item => item.name === name) || null;
+          return self.data[table].find((item) => item.name === name) || null;
         }
-        
+
         // 处理 WHERE status = ?
         if (sql.includes('WHERE status = ?')) {
           const status = params[0];
-          return self.data[table].find(item => item.status === status) || null;
+          return self.data[table].find((item) => item.status === status) || null;
         }
-        
+
         // 处理 SELECT * FROM tasks (无 WHERE)
         if (sql.includes('SELECT * FROM tasks') && !sql.includes('WHERE')) {
           return [...self.data.tasks];
         }
-        
+
         // 处理 COUNT(*)
         if (sql.includes('COUNT(*)')) {
           let count = self.data[table].length;
-          
+
           // 处理 WHERE 条件
           if (sql.includes("WHERE status = 'pending'") && !sql.includes('AND')) {
-            count = self.data[table].filter(item => item.status === 'pending').length;
+            count = self.data[table].filter((item) => item.status === 'pending').length;
           } else if (sql.includes("WHERE status = 'in_progress'") && !sql.includes('AND')) {
-            count = self.data[table].filter(item => item.status === 'in_progress').length;
+            count = self.data[table].filter((item) => item.status === 'in_progress').length;
           } else if (sql.includes("WHERE status = 'completed'") && !sql.includes('AND')) {
-            count = self.data[table].filter(item => item.status === 'completed').length;
+            count = self.data[table].filter((item) => item.status === 'completed').length;
           } else if (sql.includes("WHERE status = 'idle'") && !sql.includes('AND')) {
-            count = self.data[table].filter(item => item.status === 'idle').length;
+            count = self.data[table].filter((item) => item.status === 'idle').length;
           } else if (sql.includes("WHERE status = 'busy'") && !sql.includes('AND')) {
-            count = self.data[table].filter(item => item.status === 'busy').length;
+            count = self.data[table].filter((item) => item.status === 'busy').length;
           } else if (sql.includes('WHERE status = ?')) {
             const status = params[0];
-            count = self.data[table].filter(item => item.status === status).length;
+            count = self.data[table].filter((item) => item.status === status).length;
           }
           // 如果没有 WHERE 条件，返回总数
           else if (!sql.includes('WHERE')) {
@@ -263,63 +263,73 @@ class MockDB {
           else {
             count = self.data[table].length;
           }
-          
+
           return { count };
         }
-        
+
         return null;
       },
-      all: function(...params) {
+      all: function (...params) {
         queryInfo.params = params;
         const tableMatch = sql.match(/SELECT \* FROM (\w+)/);
         const table = tableMatch ? tableMatch[1] : 'users';
-        
+
         let results = [...self.data[table]];
-        
+
         // 处理 WHERE status = 'pending' AND assignee_id IS NULL (优先处理复杂条件)
         if (sql.includes("WHERE status = 'pending' AND assignee_id IS NULL")) {
-          results = results.filter(item => item.status === 'pending' && (item.assignee_id === null || item.assignee_id === undefined));
+          results = results.filter(
+            (item) =>
+              item.status === 'pending' &&
+              (item.assignee_id === null || item.assignee_id === undefined)
+          );
         }
         // 处理 WHERE status = 'idle'
         else if (sql.includes("WHERE status = 'idle'")) {
-          results = results.filter(item => item.status === 'idle');
+          results = results.filter((item) => item.status === 'idle');
         }
         // 处理 WHERE status = 'busy'
         else if (sql.includes("WHERE status = 'busy'")) {
-          results = results.filter(item => item.status === 'busy');
+          results = results.filter((item) => item.status === 'busy');
         }
         // 处理 WHERE status = 'pending' (单独)
         else if (sql.includes("WHERE status = 'pending'") && !sql.includes('AND')) {
-          results = results.filter(item => item.status === 'pending');
+          results = results.filter((item) => item.status === 'pending');
         }
         // 处理 WHERE status = 'in_progress' (单独)
         else if (sql.includes("WHERE status = 'in_progress'") && !sql.includes('AND')) {
-          results = results.filter(item => item.status === 'in_progress');
+          results = results.filter((item) => item.status === 'in_progress');
         }
         // 处理 WHERE status = 'completed' (单独)
         else if (sql.includes("WHERE status = 'completed'") && !sql.includes('AND')) {
-          results = results.filter(item => item.status === 'completed');
+          results = results.filter((item) => item.status === 'completed');
         }
         // 处理 WHERE status = ?
         else if (sql.includes('WHERE status = ?')) {
           const status = params[0];
-          results = results.filter(item => item.status === status);
+          results = results.filter((item) => item.status === status);
         }
         // 处理 WHERE assignee_id = ?
         else if (sql.includes('WHERE assignee_id = ?')) {
           const assigneeId = params[0];
-          results = results.filter(item => item.assignee_id === assigneeId);
+          results = results.filter((item) => item.assignee_id === assigneeId);
         }
         // 处理 WHERE assignee_id IS NULL
         else if (sql.includes('WHERE assignee_id IS NULL')) {
-          results = results.filter(item => item.assignee_id === null || item.assignee_id === undefined);
+          results = results.filter(
+            (item) => item.assignee_id === null || item.assignee_id === undefined
+          );
         }
         // 处理 WHERE status = ? AND assignee_id IS NULL
         else if (sql.includes('WHERE status = ?') && sql.includes('AND assignee_id IS NULL')) {
           const status = params[0];
-          results = results.filter(item => item.status === status && (item.assignee_id === null || item.assignee_id === undefined));
+          results = results.filter(
+            (item) =>
+              item.status === status &&
+              (item.assignee_id === null || item.assignee_id === undefined)
+          );
         }
-        
+
         return results;
       }
     };
@@ -331,14 +341,12 @@ describe('Database - 数据库操作', () => {
   let mockDB;
 
   beforeEach(() => {
-    db = new Database(':memory:');
-    createTables(db.dbManager.db);
+    mockDB = new MockDB();
+    db = new Database(mockDB);
   });
 
-  afterEach(() => {
-    if (db) {
-      db.close();
-    }
+  afterEach(async () => {
+    await db.close();
   });
 
   describe('用户操作', () => {
@@ -358,15 +366,33 @@ describe('Database - 数据库操作', () => {
     });
 
     test('应该获取用户列表', async () => {
-      await db.createUser({ username: 'user1', email: 'user1@test.com', password: 'pass', role: 'user', status: 'active' });
-      await db.createUser({ username: 'user2', email: 'user2@test.com', password: 'pass', role: 'user', status: 'active' });
+      await db.createUser({
+        username: 'user1',
+        email: 'user1@test.com',
+        password: 'pass',
+        role: 'user',
+        status: 'active'
+      });
+      await db.createUser({
+        username: 'user2',
+        email: 'user2@test.com',
+        password: 'pass',
+        role: 'user',
+        status: 'active'
+      });
 
       const users = await db.getUsers();
       expect(users.length).toBe(2);
     });
 
     test('应该获取特定用户', async () => {
-      const user = await db.createUser({ username: 'testuser', email: 'test@test.com', password: 'pass', role: 'user', status: 'active' });
+      const user = await db.createUser({
+        username: 'testuser',
+        email: 'test@test.com',
+        password: 'pass',
+        role: 'user',
+        status: 'active'
+      });
       const foundUser = await db.getUser(user.id);
 
       expect(foundUser).toBeDefined();
@@ -374,8 +400,14 @@ describe('Database - 数据库操作', () => {
     });
 
     test('应该更新用户', async () => {
-      const user = await db.createUser({ username: 'testuser', email: 'test@test.com', password: 'pass', role: 'user', status: 'active' });
-      
+      const user = await db.createUser({
+        username: 'testuser',
+        email: 'test@test.com',
+        password: 'pass',
+        role: 'user',
+        status: 'active'
+      });
+
       const updated = await db.updateUser(user.id, { email: 'updated@test.com' });
       expect(updated.changes).toBe(1);
 
@@ -384,40 +416,70 @@ describe('Database - 数据库操作', () => {
     });
 
     test('应该删除用户', async () => {
-      const user = await db.createUser({ username: 'testuser', email: 'test@test.com', password: 'pass', role: 'user', status: 'active' });
-      
+      const user = await db.createUser({
+        username: 'testuser',
+        email: 'test@test.com',
+        password: 'pass',
+        role: 'user',
+        status: 'active'
+      });
+
       const result = await db.deleteUser(user.id);
       expect(result.changes).toBe(1);
 
       const foundUser = await db.getUser(user.id);
-      expect(foundUser).toBeUndefined();
+      expect(foundUser).toBeNull();
     });
 
     test('应该根据用户名获取用户', async () => {
-      await db.createUser({ username: 'testuser', email: 'test@test.com', password: 'pass', role: 'user', status: 'active' });
-      
+      await db.createUser({
+        username: 'testuser',
+        email: 'test@test.com',
+        password: 'pass',
+        role: 'user',
+        status: 'active'
+      });
+
       const user = await db.getUserByUsername('testuser');
       expect(user.username).toBe('testuser');
     });
 
     test('应该根据邮箱获取用户', async () => {
-      await db.createUser({ username: 'testuser', email: 'test@test.com', password: 'pass', role: 'user', status: 'active' });
-      
+      await db.createUser({
+        username: 'testuser',
+        email: 'test@test.com',
+        password: 'pass',
+        role: 'user',
+        status: 'active'
+      });
+
       const user = await db.getUserByEmail('test@test.com');
       expect(user.email).toBe('test@test.com');
     });
 
     test('应该更新用户密码', async () => {
-      const user = await db.createUser({ username: 'testuser', email: 'test@test.com', password: 'oldpass', role: 'user', status: 'active' });
-      
+      const user = await db.createUser({
+        username: 'testuser',
+        email: 'test@test.com',
+        password: 'oldpass',
+        role: 'user',
+        status: 'active'
+      });
+
       await db.updateUserPassword(user.id, 'newpassword');
       const updated = await db.getUser(user.id);
       expect(updated.password).toBe('newpassword');
     });
 
     test('应该更新用户状态', async () => {
-      const user = await db.createUser({ username: 'testuser', email: 'test@test.com', password: 'pass', role: 'user', status: 'active' });
-      
+      const user = await db.createUser({
+        username: 'testuser',
+        email: 'test@test.com',
+        password: 'pass',
+        role: 'user',
+        status: 'active'
+      });
+
       await db.updateUserStatus(user.id, 'inactive');
       const updated = await db.getUser(user.id);
       expect(updated.status).toBe('inactive');
@@ -441,15 +503,33 @@ describe('Database - 数据库操作', () => {
     });
 
     test('应该获取 Agent 列表', async () => {
-      await db.createAgent({ name: 'agent1', status: 'idle', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.1' });
-      await db.createAgent({ name: 'agent2', status: 'busy', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.2' });
+      await db.createAgent({
+        name: 'agent1',
+        status: 'idle',
+        current_task_id: null,
+        last_heartbeat: new Date().toISOString(),
+        ip_address: '127.0.0.1'
+      });
+      await db.createAgent({
+        name: 'agent2',
+        status: 'busy',
+        current_task_id: null,
+        last_heartbeat: new Date().toISOString(),
+        ip_address: '127.0.0.2'
+      });
 
       const agents = await db.getAgents();
       expect(agents.length).toBe(2);
     });
 
     test('应该获取特定 Agent', async () => {
-      const agent = await db.createAgent({ name: 'test-agent', status: 'idle', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.1' });
+      const agent = await db.createAgent({
+        name: 'test-agent',
+        status: 'idle',
+        current_task_id: null,
+        last_heartbeat: new Date().toISOString(),
+        ip_address: '127.0.0.1'
+      });
       const foundAgent = await db.getAgent(agent.id);
 
       expect(foundAgent).toBeDefined();
@@ -457,34 +537,64 @@ describe('Database - 数据库操作', () => {
     });
 
     test('应该更新 Agent 状态', async () => {
-      const agent = await db.createAgent({ name: 'test-agent', status: 'idle', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.1' });
-      
+      const agent = await db.createAgent({
+        name: 'test-agent',
+        status: 'idle',
+        current_task_id: null,
+        last_heartbeat: new Date().toISOString(),
+        ip_address: '127.0.0.1'
+      });
+
       await db.updateAgentStatus(agent.id, 'busy');
       const updated = await db.getAgent(agent.id);
       expect(updated.status).toBe('busy');
     });
 
     test('应该更新 Agent 心跳', async () => {
-      const agent = await db.createAgent({ name: 'test-agent', status: 'idle', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.1' });
+      const agent = await db.createAgent({
+        name: 'test-agent',
+        status: 'idle',
+        current_task_id: null,
+        last_heartbeat: new Date().toISOString(),
+        ip_address: '127.0.0.1'
+      });
       const oldHeartbeat = agent.last_heartbeat;
-      
-      await new Promise(resolve => setTimeout(resolve, 10));
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
       await db.updateAgentHeartbeat(agent.id);
       const updated = await db.getAgent(agent.id);
       expect(updated.last_heartbeat).not.toBe(oldHeartbeat);
     });
 
     test('应该更新 Agent 当前任务', async () => {
-      const agent = await db.createAgent({ name: 'test-agent', status: 'idle', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.1' });
-      
+      const agent = await db.createAgent({
+        name: 'test-agent',
+        status: 'idle',
+        current_task_id: null,
+        last_heartbeat: new Date().toISOString(),
+        ip_address: '127.0.0.1'
+      });
+
       await db.updateAgentCurrentTask(agent.id, 123);
       const updated = await db.getAgent(agent.id);
       expect(updated.current_task_id).toBe(123);
     });
 
     test('应该获取空闲 Agent', async () => {
-      await db.createAgent({ name: 'agent1', status: 'idle', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.1' });
-      await db.createAgent({ name: 'agent2', status: 'busy', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.2' });
+      await db.createAgent({
+        name: 'agent1',
+        status: 'idle',
+        current_task_id: null,
+        last_heartbeat: new Date().toISOString(),
+        ip_address: '127.0.0.1'
+      });
+      await db.createAgent({
+        name: 'agent2',
+        status: 'busy',
+        current_task_id: null,
+        last_heartbeat: new Date().toISOString(),
+        ip_address: '127.0.0.2'
+      });
 
       const idleAgents = await db.getIdleAgents();
       expect(idleAgents.length).toBe(1);
@@ -492,13 +602,19 @@ describe('Database - 数据库操作', () => {
     });
 
     test('应该删除 Agent', async () => {
-      const agent = await db.createAgent({ name: 'test-agent', status: 'idle', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.1' });
-      
+      const agent = await db.createAgent({
+        name: 'test-agent',
+        status: 'idle',
+        current_task_id: null,
+        last_heartbeat: new Date().toISOString(),
+        ip_address: '127.0.0.1'
+      });
+
       const result = await db.deleteAgent(agent.id);
       expect(result.changes).toBe(1);
 
       const foundAgent = await db.getAgent(agent.id);
-      expect(foundAgent).toBeUndefined();
+      expect(foundAgent).toBeNull();
     });
   });
 
@@ -519,15 +635,33 @@ describe('Database - 数据库操作', () => {
     });
 
     test('应该获取任务列表', async () => {
-      await db.createTask({ title: 'Task 1', description: 'Desc 1', priority: 1, status: 'pending', assignee_id: null });
-      await db.createTask({ title: 'Task 2', description: 'Desc 2', priority: 2, status: 'pending', assignee_id: null });
+      await db.createTask({
+        title: 'Task 1',
+        description: 'Desc 1',
+        priority: 1,
+        status: 'pending',
+        assignee_id: null
+      });
+      await db.createTask({
+        title: 'Task 2',
+        description: 'Desc 2',
+        priority: 2,
+        status: 'pending',
+        assignee_id: null
+      });
 
       const tasks = await db.getTasks();
       expect(tasks.length).toBe(2);
     });
 
     test('应该获取特定任务', async () => {
-      const task = await db.createTask({ title: 'Test Task', description: 'Desc', priority: 1, status: 'pending', assignee_id: null });
+      const task = await db.createTask({
+        title: 'Test Task',
+        description: 'Desc',
+        priority: 1,
+        status: 'pending',
+        assignee_id: null
+      });
       const foundTask = await db.getTask(task.id);
 
       expect(foundTask).toBeDefined();
@@ -535,36 +669,72 @@ describe('Database - 数据库操作', () => {
     });
 
     test('应该更新任务状态', async () => {
-      const task = await db.createTask({ title: 'Test Task', description: 'Desc', priority: 1, status: 'pending', assignee_id: null });
-      
+      const task = await db.createTask({
+        title: 'Test Task',
+        description: 'Desc',
+        priority: 1,
+        status: 'pending',
+        assignee_id: null
+      });
+
       await db.updateTaskStatus(task.id, 'in_progress');
       const updated = await db.getTask(task.id);
       expect(updated.status).toBe('in_progress');
     });
 
     test('应该分配任务给 Agent', async () => {
-      const task = await db.createTask({ title: 'Test Task', description: 'Desc', priority: 1, status: 'pending', assigned_agent_id: null });
-      const agent = await db.createAgent({ name: 'test-agent', status: 'idle', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.1' });
-      
+      const task = await db.createTask({
+        title: 'Test Task',
+        description: 'Desc',
+        priority: 1,
+        status: 'pending',
+        assignee_id: null
+      });
+      const agent = await db.createAgent({
+        name: 'test-agent',
+        status: 'idle',
+        current_task_id: null,
+        last_heartbeat: new Date().toISOString(),
+        ip_address: '127.0.0.1'
+      });
+
       await db.assignTask(task.id, agent.id);
       const updatedTask = await db.getTask(task.id);
-      expect(updatedTask.assigned_agent_id).toBe(agent.id);
+      expect(updatedTask.assignee_id).toBe(agent.id);
       expect(updatedTask.status).toBe('in_progress');
     });
 
     test('应该删除任务', async () => {
-      const task = await db.createTask({ title: 'Test Task', description: 'Desc', priority: 1, status: 'pending', assignee_id: null });
-      
+      const task = await db.createTask({
+        title: 'Test Task',
+        description: 'Desc',
+        priority: 1,
+        status: 'pending',
+        assignee_id: null
+      });
+
       const result = await db.deleteTask(task.id);
       expect(result.changes).toBe(1);
 
       const foundTask = await db.getTask(task.id);
-      expect(foundTask).toBeUndefined();
+      expect(foundTask).toBeNull();
     });
 
     test('应该获取待分配任务', async () => {
-      await db.createTask({ title: 'Task 1', description: 'Desc 1', priority: 1, status: 'pending', assigned_agent_id: null });
-      await db.createTask({ title: 'Task 2', description: 'Desc 2', priority: 2, status: 'in_progress', assigned_agent_id: null });
+      await db.createTask({
+        title: 'Task 1',
+        description: 'Desc 1',
+        priority: 1,
+        status: 'pending',
+        assignee_id: null
+      });
+      await db.createTask({
+        title: 'Task 2',
+        description: 'Desc 2',
+        priority: 2,
+        status: 'in_progress',
+        assignee_id: 1
+      });
 
       const pendingTasks = await db.getPendingTasks();
       expect(pendingTasks.length).toBe(1);
@@ -572,18 +742,54 @@ describe('Database - 数据库操作', () => {
     });
 
     test('应该获取 Agent 的任务', async () => {
-      const agent = await db.createAgent({ name: 'test-agent', status: 'idle', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.1' });
-      await db.createTask({ title: 'Task 1', description: 'Desc 1', priority: 1, status: 'in_progress', assigned_agent_id: agent.id });
-      await db.createTask({ title: 'Task 2', description: 'Desc 2', priority: 2, status: 'in_progress', assigned_agent_id: agent.id });
+      const agent = await db.createAgent({
+        name: 'test-agent',
+        status: 'idle',
+        current_task_id: null,
+        last_heartbeat: new Date().toISOString(),
+        ip_address: '127.0.0.1'
+      });
+      await db.createTask({
+        title: 'Task 1',
+        description: 'Desc 1',
+        priority: 1,
+        status: 'in_progress',
+        assignee_id: agent.id
+      });
+      await db.createTask({
+        title: 'Task 2',
+        description: 'Desc 2',
+        priority: 2,
+        status: 'in_progress',
+        assignee_id: agent.id
+      });
 
-      const tasks = await db.getTasksByAgent(agent.id);
+      const tasks = await db.getAgentTasks(agent.id);
       expect(tasks.length).toBe(2);
     });
 
     test('应该获取任务统计', async () => {
-      await db.createTask({ title: 'Task 1', description: 'Desc', priority: 1, status: 'pending', assigned_agent_id: null });
-      await db.createTask({ title: 'Task 2', description: 'Desc', priority: 2, status: 'in_progress', assigned_agent_id: null });
-      await db.createTask({ title: 'Task 3', description: 'Desc', priority: 3, status: 'completed', assigned_agent_id: null });
+      await db.createTask({
+        title: 'Task 1',
+        description: 'Desc',
+        priority: 1,
+        status: 'pending',
+        assignee_id: null
+      });
+      await db.createTask({
+        title: 'Task 2',
+        description: 'Desc',
+        priority: 2,
+        status: 'in_progress',
+        assignee_id: 1
+      });
+      await db.createTask({
+        title: 'Task 3',
+        description: 'Desc',
+        priority: 3,
+        status: 'completed',
+        assignee_id: 1
+      });
 
       const stats = await db.getTaskStats();
       expect(stats).toBeDefined();
@@ -596,27 +802,51 @@ describe('Database - 数据库操作', () => {
 
   describe('错误处理', () => {
     test('应该处理无效的用户名', async () => {
-      // 由于 SQLite 没有 NOT NULL 约束，这里只是验证基本功能
-      const user = await db.createUser({ username: 'test', email: 'test@test.com', password: 'pass', role: 'user', status: 'active' });
-      expect(user).toBeDefined();
+      await expect(
+        db.createUser({
+          username: '',
+          email: 'test@test.com',
+          password: 'pass',
+          role: 'user',
+          status: 'active'
+        })
+      ).rejects.toThrow();
     });
 
     test('应该处理无效的邮箱', async () => {
-      // 由于 SQLite 没有 NOT NULL 约束，这里只是验证基本功能
-      const user = await db.createUser({ username: 'test2', email: 'test2@test.com', password: 'pass', role: 'user', status: 'active' });
-      expect(user).toBeDefined();
+      await expect(
+        db.createUser({
+          username: 'testuser',
+          email: 'invalid',
+          password: 'pass',
+          role: 'user',
+          status: 'active'
+        })
+      ).rejects.toThrow();
     });
 
     test('应该处理无效的 Agent 名称', async () => {
-      // 由于 SQLite 没有 NOT NULL 约束，这里只是验证基本功能
-      const agent = await db.createAgent({ name: 'test-agent', status: 'idle', current_task_id: null, last_heartbeat: new Date().toISOString(), ip_address: '127.0.0.1' });
-      expect(agent).toBeDefined();
+      await expect(
+        db.createAgent({
+          name: '',
+          status: 'idle',
+          current_task_id: null,
+          last_heartbeat: new Date().toISOString(),
+          ip_address: '127.0.0.1'
+        })
+      ).rejects.toThrow();
     });
 
     test('应该处理无效的任务标题', async () => {
-      // 由于 SQLite 没有 NOT NULL 约束，这里只是验证基本功能
-      const task = await db.createTask({ title: 'Test Task', description: 'Desc', priority: 1, status: 'pending', assigned_agent_id: null });
-      expect(task).toBeDefined();
+      await expect(
+        db.createTask({
+          title: '',
+          description: 'Desc',
+          priority: 1,
+          status: 'pending',
+          assignee_id: null
+        })
+      ).rejects.toThrow();
     });
   });
 });

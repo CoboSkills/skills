@@ -8,10 +8,9 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-const DB_PATH =
-  process.env.DB_PATH ||
-  process.env.OPENCLAW_DB_PATH ||
-  path.join(__dirname, '..', 'db', 'config.db');
+const DB_PATH = process.env.DB_PATH || 
+                process.env.OPENCLAW_DB_PATH || 
+                path.join(__dirname, '..', 'db', 'config.db');
 
 /**
  * 获取数据库连接
@@ -89,15 +88,15 @@ function listConfigs() {
   const db = getDb();
   const rows = db.prepare('SELECT * FROM configs ORDER BY key').all();
   db.close();
-
+  
   if (rows.length === 0) {
     console.log('📭 暂无配置');
     return;
   }
-
+  
   console.log('\n配置列表:');
   console.log('─'.repeat(60));
-  rows.forEach((row) => {
+  rows.forEach(row => {
     console.log(`  ${row.key.padEnd(30)} ${row.value ? '✓' : ''}`);
     if (row.description) {
       console.log(`    ${row.description}`);
@@ -115,7 +114,7 @@ function deleteConfig(key) {
   const stmt = db.prepare('DELETE FROM configs WHERE key = ?');
   const info = stmt.run(key);
   db.close();
-
+  
   if (info.changes === 0) {
     console.error(`❌ 配置不存在：${key}`);
     return;
@@ -130,13 +129,13 @@ function backupConfig(outputPath = null) {
   const db = getDb();
   const rows = db.prepare('SELECT * FROM configs').all();
   db.close();
-
+  
   const backup = {
     timestamp: new Date().toISOString(),
     version: '1.0.0',
     configs: rows
   };
-
+  
   const targetPath = outputPath || path.join(__dirname, '..', 'config_backup.json');
   fs.writeFileSync(targetPath, JSON.stringify(backup, null, 2));
   console.log(`✅ 配置已备份到：${targetPath}`);
@@ -150,13 +149,13 @@ function restoreConfig(inputPath) {
     console.error(`❌ 备份文件不存在：${inputPath}`);
     return;
   }
-
+  
   const backup = JSON.parse(fs.readFileSync(inputPath, 'utf-8'));
   const db = getDb();
-
+  
   let successCount = 0;
   let failCount = 0;
-
+  
   for (const config of backup.configs) {
     try {
       const stmt = db.prepare(`
@@ -174,7 +173,7 @@ function restoreConfig(inputPath) {
       failCount++;
     }
   }
-
+  
   db.close();
   console.log(`✅ 配置恢复完成：成功 ${successCount} 个，失败 ${failCount} 个`);
 }
@@ -186,7 +185,7 @@ function exportConfig(outputPath = null) {
   const db = getDb();
   const rows = db.prepare('SELECT key, value, description FROM configs').all();
   db.close();
-
+  
   const targetPath = outputPath || path.join(__dirname, '..', 'config_export.json');
   fs.writeFileSync(targetPath, JSON.stringify(rows, null, 2));
   console.log(`✅ 配置已导出到：${targetPath}`);
@@ -200,13 +199,13 @@ function importConfig(inputPath) {
     console.error(`❌ 文件不存在：${inputPath}`);
     return;
   }
-
+  
   const configs = JSON.parse(fs.readFileSync(inputPath, 'utf-8'));
   const db = getDb();
-
+  
   let successCount = 0;
   let failCount = 0;
-
+  
   for (const config of configs) {
     try {
       const stmt = db.prepare(`
@@ -224,7 +223,7 @@ function importConfig(inputPath) {
       failCount++;
     }
   }
-
+  
   db.close();
   console.log(`✅ 配置导入完成：成功 ${successCount} 个，失败 ${failCount} 个`);
 }
@@ -268,12 +267,12 @@ function showHelp() {
 function main() {
   const args = process.argv.slice(2);
   const command = args[0];
-
+  
   if (!command) {
     showHelp();
     return;
   }
-
+  
   switch (command) {
     case 'init':
       initConfigTable();

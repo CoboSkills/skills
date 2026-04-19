@@ -2,15 +2,9 @@
  * Config 单元测试
  */
 
-const configModule = require('../config');
+const configModule = require('../core/config-manager');
 
-const {
-  DEFAULT_CONFIG,
-  getConfig,
-  loadFromEnv,
-  loadFromCustomConfig,
-  mergeConfigs
-} = configModule;
+const { DEFAULT_CONFIG, getConfig, loadFromEnv, loadFromCustomConfig, mergeConfigs } = configModule;
 
 describe('Config - DEFAULT_CONFIG', () => {
   test('应该有正确的默认结构', () => {
@@ -44,10 +38,14 @@ describe('Config - DEFAULT_CONFIG', () => {
 describe('Config - loadFromEnv', () => {
   beforeEach(() => {
     // 清理所有相关环境变量
-    const envVars = Object.keys(process.env).filter(k => 
-      k.startsWith('DB_') || k.startsWith('LOG_') || k.startsWith('HEARTBEAT_') || k.startsWith('SYNC_')
+    const envVars = Object.keys(process.env).filter(
+      (k) =>
+        k.startsWith('DB_') ||
+        k.startsWith('LOG_') ||
+        k.startsWith('HEARTBEAT_') ||
+        k.startsWith('SYNC_')
     );
-    envVars.forEach(k => delete process.env[k]);
+    envVars.forEach((k) => delete process.env[k]);
   });
 
   test('应该返回空对象当没有环境变量', () => {
@@ -164,7 +162,7 @@ describe('Config - loadFromCustomConfig', () => {
       log: { level: 'DEBUG' }
     };
     const testPath = path.join(__dirname, 'test-config.json');
-    
+
     try {
       fs.writeFileSync(testPath, JSON.stringify(testConfig));
       const result = loadFromCustomConfig(testPath);
@@ -182,7 +180,7 @@ describe('Config - loadFromCustomConfig', () => {
     const fs = require('fs');
     const path = require('path');
     const testPath = path.join(__dirname, 'invalid-config.json');
-    
+
     try {
       fs.writeFileSync(testPath, 'invalid json {');
       const result = loadFromCustomConfig(testPath);
@@ -200,7 +198,7 @@ describe('Config - mergeConfigs', () => {
     const defaults = { a: 1, b: 2 };
     const env = { b: 3 };
     const custom = { c: 4 };
-    
+
     const result = mergeConfigs(defaults, env, custom);
     expect(result.a).toBe(1);
     expect(result.b).toBe(3);
@@ -211,7 +209,7 @@ describe('Config - mergeConfigs', () => {
     const defaults = { db: { type: 'sqlite' } };
     const env = { db: { type: 'mysql' } };
     const custom = { db: { type: 'postgres' } };
-    
+
     const result = mergeConfigs(defaults, env, custom);
     expect(result.db.type).toBe('postgres');
   });
@@ -220,7 +218,7 @@ describe('Config - mergeConfigs', () => {
     const defaults = { db: { type: 'sqlite' } };
     const env = { db: { type: 'mysql' } };
     const custom = {};
-    
+
     const result = mergeConfigs(defaults, env, custom);
     expect(result.db.type).toBe('mysql');
   });
@@ -229,7 +227,7 @@ describe('Config - mergeConfigs', () => {
     const defaults = { db: { host: 'localhost', port: 3306 } };
     const env = { db: { host: 'remote.com' } };
     const custom = {};
-    
+
     const result = mergeConfigs(defaults, env, custom);
     expect(result.db.host).toBe('remote.com');
     expect(result.db.port).toBe(3306);
@@ -247,7 +245,7 @@ describe('Config - mergeConfigs', () => {
       }
     };
     const custom = {};
-    
+
     const result = mergeConfigs(defaults, env, custom);
     expect(result.db.pool.min).toBe(5);
     expect(result.db.pool.max).toBe(20);
@@ -258,10 +256,14 @@ describe('Config - mergeConfigs', () => {
 describe('Config - getConfig', () => {
   beforeEach(() => {
     // 清理所有相关环境变量
-    const envVars = Object.keys(process.env).filter(k => 
-      k.startsWith('DB_') || k.startsWith('LOG_') || k.startsWith('HEARTBEAT_') || k.startsWith('SYNC_')
+    const envVars = Object.keys(process.env).filter(
+      (k) =>
+        k.startsWith('DB_') ||
+        k.startsWith('LOG_') ||
+        k.startsWith('HEARTBEAT_') ||
+        k.startsWith('SYNC_')
     );
-    envVars.forEach(k => delete process.env[k]);
+    envVars.forEach((k) => delete process.env[k]);
   });
 
   test('应该返回默认配置当没有环境变量和自定义配置', () => {
@@ -274,7 +276,7 @@ describe('Config - getConfig', () => {
   test('应该使用环境变量覆盖默认配置', () => {
     process.env.DB_TYPE = 'mysql';
     process.env.LOG_LEVEL = 'DEBUG';
-    
+
     const result = getConfig();
     expect(result.db.type).toBe('mysql');
     expect(result.log.level).toBe('DEBUG');
@@ -289,7 +291,7 @@ describe('Config - getConfig', () => {
       db: { type: 'sqlite', path: ':memory:' }
     };
     const testPath = path.join(__dirname, 'test-get-config.json');
-    
+
     try {
       fs.writeFileSync(testPath, JSON.stringify(testConfig));
       const result = getConfig(testPath);
@@ -304,12 +306,12 @@ describe('Config - getConfig', () => {
 
   test('自定义配置应该优先于环境变量', () => {
     process.env.DB_TYPE = 'mysql';
-    
+
     const fs = require('fs');
     const path = require('path');
     const testConfig = { db: { type: 'postgres' } };
     const testPath = path.join(__dirname, 'test-priority.json');
-    
+
     try {
       fs.writeFileSync(testPath, JSON.stringify(testConfig));
       const result = getConfig(testPath);
@@ -323,7 +325,7 @@ describe('Config - getConfig', () => {
 
   test('应该保留默认配置中未覆盖的值', () => {
     process.env.DB_TYPE = 'mysql';
-    
+
     const result = getConfig();
     expect(result.db.type).toBe('mysql');
     expect(result.db.host).toBe('localhost'); // 默认值

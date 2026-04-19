@@ -2,8 +2,6 @@
  * Agent Binding - Agent 任务绑定管理
  */
 
-const { TaskManager } = require('../db/task-manager');
-
 class AgentBinding {
   constructor(options = {}) {
     // 支持自定义数据库路径

@@ -15,12 +15,10 @@ const logger = createLogger({ level: 'INFO' });
  */
 function getDb() {
   const config = getConfig();
-  const dbPath =
-    config.db.path ||
-    process.env.DB_PATH ||
-    process.env.OPENCLAW_DB_PATH ||
-    path.join(__dirname, 'tasks.db');
-
+  const dbPath = config.db.path || process.env.DB_PATH || 
+                 process.env.OPENCLAW_DB_PATH || 
+                 path.join(__dirname, 'tasks.db');
+  
   return new Database(dbPath);
 }
 
@@ -29,7 +27,7 @@ function getDb() {
  */
 function initDependencies() {
   const db = getDb();
-
+  
   try {
     const createTableSQL = `
       CREATE TABLE IF NOT EXISTS task_dependencies (
@@ -44,25 +42,25 @@ function initDependencies() {
         FOREIGN KEY (depends_on_task_id) REFERENCES tasks(id)
       )
     `;
-
+    
     db.run(createTableSQL);
-
+    
     // 创建索引
     db.run(`
       CREATE INDEX IF NOT EXISTS idx_task_dependencies_task_id 
       ON task_dependencies(task_id)
     `);
-
+    
     db.run(`
       CREATE INDEX IF NOT EXISTS idx_task_dependencies_depends_on 
       ON task_dependencies(depends_on_task_id)
     `);
-
+    
     db.run(`
       CREATE INDEX IF NOT EXISTS idx_task_dependencies_status 
       ON task_dependencies(status)
     `);
-
+    
     logger.info('✅ 任务依赖表初始化完成');
     return true;
   } catch (error) {
@@ -78,23 +76,23 @@ function initDependencies() {
  */
 function addDependency(taskId, dependsOnTaskId, type = 'BLOCKING') {
   const db = getDb();
-
+  
   try {
     // 检查循环依赖
     if (hasCircularDependency(db, taskId, dependsOnTaskId)) {
       logger.warn(`❌ 检测到循环依赖：${taskId} -> ${dependsOnTaskId}`);
       return null;
     }
-
+    
     const insertSQL = `
       INSERT INTO task_dependencies 
       (task_id, depends_on_task_id, dependency_type)
       VALUES (?, ?, ?)
     `;
-
+    
     const insertStmt = db.prepare(insertSQL);
     const result = insertStmt.run(taskId, dependsOnTaskId, type);
-
+    
     logger.info(`✅ 已添加依赖：任务 ${taskId} 依赖于 ${dependsOnTaskId} (${type})`);
     return result.lastInsertRowid;
   } catch (error) {
@@ -113,35 +111,31 @@ function hasCircularDependency(db, taskId, dependsOnTaskId) {
     // 深度优先搜索检测循环
     const visited = new Set();
     const stack = [dependsOnTaskId];
-
+    
     while (stack.length > 0) {
       const current = stack.pop();
-
+      
       if (current === taskId) {
         return true; // 发现循环
       }
-
+      
       if (visited.has(current)) {
         continue;
       }
-
+      
       visited.add(current);
-
+      
       // 查找当前任务依赖的所有任务
-      const deps = db
-        .prepare(
-          `
+      const deps = db.prepare(`
         SELECT depends_on_task_id FROM task_dependencies
         WHERE task_id = ? AND status = 'pending'
-      `
-        )
-        .all(current);
-
-      deps.forEach((dep) => {
+      `).all(current);
+      
+      deps.forEach(dep => {
         stack.push(dep.depends_on_task_id);
       });
     }
-
+    
     return false;
   } catch (error) {
     logger.error('❌ 检测循环依赖失败:', error);
@@ -154,18 +148,14 @@ function hasCircularDependency(db, taskId, dependsOnTaskId) {
  */
 function getTaskDependencies(taskId) {
   const db = getDb();
-
+  
   try {
-    const rows = db
-      .prepare(
-        `
+    const rows = db.prepare(`
       SELECT * FROM task_dependencies
       WHERE task_id = ?
       ORDER BY created_at
-    `
-      )
-      .all(taskId);
-
+    `).all(taskId);
+    
     return rows;
   } catch (error) {
     logger.error(`❌ 获取任务依赖失败 (ID: ${taskId}):`, error);
@@ -180,18 +170,14 @@ function getTaskDependencies(taskId) {
  */
 function getDependentTasks(taskId) {
   const db = getDb();
-
+  
   try {
-    const rows = db
-      .prepare(
-        `
+    const rows = db.prepare(`
       SELECT * FROM task_dependencies
       WHERE depends_on_task_id = ?
       ORDER BY created_at
-    `
-      )
-      .all(taskId);
-
+    `).all(taskId);
+    
     return rows;
   } catch (error) {
     logger.error(`❌ 获取被依赖任务失败 (ID: ${taskId}):`, error);
@@ -206,14 +192,14 @@ function getDependentTasks(taskId) {
  */
 function removeDependency(taskId, dependsOnTaskId) {
   const db = getDb();
-
+  
   try {
     const stmt = db.prepare(`
       DELETE FROM task_dependencies
       WHERE task_id = ? AND depends_on_task_id = ?
     `);
     const result = stmt.run(taskId, dependsOnTaskId);
-
+    
     logger.info(`✅ 已删除依赖：任务 ${taskId} -> ${dependsOnTaskId}`);
     return result.changes;
   } catch (error) {
@@ -229,7 +215,7 @@ function removeDependency(taskId, dependsOnTaskId) {
  */
 function updateDependencyStatus(dependencyId, status, resolvedAt = null) {
   const db = getDb();
-
+  
   try {
     const stmt = db.prepare(`
       UPDATE task_dependencies
@@ -237,7 +223,7 @@ function updateDependencyStatus(dependencyId, status, resolvedAt = null) {
       WHERE id = ?
     `);
     const result = stmt.run(status, resolvedAt || null, dependencyId);
-
+    
     logger.info(`✅ 依赖状态更新成功：ID ${dependencyId} -> ${status}`);
     return result.changes;
   } catch (error) {
@@ -253,37 +239,29 @@ function updateDependencyStatus(dependencyId, status, resolvedAt = null) {
  */
 function canExecuteTask(taskId) {
   const db = getDb();
-
+  
   try {
     // 获取任务的所有未完成依赖
-    const pendingDeps = db
-      .prepare(
-        `
+    const pendingDeps = db.prepare(`
       SELECT * FROM task_dependencies
       WHERE task_id = ? AND status != 'resolved'
-    `
-      )
-      .all(taskId);
-
+    `).all(taskId);
+    
     if (pendingDeps.length === 0) {
       return true;
     }
-
+    
     // 检查所有依赖任务是否都已完成
     for (const dep of pendingDeps) {
-      const depTask = db
-        .prepare(
-          `
+      const depTask = db.prepare(`
         SELECT status FROM tasks WHERE id = ?
-      `
-        )
-        .get(dep.depends_on_task_id);
-
+      `).get(dep.depends_on_task_id);
+      
       if (!depTask || depTask.status !== 'completed') {
         return false;
       }
     }
-
+    
     return true;
   } catch (error) {
     logger.error(`❌ 检查任务可执行性失败 (ID: ${taskId}):`, error);
@@ -298,29 +276,25 @@ function canExecuteTask(taskId) {
  */
 function getTaskExecutionOrder(taskIds) {
   const db = getDb();
-
+  
   try {
     // 拓扑排序
     const inDegree = {};
     const graph = {};
-
+    
     // 初始化
-    taskIds.forEach((id) => {
+    taskIds.forEach(id => {
       inDegree[id] = 0;
       graph[id] = [];
     });
-
+    
     // 构建图
     for (const taskId of taskIds) {
-      const deps = db
-        .prepare(
-          `
+      const deps = db.prepare(`
         SELECT depends_on_task_id FROM task_dependencies
         WHERE task_id = ? AND depends_on_task_id IN (${taskIds.map(() => '?').join(',')})
-      `
-        )
-        .all(taskId, ...taskIds);
-
+      `).all(taskId, ...taskIds);
+      
       for (const dep of deps) {
         if (graph[dep.depends_on_task_id]) {
           graph[dep.depends_on_task_id].push(taskId);
@@ -328,22 +302,22 @@ function getTaskExecutionOrder(taskIds) {
         }
       }
     }
-
+    
     // 拓扑排序
     const queue = [];
     const result = [];
-
+    
     // 找到所有入度为 0 的任务
     for (const taskId of taskIds) {
       if (inDegree[taskId] === 0) {
         queue.push(taskId);
       }
     }
-
+    
     while (queue.length > 0) {
       const current = queue.shift();
       result.push(current);
-
+      
       for (const next of graph[current]) {
         inDegree[next]--;
         if (inDegree[next] === 0) {
@@ -351,13 +325,13 @@ function getTaskExecutionOrder(taskIds) {
         }
       }
     }
-
+    
     // 检查是否有循环依赖
     if (result.length !== taskIds.length) {
       logger.warn('⚠️ 检测到循环依赖，无法确定执行顺序');
       return [];
     }
-
+    
     return result;
   } catch (error) {
     logger.error('❌ 获取任务执行顺序失败:', error);

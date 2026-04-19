@@ -1,279 +1,385 @@
 /**
- * Database 类 - 高层数据库 API
- * 封装用户、Agent、任务等操作的便捷方法
+ * Database - 数据库操作类
+ * 提供用户、Agent、任务的 CRUD 操作
  */
 
-const { getDatabaseManager } = require('./database-manager');
-
 class Database {
-  constructor(dbPath = null) {
-    this.dbManager = getDatabaseManager(dbPath);
-    this.dbManager.init();
+  constructor(db) {
+    this.db = db;
   }
+
+  // ==================== 用户操作 ====================
 
   /**
-   * Agent 操作
-   */
-  async createAgent(agentData) {
-    const {
-      name,
-      type = 'coder',
-      status = 'idle',
-      current_task_id = null,
-      address = null,
-      max_concurrent_tasks = 1,
-      skills = '[]'
-    } = agentData;
-    const stmt = this.dbManager.db.prepare(`
-            INSERT INTO agents (name, type, status, current_task_id, address, max_concurrent_tasks, skills, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-        `);
-    const result = stmt.run(
-      name,
-      type,
-      status,
-      current_task_id,
-      address,
-      max_concurrent_tasks,
-      skills
-    );
-
-    return this.getAgent(result.lastInsertRowid);
-  }
-
-  async getAgents() {
-    return this.dbManager.db.prepare('SELECT * FROM agents ORDER BY created_at DESC').all();
-  }
-
-  async getAgent(id) {
-    return this.dbManager.db.prepare('SELECT * FROM agents WHERE id = ?').get(id);
-  }
-
-  async updateAgentStatus(id, status) {
-    const stmt = this.dbManager.db.prepare(`
-            UPDATE agents SET status = ?, updated_at = datetime('now') WHERE id = ?
-        `);
-    return stmt.run(status, id);
-  }
-
-  async updateAgentHeartbeat(id, lastHeartbeat = null) {
-    const heartbeat = lastHeartbeat || new Date().toISOString();
-    const stmt = this.dbManager.db.prepare(`
-            UPDATE agents SET last_heartbeat = ?, updated_at = datetime('now') WHERE id = ?
-        `);
-    return stmt.run(heartbeat, id);
-  }
-
-  async updateAgentCurrentTask(id, currentTaskId) {
-    const stmt = this.dbManager.db.prepare(`
-            UPDATE agents SET current_task_id = ?, updated_at = datetime('now') WHERE id = ?
-        `);
-    return stmt.run(currentTaskId, id);
-  }
-
-  async getIdleAgents() {
-    return this.dbManager.db.prepare("SELECT * FROM agents WHERE status = 'idle'").all();
-  }
-
-  async deleteAgent(id) {
-    return this.dbManager.db.prepare('DELETE FROM agents WHERE id = ?').run(id);
-  }
-
-  /**
-   * 任务操作
-   */
-  async createTask(taskData) {
-    const {
-      title,
-      description = '',
-      status = 'pending',
-      priority = 2,
-      assigned_agent_id = null,
-      project_id = null
-    } = taskData;
-    const stmt = this.dbManager.db.prepare(`
-            INSERT INTO tasks (title, description, status, priority, assigned_agent_id, project_id, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-        `);
-    const result = stmt.run(title, description, status, priority, assigned_agent_id, project_id);
-
-    return this.getTask(result.lastInsertRowid);
-  }
-
-  async getTasks() {
-    return this.dbManager.db.prepare('SELECT * FROM tasks ORDER BY created_at DESC').all();
-  }
-
-  async getTask(id) {
-    return this.dbManager.db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
-  }
-
-  async updateTaskStatus(id, status) {
-    const stmt = this.dbManager.db.prepare(`
-            UPDATE tasks SET status = ?, updated_at = datetime('now') WHERE id = ?
-        `);
-    return stmt.run(status, id);
-  }
-
-  async assignTaskToAgent(taskId, agentId) {
-    const stmt = this.dbManager.db.prepare(`
-            UPDATE tasks SET assigned_agent_id = ?, status = 'in_progress', updated_at = datetime('now') WHERE id = ?
-        `);
-    return stmt.run(agentId, taskId);
-  }
-
-  async assignTask(taskId, agentId) {
-    return this.assignTaskToAgent(taskId, agentId);
-  }
-
-  async deleteTask(id) {
-    return this.dbManager.db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
-  }
-
-  async getPendingTasks() {
-    return this.dbManager.db
-      .prepare("SELECT * FROM tasks WHERE status = 'pending' AND assigned_agent_id IS NULL")
-      .all();
-  }
-
-  async getTasksByAgent(agentId) {
-    return this.dbManager.db
-      .prepare('SELECT * FROM tasks WHERE assigned_agent_id = ?')
-      .all(agentId);
-  }
-
-  async getTaskStats() {
-    const stats = this.dbManager.db
-      .prepare(
-        `
-            SELECT 
-                COUNT(*) as total,
-                SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-                SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
-                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
-            FROM tasks
-        `
-      )
-      .get();
-    return stats;
-  }
-
-  /**
-   * 用户操作
+   * 创建用户
+   * @param {Object} userData - 用户数据
+   * @param {string} userData.username - 用户名
+   * @param {string} userData.email - 邮箱
+   * @param {string} userData.password - 密码
+   * @param {string} userData.role - 角色
+   * @param {string} userData.status - 状态
+   * @returns {Promise<Object>} 创建的用户
    */
   async createUser(userData) {
-    const { username, email, password, role = 'user', status = 'active' } = userData;
-    const stmt = this.dbManager.db.prepare(`
-            INSERT INTO users (username, email, password, role, status, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now'))
-        `);
-    const result = stmt.run(username, email, password, role, status);
+    const { username, email, password, role, status } = userData;
 
-    return this.getUser(result.lastInsertRowid);
+    // 验证输入
+    if (!username || username.trim() === '') {
+      throw new Error('用户名不能为空');
+    }
+    if (!email || !this.isValidEmail(email)) {
+      throw new Error('无效的邮箱地址');
+    }
+
+    const now = new Date().toISOString();
+    const result = await this.db.prepare(`
+      INSERT INTO users (username, email, password, role, status, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(username, email, password, role, status, now, now);
+
+    const user = await this.getUser(result.lastInsertRowid);
+    return user;
   }
 
+  /**
+   * 获取所有用户
+   * @returns {Promise<Array>} 用户列表
+   */
   async getUsers() {
-    return this.dbManager.db.prepare('SELECT * FROM users ORDER BY created_at DESC').all();
+    const rows = await this.db.prepare('SELECT * FROM users').all();
+    return rows;
   }
 
+  /**
+   * 根据 ID 获取用户
+   * @param {number} id - 用户 ID
+   * @returns {Promise<Object|null>} 用户对象
+   */
   async getUser(id) {
-    return this.dbManager.db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    const row = await this.db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    return row || null;
   }
 
-  async getUserByUsername(username) {
-    return this.dbManager.db.prepare('SELECT * FROM users WHERE username = ?').get(username);
-  }
-
-  async getUserByEmail(email) {
-    return this.dbManager.db.prepare('SELECT * FROM users WHERE email = ?').get(email);
-  }
-
+  /**
+   * 更新用户
+   * @param {number} id - 用户 ID
+   * @param {Object} updates - 更新的数据
+   * @returns {Promise<Object>} 更新结果 { changes: number }
+   */
   async updateUser(id, updates) {
     const allowedFields = ['username', 'email', 'password', 'role', 'status'];
-    const fields = Object.keys(updates).filter((f) => allowedFields.includes(f));
-
+    const fields = Object.keys(updates).filter(f => allowedFields.includes(f));
+    
     if (fields.length === 0) {
       return { changes: 0 };
     }
 
-    const setClause = fields.map((f) => `${f} = ?`).join(', ');
-    const values = [...fields.map((f) => updates[f]), id];
+    const setClause = fields.map(f => `${f} = ?`).join(', ');
+    const now = new Date().toISOString();
+    const values = [...fields.map(f => updates[f]), now, id];
 
-    const stmt = this.dbManager.db.prepare(`
-            UPDATE users SET ${setClause}, updated_at = datetime('now') WHERE id = ?
-        `);
+    const result = await this.db.prepare(`
+      UPDATE users SET ${setClause}, updated_at = ?
+      WHERE id = ?
+    `).run(...values);
 
-    return stmt.run(...values);
+    return { changes: result.changes };
   }
 
-  async updateUserPassword(id, newPassword) {
-    const stmt = this.dbManager.db.prepare(`
-            UPDATE users SET password = ?, updated_at = datetime('now') WHERE id = ?
-        `);
-    return stmt.run(newPassword, id);
-  }
-
-  async updateUserStatus(id, status) {
-    const stmt = this.dbManager.db.prepare(`
-            UPDATE users SET status = ?, updated_at = datetime('now') WHERE id = ?
-        `);
-    return stmt.run(status, id);
-  }
-
+  /**
+   * 删除用户
+   * @param {number} id - 用户 ID
+   * @returns {Promise<Object>} 删除结果
+   */
   async deleteUser(id) {
-    return this.dbManager.db.prepare('DELETE FROM users WHERE id = ?').run(id);
+    const result = await this.db.prepare('DELETE FROM users WHERE id = ?').run(id);
+    return { changes: result.changes };
   }
 
   /**
-   * 项目操作
+   * 根据邮箱获取用户
+   * @param {string} email - 邮箱
+   * @returns {Promise<Object|null>} 用户对象
    */
-  async createProject(projectData) {
-    const { name, description = '', status = 'active' } = projectData;
-    const stmt = this.dbManager.db.prepare(`
-            INSERT INTO projects (name, description, status, created_at, updated_at)
-            VALUES (?, ?, ?, datetime('now'), datetime('now'))
-        `);
-    const result = stmt.run(name, description, status);
-
-    return this.getProject(result.lastInsertRowid);
-  }
-
-  async getProjects() {
-    return this.dbManager.db.prepare('SELECT * FROM projects ORDER BY created_at DESC').all();
-  }
-
-  async getProject(id) {
-    return this.dbManager.db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
-  }
-
-  async deleteProject(id) {
-    return this.dbManager.db.prepare('DELETE FROM projects WHERE id = ?').run(id);
+  async getUserByEmail(email) {
+    const row = await this.db.prepare('SELECT * FROM users WHERE email = ?').get(email);
+    return row || null;
   }
 
   /**
-   * 配置操作
+   * 根据用户名获取用户
+   * @param {string} username - 用户名
+   * @returns {Promise<Object|null>} 用户对象
    */
-  async setConfig(key, value, description = '') {
-    const stmt = this.dbManager.db.prepare(`
-            INSERT OR REPLACE INTO configs (key, value, description, created_at, updated_at)
-            VALUES (?, ?, ?, datetime('now'), datetime('now'))
-        `);
-    return stmt.run(key, value, description);
+  async getUserByUsername(username) {
+    const row = await this.db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    return row || null;
   }
 
-  async getConfig(key) {
-    return this.dbManager.db.prepare('SELECT * FROM configs WHERE key = ?').get(key);
+  /**
+   * 更新用户密码
+   * @param {number} id - 用户 ID
+   * @param {string} newPassword - 新密码
+   * @returns {Promise<Object>} 更新后的用户
+   */
+  async updateUserPassword(id, newPassword) {
+    return this.updateUser(id, { password: newPassword });
   }
 
-  async getAllConfigs() {
-    return this.dbManager.db.prepare('SELECT * FROM configs ORDER BY key').all();
+  /**
+   * 更新用户状态
+   * @param {number} id - 用户 ID
+   * @param {string} status - 新状态
+   * @returns {Promise<Object>} 更新后的用户
+   */
+  async updateUserStatus(id, status) {
+    return this.updateUser(id, { status });
+  }
+
+  // ==================== Agent 操作 ====================
+
+  /**
+   * 创建 Agent
+   * @param {Object} agentData - Agent 数据
+   * @param {string} agentData.name - Agent 名称
+   * @param {string} agentData.status - 状态
+   * @param {number|null} agentData.current_task_id - 当前任务 ID
+   * @param {string} agentData.last_heartbeat - 最后心跳时间
+   * @param {string} agentData.ip_address - IP 地址
+   * @returns {Promise<Object>} 创建的 Agent
+   */
+  async createAgent(agentData) {
+    const { name, status, current_task_id, last_heartbeat, ip_address } = agentData;
+
+    // 验证输入
+    if (!name || name.trim() === '') {
+      throw new Error('Agent 名称不能为空');
+    }
+
+    const now = new Date().toISOString();
+    const result = await this.db.prepare(`
+      INSERT INTO agents (name, status, current_task_id, last_heartbeat, ip_address, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(name, status, current_task_id, last_heartbeat, ip_address, now);
+
+    const agent = await this.getAgent(result.lastInsertRowid);
+    return agent;
+  }
+
+  /**
+   * 获取所有 Agent
+   * @returns {Promise<Array>} Agent 列表
+   */
+  async getAgents() {
+    const rows = await this.db.prepare('SELECT * FROM agents').all();
+    return rows;
+  }
+
+  /**
+   * 根据 ID 获取 Agent
+   * @param {number} id - Agent ID
+   * @returns {Promise<Object|null>} Agent 对象
+   */
+  async getAgent(id) {
+    const row = await this.db.prepare('SELECT * FROM agents WHERE id = ?').get(id);
+    return row || null;
+  }
+
+  /**
+   * 更新 Agent 状态
+   * @param {number} id - Agent ID
+   * @param {string} status - 新状态
+   * @returns {Promise<Object>} 更新后的 Agent
+   */
+  async updateAgentStatus(id, status) {
+    await this.db.prepare('UPDATE agents SET status = ?, updated_at = datetime("now") WHERE id = ?').run(status, id);
+    return this.getAgent(id);
+  }
+
+  /**
+   * 删除 Agent
+   * @param {number} id - Agent ID
+   * @returns {Promise<Object>} 删除结果
+   */
+  async deleteAgent(id) {
+    const result = await this.db.prepare('DELETE FROM agents WHERE id = ?').run(id);
+    return { changes: result.changes };
+  }
+
+  /**
+   * 更新 Agent 心跳
+   * @param {number} id - Agent ID
+   * @param {string} heartbeatTime - 心跳时间
+   * @returns {Promise<Object>} 更新后的 Agent
+   */
+  async updateAgentHeartbeat(id, heartbeatTime) {
+    await this.db.prepare('UPDATE agents SET last_heartbeat = ?, updated_at = datetime("now") WHERE id = ?').run(heartbeatTime, id);
+    return this.getAgent(id);
+  }
+
+  /**
+   * 更新 Agent 当前任务
+   * @param {number} id - Agent ID
+   * @param {number} taskId - 任务 ID
+   * @returns {Promise<Object>} 更新后的 Agent
+   */
+  async updateAgentCurrentTask(id, taskId) {
+    const now = new Date().toISOString();
+    await this.db.prepare("UPDATE agents SET current_task_id = ?, status = 'busy', updated_at = ? WHERE id = ?").run(taskId, now, id);
+    return this.getAgent(id);
+  }
+
+  /**
+   * 获取空闲 Agent
+   * @returns {Promise<Array>} 空闲 Agent 列表
+   */
+  async getIdleAgents() {
+    const rows = await this.db.prepare("SELECT * FROM agents WHERE status = 'idle'").all();
+    return rows;
+  }
+
+  // ==================== 任务操作 ====================
+
+  /**
+   * 创建任务
+   * @param {Object} taskData - 任务数据
+   * @param {string} taskData.title - 任务标题
+   * @param {string} taskData.description - 任务描述
+   * @param {number} taskData.priority - 优先级
+   * @param {string} taskData.status - 状态
+   * @param {number|null} taskData.assignee_id - 分配给的用户 ID
+   * @returns {Promise<Object>} 创建的任务
+   */
+  async createTask(taskData) {
+    const { title, description, priority, status, assignee_id } = taskData;
+
+    // 验证输入
+    if (!title || title.trim() === '') {
+      throw new Error('任务标题不能为空');
+    }
+
+    const now = new Date().toISOString();
+    const result = await this.db.prepare(`
+      INSERT INTO tasks (title, description, priority, status, assignee_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(title, description, priority, status, assignee_id, now, now);
+
+    const task = await this.getTask(result.lastInsertRowid);
+    return task;
+  }
+
+  /**
+   * 获取所有任务
+   * @returns {Promise<Array>} 任务列表
+   */
+  async getTasks() {
+    const rows = await this.db.prepare('SELECT * FROM tasks').all();
+    return rows;
+  }
+
+  /**
+   * 根据 ID 获取任务
+   * @param {number} id - 任务 ID
+   * @returns {Promise<Object|null>} 任务对象
+   */
+  async getTask(id) {
+    const row = await this.db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+    return row || null;
+  }
+
+  /**
+   * 更新任务状态
+   * @param {number} id - 任务 ID
+   * @param {string} status - 新状态
+   * @returns {Promise<Object>} 更新后的任务
+   */
+  async updateTaskStatus(id, status) {
+    await this.db.prepare('UPDATE tasks SET status = ?, updated_at = datetime("now") WHERE id = ?').run(status, id);
+    return this.getTask(id);
+  }
+
+  /**
+   * 删除任务
+   * @param {number} id - 任务 ID
+   * @returns {Promise<Object>} 删除结果
+   */
+  async deleteTask(id) {
+    const result = await this.db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
+    return { changes: result.changes };
+  }
+
+  /**
+   * 获取 Agent 的任务
+   * @param {number} agentId - Agent ID
+   * @returns {Promise<Array>} 任务列表
+   */
+  async getAgentTasks(agentId) {
+    const rows = await this.db.prepare('SELECT * FROM tasks WHERE assignee_id = ?').all(agentId);
+    return rows;
+  }
+
+  /**
+   * 获取待分配任务
+   * @returns {Promise<Array>} 待分配任务列表
+   */
+  async getPendingTasks() {
+    const stmt = this.db.prepare("SELECT * FROM tasks WHERE status = 'pending' AND assignee_id IS NULL");
+    const rows = await stmt.all();
+    return rows;
+  }
+
+  /**
+   * 分配任务给 Agent
+   * @param {number} taskId - 任务 ID
+   * @param {number} agentId - Agent ID
+   * @returns {Promise<Object>} 更新后的任务
+   */
+  async assignTask(taskId, agentId) {
+    const now = new Date().toISOString();
+    await this.db.prepare(`
+      UPDATE tasks SET assignee_id = ?, status = 'in_progress', updated_at = ?
+      WHERE id = ?
+    `).run(agentId, now, taskId);
+    return this.getTask(taskId);
+  }
+
+  /**
+   * 获取任务统计
+   * @returns {Promise<Object>} 任务统计
+   */
+  async getTaskStats() {
+    const total = await this.db.prepare('SELECT COUNT(*) as count FROM tasks').get();
+    const pending = await this.db.prepare("SELECT COUNT(*) as count FROM tasks WHERE status = 'pending'").get();
+    const inProgress = await this.db.prepare("SELECT COUNT(*) as count FROM tasks WHERE status = 'in_progress'").get();
+    const completed = await this.db.prepare("SELECT COUNT(*) as count FROM tasks WHERE status = 'completed'").get();
+
+    return {
+      total: total?.count ?? 0,
+      pending: pending?.count ?? 0,
+      in_progress: inProgress?.count ?? 0,
+      completed: completed?.count ?? 0
+    };
+  }
+
+  // ==================== 工具方法 ====================
+
+  /**
+   * 验证邮箱格式
+   * @param {string} email - 邮箱地址
+   * @returns {boolean} 是否有效
+   */
+  isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   }
 
   /**
    * 关闭数据库连接
    */
-  close() {
-    this.dbManager.close();
+  async close() {
+    if (this.db.close) {
+      await this.db.close();
+    }
   }
 }
 

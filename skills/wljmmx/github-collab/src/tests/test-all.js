@@ -20,10 +20,10 @@ let failed = 0;
 
 for (const file of testFiles) {
   const filePath = path.join(__dirname, file);
-  
+
   try {
     console.log(`📋 运行测试：${file}`);
-    execSync(`node ${filePath}`, { 
+    execSync(`node ${filePath}`, {
       stdio: 'inherit',
       cwd: __dirname
     });

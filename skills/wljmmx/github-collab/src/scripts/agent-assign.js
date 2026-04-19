@@ -13,15 +13,15 @@ const { getHealthyAgents } = require('../db/agent-health-manager');
  */
 function listAvailableAgents() {
   console.log('\n=== 可用 Agent 列表 ===\n');
-
+  
   try {
     const agents = getAllAgents();
-
+    
     if (agents.length === 0) {
       console.log('📭 暂无可用 Agent');
       return;
     }
-
+    
     agents.forEach((agent, index) => {
       const status = agent.is_active === 1 ? '✅ 活跃' : '⏸️ 停用';
       console.log(`${index + 1}. ${agent.name}`);
@@ -41,24 +41,23 @@ function listAvailableAgents() {
  */
 function listPendingTasks() {
   console.log('\n=== 待分配任务 ===\n');
-
+  
   try {
     const tasks = getAllTasks();
-    const pendingTasks = tasks.filter((t) => t.status === 'pending');
-
+    const pendingTasks = tasks.filter(t => t.status === 'pending');
+    
     if (pendingTasks.length === 0) {
       console.log('📭 暂无待分配任务');
       return;
     }
-
+    
     pendingTasks.forEach((task, index) => {
-      const priorityLabel =
-        {
-          1: '🔴 高',
-          2: '🟡 中',
-          3: '🟢 低'
-        }[task.priority] || '⚪ 普通';
-
+      const priorityLabel = {
+        1: '🔴 高',
+        2: '🟡 中',
+        3: '🟢 低'
+      }[task.priority] || '⚪ 普通';
+      
       console.log(`${index + 1}. ${task.title} (ID: ${task.id})`);
       console.log(`   优先级：${priorityLabel}`);
       console.log(`   描述：${task.description || '无'}`);
@@ -81,23 +80,23 @@ function assignTaskToAgent(taskId, agentName) {
       console.error(`❌ 任务不存在：${taskId}`);
       return;
     }
-
+    
     // 检查 Agent 是否存在
     const agent = getAgentByName(agentName);
     if (!agent) {
       console.error(`❌ Agent 不存在：${agentName}`);
       return;
     }
-
+    
     // 检查 Agent 是否活跃
     if (agent.is_active !== 1) {
       console.error(`❌ Agent 未激活：${agentName}`);
       return;
     }
-
+    
     // 分配任务
     const result = assignTask(taskId, agentName);
-
+    
     if (result.changes > 0) {
       console.log(`✅ 任务已分配！`);
       console.log(`   任务：${task.title}`);
@@ -116,46 +115,46 @@ function assignTaskToAgent(taskId, agentName) {
  */
 function autoAssignTasks() {
   console.log('\n🤖 开始智能分配任务...\n');
-
+  
   try {
     // 获取待分配任务
     const tasks = getAllTasks();
-    const pendingTasks = tasks.filter((t) => t.status === 'pending');
-
+    const pendingTasks = tasks.filter(t => t.status === 'pending');
+    
     if (pendingTasks.length === 0) {
       console.log('📭 暂无待分配任务');
       return;
     }
-
+    
     // 获取健康的 Agent
     const healthyAgents = getHealthyAgents();
-
+    
     if (healthyAgents.length === 0) {
       console.error('❌ 暂无健康的 Agent 可用');
       return;
     }
-
+    
     console.log(`找到 ${pendingTasks.length} 个待分配任务`);
     console.log(`找到 ${healthyAgents.length} 个可用 Agent\n`);
-
+    
     // 按优先级排序任务
     pendingTasks.sort((a, b) => a.priority - b.priority);
-
+    
     // 分配任务
     let assignedCount = 0;
     for (const task of pendingTasks) {
       // 根据任务类型选择合适的 Agent
       let targetAgent = null;
-
+      
       // 简单轮询分配
       targetAgent = healthyAgents[assignedCount % healthyAgents.length];
-
+      
       if (targetAgent) {
         assignTaskToAgent(task.id, targetAgent.name);
         assignedCount++;
       }
     }
-
+    
     console.log(`\n✅ 智能分配完成！已分配 ${assignedCount} 个任务`);
   } catch (error) {
     console.error('❌ 智能分配失败:', error.message);
@@ -168,27 +167,25 @@ function autoAssignTasks() {
 function showTaskStatus(taskId) {
   try {
     const task = getTaskById(taskId);
-
+    
     if (!task) {
       console.error(`❌ 任务不存在：${taskId}`);
       return;
     }
-
-    const statusLabel =
-      {
-        pending: '⏳ 待分配',
-        in_progress: '🔄 进行中',
-        completed: '✅ 已完成',
-        cancelled: '❌ 已取消'
-      }[task.status] || '❓ 未知';
-
-    const priorityLabel =
-      {
-        1: '🔴 高',
-        2: '🟡 中',
-        3: '🟢 低'
-      }[task.priority] || '⚪ 普通';
-
+    
+    const statusLabel = {
+      pending: '⏳ 待分配',
+      in_progress: '🔄 进行中',
+      completed: '✅ 已完成',
+      cancelled: '❌ 已取消'
+    }[task.status] || '❓ 未知';
+    
+    const priorityLabel = {
+      1: '🔴 高',
+      2: '🟡 中',
+      3: '🟢 低'
+    }[task.priority] || '⚪ 普通';
+    
     console.log(`\n=== 任务详情 ===\n`);
     console.log(`ID: ${task.id}`);
     console.log(`标题：${task.title}`);
@@ -198,7 +195,7 @@ function showTaskStatus(taskId) {
     console.log(`分配给：${task.assigned_to || '未分配'}`);
     console.log(`创建时间：${task.created_at}`);
     console.log(`更新时间：${task.updated_at}`);
-
+    
     if (task.completed_at) {
       console.log(`完成时间：${task.completed_at}`);
     }
@@ -212,7 +209,7 @@ function showTaskStatus(taskId) {
  */
 function main() {
   const args = process.argv.slice(2);
-
+  
   if (args.length === 0) {
     console.log('🚀 Agent 任务分配工具\n');
     console.log('用法:');
@@ -228,9 +225,9 @@ function main() {
     console.log('');
     return;
   }
-
+  
   const command = args[0];
-
+  
   switch (command) {
     case 'list-agents':
       listAvailableAgents();

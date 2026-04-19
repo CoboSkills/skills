@@ -53,15 +53,13 @@ function dailyProgressReport() {
   console.log('📊 生成每日进度报告...');
   const projects = readJSON(CONFIG.projectsFile) || {};
   const report = [];
-
+  
   Object.entries(projects).forEach(([name, project]) => {
     const fullRepoName = `${getCurrentUser()}/${name}`;
     try {
-      const issues = execSync(`gh issue list --repo ${fullRepoName} --limit 10`, {
-        encoding: 'utf8'
-      });
+      const issues = execSync(`gh issue list --repo ${fullRepoName} --limit 10`, { encoding: 'utf8' });
       const commits = execSync(`gh pr list --repo ${fullRepoName} --limit 5`, { encoding: 'utf8' });
-
+      
       report.push({
         repo: name,
         issues: issues,
@@ -72,26 +70,22 @@ function dailyProgressReport() {
       console.error(`❌ 获取项目 ${name} 进度失败`, error.message);
     }
   });
-
+  
   const summary = `
 ## 📊 每日进度报告 - ${new Date().toLocaleDateString()}
 
-${report
-  .map(
-    (r) => `
+${report.map(r => `
 ### ${r.repo}
 **Issues:**
 ${r.issues}
 **PRs:**
 ${r.prs}
-`
-  )
-  .join('\n')}
+`).join('\n')}
 
 ---
 *报告生成时间：${new Date().toISOString()}*
 `;
-
+  
   console.log(summary);
   return summary;
 }
@@ -99,14 +93,14 @@ ${r.prs}
 function setSchedule(type, time) {
   initDataDir();
   const schedule = readJSON(CONFIG.scheduleFile) || {};
-
+  
   schedule[type] = {
     enabled: true,
     time: time || '09:00',
     lastRun: null,
     createdAt: new Date().toISOString()
   };
-
+  
   writeJSON(CONFIG.scheduleFile, schedule);
   console.log(`✅ 定时任务已设置：${type} - ${time || '09:00'}`);
 }
@@ -114,7 +108,7 @@ function setSchedule(type, time) {
 function clearSchedule(type) {
   initDataDir();
   const schedule = readJSON(CONFIG.scheduleFile) || {};
-
+  
   if (schedule[type]) {
     delete schedule[type];
     writeJSON(CONFIG.scheduleFile, schedule);
@@ -126,7 +120,7 @@ function clearSchedule(type) {
 
 function showSchedule() {
   const schedule = readJSON(CONFIG.scheduleFile) || {};
-
+  
   console.log('📅 定时任务列表:');
   if (Object.keys(schedule).length === 0) {
     console.log('  无定时任务');
@@ -143,21 +137,21 @@ function runScheduledTasks() {
   const schedule = readJSON(CONFIG.scheduleFile) || {};
   const now = new Date();
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
+  
   console.log(`🕐 当前时间：${currentTime}`);
-
+  
   Object.entries(schedule).forEach(([type, config]) => {
     if (!config.enabled) return;
-
+    
     if (config.time === currentTime) {
       console.log(`⏰ 执行定时任务：${type}`);
-
+      
       switch (type) {
         case 'daily-report':
           dailyProgressReport();
           break;
       }
-
+      
       config.lastRun = new Date().toISOString();
       writeJSON(CONFIG.scheduleFile, schedule);
     }
@@ -167,26 +161,26 @@ function runScheduledTasks() {
 function main() {
   const args = process.argv.slice(2);
   const command = args[0];
-
+  
   initDataDir();
-
+  
   switch (command) {
     case 'set':
       setSchedule(args[1], args[2]);
       break;
-
+      
     case 'clear':
       clearSchedule(args[1]);
       break;
-
+      
     case 'show':
       showSchedule();
       break;
-
+      
     case 'run':
       runScheduledTasks();
       break;
-
+      
     case 'report':
     default:
       dailyProgressReport();

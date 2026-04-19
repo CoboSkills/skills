@@ -1,14 +1,14 @@
 /**
  * OpenClaw Message Tool Integration
  * 集成 OpenClaw message 工具接口调用能力
- *
+ * 
  * 功能增强：
  * 1. 指挥其他 Agent 工作
  * 2. 发送任务指令
  * 3. 进度跟踪与报告
  * 4. 多通道消息发送
  * 5. 富媒体支持
- *
+ * 
  * 注意：OpenClaw message 工具是内置工具，直接调用 message() 函数即可
  * 不需要通过 CLI 命令调用
  */
@@ -25,35 +25,42 @@
  * @returns {Promise<object>} - 消息发送结果
  */
 async function sendMessage(options) {
-  const { channel, target, message, media, filename, contentType } = options;
+    const {
+        channel,
+        target,
+        message,
+        media,
+        filename,
+        contentType
+    } = options;
 
-  // 构建消息参数
-  const messageParams = {
-    action: 'send',
-    channel,
-    target,
-    message
-  };
-
-  if (media) {
-    messageParams.media = media;
-    if (filename) messageParams.filename = filename;
-    if (contentType) messageParams.contentType = contentType;
-  }
-
-  // 调用 OpenClaw message 工具（内置工具函数）
-  try {
-    const result = await message(messageParams);
-    return {
-      success: true,
-      result
+    // 构建消息参数
+    const messageParams = {
+        action: 'send',
+        channel,
+        target,
+        message
     };
-  } catch (error) {
-    return {
-      success: false,
-      error: error.message
-    };
-  }
+
+    if (media) {
+        messageParams.media = media;
+        if (filename) messageParams.filename = filename;
+        if (contentType) messageParams.contentType = contentType;
+    }
+
+    // 调用 OpenClaw message 工具（内置工具函数）
+    try {
+        const result = await message(messageParams);
+        return {
+            success: true,
+            result
+        };
+    } catch (error) {
+        return {
+            success: false,
+            error: error.message
+        };
+    }
 }
 
 /**
@@ -67,28 +74,28 @@ async function sendMessage(options) {
  * @returns {Promise<object>} - 发送结果
  */
 async function assignTaskToAgent(options) {
-  const { agentId, task, channel, target, params = {} } = options;
+    const { agentId, task, channel, target, params = {} } = options;
 
-  const taskPayload = {
-    agent: agentId,
-    task: task,
-    params: params,
-    timestamp: new Date().toISOString(),
-    priority: params.priority || 'normal'
-  };
+    const taskPayload = {
+        agent: agentId,
+        task: task,
+        params: params,
+        timestamp: new Date().toISOString(),
+        priority: params.priority || 'normal'
+    };
 
-  const messageText = `🤖 Agent 任务指令
+    const messageText = `🤖 Agent 任务指令
 目标 Agent: ${agentId}
 任务：${task}
 参数：${JSON.stringify(params)}
 优先级：${taskPayload.priority}
 时间：${new Date().toLocaleString('zh-CN')}`;
 
-  return await sendMessage({
-    channel,
-    target,
-    message: messageText
-  });
+    return await sendMessage({
+        channel,
+        target,
+        message: messageText
+    });
 }
 
 /**
@@ -103,23 +110,22 @@ async function assignTaskToAgent(options) {
  * @returns {Promise<object>} - 发送结果
  */
 async function sendProgressUpdate(options) {
-  const { channel, target, taskId, progress, status, agentId } = options;
+    const { channel, target, taskId, progress, status, agentId } = options;
 
-  const progressBar =
-    '█'.repeat(Math.floor(progress / 5)) + '░'.repeat(20 - Math.floor(progress / 5));
-
-  const messageText = `📊 任务进度更新
+    const progressBar = '█'.repeat(Math.floor(progress / 5)) + '░'.repeat(20 - Math.floor(progress / 5));
+    
+    const messageText = `📊 任务进度更新
 任务 ID: ${taskId}
 执行 Agent: ${agentId || 'N/A'}
 进度：[${progressBar}] ${progress}%
 状态：${status}
 时间：${new Date().toLocaleString('zh-CN')}`;
 
-  return await sendMessage({
-    channel,
-    target,
-    message: messageText
-  });
+    return await sendMessage({
+        channel,
+        target,
+        message: messageText
+    });
 }
 
 /**
@@ -135,9 +141,9 @@ async function sendProgressUpdate(options) {
  * @returns {Promise<object>} - 发送结果
  */
 async function sendTaskCompletion(options) {
-  const { channel, target, taskId, taskName, agentName, result, duration } = options;
+    const { channel, target, taskId, taskName, agentName, result, duration } = options;
 
-  const messageText = `✅ 任务完成
+    const messageText = `✅ 任务完成
 任务 ID: ${taskId}
 任务名称：${taskName}
 执行 Agent: ${agentName}
@@ -145,11 +151,11 @@ async function sendTaskCompletion(options) {
 结果：${result || '成功'}
 时间：${new Date().toLocaleString('zh-CN')}`;
 
-  return await sendMessage({
-    channel,
-    target,
-    message: messageText
-  });
+    return await sendMessage({
+        channel,
+        target,
+        message: messageText
+    });
 }
 
 /**
@@ -164,20 +170,20 @@ async function sendTaskCompletion(options) {
  * @returns {Promise<object>} - 发送结果
  */
 async function sendErrorNotification(options) {
-  const { channel, target, taskId, taskName, error, agentId } = options;
+    const { channel, target, taskId, taskName, error, agentId } = options;
 
-  const messageText = `❌ 任务失败
+    const messageText = `❌ 任务失败
 任务 ID: ${taskId}
 任务名称：${taskName}
 执行 Agent: ${agentId || 'N/A'}
 错误：${error}
 时间：${new Date().toLocaleString('zh-CN')}`;
 
-  return await sendMessage({
-    channel,
-    target,
-    message: messageText
-  });
+    return await sendMessage({
+        channel,
+        target,
+        message: messageText
+    });
 }
 
 /**
@@ -190,18 +196,18 @@ async function sendErrorNotification(options) {
  * @returns {Promise<object>} - 发送结果
  */
 async function sendProjectReport(options) {
-  const { channel, target, report, projectName } = options;
+    const { channel, target, report, projectName } = options;
 
-  const filename = `${projectName || 'project'}-report-${Date.now()}.md`;
-
-  return await sendMessage({
-    channel,
-    target,
-    message: `📋 ${projectName || '项目'}报告已生成`,
-    media: report,
-    filename,
-    contentType: 'text/markdown'
-  });
+    const filename = `${projectName || 'project'}-report-${Date.now()}.md`;
+    
+    return await sendMessage({
+        channel,
+        target,
+        message: `📋 ${projectName || '项目'}报告已生成`,
+        media: report,
+        filename,
+        contentType: 'text/markdown'
+    });
 }
 
 /**
@@ -214,15 +220,15 @@ async function sendProjectReport(options) {
  * @returns {Promise<object>} - 发送结果
  */
 async function sendImage(options) {
-  const { channel, target, imageUrl, caption = '' } = options;
+    const { channel, target, imageUrl, caption = '' } = options;
 
-  return await sendMessage({
-    channel,
-    target,
-    message: caption,
-    media: imageUrl,
-    contentType: 'image'
-  });
+    return await sendMessage({
+        channel,
+        target,
+        message: caption,
+        media: imageUrl,
+        contentType: 'image'
+    });
 }
 
 /**
@@ -234,15 +240,15 @@ async function sendImage(options) {
  * @returns {Promise<object>} - 发送结果
  */
 async function sendVoice(options) {
-  const { channel, target, audioPath } = options;
+    const { channel, target, audioPath } = options;
 
-  return await sendMessage({
-    channel,
-    target,
-    message: '',
-    media: audioPath,
-    contentType: 'audio'
-  });
+    return await sendMessage({
+        channel,
+        target,
+        message: '',
+        media: audioPath,
+        contentType: 'audio'
+    });
 }
 
 /**
@@ -255,16 +261,16 @@ async function sendVoice(options) {
  * @returns {Promise<object>} - 发送结果
  */
 async function sendFile(options) {
-  const { channel, target, filePath, filename } = options;
+    const { channel, target, filePath, filename } = options;
 
-  return await sendMessage({
-    channel,
-    target,
-    message: `📎 文件：${filename || require('path').basename(filePath)}`,
-    media: filePath,
-    filename: filename || require('path').basename(filePath),
-    contentType: 'file'
-  });
+    return await sendMessage({
+        channel,
+        target,
+        message: `📎 文件：${filename || require('path').basename(filePath)}`,
+        media: filePath,
+        filename: filename || require('path').basename(filePath),
+        contentType: 'file'
+    });
 }
 
 /**
@@ -279,27 +285,26 @@ async function sendFile(options) {
  * @returns {Promise<object>} - 发送结果
  */
 async function sendAgentStatusReport(options) {
-  const { channel, target, agentId, status, tasksCompleted = 0, tasksFailed = 0 } = options;
+    const { channel, target, agentId, status, tasksCompleted = 0, tasksFailed = 0 } = options;
 
-  const statusEmoji =
-    {
-      idle: '🟢',
-      busy: '🟡',
-      error: '🔴'
+    const statusEmoji = {
+        idle: '🟢',
+        busy: '🟡',
+        error: '🔴'
     }[status] || '⚪';
 
-  const messageText = `📊 Agent 状态报告
+    const messageText = `📊 Agent 状态报告
 Agent ID: ${agentId}
 状态：${statusEmoji} ${status}
 完成任务：${tasksCompleted}
 失败任务：${tasksFailed}
 时间：${new Date().toLocaleString('zh-CN')}`;
 
-  return await sendMessage({
-    channel,
-    target,
-    message: messageText
-  });
+    return await sendMessage({
+        channel,
+        target,
+        message: messageText
+    });
 }
 
 /**
@@ -312,44 +317,43 @@ Agent ID: ${agentId}
  * @returns {Promise<object>} - 发送结果
  */
 async function sendMultiAgentStatus(options) {
-  const { channel, target, agents, projectName } = options;
+    const { channel, target, agents, projectName } = options;
 
-  let messageText = `🔄 ${projectName} 多 Agent 协作状态\n\n`;
+    let messageText = `🔄 ${projectName} 多 Agent 协作状态\n\n`;
+    
+    agents.forEach((agent, index) => {
+        const statusEmoji = {
+            idle: '🟢',
+            busy: '🟡',
+            error: '🔴'
+        }[agent.status] || '⚪';
+        
+        messageText += `${index + 1}. ${statusEmoji} ${agent.name} (${agent.status})\n`;
+        if (agent.currentTask) {
+            messageText += `   当前任务：${agent.currentTask}\n`;
+        }
+    });
 
-  agents.forEach((agent, index) => {
-    const statusEmoji =
-      {
-        idle: '🟢',
-        busy: '🟡',
-        error: '🔴'
-      }[agent.status] || '⚪';
+    messageText += `\n时间：${new Date().toLocaleString('zh-CN')}`;
 
-    messageText += `${index + 1}. ${statusEmoji} ${agent.name} (${agent.status})\n`;
-    if (agent.currentTask) {
-      messageText += `   当前任务：${agent.currentTask}\n`;
-    }
-  });
-
-  messageText += `\n时间：${new Date().toLocaleString('zh-CN')}`;
-
-  return await sendMessage({
-    channel,
-    target,
-    message: messageText
-  });
+    return await sendMessage({
+        channel,
+        target,
+        message: messageText
+    });
 }
 
 // 导出所有消息发送函数
 module.exports = {
-  sendMessage,
-  assignTaskToAgent,
-  sendProgressUpdate,
-  sendTaskCompletion,
-  sendErrorNotification,
-  sendProjectReport,
-  sendImage,
-  sendVoice,
-  sendFile,
-  sendAgentStatusReport,
-  sendMultiAgentStatus
+    sendMessage,
+    assignTaskToAgent,
+    sendProgressUpdate,
+    sendTaskCompletion,
+    sendErrorNotification,
+    sendProjectReport,
+    sendImage,
+    sendVoice,
+    sendFile,
+    sendAgentStatusReport,
+    sendMultiAgentStatus
 };

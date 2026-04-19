@@ -16,7 +16,9 @@ const CLI_COMMANDS = {
     description: '数据库初始化脚本',
     file: 'scripts/init-db.js',
     usage: 'node scripts/init-db.js',
-    examples: ['node scripts/init-db.js - 初始化数据库和默认 Agent']
+    examples: [
+      'node scripts/init-db.js - 初始化数据库和默认 Agent'
+    ]
   },
   'config-cli': {
     name: 'config-cli',
@@ -153,12 +155,14 @@ const CLI_COMMANDS = {
       'node scripts/agent-queue.js stats'
     ]
   },
-  main: {
+  'main': {
     name: 'main',
     description: '系统主入口',
     file: 'scripts/main.js',
     usage: 'node scripts/main.js',
-    examples: ['node scripts/main.js - 启动系统']
+    examples: [
+      'node scripts/main.js - 启动系统'
+    ]
   }
 };
 
@@ -167,7 +171,7 @@ const CLI_COMMANDS = {
  */
 function listAllCommands() {
   console.log('\n=== CLI 命令列表 ===\n');
-
+  
   Object.values(CLI_COMMANDS).forEach((cmd, index) => {
     console.log(`${index + 1}. ${cmd.name}`);
     console.log(`   描述：${cmd.description}`);
@@ -182,30 +186,30 @@ function listAllCommands() {
  */
 function showCommandDetail(commandName) {
   const cmd = CLI_COMMANDS[commandName];
-
+  
   if (!cmd) {
     console.error(`❌ 命令不存在：${commandName}`);
     return;
   }
-
+  
   console.log('\n=== 命令详情 ===\n');
   console.log(`名称：${cmd.name}`);
   console.log(`描述：${cmd.description}`);
   console.log(`文件：${cmd.file}`);
   console.log(`用法：${cmd.usage}`);
   console.log('');
-
+  
   if (cmd.commands) {
     console.log('子命令:');
-    cmd.commands.forEach((subCmd) => {
+    cmd.commands.forEach(subCmd => {
       console.log(`  ${subCmd.name} ${subCmd.args || ''} - ${subCmd.desc}`);
     });
     console.log('');
   }
-
+  
   if (cmd.examples) {
     console.log('示例:');
-    cmd.examples.forEach((example) => {
+    cmd.examples.forEach(example => {
       console.log(`  ${example}`);
     });
     console.log('');
@@ -217,18 +221,18 @@ function showCommandDetail(commandName) {
  */
 function searchCommands(keyword) {
   console.log(`\n=== 搜索：${keyword} ===\n`);
-
-  const results = Object.values(CLI_COMMANDS).filter(
-    (cmd) =>
-      cmd.name.includes(keyword) || cmd.description.toLowerCase().includes(keyword.toLowerCase())
+  
+  const results = Object.values(CLI_COMMANDS).filter(cmd => 
+    cmd.name.includes(keyword) || 
+    cmd.description.toLowerCase().includes(keyword.toLowerCase())
   );
-
+  
   if (results.length === 0) {
     console.log('未找到匹配的命令');
     return;
   }
-
-  results.forEach((cmd) => {
+  
+  results.forEach(cmd => {
     console.log(`${cmd.name} - ${cmd.description}`);
   });
 }
@@ -298,19 +302,19 @@ function showHelp() {
  */
 function main() {
   const args = process.argv.slice(2);
-
+  
   if (args.length === 0) {
     showHelp();
     return;
   }
-
+  
   const command = args[0];
-
+  
   switch (command) {
     case 'list':
       listAllCommands();
       break;
-
+    
     case 'show':
       if (args.length < 2) {
         console.error('❌ 请提供命令名称');
@@ -318,7 +322,7 @@ function main() {
       }
       showCommandDetail(args[1]);
       break;
-
+    
     case 'search':
       if (args.length < 2) {
         console.error('❌ 请提供搜索关键词');
@@ -326,17 +330,17 @@ function main() {
       }
       searchCommands(args[1]);
       break;
-
+    
     case 'quick':
       showQuickReference();
       break;
-
+    
     case 'help':
     case '--help':
     case '-h':
       showHelp();
       break;
-
+    
     default:
       console.error(`❌ 未知命令：${command}`);
       showHelp();

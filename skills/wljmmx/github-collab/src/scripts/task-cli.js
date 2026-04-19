@@ -4,11 +4,11 @@
  * 提供完整的任务管理功能
  */
 
-const {
-  createTask,
-  getTaskById,
-  getAllTasks,
-  updateTask,
+const { 
+  createTask, 
+  getTaskById, 
+  getAllTasks, 
+  updateTask, 
   updateTaskStatus,
   completeTask,
   cancelTask,
@@ -19,9 +19,9 @@ const {
   assignTask
 } = require('../db/task-manager');
 
-const {
-  addDependency,
-  removeDependency,
+const { 
+  addDependency, 
+  removeDependency, 
   getDependenciesForTask,
   getDependentTasks
 } = require('../db/task-dependency-manager');
@@ -32,27 +32,28 @@ const {
   getPriorityTasks
 } = require('../db/task-priority-manager');
 
-const { getAgentByName, getAllAgents } = require('../db/agent-manager');
+const {
+  getAgentByName,
+  getAllAgents
+} = require('../db/agent-manager');
 
 /**
  * 格式化任务显示
  */
 function formatTask(task) {
-  const statusLabel =
-    {
-      pending: '⏳ 待分配',
-      in_progress: '🔄 进行中',
-      completed: '✅ 已完成',
-      cancelled: '❌ 已取消'
-    }[task.status] || '❓ 未知';
-
-  const priorityLabel =
-    {
-      1: '🔴 高',
-      2: '🟡 中',
-      3: '🟢 低'
-    }[task.priority] || '⚪ 普通';
-
+  const statusLabel = {
+    pending: '⏳ 待分配',
+    in_progress: '🔄 进行中',
+    completed: '✅ 已完成',
+    cancelled: '❌ 已取消'
+  }[task.status] || '❓ 未知';
+  
+  const priorityLabel = {
+    1: '🔴 高',
+    2: '🟡 中',
+    3: '🟢 低'
+  }[task.priority] || '⚪ 普通';
+  
   return {
     id: task.id,
     title: task.title,
@@ -69,9 +70,9 @@ function formatTask(task) {
  */
 function listTasks(options = {}) {
   const { status, agent, priority, limit = 50 } = options;
-
+  
   let tasks = [];
-
+  
   if (status) {
     tasks = getTasksByStatus(status);
   } else if (agent) {
@@ -81,16 +82,16 @@ function listTasks(options = {}) {
   } else {
     tasks = getAllTasks();
   }
-
+  
   if (tasks.length > limit) {
     tasks = tasks.slice(0, limit);
   }
-
+  
   if (tasks.length === 0) {
     console.log('📭 暂无任务');
     return;
   }
-
+  
   console.log('\n=== 任务列表 ===\n');
   tasks.forEach((task, index) => {
     const formatted = formatTask(task);
@@ -101,7 +102,7 @@ function listTasks(options = {}) {
     console.log(`   创建时间：${formatted.createdAt}`);
     console.log('');
   });
-
+  
   console.log(`总计：${tasks.length} 个任务`);
 }
 
@@ -116,7 +117,7 @@ function createNewTask(title, description, priority = 2, project_id = 'default')
       priority: parseInt(priority),
       project_id
     };
-
+    
     const created = createTask(task);
     console.log(`✅ 任务创建成功！`);
     console.log(`   ID: ${created.id}`);
@@ -133,14 +134,14 @@ function createNewTask(title, description, priority = 2, project_id = 'default')
 function viewTask(taskId) {
   try {
     const task = getTaskById(parseInt(taskId));
-
+    
     if (!task) {
       console.error(`❌ 任务不存在：${taskId}`);
       return;
     }
-
+    
     const formatted = formatTask(task);
-
+    
     console.log('\n=== 任务详情 ===\n');
     console.log(`ID: ${task.id}`);
     console.log(`标题：${task.title}`);
@@ -151,24 +152,24 @@ function viewTask(taskId) {
     console.log(`项目 ID: ${task.project_id}`);
     console.log(`创建时间：${task.created_at}`);
     console.log(`更新时间：${task.updated_at}`);
-
+    
     if (task.completed_at) {
       console.log(`完成时间：${task.completed_at}`);
     }
-
+    
     // 显示依赖关系
     const dependencies = getDependenciesForTask(task.id);
     if (dependencies.length > 0) {
       console.log(`\n依赖任务:`);
-      dependencies.forEach((dep) => {
+      dependencies.forEach(dep => {
         console.log(`  - [${dep.task_id}] 依赖 [${dep.dependent_task_id}]`);
       });
     }
-
+    
     const dependentTasks = getDependentTasks(task.id);
     if (dependentTasks.length > 0) {
       console.log(`\n被依赖任务:`);
-      dependentTasks.forEach((dep) => {
+      dependentTasks.forEach(dep => {
         console.log(`  - [${dep.dependent_task_id}] 依赖 [${dep.task_id}]`);
       });
     }
@@ -183,13 +184,13 @@ function viewTask(taskId) {
 function updateTaskInfo(taskId, title, description, priority) {
   try {
     const updates = {};
-
+    
     if (title) updates.title = title;
     if (description !== undefined) updates.description = description;
     if (priority) updates.priority = parseInt(priority);
-
+    
     const result = updateTask(parseInt(taskId), updates);
-
+    
     if (result.changes > 0) {
       console.log(`✅ 任务更新成功！`);
       console.log(`   修改项：${Object.keys(updates).join(', ')}`);
@@ -207,7 +208,7 @@ function updateTaskInfo(taskId, title, description, priority) {
 function updateTaskStatusCmd(taskId, status) {
   try {
     const result = updateTaskStatus(parseInt(taskId), status);
-
+    
     if (result.changes > 0) {
       console.log(`✅ 任务状态更新成功！`);
       console.log(`   任务：${taskId}`);
@@ -226,7 +227,7 @@ function updateTaskStatusCmd(taskId, status) {
 function completeTaskCmd(taskId) {
   try {
     const result = completeTask(parseInt(taskId));
-
+    
     if (result.changes > 0) {
       console.log(`✅ 任务完成！`);
       console.log(`   任务：${taskId}`);
@@ -245,7 +246,7 @@ function completeTaskCmd(taskId) {
 function cancelTaskCmd(taskId, reason) {
   try {
     const result = cancelTask(parseInt(taskId), reason);
-
+    
     if (result.changes > 0) {
       console.log(`✅ 任务已取消！`);
       console.log(`   任务：${taskId}`);
@@ -264,19 +265,19 @@ function cancelTaskCmd(taskId, reason) {
 function assignTaskCmd(taskId, agentName) {
   try {
     const agent = getAgentByName(agentName);
-
+    
     if (!agent) {
       console.error(`❌ Agent 不存在：${agentName}`);
       return;
     }
-
+    
     if (agent.is_active !== 1) {
       console.error(`❌ Agent 未激活：${agentName}`);
       return;
     }
-
+    
     const result = assignTask(parseInt(taskId), agentName);
-
+    
     if (result.changes > 0) {
       console.log(`✅ 任务已分配！`);
       console.log(`   任务：${taskId}`);
@@ -295,7 +296,7 @@ function assignTaskCmd(taskId, agentName) {
 function addDependencyCmd(taskId, dependsOnId) {
   try {
     const result = addDependency(parseInt(taskId), parseInt(dependsOnId));
-
+    
     if (result.changes > 0) {
       console.log(`✅ 依赖关系已建立！`);
       console.log(`   任务 [${taskId}] 依赖 [${dependsOnId}]`);
@@ -313,7 +314,7 @@ function addDependencyCmd(taskId, dependsOnId) {
 function setPriorityCmd(taskId, priority) {
   try {
     const result = setTaskPriority(parseInt(taskId), parseInt(priority));
-
+    
     if (result.changes > 0) {
       console.log(`✅ 优先级已更新！`);
       console.log(`   任务：${taskId}`);
@@ -384,15 +385,15 @@ function parseArgs(args) {
     options: {},
     args: []
   };
-
+  
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-
+    
     if (arg === '--help' || arg === '-h') {
       showHelp();
       process.exit(0);
     }
-
+    
     if (arg.startsWith('--')) {
       const [key, value] = arg.slice(2).split('=');
       result.options[key] = value;
@@ -402,7 +403,7 @@ function parseArgs(args) {
       result.args.push(arg);
     }
   }
-
+  
   return result;
 }
 
@@ -412,25 +413,29 @@ function parseArgs(args) {
 function main() {
   const args = process.argv.slice(2);
   const parsed = parseArgs(args);
-
+  
   if (!parsed.command) {
     showHelp();
     return;
   }
-
+  
   switch (parsed.command) {
     case 'list':
       listTasks(parsed.options);
       break;
-
+    
     case 'create':
       if (parsed.args.length < 1) {
         console.error('❌ 请提供任务标题');
         return;
       }
-      createNewTask(parsed.args[0], parsed.args[1] || undefined, parsed.args[2] || 2);
+      createNewTask(
+        parsed.args[0],
+        parsed.args[1] || undefined,
+        parsed.args[2] || 2
+      );
       break;
-
+    
     case 'view':
       if (parsed.args.length < 1) {
         console.error('❌ 请提供任务 ID');
@@ -438,7 +443,7 @@ function main() {
       }
       viewTask(parsed.args[0]);
       break;
-
+    
     case 'update':
       if (parsed.args.length < 1) {
         console.error('❌ 请提供任务 ID');
@@ -451,7 +456,7 @@ function main() {
         parsed.options.priority
       );
       break;
-
+    
     case 'status':
       if (parsed.args.length < 2) {
         console.error('❌ 请提供任务 ID 和新状态');
@@ -459,7 +464,7 @@ function main() {
       }
       updateTaskStatusCmd(parsed.args[0], parsed.args[1]);
       break;
-
+    
     case 'complete':
       if (parsed.args.length < 1) {
         console.error('❌ 请提供任务 ID');
@@ -467,7 +472,7 @@ function main() {
       }
       completeTaskCmd(parsed.args[0]);
       break;
-
+    
     case 'cancel':
       if (parsed.args.length < 1) {
         console.error('❌ 请提供任务 ID');
@@ -475,7 +480,7 @@ function main() {
       }
       cancelTaskCmd(parsed.args[0], parsed.args[1] || undefined);
       break;
-
+    
     case 'assign':
       if (parsed.args.length < 2) {
         console.error('❌ 请提供任务 ID 和 Agent 名称');
@@ -483,7 +488,7 @@ function main() {
       }
       assignTaskCmd(parsed.args[0], parsed.args[1]);
       break;
-
+    
     case 'dependency':
       if (parsed.args.length < 2) {
         console.error('❌ 请提供任务 ID 和依赖的任务 ID');
@@ -491,7 +496,7 @@ function main() {
       }
       addDependencyCmd(parsed.args[0], parsed.args[1]);
       break;
-
+    
     case 'priority':
       if (parsed.args.length < 2) {
         console.error('❌ 请提供任务 ID 和优先级 (1=高，2=中，3=低)');
@@ -499,13 +504,13 @@ function main() {
       }
       setPriorityCmd(parsed.args[0], parsed.args[1]);
       break;
-
+    
     case 'help':
     case '--help':
     case '-h':
       showHelp();
       break;
-
+    
     default:
       console.error(`❌ 未知命令：${parsed.command}`);
       showHelp();

@@ -2,14 +2,9 @@
  * Logger 单元测试
  */
 
-const loggerModule = require('../logger');
+const loggerModule = require('../utils/logger');
 
-const {
-  LogLevel,
-  LogLevelNames,
-  createLogger,
-  defaultLogger
-} = loggerModule;
+const { LogLevel, LogLevelNames, createLogger, defaultLogger } = loggerModule;
 
 describe('Logger - LogLevel', () => {
   test('应该有正确的日志级别值', () => {
@@ -42,10 +37,10 @@ describe('Logger - createLogger', () => {
       consoleWarns = [];
       consoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => consoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => consoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => consoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => consoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => consoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => consoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -75,10 +70,10 @@ describe('Logger - createLogger', () => {
       consoleWarns = [];
       consoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => consoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => consoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => consoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => consoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => consoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => consoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -87,7 +82,7 @@ describe('Logger - createLogger', () => {
 
     test('DEBUG 级别应该输出所有日志', () => {
       const logger = createLogger({ level: 'DEBUG' });
-      
+
       logger.debug('debug message');
       logger.info('info message');
       logger.warn('warn message');
@@ -101,7 +96,7 @@ describe('Logger - createLogger', () => {
 
     test('INFO 级别应该过滤 DEBUG', () => {
       const logger = createLogger({ level: 'INFO' });
-      
+
       logger.debug('debug message');
       logger.info('info message');
       logger.warn('warn message');
@@ -115,7 +110,7 @@ describe('Logger - createLogger', () => {
 
     test('WARN 级别应该过滤 DEBUG 和 INFO', () => {
       const logger = createLogger({ level: 'WARN' });
-      
+
       logger.debug('debug message');
       logger.info('info message');
       logger.warn('warn message');
@@ -129,7 +124,7 @@ describe('Logger - createLogger', () => {
 
     test('ERROR 级别应该只输出 ERROR', () => {
       const logger = createLogger({ level: 'ERROR' });
-      
+
       logger.debug('debug message');
       logger.info('info message');
       logger.warn('warn message');
@@ -154,10 +149,10 @@ describe('Logger - createLogger', () => {
       consoleWarns = [];
       consoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => consoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => consoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => consoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => consoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => consoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => consoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -167,7 +162,7 @@ describe('Logger - createLogger', () => {
     test('应该包含时间戳', () => {
       const logger = createLogger({ level: 'DEBUG' });
       logger.info('test message');
-      
+
       const logMessage = consoleLogs[0];
       expect(logMessage).toMatch(/\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\]/);
     });
@@ -175,7 +170,7 @@ describe('Logger - createLogger', () => {
     test('应该包含日志级别', () => {
       const logger = createLogger({ level: 'DEBUG' });
       logger.info('test message');
-      
+
       const logMessage = consoleLogs[0];
       expect(logMessage).toContain('[INFO]');
     });
@@ -183,7 +178,7 @@ describe('Logger - createLogger', () => {
     test('应该包含消息内容', () => {
       const logger = createLogger({ level: 'DEBUG' });
       logger.info('test message');
-      
+
       const logMessage = consoleLogs[0];
       expect(logMessage).toContain('test message');
     });
@@ -201,10 +196,10 @@ describe('Logger - createLogger', () => {
       consoleWarns = [];
       consoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => consoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => consoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => consoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => consoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => consoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => consoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -213,7 +208,7 @@ describe('Logger - createLogger', () => {
 
     test('应该动态改变日志级别', () => {
       const logger = createLogger({ level: 'ERROR' });
-      
+
       logger.info('should not appear');
       expect(consoleLogs.length).toBe(0);
 
@@ -249,10 +244,10 @@ describe('Logger - createLogger', () => {
       consoleWarns = [];
       consoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => consoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => consoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => consoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => consoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => consoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => consoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -262,7 +257,7 @@ describe('Logger - createLogger', () => {
     test('应该格式化字符串消息', () => {
       const logger = createLogger({ level: 'DEBUG' });
       logger.info('Hello %s', {}, 'World');
-      
+
       const logMessage = consoleLogs[0];
       expect(logMessage).toContain('Hello World');
     });
@@ -271,7 +266,7 @@ describe('Logger - createLogger', () => {
       const logger = createLogger({ level: 'DEBUG' });
       const obj = { name: 'test', value: 123 };
       logger.info('User: %j', obj);
-      
+
       const logMessage = consoleLogs[0];
       expect(logMessage).toContain('User:');
       expect(logMessage).toContain('test');
@@ -280,7 +275,7 @@ describe('Logger - createLogger', () => {
     test('应该格式化多个参数', () => {
       const logger = createLogger({ level: 'DEBUG' });
       logger.info('User %s has %d items', 'Alice', 5);
-      
+
       const logMessage = consoleLogs[0];
       expect(logMessage).toContain('Alice');
       expect(logMessage).toContain('5');
@@ -299,10 +294,10 @@ describe('Logger - createLogger', () => {
       consoleWarns = [];
       consoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => consoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => consoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => consoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => consoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => consoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => consoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -313,7 +308,7 @@ describe('Logger - createLogger', () => {
       const logger = createLogger({ level: 'DEBUG' });
       const error = new Error('Test error');
       logger.error(error);
-      
+
       expect(consoleErrors.length).toBe(1);
       expect(consoleErrors[0]).toContain('Test error');
     });
@@ -322,7 +317,7 @@ describe('Logger - createLogger', () => {
       const logger = createLogger({ level: 'DEBUG' });
       const error = new Error('Test error');
       logger.error(error);
-      
+
       const errorMessage = consoleErrors[0];
       expect(errorMessage).toContain('Test error');
     });
@@ -340,10 +335,10 @@ describe('Logger - createLogger', () => {
       consoleWarns = [];
       consoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => consoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => consoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => consoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => consoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => consoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => consoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -353,7 +348,7 @@ describe('Logger - createLogger', () => {
     test('应该输出警告到 console.warn', () => {
       const logger = createLogger({ level: 'DEBUG' });
       logger.warn('Warning message');
-      
+
       expect(consoleWarns.length).toBe(1);
       expect(consoleWarns[0]).toContain('Warning message');
     });
@@ -371,10 +366,10 @@ describe('Logger - createLogger', () => {
       consoleWarns = [];
       consoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => consoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => consoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => consoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => consoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => consoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => consoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -384,7 +379,7 @@ describe('Logger - createLogger', () => {
     test('应该输出调试信息到 console.debug', () => {
       const logger = createLogger({ level: 'DEBUG' });
       logger.debug('Debug message');
-      
+
       expect(consoleDebugs.length).toBe(1);
       expect(consoleDebugs[0]).toContain('Debug message');
     });
@@ -402,10 +397,10 @@ describe('Logger - createLogger', () => {
       consoleWarns = [];
       consoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => consoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => consoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => consoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => consoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => consoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => consoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -449,10 +444,10 @@ describe('Logger - createLogger', () => {
       consoleWarns = [];
       consoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => consoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => consoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => consoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => consoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => consoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => consoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -496,10 +491,10 @@ describe('Logger - createLogger', () => {
       consoleWarns = [];
       consoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => consoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => consoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => consoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => consoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => consoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => consoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -509,13 +504,13 @@ describe('Logger - createLogger', () => {
     test('应该快速过滤不需要的日志级别', () => {
       const logger = createLogger({ level: 'ERROR' });
       const start = Date.now();
-      
+
       for (let i = 0; i < 10000; i++) {
         logger.debug('debug message');
         logger.info('info message');
         logger.warn('warn message');
       }
-      
+
       const end = Date.now();
       expect(end - start).toBeLessThan(100); // 应该在 100ms 内完成
       expect(consoleDebugs.length).toBe(0);
@@ -530,7 +525,7 @@ describe('Logger - defaultLogger', () => {
 
   beforeEach(() => {
     consoleLogs = [];
-    jest.spyOn(console, 'log').mockImplementation(msg => consoleLogs.push(msg));
+    jest.spyOn(console, 'log').mockImplementation((msg) => consoleLogs.push(msg));
   });
 
   afterEach(() => {
@@ -549,10 +544,10 @@ describe('Logger - defaultLogger', () => {
       localConsoleWarns = [];
       localConsoleDebugs = [];
 
-      jest.spyOn(console, 'log').mockImplementation(msg => localConsoleLogs.push(msg));
-      jest.spyOn(console, 'error').mockImplementation(msg => localConsoleErrors.push(msg));
-      jest.spyOn(console, 'warn').mockImplementation(msg => localConsoleWarns.push(msg));
-      jest.spyOn(console, 'debug').mockImplementation(msg => localConsoleDebugs.push(msg));
+      jest.spyOn(console, 'log').mockImplementation((msg) => localConsoleLogs.push(msg));
+      jest.spyOn(console, 'error').mockImplementation((msg) => localConsoleErrors.push(msg));
+      jest.spyOn(console, 'warn').mockImplementation((msg) => localConsoleWarns.push(msg));
+      jest.spyOn(console, 'debug').mockImplementation((msg) => localConsoleDebugs.push(msg));
     });
 
     afterEach(() => {
@@ -567,7 +562,7 @@ describe('Logger - defaultLogger', () => {
     test('默认日志记录器应该使用 INFO 级别', () => {
       defaultLogger.debug('should not appear');
       expect(localConsoleDebugs.length || 0).toBe(0);
-      
+
       defaultLogger.info('should appear');
       expect(localConsoleLogs.length).toBeGreaterThan(0);
     });

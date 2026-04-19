@@ -54,8 +54,7 @@ function checkGitHubToken() {
 function createRepository(repoName, description, visibility = 'private') {
   try {
     console.log(`📦 创建仓库：${repoName}`);
-    const visibilityFlag =
-      visibility === 'public' ? '--public' : visibility === 'private' ? '--private' : '';
+    const visibilityFlag = visibility === 'public' ? '--public' : visibility === 'private' ? '--private' : '';
     const cmd = `gh repo create ${repoName} --description "${description}" ${visibilityFlag}`;
     execSync(cmd, { encoding: 'utf8' });
     console.log(`✅ 仓库创建成功：https://github.com/${repoName}`);
@@ -74,10 +73,10 @@ function createRepository(repoName, description, visibility = 'private') {
  */
 function initProjectStructure(repoName) {
   const projectDir = path.join(process.cwd(), repoName);
-
+  
   // 创建目录结构
   const dirs = ['docs', 'src', 'tests', 'scripts', '.github/workflows'];
-  dirs.forEach((dir) => {
+  dirs.forEach(dir => {
     const fullPath = path.join(projectDir, dir);
     if (!fs.existsSync(fullPath)) {
       fs.mkdirSync(fullPath, { recursive: true });
@@ -133,10 +132,9 @@ ${repoName}/
  * 创建任务 Issues
  */
 function createIssues(repoName, tasks) {
-  tasks.forEach((task) => {
+  tasks.forEach(task => {
     try {
-      const labels =
-        task.type === 'code' ? 'coding' : task.type === 'test' ? 'testing' : 'documentation';
+      const labels = task.type === 'code' ? 'coding' : task.type === 'test' ? 'testing' : 'documentation';
       const cmd = `gh issue create --repo ${repoName} --title "[${task.type.toUpperCase()}] ${task.title}" --body "${task.description}" --label ${labels}`;
       execSync(cmd, { encoding: 'utf8' });
       console.log(`✅ Issue 创建：${task.title}`);
@@ -151,16 +149,16 @@ function createIssues(repoName, tasks) {
  */
 function assignAgents(repoName, tasks) {
   const agentTasks = {
-    coder: tasks.filter((t) => t.type === 'code'),
-    checker: tasks.filter((t) => t.type === 'test'),
-    writer: tasks.filter((t) => t.type === 'doc')
+    coder: tasks.filter(t => t.type === 'code'),
+    checker: tasks.filter(t => t.type === 'test'),
+    writer: tasks.filter(t => t.type === 'doc')
   };
 
   console.log('📋 任务分配结果:');
   Object.entries(agentTasks).forEach(([agent, tasks]) => {
     if (tasks.length > 0) {
       console.log(`  - ${agent}: ${tasks.length} 个任务`);
-      tasks.forEach((t) => {
+      tasks.forEach(t => {
         console.log(`    * [${t.type.toUpperCase()}] ${t.title}`);
       });
     }
@@ -176,7 +174,7 @@ function generateProgressReport(repoName) {
   try {
     const issues = execSync(`gh issue list --repo ${repoName} --limit 50`, { encoding: 'utf8' });
     const commits = execSync(`gh pr list --repo ${repoName} --limit 20`, { encoding: 'utf8' });
-
+    
     const report = `
 ## 📊 项目进度报告 - ${repoName}
 
@@ -189,7 +187,7 @@ ${commits}
 ---
 *报告生成时间：${new Date().toISOString()}*
     `;
-
+    
     console.log(report);
     return report;
   } catch (error) {
@@ -203,7 +201,7 @@ ${commits}
  */
 async function main() {
   const args = process.argv.slice(2);
-
+  
   // 解析参数
   const params = {
     task: '',
@@ -247,7 +245,7 @@ async function main() {
 }
 
 // 运行
-main().catch((error) => {
+main().catch(error => {
   console.error('💥 错误:', error.message);
   process.exit(1);
 });

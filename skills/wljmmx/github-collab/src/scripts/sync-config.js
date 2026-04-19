@@ -8,10 +8,10 @@ const { loadFromDatabase } = require('../db/config-sync');
 
 async function main() {
   console.log('🔄 开始同步配置...\n');
-
+  
   try {
     const config = await loadFromDatabase();
-
+    
     console.log('\n✅ 配置同步完成！');
     console.log(`   已同步 ${Object.keys(config).length} 个 Agent`);
     console.log('\n同步的 Agent:');

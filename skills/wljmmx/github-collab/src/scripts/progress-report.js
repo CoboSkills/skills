@@ -11,7 +11,7 @@ function generateProgressReport(repoName) {
   try {
     const issues = execSync(`gh issue list --repo ${repoName} --limit 50`, { encoding: 'utf8' });
     const commits = execSync(`gh pr list --repo ${repoName} --limit 20`, { encoding: 'utf8' });
-
+    
     const report = `
 ## 📊 项目进度报告 - ${repoName}
 
@@ -24,7 +24,7 @@ ${commits}
 ---
 *报告生成时间：${new Date().toISOString()}*
     `;
-
+    
     console.log(report);
     return report;
   } catch (error) {

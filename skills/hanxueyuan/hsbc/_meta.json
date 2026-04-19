@@ -1,11 +1,17 @@
 {
   "owner": "hanxueyuan",
   "slug": "hsbc",
-  "displayName": "HSBC",
+  "displayName": "Hsbc",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1774387838489,
-    "commit": "https://github.com/openclaw/skills/commit/06637b5743cbfd31944f61b535857ab46d29fe79"
+    "version": "0.1.3",
+    "publishedAt": 1776533733005,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1774387838489,
+      "commit": "https://github.com/openclaw/skills/commit/06637b5743cbfd31944f61b535857ab46d29fe79"
+    }
+  ]
 }

@@ -1,53 +1,45 @@
 ---
-name: hsbc
-description: "HSBC banking services, global markets, wealth management, stock info, and branch locator across 60+ countries."
-metadata:
-  { "openclaw": { "emoji": "🏦", "version": "0.1.0", "author": "hanxueyuan", "tags": ["banking","finance","hsbc"] } }
+summary: "汇丰 HSBC——亚洲最大银行、全球业务遍布 60+ 国家、从上海到伦敦的百年传奇"
+read_when:
+  - 查询汇丰银行 · HSBC相关信息
+  - 了解相关行业发展
 ---
 
-# HSBC
+# 汇丰银行 · HSBC
 
-Information guide for HSBC — one of the world's largest banking and financial services organizations.
+---
 
-## Services
+## 发展历程
 
-### Personal Banking
-- **Accounts** — Current, savings, Premier, Jade (high net worth)
-- **Mortgages** — Home loans across multiple markets
-- **Credit Cards** — Cashback, travel rewards, Premier cards
-- **Insurance** — Life, health, travel, home insurance
-- **International** — Global transfers, multi-currency accounts, expat services
+| 时期 | 关键事件 |
+|:----:|--------|
+| **1865 年** | 在香港和上海成立——The Hongkong and Shanghai Banking Corporation |
+| **1980s** | 收购米特兰银行（Midland Bank）——进入欧洲 |
+| **1990s** | 业务扩展到全球 60+ 国家 |
+| **2020s** | 重心重新向亚洲倾斜 |
 
-### Wealth & Private Banking
-- HSBC Global Private Banking
-- Investment funds and advisory
-- Wealth planning and trust services
-- ESG/sustainable investing options
+---
 
-### Business & Corporate
-- Commercial banking for SMEs
-- Global trade and receivables finance
-- Markets and securities services
-- Transaction banking
+## 核心特点
 
-## Key Facts
-- **Stock**: HSBA.L (London), 0005.HK (Hong Kong), HSBC (NYSE)
-- **Headquarters**: London, UK (major presence in Hong Kong)
-- **Countries**: 60+ markets worldwide
-- **Customers**: ~40 million
-- **Founded**: 1865 in Hong Kong
-- **Revenue**: ~$50 billion annually
+商业银行 + 投资银行 + 财富管理 + 环球银行与市场
 
-## What You Can Ask
-- "HSBC Premier account benefits"
-- "HSBC stock dividend yield"
-- "HSBC mortgage rates in Hong Kong"
-- "HSBC international transfer fees"
-- "HSBC vs Standard Chartered comparison"
+## 核心优势
 
-## Data Sources
-- Official: https://www.hsbc.com
-- HSBC Holdings annual reports, financial news, regulatory filings
+亚洲金融门户 + 全球贸易融资第一 + 跨时区运营能力
 
-## Author
-Created by hanxueyuan | License: MIT
+---
+
+## 关键数据
+
+| 指标 | 数值 |
+|------|------|
+| 总资产 | 约 2.9 万亿美元 |
+| 业务覆盖 | 60+ 国家 |
+| 员工数 | 约 220000 人 |
+
+---
+
+## 值得了解
+
+汇丰的名字缩写 HSBC 在全球任何机场都能找到——它的广告语是'环球金融 地方智慧'

@@ -106,7 +106,7 @@
   "todo": "完成周报",
   "beginTime": 1761922800000,
   "endTime": 1761926400000,
-  "label": "工作",
+  "label": "可存放待办描述、会议链接等具体信息",
   "important": true,
   "done": false,
   "notifyAhead": "30m",

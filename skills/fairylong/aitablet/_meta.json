@@ -3,11 +3,16 @@
   "slug": "aitablet",
   "displayName": "aispeech_ainote",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1775395788610,
-    "commit": "https://github.com/openclaw/skills/commit/c11b4be63ee15d141528bba846a02fa0376bc665"
+    "version": "1.0.5",
+    "publishedAt": 1776306784019,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1775395788610,
+      "commit": "https://github.com/openclaw/skills/commit/c11b4be63ee15d141528bba846a02fa0376bc665"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1774857969995,

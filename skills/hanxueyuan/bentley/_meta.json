@@ -1,13 +1,18 @@
 {
   "owner": "hanxueyuan",
   "slug": "bentley",
-  "displayName": "bentley",
+  "displayName": "Bentley",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1774605397017,
-    "commit": "https://github.com/openclaw/skills/commit/82663253bcc9023e9400e863318b27e726221e5d"
+    "version": "0.1.4",
+    "publishedAt": 1776232926028,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1774605397017,
+      "commit": "https://github.com/openclaw/skills/commit/82663253bcc9023e9400e863318b27e726221e5d"
+    },
     {
       "version": "0.2.0",
       "publishedAt": 1774484234651,

@@ -3,9 +3,15 @@
   "slug": "polymarket-candle-doji-breakout-trader",
   "displayName": "Polymarket Candle Doji Breakout Trader",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775364724913,
-    "commit": "https://github.com/openclaw/skills/commit/32cf13a60e3ef9c535f2ee1a534c9f8ac2192e4c"
+    "version": "0.0.2",
+    "publishedAt": 1776513205453,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775364724913,
+      "commit": "https://github.com/openclaw/skills/commit/32cf13a60e3ef9c535f2ee1a534c9f8ac2192e4c"
+    }
+  ]
 }

@@ -203,17 +203,29 @@ Agent types: build, plan, compaction, summary, title (primary); explore, general
 ⚠️ Note: `--agent` flag in `opencode run` mode always falls back to default regardless of agent name. Agent switching works in TUI mode via `/agents` slash command only.
 ```
 
-### Codex / Other ACP Agents
+### Codex / Other ACP Agents (acpx CLI)
 
-For agents supporting Agent Client Protocol, use `sessions_spawn` with `runtime: "acp"`:
+Requires: `acpx` CLI installed + OpenClaw ACP plugin enabled (add `acpx` to `plugins.allow` in config).
+
+**Direct CLI usage (always available if acpx is installed):**
+
+```yaml
+One-shot task:
+  command: acpx pi exec "Implement feature X"
+
+Session-based:
+  command: acpx pi prompt "Implement feature X"
+```
+
+**Via OpenClaw sessions_spawn (requires plugin configured):**
 
 ```yaml
 Spawn ACP agent:
   tool: sessions_spawn
   args:
     runtime: "acp"
+    agentId: "pi"  # or "codex", "claude-code", etc.
     task: "Implement feature X"
-    agentId: "codex"  # or "claude-code", etc.
     mode: "run"
 ```
 

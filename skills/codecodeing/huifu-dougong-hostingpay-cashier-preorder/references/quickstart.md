@@ -1,10 +1,10 @@
-# dougong-hostingpay-cashier-order — 统一收银台预下单
+# huifu-dougong-hostingpay-cashier-preorder — 统一收银台预下单
 
 覆盖三种预下单场景：H5/PC 网页支付、支付宝小程序、微信小程序。开发者接入汇付支付最高频的第一个接口。
 
-> **前置依赖**：首次接入请先完成 [dougong-hostingpay-pay-base](../../dougong-hostingpay-pay-base/SKILL.md) 的 SDK 初始化。
+> **前置依赖**：首次接入请先完成 [huifu-dougong-hostingpay-base](../../huifu-dougong-hostingpay-base/SKILL.md) 的 SDK 初始化。
 
-> **编码约束**：开始写 Controller / DTO 前，先看 [customer-preparation.md](../../dougong-hostingpay-pay-base/references/customer-preparation.md) 和 [payload-construction.md](../../dougong-hostingpay-pay-base/references/payload-construction.md)。`hosting_data`、`biz_info`、`wx_data` 这类字段在业务层应保持对象形态，做完校验后再序列化给 SDK。
+> **编码约束**：开始写 Controller / DTO 前，先看 [customer-preparation.md](../../huifu-dougong-hostingpay-base/references/customer-preparation.md) 和 [payload-construction.md](../../huifu-dougong-hostingpay-base/references/payload-construction.md)。`hosting_data`、`biz_info`、`wx_data` 这类字段在业务层应保持对象形态，做完校验后再序列化给 SDK。
 
 ## 本 Skill 解决什么问题
 
@@ -13,7 +13,7 @@
 ## 文件结构
 
 ```
-dougong-hostingpay-cashier-order/
+huifu-dougong-hostingpay-cashier-preorder/
 ├── SKILL.md                          # Skill 定义（端到端流程、触发词、通用参数）
 └── references/
     ├── quickstart.md                 # 本文件
@@ -59,10 +59,10 @@ dougong-hostingpay-cashier-order/
    汇付 POST 到 notify_url → 5 秒内返回 RECV_ORD_ID_{req_seq_id}
    幂等键：hf_seq_id → 详见 tech-spec.md 异步通知指南
        ↓
-④ 二次查询确认（dougong-hostingpay-cashier-query）
+④ 二次查询确认（huifu-dougong-hostingpay-cashier-query）
    trans_stat=P 时轮询：间隔 5 秒，最多 30 次
        ↓
-⑤ 退款（可选，dougong-hostingpay-cashier-refund）
+⑤ 退款（可选，huifu-dougong-hostingpay-cashier-refund）
    trans_stat=S 后可发起退款
 ```
 

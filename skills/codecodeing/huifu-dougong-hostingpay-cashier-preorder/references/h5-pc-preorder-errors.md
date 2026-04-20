@@ -1,6 +1,6 @@
 # H5、PC 预下单错误码与排查
 
-> 本页只记录用户提供的最新官方文档中明确列出的常见错误码。更多通用错误码请结合 `dougong-hostingpay-pay-base/references/error-codes.md` 一起看。
+> 本页只记录用户提供的最新官方文档中明确列出的常见错误码。更多通用错误码请结合 `huifu-dougong-hostingpay-base/references/error-codes.md` 一起看。
 
 ## 常见错误码
 

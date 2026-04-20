@@ -1,21 +1,18 @@
 ---
-name: dougong-hostingpay-cashier-order
-display_name: 汇付斗拱支付统一收银台预下单
-description: "汇付托管支付（dg-java-sdk）预下单 Skill：覆盖 H5/PC、支付宝小程序、微信小程序三种预下单场景。当开发者需要通过收银台托管方式创建支付订单时使用。触发词：托管预下单、收银台预下单、H5支付、小程序支付、创建托管订单。"
-version: 1.0.0
+name: huifu-dougong-hostingpay-cashier-preorder
+display_name: 汇付支付斗拱统一收银台预下单
+description: "汇付支付斗拱统一收银台预下单 Skill：覆盖 H5/PC、支付宝小程序、微信小程序三种预下单场景。参数表和业务规则按协议字段组织，Java SDK 调用方式放在语言适配入口里。当开发者需要创建托管支付订单时使用。触发词：托管预下单、收银台预下单、H5支付、小程序支付、创建托管订单。"
+version: 1.1.0
 author: "jiaxiang.li | 内容版权：上海汇付支付有限公司"
 homepage: https://paas.huifu.com/open/home/index.html
-license: MIT
+license: CC-BY-NC-4.0
 compatibility:
   - openclaw
 dependencies:
-  - dougong-hostingpay-pay-base
+  - huifu-dougong-hostingpay-base
 metadata:
   openclaw:
     requires:
-      bins:
-        - java
-        - mvn
       config:
         - HUIFU_PRODUCT_ID
         - HUIFU_SYS_ID
@@ -39,17 +36,46 @@ metadata:
 
 覆盖三种预下单场景：H5/PC、支付宝小程序、微信小程序。
 
+## 适配版本与复核信息
+
+| 项目 | 内容 |
+| --- | --- |
+| Skill 版本 | `1.1.0` |
+| 当前适配 SDK | `dg-java-sdk` `3.0.34` |
+| 最后复核日期 | `2026-04-08` |
+| 官方文档来源 | 汇付开放平台托管支付预下单接口文档、Java SDK 文档、加验签说明、异步消息说明 |
+
 ## 运行依赖与凭据边界
 
-本 Skill 依赖 [dougong-hostingpay-pay-base](../dougong-hostingpay-pay-base/SKILL.md) 提供公共运行时与商户配置约束。metadata 中列出的 `HUIFU_PRODUCT_ID`、`HUIFU_SYS_ID`、`HUIFU_RSA_PRIVATE_KEY`、`HUIFU_RSA_PUBLIC_KEY` 用于让接入方应用在运行时完成 `dg-java-sdk` 初始化，并由 SDK 在应用侧完成请求签名和响应验签；本 Skill 本身只提供接入说明，不会在 Skill 包内保存、打印、上传或持久化这些凭据。
+本 Skill 依赖 [huifu-dougong-hostingpay-base](../huifu-dougong-hostingpay-base/SKILL.md) 提供公共运行时。凭据使用规则与存放边界见 [credential-boundary.md](../huifu-dougong-pay-shared-base/governance/credential-boundary.md)。
 
 本文中出现的 `sign`、`cert_no`、`download_url` 等示例值均为占位写法或字段名说明，不提供真实签名串、密文证件号或可复用下载地址。
 
-> **前置依赖**：首次接入请先阅读 [dougong-hostingpay-pay-base](../dougong-hostingpay-pay-base/SKILL.md) 完成 SDK 初始化。
+> **前置依赖**：首次接入请先阅读 [huifu-dougong-hostingpay-base](../huifu-dougong-hostingpay-base/SKILL.md) 完成 SDK 初始化。
 
-> **开发前先补两步**：先核对 [客户前置准备清单](../dougong-hostingpay-pay-base/references/customer-preparation.md)，再按 [参数校验与 JSON 构造规范](../dougong-hostingpay-pay-base/references/payload-construction.md) 建模。像 `project_id`、`notify_url`、`callback_url`、`sub_openid`、`devs_id` 这类值都不应由模型猜测。
+> **开发前先补两步**：先核对 [客户前置准备清单](../huifu-dougong-hostingpay-base/references/customer-preparation.md)，再按 [参数校验与 JSON 构造规范](../huifu-dougong-hostingpay-base/references/payload-construction.md) 建模。像 `project_id`、`notify_url`、`callback_url`、`sub_openid`、`devs_id` 这类值都不应由模型猜测。
 
 > **官方产品文档补充约束**：托管支付接入前还要完成控台项目创建、支付方式启用、费率配置、授权绑定和应用 ID 获取。`hosting_data.project_id`、`miniapp_data.seq_id`、`split_pay_flag` 对应权限、`notify_url` 合规性，都有明确的业务前置条件，不是只靠接口参数就能补出来的。
+
+## 协议规则入口
+
+这份 Skill 主要讲预下单场景。  
+真正跨语言共用的协议规则，统一看共享资料：
+
+- [signing-v2.md](../huifu-dougong-pay-shared-base/protocol/signing-v2.md)
+- [async-notify.md](../huifu-dougong-pay-shared-base/protocol/async-notify.md)
+
+## 语言适配入口
+
+这份 Skill 里的参数表、场景路由和状态说明，都是语言无关的。  
+具体语言怎么初始化 SDK、怎么发请求，先看这里：
+
+- [huifu-dougong-hostingpay-base/SKILL.md](../huifu-dougong-hostingpay-base/SKILL.md)
+- [server-sdk-matrix.md](../huifu-dougong-pay-shared-base/runtime/server-sdk-matrix.md)
+
+前端如果要渲染托管收银台，不在这里做，直接看：
+
+- [huifu-dougong-hostingpay-checkout-js/SKILL.md](../huifu-dougong-hostingpay-checkout-js/SKILL.md)
 
 ## 端到端支付流程
 
@@ -69,8 +95,10 @@ metadata:
 
 ### 步骤 2：用户支付
 
-- **H5/PC**：前端通过 `window.location.href = jump_url` 或 HTTP 302 重定向到收银台
-- **小程序**：使用返回的 scheme_code 或 gh_id + path 拉起支付
+- **纯跳转模式**：H5/PC 可以继续使用 `window.location.href = jump_url` 或 HTTP 302 直接跳转收银台
+- **前端自定义收银台模式**：如果页面自己渲染支付入口，直接接 [huifu-dougong-hostingpay-checkout-js](../huifu-dougong-hostingpay-checkout-js/SKILL.md)，由前端通过 `HFPay` 和 `createPreOrder` 拉起支付
+- **小程序模式**：使用返回的 scheme_code 或 gh_id + path 拉起支付
+- **前后端对齐规则**：`pre_order_type=1` 对应 H5/PC，`pre_order_type=2` 对应支付宝小程序，`pre_order_type=3` 对应微信小程序
 - 支付完成后的页面回跳只代表前端流程结束，不代表后端可以直接把订单改成成功
 
 ### 步骤 3：接收异步通知
@@ -78,12 +106,12 @@ metadata:
 汇付将交易结果 POST 到 `notify_url`，关键要点：
 - 收到后返回 `RECV_ORD_ID_` + req_seq_id（5 秒内），否则汇付重试最多 3 次
 - 以 `hf_seq_id` 为幂等键防止重复处理
-- 详细接收示例见 [tech-spec.md 异步通知接收完整指南](../dougong-hostingpay-pay-base/references/tech-spec.md#异步通知接收完整指南)
+- 详细接收示例见 [tech-spec.md 异步通知接收完整指南](../huifu-dougong-hostingpay-base/references/tech-spec.md#异步通知接收完整指南)
 
 ### 步骤 4：二次查询确认
 
 即使收到异步通知，仍建议调用查询接口做二次确认：
-- 接口：`v2/trade/hosting/payment/queryorderinfo`（见 [dougong-hostingpay-cashier-query](../dougong-hostingpay-cashier-query/SKILL.md)）
+- 接口：`v2/trade/hosting/payment/queryorderinfo`（见 [huifu-dougong-hostingpay-cashier-query](../huifu-dougong-hostingpay-cashier-query/SKILL.md)）
 - 当同步返回 `trans_stat=P`（处理中）时，启动轮询：**间隔 5 秒，最多 30 次**
 - 若 150 秒后仍为 P，记录异常日志并人工介入，**不要自动关单**
 - 这一点与官方托管产品文档一致：前端回调和异步通知都不能替代关键业务环节的主动查询确认
@@ -91,7 +119,7 @@ metadata:
 ### 步骤 5：退款（可选）
 
 当 `trans_stat=S` 后需退款：
-- 接口：`v2/trade/hosting/payment/htRefund`（见 [dougong-hostingpay-cashier-refund](../dougong-hostingpay-cashier-refund/SKILL.md)）
+- 接口：`v2/trade/hosting/payment/htRefund`（见 [huifu-dougong-hostingpay-cashier-refund](../huifu-dougong-hostingpay-cashier-refund/SKILL.md)）
 - 退款需使用原交易的 `req_seq_id` 和 `req_date`
 
 ---
@@ -146,20 +174,27 @@ metadata:
 三种预下单场景共享分层架构：
 
 ```text
-HFPayController (@RestController, /hfpay)
-  +- POST /preOrder -> hostingPayService.preOrder(req)
+接口层
+  +- 接收前端或业务系统的预下单请求
+  +- 校验商户号、金额、商品描述、项目参数、回调地址
 
-HostingPayService (@Service)
-  +- preOrder() -> 根据 preOrderType 选择 Request 类 -> BasePayClient.request()
+业务逻辑层
+  +- 根据 pre_order_type 选择对应的预下单场景
+  +- 组装托管支付请求报文
+  +- 调用对应语言 SDK 或 HTTP 客户端发起 `v2/trade/hosting/payment/preorder`
+  +- 保存 req_seq_id / req_date / pre_order_id 供查单和退款复用
 
-HostingPayPreOrderReq (DTO, @NotBlank 校验)
-  |- huifuId      - 商户号（必填）
-  |- transAmt     - 交易金额（必填）
-  |- goodsDesc    - 商品描述（必填）
-  |- preOrderType - 预下单类型（可选，默认 "1"）
-  |- notifyUrl    - 异步通知地址（可选）
-  +- hostingData / bizInfo / wxData ... - 业务层保持对象结构，进入 SDK 前再序列化
+请求对象
+  |- huifu_id
+  |- trans_amt
+  |- goods_desc
+  |- pre_order_type
+  |- notify_url
+  +- hosting_data / app_data / miniapp_data 等对象字段
 ```
+
+下面出现的 SDK Request 类名，是 Java 适配层的写法。  
+如果你不是 Java 项目，参数结构仍按本 Skill 的协议字段来实现。
 
 ## 通用请求参数
 
@@ -238,14 +273,4 @@ HostingPayPreOrderReq (DTO, @NotBlank 校验)
 
 ---
 
-## 版权声明
-
-本 Skill 的内容来源于 **上海汇付支付有限公司** 官方开放平台文档。
-
-- **版权归属**：上海汇付支付有限公司
-- **客服热线**：400-820-2819
-- **客服邮箱**：cs@huifu.com
-- **官方网站**：[https://www.huifu.com/](https://www.huifu.com/)
-- **开放平台**：[https://paas.huifu.com/open/home/index.html](https://paas.huifu.com/open/home/index.html)
-
-本 Skill 仅作技术学习交流使用，原始内容由汇付支付官方维护和更新。如有任何疑问或需要商业支持，请直接联系汇付支付官方客服。
+> 版权声明与联系方式见 [copyright-notice.md](../huifu-dougong-pay-shared-base/governance/copyright-notice.md)

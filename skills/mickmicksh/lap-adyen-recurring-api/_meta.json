@@ -3,9 +3,15 @@
   "slug": "lap-adyen-recurring-api",
   "displayName": "Lap Adyen Recurring Api",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775466757000,
-    "commit": "https://github.com/openclaw/skills/commit/c54cb7462e74ae12bf9b15ad0650d57f6b0d0dbb"
+    "version": "1.0.1",
+    "publishedAt": 1776677706764,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775466757000,
+      "commit": "https://github.com/openclaw/skills/commit/c54cb7462e74ae12bf9b15ad0650d57f6b0d0dbb"
+    }
+  ]
 }

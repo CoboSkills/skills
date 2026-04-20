@@ -17,7 +17,7 @@ API version: 68
 ApiKey X-API-Key in header | Bearer basic
 
 ## Base URL
-https://paltokenization-test.adyen.com/paltokenization/servlet/Recurring/v68
+https://pal-test.adyen.com/pal/servlet/Recurring/v68
 
 ## Setup
 1. Set Authorization header with your Bearer token

@@ -1,8 +1,11 @@
 ---
 name: emperor-year-converter
-description: 帝王纪年与公元纪年双向转换，覆盖西周厉王至清宣统共790个年号。Convert between Chinese imperial reign years and CE/BCE dates, 790 reign periods from 878 BCE to 1911 CE.
+description: "帝王纪年转换 / Chinese imperial year converter. 年号与公元纪年双向转换，查询朝代、帝王、年号、历史年代，覆盖西周厉王（公元前878年）至清宣统（1911年）共790个年号。Convert between Chinese imperial reign years (年号) and CE/BCE dates across 790 reign periods from 878 BCE to 1911 CE. Supports both simplified and traditional Chinese."
+category: Data & APIs
 user-invocable: true
-metadata: {"openclaw": {"emoji": "📜"}}
+metadata:
+  openclaw:
+    emoji: "📜"
 ---
 
 # 帝王纪年转换器 Emperor Year Converter

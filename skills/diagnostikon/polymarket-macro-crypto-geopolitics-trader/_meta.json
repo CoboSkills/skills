@@ -3,11 +3,16 @@
   "slug": "polymarket-macro-crypto-geopolitics-trader",
   "displayName": "Polymarket Macro Crypto Geopolitics Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775317247194,
-    "commit": "https://github.com/openclaw/skills/commit/4125fbb2d37ded3445208c0af84c83fabb9448cf"
+    "version": "0.0.2",
+    "publishedAt": 1776513438624,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775317247194,
+      "commit": "https://github.com/openclaw/skills/commit/4125fbb2d37ded3445208c0af84c83fabb9448cf"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774892638084,

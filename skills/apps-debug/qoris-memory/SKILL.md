@@ -1,163 +1,78 @@
 ---
-name: "Qoris Memory — Persistent Agent Memory"
-description: "Git-like persistent memory for OpenClaw agents. Your agent remembers everything across sessions — versioned, branched, and mergeable like a repository. Never lose context again. Powered by Qoris AI."
-version: "1.0.0"
+name: "Legacy — Qoris Memory (use qoris-memory-mcp)"
+description: "⚠️ LEGACY LISTING. The canonical home for this skill is now qoris-memory-mcp under the @qoris-ai org publisher. Please run: clawhub install qoris-memory-mcp."
+version: "1.0.5"
 author: "qorisai"
+homepage: "https://qoris.ai"
+repository: "https://github.com/QORIS-AI/qoris-memory-openclaw-skill"
 tags:
+  - legacy
+  - deprecated
   - memory
-  - persistent-memory
-  - agent-memory
-  - context
-  - versioning
-  - knowledge-base
-  - cross-session
-  - enterprise
-  - rag
   - mcp
-  - latest
-requires:
-  env:
-    QORIS_API_KEY: "Your Qoris API key from qoris.ai/dashboard"
-    QORIS_WORKSPACE_ID: "Your Qoris workspace ID from qoris.ai/dashboard"
+metadata:
+  clawdis:
+    primaryEnv: QORIS_API_KEY
+    homepage: https://qoris.ai
+    skillKey: qoris-memory
+    requires:
+      env:
+        - QORIS_API_KEY
+        - QORIS_WORKSPACE_ID
 ---
 
-# Qoris Memory — Persistent Agent Memory
+# Legacy — Qoris Memory
 
-## Purpose
+> ## ⚠️ This skill has moved
+>
+> **Install [`qoris-memory-mcp`](https://clawhub.ai/qoris-memory-mcp) instead.**
+>
+> ```bash
+> clawhub install qoris-memory-mcp
+> ```
+>
+> This `qoris-memory` slug under `@apps-debug` is kept only for backward compatibility with users who installed earlier versions. All future updates, new features, and new versions will be published exclusively to `qoris-memory-mcp` under the `@qoris-ai` org publisher.
 
-OpenClaw agents are powerful. But by default they forget everything when a session ends. Every conversation starts from zero. Every context you built up disappears.
+## Why did it move?
 
-Qoris Memory gives your OpenClaw agent persistent, versioned, cross-session memory that works like Git — commits, branches, merges, and conflict resolution. Your agent builds up knowledge over time, remembers it across sessions, and shares it across your entire team.
+We set up a dedicated `@qoris-ai` organization publisher on ClawHub and migrated the canonical listing to it. This `@apps-debug` listing is the original pre-migration home and will no longer receive feature updates.
 
-**Think of it as GitHub for your agent's brain.**
+## What to do
 
-## What Qoris Memory Does
-
-### Persistent cross-session memory
-Everything your agent learns, discovers, or is told persists beyond the current session. Next session it picks up exactly where it left off. No re-explaining context. No repeating yourself.
-
-### Versioned memory commits
-Every memory update is a versioned commit with a timestamp and author. Roll back to any previous state. See the full history of what your agent knows and when it learned it.
-
-### Memory branches
-Create separate memory branches for different projects, clients, or contexts. Switch between branches the same way you switch Git branches. Your agent operates in the right context for the right task.
-
-### Conflict resolution
-When multiple agents or team members update the same memory, Qoris Memory handles conflicts intelligently — surfacing disagreements for human resolution rather than silently overwriting important context.
-
-### Shared team memory
-Memory is workspace-scoped. Every agent in your workspace shares the same knowledge base. One agent learns something — all agents know it. Your AI team operates with a unified brain.
-
-### Knowledge search
-Semantic search across everything your agent knows. Ask questions about your memory — get precise, cited answers grounded in what was actually stored, not hallucinated.
-
-## Memory Architecture
-
-Qoris Memory uses a canonical + vector hybrid architecture:
-
-```
-Canonical Layer    — structured facts, entities, relationships
-                     exact-match retrieval, versioned records
-
-Vector Layer       — semantic embeddings for fuzzy search
-                     conceptual retrieval across all memories
-
-Conflict Engine    — detects contradictions between memories
-                     surfaces them for human resolution
-
-Audit Trail        — every memory read and write logged
-                     integrated with Knox governance if installed
-```
-
-## Available Memory Tools
-
-Once installed your agent has access to these tools:
-
-### save_memory
-Store a new memory with optional tags and metadata.
-
-### get_memories
-Retrieve all memories or filter by tag, date, or relevance.
-
-### search_knowledge
-Semantic search across your entire memory and knowledge base.
-
-### update_memory
-Update an existing memory with version tracking.
-
-### delete_memory
-Remove a memory with audit trail entry.
-
-### list_knowledge_documents
-List all documents and files indexed in the knowledge base.
-
-### get_document_full_content
-Retrieve the complete content of a knowledge document.
-
-## Setup Instructions
-
-### Step 1 — Get your Qoris credentials
-
-1. Go to qoris.ai and create an account
-2. Navigate to your workspace dashboard
-3. Copy your QORIS_API_KEY and QORIS_WORKSPACE_ID
-4. Add them to your environment:
+If you're already using `qoris-memory`, switch to `qoris-memory-mcp`:
 
 ```bash
-export QORIS_API_KEY="your-api-key-here"
-export QORIS_WORKSPACE_ID="your-workspace-id-here"
+clawhub uninstall qoris-memory
+clawhub install qoris-memory-mcp
 ```
 
-### Step 2 — Connect Qoris Memory MCP server
+Your existing `QORIS_API_KEY` and `QORIS_WORKSPACE_ID` work identically with the new slug — same underlying MCP server at `https://mcp.qoris.ai/mcp`, same tools, same behavior.
 
-Add to your OpenClaw configuration:
+## Data Handling & Privacy
 
-```json
-{
-  "mcpServers": {
-    "qoris-memory": {
-      "url": "https://mcp.qoris.ai/mcp",
-      "headers": {
-        "Authorization": "Bearer ${QORIS_API_KEY}",
-        "X-Workspace-ID": "${QORIS_WORKSPACE_ID}"
-      }
-    }
-  }
-}
-```
+This skill connects to the Qoris MCP server (`https://mcp.qoris.ai/mcp`) and exposes explicit memory tools (`save_memory`, `search_knowledge`, etc.). The skill does not capture or persist conversation content automatically — only data you explicitly pass to a tool call is transmitted.
 
-### Step 3 — Verify memory is active
+- **What gets sent:** only content you pass to explicit tool calls
+- **Where it's stored:** `https://mcp.qoris.ai/mcp` scoped to your `QORIS_WORKSPACE_ID`
+- **Credential ownership:** `QORIS_API_KEY` is your own per-user secret, not bundled
+- **Retention:** per `https://qoris.ai/privacy`
+- **Revocation:** rotate `QORIS_API_KEY` in your dashboard
 
-Start a new OpenClaw session and run:
+## Available Memory Tools (inherited from canonical)
 
-```
-/memory status
-```
+`save_memory`, `get_memories`, `search_knowledge`, `update_memory`, `delete_memory`, `list_knowledge_documents`, `get_document_full_content`.
 
-## Memory + Knox Governance
+See the full documentation at the canonical listing: [qoris-memory-mcp](https://clawhub.ai/qoris-memory-mcp).
 
-If you have Knox Governance installed alongside Qoris Memory, every memory read and write is automatically logged in the Knox audit trail. Install both for the complete governed enterprise agent stack:
+## Support
 
-```bash
-clawhub install knox-governance
-clawhub install qoris-memory
-```
-
-## Constraints
-
-Memory is workspace-scoped. Free tier includes up to 1,000 memories and 500MB knowledge storage. Paid plans unlock unlimited memories and storage.
-
-## Support and Documentation
-
-- Full documentation: docs.qoris.ai/memory
-- Dashboard: qoris.ai/dashboard
-- Demo: qoris.ai/contact-us
-- Support: eliel@qoris.ai
+- Canonical listing: `https://clawhub.ai/qoris-memory-mcp`
+- Documentation: `https://docs.qoris.ai/memory`
+- Source: `https://github.com/QORIS-AI/qoris-memory-openclaw-skill`
+- Support: `eliel@qoris.ai`
 
 ## About Qoris AI
 
-Qoris AI is the trust and governance layer for enterprise AI agents. Knox governs what agents do. Qoris Memory gives them what they know.
+Qoris AI builds the trust and governance layer for enterprise AI agents. NVIDIA Inception Program member. Claude Partner Network member. Patent pending U.S. 63/907,730. Based in Stamford, CT.
 
-NVIDIA Inception Program member. Claude Partner Network member. Patent Pending U.S. 63/907,730. Based in Stamford, CT.
-
-qoris.ai
+`qoris.ai`

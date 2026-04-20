@@ -1,45 +1,32 @@
 {
   "name": "qoris-memory",
-  "version": "1.0.0",
-  "description": "Git-like persistent memory for OpenClaw agents by Qoris AI",
+  "version": "1.0.5",
+  "description": "Legacy listing. See qoris-memory-mcp for the canonical version under @qoris-ai.",
   "author": "qorisai",
-  "license": "MIT",
+  "license": "MIT-0",
   "homepage": "https://qoris.ai",
   "repository": {
     "type": "git",
-    "url": "https://github.com/qorisai/qoris-memory-openclaw-skill"
+    "url": "https://github.com/QORIS-AI/qoris-memory-openclaw-skill"
   },
   "keywords": [
+    "legacy",
+    "deprecated",
     "openclaw",
     "memory",
-    "persistent-memory",
-    "agent-memory",
-    "versioned-memory",
-    "knowledge-base",
-    "cross-session",
-    "enterprise",
-    "rag",
-    "mcp",
-    "git-memory"
+    "mcp"
   ],
   "openclaw": {
     "skill": true,
+    "primaryEnv": "QORIS_API_KEY",
     "mcp": {
       "server": "https://mcp.qoris.ai/mcp",
       "auth": "bearer"
     },
     "requires": {
       "env": [
-        {
-          "name": "QORIS_API_KEY",
-          "description": "Qoris API key from qoris.ai/dashboard",
-          "required": true
-        },
-        {
-          "name": "QORIS_WORKSPACE_ID",
-          "description": "Qoris workspace ID from qoris.ai/dashboard",
-          "required": true
-        }
+        "QORIS_API_KEY",
+        "QORIS_WORKSPACE_ID"
       ]
     },
     "tools": [

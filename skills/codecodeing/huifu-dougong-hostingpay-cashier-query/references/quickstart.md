@@ -1,8 +1,8 @@
-# dougong-hostingpay-cashier-query — 交易查询、关单与对账
+# huifu-dougong-hostingpay-cashier-query — 交易查询、关单与对账
 
 支付状态查询、托管交易关单和交易结算对账单查询。
 
-> **前置依赖**：首次接入请先完成 [dougong-hostingpay-pay-base](../../dougong-hostingpay-pay-base/SKILL.md) 的 SDK 初始化。
+> **前置依赖**：首次接入请先完成 [huifu-dougong-hostingpay-base](../../huifu-dougong-hostingpay-base/SKILL.md) 的 SDK 初始化。
 
 ## 本 Skill 解决什么问题
 
@@ -22,7 +22,7 @@
 ## 文件结构
 
 ```
-dougong-hostingpay-cashier-query/
+huifu-dougong-hostingpay-cashier-query/
 ├── SKILL.md                          # Skill 定义（触发词、场景路由、注意事项）
 └── references/
     ├── quickstart.md                 # 本文件
@@ -115,4 +115,4 @@ Map<String, Object> response = BasePayClient.request(request, false);
 | trans_stat=S | 执行业务成功逻辑（发货等） |
 | trans_stat=F | 提示用户重新发起支付 |
 | trans_stat=P 超时 | 人工介入排查 |
-| 需要退款 | 前往 [dougong-hostingpay-cashier-refund](../../dougong-hostingpay-cashier-refund/SKILL.md) |
+| 需要退款 | 前往 [huifu-dougong-hostingpay-cashier-refund](../../huifu-dougong-hostingpay-cashier-refund/SKILL.md) |

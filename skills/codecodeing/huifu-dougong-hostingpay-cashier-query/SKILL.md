@@ -1,21 +1,18 @@
 ---
-name: dougong-hostingpay-cashier-query
-display_name: 汇付斗拱支付统一收银台查询关单与对账
-description: "汇付托管支付（dg-java-sdk）查询与关单 Skill：托管交易支付状态查询、托管交易关单、交易结算对账单查询。当开发者需要查询收银台托管订单状态、关闭未支付的托管订单或查询对账单时使用。触发词：托管交易查询、收银台订单查询、托管关单、收银台关单、托管对账单。"
-version: 1.0.0
+name: huifu-dougong-hostingpay-cashier-query
+display_name: 汇付支付斗拱统一收银台查询关单与对账
+description: "汇付支付斗拱统一收银台查询关单与对账 Skill：覆盖托管交易支付状态查询、托管交易关单、交易结算对账单查询。参数表和业务规则按协议字段组织，Java SDK 调用方式放在语言适配入口里。当开发者需要查询收银台托管订单状态、关闭未支付订单或查询对账单时使用。触发词：托管交易查询、收银台订单查询、托管关单、收银台关单、托管对账单。"
+version: 1.1.0
 author: "jiaxiang.li | 内容版权：上海汇付支付有限公司"
 homepage: https://paas.huifu.com/open/home/index.html
-license: MIT
+license: CC-BY-NC-4.0
 compatibility:
   - openclaw
 dependencies:
-  - dougong-hostingpay-pay-base
+  - huifu-dougong-hostingpay-base
 metadata:
   openclaw:
     requires:
-      bins:
-        - java
-        - mvn
       config:
         - HUIFU_PRODUCT_ID
         - HUIFU_SYS_ID
@@ -35,15 +32,37 @@ metadata:
 
 托管交易支付状态查询 + 托管交易关单 + 交易结算对账单查询。
 
+## 适配版本与复核信息
+
+| 项目 | 内容 |
+| --- | --- |
+| Skill 版本 | `1.1.0` |
+| 当前适配 SDK | `dg-java-sdk` `3.0.34` |
+| 最后复核日期 | `2026-04-08` |
+| 官方文档来源 | 汇付开放平台托管支付查询/关单/对账接口文档、Java SDK 文档、异步消息说明 |
+
 ## 运行依赖与凭据边界
 
-本 Skill 依赖 [dougong-hostingpay-pay-base](../dougong-hostingpay-pay-base/SKILL.md) 提供公共运行时与商户配置约束。metadata 中列出的 `HUIFU_PRODUCT_ID`、`HUIFU_SYS_ID`、`HUIFU_RSA_PRIVATE_KEY`、`HUIFU_RSA_PUBLIC_KEY` 用于让接入方应用在运行时完成 `dg-java-sdk` 初始化，并由 SDK 在应用侧完成请求签名和响应验签；本 Skill 本身只提供接入说明，不会在 Skill 包内保存、打印、上传或持久化这些凭据。
+本 Skill 依赖 [huifu-dougong-hostingpay-base](../huifu-dougong-hostingpay-base/SKILL.md) 提供公共运行时。凭据使用规则与存放边界见 [credential-boundary.md](../huifu-dougong-pay-shared-base/governance/credential-boundary.md)。
 
-> **前置依赖**：首次接入请先阅读 [dougong-hostingpay-pay-base](../dougong-hostingpay-pay-base/SKILL.md) 完成 SDK 初始化。
+> **前置依赖**：首次接入请先阅读 [huifu-dougong-hostingpay-base](../huifu-dougong-hostingpay-base/SKILL.md) 完成 SDK 初始化。
 
-> **进入本 Skill 前先确认**：上游下单侧已经沉淀 `req_date`、`req_seq_id`、`party_order_id`、`hf_seq_id` 等定位键；具体来源和保留策略见 [客户前置准备清单](../dougong-hostingpay-pay-base/references/customer-preparation.md)。
+> **进入本 Skill 前先确认**：上游下单侧已经沉淀 `req_date`、`req_seq_id`、`party_order_id`、`hf_seq_id` 等定位键；具体来源和保留策略见 [客户前置准备清单](../huifu-dougong-hostingpay-base/references/customer-preparation.md)。
 
 > **官方文档补充约束**：托管产品文档明确建议在关键业务环节通过反查接口确认非终态订单状态；对账单能力也要求先在控台配置对账文件生成后再查询下载。
+
+## 协议规则入口
+
+- [signing-v2.md](../huifu-dougong-pay-shared-base/protocol/signing-v2.md)
+- [async-notify.md](../huifu-dougong-pay-shared-base/protocol/async-notify.md)
+
+## 语言适配入口
+
+这份 Skill 的查询键、状态字段、关单约束和对账字段，都是语言无关的。  
+具体语言怎么初始化和发请求，先看这里：
+
+- [huifu-dougong-hostingpay-base/SKILL.md](../huifu-dougong-hostingpay-base/SKILL.md)
+- [server-sdk-matrix.md](../huifu-dougong-pay-shared-base/runtime/server-sdk-matrix.md)
 
 ## 触发词
 
@@ -70,16 +89,18 @@ metadata:
 ## 通用架构
 
 ```text
-HFPayController (@RestController, /hfpay)
-  |- POST /queryorderinfo -> hostingPayService.queryOrderInfo(req)
-  |- POST /closeOrder     -> hostingPayService.closeOrder(req)
-  +- POST /checkFileQuery -> hostingPayService.checkFileQuery(req)
+接口层
+  |- 接收查单、关单、对账请求
+  |- 校验查询键、原交易流水和账单日期
 
-HostingPayService (@Service)
-  |- queryOrderInfo() -> V2TradeHostingPaymentQueryorderinfoRequest -> BasePayClient.request()
-  |- closeOrder()     -> V2TradeHostingPaymentCloseRequest -> BasePayClient.request()
-  +- checkFileQuery() -> V2TradeCheckFilequeryRequest -> BasePayClient.request()
+业务逻辑层
+  |- 按场景组装查询、关单、对账报文
+  |- 调用对应语言 SDK 或 HTTP 客户端
+  +- 输出订单状态、关单状态和账单下载结果
 ```
+
+下面出现的 SDK Request 类名，是 Java 适配层的写法。  
+如果你不是 Java 项目，参数结构仍按本 Skill 的协议字段来实现。
 
 ## SDK Request 类对照
 
@@ -209,7 +230,7 @@ for (int i = 0; i < maxRetries; i++) {
 
 1. 查询接口支持 `party_order_id` 单独查询；关单仍必须提供原交易的 `org_req_date` 和 `org_req_seq_id`
 2. 关单后用户将无法再对该订单进行支付
-3. 已支付成功的订单**无法关单**，只能走退款流程（见 [dougong-hostingpay-cashier-refund](../dougong-hostingpay-cashier-refund/SKILL.md)）
+3. 已支付成功的订单**无法关单**，只能走退款流程（见 [huifu-dougong-hostingpay-cashier-refund](../huifu-dougong-hostingpay-cashier-refund/SKILL.md)）
 4. 建议在收到异步通知后调用查询接口做二次确认
 5. 关单前建议先调用查询接口确认订单状态，避免关闭已支付订单
 6. 如果用户在关单请求发出的同时完成了支付，以最终交易状态为准
@@ -220,14 +241,4 @@ for (int i = 0; i < maxRetries; i++) {
 
 ---
 
-## 版权声明
-
-本 Skill 的内容来源于 **上海汇付支付有限公司** 官方开放平台文档。
-
-- **版权归属**：上海汇付支付有限公司
-- **客服热线**：400-820-2819
-- **客服邮箱**：cs@huifu.com
-- **官方网站**：[https://www.huifu.com/](https://www.huifu.com/)
-- **开放平台**：[https://paas.huifu.com/open/home/index.html](https://paas.huifu.com/open/home/index.html)
-
-本 Skill 仅作技术学习交流使用，原始内容由汇付支付官方维护和更新。如有任何疑问或需要商业支持，请直接联系汇付支付官方客服。
+> 版权声明与联系方式见 [copyright-notice.md](../huifu-dougong-pay-shared-base/governance/copyright-notice.md)

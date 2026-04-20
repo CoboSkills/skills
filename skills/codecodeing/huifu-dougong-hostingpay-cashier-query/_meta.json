@@ -3,9 +3,15 @@
   "slug": "huifu-dougong-hostingpay-cashier-query",
   "displayName": "Huifu DouGong HostingPay Cashier Query",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775551633138,
-    "commit": "https://github.com/openclaw/skills/commit/2190466be35379c6c80f3513e3e04a290c318ed8"
+    "version": "1.0.3",
+    "publishedAt": 1776162377277,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775551633138,
+      "commit": "https://github.com/openclaw/skills/commit/2190466be35379c6c80f3513e3e04a290c318ed8"
+    }
+  ]
 }

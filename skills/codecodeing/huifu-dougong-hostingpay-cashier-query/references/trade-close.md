@@ -27,7 +27,7 @@
 说明：
 
 - 支持 JSON 报文。
-- 请求整体需要签名，验签规则见 `dougong-hostingpay-pay-base/references/tech-spec.md`。
+- 请求整体需要签名，验签规则见 `huifu-dougong-hostingpay-base/references/tech-spec.md`。
 - 适用于微信、支付宝、云闪付交易；快捷网银待后续支持。
 - 关单只适用于未支付成功的订单，已支付成功订单需要走退款流程。
 

@@ -28,7 +28,7 @@
 说明：
 
 - 支持 JSON 报文。
-- 请求和响应整体都需要签名，验签规则见 `dougong-hostingpay-pay-base/references/tech-spec.md`。
+- 请求和响应整体都需要签名，验签规则见 `huifu-dougong-hostingpay-base/references/tech-spec.md`。
 - 官方特别说明：同步返回中的 `file_details` 是 `jsonArray`，对嵌套 JSON 做验签时无需排序。
 - 本接口只有同步返回；如果文件还未生成或正在跑批，可通过 `task_details` 查看任务状态。
 

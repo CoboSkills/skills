@@ -1,6 +1,6 @@
 # drawio-skill — From Text to Professional Diagrams
 
-[中文文档](README_CN.md)
+[中文文档](README_CN.md) | [Online Docs](https://agents365-ai.github.io/drawio-skill/)
 
 ## What it does
 
@@ -22,7 +22,8 @@ Works with all major AI coding agents that support the [Agent Skills](https://ag
 | Platform | Status | Details |
 |----------|--------|---------|
 | **Claude Code** | ✅ Full support | Native SKILL.md format |
-| **OpenClaw** | ✅ Full support | `metadata.openclaw` namespace, dependency gating, installer |
+| **Opencode** | ✅ Full support | Native SKILL.md via `skill` tool; also reads `.claude/skills/` paths |
+| **OpenClaw / ClawHub** | ✅ Full support | `metadata.openclaw` namespace, dependency gating, ClawHub installer |
 | **Hermes Agent** | ✅ Full support | `metadata.hermes` namespace, tags, tool gating |
 | **OpenAI Codex** | ✅ Full support | `agents/openai.yaml` sidecar file |
 | **SkillsMP** | ✅ Indexed | GitHub topics configured |
@@ -55,7 +56,7 @@ Works with all major AI coding agents that support the [Agent Skills](https://ag
 |---------|-----------|---------------|-------------------|--------------|
 | **Approach** | Pure SKILL.md | SKILL.md / MCP / Project | YAML DSL + MCP | Plugin + browser |
 | **Dependencies** | draw.io desktop only | draw.io desktop | MCP server (`npx`) | Browser + local server |
-| **Multi-agent** | ✅ 5 platforms | ❌ Claude Code only | ❌ Claude Code only | ❌ |
+| **Multi-agent** | ✅ 6 platforms | ❌ Claude Code only | ❌ Claude Code only | ❌ |
 | **Self-check** | ✅ 2-round auto-fix | ❌ | ❌ | ❌ screenshot |
 | **Iterative review** | ✅ 5-round loop | ❌ generate once | ✅ 3 workflows | ❌ |
 | **Layout guidance** | ✅ complexity-scaled + grid snap | ✅ basic spacing | ❌ relies on MCP | ❌ |
@@ -76,7 +77,7 @@ Works with all major AI coding agents that support the [Agent Skills](https://ag
 1. **Self-check + iterative loop** — the only pure-SKILL.md solution that reads its own output and auto-fixes before showing the user, then supports multi-round refinement
 2. **6 diagram type presets** — ERD, UML Class, Sequence, Architecture, ML/Deep Learning, Flowchart — each with preset shapes, styles, and layout conventions
 3. **ML/DL model diagrams** — tensor shape annotations, layer-type color coding, encoder/decoder swimlanes — built for academic papers
-4. **Multi-agent, zero-config** — works across 5 platforms with just one `SKILL.md` file + draw.io desktop. No MCP server, no Python, no Node.js, no browser
+4. **Multi-agent, zero-config** — works across 6 platforms with just one `SKILL.md` file + draw.io desktop. No MCP server, no Python, no Node.js, no browser
 5. **Production-grade layout** — grid-aligned coordinates, complexity-scaled spacing, routing corridors, hub-center strategy, animated connectors
 6. **Browser fallback** — generates diagrams.net URLs when the desktop CLI is unavailable, plus auto-launch for desktop editing
 
@@ -146,6 +147,18 @@ git clone https://github.com/Agents365-ai/drawio-skill.git ~/.claude/skills/draw
 git clone https://github.com/Agents365-ai/drawio-skill.git .claude/skills/drawio-skill
 ```
 
+### Opencode
+
+```bash
+# Global install (Opencode-native path)
+git clone https://github.com/Agents365-ai/drawio-skill.git ~/.config/opencode/skills/drawio-skill
+
+# Project-level install
+git clone https://github.com/Agents365-ai/drawio-skill.git .opencode/skills/drawio-skill
+```
+
+Opencode also reads `~/.claude/skills/` and `.claude/skills/`, so an existing Claude Code install is automatically picked up — no second clone needed.
+
 ### OpenClaw
 
 ```bash
@@ -205,34 +218,27 @@ clawhub install drawio-pro-skill
 | Platform | Global path | Project path |
 |----------|-------------|--------------|
 | Claude Code | `~/.claude/skills/drawio-skill/` | `.claude/skills/drawio-skill/` |
-| OpenClaw | `~/.openclaw/skills/drawio-skill/` | `skills/drawio-skill/` |
+| Opencode | `~/.config/opencode/skills/drawio-skill/` (also reads `~/.claude/skills/`) | `.opencode/skills/drawio-skill/` (also reads `.claude/skills/`) |
+| OpenClaw / ClawHub | `~/.openclaw/skills/drawio-skill/` | `skills/drawio-skill/` |
 | Hermes Agent | `~/.hermes/skills/design/drawio-skill/` | Via `external_dirs` config |
 | OpenAI Codex | `~/.agents/skills/drawio-skill/` | `.agents/skills/drawio-skill/` |
 | SkillsMP | N/A (installed via CLI) | N/A |
 
 ## Updates
 
-Check for updates:
-
-```bash
-# Run from anywhere — pass your install path
-bash ~/.claude/skills/drawio-skill/scripts/check-update.sh
-
-# Or from the skill directory
-cd ~/.claude/skills/drawio-skill && bash scripts/check-update.sh
-```
-
-Update to latest version:
+The skill auto-checks for updates once per 12 hours on first use in a conversation. When a new version is available, the agent prints a one-line notice in the reply. To apply:
 
 ```bash
 cd <your-install-path>/drawio-skill && git pull
 ```
 
-Platform-specific package managers:
+The check is read-only, self-throttled, and silent when up to date, offline, or not a git install — it won't block or slow the workflow.
+
+Package-manager installs handle updates themselves:
 
 ```bash
 # OpenClaw
-clawhub update drawio-skill
+clawhub update drawio-pro-skill
 
 # SkillsMP
 skills update drawio-skill
@@ -286,7 +292,7 @@ CI/CD pipeline with a closed loop and 2 spur branches. Edges flow along the peri
 
 - `SKILL.md` — **the only required file**. Loaded by all platforms as the skill instructions.
 - `agents/openai.yaml` — OpenAI Codex-specific configuration (UI, policy)
-- `scripts/check-update.sh` — lightweight update checker (compares local vs remote HEAD)
+- `update.sh` — auto-runs on first skill use per conversation; self-throttled to once per 12h, silent when up to date
 - `README.md` — this file (English, displayed on GitHub homepage)
 - `README_CN.md` — Chinese documentation
 - `assets/` — example diagrams and workflow images
@@ -294,6 +300,15 @@ CI/CD pipeline with a closed loop and 2 spur branches. Edges flow along the peri
 > **Note:** Only `SKILL.md` is needed for the skill to work. `agents/openai.yaml` is only needed for Codex. The `assets/` and README files are documentation only and can be safely deleted to save space.
 
 > All example diagrams were generated by Claude Opus 4.6 with this skill.
+
+## Known Limitations
+
+- **Command name varies by platform**: macOS Homebrew installs the command as `draw.io`; some Linux packages use `drawio`. The skill handles both, but verify which name works on your system with `draw.io --version` or `drawio --version`
+- **Linux headless export**: Requires `xvfb` for display virtualization — without it, CLI export will fail on servers without a display
+- **Browser fallback requires Python**: The `diagrams.net` URL generator uses `python3` for compression/encoding. If neither CLI nor Python is available, the skill generates `.drawio` XML only
+- **Self-check requires vision**: The auto-fix step reads exported PNGs using the model's vision capability. Models without vision support skip this step
+- **Cloud icons**: Currently supports basic AWS resource icons. GCP, Azure, and Kubernetes icon sets are not yet included
+- **No source .drawio for microservices example**: The `microservices-example.png` in assets was generated in a session but the source `.drawio` was not preserved
 
 ## License
 

@@ -1,11 +1,17 @@
 {
   "owner": "ether-btc",
   "slug": "correlation-memory",
-  "displayName": "Correlation Plugin Review",
+  "displayName": "Correlation Memory Search",
   "latest": {
-    "version": "2.0.3",
-    "publishedAt": 1775697738942,
-    "commit": "https://github.com/openclaw/skills/commit/85a804e16ef8a2b79c37e450176ac7c5e9446970"
+    "version": "2.1.0",
+    "publishedAt": 1776236686290,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.3",
+      "publishedAt": 1775697738942,
+      "commit": "https://github.com/openclaw/skills/commit/85a804e16ef8a2b79c37e450176ac7c5e9446970"
+    }
+  ]
 }

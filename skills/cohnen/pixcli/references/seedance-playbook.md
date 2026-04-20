@@ -169,26 +169,15 @@ pixcli video "Character leaps upward with explosive energy, arms raised, reachin
 
 Describe **only the new section**. The duration flag is the new seconds you want added, **not** the total.
 
+> **Note:** Seedance does not currently expose video-extend or video-edit endpoints on muapi. For extension use `grok-extend-video`, `ltx-extend-video`, or `pixverse-v6-extend` (all on fal). Example:
+
 ```bash
-# Take an existing 9s clip and add 6 more seconds.
 pixcli video "Camera tilts upward as the neon sign flickers on. Steam rises from the coffee cup. The door opens. Warm street light spills into the room. Title text fades in: 'Breakfast Served / 7:00–10:00'" \
   --from scene.mp4 \
   --extend \
-  -m seedance-2-extend \
+  -m grok-extend-video \
   -d 6 \
   -o scene-extended.mp4
-```
-
-### Video edit
-
-Describe what stays **and** what changes. Order matters — put the preservation clauses first so the model locks them before processing the change.
-
-```bash
-pixcli video "Keep the original motion and camera work. Change the character's hair to long red hair. Add fog rolling through the background." \
-  --from original.mp4 \
-  -m seedance-2-video-edit \
-  -d 5 \
-  -o edited.mp4
 ```
 
 ### Avatar / talking head
@@ -268,29 +257,43 @@ Don't stuff the main prompt with "no jitter, no morphing" — it confuses the mo
 
 ## 10. pixcli Seedance model map
 
-All Seedance models go through muapi (backend: `muapi`). Routing happens automatically when you pass `-m seedance-*`, when the prompt mentions "seedance"/"bytedance"/"doubao", when you use the Seedance `@-grammar` for references, or when `--quality draft` selects a 480p tier.
+All Seedance models go through muapi (backend: `muapi`). Slugs match muapi's live catalog (verified 2026-04). Routing happens automatically when you pass `-m seedance-*`, when the prompt mentions "seedance"/"bytedance"/"doubao", when you use the Seedance `@-grammar` for references, or when `--quality draft` selects the cheapest fast tier.
 
-| Model ID | Type | Tier | Notes |
-|----------|------|------|-------|
-| `seedance-2-t2v` | Text → Video | Full | Default quality t2v |
-| `seedance-2-t2v-fast` | Text → Video | Fast | ~60% cost, slight quality tradeoff |
-| `seedance-2-t2v-480p` | Text → Video | Draft | Cheapest, for previews |
-| `seedance-2-i2v` | Image → Video | Full | Default quality i2v |
-| `seedance-2-i2v-fast` | Image → Video | Fast | ~60% cost |
-| `seedance-2-i2v-480p` | Image → Video | Draft | Cheapest, for previews |
-| `seedance-2-omni` | Multimodal | Full | Image + video + audio + character refs |
-| `seedance-2-omni-basic` | Multimodal | Basic | ~70% cost |
-| `seedance-2-first-last-frame` | Transition | Full | Start frame → end frame |
-| `seedance-2-video-edit` | Edit | Full | Modify existing video |
-| `seedance-2-extend` | Extend | Full | Continue existing video |
+### Pro tier (720p, native audio, 4–15s)
+
+| Model ID | Type | Notes |
+|----------|------|-------|
+| `seedance-2-t2v` | Text → Video | Default quality T2V |
+| `seedance-2-t2v-fast` | Text → Video | ~60% cost, slight quality tradeoff |
+| `seedance-2-i2v` | Image → Video | Default quality I2V; 1 image = start frame, 2–9 = omni-reference mode |
+| `seedance-2-i2v-fast` | Image → Video | ~60% cost |
+| `seedance-2-first-last-frame` | Transition | 1 image = first frame only, 2 = start→end transition |
+| `seedance-2-first-last-frame-fast` | Transition | ~60% cost |
+| `seedance-2-omni` | Multimodal | Up to **9 image refs + 3 audio refs** via `@image1..@image9` / `@audio1..@audio3` |
+| `seedance-2-omni-fast` | Multimodal | ~70% cost |
+
+### VIP tier (2K resolution, priority routing, ~50% premium)
+
+| Model ID | Type | Notes |
+|----------|------|-------|
+| `seedance-2-vip-t2v` | Text → Video | 2K, priority queue |
+| `seedance-2-vip-t2v-fast` | Text → Video | 2K + speed |
+| `seedance-2-vip-i2v` | Image → Video | 2K, priority queue |
+| `seedance-2-vip-i2v-fast` | Image → Video | 2K + speed |
+| `seedance-2-vip-first-last-frame` | Transition | 2K start→end |
+| `seedance-2-vip-first-last-frame-fast` | Transition | 2K + speed |
+| `seedance-2-vip-omni` | Multimodal | 2K, 9 image refs + 3 audio refs |
+| `seedance-2-vip-omni-fast` | Multimodal | 2K + speed |
+
+> Seedance does **not** offer video-extend or video-edit on muapi today. For extension, use `grok-extend-video`, `ltx-extend-video`, or `pixverse-v6-extend` (all on fal).
 
 ### Triggering Seedance automatically (no `-m` needed)
 
 Any of these will cause the config-driven router in `workers/config/routing.ts` to swap the classifier's pick to the right Seedance variant:
 
 - The prompt literally mentions **"seedance"**, **"bytedance"**, **"byte dance"**, **"sea dance"**, or **"doubao"**
-- The prompt uses the Seedance `@-grammar`: `@image1`, `@video2`, `@audio1`, `@character:id`, `@omni-character:id`
-- `--quality draft` on a video task → routes to the matching `*-480p` tier
+- The prompt uses the Seedance `@-grammar`: `@image1..@image9`, `@audio1..@audio3`, `@character:id`, `@omni-character:id`
+- `--quality draft` on a video task → routes to the matching `-fast` tier
 
 Otherwise the classifier picks the best fal model (Veo 3.1 Fast, Kling o3, PixVerse v6, LTX, etc.) and Seedance is bypassed.
 
@@ -321,14 +324,14 @@ pixcli image "Product shot: matte black headphones on white marble surface, soft
 pixcli video "Camera orbits slowly around the headphones, 90 degrees. Soft particles drift in the air. Clean, ultra-sharp. Smooth orbit, no jitter." \
   --from headphones.png -m seedance-2-i2v -d 8 -q high -o headphones-orbit.mp4
 
-# 3. Extend with a logo reveal
+# 3. Extend with a logo reveal (use a fal extend model — Seedance has no extend on muapi)
 pixcli video "Camera pulls back. Bold centered logo text appears and pulses once. Premium black background. Typography crisp and correctly spelled." \
-  --from headphones-orbit.mp4 --extend -m seedance-2-extend -d 5 -o headphones-full.mp4
+  --from headphones-orbit.mp4 --extend -m grok-extend-video -d 5 -o headphones-full.mp4
 ```
 
 ### Draft-quality iteration loop
 
-Use `--quality draft` to auto-route to the 480p Seedance tier. ~6× cheaper than full quality, good enough to validate composition + motion before committing to a hero render.
+Use `--quality draft` to auto-route to the cheapest Seedance fast tier. Faster + cheaper than full quality, good enough to validate composition + motion before committing to a hero render.
 
 ```bash
 pixcli video "Quick test: woman walking through rain, neon reflections, slow push-in, cinematic" \
@@ -355,11 +358,12 @@ pixcli video "A bartender slides a cocktail across a polished bar. Ice clinks. A
 | Generate from text | `seedance-2-t2v` | `-d 10 -q high` |
 | Animate a still image | `seedance-2-i2v` | `--from img.png` |
 | Transition between two frames | `seedance-2-first-last-frame` | `--from start.png --to end.png` |
-| Continue an existing clip | `seedance-2-extend` | `--from clip.mp4 --extend` |
-| Edit part of a video | `seedance-2-video-edit` | `--from clip.mp4` |
+| 2K hero shot | `seedance-2-vip-i2v` or `-vip-t2v` | premium tier |
+| Multi-image reference (up to 9) | `seedance-2-omni` | `--from a.png --from b.png …` + `@image1` grammar |
+| Audio-driven video | `seedance-2-omni` | `--audio-ref track.mp3` + `@audio1` |
+| Continue an existing clip | `grok-extend-video` (fal) | `--from clip.mp4 --extend` |
 | Fast draft iteration | auto (via `--quality draft`) | `-q draft` |
 | Add generated audio | any seedance model | `--audio` |
-| Full multimodal pipeline | `seedance-2-omni` | via API/advanced mode |
 
 ---
 
@@ -379,4 +383,7 @@ If any answer is no, fix it before burning credits on a full-quality generation.
 
 ---
 
-**See also:** `prompt-cookbook.md` for ready-to-paste recipes across all video models, and `command-reference.md` for the full pixcli flag reference.
+**See also:**
+- `prompt-cookbook.md` — ready-to-paste recipes across all video models.
+- `command-reference.md` — full pixcli flag reference.
+- `seedance-logo-motion.md` — specialist playbook for **logo animations / brand reveals**. The pixcli API auto-detects this case (attached logo image + logo/brand+motion keywords in the prompt) and swaps in a dedicated Motion Logo Director that emits a 6-stage timeline with sound design and music. Use that file any time you're animating a logo.

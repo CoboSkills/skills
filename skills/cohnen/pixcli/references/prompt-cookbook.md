@@ -192,20 +192,15 @@ pixcli video "Character leaps upward with explosive energy, arms raised, reachin
   -m seedance-2-first-last-frame -d 5 -r 16:9 -o leap.mp4
 ```
 
-### Seedance video extend (new seconds only)
+### Video extend (new seconds only — Seedance has no extend on muapi)
 ```bash
 # -d is the NEW seconds to add, not the total.
+# Use grok-extend-video, ltx-extend-video, or pixverse-v6-extend (all on fal).
 pixcli video "Camera tilts upward as the neon sign flickers on. Steam rises from the coffee cup. The door opens. Warm street light spills into the room." \
-  --from scene.mp4 --extend -m seedance-2-extend -d 6 -o scene-extended.mp4
+  --from scene.mp4 --extend -m grok-extend-video -d 6 -o scene-extended.mp4
 ```
 
-### Seedance video edit (change identity, keep motion)
-```bash
-pixcli video "Keep the original motion and camera work. Change the character's hair to long red hair. Add fog rolling through the background." \
-  --from original.mp4 -m seedance-2-video-edit -d 5 -o edited.mp4
-```
-
-### Draft iteration loop (auto-routes to 480p Seedance)
+### Draft iteration loop (auto-routes to fast Seedance tier)
 ```bash
 # --quality draft triggers the 480p Seedance tier — ~6x cheaper.
 # Validate composition + motion before committing to a full render.

@@ -259,7 +259,7 @@ pixcli video "The cat jumps over a fence" --from cat.mp4 --extend -o cat-extende
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `--from <path-or-url>` | — | Source image (I2V) or video (extend) |
+| `--from <path-or-url>` | — | Source image (I2V) or video (extend). **Repeatable** for multi-reference models (Seedance reference / Omni): `--from a.png --from b.png`. Single-reference models receive the first one and ignore the rest. |
 | `--to <path-or-url>` | — | End image — video transitions from `--from` to `--to` (Kling/PixVerse transition models) |
 | `--negative <prompt>` | — | Negative prompt describing what to avoid |
 | `--audio` | `false` | Enable native audio generation (BGM, SFX, dialogue) on supported models |
@@ -274,9 +274,11 @@ pixcli video "The cat jumps over a fence" --from cat.mp4 --extend -o cat-extende
 
 **Models — fal backend**: `veo31-lite-i2v` (default I2V, Veo 3.1 Lite), `veo31-lite-t2v` (default T2V, Veo 3.1 Fast), `veo31-lite-transition` (start→end frame), `kling-o3-pro-i2v` (cinematic, best quality), `kling-o3-pro-t2v`, `kling-o3-standard-i2v`, `kling-o3-standard-t2v`, `kling-v3-pro-i2v`, `veo3-i2v` (premium, native audio + lipsync), `veo3-t2v`, `pixverse-v6-i2v` / `-t2v` / `-transition` / `-extend` (stylized, audio, multi-clip), `ltx-t2v` (budget T2V), `ltx-extend-video` (budget extension, native audio), `wan-v2-i2v` (cheap motion), `minimax-i2v` (fast, avoid for faces), `grok-extend-video`
 
-**Models — muapi backend (Seedance 2 family)**: `seedance-2-t2v` / `-fast` / `-480p`, `seedance-2-i2v` / `-fast` / `-480p`, `seedance-2-omni` / `-basic` (multimodal with image/video/audio/character refs), `seedance-2-first-last-frame`, `seedance-2-video-edit`, `seedance-2-extend`. Routing is automatic: mention "seedance" / "bytedance" / "doubao" in the prompt, use the `@image1`/`@video1`/`@character:id` grammar, or pass `--quality draft` to opt in. See `references/seedance-playbook.md` for the full prompt playbook.
+**Models — muapi backend (Seedance 2 family)**: `seedance-2-t2v` / `-fast`, `seedance-2-i2v` / `-fast`, `seedance-2-omni` / `-fast` (multimodal: up to 9 image refs + 3 audio refs via `@image1..@image9` / `@audio1..@audio3`), `seedance-2-first-last-frame` / `-fast`. **VIP / 2K tier** (priority routing, 2K resolution, ~50% premium): `seedance-2-vip-t2v` / `-fast`, `seedance-2-vip-i2v` / `-fast`, `seedance-2-vip-first-last-frame` / `-fast`, `seedance-2-vip-omni` / `-fast`. Routing is automatic: mention "seedance" / "bytedance" / "doubao" in the prompt, use the `@image1`/`@audio1`/`@character:id` grammar, or pass `--quality draft` (routes to `-fast`). See `references/seedance-playbook.md` for the full prompt playbook.
 
 **Opinionated approach:** Always generate a still first with `pixcli image`, review it, then animate with `pixcli video --from`. This gives you control over the starting frame.
+
+**Logo animations (brand reveals / intros / bumpers):** pass `--from logo.png` and mention both "logo"/"brand" AND an animation intent ("reveal", "intro", "bumper", "animate") in the prompt — the API auto-detects this and swaps in a specialist Motion Logo Director that emits a 6-stage timeline with sound design, music, and optional voiceover. See `references/seedance-logo-motion.md` for the full playbook.
 
 ### Video prompting — the core formula
 
@@ -574,6 +576,7 @@ Read `references/remotion-playbook.md` for detailed Remotion implementation guid
 - `references/creative-guidelines.md` — Quality standards for productions
 - `references/prompt-cookbook.md` — Proven prompt patterns for every task
 - `references/seedance-playbook.md` — Video prompting masterclass (Seedance 2 + all video models): 6-element formula, camera catalog, lighting table, timeline prompting, multimodal role assignment, 10+ ready-to-paste recipes
+- `references/seedance-logo-motion.md` — **Logo animation specialist playbook.** Use when the user provides a logo image + asks for a brand reveal / intro / bumper. Auto-activated by the API when `--from logo.png` is combined with logo+motion keywords.
 - `references/workflow-recipes.md` — End-to-end recipe examples
 - `references/ancillary-assets.md` — Asset generation strategy for Remotion scenes
 

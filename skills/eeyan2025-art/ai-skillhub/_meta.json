@@ -1,13 +1,18 @@
 {
   "owner": "eeyan2025-art",
   "slug": "ai-skillhub",
-  "displayName": "Ai Skillhub",
+  "displayName": "AI SkillHub",
   "latest": {
-    "version": "3.0.0",
-    "publishedAt": 1776078287528,
-    "commit": "https://github.com/openclaw/skills/commit/a90ebf20ceed5876efea24915fa89eb701a16e15"
+    "version": "2.1.0",
+    "publishedAt": 1776158524537,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.0",
+      "publishedAt": 1776078287528,
+      "commit": "https://github.com/openclaw/skills/commit/a90ebf20ceed5876efea24915fa89eb701a16e15"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1775634568004,

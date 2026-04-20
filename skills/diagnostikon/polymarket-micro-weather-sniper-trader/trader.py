@@ -59,6 +59,10 @@ CITIES = {
     "tokyo": {"lat": 35.6762, "lon": 139.6503, "unit": "C"},
     "singapore": {"lat": 1.3521, "lon": 103.8198, "unit": "C"},
     "buenos aires": {"lat": -34.6037, "lon": -58.3816, "unit": "C"},
+    "cape town": {"lat": -33.9249, "lon": 18.4241, "unit": "C"},
+    "lagos": {"lat": 6.5244, "lon": 3.3792, "unit": "C"},
+    "milan": {"lat": 45.4642, "lon": 9.1900, "unit": "C"},
+    "shenzhen": {"lat": 22.5431, "lon": 114.0579, "unit": "C"},
 }
 
 _client: SimmerClient | None = None
@@ -80,6 +84,8 @@ def get_client(live: bool = False) -> SimmerClient:
             api_key=os.environ["SIMMER_API_KEY"],
             venue=venue,
         )
+        if live:
+            _client.live = True
         try:
             _client.apply_skill_config(SKILL_SLUG)
         except AttributeError:

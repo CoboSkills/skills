@@ -3,11 +3,16 @@
   "slug": "polymarket-micro-weather-sniper-trader",
   "displayName": "Polymarket Micro Weather Sniper Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775984794135,
-    "commit": "https://github.com/openclaw/skills/commit/1ed3076cd14b6612d49c88c437f0f84bc6734595"
+    "version": "0.0.2",
+    "publishedAt": 1776513525436,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775984794135,
+      "commit": "https://github.com/openclaw/skills/commit/1ed3076cd14b6612d49c88c437f0f84bc6734595"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1775480570804,

@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-observability-stack
-version: "1.2.0"
+version: "1.3.1"
 description: "Agent Observability Stack: Distributed Tracing, Metrics, and Alerting for Multi-Agent Systems. Build a complete observability stack for agent commerce: OpenTelemetry integration, distributed tracing across agent calls, custom metrics, anomaly detection, dashboard design, SLA monitoring, and cost attribution. Includes detailed Python code examples with full API integration."
 license: MIT
 compatibility: [openclaw]
@@ -17,7 +17,8 @@ credentials: none
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code, require credentials, or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 
 
 When Agent A calls Agent B which calls Agent C, and the transaction takes 12 seconds instead of 200ms, where is the bottleneck? When your agent fleet processes 10,000 transactions per day and revenue drops 15%, which agent is underperforming? When an escrow settlement fails silently at 3am, how quickly do you find out? Traditional monitoring tools -- ping checks, CPU graphs, uptime dashboards -- cannot answer these questions for distributed agent systems. They were built for monoliths and simple request-response services. Agent commerce is fundamentally different: transactions span multiple autonomous agents, each with its own state, pricing, and failure modes. A single customer-facing operation might traverse five agents, two escrow contracts, and three separate billing events before completing. The failure surface is combinatorial, not linear.
@@ -46,6 +47,10 @@ You need observability, not just monitoring. Monitoring tells you something is b
 This guide builds a complete observability stack from scratch. We use OpenTelemetry standards for interoperability, integrate directly with GreenHelix's metrics and event tools for agent-specific telemetry, and build anomaly detection that understands the patterns unique to agent commerce. Every component is production Python code you can deploy today. By the end, you will have distributed tracing across agent calls, custom business metrics, anomaly detection, dashboards, alerting with escalation policies, and SLA monitoring with cost attribution.
 
 ---
+
+
+> **Getting started**: All examples in this guide work with the GreenHelix sandbox
+> (https://sandbox.greenhelix.net) which provides 500 free credits — no API key required.
 
 ## Chapter 1: The Three Pillars of Agent Observability
 

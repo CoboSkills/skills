@@ -4,12 +4,15 @@ JSON format reference per agent.
 
 ## File Locations
 
-| Agent | File | Scope |
-|-------|------|-------|
-| (Project) | `./.mcp.json` | Current project only |
-| Claude Code | `~/.mcp.json` | Global |
-| Cursor | `~/.cursor/mcp.json` | Global |
-| Antigravity | `~/.gemini/antigravity/mcp_config.json` | Global |
+| Agent | File | Key Path | Scope | Method |
+|-------|------|----------|-------|--------|
+| Claude Code (local) | `~/.claude.json` | `projects[path].mcpServers` | This machine, this project | `claude mcp add --scope local` (default) |
+| Claude Code (user) | `~/.claude.json` | root `mcpServers` | This machine, all projects | `claude mcp add --scope user` |
+| Claude Code (project) | `./.mcp.json` | `mcpServers` | Committed to repo, shared with team | `claude mcp add --scope project` |
+| Cursor | `~/.cursor/mcp.json` | Global | Manual edit |
+| Antigravity | `~/.gemini/antigravity/mcp_config.json` | Global | Manual edit |
+
+**IMPORTANT**: Claude Code requires `claude mcp add` CLI. Manual `.mcp.json` edits are NOT recognized.
 
 ## Basic Format
 

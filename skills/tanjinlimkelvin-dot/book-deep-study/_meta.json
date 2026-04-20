@@ -3,9 +3,15 @@
   "slug": "book-deep-study",
   "displayName": "Book Deep Study",
   "latest": {
-    "version": "3.1.0",
-    "publishedAt": 1775402800244,
-    "commit": "https://github.com/openclaw/skills/commit/ac9910051a35911bd16bfaded20094148cd9d4af"
+    "version": "3.1.1",
+    "publishedAt": 1776559105696,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "3.1.0",
+      "publishedAt": 1775402800244,
+      "commit": "https://github.com/openclaw/skills/commit/ac9910051a35911bd16bfaded20094148cd9d4af"
+    }
+  ]
 }

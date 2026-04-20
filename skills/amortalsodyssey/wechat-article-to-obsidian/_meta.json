@@ -3,11 +3,16 @@
   "slug": "wechat-article-to-obsidian",
   "displayName": "WeChat Article to Obsidian",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1775120460952,
-    "commit": "https://github.com/openclaw/skills/commit/5fb2d82e875df1930c513fa74ecac56f2afe5ce5"
+    "version": "1.1.2",
+    "publishedAt": 1776080465279,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1775120460952,
+      "commit": "https://github.com/openclaw/skills/commit/5fb2d82e875df1930c513fa74ecac56f2afe5ce5"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1775012313600,

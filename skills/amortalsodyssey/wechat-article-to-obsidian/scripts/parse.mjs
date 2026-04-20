@@ -48,6 +48,13 @@ function extractMeta(html) {
     const bj = new Date(d.getTime() + 8 * 3600 * 1000);
     publishDate = bj.toISOString().replace("T", " ").replace(/\.\d+Z$/, "");
   }
+  if (!publishDate) {
+    publishDate =
+      get(/<div[^>]*id="publish_time"[^>]*>([\s\S]*?)<\//) ||
+      get(/<span[^>]*id="publish_time"[^>]*>([\s\S]*?)<\//) ||
+      "";
+    publishDate = publishDate.replace(/<[^>]+>/g, "").trim();
+  }
 
   const desc = get(/var msg_desc = htmlDecode\("([\s\S]*?)"\)/) || "";
   const sourceUrl = get(/var msg_link = "(.*?)"/) || "";

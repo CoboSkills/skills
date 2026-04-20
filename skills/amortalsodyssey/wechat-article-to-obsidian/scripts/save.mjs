@@ -1,133 +1,84 @@
 #!/usr/bin/env node
-/**
- * Save Markdown to Obsidian vault
- *
- * Usage: node save.mjs <markdown_file> [--path <vault_subpath>]
- *
- * Reads config.json for vault name and default path.
- * Filename is derived from the YAML frontmatter title.
- *
- * Tries obsidian CLI first, falls back to direct file write.
- */
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import process from 'node:process';
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "fs";
-import { execSync } from "child_process";
-import { dirname, join, resolve } from "path";
-import { fileURLToPath } from "url";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const configPath = join(__dirname, "..", "config.json");
-
-// --- Args ---
-const args = process.argv.slice(2);
-const mdFile = args.find(a => !a.startsWith("--"));
-let overridePath = null;
-const pathIdx = args.indexOf("--path");
-if (pathIdx !== -1 && args[pathIdx + 1]) {
-  overridePath = args[pathIdx + 1];
-}
-
-if (!mdFile) {
-  console.error("Usage: node save.mjs <markdown_file> [--path <vault_subpath>]");
-  process.exit(1);
-}
-
-// --- Config ---
-let config = { obsidian_vault: "", default_path: "" };
-try {
-  config = JSON.parse(readFileSync(configPath, "utf-8"));
-} catch {}
-
-if (!config.obsidian_vault) {
-  console.error("Error: obsidian_vault not configured in config.json");
-  console.error("Run the skill once and let your AI agent set it up, or edit config.json manually.");
-  process.exit(1);
-}
-
-const vaultName = config.obsidian_vault;
-const savePath = overridePath || config.default_path;
-
-if (!savePath) {
-  console.error("Error: no save path specified (use --path or set default_path in config.json)");
-  process.exit(1);
-}
-
-// --- Read markdown and extract title for filename ---
-const mdContent = readFileSync(mdFile, "utf-8");
-let filename = "untitled.md";
-
-const titleMatch = mdContent.match(/^title:\s*"(.+?)"/m);
-if (titleMatch) {
-  // Clean title for filename: keep Chinese chars, alphanumeric, spaces→underscores
-  filename = titleMatch[1]
-    .replace(/[\/\\:*?"<>|]/g, "")
-    .trim() + ".md";
-}
-
-const targetPath = `${savePath}/${filename}`;
-
-// --- Try obsidian CLI first ---
-function tryObsidianCli() {
-  try {
-    // Check if obsidian CLI exists
-    execSync("which obsidian", { stdio: "ignore" });
-
-    // Escape content for shell - write to temp file and read it
-    const tmpFile = `/tmp/wx_save_${Date.now()}.md`;
-    writeFileSync(tmpFile, mdContent);
-    const content = readFileSync(tmpFile, "utf-8");
-
-    execSync(
-      `obsidian create path="${targetPath}" content="${content.replace(/"/g, '\\"').replace(/\$/g, '\\$')}" vault=${vaultName}`,
-      { stdio: "inherit", timeout: 10000 }
-    );
-
-    // Clean up temp file
-    try { execSync(`rm ${tmpFile}`, { stdio: "ignore" }); } catch {}
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-// --- Fallback: direct file write ---
-function directWrite() {
-  // Try to find vault disk path
-  const homeDir = process.env.HOME || process.env.USERPROFILE;
-  const possiblePaths = [
-    join(homeDir, "Library/Mobile Documents/iCloud~md~obsidian/Documents", vaultName),
-    join(homeDir, "Documents/obsidian", vaultName),
-    join(homeDir, "Obsidian", vaultName),
-    join(homeDir, vaultName),
-  ];
-
-  let vaultRoot = null;
-  for (const p of possiblePaths) {
-    if (existsSync(p)) {
-      vaultRoot = p;
-      break;
+function parseArgs(argv) {
+  const args = {};
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (!arg.startsWith('--')) continue;
+    const key = arg.slice(2);
+    const value = argv[i + 1];
+    if (value === undefined || value.startsWith('--')) {
+      args[key] = 'true';
+      continue;
     }
+    args[key] = value;
+    i += 1;
   }
-
-  if (!vaultRoot) {
-    console.error(`Error: could not find vault "${vaultName}" on disk.`);
-    console.error("Searched:", possiblePaths.join(", "));
-    console.error("Use obsidian CLI or specify the vault disk path manually.");
-    process.exit(1);
-  }
-
-  const fullPath = join(vaultRoot, targetPath);
-  mkdirSync(dirname(fullPath), { recursive: true });
-  writeFileSync(fullPath, mdContent, "utf-8");
-  console.log(`Saved: ${fullPath}`);
+  return args;
 }
 
-// --- Execute ---
-console.log(`Saving to vault="${vaultName}" path="${targetPath}"`);
-
-if (!tryObsidianCli()) {
-  console.log("obsidian CLI not available, falling back to direct file write...");
-  directWrite();
+function sanitizeFilename(name) {
+  return (name || 'wechat-article')
+    .replace(/[\\/:*?"<>|]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\.+$/g, '') || 'wechat-article';
 }
 
-console.log("Done.");
+function safeRelativeNotePath(targetPath, filename) {
+  const cleanTarget = (targetPath || '').replace(/^\/+|\/+$/g, '');
+  const cleanFile = `${sanitizeFilename(filename)}.md`;
+  const combined = cleanTarget ? path.posix.join(cleanTarget, cleanFile) : cleanFile;
+  const normalized = path.posix.normalize(combined);
+  if (normalized.startsWith('../') || normalized === '..' || path.posix.isAbsolute(normalized)) {
+    throw new Error(`Unsafe target path: ${targetPath}`);
+  }
+  return normalized;
+}
+
+async function writeNoteToVault({ markdown, config, notePath }) {
+  if (!config.vault_disk_root) {
+    throw new Error('vault_disk_root is required for safe direct-write saving');
+  }
+
+  const fullPath = path.resolve(config.vault_disk_root, ...notePath.split('/'));
+  const relativeToRoot = path.relative(config.vault_disk_root, fullPath);
+  if (relativeToRoot.startsWith('..') || path.isAbsolute(relativeToRoot)) {
+    throw new Error(`Unsafe resolved path outside vault root: ${fullPath}`);
+  }
+
+  await fs.mkdir(path.dirname(fullPath), { recursive: true });
+  await fs.writeFile(fullPath, markdown, 'utf8');
+  return fullPath;
+}
+
+async function main() {
+  const args = parseArgs(process.argv.slice(2));
+  const markdownPath = args.markdown;
+  const configPath = args.config;
+  const title = args.title;
+  const targetPath = args['target-path'];
+
+  if (!markdownPath || !configPath || !title) {
+    throw new Error('Usage: save.mjs --markdown <file> --config <config.json> --title <title> [--target-path <path>]');
+  }
+
+  const markdown = await fs.readFile(markdownPath, 'utf8');
+  const config = JSON.parse(await fs.readFile(configPath, 'utf8'));
+  const notePath = safeRelativeNotePath(targetPath || config.default_path || 'notes/wechat', title);
+  const fullPath = await writeNoteToVault({ markdown, config, notePath });
+
+  console.log(JSON.stringify({
+    method: 'direct-write',
+    notePath,
+    fullPath,
+  }, null, 2));
+}
+
+main().catch((error) => {
+  console.error(error.stack || String(error));
+  process.exit(1);
+});

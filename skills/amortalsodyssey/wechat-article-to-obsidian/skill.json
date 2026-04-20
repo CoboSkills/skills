@@ -1,8 +1,8 @@
 {
   "name": "wechat-article-to-obsidian",
   "displayName": "WeChat Article to Obsidian",
-  "description": "Save WeChat public account articles (微信公众号文章) as clean Markdown notes in Obsidian. Just give it a mp.weixin.qq.com link. Supports single and batch saves, natural language path override, and auto-config on first use.",
-  "version": "1.0.0",
+  "description": "Save WeChat public account articles (微信公众号文章) as clean Markdown notes in Obsidian. Just give it a mp.weixin.qq.com link. Supports single and batch saves, natural language path override, and safe direct-write saving inside the configured vault root.",
+  "version": "1.1.2",
   "author": {
     "name": "AMortalsOdyssey",
     "url": "https://github.com/AMortalsOdyssey"
@@ -26,8 +26,8 @@
   "config": {
     "obsidian_vault": {
       "type": "string",
-      "description": "Obsidian vault name for obsidian-cli",
-      "required": true,
+      "description": "Obsidian vault name reference",
+      "required": false,
       "default": "",
       "placeholder": "MyVault"
     },
@@ -35,8 +35,15 @@
       "type": "string",
       "description": "Default save path inside the vault",
       "required": true,
-      "default": "",
+      "default": "notes/wechat",
       "placeholder": "notes/wechat"
+    },
+    "vault_disk_root": {
+      "type": "string",
+      "description": "Absolute disk path of the Obsidian vault root for direct-write saving",
+      "required": false,
+      "default": "",
+      "placeholder": "/path/to/your/obsidian/vault"
     }
   },
   "triggers": [

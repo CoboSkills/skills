@@ -13,6 +13,7 @@ Examples:
 """
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -22,50 +23,19 @@ ALLOWED_RESOURCES = {"scripts", "references", "assets"}
 
 SKILL_TEMPLATE = """---
 name: {skill_name}
-description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
+description: Concise explanation of what this skill does and when to trigger it.
 ---
 
 # {skill_title}
 
 ## Overview
 
-[TODO: 1-2 sentences explaining what this skill enables]
+Replace this section with 1-2 sentences that explain what the skill enables.
 
-## Structuring This Skill
+## Execution
 
-[TODO: Choose the structure that best fits this skill's purpose. Common patterns:
-
-**1. Workflow-Based** (best for sequential processes)
-- Works well when there are clear step-by-step procedures
-- Example: DOCX skill with "Workflow Decision Tree" -> "Reading" -> "Creating" -> "Editing"
-- Structure: ## Overview -> ## Workflow Decision Tree -> ## Step 1 -> ## Step 2...
-
-**2. Task-Based** (best for tool collections)
-- Works well when the skill offers different operations/capabilities
-- Example: PDF skill with "Quick Start" -> "Merge PDFs" -> "Split PDFs" -> "Extract Text"
-- Structure: ## Overview -> ## Quick Start -> ## Task Category 1 -> ## Task Category 2...
-
-**3. Reference/Guidelines** (best for standards or specifications)
-- Works well for brand guidelines, coding standards, or requirements
-- Example: Brand styling with "Brand Guidelines" -> "Colors" -> "Typography" -> "Features"
-- Structure: ## Overview -> ## Guidelines -> ## Specifications -> ## Usage...
-
-**4. Capabilities-Based** (best for integrated systems)
-- Works well when the skill provides multiple interrelated features
-- Example: Product Management with "Core Capabilities" -> numbered capability list
-- Structure: ## Overview -> ## Core Capabilities -> ### 1. Feature -> ### 2. Feature...
-
-Patterns can be mixed and matched as needed. Most skills combine patterns (e.g., start with task-based, add workflow for complex operations).
-
-Delete this entire "Structuring This Skill" section when done - it's just guidance.]
-
-## [TODO: Replace with the first main section based on chosen structure]
-
-[TODO: Add content here. See examples in existing skills:
-- Code samples for technical skills
-- Decision trees for complex workflows
-- Concrete examples with realistic user requests
-- References to scripts/templates/references as needed]
+1. Replace this scaffold with the real workflow for the skill, then output the revised section.
+2. Add only the resource folders this skill actually needs, then stop when the structure matches the task.
 
 ## Resources (optional)
 
@@ -162,6 +132,27 @@ Reference docs are ideal for:
 - Common patterns
 - Troubleshooting
 - Best practices
+"""
+
+DEFAULT_META = {
+    "ownerId": "",
+    "slug": "{skill_name}",
+    "version": "0.1.0",
+    "publishedAt": 0,
+}
+
+DEFAULT_CLAWHUBIGNORE = """.clawhub/
+__pycache__/
+.git/
+.env*
+*.skill
+temp/
+node_modules/
+coverage/
+.diagnostics/
+.sessions/
+.profile/
+.daemon-ws-endpoint
 """
 
 EXAMPLE_ASSET = """# Example Asset File
@@ -291,6 +282,32 @@ def init_skill(skill_name, path, resources, include_examples):
         print("[OK] Created SKILL.md")
     except Exception as e:
         print(f"[ERROR] Error creating SKILL.md: {e}")
+        return None
+
+    meta_path = skill_dir / "_meta.json"
+    try:
+        meta_path.write_text(
+            json.dumps(
+                {
+                    **DEFAULT_META,
+                    "slug": skill_name,
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        print("[OK] Created _meta.json")
+    except Exception as e:
+        print(f"[ERROR] Error creating _meta.json: {e}")
+        return None
+
+    clawhubignore_path = skill_dir / ".clawhubignore"
+    try:
+        clawhubignore_path.write_text(DEFAULT_CLAWHUBIGNORE, encoding="utf-8")
+        print("[OK] Created .clawhubignore")
+    except Exception as e:
+        print(f"[ERROR] Error creating .clawhubignore: {e}")
         return None
 
     # Create resource directories if requested

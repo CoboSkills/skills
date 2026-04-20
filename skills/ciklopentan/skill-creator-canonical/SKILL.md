@@ -108,11 +108,12 @@ If all are true, skip deep review and write a 3-line self-check:
 - no step order or branch condition was added, removed, or changed
 Otherwise run full `dual-thinking` review.
 Runtime note: this path requires the `dual-thinking` skill to be installed and available in the user's environment.
-1. If `dual-thinking` is unavailable, stop with one explicit note that review is blocked by a missing dependency.
+1. If `dual-thinking` is unavailable, emit exactly: `REVIEW BLOCKED: dual-thinking skill not found. Run: clawhub install dual-thinking. If installation is not possible, ask the user whether to continue without deep review.` Then stop the skill execution.
 2. If reviewing, use the real `SKILL.md` text.
 3. If reviewing, surface the top remaining failure mode and patch it.
-4. Continue only while a concrete remaining failure mode still exists. Stop once the active consultant and you both agree that further improvement would only add churn, then output the review result.
-5. If skipping, write exactly: what changed, what could break, and why deep review is safe to skip.
+4. If the user declared a larger review round plan before Step 6 began, keep reviewing until that declared plan is complete unless validation blocks further honest review, then output the remaining round target.
+5. Otherwise continue only while a concrete remaining failure mode still exists. Stop once the active consultant and you both agree that further improvement would only add churn, then output the review result.
+6. If skipping, write exactly: what changed, what could break, and why deep review is safe to skip.
 Output: `<review-artifact>`.
 Stop when `<review-artifact>` exists.
 
@@ -138,8 +139,9 @@ Stop when the package file exists and the checklist confirmation exists.
 ### Step 9 — Publish if needed
 1. Publish only if the user asked for distribution; otherwise stop with a no-publish decision.
 2. Publish only after validation, packaging, and the checklist confirmation from Step 8 succeed; otherwise stop before publishing.
-3. Confirm that `.clawhubignore` exists before publishing. If it is missing, create or update it, then output that change before continuing.
-4. Use the publishing command or tool documented in the user's environment, then output the publish result.
+3. Ensure `.clawhubignore` exists before publishing. If it is missing, create it with this baseline: `.clawhub/`, `__pycache__/`, `.git/`, `.env*`, `*.skill`, `temp/`, `node_modules/`, `coverage/`, `.diagnostics/`, `.sessions/`, `.profile/`, `.daemon-ws-endpoint`. If it already exists, update it to include any missing baseline line. Output the final file.
+4. Determine the release metadata before publishing. Set the publish command inputs for `--slug`, `--name`, `--version`, and `--changelog`, then output those values.
+5. Run `clawhub skill publish <skill-dir> --slug <slug> --name "<name>" --version <semver> --changelog "<1-sentence summary>"`, then output the exact command and the raw CLI result.
 Output: a published release or a deliberate no-publish decision.
 Stop when publication is complete or intentionally skipped.
 

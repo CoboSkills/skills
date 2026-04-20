@@ -95,7 +95,19 @@ def validate_skill(skill_path):
                 "Invalid YAML in frontmatter: unsupported syntax without PyYAML installed",
             )
 
-    allowed_properties = {"name", "description", "license", "allowed-tools", "metadata"}
+    allowed_properties = {
+        "name",
+        "description",
+        "license",
+        "allowed-tools",
+        "metadata",
+        "homepage",
+        "user-invocable",
+        "disable-model-invocation",
+        "command-dispatch",
+        "command-tool",
+        "command-arg-mode",
+    }
 
     unexpected_keys = set(frontmatter.keys()) - allowed_properties
     if unexpected_keys:

@@ -3,6 +3,7 @@
 Regression tests for skill packaging security behavior.
 """
 
+import json
 import sys
 import tempfile
 import types
@@ -40,11 +41,40 @@ class TestPackageSkillSecurity(TestCase):
         if self.temp_dir.exists():
             shutil.rmtree(self.temp_dir)
 
-    def create_skill(self, name="test-skill"):
+    def create_skill(self, name="test-skill", version="1.0.1", installed_version="1.0.0"):
         skill_dir = self.temp_dir / name
         skill_dir.mkdir(parents=True, exist_ok=True)
         (skill_dir / "SKILL.md").write_text("---\nname: test-skill\ndescription: test\n---\n")
         (skill_dir / "script.py").write_text("print('ok')\n")
+        (skill_dir / "_meta.json").write_text(
+            json.dumps(
+                {
+                    "ownerId": "",
+                    "slug": name,
+                    "version": version,
+                    "publishedAt": 0,
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        clawhub_dir = skill_dir / ".clawhub"
+        clawhub_dir.mkdir(parents=True, exist_ok=True)
+        (clawhub_dir / "origin.json").write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "registry": "https://clawhub.ai",
+                    "slug": name,
+                    "installedVersion": installed_version,
+                    "installedAt": 0,
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
         return skill_dir
 
     def test_packages_normal_files(self):
@@ -154,6 +184,89 @@ class TestPackageSkillSecurity(TestCase):
         self.assertIn("self-output-skill/SKILL.md", names)
         self.assertIn("self-output-skill/script.py", names)
         self.assertNotIn("self-output-skill/self-output-skill.skill", names)
+
+    def test_skips_runtime_noise_directories(self):
+        skill_dir = self.create_skill("noise-skill")
+        (skill_dir / ".clawhubignore").write_text(
+            ".diagnostics/\n.sessions/\n.profile/\ncoverage/\ntemp/\n",
+            encoding="utf-8",
+        )
+        for relative_path in [
+            ".diagnostics/log.txt",
+            ".sessions/chat.json",
+            ".profile/state.db",
+            "coverage/index.html",
+            "temp/tmp.txt",
+        ]:
+            target = skill_dir / relative_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("noise\n")
+        out_dir = self.temp_dir / "out"
+        out_dir.mkdir(exist_ok=True)
+
+        result = package_skill(str(skill_dir), str(out_dir))
+
+        self.assertIsNotNone(result)
+        skill_file = out_dir / "noise-skill.skill"
+        with zipfile.ZipFile(skill_file, "r") as archive:
+            names = set(archive.namelist())
+        self.assertIn("noise-skill/SKILL.md", names)
+        self.assertIn("noise-skill/script.py", names)
+        self.assertNotIn("noise-skill/.diagnostics/log.txt", names)
+        self.assertNotIn("noise-skill/.sessions/chat.json", names)
+        self.assertNotIn("noise-skill/.profile/state.db", names)
+        self.assertNotIn("noise-skill/coverage/index.html", names)
+        self.assertNotIn("noise-skill/temp/tmp.txt", names)
+
+    def test_respects_file_level_clawhubignore_patterns(self):
+        skill_dir = self.create_skill("ignore-files-skill")
+        (skill_dir / ".clawhubignore").write_text(
+            ".env*\n*.skill\n.daemon-ws-endpoint\n",
+            encoding="utf-8",
+        )
+        (skill_dir / ".env.local").write_text("SECRET=1\n")
+        (skill_dir / "draft.skill").write_text("archive\n")
+        (skill_dir / ".daemon-ws-endpoint").write_text("ws://127.0.0.1\n")
+        out_dir = self.temp_dir / "out"
+        out_dir.mkdir(exist_ok=True)
+
+        result = package_skill(str(skill_dir), str(out_dir))
+
+        self.assertIsNotNone(result)
+        skill_file = out_dir / "ignore-files-skill.skill"
+        with zipfile.ZipFile(skill_file, "r") as archive:
+            names = set(archive.namelist())
+        self.assertIn("ignore-files-skill/SKILL.md", names)
+        self.assertIn("ignore-files-skill/script.py", names)
+        self.assertNotIn("ignore-files-skill/.env.local", names)
+        self.assertNotIn("ignore-files-skill/draft.skill", names)
+        self.assertNotIn("ignore-files-skill/.daemon-ws-endpoint", names)
+
+    def test_rejects_stale_meta_version_against_origin(self):
+        skill_dir = self.create_skill("stale-version-skill", version="1.0.0", installed_version="1.0.0")
+        out_dir = self.temp_dir / "out"
+        out_dir.mkdir(exist_ok=True)
+
+        result = package_skill(str(skill_dir), str(out_dir))
+
+        self.assertIsNone(result)
+
+    def test_skips_clawhub_origin_metadata_from_archive(self):
+        skill_dir = self.create_skill("originless-archive-skill")
+        (skill_dir / ".clawhubignore").write_text(
+            ".clawhub/\n",
+            encoding="utf-8",
+        )
+        out_dir = self.temp_dir / "out"
+        out_dir.mkdir(exist_ok=True)
+
+        result = package_skill(str(skill_dir), str(out_dir))
+
+        self.assertIsNotNone(result)
+        skill_file = out_dir / "originless-archive-skill.skill"
+        with zipfile.ZipFile(skill_file, "r") as archive:
+            names = set(archive.namelist())
+        self.assertNotIn("originless-archive-skill/.clawhub/origin.json", names)
 
 
 if __name__ == "__main__":

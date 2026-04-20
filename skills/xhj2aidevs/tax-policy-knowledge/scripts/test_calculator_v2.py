@@ -5,10 +5,15 @@
 """
 import sys
 import os
-# 添加父目录到路径
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + '/scripts')
-# 导入计算器类
-exec(open('tax_policy_calculator.py').read())
+from pathlib import Path
+
+# 获取当前脚本所在目录，定位同级的 tax_policy_calculator.py
+SCRIPTS_DIR = Path(__file__).parent.resolve()
+sys.path.insert(0, str(SCRIPTS_DIR))
+
+# 正规模块导入，替代危险的 exec() 动态执行
+from tax_policy_calculator import TaxCalculator
+
 def test_calculations():
     """测试各类税务计算"""
     calculator = TaxCalculator()

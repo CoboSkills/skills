@@ -1,21 +1,30 @@
 # 财税政策知识库 (Tax Policy Knowledge Base)
-> 版本：v1.1.0 | 更新日期：2026-04-08
+> 版本：v1.3.0 | 更新日期：2026-04-20 | 兼容：ClawHub 8192 tokens 限制
+
 基于国家相关官方政策法规库近三年有效财税政策的专业知识库Skill。
-## 📋 项目概述
+## [LIST] 项目概述
 本Skill为企业财务人员、税务从业者、个体工商户提供权威、准确、及时的财税政策查询、解读与应用指导服务，涵盖增值税、企业所得税、个人所得税等核心税种。
-## 📁 文件结构
+## [FOLDER] 文件结构 (v1.3.0 优化版)
 ```
 tax-policy-knowledge/
-├── SKILL.md                          # 技能主文档（核心）
-├── skill.yaml                        # 技能配置文件
+├── SKILL.md                          # 技能主文档（~1700 tokens，符合ClawHub限制）
 ├── README.md                         # 项目说明文档
 ├── references/
-│   └── tax-policy-database.md        # 财税政策详细数据库
+│   ├── vat-policy.md                # 增值税政策法规详解
+│   ├── cit-policy.md                # 企业所得税政策法规详解
+│   ├── pit-policy.md                # 个人所得税政策法规详解
+│   ├── risk-indicators.md           # 金税四期22项风险预警指标
+│   ├── self-learning.md             # 自学习与自动更新机制
+│   ├── tax-policy-database.md       # 综合政策数据库（完整版）
+│   ├── learning_log.md              # 自学习记录
+│   └── update_log.md                # 更新日志
 └── scripts/
     ├── tax_policy_calculator.py      # 财税政策计算器
-    └── test_calculator.py            # 测试脚本（可选）
+    ├── auto_update_knowledge.py      # 自动更新脚本
+    ├── self_learning.py             # 自学习脚本
+    └── test_calculator.py           # 测试脚本
 ```
-## 🎯 核心功能
+## [TARGET] 核心功能
 ### 1. 政策法规查询
 - 快速检索增值税、企业所得税、个人所得税等最新政策文件
 - 提供政策原文链接、生效日期、适用条件
@@ -31,7 +40,7 @@ tax-policy-knowledge/
 ### 5. 申报操作指导
 - 各税种申报流程、时间节点指引
 - 资料准备清单和注意事项
-## 🧮 计算工具
+## [CALC] 计算工具
 支持四种税务计算模式：
 | 模式 | 命令示例 | 用途 |
 |-----|---------|------|
@@ -39,26 +48,26 @@ tax-policy-knowledge/
 | 企业所得税 | `python scripts/tax_policy_calculator.py corporate --profit 2000000` | 含小微/高新技术企业优惠 |
 | 个人所得税 | `python scripts/tax_policy_calculator.py individual --annual-income 200000` | 综合所得年度个税 |
 | 经营所得 | `python scripts/tax_policy_calculator.py business --annual-profit 800000` | 个体工商户经营所得 |
-## 📊 核心政策覆盖（2024-2026年）
+## [CHART] 核心政策覆盖（2024-2026年）
 ### 增值税政策
-- ✅ 《中华人民共和国增值税法》（2026年1月1日施行）
-- ✅ 小规模纳税人优惠政策（延续至2027年底）
-- ✅ 增值税优惠政策衔接（财政部 税务总局公告2026年第10号）
+- [OK] 《中华人民共和国增值税法》（2026年1月1日施行）
+- [OK] 小规模纳税人优惠政策（延续至2027年底）
+- [OK] 增值税优惠政策衔接（财政部 税务总局公告2026年第10号）
 ### 企业所得税政策
-- ✅ 小微企业所得税优惠（实际税负5%，延续至2027年底）
-- ✅ 高新技术企业优惠（15%税率）
-- ✅ 研发费用加计扣除（科技型企业120%）
-- ✅ 设备器具一次性扣除（500万元以下）
+- [OK] 小微企业所得税优惠（实际税负5%，延续至2027年底）
+- [OK] 高新技术企业优惠（15%税率）
+- [OK] 研发费用加计扣除（科技型企业120%）
+- [OK] 设备器具一次性扣除（500万元以下）
 ### 个人所得税政策
-- ✅ 个体工商户经营所得减半（200万以下，2023-2027年）
-- ✅ 综合所得年度汇算清缴
-- ✅ 专项附加扣除标准
+- [OK] 个体工商户经营所得减半（200万以下，2023-2027年）
+- [OK] 综合所得年度汇算清缴
+- [OK] 专项附加扣除标准
 ### 其他重要政策
-- ✅ "六税两费"减免（延续至2027年底）
-- ✅ 互联网平台企业涉税信息报送规定（2025年6月施行）
-- ✅ 新能源汽车购置税优惠（2026-2027年减半）
-- ✅ 出口退税率调整（2026年4月起）
-## 🔧 使用方法
+- [OK] "六税两费"减免（延续至2027年底）
+- [OK] 互联网平台企业涉税信息报送规定（2025年6月施行）
+- [OK] 新能源汽车购置税优惠（2026-2027年减半）
+- [OK] 出口退税率调整（2026年4月起）
+## [TOOL] 使用方法
 ### 作为AiPy Skill使用
 1. 将本目录复制到 AiPy skills 目录
 2. 在对话中触发关键词：财税政策、增值税、企业所得税、个人所得税等
@@ -74,13 +83,23 @@ python scripts/tax_policy_calculator.py individual --annual-income 200000 --dedu
 # 经营所得计算（个体工商户，年利润80万）
 python scripts/tax_policy_calculator.py business --annual-profit 800000
 ```
-## 📚 数据来源
+## [BOOK] 数据来源
 - **数据来源**：国家相关官方政策法规发布渠道
 - **政策时效**：2024-2026年有效政策
 - **更新机制**：建议定期同步国家相关官方最新公告
-## ⚠️ 免责声明
+## [WARN] 免责声明
 本Skill内容仅供参考，具体税务处理请以税务机关最新解释为准。重大税务事项建议咨询专业注册税务师（CTA）或税务师事务所。
-## 📝 更新日志
+## [NOTE] 更新日志
+### v1.3.0 (2026-04-20)
+- **兼容优化**：SKILL.md 拆分至 ~1700 tokens，符合 ClawHub 8192 tokens 限制
+- **渐进式加载**：详细内容拆分到 references/ 目录，按需加载
+- 新增 vat-policy.md / cit-policy.md / pit-policy.md / risk-indicators.md / self-learning.md
+
+### v1.2.0 (2026-04-19)
+- 新增金税四期22项风险预警指标体系
+- 新增自学习与自动更新机制
+- 新增 auto_update_knowledge.py / self_learning.py 脚本
+
 ### v1.0.0 (2026-04-01)
 - 初始版本发布
 - 覆盖增值税法及配套政策
@@ -88,7 +107,7 @@ python scripts/tax_policy_calculator.py business --annual-profit 800000
 - 提供完整的税务计算工具
 ---
 
-## 💬 联系交流方式
+## [CHAT] 联系交流方式
 
 如有使用问题或合作意向，欢迎通过以下方式留言沟通：
 
@@ -97,5 +116,5 @@ python scripts/tax_policy_calculator.py business --annual-profit 800000
 ![微信二维码](https://gpt.cntaxs.com/smart-admin-api/upload/public/notice/cf978ba9f92644f6bc661bdd0d94fc45_20260402205519.png)
 ---
 
-📧 **政策来源**：国家相关官方政策法规发布渠道
-🔄 **最后更新**：2026-04-01
+[MAIL] **政策来源**：国家相关官方政策法规发布渠道
+[SYNC] **最后更新**：2026-04-01

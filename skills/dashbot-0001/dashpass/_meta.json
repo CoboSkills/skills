@@ -1,13 +1,18 @@
 {
   "owner": "dashbot-0001",
   "slug": "dashpass",
-  "displayName": "DashPass",
+  "displayName": "Dashpass",
   "latest": {
-    "version": "0.8.0",
-    "publishedAt": 1775956537017,
-    "commit": "https://github.com/openclaw/skills/commit/fe89989dcf1b4bfc158f55d12eaf105fbbd4e28b"
+    "version": "0.8.1",
+    "publishedAt": 1776298184173,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.8.0",
+      "publishedAt": 1775956537017,
+      "commit": "https://github.com/openclaw/skills/commit/fe89989dcf1b4bfc158f55d12eaf105fbbd4e28b"
+    },
     {
       "version": "0.5.1",
       "publishedAt": 1775532661901,

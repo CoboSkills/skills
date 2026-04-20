@@ -2,19 +2,22 @@
  * dashpass-cli.mjs
  * DashPass Vault v2 CLI — credential CRUD for AI agents on Dash Platform
  *
- * Commands: put, get, list, rotate, check, status, delete, env
+ * Commands: put, get, list, rotate, check, status, delete, env, init-shares, share-status
  * Encryption: Scheme C (ECDH self-sign + HKDF-SHA256 + AES-256-GCM)
+ * Mutual Confirmation: Shamir 2-of-2 over GF(2^8) — both shares required to decrypt
  * Contract: GCeh2gnvtiHrujq37ZcKnhZ64xpzDC1LMCLhrUJzKDQF (v2)
  *
  * Usage:
- *   node dashpass-cli.mjs put    --service <svc> --type <t> --level <l> --value <v> --label <lbl> [--expires-in <dur>] [--value-stdin]
- *   node dashpass-cli.mjs get    --service <svc> [--json] [--pipe]
- *   node dashpass-cli.mjs list   [--type <t>] [--level <l>]
- *   node dashpass-cli.mjs rotate --service <svc> --new-value <v> [--value-stdin]
- *   node dashpass-cli.mjs check  --expiring-within <dur>
+ *   node dashpass-cli.mjs put          --service <svc> --type <t> --level <l> --value <v> --label <lbl> [--expires-in <dur>] [--value-stdin]
+ *   node dashpass-cli.mjs get          --service <svc> [--json] [--pipe] [--mutual]
+ *   node dashpass-cli.mjs list         [--type <t>] [--level <l>]
+ *   node dashpass-cli.mjs rotate       --service <svc> --new-value <v> [--value-stdin]
+ *   node dashpass-cli.mjs check        --expiring-within <dur>
  *   node dashpass-cli.mjs status
- *   node dashpass-cli.mjs delete --service <svc>
- *   node dashpass-cli.mjs env    --services <svc1,svc2,...> [--prefix <pfx>] [--null-if-missing]
+ *   node dashpass-cli.mjs delete       --service <svc>
+ *   node dashpass-cli.mjs env          --services <svc1,svc2,...> [--prefix <pfx>] [--null-if-missing]
+ *   node dashpass-cli.mjs init-shares  — split CRITICAL_WIF into 2-of-2 Shamir shares
+ *   node dashpass-cli.mjs share-status — check health of stored shares
  *
  * Global options:
  *   --identity-id <id>     Override DASHPASS_IDENTITY_ID env var
@@ -37,6 +40,16 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { EvoSDK, Document, Identifier, IdentitySigner } from '@dashevo/evo-sdk';
+import {
+  initSharesFromWif,
+  sharesExist,
+  shareStatus,
+  readShareA,
+  readShareB,
+  requestDecrypt,
+  approveDecrypt,
+  executeDecrypt,
+} from './mutual-confirm.mjs';
 
 // ── Environment variables ──────────────────────────────────────────────────
 const DEFAULT_CONTRACT_ID = 'GCeh2gnvtiHrujq37ZcKnhZ64xpzDC1LMCLhrUJzKDQF';
@@ -477,11 +490,72 @@ async function cmdGet(args) {
   const service = args.service;
   const jsonOut = args.json === true;
   const pipeOut = args.pipe === true;
+  const mutual  = args.mutual === true;
 
   if (!service) {
-    console.error('Usage: get --service <svc> [--json] [--pipe]');
+    console.error('Usage: get --service <svc> [--json] [--pipe] [--mutual]');
     process.exit(1);
   }
+
+  // ── Mutual confirmation path ──
+  if (mutual) {
+    if (!sharesExist()) {
+      console.error('[get] Mutual mode requires shares. Run `init-shares` first.');
+      process.exit(1);
+    }
+
+    const { sdk } = await connectSDK();
+    const docs = await queryCredentials(sdk,
+      [['service', '==', service]],
+      [['service', 'asc']],
+    );
+    if (docs.length === 0) {
+      console.error(`[get] No credentials found for service="${service}"`);
+      process.exit(1);
+    }
+    const sorted = docs.sort((a, b) => (b.data.version ?? 1) - (a.data.version ?? 1));
+    const best = sorted[0];
+
+    // Protocol: request → approve → execute
+    const req = requestDecrypt(service, 'cli get --mutual', 'cc');
+    approveDecrypt(req, 'evo');
+
+    const shareA = readShareA();
+    const shareB = readShareB();
+
+    let decrypted;
+    try {
+      decrypted = executeDecrypt(
+        shareA, shareB,
+        decodeByteArray(best.data.encryptedBlob),
+        decodeByteArray(best.data.salt),
+        decodeByteArray(best.data.nonce),
+      );
+    } catch (e) {
+      console.error('[get] Mutual decryption failed:', e.message);
+      process.exit(1);
+    }
+
+    const result = {
+      id:        best.id,
+      service:   best.data.service,
+      label:     best.data.label,
+      credType:  best.data.credType,
+      level:     best.data.level,
+      status:    best.data.status,
+      version:   best.data.version ?? 1,
+      expiresAt: best.data.expiresAt ?? 0,
+      decrypted,
+    };
+
+    if (pipeOut) { process.stdout.write(decrypted.value); return; }
+    if (jsonOut) { console.log(JSON.stringify(result, null, 2)); return; }
+    console.log('[get] (mutual confirmation)');
+    printCredential(result);
+    return;
+  }
+
+  // ── Standard Scheme C path ──
 
   // Check cache first — cache stores encrypted blobs, decrypt on-the-fly
   const cached = cacheGet(service);
@@ -982,9 +1056,60 @@ async function cmdEnv(args) {
   }
 }
 
+// ── Command: init-shares ────────────────────────────────────────────────────
+
+async function cmdInitShares() {
+  if (sharesExist()) {
+    console.error('[init-shares] Shares already exist. Delete ~/.dashpass/evo.share and cc.share first to re-initialize.');
+    process.exit(1);
+  }
+
+  console.log('[init-shares] Splitting CRITICAL_WIF into Shamir 2-of-2 shares...');
+  const { shareA, shareB } = initSharesFromWif(wifToPrivateKey, CRITICAL_WIF);
+
+  console.log('[init-shares] OK');
+  console.log('  Share A (evo): ~/.dashpass/evo.share');
+  console.log('  Share B (cc):  ~/.dashpass/cc.share');
+  console.log('  Key length:   ', shareA.length / 2, 'bytes');
+  console.log('  Permissions:   0600');
+  console.log('  Round-trip:    verified');
+}
+
+// ── Command: share-status ──────────────────────────────────────────────────
+
+async function cmdShareStatus() {
+  const status = shareStatus();
+
+  console.log('[share-status] Mutual Confirmation Shares');
+  console.log('');
+
+  for (const [label, info] of [['Evo (Share A)', status.evo], ['CC  (Share B)', status.cc]]) {
+    if (!info.exists) {
+      console.log(`  ${label}: NOT FOUND`);
+    } else {
+      console.log(`  ${label}:`);
+      console.log(`    Path:       ${info.path}`);
+      console.log(`    Permissions: ${info.permissions}`);
+      console.log(`    Size:        ${info.bytes} bytes`);
+      console.log(`    Healthy:     ${info.healthy ? 'yes' : 'NO — unexpected format'}`);
+    }
+  }
+
+  const bothHealthy = status.evo.healthy && status.cc.healthy;
+  console.log('');
+  console.log(`  Mutual confirmation: ${bothHealthy ? 'READY' : 'NOT READY'}`);
+}
+
 // ── Entry point ─────────────────────────────────────────────────────────────
 
-const COMMANDS = { put: cmdPut, get: cmdGet, list: cmdList, rotate: cmdRotate, check: cmdCheck, status: cmdStatus, delete: cmdDelete, env: cmdEnv };
+const COMMANDS = {
+  put: cmdPut, get: cmdGet, list: cmdList, rotate: cmdRotate,
+  check: cmdCheck, status: cmdStatus, delete: cmdDelete, env: cmdEnv,
+  'init-shares': cmdInitShares, 'share-status': cmdShareStatus,
+};
+
+// Commands that don't need IDENTITY_ID
+const NO_IDENTITY_COMMANDS = new Set(['init-shares', 'share-status']);
 
 async function main() {
   const [,, command, ...rest] = process.argv;
@@ -994,26 +1119,30 @@ async function main() {
   if (args['identity-id']) {
     IDENTITY_ID = args['identity-id'];
   }
-  if (!IDENTITY_ID) {
-    console.error('[fatal] DASHPASS_IDENTITY_ID not set. Use --identity-id or export DASHPASS_IDENTITY_ID.');
-    process.exit(1);
-  }
 
   if (!command || !COMMANDS[command]) {
     console.error('DashPass Vault v2 CLI');
     console.error('');
     console.error('Commands:');
-    console.error('  put    --service <svc> --type <t> --level <l> --value <v> --label <lbl> [--expires-in <dur>] [--value-stdin]');
-    console.error('  get    --service <svc> [--json] [--pipe]');
-    console.error('  list   [--type <t>] [--level <l>]');
-    console.error('  rotate --service <svc> --new-value <v> [--value-stdin]');
-    console.error('  check  --expiring-within <dur>');
+    console.error('  put          --service <svc> --type <t> --level <l> --value <v> --label <lbl> [--expires-in <dur>] [--value-stdin]');
+    console.error('  get          --service <svc> [--json] [--pipe] [--mutual]');
+    console.error('  list         [--type <t>] [--level <l>]');
+    console.error('  rotate       --service <svc> --new-value <v> [--value-stdin]');
+    console.error('  check        --expiring-within <dur>');
     console.error('  status');
-    console.error('  delete --service <svc>');
-    console.error('  env    --services <svc1,svc2,...> [--prefix <pfx>] [--null-if-missing]');
+    console.error('  delete       --service <svc>');
+    console.error('  env          --services <svc1,svc2,...> [--prefix <pfx>] [--null-if-missing]');
+    console.error('  init-shares  Split CRITICAL_WIF into Shamir 2-of-2 shares');
+    console.error('  share-status Check health of stored shares');
     console.error('');
     console.error('Global options:');
     console.error('  --identity-id <id>  Override DASHPASS_IDENTITY_ID env var');
+    process.exit(1);
+  }
+
+  // Only require IDENTITY_ID for commands that need Platform access
+  if (!NO_IDENTITY_COMMANDS.has(command) && !IDENTITY_ID) {
+    console.error('[fatal] DASHPASS_IDENTITY_ID not set. Use --identity-id or export DASHPASS_IDENTITY_ID.');
     process.exit(1);
   }
 

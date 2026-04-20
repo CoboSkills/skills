@@ -1,6 +1,6 @@
 ---
 name: dashpass
-version: "0.7.0"
+version: "0.8.1"
 description: >
   Encrypted credential vault on Dash Platform for AI agents.
   Store and retrieve API keys, tokens, and passwords — encrypted on-chain, decryptable only by you.
@@ -47,6 +47,9 @@ echo "sk-xxx" | node $CLI put --service anthropic-api --type api-key --level sen
 # Retrieve a credential
 node $CLI get --service anthropic-api --pipe
 
+# Retrieve via mutual confirmation (2-of-2 Shamir shares)
+node $CLI get --service anthropic-api --mutual
+
 # List all credentials
 node $CLI list
 
@@ -64,7 +67,195 @@ node $CLI delete --service my-service
 
 # Export as env vars (for eval)
 eval $(node $CLI env --services anthropic-api,brave-search-api)
+
+# Initialize Shamir 2-of-2 shares from CRITICAL_WIF
+node $CLI init-shares
+
+# Check share health
+node $CLI share-status
 ```
+
+---
+
+## Mutual Confirmation Protocol
+
+DashPass supports a 2-of-2 mutual confirmation mode using Shamir Secret Sharing over GF(2^8). This upgrades the single-key Scheme C to require both Evo (main agent) and CC (execution agent) to agree before any credential can be decrypted.
+
+### How It Works
+
+1. **`init-shares`**: Splits the 32-byte private key derived from `CRITICAL_WIF` into two Shamir shares using a random degree-1 polynomial evaluated at x=1 (Share A) and x=2 (Share B).
+2. **Share storage**: Share A goes to `~/.dashpass/evo.share`, Share B to `~/.dashpass/cc.share` (both 0600 permissions).
+3. **`get --mutual`**: Reads both shares, combines via Lagrange interpolation to reconstruct the private key, derives the per-credential AES key (same ECDH+HKDF as Scheme C), decrypts, then zeroes all sensitive buffers.
+4. **Audit trail**: Every request/approval/denial/execution is logged to `~/.dashpass/audit.log` in JSONL format. No key or share material is ever logged.
+
+### Security Properties
+
+- **Information-theoretic**: Neither share alone reveals any information about the key (each byte is independently split).
+- **Backward-compatible**: Without shares, `get` still works via Scheme C. With shares, `get --mutual` uses the new protocol.
+- **Memory-safe**: Private key bytes and AES keys are zeroed immediately after use via `Buffer.fill(0)`.
+
+### Setup
+
+```bash
+# One-time: generate shares from CRITICAL_WIF
+node $CLI init-shares
+
+# Verify health
+node $CLI share-status
+```
+
+---
+
+## Architecture
+
+### Encryption Flow (Scheme C)
+
+```
+CRITICAL_WIF
+  │
+  ▼
+wifToPrivateKey()           ← Base58Check decode, extract 32-byte private key
+  │
+  ▼
+ECDH self-sign (secp256k1)  ← computeSecret(getPublicKey()) → sharedSecret
+  │
+  ▼
+HKDF-SHA256                 ← hkdfSync('sha256', sharedSecret, salt, 'dashpass-v1', 32)
+  │
+  ▼
+AES-256-GCM                 ← per-credential encrypt/decrypt
+  │
+  ▼
+Dash Platform               ← encryptedBlob + salt + nonce stored on-chain
+```
+
+Each credential gets a unique `salt` (32 bytes) and `nonce` (12 bytes), so even identical plaintext values produce different ciphertext.
+
+### Mutual Confirmation Flow (Shamir 2-of-2)
+
+```
+  INIT (one-time):
+  ┌─────────────────────────────────────────┐
+  │  CRITICAL_WIF → 32-byte private key     │
+  │       │                                  │
+  │       ▼                                  │
+  │  For each byte i:                        │
+  │    a0 = key[i], a1 = random              │
+  │    f(x) = a0 ⊕ (a1 · x)   [GF(2^8)]   │
+  │       │                                  │
+  │  ┌────┴────┐                             │
+  │  ▼         ▼                             │
+  │ f(1)      f(2)                           │
+  │ Share A   Share B                        │
+  │ evo.share cc.share                       │
+  │ (0600)    (0600)                         │
+  └─────────────────────────────────────────┘
+
+  DECRYPT (each request):
+  ┌─────────────────────────────────────────┐
+  │  1. CC: requestDecrypt(service, reason)  │
+  │  2. Evo: approveDecrypt(request)         │
+  │  3. combineShares(A, B)                  │
+  │       │                                  │
+  │       ▼                                  │
+  │  Lagrange interpolation at x=0:          │
+  │    key[i] = sA[i]·L1 ⊕ sB[i]·L2        │
+  │    L1 = 2·inv(3), L2 = inv(3)           │
+  │       │                                  │
+  │       ▼                                  │
+  │  Reconstructed private key               │
+  │       │                                  │
+  │       ▼                                  │
+  │  ECDH + HKDF → AES key → decrypt        │
+  │       │                                  │
+  │       ▼                                  │
+  │  Zero all buffers (privKey, aesKey,      │
+  │  sharedSecret)                           │
+  └─────────────────────────────────────────┘
+```
+
+Key design choices:
+- **Split the raw private key, not derived AES keys.** One pair of shares covers all credentials — no per-credential splitting needed.
+- **GF(2^8) with irreducible polynomial 0x11d.** Standard Rijndael/AES field. Byte-level operations, no bignum library required.
+- **Precomputed Lagrange coefficients.** L1 and L2 are constants (2-of-2 at x=1, x=2), computed once at module load.
+
+---
+
+## Security Model
+
+### What This Protects Against
+
+| Threat | Protection |
+|--------|-----------|
+| **Single share compromise** | Neither share alone reveals any information about the key (information-theoretic security in GF(2^8)) |
+| **Unauthorized decryption** | Both shares must be present — a rogue process with access to only one share file cannot decrypt |
+| **Key material in memory** | All sensitive buffers (`privKeyBytes`, `aesKey`, `sharedSecret`) are zeroed with `Buffer.fill(0)` after use |
+| **Audit evasion** | Every request/approve/deny/execute is logged to `~/.dashpass/audit.log` in JSONL format; no key material is ever logged |
+| **File permission escalation** | Share files are stored with `0600` permissions; directory is `0700` |
+| **Corrupted shares** | `init-shares` performs a round-trip verification before declaring success |
+
+### What This Does NOT Protect Against
+
+| Limitation | Explanation |
+|-----------|-------------|
+| **Same-machine attacker with root** | Both shares live on the same filesystem. A root-level attacker can read both. This is a same-machine deployment limitation. |
+| **JavaScript string immutability** | Hex-encoded share strings are JS immutable strings — they cannot be zeroed from memory. They persist until garbage collected. |
+| **Process memory dump** | If the process is memory-dumped during `executeDecrypt`, the reconstructed key is briefly in a Buffer. The window is minimized but not zero. |
+| **Share file backup/sync** | If `~/.dashpass/` is included in backups or cloud sync, shares may be replicated to less-secure locations. |
+
+### Honest Assessment
+
+The current deployment is **same-machine 2-of-2**: both Evo (main agent) and CC (execution agent) run on the same host. This means:
+
+- The security gain is **procedural, not physical** — it enforces a two-step confirmation workflow and audit trail, preventing a single code path from silently accessing credentials.
+- It is **not equivalent** to a true multi-party setup where shares are on different machines controlled by different entities.
+- The upgrade path to cross-machine deployment is straightforward: move `cc.share` to a separate host and replace `readShareB()` with a network request.
+
+---
+
+## Troubleshooting
+
+### Share files missing or corrupted
+
+```bash
+# Check share health
+node $CLI share-status
+
+# If shares are missing or unhealthy, re-initialize:
+rm -f ~/.dashpass/evo.share ~/.dashpass/cc.share
+node $CLI init-shares
+```
+
+**Note:** Re-initializing creates new shares from `CRITICAL_WIF`. Existing encrypted credentials are unaffected — they are decrypted using the same private key derived from the same WIF.
+
+### Permission errors on share files
+
+```bash
+# Shares must be 0600, directory must be 0700
+chmod 700 ~/.dashpass
+chmod 600 ~/.dashpass/evo.share ~/.dashpass/cc.share
+```
+
+If `init-shares` reports success but `share-status` shows wrong permissions, check if a umask override is active.
+
+### `get --mutual` fails with decryption error
+
+1. **Verify shares are healthy:** `node $CLI share-status` — both must show `Healthy: yes`
+2. **Verify WIF hasn't changed:** If `CRITICAL_WIF` was rotated after `init-shares`, the shares are stale. Re-initialize.
+3. **Check credential exists:** `node $CLI list` — confirm the service name matches exactly.
+
+### Audit log growing large
+
+The audit log at `~/.dashpass/audit.log` is append-only JSONL. To rotate:
+
+```bash
+mv ~/.dashpass/audit.log ~/.dashpass/audit.log.$(date +%Y%m%d)
+# New entries will create a fresh audit.log automatically
+```
+
+### Scheme C still works without shares
+
+Yes — this is by design. Without shares, `get` (without `--mutual`) decrypts directly using `CRITICAL_WIF`. Shares are optional and additive. You can set up mutual confirmation at any time without re-encrypting existing credentials.
 
 ---
 
@@ -147,6 +338,9 @@ Read {baseDir}/references/security-analysis-summary.md
 | Vault status | `status` | `{baseDir}/references/cli-commands.md` |
 | Delete credential | `delete` | `{baseDir}/references/cli-commands.md` |
 | Export as env vars | `env` | `{baseDir}/references/cli-commands.md` |
+| Init Shamir shares | `init-shares` | `{baseDir}/scripts/mutual-confirm.mjs` |
+| Check share health | `share-status` | `{baseDir}/scripts/mutual-confirm.mjs` |
+| Mutual decrypt | `get --mutual` | `{baseDir}/scripts/mutual-confirm.mjs` |
 | How encryption works | — | `{baseDir}/references/security-model.md` |
 | Error troubleshooting | — | `{baseDir}/references/faq.md` |
 | First-time setup | — | `{baseDir}/setup.md` |

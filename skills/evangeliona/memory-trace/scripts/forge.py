@@ -258,6 +258,24 @@ def generate_system_prompts(character_name, personality, style, fragments):
     lines.append("- 保持角色的语言风格，不要突然变得太现代或太书面")
     lines.append("")
 
+    # 输出格式——纯对话，像恋人微信聊天
+    lines.append("### 输出格式——不主动换行，合理使用标点")
+    lines.append("日常短句：写成一段完整文字，用逗号或句号断句即可，不回车换行。")
+    lines.append("长段叙述：可以用句号断句成几句话，但每句话之间要紧凑。")
+    lines.append("禁止在回复中间插入空行或强行分段。")
+    lines.append("就像平时发微信消息一样自然，不要刻意拆成多行。")
+    lines.append("")
+
+    # 绝对禁止
+    lines.append("### 绝对禁止")
+    lines.append("- 任何括号：（）、【】、《》、［］、\"\"——禁止动作描写")
+    lines.append("- 任何省略号形式：……、--、___")
+    lines.append("- 任何旁白、场景说明")
+    lines.append("- 任何符号形式的情感提示")
+    lines.append("- 暴露 AI / 模型 / 程序身份")
+    lines.append("- 在聊天中说出自己的名字或角色名")
+    lines.append("")
+
     return "\n".join(lines)
 
 

@@ -2,7 +2,7 @@
 
 > OpenClaw 用户数据自动备份技能
 
-[![Version](https://img.shields.io/badge/version-1.0.2.20260331-blue.svg)](https://github.com/hjj345/auto-backup-openclaw-user-data)
+[![Version](https://img.shields.io/badge/version-1.1.0.20260414-blue.svg)](https://github.com/hjj345/auto-backup-openclaw-user-data)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![OpenClaw](https://img.shields.io/badge/OpenClaw-v2026.3.1+-purple.svg)](https://openclaw.ai)
 
@@ -11,6 +11,52 @@
 ## 简介
 
 `Auto-Backup-Openclaw-User-Data` 是一个专为 OpenClaw 设计的自动备份skill技能，使用本skill能够更好完成自动备份用户数据目录，支持全量/选择性备份、定时执行、ZIP 压缩、日志记录、消息通知和保留策略管理。
+
+## 工作空间自动检测
+
+### 首次配置自动检测
+
+首次使用本技能时，系统会自动检测您的OpenClaw工作空间：
+
+**检测机制**：
+- 自动扫描 `~/.openclaw/` 目录
+- 识别所有 `workspace-*` 目录
+- 检测 `memory` 目录
+- 将检测结果写入配置文件作为默认值
+
+**示例检测结果**：
+```json
+{
+  "backup": {
+    "targets": ["workspace", "workspace-01", "workspace-02", "workspace-news", "memory"]
+  }
+}
+```
+
+### 建议
+
+首次配置建议使用交互式配置：
+```
+/backup_config
+选择 [1] 交互式配置
+```
+
+交互式配置会列出实际存在的workspace，供您确认和调整。
+
+### 手动调整
+
+如需调整备份的工作空间，可：
+
+1. **交互式配置**：Step 1.1文件选择步骤
+2. **手动修改配置文件**：编辑 `config.json` 中的 `backup.targets`
+
+```json
+{
+  "backup": {
+    "targets": ["workspace", "workspace-01", "memory"]
+  }
+}
+```
 
 ## 功能特性
 
@@ -22,6 +68,95 @@
 - ✅ **消息通知** - 支持多渠道推送结果
 - ✅ **保留策略** - 自动清理旧备份
 - ✅ **跨平台** - Windows / Linux / macOS 全支持
+
+## v1.1.0 新特性
+
+### 🎯 工作空间自动检测
+
+首次配置时自动检测您的OpenClaw工作空间，无需手动配置备份目标：
+
+- 自动扫描 `~/.openclaw/` 目录下的所有 `workspace-*` 目录
+- 自动识别 `memory` 目录
+- 检测结果自动写入配置文件
+- 支持交互式确认和调整
+
+**优势**：适配多Agent工作环境，避免遗漏备份目标。
+
+### 🔒 敏感文件安全提醒
+
+新增敏感文件识别和提醒机制，保护您的隐私数据：
+
+- 提供敏感文件建议排除列表（密钥、凭证、环境变量等）
+- 提供敏感目录建议排除列表（.ssh、credentials等）
+- 默认不强制排除，仅提供提醒和建议
+- 支持交互式配置启用敏感文件排除
+
+**原则**："只做提醒，不做限制"，让用户自主决定备份范围。
+
+### 📦 标准化入口改进
+
+创建标准Node.js模块入口，提升安全性和兼容性：
+
+- 新增根目录 `index.js` 标准入口文件
+- 完整导出所有接口函数
+- 导出 `runCommand` 函数供OpenClaw调用
+- 消除"可疑技能"安全警告标记
+
+**效果**：符合OpenClaw安全最佳实践，提升技能可信度。
+
+### ⚙️ 配置自动迁移
+
+支持从v1.0.2自动升级到v1.1.0，无需手动修改配置：
+
+- 自动补全缺失的v1.1.0新增配置字段
+- 保留用户原有配置不变
+- 零停机平滑升级
+
+**便捷**：升级后首次加载配置即可享受新特性。
+
+## ⚠️ 安全警告
+
+### 敏感文件风险
+
+备份可能包含以下敏感文件（默认不强制排除）：
+
+- **密钥文件**：*.key, *.pem, *.p12, *.pfx
+- **环境变量**：.env, .env.local, .env.*.local
+- **凭证文件**：credentials.json, secrets.json
+- **Token文件**：*.token, *.secret, *_token.json
+- **SSH密钥**：id_rsa, id_dsa, *.ppk
+
+### 默认行为
+
+系统默认**不启用**敏感文件排除，仅排除临时文件：
+- 排除目录：logs, cache, tmp, node_modules
+- 排除模式：*.log, *.tmp, .DS_Store, Thumbs.db
+
+### 如何启用敏感文件排除
+
+通过交互式配置启用：
+```
+/backup_config
+选择 [1] 交互式配置
+Step 7: 敏感文件排除配置
+选择 [1] 启用排除
+```
+
+或手动编辑配置文件：
+```json
+{
+  "backup": {
+    "exclude": ["logs", "cache", "*.key", ".ssh"],
+    "excludePatterns": ["*.pem", ".env", "credentials.json"]
+  }
+}
+```
+
+### 建议
+
+根据实际需求决定是否启用敏感文件排除：
+- ✅ **启用**：保护敏感数据，防止备份泄露
+- ⚠️ **不启用**：完整备份所有数据，需妥善保管备份文件
 
 ## 安装
 
@@ -234,7 +369,117 @@ npm test
 - **Jack·Huang**
 - Email: jack698698@gmail.com
 
+## 升级指南
+
+### 从 v1.0.2 升级到 v1.1.0
+
+本版本引入了重要改进，建议按照以下步骤升级：
+
+#### 升级方式
+
+**推荐方式**：卸载旧版本后重新安装
+
+```bash
+# 1. 卸载旧版本
+openclaw skill uninstall auto-backup-openclaw-user-data
+
+# 2. 安装新版本
+openclaw skill install auto-backup-openclaw-user-data
+```
+
+**原因**：重新安装可获得完整的v1.1.0默认配置，包括：
+- 工作空间自动检测默认值
+- 敏感文件建议列表
+- 新增的encryption配置字段
+
+#### 配置自动迁移
+
+如果您希望保留现有配置，系统会自动处理升级：
+
+- **自动补全**：首次加载配置时，自动补全缺失的v1.1.0新增字段
+- **保留原配置**：您原有的备份目标、定时设置等配置保持不变
+- **零停机**：无需手动修改，平滑升级
+
+#### 升级后重要变更
+
+**1. backup.mode默认值变更**
+
+- **v1.0.2默认**：`"mode": "full"`（全量备份）
+- **v1.1.0默认**：`"mode": "partial"`（选择性备份）
+- **影响**：新安装用户默认使用选择性备份，需首次配置时选择备份目标
+- **现有用户**：您的现有`mode`配置保持不变
+
+**2. 工作空间检测机制**
+
+- **v1.0.2**：硬编码备份目标（可能遗漏workspace）
+- **v1.1.0**：首次配置时动态检测所有workspace
+- **建议**：升级后运行 `/backup_config` 重新确认备份目标
+
+**3. 敏感文件提醒**
+
+- **新增**：敏感文件建议排除列表（默认不启用）
+- **建议**：根据您的安全需求决定是否启用敏感文件排除
+- **配置方式**：交互式配置 Step 7 或手动编辑配置文件
+
+#### 升级后首次配置建议
+
+建议升级后执行以下操作：
+
+```bash
+# 1. 查看当前配置状态
+/backup_status
+
+# 2. 重新配置备份目标（利用自动检测）
+/backup_config
+选择 [1] 交互式配置
+Step 1: 确认自动检测的工作空间
+
+# 3. 配置敏感文件排除（可选）
+Step 7: 选择是否启用敏感文件排除
+
+# 4. 测试备份功能
+/backup_now
+```
+
+#### 兼容性说明
+
+- ✅ **配置兼容**：v1.0.2配置文件可直接使用，自动补全新字段
+- ✅ **备份兼容**：v1.0.2备份文件格式完全兼容v1.1.0
+- ✅ **命令兼容**：所有 `/backup_*` 命令保持不变
+- ✅ **定时兼容**：HEARTBEAT和Cron配置无需修改
+
 ## 更新日志
+
+### v1.1.0.20260414 (2026-04-14) - 安全优化版本
+
+**脚本入口改进**：
+- 新增：创建标准`index.js`入口文件，完整导出所有接口
+- 修复：导出`runCommand`函数，确保OpenClaw能正常调用命令
+- 新增：`package.json`添加`exports`和`skillType`字段
+- 消除：移除"可疑技能"标记，符合OpenClaw安全最佳实践
+
+**工作空间动态检测**：
+- 新增：`detectWorkspaces()`函数，首次配置时动态检测用户实际workspace
+- 修复：修复硬编码targets问题，避免多Agent工作空间遗漏
+- 优化：默认targets改为空数组，首次加载时自动检测
+- 完善：检测结果按字母排序，自动识别所有workspace-*目录和memory目录
+
+**敏感文件处理**：
+- 新增：敏感文件建议列表配置（sensitiveExcludeSuggestion）
+- 新增：敏感目录建议列表配置（sensitiveExcludeDirectories）
+- 新增：enableSensitiveExclude配置字段（默认false，遵循"只做提醒，不做限制"原则）
+- 完善：默认仅排除临时文件（logs、cache、tmp、node_modules等）
+
+**文档完善**：
+- 新增：README.md添加工作空间自动检测说明章节
+- 新增：README.md添加安全警告章节（敏感文件风险说明）
+- 新增：SKILL.md添加工作空间动态检测和安全警告简要说明
+- 更新：所有文档版本号同步更新到v1.1.0
+
+**安全改进**：
+- 符合GitHub Issue #1611安全改进建议
+- 提升技能安全性评级
+- 保护用户隐私数据安全
 
 ### v1.0.2.20260331 (2026-03-31)
 

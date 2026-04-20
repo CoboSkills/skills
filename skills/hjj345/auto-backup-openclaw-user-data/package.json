@@ -1,15 +1,21 @@
 {
   "name": "auto-backup-openclaw-user-data",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "OpenClaw 用户数据自动备份技能",
-  "main": "scripts/backup.js",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./cli": "./scripts/cli.js"
+  },
+  "skillType": "openclaw-service",
   "author": "Jack·Huang <jack698698@gmail.com>",
   "license": "MIT",
   "keywords": [
     "openclaw",
     "backup",
     "skill",
-    "automation"
+    "automation",
+    "security"
   ],
   "repository": {
     "type": "git",
@@ -19,9 +25,10 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "archiver": "^6.0.0",
-    "fs-extra": "^11.0.0",
-    "dayjs": "^1.11.0"
+    "archiver": "6.0.0",
+    "archiver-zip-encrypted": "1.0.0",
+    "fs-extra": "11.0.0",
+    "dayjs": "1.11.0"
   },
   "devDependencies": {},
   "scripts": {

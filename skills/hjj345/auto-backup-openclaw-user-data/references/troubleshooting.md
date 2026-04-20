@@ -302,6 +302,72 @@
    选择 [3] 重置为默认配置
    ```
 
+### Q: 工作空间targets为空或不正确（v1.1.0新增）
+
+**症状**：首次配置后targets为空或缺少某些workspace。
+
+**原因**：v1.1.0版本新增工作空间动态检测功能，首次配置时会自动检测~/.openclaw/目录中的所有workspace-*目录和memory目录。
+
+**解决方案**：
+
+1. 检查检测结果
+   ```
+   /backup_config
+   选择 [4] 查看当前配置
+   查看 backup.targets 字段
+   ```
+
+2. 手动调整targets
+   ```json
+   {
+     "backup": {
+       "targets": ["workspace", "workspace-01", "workspace-02", "memory"]
+     }
+   }
+   ```
+
+3. 使用交互式配置确认
+   ```
+   /backup_config
+   选择 [1] 交互式配置
+   Step 1.1 会列出实际存在的workspace供选择
+   ```
+
+### Q: 敏感文件是否应该启用排除？（v1.1.0新增）
+
+**症状**：不确定是否需要启用敏感文件排除功能。
+
+**说明**：
+- **默认行为**：系统默认不启用敏感文件排除，仅排除临时文件（logs、cache、tmp等）
+- **建议**：根据实际需求自主选择是否启用
+
+**决策建议**：
+- ✅ **启用排除**：如果备份可能泄露给他人，建议启用，保护敏感数据
+- ⚠️ **不启用**：如果备份仅自己使用且妥善保管，可不启用，完整备份所有数据
+
+**如何启用**：
+```
+/backup_config
+选择 [1] 交互式配置
+Step 7: 敏感文件排除配置
+选择 [1] 启用排除
+```
+
+**手动配置**：
+```json
+{
+  "backup": {
+    "enableSensitiveExclude": true,
+    "excludePatterns": [
+      "*.log", "*.tmp", ".DS_Store", "Thumbs.db",
+      "*.key", "*.pem", "*.p12", "*.pfx",
+      ".env", ".env.local", "credentials.json", "secrets.json"
+    ],
+    "exclude": ["logs", "cache", "tmp", "node_modules", ".ssh", ".gnupg"]
+  }
+}
+```
+
 ### Q: 想要修改配置但不知道格式
 
 **解决方案**：
@@ -390,5 +456,6 @@ Get-Content "$env:USERPROFILE\.openclaw\workspace\Auto-Backup-Openclaw-User-Data
 
 ---
 
-**文档版本**：v1.0.2  
-**更新日期**：2026-03-31
+**文档版本**：v1.1.0  
+**更新日期**：2026-04-14  
+**作者**：水木开发团队-Jack·Huang

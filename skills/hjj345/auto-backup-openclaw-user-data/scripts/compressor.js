@@ -1,14 +1,19 @@
 /**
  * 压缩模块
  * 负责文件压缩和 ZIP 生成
+ * v1.1.0 - 新增加密压缩支持
  */
 
 const fs = require('fs-extra');
 const path = require('path');
 const os = require('os');
 const archiver = require('archiver');
+const archiverZipEncrypted = require('archiver-zip-encrypted');
 const dayjs = require('dayjs');
 const { info, warn, error, debug } = require('./logger');
+
+// 注册加密格式
+archiver.registerFormat('zip-encrypted', archiverZipEncrypted);
 
 // OpenClaw 根目录
 const OPENCLAW_ROOT = path.join(os.homedir(), '.openclaw');
@@ -32,15 +37,27 @@ class Compressor {
       try {
         // 生成 ZIP 文件路径
         const zipPath = await this.generateZipPath(outputConfig);
-        
+
         // 确保输出目录存在
         await fs.ensureDir(path.dirname(zipPath));
-        
+
+        // 判断是否启用加密
+        const useEncryption = outputConfig.encryption?.enabled;
+        const password = outputConfig.encryption?.password;
+
+        // 选择压缩格式
+        const archiveType = useEncryption ? 'zip-encrypted' : 'zip';
+        const archiveOptions = useEncryption ? {
+          zlib: { level: 9 }, // 最高压缩级别
+          encryptionMethod: 'aes256',
+          password: password
+        } : {
+          zlib: { level: 9 } // 最高压缩级别
+        };
+
         // 创建写入流
         const output = fs.createWriteStream(zipPath);
-        const archive = archiver('zip', {
-          zlib: { level: 9 } // 最高压缩级别
-        });
+        const archive = archiver(archiveType, archiveOptions);
 
         let filesAdded = 0;
         let filesSkipped = 0;
@@ -50,11 +67,15 @@ class Compressor {
           const size = this.formatSize(archive.pointer());
           await info('Compressor', `压缩完成: ${path.basename(zipPath)} (${size})`);
           await info('Compressor', `文件统计: 添加 ${filesAdded} 个，跳过 ${filesSkipped} 个`);
-          
+
+          if (useEncryption) {
+            await info('Compressor', '加密方式: AES-256');
+          }
+
           if (skippedFiles.length > 0) {
             await warn('Compressor', `跳过的文件: ${skippedFiles.slice(0, 10).join(', ')}${skippedFiles.length > 10 ? '...' : ''}`);
           }
-          
+
           resolve(zipPath);
         });
 

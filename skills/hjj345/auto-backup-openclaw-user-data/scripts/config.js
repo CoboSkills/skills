@@ -1,6 +1,7 @@
 /**
  * 配置管理模块
  * 负责配置的加载、保存、验证和迁移
+ * v1.1.0 - 新增工作空间动态检测和敏感文件配置
  */
 
 const fs = require('fs-extra');
@@ -18,15 +19,33 @@ const OPENCLAW_CONFIG_FILE = path.join(os.homedir(), '.openclaw', 'openclaw.json
 
 // 默认配置
 const DEFAULT_CONFIG = {
-  version: "1.0.2",
+  version: "1.1.0",
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
-  
+
   backup: {
-    mode: "full",
-    targets: ["workspace", "workspace-1", "workspace-2", "workspace-2", "memory",……],
+    mode: "partial",  // ← 修改默认为选择性备份
+    targets: [],  // ← 改为空数组，首次加载时动态检测
+
+    // 默认排除（仅临时文件）
     exclude: ["logs", "cache", "tmp", "node_modules"],
-    excludePatterns: ["*.log", "*.tmp", ".DS_Store", "Thumbs.db"]
+    excludePatterns: ["*.log", "*.tmp", ".DS_Store", "Thumbs.db"],
+
+    // 敏感文件排除建议列表（默认不启用，仅建议）
+    sensitiveExcludeSuggestion: [
+      "*.key", "*.pem", "*.p12", "*.pfx",
+      ".env", ".env.local", ".env.*.local",
+      "credentials.json", "secrets.json",
+      "*.token", "*.secret",
+      "*_key.json", "*_token.json",
+      "id_rsa", "id_dsa", "*.ppk"
+    ],
+    sensitiveExcludeDirectories: [
+      "credentials", "secrets", ".ssh", ".gnupg"
+    ],
+
+    // 默认不启用敏感文件排除
+    enableSensitiveExclude: false  // ← 关键：默认false
   },
   
   schedule: {
@@ -42,6 +61,12 @@ const DEFAULT_CONFIG = {
       prefix: "auto-backup-openclaw-user-data",
       includeVersion: true,
       includeSequence: true
+    },
+    encryption: {
+      enabled: false,
+      password: null,
+      algorithm: "aes-256",
+      reminderShown: false
     }
   },
   
@@ -84,23 +109,69 @@ async function configExists() {
 }
 
 /**
+ * 动态检测用户工作空间
+ * 首次配置时自动检测~/.openclaw/目录中的workspace
+ * v1.1.0 - 新增功能
+ */
+async function detectWorkspaces() {
+  const openclawRoot = path.join(os.homedir(), '.openclaw');
+
+  try {
+    const entries = await fs.readdir(openclawRoot, { withFileTypes: true });
+
+    // 过滤出所有workspace目录
+    const workspaces = entries
+      .filter(e => e.isDirectory() && e.name.startsWith('workspace'))
+      .map(e => e.name)
+      .sort();  // 排序
+
+    // 检测memory目录
+    const memoryExists = entries.some(e => e.name === 'memory' && e.isDirectory());
+
+    // 构建targets列表
+    const targets = [...workspaces];
+    if (memoryExists) {
+      targets.push('memory');
+    }
+
+    // 至少返回workspace作为默认值
+    return targets.length > 0 ? targets : ['workspace'];
+
+  } catch (error) {
+    console.error(`[Config] 检测工作空间失败: ${error.message}`);
+    return ['workspace'];  // 默认返回workspace
+  }
+}
+
+/**
  * 加载配置
+ * v1.1.0 - 首次配置时动态检测workspace
  */
 async function loadConfig() {
   try {
     await ensureConfigDir();
-    
+
     if (!(await configExists())) {
-      // 配置不存在，创建默认配置
-      await saveConfig(DEFAULT_CONFIG);
-      return { ...DEFAULT_CONFIG };
+      // 配置不存在，创建默认配置（动态检测workspace）
+      const detectedTargets = await detectWorkspaces();
+
+      const initialConfig = {
+        ...DEFAULT_CONFIG,
+        backup: {
+          ...DEFAULT_CONFIG.backup,
+          targets: detectedTargets  // ← 动态设置targets
+        }
+      };
+
+      await saveConfig(initialConfig);
+      return initialConfig;
     }
-    
+
     const config = await fs.readJson(CONFIG_FILE);
-    
+
     // 配置迁移（检查并补全新字段）
     const migratedConfig = migrateConfig(config);
-    
+
     return migratedConfig;
   } catch (error) {
     console.error(`[Config] 加载配置失败: ${error.message}`);
@@ -183,34 +254,57 @@ function validateConfig(config) {
 
 /**
  * 配置迁移
+ * v1.1.0 - 新增敏感文件配置字段迁移
  */
 function migrateConfig(config) {
   let needsSave = false;
-  
+
   // v1.0.0 -> v1.0.1: 新增 notification.targets 字段
   if (!config.notification) {
     config.notification = { ...DEFAULT_CONFIG.notification };
     needsSave = true;
   }
-  
+
   if (!config.notification.targets) {
     config.notification.targets = {};
     needsSave = true;
   }
-  
+
+  // v1.0.2 -> v1.1.0: 新增敏感文件配置字段
+  if (!config.backup.sensitiveExcludeSuggestion) {
+    config.backup.sensitiveExcludeSuggestion = DEFAULT_CONFIG.backup.sensitiveExcludeSuggestion;
+    needsSave = true;
+  }
+
+  if (!config.backup.sensitiveExcludeDirectories) {
+    config.backup.sensitiveExcludeDirectories = DEFAULT_CONFIG.backup.sensitiveExcludeDirectories;
+    needsSave = true;
+  }
+
+  if (config.backup.enableSensitiveExclude === undefined) {
+    config.backup.enableSensitiveExclude = DEFAULT_CONFIG.backup.enableSensitiveExclude;
+    needsSave = true;
+  }
+
+  // v1.1.0: 新增加密配置字段
+  if (!config.output.encryption) {
+    config.output.encryption = DEFAULT_CONFIG.output.encryption;
+    needsSave = true;
+  }
+
   // 更新版本号
   if (config.version !== DEFAULT_CONFIG.version) {
     config.version = DEFAULT_CONFIG.version;
     needsSave = true;
   }
-  
+
   // 如果有变更，保存配置
   if (needsSave) {
     saveConfig(config).catch(err => {
       console.error(`[Config] 配置迁移保存失败: ${err.message}`);
     });
   }
-  
+
   return config;
 }
 
@@ -360,7 +454,22 @@ async function loadOpenClawConfig() {
         }
       }
     }
-    
+
+    // 从 Telegram allowFrom 配置解析用户（新增v1.1.0）
+    if (config.channels?.telegram?.allowFrom && Array.isArray(config.channels.telegram.allowFrom)) {
+      const tgUsers = config.channels.telegram.allowFrom;
+      for (const userId of tgUsers) {
+        if (!result.availableTargets.telegram) {
+          result.availableTargets.telegram = [];
+        }
+        result.availableTargets.telegram.push({
+          type: 'user',
+          id: String(userId),  // 转为字符串，确保id格式一致
+          name: `Telegram用户 ${userId}`
+        });
+      }
+    }
+
     return result;
   } catch (error) {
     console.error(`[Config] 加载 OpenClaw 配置失败: ${error.message}`);
@@ -394,6 +503,7 @@ module.exports = {
   loadOpenClawConfig,
   isChannelConfigured,
   getChannelTargets,
+  detectWorkspaces,  // ← 新增导出
   DEFAULT_CONFIG,
   CONFIG_DIR,
   CONFIG_FILE,

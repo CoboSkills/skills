@@ -1,13 +1,27 @@
 {
-  "version": "1.0.1",
+  "version": "1.1.0",
   "createdAt": "",
   "updatedAt": "",
-  
+
   "backup": {
-    "mode": "full",
-    "targets": ["workspace", "workspace-1", "workspace-2", "workspace-3", "memory",……],
+    "mode": "partial",
+    "targets": [],  // ← 改为空数组，首次加载时动态检测
     "exclude": ["logs", "cache", "tmp", "node_modules"],
-    "excludePatterns": ["*.log", "*.tmp", ".DS_Store", "Thumbs.db"]
+    "excludePatterns": ["*.log", "*.tmp", ".DS_Store", "Thumbs.db"],
+
+    // 敏感文件排除建议列表（默认不启用，仅建议）
+    "sensitiveExcludeSuggestion": [
+      "*.key", "*.pem", "*.p12", "*.pfx",
+      ".env", ".env.local", ".env.*.local",
+      "credentials.json", "secrets.json",
+      "*.token", "*.secret",
+      "*_key.json", "*_token.json",
+      "id_rsa", "id_dsa", "*.ppk"
+    ],
+    "sensitiveExcludeDirectories": [
+      "credentials", "secrets", ".ssh", ".gnupg"
+    ],
+    "enableSensitiveExclude": false  // ← 默认不启用
   },
   
   "schedule": {
@@ -23,6 +37,12 @@
       "prefix": "auto-backup-openclaw-user-data",
       "includeVersion": true,
       "includeSequence": true
+    },
+    "encryption": {
+      "enabled": false,
+      "password": null,
+      "algorithm": "aes-256",
+      "reminderShown": false
     }
   },
   

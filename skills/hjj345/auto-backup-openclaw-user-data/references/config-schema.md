@@ -16,10 +16,10 @@
 
 ```json
 {
-  "version": "1.0.2",
-  "createdAt": "2026-03-31T15:00:00+08:00",
-  "updatedAt": "2026-03-31T15:00:00+08:00",
-  
+  "version": "1.1.0",
+  "createdAt": "2026-04-14T15:00:00+08:00",
+  "updatedAt": "2026-04-14T15:00:00+08:00",
+
   "backup": { ... },
   "schedule": { ... },
   "output": { ... },
@@ -37,7 +37,7 @@
 
 | 字段 | 类型 | 必填 | 默认值 | 说明 |
 |------|------|------|--------|------|
-| `version` | string | 是 | "1.0.2" | 配置文件版本 |
+| `version` | string | 是 | "1.1.0" | 配置文件版本 |
 | `createdAt` | string | 否 | - | 创建时间（ISO 8601） |
 | `updatedAt` | string | 否 | - | 最后更新时间（ISO 8601） |
 
@@ -51,6 +51,9 @@
 | `targets` | array | 否 | [...] | 选择性备份时的目标目录列表 |
 | `exclude` | array | 否 | [...] | 排除的目录名列表 |
 | `excludePatterns` | array | 否 | [...] | 排除的文件名模式（支持通配符） |
+| `sensitiveExcludeSuggestion` | array | 否 | [...] | 敏感文件建议排除列表 |
+| `sensitiveExcludeDirectories` | array | 否 | [...] | 敏感目录建议排除列表 |
+| `enableSensitiveExclude` | boolean | 否 | false | 是否启用敏感文件排除 |
 
 #### mode 备份模式
 
@@ -91,6 +94,46 @@ node_modules       # Node.js 依赖
 Thumbs.db          # Windows 缩略图缓存
 ```
 
+#### sensitiveExcludeSuggestion 敏感文件建议列表
+
+默认敏感文件模式（仅在启用时生效）：
+
+```
+*.key              # 密钥文件
+*.pem              # PEM证书文件
+*.p12              # PKCS#12证书
+*.pfx              # PFX证书
+.env               # 环境变量文件
+.env.local         # 本地环境变量
+.env.*.local       # 环境变量文件变体
+credentials.json   # 凭证文件
+secrets.json       # 密钥文件
+*.token            # Token文件
+*.secret           # 密钥文件
+*_token.json       # Token JSON文件
+id_rsa             # SSH私钥
+id_dsa             # DSA私钥
+*.ppk              # PuTTY私钥
+```
+
+#### sensitiveExcludeDirectories 敏感目录建议列表
+
+默认敏感目录（仅在启用时生效）：
+
+```
+credentials        # 凭证目录
+secrets            # 密钥目录
+.ssh               # SSH配置目录
+.gnupg             # GPG配置目录
+```
+
+#### enableSensitiveExclude 启用敏感文件排除
+
+- `true`：启用敏感文件排除（将建议列表合并到exclude中）
+- `false`：不启用敏感文件排除（默认值）
+
+**注意**：启用后，`sensitiveExcludeSuggestion` 和 `sensitiveExcludeDirectories` 中的内容将被添加到 `exclude` 和 `excludePatterns` 中。
+
 ---
 
 ### schedule 定时配置
@@ -124,6 +167,7 @@ Thumbs.db          # Windows 缩略图缓存
 |------|------|------|--------|------|
 | `path` | string | 是 | ... | 备份文件存储路径 |
 | `naming` | object | 否 | {...} | 命名规则 |
+| `encryption` | object | 否 | {...} | 加密配置 |
 
 #### naming 命名规则
 
@@ -141,6 +185,33 @@ Thumbs.db          # Windows 缩略图缓存
 示例：
 auto-backup-openclaw-user-data_20260326_0300_v2026.3.23-2_01.zip
 ```
+
+#### encryption 加密配置
+
+| 字段 | 类型 | 必填 | 默认值 | 说明 |
+|------|------|------|--------|------|
+| `enabled` | boolean | 否 | false | 是否启用加密 |
+| `password` | string | 否 | null | 加密密码（启用时必填） |
+| `algorithm` | string | 否 | "aes-256" | 加密算法（默认AES-256） |
+| `reminderShown` | boolean | 否 | false | 是否已显示密码提醒 |
+
+**加密说明**：
+- 使用AES-256加密算法保护备份文件
+- 密码存储在配置文件中，请妥善保管配置文件
+- 建议将密码备份到密码管理器或其他安全位置
+
+**密码设置方式**：
+1. **自定义密码**：用户输入密码（至少8位）
+2. **随机密码**：系统生成16位随机密码
+
+**解密兼容性**：
+- ✅ 支持：7-Zip, WinRAR, PeaZip
+- ❌ 不支持：macOS Finder原生解压, Windows资源管理器原生解压
+
+**风险提示**：
+- 密码丢失将无法解密备份文件
+- 配置文件损坏或丢失将无法找回密码
+- 建议备份密码到安全位置
 
 ---
 
@@ -247,9 +318,9 @@ ERROR    # 错误信息
 
 ```json
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "backup": {
-    "mode": "full"
+    "mode": "partial"
   },
   "schedule": {
     "enabled": true,
@@ -277,15 +348,28 @@ ERROR    # 错误信息
 
 ```json
 {
-  "version": "1.0.2",
-  "createdAt": "2026-03-31T15:00:00+08:00",
-  "updatedAt": "2026-03-31T15:00:00+08:00",
-  
+  "version": "1.1.0",
+  "createdAt": "2026-04-14T15:00:00+08:00",
+  "updatedAt": "2026-04-14T15:00:00+08:00",
+
   "backup": {
     "mode": "partial",
-    "targets": ["workspace", "workspace-1", "memory"],
+    "targets": [],  // ← 改为空数组，首次加载时动态检测
     "exclude": ["logs", "cache", "tmp", "node_modules"],
-    "excludePatterns": ["*.log", "*.tmp", ".DS_Store", "Thumbs.db"]
+    "excludePatterns": ["*.log", "*.tmp", ".DS_Store", "Thumbs.db"],
+
+    // 敏感文件排除建议列表（默认不启用）
+    "sensitiveExcludeSuggestion": [
+      "*.key", "*.pem", "*.p12", "*.pfx",
+      ".env", ".env.local", ".env.*.local",
+      "credentials.json", "secrets.json",
+      "*.token", "*.secret", "*_token.json",
+      "id_rsa", "id_dsa", "*.ppk"
+    ],
+    "sensitiveExcludeDirectories": [
+      "credentials", "secrets", ".ssh", ".gnupg"
+    ],
+    "enableSensitiveExclude": false
   },
   
   "schedule": {
@@ -301,6 +385,12 @@ ERROR    # 错误信息
       "prefix": "auto-backup-openclaw-user-data",
       "includeVersion": true,
       "includeSequence": true
+    },
+    "encryption": {
+      "enabled": false,
+      "password": null,
+      "algorithm": "aes-256",
+      "reminderShown": false
     }
   },
   
@@ -360,5 +450,6 @@ ERROR    # 错误信息
 
 ---
 
-**文档版本**：v1.0.2  
-**更新日期**：2026-03-31
+**文档版本**：v1.1.0.20260414
+**更新日期**：2026-04-14
+**作者**：水木开发团队-Jack·Huang

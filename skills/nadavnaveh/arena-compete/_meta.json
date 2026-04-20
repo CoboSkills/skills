@@ -3,9 +3,15 @@
   "slug": "arena-compete",
   "displayName": "Arena Compete",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775403756813,
-    "commit": "https://github.com/openclaw/skills/commit/abddf26fde066f835451d50d335afa460819c078"
+    "version": "1.0.3",
+    "publishedAt": 1776261473189,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775403756813,
+      "commit": "https://github.com/openclaw/skills/commit/abddf26fde066f835451d50d335afa460819c078"
+    }
+  ]
 }

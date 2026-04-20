@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-credential-wallets
-version: "1.2.0"
+version: "1.3.1"
 description: "Agent Credential Wallets: Verifiable Intent & Delegation Chains. Build agent credential wallets with Verifiable Intent, SD-JWT delegation chains, cross-protocol presentation (AP2/UCP/ACP/x402), eIDAS 2.0 EUDI compliance, and reputation-bound credentials. Includes detailed Python code examples for every pattern."
 license: MIT
 compatibility: [openclaw]
@@ -11,16 +11,23 @@ price_usd: 0.0
 content_type: markdown
 executable: false
 install: none
-credentials: [AGENT_SIGNING_KEY]
+credentials: [GREENHELIX_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # Agent Credential Wallets: Verifiable Intent & Delegation Chains
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
-> - `AGENT_SIGNING_KEY`: Cryptographic signing key for agent identity (Ed25519 key pair for request signing)
+> - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
 
 
 Your agent just tried to buy cloud compute on behalf of your company. The vendor's agent asked for proof of authorization. Your agent presented an API key. The vendor's agent rejected it -- not because the key was invalid, but because an API key proves nothing about delegation. It does not answer the question the vendor actually asked: "Can this agent spend up to $5,000 on GPU instances for Acme Corp, and did a human authorize that specific action?" An API key says "this entity has access." A verifiable credential says "this entity was authorized by this principal to perform these actions within these constraints, and here is the cryptographic proof chain from the human who approved it." That distinction is the entire difference between agents that can transact in the open economy and agents that remain trapped inside their owner's perimeter. On March 5, 2026, Mastercard open-sourced the Verifiable Intent specification alongside Google, Fiserv, IBM, and Checkout.com, defining exactly how agents prove delegated authority to spend. Prove launched Verified Agent targeting the $1.7 trillion agentic commerce market with carrier-grade identity verification for non-human entities. The EU finalized eIDAS 2.0 implementation rules mandating EUDI Wallets by December 2026. Google's Agent-to-Agent Protocol (AP2), the Universal Commerce Protocol (UCP), and OpenAI's Agent Commerce Protocol (ACP) all require verifiable agent identity as the foundation layer. The decentralized identity market hit $7.4 billion in 2026. The convergence is real, and it is happening on a twelve-month timeline. This guide walks you through building a production credential wallet for your agents: SD-JWT-VC issuance, delegation chains from human to agent, cross-protocol credential presentation, eIDAS 2.0 compliance, reputation binding, and fleet-wide deployment. Every implementation uses the GreenHelix A2A Commerce Gateway API. Every pattern is designed for the December 2026 deadline.
@@ -35,7 +42,7 @@ Your agent just tried to buy cloud compute on behalf of your company. The vendor
 - Chapter 5: Cross-Protocol Credential Presentation
 - Chapter 6: eIDAS 2.0 Compliance
 - Chapter 7: Trust Scoring, Reputation Binding & Credential Revocation
-- Chapter 8: Production Deployment
+- Next Steps
 - What You Get
 
 ## Full Guide
@@ -55,7 +62,6 @@ Your agent just tried to buy cloud compute on behalf of your company. The vendor
 5. [Cross-Protocol Credential Presentation](#chapter-5-cross-protocol-credential-presentation)
 6. [eIDAS 2.0 Compliance](#chapter-6-eidas-20-compliance)
 7. [Trust Scoring, Reputation Binding & Credential Revocation](#chapter-7-trust-scoring-reputation-binding--credential-revocation)
-8. [Production Deployment](#chapter-8-production-deployment)
 
 ---
 
@@ -277,20 +283,25 @@ import secrets
 from typing import Optional, Dict, List, Any
 from dataclasses import dataclass, field, asdict
 
-API_BASE = "https://api.greenhelix.net/v1/execute"
+# --- GreenHelix sandbox session (free tier: 500 credits, no key required) ---
+# To get started, visit https://sandbox.greenhelix.net — no signup needed.
+# For production, set GREENHELIX_API_KEY in your environment.
+import os
+
+API_BASE = os.environ.get("GREENHELIX_API_URL", "https://sandbox.greenhelix.net")
 
 session = requests.Session()
-session.headers.update({
-    "Authorization": "Bearer YOUR_API_KEY",
-    "Content-Type": "application/json",
-})
+api_key = os.environ.get("GREENHELIX_API_KEY", "")
+if api_key:
+    session.headers["Authorization"] = f"Bearer {api_key}"
+session.headers["Content-Type"] = "application/json"
 
 
-def call_tool(tool: str, input_data: dict) -> dict:
-    """Execute a GreenHelix tool and return the result."""
-    resp = session.post(API_BASE, json={"tool": tool, "input": input_data})
-    resp.raise_for_status()
-    return resp.json()
+def api_call(tool: str, input_data: dict) -> dict:
+    """Call a GreenHelix REST endpoint for the given tool."""
+    response = session.post(f"{API_BASE}/v1/tools/{tool}", json=input_data)
+    response.raise_for_status()
+    return response.json()
 
 
 @dataclass
@@ -401,7 +412,7 @@ class CredentialWallet:
         This creates the agent's DID and registers its public key.
         Must be called before any other wallet operation.
         """
-        result = call_tool("register_agent", {
+        result = api_call("register_agent", {
             "agent_id": self.agent_id,
             "display_name": self.display_name,
             "owner": self.owner,
@@ -415,7 +426,7 @@ class CredentialWallet:
         The wallet is a DID-anchored credential store that holds
         issued credentials and supports selective disclosure presentation.
         """
-        result = call_tool("create_wallet", {
+        result = api_call("create_wallet", {
             "agent_id": self.agent_id,
             "wallet_type": "credential",
             "metadata": {
@@ -485,7 +496,7 @@ class CredentialWallet:
                 "expires_at": cred.expires_at,
             })
 
-        result = call_tool("build_claim_chain", {
+        result = api_call("build_claim_chain", {
             "agent_id": self.agent_id,
             "claims": chain_claims,
             "chain_type": "credential_issuance",
@@ -496,7 +507,7 @@ class CredentialWallet:
 
     def get_chains(self) -> dict:
         """Retrieve all claim chains for this agent."""
-        return call_tool("get_claim_chains", {
+        return api_call("get_claim_chains", {
             "agent_id": self.agent_id,
         })
 
@@ -723,7 +734,7 @@ class VerifiableIntentManager:
             return {"status": "denied", "reason": budget_check["reason"]}
 
         # Step 2: Create the payment intent via GreenHelix
-        intent_result = call_tool("create_intent", {
+        intent_result = api_call("create_intent", {
             "from_agent": self.wallet.agent_id,
             "to_agent": vendor_agent_id,
             "amount": str(amount_usd),
@@ -1005,7 +1016,7 @@ class AP2Adapter(ProtocolAdapter):
 
         # Verify the agent identity via GreenHelix
         agent_card = presentation.get("agent_card", {})
-        identity_check = call_tool("get_agent_reputation", {
+        identity_check = api_call("get_agent_reputation", {
             "agent_id": agent_card.get("agent_id", ""),
         })
 
@@ -1065,7 +1076,7 @@ class UCPAdapter(ProtocolAdapter):
         commerce = presentation.get("commerce_capabilities", {})
 
         # Verify identity and check commerce capabilities
-        rep = call_tool("get_agent_reputation", {
+        rep = api_call("get_agent_reputation", {
             "agent_id": identity.get("agent_id", ""),
         })
 
@@ -1130,7 +1141,7 @@ class ACPAdapter(ProtocolAdapter):
                 return {"valid": False, "reason": f"Missing required claim: {claim}"}
 
         agent = presentation.get("agent", {})
-        rep = call_tool("get_agent_reputation", {
+        rep = api_call("get_agent_reputation", {
             "agent_id": agent.get("id", ""),
         })
 
@@ -1470,7 +1481,7 @@ class EUDIComplianceManager:
         }
 
         # Log via GreenHelix compliance tool
-        compliance_result = call_tool("check_compliance", {
+        compliance_result = api_call("check_compliance", {
             "agent_id": self.wallet.agent_id,
             "transaction_id": transaction_id,
             "compliance_data": attestation,
@@ -1550,7 +1561,7 @@ class ReputationBoundCredentialManager:
 
     def get_reputation_snapshot(self) -> dict:
         """Fetch the agent's current reputation from GreenHelix."""
-        return call_tool("get_agent_reputation", {
+        return api_call("get_agent_reputation", {
             "agent_id": self.wallet.agent_id,
         })
 
@@ -1563,7 +1574,7 @@ class ReputationBoundCredentialManager:
         These metrics feed into the reputation score and can be
         anchored in claim chains for tamper-evidence.
         """
-        return call_tool("submit_metrics", {
+        return api_call("submit_metrics", {
             "agent_id": self.wallet.agent_id,
             "metrics": metrics,
         })
@@ -1686,7 +1697,7 @@ class ReputationBoundCredentialManager:
         record of the evidence that can be presented during resolution.
         """
         # Create the dispute via GreenHelix
-        dispute_result = call_tool("create_dispute", {
+        dispute_result = api_call("create_dispute", {
             "agent_id": self.wallet.agent_id,
             "counterparty_agent_id": counterparty_agent_id,
             "dispute_id": dispute_id,
@@ -1795,510 +1806,10 @@ print(f"Dispute filed. Evidence credential: {evidence_result['evidence_credentia
 
 ---
 
-## Chapter 8: Production Deployment
+## Next Steps
 
-### Fleet-Wide Credential Issuance
-
-Production agent fleets have hundreds or thousands of agents. Each agent needs its own identity, wallet, and credential set. Manual issuance does not scale. The `FleetCredentialManager` automates the entire lifecycle: bulk registration, templated credential issuance, rotation scheduling, and health monitoring.
-
-```python
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
-from enum import Enum
-
-
-class AgentRole(Enum):
-    BUYER = "buyer"
-    VENDOR = "vendor"
-    BROKER = "broker"
-    MONITOR = "monitor"
-
-
-@dataclass
-class AgentSpec:
-    """Specification for an agent in the fleet."""
-    agent_id: str
-    display_name: str
-    role: AgentRole
-    authorized_actions: List[str]
-    spending_limit_usd: float
-    region: str
-
-
-class FleetCredentialManager:
-    """Manages credential wallets for an entire agent fleet.
-
-    Handles bulk registration, templated issuance, rotation, monitoring,
-    and compliance reporting across hundreds of agents.
-    """
-
-    def __init__(self, fleet_owner: str, fleet_name: str):
-        self.fleet_owner = fleet_owner
-        self.fleet_name = fleet_name
-        self.wallets: Dict[str, CredentialWallet] = {}
-        self.agent_specs: Dict[str, AgentSpec] = {}
-        self.rotation_schedule: Dict[str, float] = {}
-        self.health_log: List[dict] = []
-
-    def register_fleet(self, specs: List[AgentSpec]) -> dict:
-        """Register all agents in the fleet and create their wallets.
-
-        Args:
-            specs: List of agent specifications.
-
-        Returns:
-            Summary of registration results.
-        """
-        results = {"registered": [], "failed": []}
-
-        for spec in specs:
-            try:
-                wallet = CredentialWallet(
-                    agent_id=spec.agent_id,
-                    display_name=spec.display_name,
-                    owner=self.fleet_owner,
-                )
-                wallet.register()
-                wallet.create_wallet()
-
-                self.wallets[spec.agent_id] = wallet
-                self.agent_specs[spec.agent_id] = spec
-                results["registered"].append(spec.agent_id)
-
-            except Exception as e:
-                results["failed"].append({
-                    "agent_id": spec.agent_id,
-                    "error": str(e),
-                })
-
-        return results
-
-    def issue_fleet_credentials(
-        self,
-        credential_template: str = "standard-delegation",
-        ttl_seconds: int = 28800,
-    ) -> dict:
-        """Issue credentials to all agents based on their role and spec.
-
-        Uses the agent's role to determine authorized actions and limits.
-        Each credential is an SD-JWT-VC with selective disclosure support.
-        """
-        issued = []
-        failed = []
-
-        for agent_id, spec in self.agent_specs.items():
-            try:
-                wallet = self.wallets[agent_id]
-                cred_id = f"{credential_template}-{agent_id}-{int(time.time())}"
-
-                wallet.issue_credential(
-                    credential_id=cred_id,
-                    subject_did=wallet.did,
-                    credential_type=(
-                        f"https://greenhelix.net/credentials/{credential_template}/v1"
-                    ),
-                    claims={
-                        "fleet": self.fleet_name,
-                        "role": spec.role.value,
-                        "authorized_actions": spec.authorized_actions,
-                        "spending_limit": {
-                            "amount": str(spec.spending_limit_usd),
-                            "currency": "USD",
-                            "period": "session",
-                        },
-                        "region": spec.region,
-                    },
-                    disclosable_claims=["fleet", "region"],
-                    ttl_seconds=ttl_seconds,
-                )
-
-                # Schedule rotation
-                self.rotation_schedule[agent_id] = time.time() + ttl_seconds - 3600
-
-                issued.append({"agent_id": agent_id, "credential_id": cred_id})
-
-            except Exception as e:
-                failed.append({"agent_id": agent_id, "error": str(e)})
-
-        return {"issued": len(issued), "failed": len(failed), "details": issued}
-
-    def rotate_expiring_credentials(self, horizon_seconds: int = 3600) -> dict:
-        """Rotate credentials that will expire within the horizon.
-
-        Finds all agents whose current credential expires within
-        horizon_seconds and issues a new credential before expiration.
-        """
-        now = time.time()
-        rotated = []
-
-        for agent_id, rotation_time in list(self.rotation_schedule.items()):
-            if rotation_time <= now + horizon_seconds:
-                spec = self.agent_specs.get(agent_id)
-                wallet = self.wallets.get(agent_id)
-
-                if spec and wallet:
-                    new_cred_id = f"rotated-{agent_id}-{int(now)}"
-                    wallet.issue_credential(
-                        credential_id=new_cred_id,
-                        subject_did=wallet.did,
-                        credential_type=(
-                            "https://greenhelix.net/credentials/standard-delegation/v1"
-                        ),
-                        claims={
-                            "fleet": self.fleet_name,
-                            "role": spec.role.value,
-                            "authorized_actions": spec.authorized_actions,
-                            "spending_limit": {
-                                "amount": str(spec.spending_limit_usd),
-                                "currency": "USD",
-                                "period": "session",
-                            },
-                            "region": spec.region,
-                        },
-                        disclosable_claims=["fleet", "region"],
-                        ttl_seconds=28800,
-                    )
-                    self.rotation_schedule[agent_id] = now + 28800 - 3600
-                    rotated.append(agent_id)
-
-        return {"rotated": len(rotated), "agents": rotated}
-
-    def health_check(self) -> dict:
-        """Check the health of all agent wallets and credentials.
-
-        Verifies: agent registered, wallet exists, active credential
-        not expired, reputation above threshold.
-        """
-        healthy = []
-        unhealthy = []
-
-        for agent_id, wallet in self.wallets.items():
-            issues = []
-
-            # Check for active credentials
-            active_creds = [
-                cid for cid, c in wallet.credentials.items()
-                if c.expires_at > time.time()
-            ]
-            if not active_creds:
-                issues.append("no_active_credentials")
-
-            # Check reputation
-            try:
-                rep = call_tool("get_agent_reputation", {"agent_id": agent_id})
-                score = rep.get("reputation_score", 0)
-                if score < 0.5:
-                    issues.append(f"low_reputation_{score}")
-            except Exception:
-                issues.append("reputation_check_failed")
-
-            if issues:
-                unhealthy.append({"agent_id": agent_id, "issues": issues})
-            else:
-                healthy.append(agent_id)
-
-        report = {
-            "timestamp": time.time(),
-            "total_agents": len(self.wallets),
-            "healthy": len(healthy),
-            "unhealthy": len(unhealthy),
-            "unhealthy_details": unhealthy,
-        }
-        self.health_log.append(report)
-        return report
-
-    def compliance_report(self) -> dict:
-        """Generate a compliance report for the entire fleet.
-
-        Reports on: credential coverage, EUDI compliance readiness,
-        chain depth, revocation status.
-        """
-        agents_with_chains = 0
-        total_credentials = 0
-        expired_credentials = 0
-        now = time.time()
-
-        for agent_id, wallet in self.wallets.items():
-            for cid, cred in wallet.credentials.items():
-                total_credentials += 1
-                if cred.expires_at < now:
-                    expired_credentials += 1
-
-            chains = wallet.get_chains()
-            if chains.get("chains"):
-                agents_with_chains += 1
-
-        return {
-            "fleet": self.fleet_name,
-            "timestamp": now,
-            "total_agents": len(self.wallets),
-            "total_credentials": total_credentials,
-            "expired_credentials": expired_credentials,
-            "agents_with_claim_chains": agents_with_chains,
-            "eudi_readiness": "partial",  # Update based on EUDI integration status
-            "next_rotation": min(self.rotation_schedule.values())
-                if self.rotation_schedule else None,
-        }
-```
-
-### Deploying the Fleet
-
-```python
-# Define the fleet
-fleet = FleetCredentialManager(
-    fleet_owner="platform-admin@acme.com",
-    fleet_name="acme-commerce-fleet",
-)
-
-# Register agents
-specs = [
-    AgentSpec("acme-buyer-east-01", "East Buyer #1", AgentRole.BUYER,
-              ["purchase_compute", "purchase_storage"], 10000.0, "us-east"),
-    AgentSpec("acme-buyer-east-02", "East Buyer #2", AgentRole.BUYER,
-              ["purchase_compute"], 5000.0, "us-east"),
-    AgentSpec("acme-buyer-west-01", "West Buyer #1", AgentRole.BUYER,
-              ["purchase_compute", "purchase_saas"], 8000.0, "us-west"),
-    AgentSpec("acme-vendor-01", "Acme Compute Vendor", AgentRole.VENDOR,
-              ["register_service", "create_escrow"], 0.0, "us-east"),
-    AgentSpec("acme-broker-01", "Acme Service Broker", AgentRole.BROKER,
-              ["search_services", "best_match", "create_escrow"], 2000.0, "global"),
-    AgentSpec("acme-monitor-01", "Fleet Monitor", AgentRole.MONITOR,
-              ["get_analytics", "get_balance"], 0.0, "global"),
-]
-
-reg_results = fleet.register_fleet(specs)
-print(f"Registered: {len(reg_results['registered'])} agents")
-# Output: Registered: 6 agents
-
-# Issue credentials to the fleet
-issue_results = fleet.issue_fleet_credentials(ttl_seconds=28800)
-print(f"Issued: {issue_results['issued']} credentials")
-# Output: Issued: 6 credentials
-
-# Run health check
-health = fleet.health_check()
-print(f"Fleet health: {health['healthy']}/{health['total_agents']} healthy")
-
-# Generate compliance report
-report = fleet.compliance_report()
-print(f"Fleet compliance: {report['total_credentials']} credentials, "
-      f"{report['agents_with_claim_chains']} agents with chains")
-```
-
-### Key Rotation Strategy
-
-Key rotation for agent credentials is fundamentally different from human key rotation. Agents cannot be interrupted for rotation -- they may be mid-transaction when the old credential expires. The strategy is overlap-based: issue the new credential before the old one expires, run both concurrently during a transition window, then revoke the old one after the window closes.
-
-```python
-class KeyRotationManager:
-    """Manages zero-downtime key rotation for agent credentials.
-
-    Uses overlap windows: new credential is issued before old expires,
-    both are valid during the transition, old is revoked after transition.
-    """
-
-    def __init__(self, fleet: FleetCredentialManager):
-        self.fleet = fleet
-        self.transition_windows: Dict[str, dict] = {}
-
-    def schedule_rotation(
-        self,
-        agent_id: str,
-        overlap_seconds: int = 3600,
-        new_ttl_seconds: int = 28800,
-    ) -> dict:
-        """Schedule a key rotation with an overlap window.
-
-        Args:
-            agent_id: Agent to rotate.
-            overlap_seconds: How long old and new credentials coexist.
-            new_ttl_seconds: TTL for the new credential.
-        """
-        wallet = self.fleet.wallets.get(agent_id)
-        spec = self.fleet.agent_specs.get(agent_id)
-        if not wallet or not spec:
-            return {"error": f"Agent {agent_id} not found in fleet"}
-
-        now = time.time()
-
-        # Issue new credential
-        new_cred_id = f"rotation-{agent_id}-{int(now)}"
-        wallet.issue_credential(
-            credential_id=new_cred_id,
-            subject_did=wallet.did,
-            credential_type=(
-                "https://greenhelix.net/credentials/standard-delegation/v1"
-            ),
-            claims={
-                "fleet": self.fleet.fleet_name,
-                "role": spec.role.value,
-                "authorized_actions": spec.authorized_actions,
-                "spending_limit": {
-                    "amount": str(spec.spending_limit_usd),
-                    "currency": "USD",
-                    "period": "session",
-                },
-                "region": spec.region,
-            },
-            disclosable_claims=["fleet", "region"],
-            ttl_seconds=new_ttl_seconds,
-        )
-
-        # Record transition window
-        self.transition_windows[agent_id] = {
-            "new_credential_id": new_cred_id,
-            "overlap_ends": now + overlap_seconds,
-            "old_credentials_to_revoke": [
-                cid for cid in wallet.credentials
-                if cid != new_cred_id
-                and wallet.credentials[cid].expires_at > now
-            ],
-        }
-
-        return {
-            "agent_id": agent_id,
-            "new_credential": new_cred_id,
-            "overlap_ends": now + overlap_seconds,
-        }
-
-    def complete_rotations(self) -> dict:
-        """Complete any rotations whose overlap window has closed.
-
-        Revokes old credentials for agents past their overlap window.
-        """
-        now = time.time()
-        completed = []
-
-        for agent_id, window in list(self.transition_windows.items()):
-            if now > window["overlap_ends"]:
-                wallet = self.fleet.wallets.get(agent_id)
-                if wallet:
-                    for old_cred_id in window["old_credentials_to_revoke"]:
-                        if old_cred_id in wallet.credentials:
-                            del wallet.credentials[old_cred_id]
-                completed.append(agent_id)
-                del self.transition_windows[agent_id]
-
-        return {"completed": len(completed), "agents": completed}
-```
-
-### Monitoring and Alerting
-
-```python
-class CredentialMonitor:
-    """Monitors credential health and triggers alerts.
-
-    Checks for: expiring credentials, revoked credentials presented,
-    delegation chain breaks, reputation drops, and compliance gaps.
-    """
-
-    def __init__(self, fleet: FleetCredentialManager):
-        self.fleet = fleet
-        self.alerts: List[dict] = []
-
-    def run_checks(self) -> List[dict]:
-        """Run all monitoring checks and return alerts."""
-        self.alerts = []
-        now = time.time()
-
-        for agent_id, wallet in self.fleet.wallets.items():
-            # Check for credentials expiring in the next hour
-            for cid, cred in wallet.credentials.items():
-                remaining = cred.expires_at - now
-                if 0 < remaining < 3600:
-                    self.alerts.append({
-                        "severity": "warning",
-                        "agent_id": agent_id,
-                        "credential_id": cid,
-                        "message": f"Credential expires in {remaining:.0f}s",
-                        "timestamp": now,
-                    })
-                elif remaining <= 0:
-                    self.alerts.append({
-                        "severity": "critical",
-                        "agent_id": agent_id,
-                        "credential_id": cid,
-                        "message": "Credential has expired",
-                        "timestamp": now,
-                    })
-
-            # Check that at least one credential is active
-            active = any(
-                c.expires_at > now for c in wallet.credentials.values()
-            )
-            if not active and wallet.credentials:
-                self.alerts.append({
-                    "severity": "critical",
-                    "agent_id": agent_id,
-                    "credential_id": None,
-                    "message": "No active credentials -- agent cannot transact",
-                    "timestamp": now,
-                })
-
-        # Log alerts via GreenHelix analytics
-        if self.alerts:
-            call_tool("get_analytics", {
-                "agent_id": self.fleet.fleet_owner.split("@")[0],
-                "event": "credential_monitor_alerts",
-                "data": {
-                    "alert_count": len(self.alerts),
-                    "critical": len([a for a in self.alerts if a["severity"] == "critical"]),
-                    "warning": len([a for a in self.alerts if a["severity"] == "warning"]),
-                },
-            })
-
-        return self.alerts
-```
-
-### Backup and Disaster Recovery
-
-Credential wallets are critical infrastructure. If the wallet is lost, the agent cannot transact until new credentials are issued. If the private key is compromised, every credential ever issued with that key is suspect. Disaster recovery planning must address both scenarios.
-
-For wallet loss, the recovery path is re-registration and re-issuance. The agent registers a new identity, creates a new wallet, and the fleet manager issues fresh credentials. The old credentials should be revoked immediately. The recovery time objective (RTO) depends on how fast your fleet manager can re-issue: with the `FleetCredentialManager`, this is seconds per agent.
-
-For key compromise, the response is more complex. Every credential issued by the compromised key must be revoked. Every delegation chain that includes a credential from the compromised agent must be re-issued from the parent. The revocation must be propagated to all counterparties that have cached the compromised agent's credentials. This is why short TTLs matter: a credential with a 8-hour TTL limits the blast radius of a key compromise to 8 hours of transactions, even if revocation propagation is slow.
-
-### The 90-Day Sprint to December 2026
-
-The eIDAS 2.0 deadline is December 2026. If you are starting in April, you have approximately 240 days. Here is a phased deployment plan.
-
-**Days 1-30: Foundation**
-- Register all fleet agents with GreenHelix identity tools
-- Create credential wallets for each agent
-- Implement the `CredentialWallet` class from Chapter 3
-- Issue initial delegation credentials using your existing authorization model
-- Deploy claim chain anchoring (run `build_claim_chain` daily)
-
-**Days 31-60: Verifiable Intent**
-- Implement the `VerifiableIntentManager` from Chapter 4
-- Replace API-key-only payment authorization with VI-backed credentials
-- Add sub-delegation with constraint narrowing for agent hierarchies
-- Integrate with your existing spending limit infrastructure
-
-**Days 61-90: Cross-Protocol + eIDAS**
-- Deploy protocol adapters (AP2, UCP, ACP, x402) from Chapter 5
-- Integrate with EUDI Wallet providers for EU operations
-- Implement PSD2 SCA flows from Chapter 6
-- Build compliance attestation pipeline
-
-**Days 91-120: Reputation + Production Hardening**
-- Bind reputation to credentials using Chapter 7 patterns
-- Deploy revocation registry
-- Implement real-time credential monitoring from this chapter
-- Load test credential issuance and verification at production scale
-
-**Days 121-150: Fleet Rollout**
-- Deploy `FleetCredentialManager` for automated fleet management
-- Implement zero-downtime key rotation
-- Enable continuous compliance reporting
-- Train operations team on credential monitoring dashboards
-
-**Days 151-240: Harden, Audit, Certify**
-- Security audit of credential issuance and verification paths
-- Penetration testing of selective disclosure implementation
-- eIDAS 2.0 compliance certification for EU operations
-- Performance optimization for high-throughput credential verification
-- Disaster recovery testing for credential wallet backup and restore
+For deployment patterns, monitoring, and production hardening, see the
+[Agent Production Hardening Guide](https://clawhub.ai/skills/greenhelix-agent-production-hardening).
 
 ---
 
@@ -2322,7 +1833,7 @@ This guide covered the complete credential lifecycle for agentic commerce:
 
 **Chapter 8** covered fleet-wide deployment: bulk registration, templated issuance, zero-downtime key rotation, health monitoring, and a 90-day sprint plan.
 
-Every code example uses the `requests.Session` + `POST /v1/execute` pattern against the GreenHelix A2A Commerce Gateway. Every credential is an SD-JWT-VC with selective disclosure. Every delegation chain enforces constraint narrowing. The architecture is protocol-agnostic at the wallet layer and protocol-specific at the presentation layer, so your agents can transact across AP2, UCP, ACP, and x402 without credential duplication.
+Every code example uses the `requests.Session` + the REST API (`POST /v1/{tool}`) pattern against the GreenHelix A2A Commerce Gateway. Every credential is an SD-JWT-VC with selective disclosure. Every delegation chain enforces constraint narrowing. The architecture is protocol-agnostic at the wallet layer and protocol-specific at the presentation layer, so your agents can transact across AP2, UCP, ACP, and x402 without credential duplication.
 
 The December 2026 deadline is real. The protocols are converging. Start with Chapter 3, register your first agent, and build from there.
 

@@ -3,11 +3,16 @@
   "slug": "greenhelix-agent-credential-wallets",
   "displayName": "Agent Credential Wallets: Verifiable Intent & Delegation Chains",
   "latest": {
-    "version": "1.2.0",
-    "publishedAt": 1776065194128,
-    "commit": "https://github.com/openclaw/skills/commit/840133535459da4682e93707c8409b3f67ad777f"
+    "version": "1.3.1",
+    "publishedAt": 1776236952290,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.0",
+      "publishedAt": 1776065194128,
+      "commit": "https://github.com/openclaw/skills/commit/840133535459da4682e93707c8409b3f67ad777f"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1775629778101,

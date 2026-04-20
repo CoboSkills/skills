@@ -1,16 +1,8 @@
 {
   "name": "@spectyra/openclaw-skill",
-  "version": "1.0.0",
+  "version": "1.0.23",
   "private": false,
-  "description": "Spectyra optimization skill for OpenClaw — routes spectyra/* models through Local Companion (chat, agents, cron, tools)",
-  "license": "MIT",
-  "files": [
-    "SKILL.md",
-    "SECURITY.md",
-    "README.md",
-    "skill.json",
-    "config-fragment.json",
-    "setup.sh",
-    "persist_spectyra_desktop_config.py"
-  ]
+  "description": "Spectyra OpenClaw skill (SKILL.md + optional config merge)",
+  "license": "MIT-0",
+  "files": ["SKILL.md", "README.md", "skill.json", "config-fragment.json"]
 }

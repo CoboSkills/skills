@@ -3,9 +3,15 @@
   "slug": "justoneapi-taobao",
   "displayName": "Taobao and Tmall API",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1775375346128,
-    "commit": "https://github.com/openclaw/skills/commit/39e4772dd721588b9f56a64e7469feaa7d6bd75e"
+    "version": "1.0.5",
+    "publishedAt": 1776239995080,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1775375346128,
+      "commit": "https://github.com/openclaw/skills/commit/39e4772dd721588b9f56a64e7469feaa7d6bd75e"
+    }
+  ]
 }

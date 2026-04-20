@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-tax-ledger-compliance
-version: "1.2.0"
+version: "1.3.1"
 description: "Agent Tax & Ledger Compliance Playbook. Reconcile, report, and stay audit-ready when autonomous agents execute thousands of transactions without human review. Covers 1099-DA, multi-ledger reconciliation, and tax estimation."
 license: MIT
 compatibility: [openclaw]
@@ -12,12 +12,21 @@ content_type: markdown
 executable: false
 install: none
 credentials: [WALLET_ADDRESS, AGENT_SIGNING_KEY, STRIPE_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - WALLET_ADDRESS
+        - AGENT_SIGNING_KEY
+        - STRIPE_API_KEY
+    primaryEnv: WALLET_ADDRESS
 ---
 # Agent Tax & Ledger Compliance Playbook
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `WALLET_ADDRESS`: Blockchain wallet address for receiving payments (public address only — no private keys)
@@ -27,7 +36,7 @@ credentials: [WALLET_ADDRESS, AGENT_SIGNING_KEY, STRIPE_API_KEY]
 
 Your agent executed 14,000 transactions last quarter. It bought data enrichment services from three marketplace providers, paid in USDC over x402, collected revenue through Gumroad and Stripe, and settled micro-payments through the GreenHelix A2A Commerce Gateway. You received a 1099-K from Stripe, a sales summary from Gumroad, and nothing at all from the on-chain transactions. Tax season arrives and your CPA asks a question that has no good answer: who is the taxpayer for these transactions, and where is the ledger?
 The IRS does not recognize AI agents as taxpayers. The Internal Revenue Code assigns tax obligations to persons -- individuals, corporations, partnerships, estates, and trusts. Your agent is none of these. But the money it spent and earned is real, the capital gains on stablecoin conversions are taxable, and the reporting obligations fall on someone. That someone is you -- the beneficial owner, the person with dominion and control over the funds, the entity that received the economic benefit. The IRS has made this clear through existing case law, and the 2026 1099-DA reporting requirements for digital asset brokers will make the enforcement infrastructure inescapable.
-This playbook solves the tax compliance problem for agent commerce systems. Seven chapters cover attribution, ledger design, multi-ledger reconciliation, 1099-DA reporting, real-time tax estimation, compliance automation patterns, and audit survival. Every chapter contains production Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via `POST /v1/execute`. Every pattern is designed to produce the documentation an IRS auditor would request: complete transaction histories, cost basis records, reconciliation reports, and evidence of human oversight over autonomous systems.
+This playbook solves the tax compliance problem for agent commerce systems. Seven chapters cover attribution, ledger design, multi-ledger reconciliation, 1099-DA reporting, real-time tax estimation, compliance automation patterns, and audit survival. Every chapter contains production Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via the REST API (`POST /v1/{tool}`). Every pattern is designed to produce the documentation an IRS auditor would request: complete transaction histories, cost basis records, reconciliation reports, and evidence of human oversight over autonomous systems.
 
 ## What You'll Learn
 - Chapter 1: The Tax Attribution Problem
@@ -48,7 +57,7 @@ Your agent executed 14,000 transactions last quarter. It bought data enrichment 
 
 The IRS does not recognize AI agents as taxpayers. The Internal Revenue Code assigns tax obligations to persons -- individuals, corporations, partnerships, estates, and trusts. Your agent is none of these. But the money it spent and earned is real, the capital gains on stablecoin conversions are taxable, and the reporting obligations fall on someone. That someone is you -- the beneficial owner, the person with dominion and control over the funds, the entity that received the economic benefit. The IRS has made this clear through existing case law, and the 2026 1099-DA reporting requirements for digital asset brokers will make the enforcement infrastructure inescapable.
 
-This playbook solves the tax compliance problem for agent commerce systems. Seven chapters cover attribution, ledger design, multi-ledger reconciliation, 1099-DA reporting, real-time tax estimation, compliance automation patterns, and audit survival. Every chapter contains production Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via `POST /v1/execute`. Every pattern is designed to produce the documentation an IRS auditor would request: complete transaction histories, cost basis records, reconciliation reports, and evidence of human oversight over autonomous systems.
+This playbook solves the tax compliance problem for agent commerce systems. Seven chapters cover attribution, ledger design, multi-ledger reconciliation, 1099-DA reporting, real-time tax estimation, compliance automation patterns, and audit survival. Every chapter contains production Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via the REST API (`POST /v1/{tool}`). Every pattern is designed to produce the documentation an IRS auditor would request: complete transaction histories, cost basis records, reconciliation reports, and evidence of human oversight over autonomous systems.
 
 As of January 2026, the x402 protocol has facilitated over 20 million agent-to-agent transactions. The vast majority of these transactions have no corresponding tax documentation. This guide ensures yours do.
 
@@ -135,17 +144,18 @@ This doctrine is particularly relevant for developers who deploy agents across m
 The foundation of tax compliance is linking every agent transaction to a human or legal entity taxpayer. GreenHelix provides identity tools that establish this linkage cryptographically.
 
 ```python
+import os
 import requests
 import json
 from datetime import datetime
 
-GATEWAY_URL = "https://api.greenhelix.net/v1"
+GATEWAY_URL = os.environ.get("GREENHELIX_API_URL", "https://sandbox.greenhelix.net")
 API_KEY = "your-api-key"
 
 def execute_tool(tool_name: str, tool_input: dict) -> dict:
     """Execute a GreenHelix gateway tool."""
     response = requests.post(
-        f"{GATEWAY_URL}/execute",
+        f"{GATEWAY_URL}/v1",
         headers={
             "Authorization": f"Bearer {API_KEY}",
             "Content-Type": "application/json",
@@ -2366,19 +2376,19 @@ When you receive an IRS examination notice:
 
 | Tool | Endpoint | Tax Compliance Use |
 |---|---|---|
-| `get_agent_identity` | `POST /v1/execute` | Retrieve agent identity for ownership proof |
-| `build_claim_chain` | `POST /v1/execute` | Link agents to taxpayer entities |
-| `get_claim_chains` | `POST /v1/execute` | Export ownership proof for audit |
-| `submit_metrics` | `POST /v1/execute` | Submit compliance checkpoints |
-| `search_agents_by_metrics` | `POST /v1/execute` | Find agents under common control |
-| `get_agent_reputation` | `POST /v1/execute` | Document agent standing |
-| `get_transaction_history` | `POST /v1/execute` | Pull complete transaction records |
-| `record_transaction` | `POST /v1/execute` | Log ledger sync and compliance events |
-| `get_balance` | `POST /v1/execute` | Cross-check computed vs. reported balance |
-| `get_usage_analytics` | `POST /v1/execute` | Monitor transaction velocity and project liability |
-| `create_payment_intent` | `POST /v1/execute` | Reserve funds for estimated tax payments |
+| `get_agent_identity` | the REST API (`POST /v1/{tool}`) | Retrieve agent identity for ownership proof |
+| `build_claim_chain` | the REST API (`POST /v1/{tool}`) | Link agents to taxpayer entities |
+| `get_claim_chains` | the REST API (`POST /v1/{tool}`) | Export ownership proof for audit |
+| `submit_metrics` | the REST API (`POST /v1/{tool}`) | Submit compliance checkpoints |
+| `search_agents_by_metrics` | the REST API (`POST /v1/{tool}`) | Find agents under common control |
+| `get_agent_reputation` | the REST API (`POST /v1/{tool}`) | Document agent standing |
+| `get_transaction_history` | the REST API (`POST /v1/{tool}`) | Pull complete transaction records |
+| `record_transaction` | the REST API (`POST /v1/{tool}`) | Log ledger sync and compliance events |
+| `get_balance` | the REST API (`POST /v1/{tool}`) | Cross-check computed vs. reported balance |
+| `get_usage_analytics` | the REST API (`POST /v1/{tool}`) | Monitor transaction velocity and project liability |
+| `create_payment_intent` | the REST API (`POST /v1/{tool}`) | Reserve funds for estimated tax payments |
 
-All tools are called via `POST /v1/execute` with `{"tool": "tool_name", "input": {...}}` and `Authorization: Bearer <api_key>`.
+All tools are called via the REST API (`POST /v1/{tool}`) with `{"tool": "tool_name", "input": {...}}` and `Authorization: Bearer <api_key>`.
 
 ---
 

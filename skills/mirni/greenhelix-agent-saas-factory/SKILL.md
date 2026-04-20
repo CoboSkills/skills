@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-saas-factory
-version: "1.2.0"
+version: "1.3.1"
 description: "The Agent SaaS Factory: Build, Deploy, and Monetize Software Products with Autonomous AI Agents. Complete guide to using AI agents to autonomously build, deploy, and monetize micro-SaaS products: GitHub for code, Stripe for billing, Postgres for data, and automated dispute arbitration. Includes detailed Python code examples with full API integration."
 license: MIT
 compatibility: [openclaw]
@@ -12,12 +12,20 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY, STRIPE_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+        - STRIPE_API_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # The Agent SaaS Factory: Build, Deploy, and Monetize Software Products with Autonomous AI Agents
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
@@ -50,6 +58,10 @@ That is what this guide builds. A factory pattern where autonomous AI agents rec
 The infrastructure is the GreenHelix A2A Commerce Gateway's pro-tier integration tools: 10 GitHub tools, 13 Stripe tools, 6 Postgres tools, and 5 Dispute tools -- 34 tools total, all accessible through a single HTTP endpoint at $0.005-$0.01 per call. This guide covers every one of them.
 
 ---
+
+
+> **Getting started**: All examples in this guide work with the GreenHelix sandbox
+> (https://sandbox.greenhelix.net) which provides 500 free credits — no API key required.
 
 ## Table of Contents
 
@@ -161,7 +173,7 @@ class AgentDeveloper:
     def _execute(self, tool: str, input_data: dict) -> dict:
         """Execute a tool on the GreenHelix gateway."""
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
         )
         if resp.status_code == 402:
@@ -542,7 +554,7 @@ class AgentDBA:
     def _execute(self, tool: str, input_data: dict) -> dict:
         """Execute a tool on the GreenHelix gateway."""
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
         )
         if resp.status_code == 402:
@@ -886,7 +898,7 @@ class AgentBilling:
     def _execute(self, tool: str, input_data: dict) -> dict:
         """Execute a tool on the GreenHelix gateway."""
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
         )
         if resp.status_code == 402:
@@ -1600,7 +1612,7 @@ class AgentArbitrator:
     def _execute(self, tool: str, input_data: dict) -> dict:
         """Execute a tool on the GreenHelix gateway."""
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
         )
         if resp.status_code == 402:

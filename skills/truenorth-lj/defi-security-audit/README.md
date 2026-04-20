@@ -23,19 +23,68 @@ Given a protocol name, the skill:
 7. **On-Chain Verification** -- Attempts to verify claims against actual on-chain state (Squads multisig, Etherscan, etc.)
 8. **Generates Risk Report** -- Structured report with quantitative metrics, peer comparison, and cross-reference against known attack patterns
 
-## Test Results
+## Audit Reports
 
-Validated against three protocols:
+Validated against 79 protocols spanning DeFiLlama's top 100 by TVL plus all major perp exchanges (20 covered). Full index with all reports: **[docs/audit-reports.md](docs/audit-reports.md)**
 
-| Protocol | Type | TVL | Risk Rating | GoPlus | Audit Date | Key Finding |
-|----------|------|-----|-------------|--------|------------|-------------|
-| [**Drift Protocol** (pre-hack)](docs/examples/drift-protocol-pre-hack.md) | Top | $550M | **CRITICAL** | N/A (Solana) | 2026-03 (hypothetical) | Successfully identified all 3 attack vectors before the hack |
-| [**Aave**](docs/examples/aave-top-protocol.md) | Top | $23.6B | **LOW** | LOW (0 HIGH / 1 MED) | 2026-04-05 | Confirmed robust DAO governance + dual timelock + 6yr track record |
-| [**Zeta Markets**](docs/examples/zeta-markets-tail-protocol.md) | Tail | $0 | **HIGH** | N/A (Solana) | 2026-04-05 | Flagged no audits, closed-source, undisclosed multisig config |
+**Risk distribution:** 7 LOW | 38 MEDIUM | 22 HIGH | 12 CRITICAL
+
+### Top Protocols by TVL
+
+| Protocol | Type | TVL | Risk | Key Finding |
+|----------|------|-----|------|-------------|
+| [**Aave**](docs/examples/aave-top-protocol.md) | Lending | $23.6B | **LOW** | Gold standard; dual timelock + 6yr track record |
+| [**Lido**](docs/examples/lido-liquid-staking.md) | Liquid Staking | $19.0B | **LOW** | Industry-leading staking with mature security |
+| [**SSV Network**](docs/examples/ssv-network-staking.md) | DVT/Staking | $15.0B | **MEDIUM** | No insurance for $15B; data breach; 4/6 multisig |
+| [**EigenLayer**](docs/examples/eigenlayer-restaking.md) | Restaking | $8.26B | **MEDIUM** | Strong governance; novel systemic slashing risk |
+| [**WBTC**](docs/examples/wbtc-wrapped-bitcoin.md) | Wrapped BTC | $7.8B | **MEDIUM** | 2-of-3 custody; Justin Sun/BiT Global controversy |
+| [**Morpho**](docs/examples/morpho-lending.md) | Lending | $7.06B | **LOW** | Immutable core (~650 LOC); 12+ audits; no admin keys |
+| [**Ethena**](docs/examples/ethena-stablecoin.md) | Synthetic Dollar | $6.64B | **MEDIUM** | Strong contracts; custodial/CEX counterparty risk |
+| [**Sky**](docs/examples/sky-lending-cdp.md) | CDP/Stablecoin | $6.58B | **LOW** | Pioneer CDP; strongest governance track record |
+| [**Hyperliquid**](docs/examples/hyperliquid-perps.md) | Perps | $4.87B | **HIGH** | CoreWriter godmode; 4-validator bridge; closed-source L1 |
+| [**EtherFi**](docs/examples/etherfi-liquid-restaking.md) | Liquid Restaking | $4.8B | **MEDIUM** | Good audits; governance gaps; TVL decline |
+| [**Ondo**](docs/examples/ondo-rwa.md) | RWA/Treasuries | $3.51B | **MEDIUM** | 20+ audits; centralized admin; 59% team token |
+| [**Uniswap**](docs/examples/uniswap-dex.md) | DEX | $3.09B | **LOW** | No admin keys; 48h timelock; $15.5M bug bounty |
+
+### Protocols Rated HIGH / CRITICAL -- Exercise Caution
+
+| Protocol | Type | TVL | Risk | Key Finding |
+|----------|------|-----|------|-------------|
+| [**Kelp DAO**](docs/examples/kelp-post-hack-20260419.md) | Liquid Restaking | $1.3B | **CRITICAL** | $292M exploited via LayerZero bridge spoofing + Aave bad debt cascade (2026-04-18). [Pre-hack audit](docs/examples/kelp-liquid-restaking.md) rated MEDIUM |
+| [**Drift Protocol**](docs/examples/drift-protocol-pre-hack.md) | Perps | $550M | **CRITICAL** | Identified all 3 attack vectors before the $285M hack |
+| [**Notional Finance**](docs/examples/notional-lending.md) | Lending | $0 | **CRITICAL** | Defunct after Balancer exploit; 56% lender haircut |
+| [**Lybra Finance**](docs/examples/lybra-stablecoin.md) | Stablecoin | $337K | **CRITICAL** | Abandoned; 99.9% TVL decline; website dead |
+| [**JustLend**](docs/examples/justlend-lending.md) | Lending | $3.3B | **HIGH** | Justin Sun centralization; stale audits; opaque governance |
+| [**Grove Finance**](docs/examples/grove-finance-allocator.md) | Allocator | $2.87B | **HIGH** | Undisclosed governance; parent DNS hijack; 10mo old |
+| [**Falcon Finance**](docs/examples/falcon-finance-basis.md) | Basis Trading | $1.63B | **HIGH** | DWF Labs affiliation; prior depeg; 0.6% insurance/TVL |
+| [**USDD**](docs/examples/usdd-stablecoin.md) | Stablecoin | $1.29B | **HIGH** | Justin Sun unilateral control; reflexive TRX collateral |
+| [**Radiant Capital**](docs/examples/radiant-lending.md) | Lending | $1.72M | **HIGH** | $50M+ hack by DPRK; 98% TVL collapse |
+| [**SushiSwap**](docs/examples/sushiswap-dex.md) | DEX | $41M | **HIGH** | Governance instability; unaudited routers; 99.5% decline |
+| [**Alpaca Finance**](docs/examples/alpaca-leverage.md) | Leverage | $41.4M | **HIGH** | Protocol shutting down; withdraw immediately |
+| [**Bancor**](docs/examples/bancor-dex.md) | DEX | $27M | **HIGH** | IL protection collapse; 99% TVL decline; litigation |
+| [**Camelot**](docs/examples/camelot-dex.md) | DEX | $24.8M | **HIGH** | 2/3 multisig; no timelock; pseudonymous team |
+| [**Aura Finance**](docs/examples/aura-yield.md) | Yield | $96.9M | **HIGH** | Balancer exploit threatens core mechanism |
+| [**Resolv**](docs/examples/resolv-stablecoin.md) | Stablecoin | $57.6M | **CRITICAL** | Exploited March 2026 ($25M); USR peg NOT restored; protocol paused |
+| [**Vertex**](docs/examples/vertex-perps.md) | Perps | $0 | **CRITICAL** | Shut down Aug 2025; DAO dissolved; team acquired by Ink Foundation |
+| [**Paradex**](docs/examples/paradex-perps.md) | Perps | $46.9M | **CRITICAL** | 2/5 multisig + zero timelock; can drain all bridged USDC |
+| [**Raydium**](docs/examples/raydium-dex.md) | DEX | $1B+ | **HIGH** | Upgrade authority appears EOA; zero timelock; 2022 key compromise |
+| [**Aster**](docs/examples/aster-perps.md) | Perps | $538M | **HIGH** | Anonymous team; suspected wash trading; DeFiLlama delisted once |
+| [**Lighter**](docs/examples/lighter-perps.md) | Perps | $502M | **HIGH** | Timelock bypassable to 0s; centralized sequencer outage |
+| [**edgeX**](docs/examples/edgex-perps.md) | Perps | $190M | **HIGH** | No multisig/timelock disclosed; $10K bug bounty |
+| [**Extended**](docs/examples/extended-perps.md) | Perps | $174.7M | **HIGH** | Doxxed team but unverified multisig; no bug bounty |
+| [**Ostium**](docs/examples/ostium-perps.md) | Perps/RWA | $144M | **HIGH** | 6+ audits but governance fully opaque |
+| [**ApeX Omni**](docs/examples/apex-omni-perps.md) | Perps | $125M | **HIGH** | Zero governance transparency; 0 DeFiLlama audits |
+| [**Usual**](docs/examples/usual-stablecoin.md) | Stablecoin | $101M | **HIGH** | USD0++ depegged; TVL -94.6%; 75.8% token concentration |
+| [**GRVT**](docs/examples/grvt-perps.md) | Perps | $63.5M | **HIGH** | 2/3 multisig + 0s timelock; validium risk |
+| [**Infrared**](docs/examples/infrared-berachain.md) | Liquid Staking/PoL | $52M | **HIGH** | 24 audits but governance opaque; TVL -97% |
+| [**Drift (post-hack)**](docs/examples/drift-protocol-post-hack-20260420.md) | Perps | $241M | **CRITICAL** | All 7/7 pre-hack flags exploited; $148M pledged vs $295M losses |
+| [**Variational Omni**](docs/examples/variational-omni-perps.md) | Perps | $0 | **CRITICAL** | $0 TVL; closed-source; strong team but zero on-chain transparency |
+| [**Antarctic**](docs/examples/antarctic-perps.md) | Perps | $10M | **CRITICAL** | 0/100 data confidence; fully closed source; zero audits |
+| [**GMX**](docs/examples/gmx-derivatives.md) | Derivatives | $346M | **HIGH** | GoPlus hidden_owner; 7-chain Kelp-type bridge risk |
+| [**Gains Network**](docs/examples/gains-network-perps.md) | Perps | $28M | **HIGH** | GoPlus hidden_owner persists; bug bounty halved |
+| [**StandX**](docs/examples/standx-perps.md) | Perps | $52M | **HIGH** | Perps engine zero audits; DUSD proxy no timelock |
 
 The skill correctly distinguished high-risk from low-risk protocols and identified the specific Drift vulnerabilities that were later exploited.
-
-**GoPlus integration note:** Drift and Zeta are Solana-native protocols; GoPlus token security API supports EVM chains only. For Aave (EVM), GoPlus confirmed the token contract is clean -- the only flag is the proxy pattern, which is expected for a DAO-governed upgradeable protocol.
 
 ## Installation
 
@@ -45,7 +94,7 @@ The skill correctly distinguished high-risk from low-risk protocols and identifi
 npx skills add truenorth-lj/crypto-project-security-skill
 ```
 
-### Via [ClawHub](https://clawhub.ai/truenorth-lj/crypto-project-security-skill) (OpenClaw)
+### Via [ClawHub](https://clawhub.ai/truenorth-lj/defi-security-audit) (OpenClaw)
 
 ```bash
 clawhub install truenorth-lj/crypto-project-security-skill
@@ -70,7 +119,7 @@ In Claude Code, use any of these trigger phrases:
 
 ## Attack Pattern Detection
 
-The skill cross-references findings against three major DeFi exploit categories:
+The skill cross-references findings against eight major DeFi exploit categories (the full list includes Beanstalk-type, Cream/bZx-type, Curve-type, UST/LUNA-type in `SKILL.md`). Key patterns:
 
 ### Drift-type (Governance + Oracle + Social Engineering)
 - Admin can list new collateral without timelock
@@ -91,6 +140,16 @@ The skill cross-references findings against three major DeFi exploit categories:
 - Bridge dependency with centralized validators
 - Admin keys stored in hot wallets
 - No key rotation policy
+
+### Kelp-type (Bridge Message Spoofing + Composability Cascade) -- NEW
+- Bridge message validation relies on single messaging layer
+- DVN/verifier configuration not publicly documented
+- No rate limiting on bridge-released token volume
+- Bridged token accepted as collateral on lending protocols (Aave, Compound, Euler)
+- Token deployed on 5+ chains via same bridge provider
+- Stolen/unbacked tokens used as collateral → borrow real assets → bad debt cascade
+
+> In the Kelp hack ($292M, April 2026), the attacker forged a LayerZero cross-chain message to drain rsETH, then deposited unbacked rsETH on Aave V3 as collateral to borrow WETH, creating $290M+ in bad debt across multiple lending protocols.
 
 ## Quantitative Metrics
 

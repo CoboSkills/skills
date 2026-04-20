@@ -13,13 +13,14 @@ This repo contains a Claude Code skill (`SKILL.md`) for performing comprehensive
 ├── SKILL.md               # The Claude Code skill definition (copy to .claude/skills/)
 ├── LICENSE                # MIT
 ├── scripts/
-│   └── goplus-check.sh    # GoPlus Security API helper script (token, address, dApp checks)
+│   ├── goplus-check.sh    # GoPlus Security API helper script (token, address, dApp checks)
+│   └── onchain-check.sh   # On-chain verification (Safe multisig, Etherscan, Solana RPC)
 └── docs/
     ├── methodology.md     # Audit framework design principles and methodology
-    └── examples/          # Example audit reports from validation testing
-        ├── drift-protocol-pre-hack.md   # CRITICAL -- validated against actual $285M hack
-        ├── aave-top-protocol.md         # LOW -- gold standard lending protocol
-        └── zeta-markets-tail-protocol.md # HIGH -- defunct protocol with transparency gaps
+    ├── audit-reports.md   # Full index of all 79 audit reports (sortable by risk/TVL)
+    └── examples/          # 79 audit reports covering DeFiLlama top 100 protocols + all major perp exchanges
+        ├── (12 CRITICAL, 22 HIGH, 38 MEDIUM, 7 LOW)
+        └── See docs/audit-reports.md for the full index
 ```
 
 ## Skill Installation
@@ -48,7 +49,8 @@ cp SKILL.md .claude/skills/defi-security-audit/SKILL.md
 
 ## Key Design Decisions
 
-- **Governance-first approach**: Built in response to the Drift Protocol hack, which exploited governance architecture (not code bugs). The skill prioritizes admin key analysis, timelock verification, and multisig configuration over traditional code review.
+- **Governance-first approach**: Built in response to the Drift Protocol hack, which exploited governance architecture (not code bugs). The skill prioritizes admin key analysis, timelock verification, and multisig configuration.
+- **Source code review**: Targeted review of open-source contracts — verifies governance claims from docs against actual code, inventories admin functions, scans for high-impact vulnerability patterns (reentrancy, oracle manipulation, flash loan surfaces, proxy upgrade risks). Not a full line-by-line audit, but catches discrepancies between what teams claim and what the code does.
 - **Quantitative metrics**: Includes computable ratios (Insurance/TVL, Audit Coverage Score, etc.) to reduce subjectivity and enable cross-protocol comparison.
 - **Attack pattern matching**: Cross-references findings against three exploit categories (Drift-type, Euler/Mango-type, Ronin/Harmony-type) with specific indicator checklists.
 - **Information gap reporting**: Explicitly lists what could NOT be determined -- absence of public information is itself a risk signal.

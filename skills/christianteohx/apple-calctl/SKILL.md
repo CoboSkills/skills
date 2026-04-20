@@ -1,6 +1,6 @@
 ---
 name: calctl
-description: Native macOS Calendar CLI with EventKit for creating, listing, editing, and deleting calendar events. Supports recurring events (RRULE) and single-occurrence edits with --this-only. Trigger phrases: "calendar CLI", "apple calendar from terminal", "calctl", "event CLI for macOS", "add recurring event to calendar", "schedule recurring calendar event", "macOS calendar command line".
+description: Native macOS Calendar CLI with EventKit for creating, listing, editing, and deleting calendar events from the terminal. Supports recurring events. Trigger phrases: "calendar CLI", "apple calendar from terminal", "calctl", "event CLI for macOS", "add recurring event to calendar", "schedule recurring calendar event".
 homepage: https://github.com/christianteohx/calctl
 user-invocable: true
 metadata:
@@ -49,7 +49,7 @@ curl -fsSL https://github.com/christianteohx/calctl/releases/latest/download/cal
 chmod +x ~/bin/calctl
 ```
 
-Build from source (macOS 14+, Swift 6.0+):
+Build from source (macOS 13+, Swift 6.0+):
 
 ```
 git clone https://github.com/christianteohx/calctl
@@ -66,14 +66,13 @@ First run: macOS will prompt for Calendar permission. Grant it in System Setting
 calctl status                    check calendar access status
 calctl authorize                 trigger permission prompt
 calctl list                      list all calendars (with id, title, source)
-calctl today                     show today's events
-calctl tomorrow                  show tomorrow's events
-calctl week                      show this week's events
-calctl date YYYY-MM-DD           show events for a specific date
+calctl today [--attendees]       show today's events (--attendees shows invitees)
+calctl tomorrow [--attendees]     show tomorrow's events (--attendees shows invitees)
+calctl week [--attendees]        show this week's events (--attendees shows invitees)
+calctl date YYYY-MM-DD [--attendees]  show events for a specific date
 calctl add --title ... --start ... --end ... [--recurrence RULE]  create an event
 calctl edit --id <id> ...       edit an event
 calctl delete --id <id>          delete an event
---this-only                       edit/delete single occurrence only (for recurring events)
 --calendar <name>                filter by calendar name
 ```
 
@@ -89,13 +88,13 @@ calctl add --title "Monthly Report" --start "2026-05-01 10:00" --end "2026-05-01
 
 Supported RRULE keys: FREQ (DAILY/WEEKLY/MONTHLY/YEARLY), INTERVAL, BYDAY, BYMONTHDAY, COUNT, UNTIL.
 
-### Single occurrence edit/delete
+## Attendees
 
-For recurring events, use --this-only to edit or delete only the selected occurrence:
+Use `--attendees` on `today`, `tomorrow`, `week`, or `date` commands to show attendee information:
 
 ```
-calctl edit --id <event-id> --title "New Title" --this-only
-calctl delete --id <event-id> --this-only
+calctl today --attendees
+calctl week --attendees
 ```
 
-Without --this-only, changes apply to this and all future occurrences.
+Shows each attendee's name/email and participation status (accepted, pending, declined, tentative, etc.). Events with no attendees show no attendee data. Available in both plain text and JSON output.

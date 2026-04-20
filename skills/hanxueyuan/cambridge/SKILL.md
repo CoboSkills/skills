@@ -1,38 +1,47 @@
 ---
-name: cambridge
-description: "Information assistant for Cambridge University 剑桥大学. Get mission info, latest reports, member states, and organizational resources."
-metadata:
-  { "openclaw": { "emoji": "🏛️", "version": "0.1.0", "author": "hanxueyuan", "tags": ["organization","institution","info"] } }
+summary: "剑桥大学——英语世界第二古老大学、牛顿/达尔文/霍金的母校、120+ 位诺贝尔奖"
+read_when:
+  - 查询剑桥大学 · Cambridge相关信息
+  - 了解相关行业发展
 ---
 
-# 🏛️ Cambridge University 剑桥大学 — Organization Info Assistant
+# 剑桥大学 · Cambridge
 
-Get comprehensive information about Cambridge University 剑桥大学.
+---
 
-## About
+## 发展历程
 
-- **Organization**: Cambridge University 剑桥大学
-- **Focus**: World-class research
-- **Official Website**: https://www.cam.ac.uk
+| 时期 | 关键事件 |
+|:----:|--------|
+| **1209 年** | 牛津学者逃离牛津后创立剑桥 |
+| **1500s** | 三一学院等标志性学院建立 |
+| **1660s** | 牛顿在此发展微积分和万有引力理论 |
+| **1830s** | 达尔文在此学习 |
+| **1950s** | DNA 双螺旋结构在此发现 |
+| **2020s** | QS 世界大学排名前五 |
 
-## What This Skill Does
+---
 
-1. **Mission & Overview** — What this organization does and why it matters
-2. **Latest Reports** — Recent publications, data releases, policy papers
-3. **News & Events** — Upcoming meetings, conferences, announcements
-4. **Member Info** — Member states/countries, leadership, structure
-5. **Resources** — Key databases, tools, and publications
+## 核心特点
 
-## Example Queries
+本科 + 研究生 + 研究（31 个学院）
 
-- "What does CAMBRIDGE do?"
-- "Latest CAMBRIDGE report"
-- "Who leads CAMBRIDGE?"
-- "CAMBRIDGE member countries"
+## 核心优势
 
-## How It Works
+剑桥科技园（Silicon Fen）是欧洲最大的科技集群之一
 
-Uses web search to fetch information from official organizational websites and news sources.
+---
 
-## Author
-Created by hanxueyuan | License: MIT
+## 关键数据
+
+| 指标 | 数值 |
+|------|------|
+| 学生数 | 约 24000 人 |
+| 诺贝尔奖 | 120+ 位 |
+| 录取率 | 约 21% |
+
+---
+
+## 值得了解
+
+剑桥的国王学院合唱团每年圣诞夜向全球广播——是英国圣诞传统的象征

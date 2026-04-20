@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-cost-optimization
-version: "1.2.0"
+version: "1.3.1"
 description: "AI Agent Cost Optimization Cookbook: Cut Your Agent Bills by 60% Without Sacrificing Quality. Practical recipes for reducing AI agent operational costs. Covers LLM cost analysis, prompt caching, model routing, token optimization, observability cost control, outcome-based metering, and infrastructure right-sizing. Includes working Python code and real cost reduction case studies."
 license: MIT
 compatibility: [openclaw]
@@ -12,12 +12,19 @@ content_type: markdown
 executable: false
 install: none
 credentials: [WALLET_ADDRESS]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - WALLET_ADDRESS
+    primaryEnv: WALLET_ADDRESS
 ---
 # AI Agent Cost Optimization Cookbook: Cut Your Agent Bills by 60% Without Sacrificing Quality
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `WALLET_ADDRESS`: Blockchain wallet address for receiving payments (public address only — no private keys)
@@ -48,6 +55,10 @@ The numbers are stark. Observability vendors report that AI agent deployments in
 This is not a theoretical guide. Every chapter contains working Python code that you can run against your own agent fleet today. The strategies are ordered by impact: Chapter 1 teaches you to measure where money actually goes (you cannot optimize what you cannot see). Chapter 2 covers LLM cost reduction through prompt caching, compression, and context management. Chapter 3 builds a model router that sends each task to the cheapest model that meets quality requirements. Chapter 4 tackles the observability cost explosion with adaptive sampling and cardinality management. Chapter 5 optimizes tokens at the prompt and response level. Chapter 6 introduces outcome-based metering as an alternative to input-based billing. Chapter 7 covers infrastructure right-sizing. Chapter 8 provides a week-by-week optimization playbook with ROI calculations. By the end, you will have a concrete, measurable plan to cut your agent bills by 60% or more.
 
 ---
+
+
+> **Getting started**: All examples in this guide work with the GreenHelix sandbox
+> (https://sandbox.greenhelix.net) which provides 500 free credits — no API key required.
 
 ## Table of Contents
 

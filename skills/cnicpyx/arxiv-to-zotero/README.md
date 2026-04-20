@@ -1,55 +1,50 @@
-# README.md
-
 # arxiv-to-zotero
 
 [中文说明 / Chinese version](README.zh-CN.md)
 
-An OpenClaw skill for finding recent arXiv papers and importing only new matches into Zotero.
+Find recent arXiv papers, skip what is already in Zotero, and save new imports into Zotero with PDF attachments, a fixed `arxiv-to-zotero` tag on parent items, and a dedicated `arxiv-to-zotero` collection.
 
-## What this skill does
+## Why this skill is useful
 
-This skill helps the agent:
+This skill is built for a narrow workflow that many research users repeat all the time:
 
-1. collect a user's research topic keywords or phrases and a time range
+- search recent papers on arXiv
+- deduplicate against Zotero before writing
+- attach PDFs automatically when possible
+- keep imports organized with a fixed tag and a dedicated collection
+- avoid touching existing Zotero items
+
+In one line: **find recent arXiv papers and push only the genuinely new ones into a clean Zotero inbox.**
+
+## What it does
+
+The agent will:
+
+1. collect topic keywords or phrases and a time range
 2. build one valid arXiv `search_query` internally
 3. search arXiv for recent papers
-4. deduplicate against existing Zotero items
-5. import only papers that are not already in Zotero
-6. try to attach PDFs when possible
-7. return one final user-facing summary
-
-In short: **search recent arXiv papers, skip papers already in Zotero, and save only new ones.**
-
-## Why use it
-
-This skill is useful when you want a narrow and reliable workflow for literature collection:
-
-- arXiv-only discovery source
-- Zotero-first deduplication
-- no modification of existing Zotero items
-- automatic handling of common PDF attachment issues
-- simple runtime requirements with no third-party Python packages
+4. deduplicate against Zotero
+5. import only new papers
+6. tag new parent items with `arxiv-to-zotero`
+7. place imports into the `arxiv-to-zotero` collection, creating it automatically if needed
+8. return one final summary
 
 ## Typical requests
 
-Examples of natural-language requests the agent can handle:
+- Find papers from the last three years on Mamba for stock prediction and import only the new ones into Zotero.
+- Search recent papers on multimodal methods for stock prediction, deduplicate them against Zotero, and save the rest.
+- Find recent arXiv papers on test-time adaptation and active search, then import only the ones I do not already have in Zotero.
 
-- Find papers from the last three years on Mamba for stock prediction and import new ones into Zotero.
-- Search recent papers on multimodal methods for stock prediction, deduplicate them against Zotero, and import only the new ones.
-- Find recent arXiv papers on test-time adaptation and active search, then save only the papers I do not already have in Zotero.
-
-## Quick start
-
-### Requirements
+## Runtime requirements
 
 - Python 3.10+
 - `curl`
 - Zotero Web API access via `ZOTERO_API_KEY`
 - OpenClaw skill runtime
 
-### First run
+## First run
 
-On first use, if the setup-state file is missing, the skill will:
+If the setup-state file is missing, the skill will:
 
 1. read [`setup.md`](setup.md)
 2. collect the required Zotero settings
@@ -73,27 +68,20 @@ Example:
 python3 scripts/main.py --config ./config.json --query '(all:"Mamba" OR all:"state space model") AND (all:"stock prediction" OR all:"financial prediction" OR all:"market prediction" OR all:"price forecasting") AND submittedDate:[202304010000 TO 202604092359]'
 ```
 
-
-------
-
-```markdown
-
-```
-
 ## Key behavior
 
 ### Discovery source
 
 This skill uses **arXiv only** as the paper discovery source.
 
-### Query language
-
-The final arXiv query should be written in English.
-If the user provides Chinese keywords, the agent should translate them before building the query.
-
 ### Deduplication
 
-The skill builds a temporary Zotero cache by splitting the final arXiv query into individual words and searching Zotero once per word.
+The script builds a temporary Zotero cache from three scopes:
+
+- query-derived Zotero quick-search terms
+- the fixed skill tag `arxiv-to-zotero`
+- the dedicated target collection when it already exists
+
 It then checks duplicates using:
 
 - normalized exact title matching
@@ -104,15 +92,21 @@ Existing Zotero items are skipped and never modified.
 
 ### PDF attachments
 
-For each newly imported Zotero parent item, the skill derives a PDF URL from the saved paper URL.
+For each new parent item, the script derives one or more candidate PDF URLs from the saved paper URL.
 
-It first tries to upload the PDF as a real Zotero file attachment.
-If Zotero returns `413 Request Entity Too Large`, the unfinished uploaded attachment is deleted, that paper is attached as `linked_url`, and later PDFs in the same run also switch to `linked_url` mode.
+It first tries to upload the PDF as a real Zotero file attachment. If Zotero returns `413 Request Entity Too Large`, the script deletes the unfinished upload, falls back to `linked_url` for that paper, and keeps the rest of the current run in link mode.
+
+### Organization rules
+
+By default, the script writes imports with these fixed organization rules:
+
+- parent items get the tag `arxiv-to-zotero`
+- - parent items go to the collection `arxiv-to-zotero`
+- if the collection does not exist, the script creates it automatically
 
 ### Import cap
 
-The skill stops creating new Zotero parent items after `import_policy.max_new_items` is reached.
-The default cap is 50 new items per run.
+The script stops creating new Zotero parent items after `import_policy.max_new_items` is reached. The default cap is 50 new items per run.
 
 ## Runtime paths
 
@@ -122,11 +116,11 @@ The default cap is 50 new items per run.
 
 ## Repository structure
 
-- [`SKILL.md`](https://chatgpt.com/g/g-p-69d25911ad748191adf4dc1095ea14bb-openclawyang-zhi-ji-lu/c/SKILL.md): skill definition and runtime instructions
-- [`setup.md`](https://chatgpt.com/g/g-p-69d25911ad748191adf4dc1095ea14bb-openclawyang-zhi-ji-lu/c/setup.md): first-run setup guidance
-- [`SECURITY.md`](https://chatgpt.com/g/g-p-69d25911ad748191adf4dc1095ea14bb-openclawyang-zhi-ji-lu/c/SECURITY.md): security, boundary, and risk notes
-- [`scripts/main.py`](https://chatgpt.com/g/g-p-69d25911ad748191adf4dc1095ea14bb-openclawyang-zhi-ji-lu/c/scripts/main.py): main script implementation
-- [`config.json`](https://chatgpt.com/g/g-p-69d25911ad748191adf4dc1095ea14bb-openclawyang-zhi-ji-lu/c/config.json): default non-secret configuration
+- [`SKILL.md`](SKILL.md): skill definition and runtime instructions
+- [`setup.md`](setup.md): first-run setup guidance
+- [`SECURITY.md`](SECURITY.md): security, boundary, and risk notes
+- [`scripts/main.py`](scripts/main.py): main script implementation
+- [`config.json`](config.json): default non-secret configuration
 
 ## Security and privacy
 
@@ -142,15 +136,10 @@ This skill:
 - does not modify existing Zotero items
 - uses `ZOTERO_API_KEY` for Zotero API access
 
-For more detail, see [`SECURITY.md`](https://chatgpt.com/g/g-p-69d25911ad748191adf4dc1095ea14bb-openclawyang-zhi-ji-lu/c/SECURITY.md).
+For more detail, see [`SECURITY.md`](SECURITY.md).
 
 ## Notes
 
 - The script expects one direct program invocation only.
 - Do not use shell composition such as `&&`, `;`, pipes, or chained `cd` commands.
 - The script URL-encodes the query parameter itself. Do not pre-encode spaces, quotes, or parentheses.
-
-## About
-
-OpenClaw skill for finding recent arXiv papers and importing new matches into Zotero.
-

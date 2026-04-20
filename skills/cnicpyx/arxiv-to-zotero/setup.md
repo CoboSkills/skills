@@ -4,7 +4,7 @@ Read this file only when setup state is missing or when the user explicitly asks
 
 ## Goal
 
-Configure **arxiv-to-zotero** so it can import arXiv papers into Zotero.
+Configure **arxiv-to-zotero** so it can search arXiv and import new papers into Zotero in a predictable, organized way.
 
 ## Required First-Run Items
 
@@ -42,15 +42,27 @@ Write these values into `config.json` in the skill root directory:
 
 - `zotero.library_id`
 - `zotero.library_type`
-- `zotero.target_collection_key` only if the user wants imports to go to a specific collection
+- `zotero.target_collection_key` only if the user explicitly wants to override the default collection target
+
+## Default Organization Rules
+
+Unless the user explicitly wants something else, keep these defaults:
+
+- `zotero.default_tags = ["arxiv-to-zotero"]`
+- `zotero.target_collection_name = "arxiv-to-zotero"`
+- `zotero.auto_create_collection = true`
+
+This means the script will automatically place new imports into the `arxiv-to-zotero` collection and create that collection if it does not already exist.
 
 ## Optional Later Edits
 
-These are optional advanced settings in `config.json` in the skill root directory:
+These are optional advanced settings in `config.json`:
 
 - `query`
 - `zotero.default_tags`
 - `zotero.target_collection_key`
+- `zotero.target_collection_name`
+- `zotero.auto_create_collection`
 - `dedupe.*`
 - `import_policy.require_pdf`
 - `import_policy.max_new_items`

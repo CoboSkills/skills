@@ -27,7 +27,9 @@ from typing import Any, Dict, Iterable, List, Optional
 
 
 APP_NAME = "arxiv-to-zotero"
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.0.2"
+DEFAULT_SKILL_TAG = APP_NAME
+DEFAULT_TARGET_COLLECTION_NAME = APP_NAME
 
 
 def fixed_config_path() -> Path:
@@ -792,8 +794,9 @@ class ZoteroClient:
         self.api_key = api_key
         self.timeout = timeout
         self.base_url = f"https://api.zotero.org/{library_type}s/{library_id}"
-        self.headers = {"Zotero-API-Key": api_key}
+        self.headers = {"Zotero-API-Key": api_key, "Zotero-API-Version": "3"}
         self.force_link_mode = False
+        self._resolved_target_collection_key: str | None = None
 
     def _get(self, path: str, **params: Any) -> HttpResponse:
         response = http_request("GET", f"{self.base_url}{path}", headers=self.headers, params=params, timeout=self.timeout)
@@ -810,10 +813,92 @@ class ZoteroClient:
         return ensure_success(response, f"Zotero POST {path}")
 
 
+    def _collection_lookup_name(self, config: Dict[str, Any]) -> str:
+        zotero_cfg = config.get("zotero") or {}
+        return str(zotero_cfg.get("target_collection_name") or DEFAULT_TARGET_COLLECTION_NAME).strip()
+
+    def get_collection(self, collection_key: str) -> Dict[str, Any] | None:
+        key = str(collection_key or "").strip()
+        if not key:
+            return None
+        response = http_request("GET", f"{self.base_url}/collections/{key}", headers=self.headers, timeout=self.timeout)
+        if response.status_code == 404:
+            return None
+        return ensure_success(response, f"Zotero GET /collections/{key}").json()
+
+    def list_top_collections(self, *, max_rows: int = 200) -> List[Dict[str, Any]]:
+        rows_all: List[Dict[str, Any]] = []
+        start = 0
+        remaining = max(0, int(max_rows))
+        while remaining > 0:
+            batch_limit = min(100, remaining)
+            rows = self._get("/collections/top", limit=batch_limit, start=start, format="json").json()
+            if not isinstance(rows, list) or not rows:
+                break
+            rows_all.extend(rows)
+            if len(rows) < batch_limit:
+                break
+            start += batch_limit
+            remaining -= batch_limit
+        return rows_all
+
+    def find_top_collection_key_by_name(self, name: str) -> str:
+        wanted = normalize_text(name)
+        if not wanted:
+            return ""
+        for row in self.list_top_collections():
+            data = row.get("data") or {}
+            if normalize_text(data.get("name")) == wanted:
+                return str(row.get("key") or data.get("key") or "").strip()
+        return ""
+
+    def create_collection(self, name: str, parent_collection: str | None = None) -> str:
+        payload_obj: Dict[str, Any] = {"name": str(name).strip()}
+        parent = str(parent_collection or "").strip()
+        if parent:
+            payload_obj["parentCollection"] = parent
+        response = self._post_json("/collections", [payload_obj])
+        data = response.json()
+        success = ((data.get("successful") or {}).get("0") or {})
+        return str(success.get("key") or "").strip()
+
+    def resolve_target_collection_key(self, config: Dict[str, Any], *, create_if_missing: bool) -> str:
+        if self._resolved_target_collection_key:
+            return self._resolved_target_collection_key
+        if self._resolved_target_collection_key == "" and not create_if_missing:
+            return ""
+
+        zotero_cfg = config.get("zotero") or {}
+        configured_key = str(zotero_cfg.get("target_collection_key") or "").strip()
+        if configured_key:
+            if self.get_collection(configured_key):
+                self._resolved_target_collection_key = configured_key
+                return configured_key
+
+        collection_name = self._collection_lookup_name(config)
+        found_key = self.find_top_collection_key_by_name(collection_name)
+        if found_key:
+            self._resolved_target_collection_key = found_key
+            return found_key
+
+        if not create_if_missing or not bool(zotero_cfg.get("auto_create_collection", True)) or not collection_name:
+            if not create_if_missing:
+                self._resolved_target_collection_key = ""
+            return ""
+
+        created_key = self.create_collection(collection_name)
+        self._resolved_target_collection_key = created_key
+        return created_key
+
+
     def create_item(self, paper: PaperRecord, config: Dict[str, Any]) -> Dict[str, Any]:
         zotero_cfg = config.get("zotero") or {}
         item_url = (paper.url or "").strip()
         item_type = self._infer_item_type(paper)
+        target_collection_key = self.resolve_target_collection_key(
+            config,
+            create_if_missing=bool(zotero_cfg.get("auto_create_collection", True)),
+        )
         payload_item = {
             "itemType": item_type,
             "title": paper.title,
@@ -822,10 +907,10 @@ class ZoteroClient:
             "date": str(paper.year) if paper.year else "",
             "url": item_url,
             "DOI": paper.doi or "",
-            "tags": [{"tag": tag} for tag in sorted(set((zotero_cfg.get("default_tags") or []) + (paper.tags or [])))],
+            "tags": [{"tag": tag} for tag in sorted(set((zotero_cfg.get("default_tags") or [DEFAULT_SKILL_TAG]) + (paper.tags or [])))],
             "extra": self._build_extra(paper),
             **self._item_specific_fields(paper, item_type),
-            **({"collections": [zotero_cfg["target_collection_key"]]} if zotero_cfg.get("target_collection_key") else {}),
+            **({"collections": [target_collection_key]} if target_collection_key else {}),
         }
         payload = [payload_item]
         started = time.perf_counter()
@@ -838,7 +923,7 @@ class ZoteroClient:
             return {"created": False, "response": data, "timings": {"create_item_seconds": create_seconds}}
 
         pdf_started = time.perf_counter()
-        pdf_result = self.attach_pdf(item_key, item_url, paper)
+        pdf_result = self.attach_pdf(item_key, item_url, paper, config)
         pdf_seconds = round_seconds(time.perf_counter() - pdf_started)
         return {
             "created": True,
@@ -857,7 +942,7 @@ class ZoteroClient:
         }
 
 
-    def attach_pdf(self, parent_key: str, parent_url: str, paper: PaperRecord) -> Dict[str, Any]:
+    def attach_pdf(self, parent_key: str, parent_url: str, paper: PaperRecord, config: Dict[str, Any]) -> Dict[str, Any]:
         """Attach a real PDF first; after one HTTP 413, use URI mode for the rest of the run."""
         candidates = resolve_pdf_candidates_from_item_url(parent_url)
         if not candidates:
@@ -865,7 +950,7 @@ class ZoteroClient:
 
         if self.force_link_mode:
             for candidate in candidates:
-                fallback_key = self.create_link_attachment_item(parent_key, candidate)
+                fallback_key = self.create_link_attachment_item(parent_key, candidate, config)
                 if fallback_key:
                     paper.pdf_url = candidate
                     return {
@@ -889,7 +974,7 @@ class ZoteroClient:
                 continue
             file_path = Path(str(download['path']))
             try:
-                upload_result = self.create_imported_pdf_attachment_item(parent_key, candidate, file_path)
+                upload_result = self.create_imported_pdf_attachment_item(parent_key, candidate, file_path, config)
                 if upload_result.get('quota_exceeded'):
                     self.force_link_mode = True
                     attachment_key = upload_result.get('attachment_key')
@@ -898,7 +983,7 @@ class ZoteroClient:
                             self.delete_item(attachment_key)
                         except Exception:
                             pass
-                    fallback_key = self.create_link_attachment_item(parent_key, candidate)
+                    fallback_key = self.create_link_attachment_item(parent_key, candidate, config)
                     if fallback_key:
                         paper.pdf_url = candidate
                         return {
@@ -932,8 +1017,8 @@ class ZoteroClient:
             'error': '; '.join(errors[:5]) if errors else 'unknown_pdf_attachment_failure',
         }
 
-    def create_imported_pdf_attachment_item(self, parent_key: str, pdf_url: str, file_path: Path) -> Dict[str, Any]:
-        attachment_key = self.create_imported_attachment_item(parent_key, pdf_url, file_path.name)
+    def create_imported_pdf_attachment_item(self, parent_key: str, pdf_url: str, file_path: Path, config: Dict[str, Any]) -> Dict[str, Any]:
+        attachment_key = self.create_imported_attachment_item(parent_key, pdf_url, file_path.name, config)
         if not attachment_key:
             return {
                 'attached': False,
@@ -962,7 +1047,7 @@ class ZoteroClient:
                 'error': f'{type(exc).__name__}: {exc}',
             }
 
-    def create_imported_attachment_item(self, parent_key: str, pdf_url: str, filename: str) -> str | None:
+    def create_imported_attachment_item(self, parent_key: str, pdf_url: str, filename: str, config: Dict[str, Any]) -> str | None:
         payload = [{
             'itemType': 'attachment',
             'parentItem': parent_key,
@@ -972,7 +1057,6 @@ class ZoteroClient:
             'contentType': 'application/pdf',
             'filename': filename,
             'note': '',
-            'tags': [],
             'relations': {},
             'charset': '',
             'md5': None,
@@ -1050,7 +1134,7 @@ class ZoteroClient:
             'status': 'uploaded_to_zotero',
         }
 
-    def create_link_attachment_item(self, parent_key: str, pdf_url: str) -> str | None:
+    def create_link_attachment_item(self, parent_key: str, pdf_url: str, config: Dict[str, Any]) -> str | None:
         payload = [{
             "itemType": "attachment",
             "parentItem": parent_key,
@@ -1059,7 +1143,6 @@ class ZoteroClient:
             "url": pdf_url,
             "contentType": "application/pdf",
             "note": "",
-            "tags": [],
             "relations": {},
         }]
         response = self._post_json("/items", payload)
@@ -1148,8 +1231,10 @@ def _positive_int(value: Any, default: int) -> int:
 def _fetch_zotero_cache_rows(
     client: ZoteroClient,
     *,
+    endpoint: str = "/items/top",
     q: str | None = None,
     qmode: str | None = None,
+    tag: str | None = None,
     max_rows: int = 100,
     sort: str | None = None,
     direction: str | None = None,
@@ -1165,11 +1250,13 @@ def _fetch_zotero_cache_rows(
             params["q"] = q
         if qmode:
             params["qmode"] = qmode
+        if tag:
+            params["tag"] = tag
         if sort:
             params["sort"] = sort
         if direction:
             params["direction"] = direction
-        rows = client._get("/items/top", **params).json()
+        rows = client._get(endpoint, **params).json()
         pages += 1
         if not isinstance(rows, list) or not rows:
             break
@@ -1185,16 +1272,36 @@ def _cache_row_type_ok(row: Dict[str, Any]) -> bool:
     return data.get("itemType") in {"journalArticle", "conferencePaper", "preprint"}
 
 
+def _cache_logical_keys_from_row(row: Dict[str, Any]) -> List[str]:
+    data = row.get("data") or {}
+    keys: List[str] = []
+    norm_title = normalize_text(data.get("title"))
+    if norm_title:
+        keys.append(f"title:{norm_title}")
+    arxiv_id = extract_arxiv_id((data.get("extra") or "")) or extract_arxiv_id(data.get("url"))
+    if arxiv_id:
+        keys.append(f"arxiv:{arxiv_id}")
+    canonical = canonical_url(data.get("url"))
+    if canonical:
+        keys.append(f"url:{canonical}")
+    row_key = str(row.get("key") or "").strip()
+    if row_key:
+        keys.append(f"item:{row_key}")
+    return keys
+
+
 def _cache_add_row(cache: Dict[str, Any], row: Dict[str, Any]) -> None:
     if not _cache_row_type_ok(row):
         return
     data = row.get("data") or {}
-    row_key = str(row.get("key") or "").strip()
-    fallback_key = normalize_text(data.get("title"))
-    unique_key = row_key or f"title:{fallback_key}"
-    if not unique_key or unique_key in cache["seen_keys"]:
+    logical_keys = _cache_logical_keys_from_row(row)
+    primary_keys = [key for key in logical_keys if not key.startswith("item:")]
+    if primary_keys and any(key in cache["seen_keys"] for key in primary_keys):
         return
-    cache["seen_keys"].add(unique_key)
+    if not logical_keys:
+        return
+    for key in logical_keys:
+        cache["seen_keys"].add(key)
     cache["rows"].append(row)
     norm_title = normalize_text(data.get("title"))
     if norm_title:
@@ -1208,9 +1315,12 @@ def _cache_add_row(cache: Dict[str, Any], row: Dict[str, Any]) -> None:
 def build_existing_cache(client: ZoteroClient, query: str, config: Dict[str, Any]) -> Dict[str, Any]:
     started = time.perf_counter()
     dedupe_cfg = config.get("dedupe") or {}
+    zotero_cfg = config.get("zotero") or {}
     term_limit = int(dedupe_cfg.get("zotero_cache_term_limit", 12) or 12)
     per_query_rows = _positive_int(dedupe_cfg.get("zotero_cache_rows_per_query", 100), 100)
     qmode = "everything" if bool(dedupe_cfg.get("zotero_cache_qmode_everything", True)) else None
+    include_skill_tag_cache = bool(dedupe_cfg.get("include_default_tag_cache", True))
+    include_target_collection_cache = bool(dedupe_cfg.get("include_target_collection_cache", True))
     terms = derive_cache_terms_from_arxiv_search_query(query, max_terms=term_limit)
     cache_query = build_cache_query(query, max_terms=term_limit)
     cache: Dict[str, Any] = {
@@ -1224,7 +1334,7 @@ def build_existing_cache(client: ZoteroClient, query: str, config: Dict[str, Any
         "cache_query": cache_query,
         "cache_terms": terms,
         "cache_phrases": [],
-        "cache_strategy": "term_by_term",
+        "cache_strategy": "term_by_term_plus_skill_scope",
         "fetches": [],
         "pages": 0,
         "row_count": 0,
@@ -1233,9 +1343,15 @@ def build_existing_cache(client: ZoteroClient, query: str, config: Dict[str, Any
 
     def add_fetch(label: str, rows: List[Dict[str, Any]], pages: int) -> None:
         cache["pages"] += pages
+        before = len(cache["rows"])
         for row in rows:
             _cache_add_row(cache, row)
-        cache["fetches"].append({"label": label, "rows": len(rows), "pages": pages})
+        cache["fetches"].append({
+            "label": label,
+            "rows": len(rows),
+            "pages": pages,
+            "new_rows": len(cache["rows"]) - before,
+        })
 
     for term in terms:
         rows, pages = _fetch_zotero_cache_rows(
@@ -1247,6 +1363,29 @@ def build_existing_cache(client: ZoteroClient, query: str, config: Dict[str, Any
             direction="desc",
         )
         add_fetch(f"term:{term}", rows, pages)
+
+    if include_skill_tag_cache:
+        for tag in [str(tag).strip() for tag in (zotero_cfg.get("default_tags") or []) if str(tag).strip()]:
+            rows, pages = _fetch_zotero_cache_rows(
+                client,
+                tag=tag,
+                max_rows=per_query_rows,
+                sort="dateModified",
+                direction="desc",
+            )
+            add_fetch(f"tag:{tag}", rows, pages)
+
+    if include_target_collection_cache:
+        collection_key = client.resolve_target_collection_key(config, create_if_missing=False)
+        if collection_key:
+            rows, pages = _fetch_zotero_cache_rows(
+                client,
+                endpoint=f"/collections/{collection_key}/items/top",
+                max_rows=per_query_rows,
+                sort="dateModified",
+                direction="desc",
+            )
+            add_fetch(f"collection:{collection_key}", rows, pages)
 
     cache["row_count"] = len(cache["rows"])
     cache["seconds"] = round_seconds(time.perf_counter() - started)
@@ -1295,7 +1434,7 @@ def update_existing_cache(cache: Dict[str, Any] | None, paper: PaperRecord, item
 def apply_record_policy(record: PaperRecord, query: str, config: Dict[str, Any]) -> PaperRecord:
     zotero_cfg = config.get("zotero") or {}
     # Keep Zotero tagging deterministic: every imported paper receives only the skill-level default tags.
-    record.tags = sorted(set(list(zotero_cfg.get("default_tags", []))))
+    record.tags = sorted(set(list(zotero_cfg.get("default_tags", [DEFAULT_SKILL_TAG]))))
     if not record.venue:
         record.venue = infer_venue_from_arxiv_metadata(record.comments, record.journal_ref)
     record.pdf_url = resolve_pdf_url(record)

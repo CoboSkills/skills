@@ -2,7 +2,7 @@
 
 This skill is designed for one narrow workflow only:
 
-**one raw arXiv query → arXiv metadata fetch → Zotero dedupe cache → Zotero import → PDF upload attempt → Link to URI fallback only on HTTP 413 → one final summary**
+**one arXiv query → arXiv metadata fetch → Zotero cache warm-up → duplicate check → Zotero import → PDF upload attempt → `linked_url` fallback only on HTTP 413 → one final summary**
 
 ## External Network Access
 
@@ -10,7 +10,7 @@ This package may contact only:
 
 - **arXiv Atom API** for paper discovery
 - **arXiv PDF URLs** for direct PDF download with `curl`
-- **Zotero Web API** for duplicate checks, item creation, PDF attachment upload, and fallback link attachment creation
+- **Zotero Web API** for duplicate checks, collection lookup/creation, item creation, PDF attachment upload, and fallback link attachment creation
 
 ## Secrets and Credentials
 
@@ -42,7 +42,16 @@ The skill may write:
 - the optional JSON run summary path configured by `run.export_summary_path`
 - temporary PDF files in the system temp directory during upload attempts
 
+## Explicit Behavior Boundaries
+
+- existing Zotero items are not modified
+- newly created parent items receive the fixed default tag unless the user changes config
+- newly created PDF child attachments are left untagged
+- new imports are assigned to the configured target collection
+- if `zotero.auto_create_collection = true` and the target collection does not exist, the script creates it through the Zotero API
+
 ## Explicit Non-Goals
 
-- no modification of existing Zotero paper items
 - no access to unrelated local files or credentials
+- no writing to arbitrary Zotero collections unless configured
+- no mutation of unrelated Zotero items

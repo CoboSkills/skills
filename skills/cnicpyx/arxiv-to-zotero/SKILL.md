@@ -1,7 +1,7 @@
 ---
 name: arxiv-to-zotero
-description: Search recent arXiv papers by topic and time range, dedupe against Zotero, and import only new matches with PDF attachments when possible.
-version: 1.0.1
+description: Find recent arXiv papers, skip what is already in Zotero, and save new imports with parent-item tagging and PDF attachments into a dedicated collection.
+version: 1.0.2
 user-invocable: true
 always: false
 homepage: https://github.com/ucaspyx/arxiv-to-zotero
@@ -9,7 +9,14 @@ metadata: {"openclaw":{"emoji":"📚","skillKey":"arxiv-to-zotero","requires":{"
 ---
 # arXiv to Zotero
 
-Use this skill when the user wants recent arXiv papers found and imported into Zotero.
+Use this skill when the user wants **recent arXiv papers found and written into Zotero directly**.
+
+## Best-fit use cases
+
+- find papers by topic + time range
+- skip papers already in Zotero
+- attach PDFs when possible
+- keep imports organized with a fixed tag and a dedicated collection
 
 ## Setup
 
@@ -17,12 +24,12 @@ On first use, if `~/.openclaw/config/skills/arxiv-to-zotero.setup.json` is missi
 
 ## Flow
 
-1. If the user has not already given them, ask for:
-   - the topic keywords or phrases
-   - the time range
+1. If the user has not already provided them, ask for:
+   - topic keywords or phrases
+   - a time range
 2. Do not ask the user to write an arXiv query.
-3. If the user gives keywords in Chinese, first translate them into concise, technically accurate English search phrases before building the arXiv query. Use English for the actual arXiv query even when the user asked in Chinese.
-4. Convert the user's request into one arXiv API `search_query` string yourself.
+3. If the user gives keywords in Chinese, translate them into concise, technically accurate English search phrases before building the arXiv query.
+4. Build **one** valid arXiv API `search_query` yourself.
 5. Run the script once:
 
 ```bash
@@ -33,22 +40,19 @@ python3 {baseDir}/scripts/main.py --config {baseDir}/config.json --query '<arXiv
 
 ## Query rules
 
-- Use official arXiv API fielded search syntax.
-- The final arXiv query must be written in English. Do not pass Chinese keywords directly to arXiv.
+- Use official arXiv fielded search syntax.
+- The final arXiv query must be written in English.
 - Use double quotes for multi-word phrases.
-- If the user gives multiple alternative keywords or phrases, combine them with `OR`.
-- When translating Chinese keywords, prefer standard English technical terms that are commonly used in paper titles and abstracts.
+- Combine alternative keywords with `OR` when appropriate.
 - Add the requested time range with `submittedDate:[YYYYMMDDTTTT TO YYYYMMDDTTTT]`.
 - Pass the query as normal text. Do not URL-encode it yourself.
 
-## Notes
+## Guarantees
 
-- The skill imports only papers that are not already in Zotero.
-- Before import, the script splits the final arXiv query into individual words, searches Zotero once per word, merges all returned top-level items into one cache, and then compares new arXiv papers against that cache.
-- For each new parent item, the script first tries to download the PDF with `curl` and upload it to Zotero as a real file attachment.
-- If Zotero returns HTTP 413 during upload authorization, that paper is attached as `linked_url`, and the rest of the current run stays in `linked_url` mode.
-- Existing Zotero items are never modified.
-- New Zotero parent items receive only the fixed skill tag from `zotero.default_tags`, and the script writes arXiv `comment` / `journal_ref` metadata into Zotero fields or `Extra` when available.
+- Existing Zotero items are not modified.
+- New parent items are tagged with `arxiv-to-zotero` by default.
+- New imports are placed into the `arxiv-to-zotero` collection by default. If that collection does not exist, the script creates it.
+- If Zotero file upload hits HTTP 413, the script falls back to `linked_url` for that paper and keeps later attachments in link mode for the same run.
 
 ## When not to use
 

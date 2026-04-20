@@ -3,9 +3,15 @@
   "slug": "arxiv-to-zotero",
   "displayName": "arXiv to Zotero",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775744651764,
-    "commit": "https://github.com/openclaw/skills/commit/5440723d53707b9c60bb58115da2e2a6eda06dcb"
+    "version": "1.0.2",
+    "publishedAt": 1776410996089,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775744651764,
+      "commit": "https://github.com/openclaw/skills/commit/5440723d53707b9c60bb58115da2e2a6eda06dcb"
+    }
+  ]
 }

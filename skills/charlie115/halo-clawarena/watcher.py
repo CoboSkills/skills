@@ -48,7 +48,7 @@ WS_STALE_RECONNECT_SECONDS = 45
 WS_HANDSHAKE_TIMEOUT_SECONDS = 15
 
 ERROR_RETRY_DELAY_SECONDS = 5.0
-MAX_TRIGGER_ATTEMPTS = 5
+MAX_TRIGGER_ATTEMPTS = 3
 TRIGGER_RETRY_DELAY_SECONDS = 2.0
 WS_FAILURE_SELF_RESTART_THRESHOLD = 6
 SELF_RESTART_COOLDOWN_SECONDS = 300
@@ -269,10 +269,14 @@ class Watcher:
         prefs = snapshot.get("agent_preferences") or self.current_prefs or {}
         status = str(snapshot.get("status") or "idle")
         message = str(snapshot.get("message") or "").strip()
-        preferred_game = str(prefs.get("preferred_game_type") or "")
-        autoplay_enabled = bool(prefs.get("autoplay_enabled", True))
+        preferred_game = str(
+            prefs.get("preferred_game_type")
+            or prefs.get("current_game_type")
+            or ""
+        )
+        autoplay_enabled = prefs.get("autoplay_enabled")
 
-        if not autoplay_enabled:
+        if autoplay_enabled is False or "Autoplay is paused" in message:
             return "paused", "Paused by user."
         if status == "playing":
             return "in_match", "In a match, waiting for the next actionable turn."
@@ -282,12 +286,14 @@ class Watcher:
             return "idle", "Waiting for match assignment..."
         if status == "finished":
             return "idle", message or "Previous match finished."
+        if "Choose a game in your dashboard" in message:
+            return "idle", "No game selected in the dashboard."
         if not preferred_game:
             return "idle", "No game selected in the dashboard."
         return "idle", message or "Waiting to enter matchmaking."
 
     def sync_status_from_server(self) -> dict[str, Any]:
-        snapshot = self.peek_game_state()
+        snapshot = self.peek_game_state(consume_history=False)
         prefs = snapshot.get("agent_preferences") or {}
         if prefs:
             self.current_prefs = prefs
@@ -322,9 +328,10 @@ class Watcher:
         payload = json.loads(base64.urlsafe_b64decode(padded.encode("utf-8")).decode("utf-8"))
         return int(payload["a"]), str(payload["t"])
 
-    def peek_game_state(self) -> dict[str, Any]:
+    def peek_game_state(self, *, consume_history: bool = False) -> dict[str, Any]:
         token = self.load_connection_token()
-        url = f"{GAME_URL}?wait=0"
+        consume_value = "1" if consume_history else "0"
+        url = f"{GAME_URL}?wait=0&consume_history={consume_value}"
         req = request.Request(
             url,
             headers={
@@ -477,17 +484,26 @@ class Watcher:
         action_names = {str(action.get("action")) for action in legal_actions if isinstance(action, dict)}
         return "chat" not in action_names
 
+    def _has_optional_player_message(self, data: dict[str, Any]) -> bool:
+        for action in data.get("legal_actions") or []:
+            if not isinstance(action, dict):
+                continue
+            params = action.get("params") or {}
+            if not isinstance(params, dict):
+                continue
+            message_spec = params.get("message")
+            if message_spec is None:
+                continue
+            if "optional" in str(message_spec).strip().lower():
+                return True
+        return False
+
     def _prompt_extras(self, data: dict[str, Any]) -> list[str]:
         prefs = data.get("agent_preferences") or {}
-        extras = []
-        game_type = str(data.get("game_type") or "")
-        risk_hint_map = {
-            "mafia": prefs.get("mafia_risk_profile"),
-            "liars_dice": prefs.get("liars_dice_risk_profile"),
-            "kuhn_poker": prefs.get("kuhn_poker_risk_profile"),
-            "monopoly": prefs.get("monopoly_risk_profile"),
-        }
-        risk = risk_hint_map.get(game_type) or prefs.get("risk_profile")
+        extras = [
+            "Use the single GET /agents/game result itself as the working state for this tick. Do not run extra inspection commands that pretty-print, truncate, or derive a second copy of the same payload.",
+        ]
+        risk = prefs.get("current_risk_profile") or prefs.get("risk_profile")
         if risk and risk != "balanced":
             extras.append(f"Play with a {risk} risk profile.")
         message_language = str(prefs.get("message_language") or "english").strip().lower()
@@ -495,26 +511,20 @@ class Watcher:
             extras.append(
                 f"When sending in-game player-facing messages, write them in {message_language}."
             )
-        strategy_hint_map = {
-            "mafia": prefs.get("mafia_strategy_hint"),
-            "liars_dice": prefs.get("liars_dice_strategy_hint"),
-            "kuhn_poker": prefs.get("kuhn_poker_strategy_hint"),
-            "monopoly": prefs.get("monopoly_strategy_hint"),
-        }
-        strategy_hint = strategy_hint_map.get(str(game_type))
+        strategy_hint = prefs.get("current_strategy_hint")
         if isinstance(strategy_hint, str):
             strategy_hint = " ".join(strategy_hint.split())
             if strategy_hint:
                 extras.append(f"Extra player hint for this game: {strategy_hint}")
-        if game_type in {"mafia", "liars_dice", "kuhn_poker", "monopoly"}:
+        if self._has_optional_player_message(data):
             extras.append(
                 "When an action supports an optional player-facing message, usually send one. "
                 "Do not just narrate your action or its result. Prefer short table talk that bluffs, taunts, bargains, reassures, accuses, or pressures other players. "
                 "Only stay silent when silence is strategically better."
             )
-        if game_type == "monopoly":
+        if str(prefs.get("result_report_style") or "").strip().lower() == "brief":
             extras.append(
-                "Keep the result report very brief: one short sentence, or two short bullets at most."
+                "Keep the result report very brief: one short sentence, or two short bullets at most. Do not use markdown tables. Mention only the action taken and the key reason."
             )
         return extras
 
@@ -643,7 +653,7 @@ class Watcher:
 
     def trigger(self, wake: dict[str, Any], ws: MinimalWebSocket | None = None) -> None:
         delivery = self.load_delivery_config()
-        current = self.peek_game_state()
+        current = self.peek_game_state(consume_history=False)
         if not (
             current.get("status") == "playing"
             and current.get("match_id") == wake.get("match_id")
@@ -693,7 +703,7 @@ class Watcher:
         if proc.returncode == 0:
             time.sleep(0.5)
             try:
-                latest = self.peek_game_state()
+                latest = self.peek_game_state(consume_history=False)
                 retry_pending = (
                     latest.get("status") == "playing"
                     and latest.get("match_id") == wake.get("match_id")

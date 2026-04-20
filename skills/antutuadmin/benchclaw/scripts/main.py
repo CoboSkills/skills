@@ -16,6 +16,7 @@ import logging
 import os
 import subprocess
 import sys
+import urllib.error
 import urllib.request
 from typing import Any
 from pathlib import Path
@@ -27,13 +28,13 @@ from report import generate_reports_from_dict
 from server import fetch_questions, upload_results_from_dict, flush_pending_uploads
 from config import (
     DEFAULT_SUBMIT_API_URL,
-    DEFAULT_SESSION_ID,
+    DEFAULT_AGENT_ID,
     DEFAULT_TIMEOUT_SEC,
     DEFAULT_SESSION_PREFIX,
     CLIENT_VERSION,
     USE_LATEST_SESSION,
 )
-from session import get_openclaw_session_info, OpenClawSessionInfo, ran_under_openclaw_exec
+from session import get_openclaw_session_info, OpenClawSessionInfo, ran_under_openclaw_exec, cleanup_agent_sessions
 
 def setup_logging() -> logging.Logger:
     """配置日志记录，默认输出到文件和控制台。"""
@@ -311,7 +312,9 @@ def main() -> int:
     # 运行前删除 bench_claw 工作区文件夹
     clean_benchclaw_workspace()
     clean_temp_files()
-    cleanup_agent_sessions_with_prefix(DEFAULT_SESSION_ID, f'{DEFAULT_SESSION_PREFIX}*')
+    cleanup_agent_sessions_with_prefix(DEFAULT_AGENT_ID, f'{DEFAULT_SESSION_PREFIX}*')
+    cleanup_agent_sessions(DEFAULT_AGENT_ID, DEFAULT_SESSION_PREFIX)
+    
     session_info: OpenClawSessionInfo = get_openclaw_session_info()
     logger.info(f"openclaw SessionId: {session_info.session_id}")
     logger.info(f"openclaw SessionKey: {session_info.session_key}")
@@ -345,9 +348,20 @@ def main() -> int:
         if model_cost:
             logger.info(f"模型计费信息: {model_cost}")
     except Exception as e:
-        logger.error(f"加载题目失败: {e}")
-        return 1
+        notify_msg = ""
+        if isinstance(e, urllib.error.HTTPError) and e.code == 429:
+            notify_msg = "⚠️ 今日评测次数已达上限(10次/24小时)，请明天再试。"
+            logger.error(notify_msg)
+        else:
+            notify_msg = f"运行benchclaw评测失败：加载题目失败，错误信息：{e}"
+            logger.error(notify_msg)
 
+        caller = _load_caller_info()
+        if USE_LATEST_SESSION:
+            caller["channel"] = session_info.channel
+            caller["target"] = session_info.target
+        _send_notification(notify_msg, caller)
+        return 1
 
     # DEBUG
     # questions = questions[0:1]

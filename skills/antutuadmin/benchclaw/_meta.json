@@ -1,13 +1,18 @@
 {
   "owner": "antutuadmin",
   "slug": "benchclaw",
-  "displayName": "Benchclaw",
+  "displayName": "Benchclaw Openclaw Benchmark",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1776066296624,
-    "commit": "https://github.com/openclaw/skills/commit/e39d9723d69f08b1bfc00e655ee6b4764f0f02da"
+    "version": "1.0.9",
+    "publishedAt": 1776424192075,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1776066296624,
+      "commit": "https://github.com/openclaw/skills/commit/e39d9723d69f08b1bfc00e655ee6b4764f0f02da"
+    },
     {
       "version": "0.1.4",
       "publishedAt": 1775660370052,

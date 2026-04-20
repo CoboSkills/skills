@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 """
 个人数字安全体检工具 - security-health-check Skill
@@ -20,34 +21,19 @@ def _get_ssl_context():
     ctx = ssl.create_default_context()
     return ctx
 
-def _get_fallback_ssl_context():
-    """回退SSL上下文（不验证），用于本地测试或证书问题"""
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-    return ctx
-
-
-# ============================================================
-# 邮箱泄露检查 (HIBP API)
-# ============================================================
 
 def check_email_breach(email):
     """通过 HIBP API 检查邮箱是否出现在已知数据泄露中"""
     url = f"https://haveibeenpwned.com/api/v3/breachedaccount/{urllib.parse.quote(email)}?truncateResponse=false"
     headers = {
         "User-Agent": "SecurityHealthCheck-Skill/1.0",
-        "hibp-api-key": ""  # 免费模式不需要key，但可能有速率限制
+        "hibp-api-key": os.environ.get("HIBP_API_KEY", "")  # Optional: set HIBP_API_KEY env var for higher rate limits
     }
     
     try:
         req = urllib.request.Request(url, headers=headers)
-        try:
-            opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=_get_ssl_context()))
-            resp = opener.open(req, timeout=15)
-        except (ssl.SSLError, urllib.error.URLError):
-            opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=_get_fallback_ssl_context()))
-            resp = opener.open(req, timeout=15)
+        opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=_get_ssl_context()))
+        resp = opener.open(req, timeout=15)
         if resp.status == 200:
             breaches = json.loads(resp.read().decode("utf-8"))
             return {"breached": True, "breaches": breaches, "count": len(breaches)}
@@ -83,7 +69,7 @@ def check_password_pwned(password):
             resp = opener.open(req, timeout=15)
         except (ssl.SSLError, urllib.error.URLError) as ssl_err:
             if "CERTIFICATE" in str(ssl_err) or "SSL" in str(ssl_err):
-                opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=_get_fallback_ssl_context()))
+                opener = urllib.request.build_opener(urllib.request.HTTPSHandler(context=ssl.create_default_context()))
                 resp = opener.open(req, timeout=15)
             else:
                 raise

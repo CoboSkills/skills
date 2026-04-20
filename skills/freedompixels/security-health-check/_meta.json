@@ -3,9 +3,15 @@
   "slug": "security-health-check",
   "displayName": "个人数字安全体检",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1776034280464,
-    "commit": "https://github.com/openclaw/skills/commit/ae0ce60878afcd73304081194662d777cbd4181b"
+    "version": "1.2.0",
+    "publishedAt": 1776442899805,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1776034280464,
+      "commit": "https://github.com/openclaw/skills/commit/ae0ce60878afcd73304081194662d777cbd4181b"
+    }
+  ]
 }

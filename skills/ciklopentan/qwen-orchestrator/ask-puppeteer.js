@@ -608,6 +608,23 @@ async function inspectSubmitOutcome(page, composerSelector, beforeUrl, prompt, t
   };
 }
 
+async function triggerComposerKeySubmit(page, composerSelector, mode = 'enter') {
+  const composer = await page.$(composerSelector).catch(() => null);
+  if (!composer) return false;
+  await composer.focus().catch(() => {});
+  await sleep(60);
+  if (mode === 'ctrl-enter') {
+    log('📨 Fallback submit: composer Ctrl+Enter');
+    await page.keyboard.down('Control').catch(() => {});
+    await page.keyboard.press('Enter').catch(() => {});
+    await page.keyboard.up('Control').catch(() => {});
+    return true;
+  }
+  log('📨 Fallback submit: composer Enter');
+  await page.keyboard.press('Enter').catch(() => {});
+  return true;
+}
+
 function persistSessionState(session, page, reason = 'state-sync', options = {}) {
   if (!session) return;
   const { expectedChatUrl = null, strictContinuity = false } = options;
@@ -1135,14 +1152,31 @@ async function sendPrompt(page, composerSelector, prompt, options = {}) {
 
     await el.focus();
     await sleep(80);
-    await submitPromptBoundToComposer(page, el, {
+    const submitInfo = await submitPromptBoundToComposer(page, el, {
       expectedChatUrl,
       strictContinuity,
     });
     if (CONFIG.rateLimitMs > 0) {
       try { fs.writeFileSync(RATE_LIMIT_FILE, String(Date.now())); } catch {}
     }
-    const outcome = await inspectSubmitOutcome(page, composerSelector, beforeUrl, workingPrompt, 5000);
+
+    let outcome = await inspectSubmitOutcome(page, composerSelector, beforeUrl, workingPrompt, 1400);
+    if (!outcome.accepted && submitInfo?.strategy === 'nearest-send-button') {
+      log(`⚠️ Button submit produced no observable progress (${outcome.reason}); trying keyboard fallback`);
+      const enterTriggered = await triggerComposerKeySubmit(page, composerSelector, 'enter');
+      if (enterTriggered) {
+        outcome = await inspectSubmitOutcome(page, composerSelector, beforeUrl, workingPrompt, 1400);
+      }
+      if (!outcome.accepted) {
+        const ctrlEnterTriggered = await triggerComposerKeySubmit(page, composerSelector, 'ctrl-enter');
+        if (ctrlEnterTriggered) {
+          outcome = await inspectSubmitOutcome(page, composerSelector, beforeUrl, workingPrompt, 2200);
+        }
+      }
+    } else if (!outcome.accepted) {
+      outcome = await inspectSubmitOutcome(page, composerSelector, beforeUrl, workingPrompt, 3600);
+    }
+
     if (outcome.accepted) {
       const afterUrl = await logUrlTransition(page, beforeUrl, 'submit');
       return { afterUrl, promptUsed: workingPrompt, shortened: attempt > 0, submitOutcome: outcome };

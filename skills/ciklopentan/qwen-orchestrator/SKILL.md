@@ -8,7 +8,7 @@ description: >
   (4) web search via Qwen's built-in search, (5) "consult Qwen" or ask-qwen.sh.
 ---
 
-# Qwen Orchestrator v1.5.5
+# Qwen Orchestrator v1.5.6
 
 **What this is:** Browser automation that talks to Qwen Chat via Puppeteer.
 **Default runtime policy:** before sending a prompt, qwen-orchestrator must switch the Qwen mode selector to thinking mode when the selector is available.

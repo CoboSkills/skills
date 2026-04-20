@@ -1,8 +1,8 @@
 {
   "name": "human-like-memory",
   "displayName": "Human-Like Memory",
-  "description": "Agent-usable memory commands for smart recall, search, and save in Human-Like Memory.",
-  "version": "1.0.3",
+  "description": "HumanLike Memory / Human-Like Memory is a persistent AI agent memory system for long-term memory search, recall, and save. It helps agents store facts, preferences, and decisions and keep context across sessions for conversation continuity.",
+  "version": "1.0.11",
   "homepage": "https://plugin.human-like.me",
   "author": {
     "name": "hanlaomo",
@@ -10,10 +10,19 @@
   },
   "license": "Apache-2.0",
   "keywords": [
+    "humanlike-memory",
+    "human-like-memory",
+    "humanlike",
+    "human-like",
     "memory",
+    "agent-memory",
+    "procedural-memory",
     "long-term-memory",
     "conversation",
     "recall",
+    "memory-search",
+    "memory-save",
+    "continuity",
     "ai-memory"
   ],
   "main": "./SKILL.md",
@@ -21,6 +30,8 @@
     "memory": "./scripts/memory.mjs"
   },
   "triggers": [
+    "humanlike memory",
+    "human-like memory",
     "continue previous work",
     "remember what we discussed",
     "memory recall",

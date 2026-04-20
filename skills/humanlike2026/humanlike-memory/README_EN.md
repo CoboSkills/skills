@@ -66,6 +66,42 @@ node ~/.openclaw/workspace/skills/human-like-memory/scripts/memory.mjs save "I p
 echo '[{"role":"user","content":"Hi"},{"role":"assistant","content":"Hello"}]' | node ~/.openclaw/workspace/skills/human-like-memory/scripts/memory.mjs save-batch
 ```
 
+## Typical Memory Tasks
+
+- Resume project context, decisions, and open work from prior sessions
+- Recall user preferences, naming habits, identity facts, and long-lived constraints
+- Reuse stable workflows, playbooks, checklists, and other procedural memory
+- Search memory before answering continuity-heavy questions
+- Save durable conclusions, corrections, and summaries for later sessions
+
+## Memory Types
+
+- Semantic memory: facts, preferences, identity, and durable context
+- Procedural memory: workflows, routines, checklists, and repeatable ways of working
+- Episodic memory: prior exchanges, project history, and session-specific decisions
+
+## Suggested Queries And Saves
+
+- Recall: `"roadmap decisions from last week"`
+- Search: `"what name preference did I mention"`
+- Save: `"I prefer UTC+8 timestamps"`
+
+## Good Things To Save
+
+- Stable preferences
+- Confirmed decisions
+- Identity or background facts that affect future collaboration
+- Corrections to earlier misunderstandings
+- Summaries worth keeping after a multi-turn discussion
+
+If a conversation produces a reusable workflow or checklist, it can also be saved as procedural memory.
+
+## Error Handling
+
+- If the API key is missing, the script prints fix commands you can run directly
+- If the remote service times out or errors, nothing is saved silently
+- If no memories are found, treat that as a normal empty result
+
 ## Skill vs Plugin
 
 | Feature | Skill | Plugin |

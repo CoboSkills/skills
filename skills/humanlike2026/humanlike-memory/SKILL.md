@@ -1,6 +1,6 @@
 ---
 name: human-like-memory
-description: "Agent-usable memory commands for smart recall, save, and search in Human-Like Memory"
+description: "HumanLike Memory / Human-Like Memory is a persistent AI agent memory system for long-term memory search, recall, and save. It helps agents store facts, preferences, and decisions and keep context across sessions for conversation continuity."
 homepage: https://plugin.human-like.me
 license: Apache-2.0
 user-invocable: true
@@ -9,7 +9,21 @@ metadata: {"openclaw":{"emoji":"🧠","homepage":"https://plugin.human-like.me",
 
 # Human-Like Memory Skill
 
-Agent-usable long-term memory tools for Human-Like Memory.
+Persistent AI agent memory system for Human-Like Memory.
+
+HumanLike Memory, Human-Like Memory, and human like memory all refer to the same skill. It helps agents search long-term memory, recall past context, save durable information, and store facts, preferences, and decisions across sessions.
+
+## Search Aliases
+
+- HumanLike Memory
+- Human-Like Memory
+- human like memory
+- agent memory
+- long-term memory
+- memory recall
+- memory search
+- memory save
+- conversation continuity
 
 This skill supports both:
 
@@ -122,32 +136,4 @@ Recommended behavior:
 
 This gives the agent autonomy, but keeps the skill in a smart-trigger mode instead of an always-on mode.
 
-## Suggested Queries
-
-- Recall: `"roadmap decisions from last week"`
-- Search: `"what name preference did I mention"`
-- Save: `"I prefer UTC+8 timestamps"`
-
-## Save Triggers
-
-The agent should strongly consider `save` when the user:
-
-- states a stable preference
-- makes or confirms a decision
-- provides a personal profile fact that matters later
-- corrects a previous misunderstanding
-- explicitly says "remember this"
-
-The agent may use `save-batch` after a longer exchange when a compact summary of the last few turns is likely to help future continuity.
-
-## Error Handling
-
-- If the API key is missing, the script prints the exact OpenClaw config steps to fix it
-- If the service times out or errors, nothing is saved implicitly
-- If no memories are found, handle that as a normal empty result
-
-## Privacy
-
-- Avoid sending passwords, tokens, or secrets
-- Only pass content you are comfortable storing on your configured memory service
-- Review [SECURITY.md](./SECURITY.md) for transmitted fields and operational notes
+For practical examples, memory taxonomy, and extended guidance, see [README.md](./README.md) and [SECURITY.md](./SECURITY.md).

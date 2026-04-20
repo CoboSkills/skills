@@ -76,6 +76,42 @@ node ~/.openclaw/workspace/skills/human-like-memory/scripts/memory.mjs config
 - 当模型判断出现稳定偏好、重要决策、身份纠正或多轮讨论总结时，可以调用 save / save-batch
 - 如果你想每轮自动 recall、生命周期 hook、完全后台化，请改用 plugin
 
+## 典型记忆任务
+
+- 恢复上一次会话里的上下文、项目状态和决策
+- 回忆用户偏好、身份信息、命名习惯和长期约束
+- 复用稳定流程、操作手册、检查清单等程序化记忆
+- 在回答连续性问题前先 search / recall 相关记忆
+- 把有长期价值的结论、纠正和摘要保存下来
+
+## 记忆类型
+
+- Semantic memory：事实、偏好、身份、长期上下文
+- Procedural memory：流程、习惯、检查清单、可复用的做事方式
+- Episodic memory：具体对话、项目过程、阶段性决策
+
+## 示例查询与保存
+
+- Recall：`"roadmap decisions from last week"`
+- Search：`"what name preference did I mention"`
+- Save：`"I prefer UTC+8 timestamps"`
+
+## 建议保存的内容
+
+- 稳定偏好
+- 已确认的重要决策
+- 会影响后续协作的身份或背景信息
+- 对之前认知的纠正
+- 多轮讨论后值得长期保留的摘要
+
+如果一次对话已经形成了可复用流程或 checklist，也可以把它作为程序化记忆保存下来。
+
+## 错误处理
+
+- 如果 API key 缺失，脚本会输出可直接执行的修复命令
+- 如果远端超时或报错，不会静默保存
+- 如果没有命中记忆，应按“正常空结果”处理
+
 ## CLI 示例
 
 ```bash

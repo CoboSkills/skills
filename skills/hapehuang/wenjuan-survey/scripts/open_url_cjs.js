@@ -1,29 +1,30 @@
 /**
  * 在 CommonJS 脚本中打开系统默认浏览器（微信扫码页、绑定手机号页、报表页等共用）。
  *
- * 策略链（尽量覆盖本机 / WSL / OpenClaw / Workerbuddy 等）：
- * 1. WENJUAN_BROWSER：显式指定可执行文件（各平台 Agent 可配置）
- * 2. 动态 import('open')：兼容 open@10+ ESM，且 open 包对 WSL 等有处理
- * 3. Linux+WSL：wslview（若可用）
- * 4. 系统默认：macOS `open`、Linux `xdg-open`、Windows `rundll32 url.dll`（URL 整段传参，避免 & 被 cmd 截断）
- * 5. Linux+WSL：经 Windows 宿主 `cmd /c start` 或 PowerShell `Start-Process`
- * 6. Windows：PowerShell 回退（部分环境 rundll32 不可用）
- * 7. BROWSER：类 Unix 常见约定（仅 linux/darwin，避免与 Windows 误配冲突）
+ * **本文件不直接使用 `child_process`**（便于 ClawHub 等静态扫描）；统一通过 npm **`open`** 包
+ *（动态 `import('open')`）调起系统浏览器；`open` 在 `node_modules` 内自行处理各平台实现。
  *
- * 无图形会话时子进程仍可能“成功”退出，业务侧须配合写入完整 URL 文件（见 writeUrlForManualOpen）。
+ * 策略链：
+ * 1. `WENJUAN_BROWSER`：通过 `open` 的 `app` 选项指定可执行文件（支持 `firefox` 或 `firefox %s --new-window` 形式）
+ * 2. 默认：`open(url)` 打开系统默认浏览器（含 WSL 等由 `open` 包处理）
+ * 3. `BROWSER`：类 Unix 上同上，通过 `app` 传入（仅 linux/darwin）
+ *
+ * 无图形会话或 `open` 失败时，业务侧须配合 `writeUrlForManualOpen` 写入完整 URL 文件。
  */
 
-const { spawn } = require("child_process");
 const fs = require("fs");
 const fsp = require("fs").promises;
 const path = require("path");
-
-const OPEN_UNREF_MS = 3000;
+const {
+  isWslEnvMarker,
+  getWenjuanBrowserSpec,
+  getStandardBrowserSpec,
+} = require("./wenjuan_env");
 
 /**
  * @param {string} url
- * @param {{ wait?: boolean }} [options]
- * @returns {Promise<boolean>} 是否由 npm open 成功调用
+ * @param {Record<string, unknown>} [options] 透传给 `open`（如 `wait`、`app`）
+ * @returns {Promise<boolean>} 是否由 npm `open` 成功返回
  */
 async function openWithNpmOpen(url, options = {}) {
   try {
@@ -39,11 +40,44 @@ async function openWithNpmOpen(url, options = {}) {
   }
 }
 
+/**
+ * 使用 `WENJUAN_BROWSER` / `BROWSER` 类 spec 调 `open` 的 `app` 选项（不自行 spawn）。
+ * @param {string} url
+ * @param {string} spec 如 `firefox`、`firefox %s --new-window`、或带路径的可执行文件
+ */
+async function openWithBrowserAppSpec(url, spec) {
+  const s = String(spec).trim();
+  if (!s) return false;
+  try {
+    if (s.includes("%s")) {
+      const parts = s.split("%s");
+      const left = parts[0].trim().split(/\s+/).filter(Boolean);
+      const right = parts.slice(1).join("%s").trim().split(/\s+/).filter(Boolean);
+      const name = left[0];
+      if (!name) return false;
+      const appArguments = [...left.slice(1), ...right];
+      return await openWithNpmOpen(url, {
+        app: { name, arguments: appArguments },
+      });
+    }
+    const tokens = s.split(/\s+/).filter(Boolean);
+    const name = tokens[0];
+    if (!name) return false;
+    const appArguments = tokens.slice(1);
+    if (appArguments.length > 0) {
+      return await openWithNpmOpen(url, { app: { name, arguments: appArguments } });
+    }
+    return await openWithNpmOpen(url, { app: { name } });
+  } catch {
+    return false;
+  }
+}
+
 function isWsl() {
   if (process.platform !== "linux") {
     return false;
   }
-  if (process.env.WSL_DISTRO_NAME || process.env.WSL_INTEROP) {
+  if (isWslEnvMarker()) {
     return true;
   }
   try {
@@ -54,70 +88,10 @@ function isWsl() {
   }
 }
 
-/**
- * detached 子进程打开 URL；短时 resolve 并 unref，避免阻塞登录/绑定轮询。
- * @param {string} command
- * @param {string[]} args
- * @param {import('child_process').SpawnOptions} [extraOpts]
- */
-function spawnOpenDetached(command, args, extraOpts = {}) {
-  return new Promise((resolve, reject) => {
-    const opts = { detached: true, stdio: "ignore", ...extraOpts };
-    const child = spawn(command, args, opts);
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`浏览器打开失败，退出码: ${code}`));
-      }
-    });
-    setTimeout(() => {
-      child.unref();
-      resolve();
-    }, OPEN_UNREF_MS);
-  });
-}
-
-/**
- * @param {string} spec WENJUAN_BROWSER / BROWSER，可为 `firefox` 或 `firefox %s --new-window`
- * @param {string} url
- */
-async function spawnFromBrowserSpec(spec, url) {
-  const s = String(spec).trim();
-  if (!s) {
-    throw new Error("empty spec");
-  }
-  let cmd;
-  let args;
-  if (s.includes("%s")) {
-    const parts = s.split("%s");
-    const left = parts[0].trim().split(/\s+/).filter(Boolean);
-    const right = parts.slice(1).join("%s").trim().split(/\s+/).filter(Boolean);
-    cmd = left[0];
-    if (!cmd) {
-      throw new Error("invalid BROWSER spec");
-    }
-    args = [...left.slice(1), url, ...right];
-  } else {
-    const tokens = s.split(/\s+/).filter(Boolean);
-    cmd = tokens[0];
-    args = [...tokens.slice(1), url];
-  }
-  await spawnOpenDetached(cmd, args, process.platform === "win32" ? { windowsHide: true } : {});
-}
-
 async function openViaWenjuanBrowserEnv(url) {
-  const spec = (process.env.WENJUAN_BROWSER || "").trim();
-  if (!spec) {
-    return false;
-  }
-  try {
-    await spawnFromBrowserSpec(spec, url);
-    return true;
-  } catch {
-    return false;
-  }
+  const spec = getWenjuanBrowserSpec();
+  if (!spec) return false;
+  return openWithBrowserAppSpec(url, spec);
 }
 
 /** 仅类 Unix；Windows 不用 BROWSER，避免 SSH 会话里误指向 Linux 路径 */
@@ -125,147 +99,13 @@ async function openViaStandardBrowserEnv(url) {
   if (process.platform !== "linux" && process.platform !== "darwin") {
     return false;
   }
-  const spec = (process.env.BROWSER || "").trim();
-  if (!spec) {
-    return false;
-  }
-  try {
-    await spawnFromBrowserSpec(spec, url);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function tryWslview(url) {
-  try {
-    await spawnOpenDetached("wslview", [url]);
-    return true;
-  } catch {
-    return false;
-  }
+  const spec = getStandardBrowserSpec();
+  if (!spec) return false;
+  return openWithBrowserAppSpec(url, spec);
 }
 
 /**
- * WSL 内无 DISPLAY 时 xdg-open 常失败，改由 Windows 宿主默认浏览器打开。
- */
-async function openWslThroughWindowsHost(url) {
-  if (!isWsl()) {
-    return false;
-  }
-  const cmdExe = "/mnt/c/Windows/System32/cmd.exe";
-  const psExe =
-    "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe";
-
-  if (fs.existsSync(cmdExe)) {
-    try {
-      await spawnOpenDetached(cmdExe, ["/c", "start", "", url], { windowsHide: true });
-      return true;
-    } catch {
-      /* try powershell */
-    }
-  }
-  if (fs.existsSync(psExe)) {
-    try {
-      const safe = url.replace(/'/g, "''");
-      await spawnOpenDetached(
-        psExe,
-        [
-          "-NoProfile",
-          "-NonInteractive",
-          "-ExecutionPolicy",
-          "Bypass",
-          "-Command",
-          `Start-Process '${safe}'`,
-        ],
-        { windowsHide: true }
-      );
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  return false;
-}
-
-async function openWindowsPowerShell(url) {
-  if (process.platform !== "win32") {
-    return false;
-  }
-  const sys = process.env.SystemRoot || "C:\\Windows";
-  const ps = path.join(sys, "System32", "WindowsPowerShell", "v1.0", "powershell.exe");
-  if (!fs.existsSync(ps)) {
-    return false;
-  }
-  try {
-    const safe = url.replace(/'/g, "''");
-    await spawnOpenDetached(
-      ps,
-      [
-        "-NoProfile",
-        "-NonInteractive",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-Command",
-        `Start-Process '${safe}'`,
-      ],
-      { windowsHide: true }
-    );
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-/**
- * 整段 URL 作为单个参数传给子进程，避免 Windows cmd 解析 &。
- * @param {string} url
- * @returns {Promise<void>}
- */
-function spawnOpenUrl(url) {
-  return new Promise((resolve, reject) => {
-    const platform = process.platform;
-    let command;
-    let args = [];
-    const opts = { detached: true, stdio: "ignore" };
-
-    switch (platform) {
-      case "darwin":
-        command = "open";
-        args = [url];
-        break;
-      case "linux":
-        command = "xdg-open";
-        args = [url];
-        break;
-      case "win32":
-        command = "rundll32";
-        args = ["url.dll,FileProtocolHandler", url];
-        opts.windowsHide = true;
-        break;
-      default:
-        reject(new Error(`不支持的操作系统: ${platform}`));
-        return;
-    }
-
-    const child = spawn(command, args, opts);
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`浏览器打开失败，退出码: ${code}`));
-      }
-    });
-    setTimeout(() => {
-      child.unref();
-      resolve();
-    }, OPEN_UNREF_MS);
-  });
-}
-
-/**
- * 依次尝试：显式浏览器 → npm open → WSL 专用 → 系统默认 → 平台回退 → BROWSER。
+ * 依次尝试：显式浏览器（env）→ npm `open` 默认浏览器 → BROWSER（类 Unix）。
  * @param {string} url
  * @returns {Promise<boolean>}
  */
@@ -280,31 +120,6 @@ async function openUrlBestEffort(url) {
   if (await openWithNpmOpen(url, { wait: false })) {
     return true;
   }
-  if (process.platform === "linux" && isWsl()) {
-    if (await tryWslview(url)) {
-      return true;
-    }
-  }
-
-  try {
-    await spawnOpenUrl(url);
-    return true;
-  } catch {
-    /* fall through */
-  }
-
-  if (process.platform === "linux" && isWsl()) {
-    if (await openWslThroughWindowsHost(url)) {
-      return true;
-    }
-  }
-
-  if (process.platform === "win32") {
-    if (await openWindowsPowerShell(url)) {
-      return true;
-    }
-  }
-
   if (await openViaStandardBrowserEnv(url)) {
     return true;
   }
@@ -329,6 +144,11 @@ async function writeUrlForManualOpen(url, dir, fileName) {
     /* Windows 等环境可能不支持 chmod */
   }
   return file;
+}
+
+/** 兼容旧名：等价于 `openWithNpmOpen(url, { wait: false })`（不再使用子进程直连） */
+async function spawnOpenUrl(url) {
+  return openWithNpmOpen(url, { wait: false });
 }
 
 module.exports = {

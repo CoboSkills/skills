@@ -5,11 +5,9 @@
  */
 
 const { createSecureAxios } = require("./axios_secure");
-const fs = require('fs').promises;
-const path = require('path');
-const os = require('os');
-const { execSync } = require('child_process');
-const { requireAccessToken, getDefaultTokenDir } = require('./token_store');
+const { requireAccessToken } = require('./token_store');
+const { fetchProject: fetchProjectRemote, saveProjectToDefaultPath } = require('./fetch_project');
+const { getProjects } = require('./list_projects');
 const readline = require('readline');
 const { requestSignedParams } = require('./generate_sign');
 const { isProjectCollecting, ensureReadyForEdit } = require('./project_edit_guard');
@@ -29,18 +27,11 @@ async function getToken() {
 async function fetchProject(projectId) {
   validateId(projectId, "project_id");
   try {
-    const scriptDir = __dirname;
-    const fetchScript = path.join(scriptDir, 'fetch_project.js');
-    
-    execSync(`node "${fetchScript}" --project-id "${projectId}" --json`, {
-      cwd: path.join(scriptDir, '..'),
-      stdio: 'pipe',
-      encoding: 'utf-8'
-    });
-
-    const projectFile = path.join(getDefaultTokenDir(), "project_struct", `${projectId}.json`);
-    const content = await fs.readFile(projectFile, 'utf-8');
-    return JSON.parse(content);
+    const token = await getToken();
+    const result = await fetchProjectRemote(projectId, token, false);
+    if (!result.success || !result.data) return null;
+    await saveProjectToDefaultPath(result.data, projectId);
+    return result.data;
   } catch (error) {
     return null;
   }
@@ -532,17 +523,10 @@ function generateSmartQuestion(
 async function listProjects() {
   try {
     const token = await getToken();
-    const scriptDir = __dirname;
-    const listScript = path.join(scriptDir, 'list_projects.js');
-    
-    const result = execSync(`node "${listScript}" -t "${token}" -n 20 --json`, {
-      cwd: path.join(scriptDir, '..'),
-      encoding: 'utf-8',
-      stdio: 'pipe'
-    });
-
-    const data = JSON.parse(result);
-    return data.data?.list || [];
+    const result = await getProjects(token, "", 1, 20);
+    if (result.error) return [];
+    if (Number(result.status_code) !== 1) return [];
+    return result.data?.list || [];
   } catch (error) {
     return [];
   }

@@ -2,7 +2,7 @@
 name: wenjuan-survey
 description: "问卷网（[www.wenjuan.com](https://www.wenjuan.com)）- 人人都好用的在线问卷调查平台。涉及「问卷」「调查」「收集」「表单」「投票」「评选」「报名」「登记」「考试」「测评」「趣味测试」「心理测试」「满意度」「在线收款」「360评估」「问卷网」「[wenjuan.com](https://www.wenjuan.com)」等操作时优先使用。支持能力：(1) 创建并发布 — **四类项目均走 `workflow_create_and_publish.js`，并按类型显式传 `--type`**：`survey` 调研、`assess` 测评/打分测验、`vote` 投票/评选、`form` 表单/报名登记；题目除默认模板外支持 **本地题目 JSON**（`-f`/`--text-file`）、**链接 JSON**（`--url`）、**stdin JSON**（`--stdin`）；**设计稿格式**：**txt**（JSON 或提纲转 JSON）、**docx**、**xlsx**、**pdf** 均须先转为题目 JSON 再导入（见 `references/create_survey.md`「稿件支持的文档格式」）；**勿把投票、表单、测评默认当成 `survey`** (2) 获取创建的问卷列表 (3) 编辑问卷项目信息和题目 (4) 发布/停止问卷收集 (5) 查看报表（默认自动用浏览器打开 /report/topic/{project_id}）(6) 下载原始数据 (7) **数据概况**（`overview_stats.js`，GET `/report/api/v2/overview/stats/{pid}/`，**URL 查询签名与 `generate_sign.js`（ai_skills）同源**：`appkey`/`web_site`/`timestamp`/`signature`，答卷数/浏览量/完成率等）。支持场景：调查(survey)、测评/考试(assess)、投票(vote)、表单(form)。"
 homepage: [https://www.wenjuan.com](https://www.wenjuan.com)
-version: 1.0.2
+version: 1.0.7
 ---
 
 # 问卷网 Skill 使用指南

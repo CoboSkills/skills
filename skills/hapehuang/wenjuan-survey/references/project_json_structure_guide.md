@@ -58,7 +58,7 @@
 | `title` | string | ✅ | 题目内容 |
 | `en_name` | string | ✅ | 题型标识（见题型对照表） |
 | `custom_attr` | object | ✅ | 自定义属性（可为空对象 `{}`） |
-| `option_list` | array | ✅ | 选项列表（无选项传空数组 `[]`） |
+| `option_list` | array | ✅ | 选项列表（无选项传空数组 `[]`）；**矩阵类题型**另有 **`matrixrow_list`**（见 §6 / §7） |
 
 ### 选项结构 (option_list 元素)
 
@@ -83,6 +83,7 @@
 > **参考样例项目（线上下落）**：以下「`edit_project` 返回」字段来自问卷网编辑接口实测，用于与「导入 JSON 写 `option_list: []`」对照。  
 > - 普通问卷：`project_id` **`69d257be4d1e8d523899937b`**（`survey`，14 题）  
 > - 考试测评：`project_id` **`69d2570bef3af30a3376fd24`**（`assess`，15 题）  
+> - **矩阵评价（矩阵单选 + `matrixrow_list`）**：`project_id` **`69e4d0a6ef3af30a18db16c3`** — 请在本机登录后执行 `fetch_project` 拉取该题完整字段（行/列与 `question_type`）  
 > 汇总表见 **第十二节**。
 
 ### 1. 单选题 (QUESTION_TYPE_SINGLE)
@@ -281,18 +282,25 @@
 
 ### 6. 矩阵单选题 (QUESTION_TYPE_MATRIX_SINGLE)
 
-**适用场景**：矩阵形式的单选（如满意度评价）
+**适用场景**：矩阵单选（典型「满意度评价」：多**行**维度 × 多**列**等级）
 
-**规则**：
-- `option_list` 存放矩阵列选项（评价等级）
-- 矩阵行（评价维度）需另外通过子题或 custom_attr 设置
+**规则（与编辑接口 / `fetch_project` 一致）**：
+- **`matrixrow_list`**：**矩阵行** = 评价维度（如「服务态度」「产品质量」），每项一条，**至少 1 行**；行内字段与 `option_list` 元素相同（`title`、`is_open`、`custom_attr`）。
+- **`option_list`**：**矩阵列** = 评价等级/刻度（如「非常不满意」～「非常满意」），**至少 2 列**。
+- **常见错误**：只写 `option_list`、不写 **`matrixrow_list`** —— 导入后往往只有「列」没有「行」，题面不完整或不符合预期；**评价题必须同时提供行、列两组列表**（参考项目 **`69e4d0a6ef3af30a18db16c3`**，请 `fetch_project` 对照）。
+- **线上下落**：`question_type: **4**`（见 `references/fetch_project.md`「题目类型代码」）。
 
 **示例**：
 ```json
 {
-  "title": "请评价以下各项满意度",
+  "title": "请对以下方面进行满意度评价",
   "en_name": "QUESTION_TYPE_MATRIX_SINGLE",
-  "custom_attr": {},
+  "custom_attr": { "show_seq": "on" },
+  "matrixrow_list": [
+    {"title": "服务态度", "is_open": false, "custom_attr": {}},
+    {"title": "产品质量", "is_open": false, "custom_attr": {}},
+    {"title": "物流速度", "is_open": false, "custom_attr": {}}
+  ],
   "option_list": [
     {"title": "非常不满意", "is_open": false, "custom_attr": {}},
     {"title": "不满意", "is_open": false, "custom_attr": {}},
@@ -307,21 +315,27 @@
 
 ### 7. 矩阵多选题 (QUESTION_TYPE_MATRIX_MULTIPLE)
 
-**适用场景**：矩阵形式的多选
+**适用场景**：矩阵多选（行 × 列，每格可多选列）
 
 **规则**：
-- 与矩阵单选类似，`en_name` 不同
+- 与矩阵单选相同：**必须同时提供 `matrixrow_list`（行）与 `option_list`（列）**，语义同上。
+- **线上下落**：`question_type: **7**`（矩阵多选 / 部分场景下称矩阵打分，仍以接口返回为准）。
 
 **示例**：
 ```json
 {
-  "title": "您使用过以下哪些功能？（可多选）",
+  "title": "以下方面中，您使用过哪些？（可多选）",
   "en_name": "QUESTION_TYPE_MATRIX_MULTIPLE",
-  "custom_attr": {},
-  "option_list": [
+  "custom_attr": { "show_seq": "on" },
+  "matrixrow_list": [
     {"title": "功能A", "is_open": false, "custom_attr": {}},
     {"title": "功能B", "is_open": false, "custom_attr": {}},
     {"title": "功能C", "is_open": false, "custom_attr": {}}
+  ],
+  "option_list": [
+    {"title": "从未使用", "is_open": false, "custom_attr": {}},
+    {"title": "偶尔使用", "is_open": false, "custom_attr": {}},
+    {"title": "经常使用", "is_open": false, "custom_attr": {}}
   ]
 }
 ```

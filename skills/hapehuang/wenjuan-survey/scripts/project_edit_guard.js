@@ -14,7 +14,8 @@
 const path = require("path");
 const fs = require("fs").promises;
 const { getDefaultTokenDir, resolveAccessToken } = require("./token_store");
-const { execSync } = require("child_process");
+const { fetchProject: fetchProjectRemote, saveProjectToDefaultPath } = require("./fetch_project");
+const { publishProject } = require("./publish");
 const { pollArchiveUntilSuccess } = require("./project_archive");
 
 /**
@@ -40,26 +41,37 @@ async function readFetchedProject(projectId) {
   return JSON.parse(content);
 }
 
-function runFetchProject(projectId) {
-  const scriptDir = __dirname;
-  const fetchScript = path.join(scriptDir, "fetch_project.js");
-  const cwd = path.join(scriptDir, "..");
-  execSync(`node "${fetchScript}" --project-id "${projectId}" --json`, {
-    cwd,
-    encoding: "utf-8",
-    stdio: "pipe",
+async function runFetchProject(projectId, tokenDir) {
+  const token = await resolveAccessToken({
+    tokenDir: tokenDir == null ? undefined : tokenDir,
   });
+  if (!token) {
+    throw new Error(
+      "未找到 access_token，无法拉取项目；请先登录（见 references/auth.md）"
+    );
+  }
+  const result = await fetchProjectRemote(projectId, token, false);
+  if (!result.success || !result.data) {
+    throw new Error(
+      result.error_msg || result.error || "拉取项目结构失败"
+    );
+  }
+  await saveProjectToDefaultPath(result.data, projectId);
 }
 
-function runPublishStop(projectId) {
-  const scriptDir = __dirname;
-  const publishScript = path.join(scriptDir, "publish.js");
-  const cwd = path.join(scriptDir, "..");
-  execSync(`node "${publishScript}" -p "${projectId}" -a stop`, {
-    cwd,
-    encoding: "utf-8",
-    stdio: "pipe",
+async function runPublishStop(projectId, tokenDir) {
+  const token = await resolveAccessToken({
+    tokenDir: tokenDir == null ? undefined : tokenDir,
   });
+  if (!token) {
+    throw new Error(
+      "未找到 access_token，无法停止收集；请先登录（见 references/auth.md）"
+    );
+  }
+  const result = await publishProject(projectId, "stop", token);
+  if (result && result.error) {
+    throw new Error(String(result.error));
+  }
 }
 
 /**
@@ -72,7 +84,7 @@ async function ensureReadyForEdit(projectId, opts = {}) {
   const isMerge = opts.isMerge === 1 ? 1 : 0;
   const tokenDir = opts.tokenDir;
 
-  runFetchProject(projectId);
+  await runFetchProject(projectId, tokenDir);
   let projectData = await readFetchedProject(projectId);
   const title =
     projectData.title_as_txt || projectData.title || projectData.name || "N/A";
@@ -85,9 +97,9 @@ async function ensureReadyForEdit(projectId, opts = {}) {
 
   if (isProjectCollecting(projectData)) {
     log("\n⚠️  项目正在收集中，正在停止收集…");
-    runPublishStop(projectId);
+    await runPublishStop(projectId, tokenDir);
     log("✓ 已停止收集");
-    runFetchProject(projectId);
+    await runFetchProject(projectId, tokenDir);
     projectData = await readFetchedProject(projectId);
   } else {
     log("✓ 项目未在收集中");
@@ -112,7 +124,7 @@ async function ensureReadyForEdit(projectId, opts = {}) {
   }
   log(`✓ 项目归档成功（${arch.attempts} 次请求）`);
 
-  runFetchProject(projectId);
+  await runFetchProject(projectId, tokenDir);
   log("✓ 已刷新本地项目结构，可继续编辑操作");
 }
 

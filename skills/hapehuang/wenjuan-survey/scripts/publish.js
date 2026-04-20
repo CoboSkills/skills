@@ -8,6 +8,7 @@ const fs = require('fs');
 const { createSecureAxios } = require("./axios_secure");
 const { resolveAccessToken } = require('./token_store');
 const { WENJUAN_HOST, wenjuanUrl } = require("./api_config");
+const { getWenjuanSyncLogFlag } = require("./wenjuan_env");
 const axios = createSecureAxios();
 
 // API 地址
@@ -213,7 +214,7 @@ function buildPublishQueuePatienceHint(queueDeadlineMs) {
 
 /** 管道/非 TTY（Agent、CI、部分 GUI）下 stdout 常被全缓冲，长时间看不到轮询提示 */
 function useImmediatePollLog() {
-  return !process.stdout.isTTY || process.env.WENJUAN_SYNC_LOG === "1";
+  return !process.stdout.isTTY || getWenjuanSyncLogFlag();
 }
 
 /**

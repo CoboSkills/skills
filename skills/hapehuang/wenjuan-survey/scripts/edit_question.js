@@ -12,10 +12,8 @@
  */
 
 const axios = require('axios');
-const fs = require('fs').promises;
-const path = require('path');
-const { execSync } = require('child_process');
-const { requireAccessToken, getDefaultTokenDir } = require('./token_store');
+const { requireAccessToken } = require('./token_store');
+const { fetchProject: fetchProjectRemote, saveProjectToDefaultPath } = require('./fetch_project');
 const readline = require('readline');
 const { requestSignedParams } = require('./generate_sign');
 const { wenjuanUrl } = require("./api_config");
@@ -489,19 +487,14 @@ async function listQuestions(projectId) {
   console.log("=".repeat(60));
 
   const token = await loadToken();
-  const scriptDir = __dirname;
-  const fetchScript = path.join(scriptDir, 'fetch_project.js');
-  
-  try {
-    execSync(`node "${fetchScript}" --project-id "${projectId}" --json`, {
-      cwd: path.join(scriptDir, '..'),
-      encoding: 'utf-8',
-      stdio: 'pipe'
-    });
 
-    const projectFile = path.join(getDefaultTokenDir(), "project_struct", `${projectId}.json`);
-    const content = await fs.readFile(projectFile, 'utf-8');
-    const projectData = JSON.parse(content);
+  try {
+    const remote = await fetchProjectRemote(projectId, token, false);
+    if (!remote.success || !remote.data) {
+      throw new Error(remote.error_msg || remote.error || "拉取项目失败");
+    }
+    await saveProjectToDefaultPath(remote.data, projectId);
+    const projectData = remote.data;
 
     const questions = [];
     for (const page of projectData.questionpage_list || []) {

@@ -1,5 +1,6 @@
 const fs = require("fs").promises;
 const path = require("path");
+const { getEnvByName } = require("./wenjuan_env");
 
 const ID_RE = /^[a-zA-Z0-9_-]{8,64}$/;
 
@@ -51,7 +52,7 @@ async function writeSecretFile(filePath, content) {
 }
 
 function getRequiredEnv(name) {
-  const v = process.env[name];
+  const v = getEnvByName(name);
   if (v == null || String(v).trim() === "") {
     throw new Error(`缺少环境变量 ${name}`);
   }

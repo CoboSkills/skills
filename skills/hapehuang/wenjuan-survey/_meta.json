@@ -1,13 +1,18 @@
 {
   "owner": "hapehuang",
   "slug": "wenjuan-survey",
-  "displayName": "Questionnaire Assistant",
+  "displayName": "问卷网",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775812428210,
-    "commit": "https://github.com/openclaw/skills/commit/29cad7a77f65b74ac662ac1046f279ad85bb2fc2"
+    "version": "1.0.7",
+    "publishedAt": 1776612521225,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775812428210,
+      "commit": "https://github.com/openclaw/skills/commit/29cad7a77f65b74ac662ac1046f279ad85bb2fc2"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1775557133273,

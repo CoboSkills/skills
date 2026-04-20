@@ -4,9 +4,7 @@
  * 仅检测 Node.js 版本与本地 npm 依赖；不检查问卷网登录、Token 或任何授权状态。
  */
 
-const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
 // 最低 Node.js 版本要求
 const MIN_NODE_VERSION = 18;
@@ -25,13 +23,13 @@ function checkNodeVersion() {
   console.log("=".repeat(60));
   console.log("🔍 检查 Node.js 版本");
   console.log("=".repeat(60));
-  
+
   const currentVersion = process.version;
   const majorVersion = parseInt(currentVersion.slice(1).split('.')[0], 10);
-  
+
   console.log(`当前 Node.js 版本: ${currentVersion}`);
   console.log(`最低要求版本: ${MIN_NODE_VERSION}.0.0+`);
-  
+
   if (majorVersion >= MIN_NODE_VERSION) {
     console.log(`✅ Node.js 版本符合要求\n`);
     return true;
@@ -49,31 +47,21 @@ function checkNodeVersion() {
  */
 function checkPackage(packageName, minVersion) {
   try {
-    // 尝试获取包信息
-    const nodeModulesPath = path.join(__dirname, '..', 'node_modules', packageName, 'package.json');
-    
-    if (!fs.existsSync(nodeModulesPath)) {
-      if (minVersion) {
-        console.log(`  ❌ ${packageName.padEnd(15)} 未安装 (需要 >= ${minVersion})`);
-      } else {
-        console.log(`  ❌ ${packageName.padEnd(15)} 未安装`);
-      }
-      return false;
-    }
-    
-    const pkg = JSON.parse(fs.readFileSync(nodeModulesPath, 'utf-8'));
+    const resolvedPkgPath = require.resolve(`${packageName}/package.json`, {
+      paths: [path.join(__dirname, '..')],
+    });
+    const pkg = require(resolvedPkgPath);
     const version = pkg.version || "未知";
-    
+
     if (minVersion) {
-      // 简单版本比较
       function parseVersion(v) {
-        return v.split('.').slice(0, 3).map(x => parseInt(x, 10) || 0);
+        return String(v).split('.').slice(0, 3).map((x) => parseInt(x, 10) || 0);
       }
-      
+
       try {
         const current = parseVersion(version);
         const required = parseVersion(minVersion);
-        
+
         let isOk = true;
         for (let i = 0; i < Math.max(current.length, required.length); i++) {
           const c = current[i] || 0;
@@ -84,23 +72,23 @@ function checkPackage(packageName, minVersion) {
             break;
           }
         }
-        
+
         if (isOk) {
-          console.log(`  ✅ ${packageName.padEnd(15)} ${version.padEnd(10)} (>= ${minVersion})`);
+          console.log(`  ✅ ${packageName.padEnd(15)} ${String(version).padEnd(10)} (>= ${minVersion})`);
           return true;
         } else {
-          console.log(`  ❌ ${packageName.padEnd(15)} ${version.padEnd(10)} (需要 >= ${minVersion})`);
+          console.log(`  ❌ ${packageName.padEnd(15)} ${String(version).padEnd(10)} (需要 >= ${minVersion})`);
           return false;
         }
-      } catch (e) {
-        console.log(`  ✅ ${packageName.padEnd(15)} ${version.padEnd(10)}`);
+      } catch (_) {
+        console.log(`  ✅ ${packageName.padEnd(15)} ${String(version).padEnd(10)}`);
         return true;
       }
-    } else {
-      console.log(`  ✅ ${packageName.padEnd(15)} ${version.padEnd(10)}`);
-      return true;
     }
-  } catch (error) {
+
+    console.log(`  ✅ ${packageName.padEnd(15)} ${String(version).padEnd(10)}`);
+    return true;
+  } catch (_) {
     if (minVersion) {
       console.log(`  ❌ ${packageName.padEnd(15)} 未安装 (需要 >= ${minVersion})`);
     } else {
@@ -118,14 +106,14 @@ function checkDependencies() {
   console.log("=".repeat(60));
   console.log("🔍 检查依赖包");
   console.log("=".repeat(60));
-  
+
   let allOk = true;
   for (const [packageName, minVer] of REQUIRED_PACKAGES) {
     if (!checkPackage(packageName, minVer)) {
       allOk = false;
     }
   }
-  
+
   console.log();
   return allOk;
 }
@@ -172,13 +160,13 @@ function main() {
   console.log("=".repeat(60));
   console.log("（仅 Node.js 与依赖包；不检查登录/授权）");
   console.log();
-  
+
   // 检查 Node.js 版本
   const nodeOk = checkNodeVersion();
-  
+
   // 检查依赖包
   const depsOk = checkDependencies();
-  
+
   // 输出结果
   console.log("=".repeat(60));
   if (nodeOk && depsOk) {
@@ -186,13 +174,12 @@ function main() {
     console.log("=".repeat(60));
     console.log();
     return 0;
-  } else {
-    console.log("❌ 环境检查未通过");
-    console.log("=".repeat(60));
-    console.log();
-    printInstallGuide();
-    return 1;
   }
+  console.log("❌ 环境检查未通过");
+  console.log("=".repeat(60));
+  console.log();
+  printInstallGuide();
+  return 1;
 }
 
 // 导出模块

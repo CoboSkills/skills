@@ -4,11 +4,9 @@
  * 可通过环境变量 WENJUAN_HOST 覆盖默认域名。
  */
 
-const DEFAULT_WENJUAN_HOST = "https://www.wenjuan.com";
+const { DEFAULT_WENJUAN_HOST, getWenjuanHost } = require("./wenjuan_env");
 
-const WENJUAN_HOST = String(process.env.WENJUAN_HOST || DEFAULT_WENJUAN_HOST)
-  .trim()
-  .replace(/\/+$/, "");
+const WENJUAN_HOST = getWenjuanHost();
 
 function wenjuanUrl(pathname = "") {
   if (!pathname) return WENJUAN_HOST;

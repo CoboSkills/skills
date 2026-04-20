@@ -2,13 +2,14 @@ const axios = require("axios");
 const https = require("https");
 const tls = require("tls");
 const crypto = require("crypto");
+const { getTlsPinSha256, getMinRequestIntervalMs } = require("./wenjuan_env");
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function buildHttpsAgent() {
-  const pin = (process.env.WENJUAN_TLS_PIN_SHA256 || "").trim().toLowerCase();
+  const pin = getTlsPinSha256();
   return new https.Agent({
     keepAlive: true,
     rejectUnauthorized: true,
@@ -35,7 +36,7 @@ function createSecureAxios(baseConfig = {}) {
   });
 
   // 简单客户端限流：同一进程最小间隔，避免高频误调用
-  const minInterval = Number(process.env.WENJUAN_MIN_REQUEST_INTERVAL_MS || 200);
+  const minInterval = getMinRequestIntervalMs();
   let lastAt = 0;
   instance.interceptors.request.use(async (config) => {
     const now = Date.now();

@@ -350,6 +350,7 @@ module.exports = {
   fetchProject,
   getProjectStats,
   loadAccessToken,
+  saveProjectToDefaultPath,
 };
 
 // 如果是直接运行

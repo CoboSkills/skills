@@ -13,12 +13,13 @@
 const fs = require("fs").promises;
 const path = require("path");
 const os = require("os");
+const { getWenjuanTokenDirEnvRaw } = require("./wenjuan_env");
 
 /** Skill 根目录（scripts 的父目录），用于定位 .wenjuan/auth.json */
 const SKILL_ROOT = path.join(__dirname, "..");
 
 function getDefaultTokenDir() {
-  const env = process.env.WENJUAN_TOKEN_DIR;
+  const env = getWenjuanTokenDirEnvRaw();
   if (env != null && String(env).trim() !== "") {
     return path.resolve(String(env).trim());
   }

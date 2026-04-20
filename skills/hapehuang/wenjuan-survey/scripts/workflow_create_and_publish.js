@@ -7,7 +7,6 @@
 const { createSecureAxios } = require("./axios_secure");
 const fs = require('fs').promises;
 const path = require('path');
-const { execSync } = require('child_process');
 const { resolveAccessToken } = require('./token_store');
 const { validateQuestionList } = require("./security_utils");
 const { WENJUAN_HOST, wenjuanUrl } = require("./api_config");
@@ -24,58 +23,6 @@ const PROJECT_TYPES = {
   vote: { type_id: "5c0651e0a320fc9d0bb6aefb", p_type: null },
   assess: { type_id: "54b638e0f7405b3dc0db45fb", p_type: 2 }
 };
-
-// 基础配置
-const SCRIPT_DIR = __dirname;
-const WENJUAN_DIR = path.join(SCRIPT_DIR, '..');
-
-/**
- * 运行子 skill 的脚本
- * @param {string} skillName
- * @param {string} scriptPath
- * @param {Array<string>} args
- * @returns {Object}
- */
-async function runSkillScript(skillName, scriptPath, args = []) {
-  const scriptFullPath = path.join(WENJUAN_DIR, skillName, scriptPath);
-  
-  try {
-    await fs.access(scriptFullPath);
-  } catch (error) {
-    return {
-      success: false,
-      error: `脚本不存在: ${scriptFullPath}`
-    };
-  }
-  
-  const cmd = ["node", scriptFullPath, ...args];
-  
-  try {
-    const result = execSync(cmd.join(' '), {
-      encoding: 'utf-8',
-      cwd: WENJUAN_DIR,
-      timeout: 120000,
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-    
-    return {
-      success: true,
-      stdout: result,
-      stderr: '',
-      returncode: 0
-    };
-  } catch (error) {
-    if (error.status === 'ETIMEDOUT') {
-      return { success: false, error: "执行超时" };
-    }
-    return {
-      success: false,
-      error: error.message,
-      stderr: error.stderr || '',
-      returncode: error.status || 1
-    };
-  }
-}
 
 /** 从本地文件读取 JWT（逻辑见 token_store.js） */
 async function getToken() {
@@ -96,19 +43,18 @@ async function checkLogin() {
  */
 async function doLogin() {
   console.log("\n🔐 需要登录，正在打开登录页面...");
-  
-  const loginScript = path.join(__dirname, "login_auto.js");
-  
+  const { WenjuanLogin } = require("./login_auto");
+  const loginManager = new WenjuanLogin(null, { maxPollTime: 120000 });
   try {
-    const result = execSync(`node "${loginScript}"`, {
-      encoding: 'utf-8',
-      timeout: 120000,
-      stdio: 'inherit'
-    });
-    console.log("✅ 登录成功");
-    return true;
+    const ok = await loginManager.login();
+    if (ok) {
+      console.log("✅ 登录成功");
+      return true;
+    }
+    console.log("❌ 登录失败");
+    return false;
   } catch (error) {
-    console.log(`❌ 登录失败: ${error.message || '未知错误'}`);
+    console.log(`❌ 登录失败: ${error.message || "未知错误"}`);
     return false;
   }
 }

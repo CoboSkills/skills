@@ -10,6 +10,7 @@ const { resolveAccessToken } = require("./token_store");
 const { openUrlBestEffort } = require("./open_url_cjs");
 const { getProjects } = require("./list_projects");
 const { WENJUAN_HOST } = require("./api_config");
+const { getWenjuanProjectIndexEnv } = require("./wenjuan_env");
 
 /** 问卷网「查看报表」页基址，路径为 /report/topic/{project_id} */
 const REPORT_HREF_PREFIX = `${WENJUAN_HOST}/report/topic/`;
@@ -64,7 +65,7 @@ async function resolveProjectIdFromList(token, keyword, pageSize, index1) {
   }
 
   const tty = process.stdin.isTTY;
-  const envIndex = process.env.WENJUAN_PROJECT_INDEX;
+  const envIndex = getWenjuanProjectIndexEnv();
   const pick =
     index1 != null
       ? index1

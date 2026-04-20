@@ -3,9 +3,15 @@
   "slug": "justoneapi-douyin-xingtu",
   "displayName": "Douyin Creator Marketplace (Xingtu) API",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1775375314859,
-    "commit": "https://github.com/openclaw/skills/commit/9c84bc8e98d3cb64d6745bf82cf71298e4516a6a"
+    "version": "1.0.8",
+    "publishedAt": 1776239962695,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1775375314859,
+      "commit": "https://github.com/openclaw/skills/commit/9c84bc8e98d3cb64d6745bf82cf71298e4516a6a"
+    }
+  ]
 }

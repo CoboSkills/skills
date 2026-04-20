@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-carbon-credit-trading
-version: "1.2.0"
+version: "1.3.1"
 description: "Agent-Powered Carbon Credit Trading & CBAM Compliance. Build autonomous carbon credit trading agents: credit discovery, MRV verification, escrow-protected trading, CBAM compliance automation, multi-agent portfolios, and dispute resolution. Includes detailed Python code examples for every pattern."
 license: MIT
 compatibility: [openclaw]
@@ -12,20 +12,27 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # Agent-Powered Carbon Credit Trading & CBAM Compliance
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
 
 
 The EU Carbon Border Adjustment Mechanism became financially binding on January 1, 2026. Every importer of iron, steel, aluminum, cement, fertilizer, hydrogen, and electricity into the European Union must now surrender CBAM certificates corresponding to the embedded emissions of their imports. The penalty for non-compliance is EUR 100 per tonne of CO2 equivalent not covered. This is not a reporting exercise anymore -- the transitional phase ended December 31, 2025. Real money moves now. Meanwhile, Big Tech's carbon credit purchases surged 181% in 2025 to 68.4 million credits as Microsoft, Google, Amazon, and Meta scrambled to offset emissions from their combined near-$700 billion AI infrastructure buildout. The voluntary carbon market is being reshaped by this demand shock. Prices are volatile. Quality is uneven. Double-counting persists. And the first Article 6.4 credits under the Paris Agreement are expected to be issued in 2026, creating an entirely new compliance-grade supply channel that did not exist twelve months ago. The carbon credit platform market itself is projected at $235.5 million in 2026, growing to $1.27 billion by 2034 at a 23.47% CAGR. This is the market you are building for. This guide shows you how to build autonomous agents that discover, verify, trade, and retire carbon credits -- and automate CBAM compliance end to end -- using the GreenHelix A2A Commerce Gateway. Every code example runs against the production API. Every pattern handles the edge cases that manual carbon trading workflows cannot: real-time MRV verification, escrow-protected delivery, SLA-enforced retirement guarantees, cross-registry arbitrage, and dispute resolution for greenwashing claims. By the end, you will have a production carbon trading system built from agents that never sleep, never miss a quarterly filing deadline, and never pay EUR 100/tonne penalties because a spreadsheet was late.
-1. [The Carbon Credit Landscape for Agent Developers](#chapter-1-the-carbon-credit-landscape-for-agent-developers)
-2. [Agent Identity and Carbon Registry Integration](#chapter-2-agent-identity-and-carbon-registry-integration)
+> **Getting started**: All examples in this guide work with the GreenHelix sandbox
+> (https://sandbox.greenhelix.net) which provides 500 free credits — no API key required.
 
 ## What You'll Learn
 - Chapter 1: The Carbon Credit Landscape for Agent Developers
@@ -45,6 +52,10 @@ The EU Carbon Border Adjustment Mechanism became financially binding on January 
 The EU Carbon Border Adjustment Mechanism became financially binding on January 1, 2026. Every importer of iron, steel, aluminum, cement, fertilizer, hydrogen, and electricity into the European Union must now surrender CBAM certificates corresponding to the embedded emissions of their imports. The penalty for non-compliance is EUR 100 per tonne of CO2 equivalent not covered. This is not a reporting exercise anymore -- the transitional phase ended December 31, 2025. Real money moves now. Meanwhile, Big Tech's carbon credit purchases surged 181% in 2025 to 68.4 million credits as Microsoft, Google, Amazon, and Meta scrambled to offset emissions from their combined near-$700 billion AI infrastructure buildout. The voluntary carbon market is being reshaped by this demand shock. Prices are volatile. Quality is uneven. Double-counting persists. And the first Article 6.4 credits under the Paris Agreement are expected to be issued in 2026, creating an entirely new compliance-grade supply channel that did not exist twelve months ago. The carbon credit platform market itself is projected at $235.5 million in 2026, growing to $1.27 billion by 2034 at a 23.47% CAGR. This is the market you are building for. This guide shows you how to build autonomous agents that discover, verify, trade, and retire carbon credits -- and automate CBAM compliance end to end -- using the GreenHelix A2A Commerce Gateway. Every code example runs against the production API. Every pattern handles the edge cases that manual carbon trading workflows cannot: real-time MRV verification, escrow-protected delivery, SLA-enforced retirement guarantees, cross-registry arbitrage, and dispute resolution for greenwashing claims. By the end, you will have a production carbon trading system built from agents that never sleep, never miss a quarterly filing deadline, and never pay EUR 100/tonne penalties because a spreadsheet was late.
 
 ---
+
+
+> **Getting started**: All examples in this guide work with the GreenHelix sandbox
+> (https://sandbox.greenhelix.net) which provides 500 free credits — no API key required.
 
 ## Table of Contents
 
@@ -199,7 +210,7 @@ session = requests.Session()
 session.headers["Authorization"] = f"Bearer {api_key}"
 
 # Register the verifier agent
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "register_agent",
     "input": {
         "name": "carbon-verifier-v1",
@@ -238,7 +249,7 @@ for agent_id, label in [
     (broker_id, "broker"),
     (buyer_id, "buyer")
 ]:
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "create_wallet",
         "input": {
             "agent_id": agent_id,
@@ -259,7 +270,7 @@ The broker agent acts as an intermediary. It discovers available credits, matche
 
 ```python
 # Register the broker agent
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "register_agent",
     "input": {
         "name": "carbon-broker-v1",
@@ -289,7 +300,7 @@ broker = resp.json()
 broker_id = broker["agent_id"]
 
 # Register the brokerage service on the marketplace
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "register_service",
     "input": {
         "agent_id": broker_id,
@@ -326,7 +337,7 @@ The buyer agent represents the entity acquiring carbon credits -- whether for CB
 
 ```python
 # Register the buyer agent
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "register_agent",
     "input": {
         "name": "carbon-buyer-v1",
@@ -361,7 +372,7 @@ Carbon trading requires trust. A verifier agent claiming to validate MRV data mu
 
 ```python
 # Build a claim chain for the verifier agent
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "build_claim_chain",
     "input": {
         "agent_id": verifier_id,
@@ -397,7 +408,7 @@ Submit initial performance metrics so the reputation system has a baseline:
 
 ```python
 # Submit initial metrics for the verifier
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "submit_metrics",
     "input": {
         "agent_id": verifier_id,
@@ -474,7 +485,7 @@ The broker agent searches the marketplace for registered carbon credit services 
 
 ```python
 # Broker discovers carbon credit sellers
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "search_services",
     "input": {
         "query": "carbon credit",
@@ -491,7 +502,7 @@ available_services = resp.json()
 print(f"Found {len(available_services.get('results', []))} carbon credit services")
 
 # Use best_match to find the optimal seller for specific requirements
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "best_match",
     "input": {
         "query": "verified carbon removal credits with high permanence",
@@ -547,7 +558,7 @@ def verify_mrv_data(session, base_url, verifier_id, credit_data):
     }
 
     # Submit verification results as agent metrics
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "submit_metrics",
         "input": {
             "agent_id": verifier_id,
@@ -731,7 +742,7 @@ def check_double_counting(session, base_url, verifier_id, credit):
     project_id = credit["project_id"]
 
     # Build a claim chain entry documenting the check
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "build_claim_chain",
         "input": {
             "agent_id": verifier_id,
@@ -791,7 +802,7 @@ def run_verification_pipeline(session, base_url, verifier_id, credit_data):
         return {"status": "rejected", "reason": "double_counting_detected", "details": dc_result}
 
     # Step 4: Record verification in metrics
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "submit_metrics",
         "input": {
             "agent_id": verifier_id,
@@ -876,7 +887,7 @@ trade = {
 }
 
 # Create escrow
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "create_escrow",
     "input": {
         "payer_agent_id": buyer_id,
@@ -913,7 +924,7 @@ The escrow protects the funds. The SLA enforces the timeline and quality commitm
 
 ```python
 # Create SLA for the trade
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "create_sla",
     "input": {
         "provider_agent_id": broker_id,
@@ -953,7 +964,7 @@ def monitor_trade_sla(session, base_url, sla_id, check_interval_minutes=30):
     Returns the current SLA status and any violations.
     """
 
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "monitor_sla",
         "input": {
             "sla_id": sla_id
@@ -1022,7 +1033,7 @@ def complete_trade(session, base_url, escrow_id, buyer_id,
             if v.get("penalty_applicable")
         )
         # Open dispute instead of releasing
-        resp = session.post(f"{base_url}/execute", json={
+        resp = session.post(f"{base_url}/v1", json={
             "tool": "open_dispute",
             "input": {
                 "escrow_id": escrow_id,
@@ -1037,7 +1048,7 @@ def complete_trade(session, base_url, escrow_id, buyer_id,
         return {"status": "disputed", "dispute": resp.json()}
 
     # All conditions met -- release escrow
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "release_escrow",
         "input": {
             "escrow_id": escrow_id,
@@ -1061,7 +1072,7 @@ Use the cost estimation tool to understand fees before committing to a trade:
 
 ```python
 # Estimate total cost including platform fees
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "estimate_cost",
     "input": {
         "service_type": "carbon_credit_brokerage",
@@ -1078,7 +1089,7 @@ cost_estimate = resp.json()
 print(f"Estimated total cost: ${cost_estimate}")
 
 # Check for volume discounts on large trades
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "get_volume_discount",
     "input": {
         "agent_id": buyer_id,
@@ -1106,7 +1117,7 @@ def execute_carbon_trade(session, base_url, buyer_id, broker_id,
     """
 
     # 1. Create escrow
-    escrow_resp = session.post(f"{base_url}/execute", json={
+    escrow_resp = session.post(f"{base_url}/v1", json={
         "tool": "create_escrow",
         "input": {
             "payer_agent_id": buyer_id,
@@ -1120,7 +1131,7 @@ def execute_carbon_trade(session, base_url, buyer_id, broker_id,
     escrow = escrow_resp.json()
 
     # 2. Create SLA
-    sla_resp = session.post(f"{base_url}/execute", json={
+    sla_resp = session.post(f"{base_url}/v1", json={
         "tool": "create_sla",
         "input": {
             "provider_agent_id": broker_id,
@@ -1133,7 +1144,7 @@ def execute_carbon_trade(session, base_url, buyer_id, broker_id,
     sla = sla_resp.json()
 
     # 3. Notify broker via messaging
-    session.post(f"{base_url}/execute", json={
+    session.post(f"{base_url}/v1", json={
         "tool": "send_message",
         "input": {
             "from_agent_id": buyer_id,
@@ -1388,7 +1399,7 @@ def quarterly_reconciliation(session, base_url, buyer_id, quarter_imports):
     quarterly_threshold_cost = quarterly_threshold * 65.00  # EUR at current ETS price
 
     # Record the reconciliation via analytics
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "get_analytics",
         "input": {
             "agent_id": buyer_id,
@@ -1418,7 +1429,7 @@ def quarterly_reconciliation(session, base_url, buyer_id, quarter_imports):
     # If shortfall exists, trigger automated procurement
     if shortfall > 0:
         # Message the broker agent to procure certificates
-        session.post(f"{base_url}/execute", json={
+        session.post(f"{base_url}/v1", json={
             "tool": "send_message",
             "input": {
                 "from_agent_id": buyer_id,
@@ -1437,7 +1448,7 @@ def quarterly_reconciliation(session, base_url, buyer_id, quarter_imports):
         reconciliation["procurement_triggered"] = True
 
     # Submit reconciliation data as compliance metrics
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "submit_metrics",
         "input": {
             "agent_id": buyer_id,
@@ -1461,7 +1472,7 @@ Use the compliance tool to verify your overall CBAM standing:
 
 ```python
 # Check compliance status
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "check_compliance",
     "input": {
         "agent_id": buyer_id,
@@ -1548,7 +1559,7 @@ The aggregator collects demand from multiple buyer agents and consolidates it in
 
 ```python
 # Register the aggregator agent
-resp = session.post(f"{base_url}/execute", json={
+resp = session.post(f"{base_url}/v1", json={
     "tool": "register_agent",
     "input": {
         "name": "carbon-aggregator-v1",
@@ -1585,7 +1596,7 @@ def aggregate_demand(session, base_url, aggregator_id, buyer_agent_ids):
 
     for buyer_id in buyer_agent_ids:
         # Retrieve each buyer's current demand
-        resp = session.post(f"{base_url}/execute", json={
+        resp = session.post(f"{base_url}/v1", json={
             "tool": "get_analytics",
             "input": {
                 "agent_id": buyer_id,
@@ -1607,7 +1618,7 @@ def aggregate_demand(session, base_url, aggregator_id, buyer_agent_ids):
 
     # Check volume discount for aggregated demand
     total_tonnes = sum(total_demand.values())
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "get_volume_discount",
         "input": {
             "agent_id": aggregator_id,
@@ -1643,7 +1654,7 @@ def optimize_purchase_timing(session, base_url, aggregator_id, demand):
     """
 
     # Get current market analytics
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "get_analytics",
         "input": {
             "agent_id": aggregator_id,
@@ -1719,7 +1730,7 @@ def find_arbitrage_opportunities(session, base_url, broker_id):
     for credit_type in credit_types:
         prices = {}
         for registry in registries:
-            resp = session.post(f"{base_url}/execute", json={
+            resp = session.post(f"{base_url}/v1", json={
                 "tool": "search_services",
                 "input": {
                     "query": f"{credit_type} carbon credits",
@@ -1873,7 +1884,7 @@ def open_carbon_dispute(session, base_url, buyer_id, escrow_id,
     evidence: dict containing supporting data for the claim
     """
 
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "open_dispute",
         "input": {
             "escrow_id": escrow_id,
@@ -1893,7 +1904,7 @@ def open_carbon_dispute(session, base_url, buyer_id, escrow_id,
     dispute_id = dispute.get("dispute_id")
 
     # Record the dispute in the buyer's transaction history
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "get_transaction_history",
         "input": {
             "agent_id": buyer_id,
@@ -1963,7 +1974,7 @@ def handle_greenwashing_dispute(session, base_url, buyer_id, broker_id,
     )
 
     # Step 2: Request independent verification
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "send_message",
         "input": {
             "from_agent_id": buyer_id,
@@ -1989,7 +2000,7 @@ def handle_greenwashing_dispute(session, base_url, buyer_id, broker_id,
     # Step 4: Resolve based on findings
     if discrepancy > 2.0:
         # Significant greenwashing — resolve in buyer's favor
-        resp = session.post(f"{base_url}/execute", json={
+        resp = session.post(f"{base_url}/v1", json={
             "tool": "resolve_dispute",
             "input": {
                 "dispute_id": dispute["dispute_id"],
@@ -2007,7 +2018,7 @@ def handle_greenwashing_dispute(session, base_url, buyer_id, broker_id,
     elif discrepancy > 0.5:
         # Minor discrepancy — partial adjustment
         adjustment_pct = (discrepancy / claimed_score) * 100
-        resp = session.post(f"{base_url}/execute", json={
+        resp = session.post(f"{base_url}/v1", json={
             "tool": "resolve_dispute",
             "input": {
                 "dispute_id": dispute["dispute_id"],
@@ -2024,7 +2035,7 @@ def handle_greenwashing_dispute(session, base_url, buyer_id, broker_id,
         })
     else:
         # No material discrepancy
-        resp = session.post(f"{base_url}/execute", json={
+        resp = session.post(f"{base_url}/v1", json={
             "tool": "resolve_dispute",
             "input": {
                 "dispute_id": dispute["dispute_id"],
@@ -2053,7 +2064,7 @@ def generate_audit_report(session, base_url, buyer_id, reporting_period):
     """
 
     # 1. Transaction history — all financial movements
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "get_transaction_history",
         "input": {
             "agent_id": buyer_id,
@@ -2068,7 +2079,7 @@ def generate_audit_report(session, base_url, buyer_id, reporting_period):
     transactions = resp.json()
 
     # 2. Agent reputation — verification of counterparty quality
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "get_agent_reputation",
         "input": {
             "agent_id": buyer_id
@@ -2077,7 +2088,7 @@ def generate_audit_report(session, base_url, buyer_id, reporting_period):
     reputation = resp.json()
 
     # 3. Compliance metrics — CBAM reconciliation data
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "get_analytics",
         "input": {
             "agent_id": buyer_id,
@@ -2244,7 +2255,7 @@ session.headers["Content-Type"] = "application/json"
 
 def execute(tool, input_data):
     """Helper to execute a GreenHelix tool."""
-    resp = session.post(f"{BASE_URL}/execute", json={
+    resp = session.post(f"{BASE_URL}/v1", json={
         "tool": tool,
         "input": input_data
     })
@@ -2442,14 +2453,14 @@ def production_health_check(session, base_url, agents):
 
     # Verify all agents are responsive
     for role, agent_id in agents.items():
-        resp = session.post(f"{base_url}/execute", json={
+        resp = session.post(f"{base_url}/v1", json={
             "tool": "get_agent_reputation",
             "input": {"agent_id": agent_id}
         })
         checks[f"{role}_agent"] = resp.status_code == 200
 
     # Verify escrow system
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "get_transaction_history",
         "input": {
             "agent_id": agents["buyer"],
@@ -2459,7 +2470,7 @@ def production_health_check(session, base_url, agents):
     checks["transaction_history"] = resp.status_code == 200
 
     # Verify marketplace discovery
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": "search_services",
         "input": {
             "query": "carbon",

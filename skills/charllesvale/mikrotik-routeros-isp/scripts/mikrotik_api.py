@@ -116,22 +116,30 @@ class RouterOSApi:
 class RouterOSError(Exception): pass
 
 def get_config():
-    """Get device config from env vars or TOOLS.md"""
+    """Get device config from env vars or TOOLS.md (MikroTik section only)"""
     host = os.getenv('MIKROTIK_HOST')
     user = os.getenv('MIKROTIK_USER', 'admin')
     pwd  = os.getenv('MIKROTIK_PASS', '')
     if host:
         return {'host': host, 'username': user, 'password': pwd}
-    # Try TOOLS.md
+    # Try TOOLS.md — scoped to MikroTik section only to avoid reading unrelated credentials
     tools = os.path.expanduser('~/.openclaw/workspace/TOOLS.md')
     if os.path.exists(tools):
         import re
         content = open(tools).read()
-        m = re.search(r'[-*]\s+\*\*(\w+)\*\*:\s*([^,\n]+),\s*([^,\n]+),\s*(.+)', content)
+        section = re.search(r'###\s+MikroTik[^\n]*\n(.*?)(?=\n###|\Z)', content, re.DOTALL | re.IGNORECASE)
+        if not section:
+            return None
+        m = re.search(r'[-*]\s+\*\*(\w+)\*\*:\s*([^,\n]+),\s*([^,\n]+),\s*(.+)', section.group(1))
         if m:
-            pwd_raw = m.group(4).strip()
-            if pwd_raw.lower() in ['empty password','no password','none','null','']: pwd_raw = ''
-            return {'host': m.group(2).strip(), 'username': m.group(3).strip(), 'password': pwd_raw}
+            fourth = m.group(4).strip()
+            if fourth.startswith('key:'):
+                return {'host': m.group(2).strip(), 'username': m.group(3).strip(), 'password': ''}
+            if fourth.lower() in ['empty password', 'no password', 'none', 'null', '']:
+                return {'host': m.group(2).strip(), 'username': m.group(3).strip(), 'password': ''}
+            # Password found in TOOLS.md — warn and use MIKROTIK_PASS env var instead
+            print("WARNING: Plaintext password in TOOLS.md — set MIKROTIK_PASS env var and use key: in TOOLS.md instead.", file=sys.stderr)
+            return {'host': m.group(2).strip(), 'username': m.group(3).strip(), 'password': fourth}
     return None
 
 if __name__ == '__main__':

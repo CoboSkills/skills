@@ -1,5 +1,5 @@
 ---
-name: mikrotik-routeros-isp
+name: mikrotik-routeros-isp-br
 description: >
   Expert-level management of MikroTik RouterOS devices and VSOL GPON OLTs via SSH or
   RouterOS API (port 8728/8729) and REST API (port 80/443).
@@ -28,7 +28,7 @@ tags:
 requirements:
   binaries:
     - ssh
-    - sshpass  # optional — only needed for password auth fallback
+    - sshpass
   env:
     - MIKROTIK_HOST: "IP or hostname of the MikroTik device"
     - MIKROTIK_USER: "RouterOS username (default: admin)"
@@ -73,10 +73,13 @@ queues, OLT/ONT provisioning, failover scripts, and WhatsApp/Telegram notificati
 Add to `~/.openclaw/workspace/TOOLS.md`:
 ```markdown
 ### MikroTik Devices
-- **router1**: 192.168.88.1, admin, senha
-- **router2**: 192.168.88.2, admin, senha
-- **olt**: 192.168.88.3, admin, admin
+- **router1**: 192.168.88.1, admin, key:~/.ssh/mikrotik_key
+- **router2**: 192.168.88.2, admin, key:~/.ssh/mikrotik_key
+- **olt**: 192.168.88.3, admin, key:~/.ssh/olt_key
 ```
+> **Security**: never store passwords in TOOLS.md. Use `key:<path>` for SSH key auth,
+> or set `MIKROTIK_PASS` as an environment variable. Plaintext passwords in TOOLS.md
+> expose credentials to any skill that reads that file.
 
 ### Via environment variables (single device)
 ```bash
@@ -251,6 +254,8 @@ See `references/failover-notifications.md` for complete scripts and docker-compo
 > **Alternativa profissional**: `netwatch-notify` do repositório **eworm-de/routeros-scripts**
 > oferece threshold de contagem, dependência pai/filho, múltiplos canais e auto-atualização.
 > Ver `references/eworm-scripts.md`.
+> **Atenção**: scripts de `rsc.eworm.de` são carregados diretamente nos dispositivos — revise
+> o conteúdo antes de aplicar em produção. Prefira baixar, auditar e hospedar internamente.
 
 ---
 

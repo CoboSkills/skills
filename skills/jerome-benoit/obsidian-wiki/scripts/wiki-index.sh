@@ -5,14 +5,8 @@ set -eo pipefail
 export LC_ALL=C
 . "$(dirname "$0")/lib.sh"
 
-if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
-  echo "Usage: bash wiki-index.sh <vault-path>"
-  echo "Regenerate wiki/index.md from frontmatter of all wiki pages."
-  exit 0
-fi
-
 for arg in "$@"; do
-  case "$arg" in --help|-h) ;; --*) echo "Error: unknown option '$arg'" >&2; exit 2 ;; esac
+  case "$arg" in --help|-h) echo "Usage: bash wiki-index.sh <vault-path>"; echo "Regenerate wiki/index.md from frontmatter of all wiki pages."; exit 0 ;; --*) echo "Error: unknown option '$arg'" >&2; exit 2 ;; esac
 done
 
 VAULT="${1:?Usage: wiki-index.sh <vault-path>}"
@@ -37,8 +31,9 @@ get_summary() {
   _s=$(awk '
     /^---\r?$/ && !d { f=!f; if(!f) d=1; next }
     f || /^#/ || /^$/ { next }
-    /^%%/ { next }
-    { gsub(/%%[^%]*%%/, ""); gsub(/\r$/, ""); gsub(/\[\[[^|\]]*\|/, ""); gsub(/\[\[/, ""); gsub(/\]\]/, ""); if(length>120) $0=substr($0,1,117)"..."; print; exit }
+    /^%%/ { c=!c; next }
+    c { next }
+    { gsub(/%%([^%]|%[^%])*%%/, ""); gsub(/\r$/, ""); gsub(/\[\[[^|\]]*\\\|/, ""); gsub(/\[\[[^|\]]*\|/, ""); gsub(/\[\[/, ""); gsub(/\]\]/, ""); sub(/[[:space:]]+$/, ""); if(length>120) $0=substr($0,1,117)"..."; print; exit }
   ' "$1" 2>/dev/null) || true
   if [ -z "$_s" ]; then
     echo "Warning: no summary extracted from ${1#"$VAULT"/}" >&2
@@ -59,7 +54,7 @@ build_section() {
     _title=$(get_title "$_file")
     _filename=$(basename "$_file" .md)
     _summary=$(get_summary "$_file")
-    printf '%s\n' "- [[${_filename}|${_title}]] — ${_summary}" | sed 's/[[:space:]]*$//'
+    printf '%s\n' "- [[${_filename}|${_title}]] — ${_summary}"
   done < <(find "$_dir" -maxdepth 1 -type f -name '*.md' -print 2>/dev/null | sort)
   [ "$_found" -eq 1 ] || echo "_No pages yet._"
   echo ""

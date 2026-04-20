@@ -19,7 +19,7 @@ The agent is the compiler; Obsidian is the IDE; the wiki is the codebase.
 
 ## Prerequisites
 
-- `bash`, `python3` — required by all scripts
+- `bash` — required by all scripts; `python3` — required by `wiki-lint.sh`, `wiki-manifest.sh`, and all Python scripts
 - `pdftotext` — optional, for `extract-book-digests.sh` (install via `poppler`)
 - `markdownlint-cli2` — optional, for markdown structure checks (auto-installed via `npx`)
 
@@ -62,6 +62,7 @@ grep/sed/awk and are tested on macOS and Linux.
 ├── raw/                    # Immutable source documents
 │   ├── articles/           # Web clips, blog posts
 │   ├── papers/             # arXiv, IEEE, ACM papers
+│   ├── specifications/     # Standards, RFCs, W3C/ECMA/ISO specs, protocol docs
 │   ├── projects/           # Project notes, meeting transcripts
 │   ├── books/              # Book chapters, excerpts
 │   └── assets/             # Images, diagrams (downloaded locally)
@@ -136,8 +137,19 @@ Initialize the vault structure. Create dirs, then:
 - `.md` / `.txt` — read directly with `read` tool
 - `.pdf` — use `pdf` tool to extract content (copy to workspace first if the file is outside it, then clean up)
 - `.epub` / `.html` — convert to text or extract content before ingesting
-- URL — use `web_fetch` to save as .md in `raw/articles/`, then ingest the .md
+- URL — use `web_fetch` to save as .md in the appropriate `raw/` subfolder (`articles/` for blog posts, `specifications/` for specs, etc.), then ingest the .md
 - Images in `raw/assets/` — referenced by pages, not ingested independently (the manifest tracks only ingestable document sources)
+
+**Choosing the right `raw/` subfolder:**
+
+| Subfolder | What goes here | Examples |
+|---|---|---|
+| `articles/` | Web clips, blog posts, news | Blog post, HN discussion, newsletter |
+| `papers/` | Academic & research papers | arXiv, IEEE, ACM, NeurIPS papers |
+| `specifications/` | Standards & technical specs | RFCs, W3C specs, ECMA standards, ISO/IEEE standards, OpenAPI specs, protocol docs, language specifications |
+| `projects/` | Project notes, meeting transcripts | Sprint retro, design doc, ADR |
+| `books/` | Book chapters, excerpts | Textbook PDF, epub chapter |
+| `assets/` | Images, diagrams (not ingested) | Screenshots, architecture diagrams |
 
 ### 3. Query
 
@@ -148,12 +160,12 @@ Initialize the vault structure. Create dirs, then:
 ### 4. Lint
 
 Run `scripts/wiki-lint.sh "$VAULT"` for automated checks (frontmatter, broken
-wikilinks, orphans, stale pages, tag drift, wikilink format, markdown structure).
-Use `scripts/wiki-lint.sh "$VAULT" --fix` to auto-correct fixable issues
-(requires python3; markdownlint fixes additionally require npx).
+wikilinks, orphans, stale pages, tag drift, wikilink format, markdown structure,
+unlinked mentions). Requires python3; markdown structure checks additionally
+require npx. Use `--fix` to auto-correct fixable issues.
 Then manually review for:
 
-- Contradictions between pages (requires reading, not scriptable)
+- Contradictions between pages
 - Missing pages: concepts mentioned in text but lacking their own page
 - Weak cross-references that should be strengthened
 
@@ -172,6 +184,14 @@ Periodic (heartbeat or manual):
 Use the `obsidian` skill (if available) for CLI operations (search, open, move/rename with
 wikilink refactoring). For bulk reads/writes, use `read`/`write` tools directly.
 
+### 7. Search
+
+```bash
+bash scripts/wiki-search.sh "$VAULT" "query terms"
+```
+
+Uses `qmd` for semantic search when available; falls back to `grep`.
+
 ## Scripts
 
 Bundled shell scripts require Bash (BSD-compatible grep/sed/awk). `wiki-lint.sh` and `wiki-manifest.sh` require `python3`. `extract-book-digests.sh` additionally requires `pdftotext`. `wiki-manifest.sh` uses `shasum` or `sha256sum` when available and falls back to Python `hashlib` otherwise. `wiki-lint.sh` optionally uses `markdownlint-cli2` (via npx) for markdown structure checks.
@@ -184,8 +204,10 @@ Regenerate `wiki/index.md` from frontmatter of all wiki pages.
 ### `scripts/wiki-lint.sh "$VAULT" [--fix]`
 
 All-in-one wiki linter. Runs all checks by default. `--fix` auto-corrects fixable
-issues (wikilink format, markdown structure). Internally calls `wiki-lint-links.py`
-for wikilink resolution and `markdownlint-cli2` (via npx) for markdown structure.
+issues (wikilink format, markdown structure, and unlinked mentions via crosslink).
+Internally calls `wiki-lint-links.py` for wikilink resolution,
+`markdownlint-cli2` (via npx) for markdown structure, and `wiki-crosslink.py`
+for unlinked mention detection.
 
 ### `scripts/wiki-manifest.sh "$VAULT" <command>`
 
@@ -202,6 +224,41 @@ wiki-manifest.sh "$VAULT" mark <file>   # mark a file as ingested
 Extract first 12 pages of each PDF as text via `pdftotext`. Used for cross-validating
 wiki source pages against actual book content. Writes `.txt` outputs to `<output-dir>`;
 prefer a directory under `$VAULT/.wiki-meta/` unless the user explicitly asks for another location.
+
+### `scripts/wiki_lib.py`
+
+Shared Python library. **Not a standalone script.** Used internally by
+`wiki-lint-links.py`, `wiki-crosslink.py`, and `wiki-graph.py`.
+Exports: `WikiMap`, `read_md`, `parse_link_target`, and shared regexes.
+
+### `scripts/wiki-crosslink.py "$VAULT" [--fix]`
+
+Find page titles and aliases mentioned in wiki text that are not already wrapped
+in `[[wikilinks]]`. Reports `UNLINKED:<file>\t<mention>\t<target>` lines and a
+`STATS:scanned=N unlinked=N fixed=N errors=N` summary.
+`--fix` auto-adds the wikilinks in-place.
+
+### `scripts/wiki-graph.py "$VAULT" [--format json|graphml] [--stats]`
+
+Export the wiki's wikilink graph. Default output: `.wiki-meta/graph.json`.
+`--format graphml` writes `.wiki-meta/graph.graphml` instead.
+`--stats` prints hub, articulation point, and orphan analysis to stdout.
+
+### `scripts/wiki-search.sh "$VAULT" "<query>"`
+
+Search the wiki. Uses `qmd search` if `qmd` is in PATH; otherwise falls back to
+`grep` + title/summary display.
+
+## Multi-Agent Setup
+
+The vault root supports agent instructions files for coding agents:
+
+- Copy `references/agents-template.md` as `AGENTS.md` at vault root.
+- **For Claude Code:** symlink `ln -s AGENTS.md CLAUDE.md` so both agents read the same file.
+- **For other agents** (Cursor, Windsurf, Gemini): symlink or copy to their expected filename.
+
+Customize the copied file for your vault's domain. The `references/` copy is a
+read-only template — it does not stay in sync with the live instance.
 
 ## Tips
 

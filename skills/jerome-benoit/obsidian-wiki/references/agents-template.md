@@ -27,7 +27,10 @@ The agent uses scripts from the **obsidian-wiki skill directory** (not the vault
 Refer to the skill's SKILL.md for exact commands and `$VAULT` argument usage.
 
 - **Ingest:** check pending sources → read source → create/update pages → mark ingested → regenerate index
-- **Lint:** `wiki-lint.sh "$VAULT"` — run all structural health checks (frontmatter, wikilinks, orphans, stale, tags, markdown structure)
-- **Fix:** `wiki-lint.sh "$VAULT" --fix` — auto-correct fixable issues (wikilink format, markdown structure)
+- **Lint:** `wiki-lint.sh "$VAULT"` — run all structural health checks (frontmatter, wikilinks, orphans, stale, tags, wikilink format, markdown structure, unlinked mentions)
+- **Fix:** `wiki-lint.sh "$VAULT" --fix` — auto-correct fixable issues (wikilink format, markdown structure, unlinked mentions)
+- **Cross-link:** `wiki-crosslink.py "$VAULT"` — find unlinked mentions; `--fix` to auto-add wikilinks
+- **Graph:** `wiki-graph.py "$VAULT" --stats` — hub/orphan/articulation point analysis; default exports `.wiki-meta/graph.json`
+- **Search:** `wiki-search.sh "$VAULT" "query"` — semantic search via qmd if available, grep fallback
 - **Log:** append to `wiki/log.md` after each ingest session
 - **Reports:** populate `wiki/reports/` with dashboards during maintenance

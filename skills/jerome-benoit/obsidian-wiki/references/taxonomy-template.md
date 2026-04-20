@@ -26,6 +26,7 @@ New tags require discussion and addition to this file.
 - `benchmark` — Benchmark or evaluation
 - `method` — New method or algorithm
 - `dataset` — Dataset description
+- `specification` — Standard, RFC, or technical specification
 
 ## Entity Types
 

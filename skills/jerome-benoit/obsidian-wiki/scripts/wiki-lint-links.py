@@ -22,8 +22,15 @@ Structured output (--lint mode):
   ERROR:<file>\t<message>
   STATS:broken=<n> orphans=<n> format=<n> ambig=<n> dup=<n> errors=<n>
 """
-import os, sys, re, glob, tempfile, uuid
+import os, sys, re, glob, tempfile
 from collections import defaultdict
+
+# Ensure wiki_lib is importable from same directory
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from wiki_lib import (
+    WikiMap, read_md, parse_link_target,
+    wikilink_re, fence_re, fence_unclosed_re, inline_code_re, comment_re,
+)
 
 # ── Argument parsing ──────────────────────────────────────
 
@@ -56,164 +63,25 @@ if not os.path.isdir(wiki):
     print(f"Error: {wiki} not found", file=sys.stderr)
     sys.exit(2)
 
+# ── Phase 1: Build maps (via WikiMap) ─────────────────────
 
-def read_md(path):
-    """Read a markdown file, normalizing CRLF. Returns content or None on error."""
-    try:
-        with open(path, encoding="utf-8") as f:
-            return f.read().replace("\r\n", "\n")
-    except (OSError, UnicodeDecodeError):
-        return None
+wm = WikiMap(vault)
 
-# ── Phase 1: Build title/alias/filename maps ─────────────
-# Warnings are collected and output depends on mode.
-
-_warnings = []
-ambiguous_titles = set()
-title_to_file = {}
-file_to_title = {}
-
-for subdir in ["sources", "entities", "syntheses", "concepts", "reports"]:
-    for md in sorted(glob.glob(os.path.join(wiki, subdir, "*.md"))):
-        if not os.path.isfile(md):
-            continue
-        bn = os.path.splitext(os.path.basename(md))[0]
-        if bn in ("index", "log"):
-            continue
-        content = read_md(md)
-        if content is None:
-            _warnings.append(("SKIP", os.path.relpath(md, vault), "read error"))
-            continue
-        fm_match = re.match(r"^---\n(.*?)\n---", content, re.DOTALL)
-        fm = fm_match.group(1) if fm_match else ""
-        m = re.search(r'^title:\s*["\']?(.+?)["\']?\s*$', fm, re.MULTILINE)
-        if m:
-            title = m.group(1)
-            if title in title_to_file and title_to_file[title] != bn:
-                _warnings.append(("AMBIG_TITLE", title, title_to_file[title], bn))
-                ambiguous_titles.add(title)
-            title_to_file[title] = bn
-            file_to_title[bn] = title
-        m = re.search(r"^aliases:\s*\[(.+?)\]\s*$", fm, re.MULTILINE)
-        if m:
-            for alias in m.group(1).split(","):
-                alias = alias.strip().strip("'\"")
-                if alias:
-                    if alias in title_to_file and title_to_file[alias] != bn:
-                        _warnings.append(("AMBIG_ALIAS", alias, title_to_file[alias], bn))
-                        ambiguous_titles.add(alias)
-                    title_to_file[alias] = bn
-
-# Case-insensitive shadow map
-title_to_file_lower = {}
-for k, v in title_to_file.items():
-    kl = k.lower()
-    if kl in title_to_file_lower and title_to_file_lower[kl] != v:
-        _warnings.append(("AMBIG_CI", k, title_to_file_lower[kl], v))
-        ambiguous_titles.add(k)
-        for orig_k, orig_v in title_to_file.items():
-            if orig_k.lower() == kl and orig_v == title_to_file_lower[kl]:
-                ambiguous_titles.add(orig_k)
-                break
-    title_to_file_lower[kl] = v
-ambiguous_titles_lower = {t.lower() for t in ambiguous_titles}
-
-# All known filenames (detect duplicate basenames across subdirs)
-known_files = set()
-_basename_paths = {}
-_ambiguous_basenames = set()  # Only filenames with actual duplicate paths
-for md in glob.glob(os.path.join(wiki, "**", "*.md"), recursive=True):
-    if os.path.isfile(md):
-        bn = os.path.splitext(os.path.basename(md))[0]
-        relpath = os.path.relpath(md, vault)
-        if bn in _basename_paths:
-            _warnings.append(("DUPLICATE", bn, _basename_paths[bn], relpath))
-            ambiguous_titles.add(bn)
-            _ambiguous_basenames.add(bn)
-        else:
-            _basename_paths[bn] = relpath
-        known_files.add(bn)
-
-lower_to_canonical = {}
-for f in sorted(known_files):
-    fl = f.lower()
-    if fl in lower_to_canonical and lower_to_canonical[fl] != f:
-        _warnings.append(("AMBIG_FILE", fl, lower_to_canonical[fl], f))
-        ambiguous_titles.add(fl)
-    lower_to_canonical[fl] = f
-
-# ── Phase 2: Resolution — single source of truth ─────────
+# Expose maps used by rewrite_link / process_file below
+title_to_file    = wm.title_to_file
+file_to_title    = wm.file_to_title
+known_files      = wm.known_files
+_warnings        = wm.warnings
+ambiguous_titles = wm._ambiguous_titles
+_ambiguous_basenames = wm._ambiguous_basenames
 
 def resolve_target(target):
-    """Resolve a wikilink target to a known filename.
-
-    Returns (status, canonical_filename) where status is one of:
-      "exact"     — target is a known filename
-      "ci-file"   — case-insensitive filename match
-      "title"     — matched via title or alias
-      "ambiguous" — multiple candidates
-      "broken"    — no match found
-    """
-    # 1. Exact filename match — only ambiguous if the FILENAME itself is duplicated
-    if target in known_files:
-        if target in _ambiguous_basenames:
-            return ("ambiguous", target)
-        return ("exact", target)
-
-    # 2. Case-insensitive filename match
-    if target.lower() in lower_to_canonical:
-        canonical = lower_to_canonical[target.lower()]
-        if canonical in ambiguous_titles or canonical.lower() in ambiguous_titles_lower:
-            return ("ambiguous", canonical)
-        return ("ci-file", canonical)
-
-    # 3. Title/alias match (case-sensitive, then case-insensitive)
-    fn = title_to_file.get(target) or title_to_file_lower.get(target.lower())
-    if fn:
-        if (target in ambiguous_titles or target.lower() in ambiguous_titles_lower
-                or fn in ambiguous_titles or fn.lower() in ambiguous_titles_lower):
-            return ("ambiguous", fn)
-        return ("title", fn)
-
-    # 4. No match
-    return ("broken", None)
-
-# ── Phase 3: Link extraction and rewriting ────────────────
-
-wikilink_re = re.compile(r"\[\[([^\]]+)\]\]")
-fence_re = re.compile(r"^(?:```|~~~).*?^(?:```|~~~)", re.MULTILINE | re.DOTALL)
-inline_code_re = re.compile(r"(`{1,3})(?!`)(.+?)\1")
-comment_re = re.compile(r"%%.*?%%", re.DOTALL)
-
-
-def parse_link_target(inner):
-    """Extract target from wikilink inner text (strips display text and section)."""
-    if "\\|" in inner:
-        target_full = inner.split("\\|", 1)[0]
-    elif "|" in inner:
-        target_full = inner.split("|", 1)[0]
-    else:
-        target_full = inner
-    return target_full.split("#", 1)[0] if "#" in target_full else target_full
-
+    return wm.resolve_target(target)
 
 def extract_links(filepath):
-    """Extract unique wikilink targets from a file, skipping code/comments."""
-    content = read_md(filepath)
-    if content is None:
-        return []
-    content = fence_re.sub("", content)
-    content = inline_code_re.sub("", content)
-    content = comment_re.sub("", content)
-    seen = set()
-    result = []
-    for m in wikilink_re.finditer(content):
-        t = parse_link_target(m.group(1))
-        if t and t not in seen:
-            seen.add(t)
-            result.append(t)
-    return result
+    return wm.extract_links(filepath)
 
+# ── Phase 2: Link extraction and rewriting ────────────────
 
 counters = {"rewrites": 0, "ambiguities": 0, "errors": 0}
 
@@ -265,19 +133,23 @@ def process_file(md):
         raise OSError(f"cannot read {md}")
 
     protected = {}
+    _prot_counter = [0]
 
     def protect(m):
-        key = f"__PROTECTED_{uuid.uuid4().hex}__"
+        key = f"\x00P{_prot_counter[0]:06d}\x00"
+        _prot_counter[0] += 1
         protected[key] = m.group(0)
         return key
 
     safe = fence_re.sub(protect, original)
+    safe = fence_unclosed_re.sub(protect, safe)  # catch unclosed fences
     safe = inline_code_re.sub(protect, safe)
     safe = comment_re.sub(protect, safe)
 
     new_lines = []
     for line in safe.split("\n"):
-        in_table = line.lstrip().startswith("|")
+        stripped = line.lstrip()
+        in_table = stripped.startswith("|")
 
         def _rewrite(match, _t=in_table):
             return rewrite_link(match, _t)
@@ -317,6 +189,7 @@ if __name__ == "__main__":
 
         dup_count = 0
         map_ambig_count = 0
+        build_errors = 0
         for w in _warnings:
             if w[0] == "DUPLICATE":
                 print(f"DUPLICATE:{w[1]}\t{w[2]}\t{w[3]}")
@@ -326,6 +199,7 @@ if __name__ == "__main__":
                 map_ambig_count += 1
             elif w[0] == "SKIP":
                 print(f"ERROR:{w[1]}\t{w[2]}")
+                build_errors += 1
 
         # Pass 1: broken links + orphan detection
         # Design: links FROM index.md and log.md are excluded from inbound tracking
@@ -336,22 +210,21 @@ if __name__ == "__main__":
         for md in all_mds:
             bn = os.path.splitext(os.path.basename(md))[0]
             relpath = os.path.relpath(md, vault)
-            is_special = bn in ("index", "log")
             for target in extract_links(md):
                 status, resolved = resolve_target(target)
                 if status == "broken":
                     broken.append((relpath, target))
                 elif resolved:
                     # Track inbound even for ambiguous (lenient orphan detection)
-                    if not is_special and resolved != bn:
+                    if resolved != bn:
                         inbound[resolved].add(bn)
 
         orphans = sorted(
-            _basename_paths[bn]
+            wm._basename_paths[bn]
             for bn in known_files
             if bn not in ("index", "log")
             and not inbound.get(bn)
-            and bn in _basename_paths
+            and bn in wm._basename_paths
         )
 
         # Pass 2: format issues
@@ -374,15 +247,16 @@ if __name__ == "__main__":
             print(f"{tag}:{relpath}")
 
         total_ambig = counters['ambiguities'] + map_ambig_count
+        total_errors = counters['errors'] + build_errors
         print(
             f"STATS:broken={len(broken)} orphans={len(orphans)} "
             f"format={len(format_files)} ambig={total_ambig} "
-            f"dup={dup_count} errors={counters['errors']}"
+            f"dup={dup_count} errors={total_errors}"
         )
 
-        if counters["errors"] > 0:
+        if total_errors > 0:
             sys.exit(2)
-        if broken or orphans or format_files or total_ambig:
+        if broken or orphans or format_files or total_ambig or dup_count:
             sys.exit(1)
 
     else:
@@ -425,5 +299,5 @@ if __name__ == "__main__":
             print("(check mode \u2014 no files changed)")
         if counters["errors"] > 0:
             sys.exit(2)
-        if counters["ambiguities"] > 0:
+        if counters["rewrites"] > 0 or counters["ambiguities"] > 0:
             sys.exit(1)

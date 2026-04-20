@@ -4,6 +4,8 @@
 # Usage:
 #   bash wiki-lint.sh <vault-path>          # check all (like eslint)
 #   bash wiki-lint.sh <vault-path> --fix    # check all + auto-fix what's fixable
+#                                            # (wikilink format, markdown structure,
+#                                            #  and unlinked mentions via crosslink)
 #   bash wiki-lint.sh <vault-path> --help
 #
 # Checks:
@@ -14,6 +16,7 @@
 #   5. Tag drift
 #   6. Wikilink format         [fixable via wiki-lint-links.py]
 #   7. Markdown structure      [fixable via markdownlint-cli2]
+#   8. Unlinked mentions      [advisory, via wiki-crosslink.py]
 #
 # No set -e: grep returns 1 on no-match which is normal control flow here.
 set -o pipefail
@@ -33,7 +36,7 @@ VAULT=""
 for arg in "$@"; do
   case "$arg" in
     --fix) FIX_MODE=true ;;
-    --help|-h) ;; # early-exit above; no-op here for unknown-option guard
+    --help|-h) echo "Usage: bash wiki-lint.sh <vault-path> [--fix]"; exit 0 ;;
     --*) echo "Error: unknown option '$arg'. Use --help for usage." >&2; exit 2 ;;
     *) [ -z "$VAULT" ] && VAULT="$arg" ;;
   esac
@@ -74,7 +77,7 @@ CONTENT_PAGES=$(mktemp)
 find "$WIKI" -type f -name '*.md' -print 2>/dev/null | grep -xFv "$WIKI/index.md" | grep -xFv "$WIKI/log.md" | sort > "$CONTENT_PAGES"
 find_content_pages() { cat "$CONTENT_PAGES"; }
 
-trap 'rm -f "$CONTENT_PAGES" "$_lint_out" "$_lint_err" "$_mdl_tmp" "$STALE_LOG" "$DRIFT_LOG" "$CANONICAL_FILE" "$MDL_LOG" 2>/dev/null' EXIT
+trap 'rm -f "$CONTENT_PAGES" "$_lint_out" "$_lint_err" "$_mdl_tmp" "$STALE_LOG" "$DRIFT_LOG" "$CANONICAL_FILE" "$MDL_LOG" "${_xl_out:-}" "${_xl_err:-}" 2>/dev/null' EXIT
 
 # ── 1. Missing / Incomplete Frontmatter ───────────────────
 echo "## Frontmatter"
@@ -92,12 +95,14 @@ while IFS= read -r file; do
         fm_count=$((fm_count + 1))
       fi
     done
-    # Validate type value
+    # Validate type value (only if type field exists — absence already reported above)
     _type=$(get_field "$file" type)
-    case "$_type" in
-      entity|concept|synthesis|source|report|index|log) ;;
-      *) echo "  ⚠️  ${file#"$VAULT"/} — invalid type: ${_type:-(empty)}"; fm_count=$((fm_count + 1)) ;;
-    esac
+    if [ -n "$_type" ]; then
+      case "$_type" in
+        entity|concept|synthesis|source|report|index|log) ;;
+        *) echo "  ⚠️  ${file#"$VAULT"/} — invalid type: $_type"; fm_count=$((fm_count + 1)) ;;
+      esac
+    fi
   fi
 done < <(find_content_pages)
 [ "$fm_count" -eq 0 ] && echo "  ✅ All pages have complete frontmatter"
@@ -181,6 +186,7 @@ if $HAS_PYTHON3 && [ -f "$LINK_SCRIPT" ]; then
       STATS:*)
         _ambig_count=$(echo "$line" | sed 's/.*ambig=\([0-9]*\).*/\1/')
         _ambig_count=${_ambig_count:-0}
+        case "$_ambig_count" in *[!0-9]*) _ambig_count=0 ;; esac
         ;;
       MAP:*) ;;
     esac
@@ -273,17 +279,17 @@ taxonomy="$VAULT/_meta/taxonomy.md"
 if [ -f "$taxonomy" ]; then
   CANONICAL_FILE=$(mktemp)
   grep -E '^- `[^`]+`' "$taxonomy" 2>/dev/null | sed 's/^- `//;s/`.*//' > "$CANONICAL_FILE"
-  find_content_pages | while IFS= read -r file; do
+  while IFS= read -r file; do
     tags_line=$(get_frontmatter "$file" | sed -n '/^tags:/{s/^tags: *\[//;s/\].*//; p; q;}')
     [ -z "$tags_line" ] && continue
-    echo "$tags_line" | tr ',' '\n' | tr -d ' ' | while IFS= read -r tag; do
+    echo "$tags_line" | tr ',' '\n' | sed 's/^ *//;s/ *$//' | while IFS= read -r tag; do
       [ -z "$tag" ] && continue
       if ! grep -qx "$tag" "$CANONICAL_FILE" 2>/dev/null; then
         echo "  🏷️  ${file#"$VAULT"/} — unknown tag: $tag"
         echo "x" >> "$DRIFT_LOG"
       fi
     done
-  done
+  done < <(find_content_pages)
   drift_count=$(wc -l < "$DRIFT_LOG" 2>/dev/null | tr -d ' ')
   rm -f "$CANONICAL_FILE"
   CANONICAL_FILE=""
@@ -313,11 +319,11 @@ elif [ -d "${NVM_DIR:-$HOME/.nvm}/versions/node" ]; then
 elif [ -x "$HOME/.nix-profile/bin/npx" ]; then
   NPX_BIN="$HOME/.nix-profile/bin/npx"
 fi
-if [ -n "$NPX_BIN" ] && [ -n "$MDL_CONFIG" ]; then
+if [ -n "$NPX_BIN" ] && [ -f "$MDL_CONFIG" ]; then
   _mdl_opts=()
   $FIX_MODE && _mdl_opts+=(--fix)
   _mdl_tmp=$(mktemp)
-  find "$WIKI" -type f -name '*.md' -print0 2>/dev/null | xargs -0 "$NPX_BIN" --yes markdownlint-cli2 "${_mdl_opts[@]}" --config "$MDL_CONFIG" > "$_mdl_tmp" 2>&1
+  find "$WIKI" -type f -name '*.md' ! -path "$WIKI/index.md" ! -path "$WIKI/log.md" -print0 2>/dev/null | xargs -0 "$NPX_BIN" --yes markdownlint-cli2 "${_mdl_opts[@]}" --config "$MDL_CONFIG" > "$_mdl_tmp" 2>&1
   _mdl_rc=$?
   if [ "$_mdl_rc" -ne 0 ] && [ "$_mdl_rc" -ne 1 ]; then
     echo "  ❌ markdownlint-cli2 failed (exit $_mdl_rc)"
@@ -332,8 +338,8 @@ if [ -n "$NPX_BIN" ] && [ -n "$MDL_CONFIG" ]; then
       echo "  $line"
       echo "x" >> "$MDL_LOG"
     done < "$_mdl_tmp"
+    mdl_count=$(wc -l < "$MDL_LOG" 2>/dev/null | tr -d ' ')
   fi
-  mdl_count=$(wc -l < "$MDL_LOG" 2>/dev/null | tr -d ' ')
   if [ "$mdl_count" -eq 0 ]; then
     echo "  ✅ No markdown structure issues"
   elif $FIX_MODE; then
@@ -350,6 +356,59 @@ else
 fi
 echo ""
 
+# ── 8. Unlinked Mentions (advisory, non-blocking) ───────────
+echo "## Unlinked Mentions (advisory)"
+if $HAS_PYTHON3; then
+  CROSSLINK_SCRIPT="$SKILL_DIR/scripts/wiki-crosslink.py"
+  if [ -f "$CROSSLINK_SCRIPT" ]; then
+    _xl_out=$(mktemp)
+    _xl_err=$(mktemp)
+    _xl_args=""
+    $FIX_MODE && _xl_args="--fix"
+    python3 "$CROSSLINK_SCRIPT" "$VAULT" $_xl_args > "$_xl_out" 2>"$_xl_err"
+    _xl_rc=$?
+    if [ "$_xl_rc" -eq 2 ]; then
+      echo "  ❌ wiki-crosslink.py failed (exit 2)"
+      [ -s "$_xl_err" ] && head -5 "$_xl_err" | sed 's/^/  /'
+      rm -f "$_xl_out" "$_xl_err"
+    else
+      _xl_unlinked=0
+      _xl_stats_line=""
+      while IFS= read -r line; do
+        case "$line" in
+          UNLINKED:*)
+            _xl_file="${line#UNLINKED:}"
+            _xl_target="${_xl_file##*	}"
+            _xl_mention="${_xl_file#*	}"
+            _xl_mention="${_xl_mention%	*}"
+            _xl_file="${_xl_file%%	*}"
+            echo "  💡 $_xl_file — \"$_xl_mention\" → [[$_xl_target]]"
+            ;;
+          STATS:*)
+            _xl_unlinked=$(echo "$line" | sed 's/.*unlinked=\([0-9]*\).*/\1/')
+            _xl_unlinked=${_xl_unlinked:-0}
+            _xl_stats_line="$line"
+            ;;
+        esac
+      done < "$_xl_out"
+      rm -f "$_xl_out" "$_xl_err"
+      if [ "${_xl_unlinked:-0}" -eq 0 ]; then
+        echo "  ✅ No unlinked mentions found"
+      elif $FIX_MODE; then
+        _xl_fixed=$(echo "$_xl_stats_line" | sed 's/.*fixed=\([0-9]*\).*/\1/')
+        echo "  🔧 ${_xl_fixed:-0} mention(s) auto-linked. ${_xl_unlinked} total detected."
+      else
+        echo "  ℹ️  ${_xl_unlinked} unlinked mention(s) found. Run wiki-crosslink.py --fix to add wikilinks."
+      fi
+    fi  # end of _xl_rc check
+  else
+    echo "  ⏭️  Skipped (wiki-crosslink.py not found)"
+  fi
+else
+  echo "  ⏭️  Skipped (python3 not found)"
+fi
+echo ""
+
 # ── Summary ───────────────────────────────────────────────
 total=$(( fm_count + broken_count + orphan_count + stale_count + drift_count + fmt_count + mdl_count ))
 echo "=== Summary ==="
@@ -361,6 +420,7 @@ printf "  %-14s %d\n" "Tag drift:" "$drift_count"
 printf "  %-14s %d\n" "Link format:" "$fmt_count"
 printf "  %-14s %d\n" "Markdown:" "$mdl_count"
 printf "  %-14s %d\n" "Total:" "$total"
+echo "  (Unlinked mentions are advisory only — not counted in total)"
 if [ -n "$skipped_checks" ]; then
   echo "  ⚠️  Skipped:    $skipped_checks"
 fi

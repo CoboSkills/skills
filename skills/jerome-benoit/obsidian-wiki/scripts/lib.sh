@@ -10,7 +10,8 @@ get_frontmatter() {
 }
 
 # Extract a single frontmatter field value.
-# Usage: get_field <file> <key>  →  prints the raw value (quotes stripped)
+# Usage: get_field <file> <key>  →  prints the raw value (quotes and trailing whitespace stripped)
+# Note: <key> must be a plain alphanumeric/hyphen field name (no regex metacharacters).
 get_field() {
-  get_frontmatter "$1" | sed -n "/^${2}:/{s/^${2}: *//; s/^[\"']//; s/[\"']\$//; p; q;}"
+  get_frontmatter "$1" | sed -n "/^${2}:/{s/^${2}: *//; s/^[\"']//; s/[\"']\$//; s/[[:space:]]*$//; p; q;}"
 }

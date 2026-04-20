@@ -21,6 +21,7 @@ done
 command -v python3 >/dev/null 2>&1 || { echo "Error: python3 is required" >&2; exit 1; }
 
 VAULT="${1:?Usage: wiki-manifest.sh <vault-path> <command> [file]}"
+VAULT="${VAULT%/}"  # strip trailing slash
 CMD="${2:-status}"
 ARG="${3:-}"
 
@@ -43,34 +44,48 @@ file_hash() {
 # Find all raw sources (grouped correctly for BSD find)
 find_raw() {
   [ -d "$VAULT/raw" ] || return 0
-  find "$VAULT/raw" -type f \( -name '*.md' -o -name '*.pdf' -o -name '*.txt' -o -name '*.epub' -o -name '*.html' \) ! -name '.gitkeep' -print 2>/dev/null | sort
+  find "$VAULT/raw" -type f \( -iname '*.md' -o -iname '*.pdf' -o -iname '*.txt' -o -iname '*.epub' -o -iname '*.html' \) ! -name '.gitkeep' -print 2>/dev/null | sort
 }
 
 # Compute diff: new + changed files (reused by status and diff)
+# Single Python call: loads manifest + hashes all raw files → outputs NEW:/CHANGED:/OK: lines
 compute_diff() {
-  # Load all manifest hashes in one python3 call
-  _hash_cache=$(python3 -c "
-import json, sys
+  find_raw | python3 -c "
+import json, sys, hashlib, os
+
+manifest_path = sys.argv[1]
+vault = sys.argv[2]
+
 try:
-    d = json.load(open(sys.argv[1]))
+    with open(manifest_path) as f:
+        manifest = json.load(f)
 except (json.JSONDecodeError, ValueError):
-    print('Error: .wiki-meta/manifest.json is corrupted (invalid JSON). Fix or delete it.', file=sys.stderr)
+    print('Error: manifest.json is corrupted (invalid JSON). Fix or delete it.', file=sys.stderr)
     sys.exit(1)
-for k, v in d.items():
-    print(k + '\t' + v.get('hash', ''))
-" "$MANIFEST") || { echo "Error: $MANIFEST is corrupted" >&2; exit 1; }
-  find_raw | while IFS= read -r file; do
-    relpath="${file#"$VAULT"/}"
-    current_hash=$(file_hash "$file")
-    stored_hash=$(printf '%s\n' "$_hash_cache" | awk -F'\t' -v key="$relpath" '$1==key{print $2; exit}')
-    if [ -z "$stored_hash" ]; then
-      echo "NEW:$relpath"
-    elif [ "$current_hash" != "$stored_hash" ]; then
-      echo "CHANGED:$relpath"
-    else
-      echo "OK:$relpath"
-    fi
-  done
+if not isinstance(manifest, dict):
+    print('Error: manifest.json has wrong shape (expected object). Fix or delete it.', file=sys.stderr)
+    sys.exit(1)
+
+for line in sys.stdin:
+    filepath = line.rstrip('\\n')
+    if not filepath:
+        continue
+    relpath = os.path.relpath(filepath, vault)
+    try:
+        current_hash = hashlib.sha256(open(filepath, 'rb').read()).hexdigest()
+    except OSError as e:
+        print(f'ERROR:{relpath}\\t{e}', file=sys.stderr)
+        continue
+    entry = manifest.get(relpath)
+    if entry is None:
+        print(f'NEW:{relpath}')
+    elif not isinstance(entry, dict):
+        print(f'NEW:{relpath}')  # malformed entry treated as missing
+    elif entry.get('hash', '') != current_hash:
+        print(f'CHANGED:{relpath}')
+    else:
+        print(f'OK:{relpath}')
+" "$MANIFEST" "$VAULT" || { echo "Error: compute_diff failed" >&2; exit 1; }
 }
 
 case "$CMD" in
@@ -124,16 +139,21 @@ case "$CMD" in
     else
       echo "Error: file not found: $ARG" >&2; exit 1
     fi
+    # Reject symlinks (find_raw uses -type f which excludes them)
+    if [ -L "$abs_file" ]; then
+      echo "Error: symlinks are not supported (find_raw excludes them): $ARG" >&2; exit 1
+    fi
     relpath="${abs_file#"$VAULT"/}"
     # Enforce that file is under raw/
     case "$relpath" in
       raw/*) ;;
       *) echo "Error: file must be under raw/: $relpath" >&2; exit 1 ;;
     esac
-    # Enforce supported file type (must match find_raw extensions)
-    case "${relpath##*.}" in
+    # Enforce supported file type (case-insensitive, must match find_raw extensions)
+    _ext_lower=$(printf '%s' "${relpath##*.}" | tr '[:upper:]' '[:lower:]')
+    case "$_ext_lower" in
       md|pdf|txt|epub|html) ;;
-      *) echo "Error: unsupported file type .${relpath##*.} (supported: .md, .pdf, .txt, .epub, .html)" >&2; exit 1 ;;
+      *) echo "Error: unsupported file type .${relpath##*.} (supported: .md, .pdf, .txt, .epub, .html, case-insensitive)" >&2; exit 1 ;;
     esac
     current_hash=$(file_hash "$abs_file")
     file_size=$(wc -c < "$abs_file" | tr -d ' ')
@@ -148,6 +168,9 @@ try:
         d = json.load(f)
 except (json.JSONDecodeError, ValueError):
     print('Error: .wiki-meta/manifest.json is corrupted (invalid JSON). Fix or delete it.', file=sys.stderr)
+    sys.exit(1)
+if not isinstance(d, dict):
+    print('Error: .wiki-meta/manifest.json has wrong shape (expected object). Fix or delete it.', file=sys.stderr)
     sys.exit(1)
 d[relpath] = {'hash': h, 'ingestedAt': ts, 'size': sz}
 with open(sys.argv[6], 'w') as f:

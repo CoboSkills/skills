@@ -3,11 +3,16 @@
   "slug": "compound-eng-verification-before-completion",
   "displayName": "verification-before-completion",
   "latest": {
-    "version": "2.55.1",
-    "publishedAt": 1776004277613,
-    "commit": "https://github.com/openclaw/skills/commit/408e9e0b1f8f408e81991cb8304f1f175543e5d1"
+    "version": "2.56.1",
+    "publishedAt": 1776519061503,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.55.1",
+      "publishedAt": 1776004277613,
+      "commit": "https://github.com/openclaw/skills/commit/408e9e0b1f8f408e81991cb8304f1f175543e5d1"
+    },
     {
       "version": "2.53.0",
       "publishedAt": 1775526979888,

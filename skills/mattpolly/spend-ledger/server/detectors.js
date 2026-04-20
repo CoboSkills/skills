@@ -67,6 +67,22 @@ function hasPaymentArgs(argsStr) {
 }
 
 /**
+ * Strip query parameters and fragment from a URL before storing it.
+ * Prevents accidental capture of API keys or tokens passed as query params.
+ */
+function sanitizeUrl(raw) {
+  if (!raw) return null;
+  try {
+    const u = new URL(raw);
+    u.search = "";
+    u.hash = "";
+    return u.href;
+  } catch {
+    return raw.replace(/[?#].*$/, "");
+  }
+}
+
+/**
  * Extract common payment fields from both args and results.
  */
 function extractCommonFields(argsStr, result) {
@@ -108,7 +124,7 @@ function extractCommonFields(argsStr, result) {
   }
 
   return {
-    url: urlMatch?.[0] || null,
+    url: sanitizeUrl(urlMatch?.[0]),
     amount: String(amount || "0"),
     currency,
     chain,

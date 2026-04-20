@@ -17,6 +17,30 @@ import {
 } from "node:fs";
 import { resolve, dirname } from "node:path";
 
+// ── Config ────────────────────────────────────────────────────────────────────
+
+const DEFAULT_CONFIG_PATH = resolve(
+  process.env.SPEND_LEDGER_CONFIG ||
+    new URL("../data/config.json", import.meta.url).pathname
+);
+
+const DEFAULT_CONFIG = {
+  sync_community_patterns: true, // set false to disable automatic pattern download
+};
+
+/**
+ * Load spend-ledger configuration, merging stored values with defaults.
+ */
+export function loadConfig(configPath = DEFAULT_CONFIG_PATH) {
+  if (!existsSync(configPath)) return { ...DEFAULT_CONFIG };
+  try {
+    const stored = JSON.parse(readFileSync(configPath, "utf-8"));
+    return { ...DEFAULT_CONFIG, ...stored };
+  } catch {
+    return { ...DEFAULT_CONFIG };
+  }
+}
+
 const API_BASE =
   process.env.SPEND_LEDGER_API_URL || "https://api.spend-ledger.com";
 

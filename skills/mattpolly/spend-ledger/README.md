@@ -8,9 +8,24 @@ All transaction data stays on your machine:
 
 - Log is stored at `data/transactions.jsonl`, mode `0600`
 - Dashboard binds to `127.0.0.1:18920` — not reachable from the network
-- No payment data, transaction records, or personal information is sent anywhere
+- Dashboard does **not** set CORS headers — a localhost-only server has no legitimate cross-origin callers; the absence of CORS prevents malicious webpages from reading your transaction data while the dashboard is open
+- `service.url` stores endpoint URLs with query parameters stripped — API keys or tokens passed as query params are not written to the log
 - No wallet keys or credentials are accessed — the skill observes tool call results only
-- Outbound network: fetches a community-curated tool pattern list from `api.spend-ledger.com/patterns.json` daily; no payment data is included
+- Outbound network: fetches a community-curated tool pattern list from `api.spend-ledger.com/patterns.json` daily; no payment data is included; disable with `sync_community_patterns: false` in `data/config.json`
+
+## Configuration
+
+Create `data/config.json` to control network behavior:
+
+```json
+{
+  "sync_community_patterns": true
+}
+```
+
+| Key | Default | Description |
+|---|---|---|
+| `sync_community_patterns` | `true` | Download tool patterns from `api.spend-ledger.com` daily; set `false` for offline/air-gapped use |
 
 See [TECHNICAL.md](TECHNICAL.md) for the full security model, data model, and architecture.
 

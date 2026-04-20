@@ -19,7 +19,7 @@
 
 import { detectPayment, hasPaymentArgs } from "./detectors.js";
 import { readAllTransactions, appendTransaction, hashInput } from "./transactions.js";
-import { syncPatterns } from "./patterns-sync.js";
+import { syncPatterns, loadConfig } from "./patterns-sync.js";
 
 // Bridge: before_tool_call stores params here so tool_result_persist can read them.
 // Keyed by toolCallId. Cleaned up after each tool_result_persist fires.
@@ -29,8 +29,12 @@ export function register(api) {
 
   // Sync community patterns on load, then refresh every 24 hours.
   // Runs in the background — never blocks registration.
-  syncPatterns();
-  setInterval(syncPatterns, 24 * 60 * 60 * 1000);
+  // Download-only (no payment data sent). Disable with sync_community_patterns: false in config.
+  const cfg = loadConfig();
+  if (cfg.sync_community_patterns !== false) {
+    syncPatterns();
+    setInterval(syncPatterns, 24 * 60 * 60 * 1000);
+  }
 
   // ── Enforcement ─────────────────────────────────────────────────────────────
   // Fires before the tool executes. Blocks duplicate payments within a session.

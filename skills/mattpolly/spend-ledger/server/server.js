@@ -18,7 +18,7 @@ import {
   toCSV,
 } from "./transactions.js";
 import { SUGGESTIONS_PATH } from "./detectors.js";
-import { syncPatterns, submitPattern } from "./patterns-sync.js";
+import { syncPatterns, submitPattern, loadConfig } from "./patterns-sync.js";
 
 const PORT = parseInt(process.env.SPEND_LEDGER_PORT || "18920", 10);
 const HOST = "127.0.0.1";
@@ -53,9 +53,9 @@ function json(res, data, status = 200) {
   res.writeHead(status, {
     "Content-Type": "application/json",
     "Content-Length": Buffer.byteLength(body),
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    // No CORS headers — this server binds to 127.0.0.1 only and has no
+    // legitimate cross-origin callers. A wildcard would let any webpage read
+    // transaction data from a running dashboard via cross-origin fetch.
   });
   res.end(body);
 }
@@ -111,17 +111,6 @@ function appendSubmissionEntry(entry) {
 // --- Server ---
 
 const server = createServer(async (req, res) => {
-  // CORS preflight
-  if (req.method === "OPTIONS") {
-    res.writeHead(204, {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type",
-    });
-    res.end();
-    return;
-  }
-
   const { pathname, params } = parseQuery(req.url);
 
   try {
@@ -300,6 +289,10 @@ server.listen(PORT, HOST, () => {
   console.log(`spend-ledger dashboard running at http://${HOST}:${PORT}`);
 });
 
-// Sync community patterns on startup, then refresh every hour
-syncPatterns();
-setInterval(syncPatterns, 24 * 60 * 60 * 1000);
+// Sync community patterns on startup, then refresh every 24 hours.
+// Download-only (no payment data sent). Disable with sync_community_patterns: false in data/config.json.
+const _cfg = loadConfig();
+if (_cfg.sync_community_patterns !== false) {
+  syncPatterns();
+  setInterval(syncPatterns, 24 * 60 * 60 * 1000);
+}

@@ -65,10 +65,7 @@ spend-ledger is designed to need as little access as possible:
 
 ### Data Sanitization
 
-Tool arguments are truncated to 200 characters in the log. Full arguments are never stored. This prevents accidental logging of:
-- API keys passed as tool arguments
-- Full wallet addresses (only fragments appear in truncated summaries)
-- Long prompt content that might contain sensitive user data
+Tool arguments are truncated to 200 characters in the `context.tool_args_summary` field. However, `service.url` stores the endpoint URL extracted from tool arguments — and to prevent accidental capture of API keys or tokens passed as query parameters, query strings and fragments are stripped from URLs before storage. The stored URL is always path-only (e.g., `https://api.example.com/data`, never `https://api.example.com/data?api_key=secret`).
 
 Transaction hashes and idempotency keys are stored in full because they are needed for deduplication and verification.
 
@@ -152,9 +149,17 @@ Users can add custom tool patterns via the dashboard's "Track Tools" tab or the 
 
 ### Community Patterns
 
-On startup and every hour, the skill fetches `api.spend-ledger.com/patterns.json` and caches it to `data/community-patterns.json`. `detectUserTracked()` merges local and community patterns at detection time — local patterns take priority on any conflict. This allows the published pattern list to expand without requiring a skill update.
+On startup and every 24 hours, the skill fetches `api.spend-ledger.com/patterns.json` and caches it to `data/community-patterns.json`. `detectUserTracked()` merges local and community patterns at detection time — local patterns take priority on any conflict. This allows the published pattern list to expand without requiring a skill update.
 
 Community patterns are submitted to `api.spend-ledger.com/patterns` and served from `api.spend-ledger.com/patterns.json`. The fetch is read-only; no payment data or transaction records are included in any request to that host. The only outbound write is an opt-in pattern submission from the dashboard (`data/submissions.jsonl` records what was sent locally).
+
+To disable automatic pattern syncing, set `sync_community_patterns: false` in `data/config.json`:
+
+```json
+{ "sync_community_patterns": false }
+```
+
+The skill will continue to work with whatever patterns were last cached, or with no community patterns if none were ever fetched.
 
 ### Detection Confidence
 
@@ -310,6 +315,8 @@ The server binds to `127.0.0.1`, not `0.0.0.0`. This means:
 - Not reachable from other machines on the network
 - Not reachable from the internet
 - No authentication needed (the binding IS the access control)
+
+The server does **not** set `Access-Control-Allow-Origin` headers. A localhost-only server has no legitimate cross-origin callers — a wildcard CORS header would allow any malicious webpage visited in the same browser to read transaction data via cross-origin fetch while the dashboard is running.
 
 ---
 

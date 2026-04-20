@@ -1,13 +1,18 @@
 {
   "owner": "phishguard-niki",
   "slug": "anti-scam-guard",
-  "displayName": "PhishGuard - Anti-Scam Guard",
+  "displayName": "Is This Link Safe? (Scam & Phishing Checker)",
   "latest": {
-    "version": "0.4.6",
-    "publishedAt": 1776054176325,
-    "commit": "https://github.com/openclaw/skills/commit/8e841090303e0b2af3b42bc273775614e4b99ddb"
+    "version": "0.4.8",
+    "publishedAt": 1776172966745,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.4.6",
+      "publishedAt": 1776054176325,
+      "commit": "https://github.com/openclaw/skills/commit/8e841090303e0b2af3b42bc273775614e4b99ddb"
+    },
     {
       "version": "0.4.5",
       "publishedAt": 1775612930059,

@@ -1,6 +1,6 @@
 ---
 name: gmgn-token
-description: Query GMGN token information — basic info, security, pool, top holders and top traders. Supports sol / bsc / base.
+description: Research any crypto or meme token by address — real-time price, market cap, liquidity, holder list, trader list, top Smart Money and KOL positions, security audit (honeypot, rug pull risk, dev wallet, renounced status), social links (Twitter/X, website) via GMGN API on Solana, BSC, or Base. Use when user asks about a token's price, safety, holders, traders, smart money exposure, or wants due diligence before buying.
 argument-hint: "<sub-command> --chain <sol|bsc|base> --address <token_address>"
 metadata:
   cliHelp: "gmgn-cli token --help"
@@ -34,7 +34,7 @@ Use the `gmgn-cli` tool to query token information based on the user's request.
 
 | Sub-command | Description |
 |-------------|-------------|
-| `token info` | Basic info + realtime price, liquidity, supply, holder count, social links (market cap = price × circulating_supply) |
+| `token info` | Basic info + realtime price, liquidity, market cap, total supply, holder count, social links (market cap = price × circulating_supply) |
 | `token security` | Security metrics (honeypot, taxes, holder concentration, contract risks) |
 | `token pool` | Liquidity pool info (DEX, reserves, liquidity depth) |
 | `token holders` | Top token holders list with profit/loss breakdown |

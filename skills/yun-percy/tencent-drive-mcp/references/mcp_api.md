@@ -19,6 +19,8 @@
 | limit | uint32 | **是** | 每页返回数量，最大 50 |
 | order_by | uint32 | 否 | 排序字段：0-不排序（默认），1-按名字排序，2-按修改时间排序 |
 | asc | bool | 否 | 排序方向：true-升序，false-降序（默认） |
+| dir_key | string | 否 | 要查询的目录 key（hex 编码），为空则使用 token 绑定的 dirkey |
+| pdir_key | string | 否 | 要查询的父目录 key（hex 编码），为空则使用 token 绑定的 pdirkey |
 
 ### 响应（McpListRsp）
 
@@ -56,6 +58,41 @@
 
 - 查询范围由 `mcp_token` 绑定的 `dirkey` 和 `pdirkey` 决定
 - 腾讯文档类型的文件会被自动过滤，不出现在返回结果中
+
+---
+
+## Tool: weiyun.list_by_category — 按分类拉取文件列表
+
+按微云文件分类分页拉取文件列表，支持文档、图片、视频等分类以及 `server_version` 续拉。
+
+### 请求（McpListByCategoryReq）
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| category_id | uint64 | 否 | 分类 ID（位运算值），有值时优先于 `lib_id` 和 `suffix_list`。例如：1-doc、2-excel、4-ppt、8-pdf、64-image、512-腾讯文档、4095-全部 |
+| lib_id | int32 | 否 | 库 ID：1-文档，2-图片，3-音乐，4-视频，5-其他。`category_id` 有值时会忽略此字段 |
+| local_version | string | 否 | 上次返回的 `server_version`，用于增量续拉；首次请求传空字符串 |
+| group_id | int32 | 否 | 分组 ID。文档库：0-全部，1-doc，2-xls，3-ppt，4-pdf，50-腾讯文档 Doc，51-腾讯文档 Sheet，52-腾讯文档表单；图片/视频库可传相册分组 ID |
+| suffix_list | string[] | 否 | 指定后缀列表，仅文档库和其他库有效，例如 `["docx", "xlsx"]` |
+| count | int32 | **是** | 本次拉取数量，最大 100 |
+| sort_type | int32 | 否 | 排序类型：0-创建时间，1-修改时间，2-名称，3-拍摄时间，4-大小 |
+| is_desc_order | bool | 否 | 是否降序排列：true-降序（默认），false-升序 |
+
+### 响应（McpListByCategoryRsp）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| server_version | string | 服务端游标；下一次请求请回填到 `local_version` 以继续拉取 |
+| finish_flag | bool | 是否已拉取完成，true 表示当前条件下已经没有更多结果 |
+| file_list | McpFileItem[] | 分类文件列表（结构同 `weiyun.list` 的 `McpFileItem`） |
+| error | string | 错误信息，操作失败时返回具体的错误描述 |
+
+### 注意事项
+
+- 该接口要求同时携带真实微云 cookie（如 `uid`、`uid_key`）和 `mcp_token`
+- `category_id` 为位运算值，可组合使用（例如 `1 | 2 | 4 = 7` 表示 doc + excel + ppt）
+- 首次请求 `local_version` 传空字符串，后续续拉时回填上次响应的 `server_version`
+- 当 `finish_flag` 为 `true` 时表示已无更多数据
 
 ---
 
@@ -211,13 +248,16 @@
 
 ### 请求（McpGenShareLinkReq）
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| file_list | McpShareFileItem[] | 否 | 待分享的文件列表 |
-| dir_list | McpShareDirItem[] | 否 | 待分享的目录列表 |
-| share_name | string | 否 | 分享名称，不填则使用第一个文件或目录名 |
+| 字段 | 类型 | 必填 | 说明                                             |
+|------|------|------|------------------------------------------------|
+| file_list | McpShareFileItem[] | 否 | 待分享的文件列表                                       |
+| dir_list | McpShareDirItem[] | 否 | 待分享的目录列表                                       |
+| share_name | string | 否 | 分享名称，不填则使用第一个文件或目录名                            |
+| passwd | string | 否 | 分享密码，不填则创建无密码分享，长度一定是 6 个字符。支持随机密码，也支持用户指定特定密码 |
 
 **注意**：`file_list` 和 `dir_list` 至少要有一个非空。
+
+随机分享密码生成规则：长度6，全小写字母+数字混合，不包含特殊字符
 
 ### McpShareFileItem（分享文件项）
 
@@ -245,6 +285,57 @@
 
 - **⚠️ pdir_key 不可为空**：如果传入空的 `pdir_key`，可能导致分享链接异常，**强烈建议**调用方显式传入正确值
 - `pdir_key` 应使用 `weiyun.list` 响应中**顶层的 `pdir_key`** 字段值，而非文件项中的 `pdir_key`（该字段可能为空字符串）
+
+---
+
+## Tool: weiyun.rename_file — 重命名文件
+
+重命名微云网盘中的文件，需要提供文件所在目录 key 和文件 ID。
+
+### 请求（McpRenameFileReq）
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| file_id | string | **是** | 文件唯一标识符 |
+| pdir_key | string | **是** | 文件所在目录 key（hex 编码） |
+| new_filename | string | **是** | 修改后的文件名 |
+
+### 响应（McpRenameFileRsp）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| error | string | 错误信息，操作失败时返回具体的错误描述 |
+
+### 注意事项
+
+- `pdir_key` 应使用 `weiyun.list` 响应中**顶层的 `pdir_key`** 字段值
+- 重命名不会改变文件的 `file_id`
+
+---
+
+## Tool: weiyun.rename_dir — 重命名目录
+
+重命名微云网盘中的目录，需要提供目录 key 和父目录 key。
+
+### 请求（McpRenameDirReq）
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| dir_key | string | **是** | 目录 key（hex 编码） |
+| pdir_key | string | **是** | 父目录 key（hex 编码） |
+| new_dir_name | string | **是** | 修改后的目录名 |
+| src_dir_name | string | **是** | 修改前的目录名 |
+
+### 响应（McpRenameDirRsp）
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| error | string | 错误信息，操作失败时返回具体的错误描述 |
+
+### 注意事项
+
+- `pdir_key` 应使用 `weiyun.list` 响应中**顶层的 `pdir_key`** 字段值
+- 重命名不会改变目录的 `dir_key`
 
 ---
 

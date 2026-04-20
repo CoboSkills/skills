@@ -34,6 +34,8 @@
   这是 Python 标准库 hashlib.sha1 无法做到的，也是微云上传协议的核心需求。
 """
 
+import _encoding_fix  # noqa: F401  Windows UTF-8 fix, must be first import
+
 import argparse
 import base64
 import hashlib

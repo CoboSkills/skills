@@ -1,6 +1,6 @@
 # ThinkTank Skill Finder 维护说明
 
-更新时间：2026-04-10
+更新时间：2026-04-14
 
 本文档用于说明这份 Skill 清单的研究场景划分、技能包定义、主数据表字段，以及质量检查与维护规则。
 
@@ -79,11 +79,7 @@
 
 ### `academic-research-plus`
 
-学术研究增强包。用于补强 arXiv、Google Scholar 和论文对比等学术研究场景。
-
-### `field-research-plus`
-
-调研执行增强包。用于补强问卷设计发布、访谈提纲、访谈分析和调研材料整理等调研执行场景。
+学术研究增强包。用于补强 arXiv、Google Scholar、论文精读和论文对比等学术研究场景。
 
 ### `monitoring-and-insight`
 
@@ -103,6 +99,7 @@
 - `slug`：Skill slug
 - `title`：Skill 标题
 - `keep`：是否保留在当前正式清单中，取值为 `yes` 或 `no`
+- `restricted_keep`：是否可进入默认的 `restricted` 安装模式，取值为 `yes` 或 `no`
 - `primary_stage`：主流程阶段
 - `dependencies`：主要使用前提、外部依赖或平台绑定情况
 - `downloads`：下载量
@@ -123,6 +120,7 @@
    - 是否依赖 API Key、登录、桌面 CLI、浏览器网页或外部服务
    - 是否存在明确价格、免费次数限制、调用计费
    - 是否强绑定某个平台、某个机构系统或特定账号体系
+   - 是否依赖中国以外网络或平台才能发挥核心能力
 3. 名称与实际能力是否一致
    - 名称是否容易让人误判
    - 实际上是工具能力、方法模板，还是外部服务包装
@@ -135,5 +133,7 @@
 - 新增 skill 时，直接在 `skills.csv` 追加一行
 - 复查 skill 时，更新同一行，不新增重复记录
 - bundle 调整时，只改 `bundle_id`
-- 质量结论调整时，只改 `keep`、`reason`、`review_note`
+- 质量结论调整时，只改 `keep`、`restricted_keep`、`reason`、`review_note`
 - 如果某个 skill `keep=no`，原则上 `bundle_id` 也应清空，避免和正式技能包混淆
+- `restricted` 模式的含义是：默认不安装需要 API Key 或依赖中国以外网络的 skill
+- `dependencies` 继续保留给人阅读；脚本过滤只读取 `keep` 和 `restricted_keep`

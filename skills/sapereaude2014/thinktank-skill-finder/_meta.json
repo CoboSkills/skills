@@ -1,11 +1,17 @@
 {
   "owner": "sapereaude2014",
   "slug": "thinktank-skill-finder",
-  "displayName": "ThinkTank Skill Finder",
+  "displayName": "Thinktank Skill Finder",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1775786395972,
-    "commit": "https://github.com/openclaw/skills/commit/aab7d8c016c96788425ea57ee4c3f3bc17fbd1ad"
+    "version": "1.0.8",
+    "publishedAt": 1776159990223,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1775786395972,
+      "commit": "https://github.com/openclaw/skills/commit/aab7d8c016c96788425ea57ee4c3f3bc17fbd1ad"
+    }
+  ]
 }

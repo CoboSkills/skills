@@ -8,12 +8,9 @@ metadata:
     requires:
       bins: [clawdhub]
 ---
-# ThinkTank Skill Finder v1.0.6
+# ThinkTank Skill Finder v1.0.8
 
-面向智库研究场景的一站式 Skill 发现与安装工具。支持通过 ClawdHub 镜像进行检索与安装，便于中国网络环境使用；既可按需推荐和安装单个 Skill，也可直接安装智库研究核心包，以及学术研究、动态监测、分析建模等增强包。
-
-清单维护说明见：
-`~/.openclaw/workspace/skills/thinktank-skill-finder/MAINTENANCE.md`
+面向智库研究场景的一站式 Skill 发现与安装工具。支持通过 ClawdHub 镜像进行检索与安装，便于中国网络环境使用；既可按需推荐和安装单个 Skill，也可直接安装智库研究核心包，以及学术研究、动态监测、分析建模等增强包。技能包安装默认使用 `restricted` 模式，不安装需要 API Key 或依赖中国以外网络的 skill；如需完整能力，可切换到 `standard` 模式。个别 skill 若中国镜像暂未收录，脚本会自动回退到 ClawdHub 官方源安装。
 
 ## 功能
 
@@ -23,8 +20,6 @@ metadata:
 - "找一个能做行业研究的 skill"
 - "有没有画图/报告相关 skill"
 - "安装智库研究技能包"
-
-这个 Skill 会帮助搜索 ClawdHub 并推荐相关 Skills。
 
 ## 使用方法
 
@@ -50,6 +45,9 @@ curl "https://clawhub.ai/api/v1/skills/<skill-name>" | jq '.skill.stats'
 
 ```bash
 clawdhub install <skill-name> --no-input --registry=https://cn.clawhub-mirror.com
+
+# 如果中国镜像里没有这个 skill，再回退到官方源
+clawdhub install <skill-name> --no-input
 ```
 
 ### 4. 安装智库研究技能包（按 skills.csv）
@@ -58,11 +56,14 @@ clawdhub install <skill-name> --no-input --registry=https://cn.clawhub-mirror.co
 # 列出可用的技能包
 python3 ~/.openclaw/workspace/skills/thinktank-skill-finder/scripts/install_bundle.py --list
 
-# 安装核心包
+# 安装核心包（默认 restricted 模式）
 python3 ~/.openclaw/workspace/skills/thinktank-skill-finder/scripts/install_bundle.py thinktank-core
 
 # 安装多个包（自动去重）
 python3 ~/.openclaw/workspace/skills/thinktank-skill-finder/scripts/install_bundle.py thinktank-core academic-research-plus
+
+# 完整安装模式
+python3 ~/.openclaw/workspace/skills/thinktank-skill-finder/scripts/install_bundle.py thinktank-core --mode standard
 ```
 
 ### 5. 验证安装
@@ -87,13 +88,11 @@ ls ~/.openclaw/workspace/skills/<skill-name>/SKILL.md
 
 场景 B：安装技能包
 1. 识别“安装技能包/全套/bundle”等意图
-2. 调用脚本查看可用 bundle：
-   python3 ~/.openclaw/workspace/skills/thinktank-skill-finder/scripts/install_bundle.py --list
-3. 向用户介绍各个 bundle 的用途和适用场景
-4. 等用户明确指定要安装哪几个 bundle
-5. 执行安装命令：
-   python3 ~/.openclaw/workspace/skills/thinktank-skill-finder/scripts/install_bundle.py <bundle-id>
-6. 如果用户需要多个相关领域的能力，可以一次安装多个 bundle（脚本会自动去重）
+2. 调用脚本查看可用的技能包
+3. 向用户介绍各个 bundle 的用途和适用场景，并确认：是按默认的 restricted 模式安装，还是连同需要 API Key 或依赖中国以外网络的 skill 一起安装（standard 模式）
+4. 如果用户指定了一个或多个 bundle，且接受默认模式，就执行“安装智库研究技能包”里的 restricted 命令
+5. 如果用户指定了一个或多个 bundle，并明确要把需要 API Key 或依赖中国以外网络的 skill 也一起装上，就执行“安装智库研究技能包”里的 standard 命令
+6. 安装完成后执行验证，并简要说明当前使用的是 restricted 还是 standard 模式
 ```
 
 ## 输出格式

@@ -30,7 +30,7 @@
 |-----|----------------------|-----------|
 | [SKILL.md](../SKILL.md) | 补了触发词、选型建议、接入流程、环境变量和联调说明 | 第一次进入聚合支付路径时先看 |
 | [customer-preparation.md](customer-preparation.md) | 补了 trade_type 对应的真实参数来源、渠道开通要求、授权链路 | 还没编码，先确认客户是否真的具备下单条件 |
-| [payload-construction.md](payload-construction.md) | 补了 `method_expand`、`tx_metadata` 的对象建模和序列化规范 | 要拼复杂请求对象时看 |
+| [payload-construction.md](payload-construction.md) | 补了 `method_expand`、`acct_split_bunch`、`terminal_device_data`、`tx_metadata` 的对象建模和序列化规范 | 要拼复杂请求对象时看 |
 | [sdk-quickstart.md](sdk-quickstart.md) | 补了 Factory 初始化方式和 SDK 集成细节 | 要写初始化和首个调用示例时看 |
 | [common-params.md](common-params.md) | 补了 `sys_id` / `huifu_id` 区分、交易状态、金额与时间格式 | 不确定公共字段怎么解释时看 |
 | [error-codes.md](error-codes.md) | 汇总常见错误码并强调它们主要用于排查 | 看到返回码异常时看，不拿它直接驱动业务终态 |
@@ -41,5 +41,5 @@
 ## 开发前先补两件事
 
 1. 先看 [customer-preparation.md](customer-preparation.md)，梳理哪些参数是客户控台配置、前端授权、终端采集或上游订单沉淀出来的。
-2. 再看 [payload-construction.md](payload-construction.md)，把 `method_expand` 和 `tx_metadata` 按对象完整建模，做完校验后再序列化。
+2. 再看 [payload-construction.md](payload-construction.md)，把 `method_expand`、`acct_split_bunch`、`terminal_device_data` 和 `tx_metadata` 按对象完整建模，做完校验后再序列化。
 3. 官方产品介绍和开发指引还要求先完成业务开通 / 变更、应用配置和授权绑定；这些动作没完成时，不要只靠补参数强行下单。

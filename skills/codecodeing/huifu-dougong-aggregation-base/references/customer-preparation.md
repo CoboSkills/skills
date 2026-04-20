@@ -39,7 +39,9 @@
 | `goods_desc` | 业务订单 | 不是示例值，应该来自真实商品 / 订单语义 |
 | `req_seq_id` | 平台流水号生成规则 | 必须当天唯一 |
 | `time_expire` | 业务超时策略 | 如不明确可不传，不要乱填过期时间 |
-| `tx_metadata` | 业务能力开关 | 分账、设备、补贴、手续费补贴都依赖它 |
+| `acct_split_bunch` | 分账业务配置 | 只有要做分账时才准备 |
+| `terminal_device_data` | 终端 / 设备采集链路 | 反扫、终端报备、银联场景常见 |
+| `tx_metadata` | 其他扩展能力开关 | 保留为扩展入口，但不要把已确认属于顶层的补贴类字段混塞进去 |
 
 ### 微信类场景
 
@@ -76,15 +78,15 @@
 | 银联 JS 支付 | 完成商户进件并开通银联业务、准备银联网页授权回调链路 | `user_id`、`customer_ip` |
 | 各类付款码反扫 | 准备扫码枪或终端采集链路 | `auth_code` |
 
-## `tx_metadata` 相关准备项
+## 扩展字段相关准备项
 
 | 对象 | 需要客户先准备什么 | 说明 |
 |------|------------------|------|
 | `acct_split_bunch` | 分账接收方 `huifu_id`、账户号、比例 / 金额规则 | 未准备好不要让模型硬拼分账串 |
 | `terminal_device_data` | `device_ip`、`devs_id`、定位 / 设备指纹 | 反扫和报备终端场景很关键 |
-| `combinedpay_data` | 补贴方 `huifu_id`、`acct_id`、金额 | 属于补贴业务配置，不可猜 |
-| `combinedpay_data_fee_info` | 手续费承担方 `huifu_id`、`acct_id` | 需要真实承担方信息 |
-| `trans_fee_allowance_info` | 补贴手续费金额和活动来源 | 需要明确的活动或配置支持 |
+| `combinedpay_data` | 补贴方 `huifu_id`、`acct_id`、金额 | 请求顶层字段，属于补贴业务配置，不可猜 |
+| `combinedpay_data_fee_info` | 手续费承担方 `huifu_id`、`acct_id` | 请求顶层字段，需要真实承担方信息 |
+| `trans_fee_allowance_info` | 补贴手续费金额和活动来源 | 请求顶层字段，需要明确的活动或配置支持 |
 
 ## 查询 / 关单 / 退款前要沉淀什么
 
@@ -101,11 +103,11 @@
 
 | 能力 | 影响点 |
 |------|--------|
-| 分账权限 | `tx_metadata.acct_split_bunch` |
+| 分账权限 | `acct_split_bunch` |
 | 延迟入账权限 | `delay_acct_flag` |
 | 退款权限 | 退款接口 |
-| 终端报备 | `tx_metadata.terminal_device_data.devs_id` |
-| 手续费 / 贴息 / 补贴配置 | `fee_flag`、`combinedpay_data`、`trans_fee_allowance_info` |
+| 终端报备 | `terminal_device_data.devs_id` |
+| 手续费 / 贴息 / 补贴配置 | `fee_flag`、`combinedpay_data`、`combinedpay_data_fee_info`、`trans_fee_allowance_info` |
 | 对账单功能 | `file_date`、`bill_type` |
 | 微信小程序 `sub_appid` 绑定 | `T_MINIAPP` 下单成功率 | 官方 QA 明确要求 `sub_appid` 与商户建立绑定关系 |
 | 微信 `sub_appid` / `sub_openid` 一致性 | `T_MINIAPP` / `T_JSAPI` | 官方 QA 明确要求 `sub_openid` 必须从对应 `sub_appid` 获取 |

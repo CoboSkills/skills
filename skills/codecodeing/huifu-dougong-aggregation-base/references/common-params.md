@@ -87,7 +87,7 @@
 
 ### method_expand 参数
 
-不同 trade_type 需要传入不同的 `method_expand` 扩展参数：
+不同 trade_type 需要传入不同的 `method_expand` 扩展参数。注意，`trade_type` 是场景选择器，这 10 个枚举值本身不是 `method_expand` 的 key。`method_expand` 的 JSON 内容直接是当前场景对象本身。
 
 | trade_type | method_expand 必填字段 | 说明 |
 |-----------|----------------------|------|
@@ -95,10 +95,10 @@
 | T_MINIAPP | sub_appid, sub_openid | 微信小程序 AppID 和用户 OpenID |
 | T_APP | sub_appid | 微信开放平台 AppID |
 | T_MICROPAY | auth_code | 用户付款码 |
-| A_JSAPI | buyer_id | 支付宝买家 ID |
+| A_JSAPI | buyer_id 或 buyer_logon_id | 支付宝买家 ID / 账号，二选一 |
 | A_NATIVE | - | 无需额外参数 |
 | A_MICROPAY | auth_code | 用户付款码 |
-| U_JSAPI | - | 需银联备案 H5 页面地址 |
+| U_JSAPI | user_id, qr_code, customer_ip | 银联 JS 常见关键字段 |
 | U_NATIVE | - | 无需额外参数 |
 | U_MICROPAY | auth_code | 用户付款码 |
 

@@ -1,19 +1,18 @@
 ---
-name: dougong-aggregation-pay-base
-display_name: 汇付聚合支付基础
-description: "汇付聚合支付（dg-lightning-sdk）基础 Skill：SDK 初始化、Factory 模式调用、支付类型枚举、公共参数、签名规则、错误码。当开发者首次接入汇付聚合支付或需要了解公共配置时使用。所有聚合支付 Skill 的前置依赖。触发词：聚合支付接入、Lightning SDK、dg-lightning-sdk、聚合支付初始化、支付类型。"
-version: 1.0.0
+name: huifu-dougong-aggregation-base
+display_name: 汇付支付聚合支付基础
+description: "汇付支付聚合支付基础的斗拱SDK Skill：公共参数、协议规则、多语言 SDK 入口、Java 适配说明、支付类型和错误码。当开发者首次接入汇付聚合支付或需要了解公共配置时使用。所有聚合支付 Skill 的前置依赖。触发词：聚合支付接入、Lightning SDK、dg-lightning-sdk、聚合支付初始化、支付类型。"
+version: 1.1.0
 author: "jiaxiang.li | 内容版权：上海汇付支付有限公司"
 homepage: https://paas.huifu.com/open/home/index.html
-license: MIT
+license: CC-BY-NC-4.0
 compatibility:
   - openclaw
+dependencies:
+  - huifu-dougong-pay-shared-base
 metadata:
   openclaw:
     requires:
-      bins:
-        - java
-        - mvn
       config:
         - HUIFU_PRODUCT_ID
         - HUIFU_SYS_ID
@@ -33,7 +32,37 @@ metadata:
 
 本 Skill 是所有汇付聚合支付业务 Skill 的公共基座，包含 SDK 初始化、Factory 调用模式、支付类型说明和公共参数。
 
+## 适配版本与复核信息
+
+| 项目 | 内容 |
+| --- | --- |
+| Skill 版本 | `1.1.0` |
+| 当前适配 SDK | `dg-lightning-sdk` `1.0.3` |
+| 最后复核日期 | `2026-04-08` |
+| 官方文档来源 | 汇付开放平台 Java SDK 文档、聚合支付相关接口文档、加验签说明、异步消息说明 |
+
 > **与斗拱托管支付的关系**：聚合支付（dg-lightning-sdk）和托管支付（dg-java-sdk）是两条独立的接入路径。聚合支付更轻量，适合快速接入标准支付场景；托管支付功能更全面，适合需要收银台托管的复杂场景。**优先使用聚合支付，当聚合支付无法满足需求时再使用托管支付。**
+
+## 多语言说明
+
+从 `v1.1.0` 开始，这个 base skill 不再按 Java 单栈理解。  
+正文会优先放协议规则和公共参数。  
+语言安装方式、运行时要求和覆盖边界，统一看这份矩阵：
+
+- [server-sdk-matrix.md](../huifu-dougong-pay-shared-base/runtime/server-sdk-matrix.md)
+
+当前仓库里，Java 内容最完整。  
+PHP、C#、Python、Go 先提供入口和最小说明，后续版本再继续补齐。
+
+## 协议规则入口
+
+这两个文件是后面所有业务 skill 共用的协议层：
+
+- [signing-v2.md](../huifu-dougong-pay-shared-base/protocol/signing-v2.md)
+- [async-notify.md](../huifu-dougong-pay-shared-base/protocol/async-notify.md)
+
+如果你想看的是“规则本身”，先看这里。  
+如果你想看的是“Java 怎么写”，再看下面的 Java 适配说明和 references。
 
 ## 凭据要求
 
@@ -66,18 +95,18 @@ metadata:
 汇付聚合支付采用「基础 Skill + 业务 Skill」分层架构：
 
 ```text
-dougong-aggregation-pay-base/         (current: 公共基座，管理凭据和 SDK 初始化)
-dougong-aggregation-aggregate-order/  (聚合支付 - 下单，微信/支付宝/银联多场景)
-dougong-aggregation-aggregate-query/  (聚合支付 - 交易查询、关单、关单查询、对账)
-dougong-aggregation-aggregate-refund/ (聚合支付 - 退款与退款查询)
+huifu-dougong-aggregation-base/         (current: 公共基座，管理凭据和 SDK 初始化)
+huifu-dougong-aggregation-order/  (聚合支付 - 下单，微信/支付宝/银联多场景)
+huifu-dougong-aggregation-query/  (聚合支付 - 交易查询、关单、关单查询、对账)
+huifu-dougong-aggregation-refund/ (聚合支付 - 退款与退款查询)
 ```
 
-业务 Skill 通过 `dependencies: [dougong-aggregation-pay-base]` 声明依赖，不直接管理凭据。
+业务 Skill 通过 `dependencies: [huifu-dougong-aggregation-base]` 声明依赖，不直接管理凭据。
 
 ## 接入流程
 
 ```text
-1. 获取商户配置 -> 2. 配置环境变量 -> 3. 安装 SDK -> 4. 初始化 SDK -> 5. 调用业务接口
+1. 获取商户配置 -> 2. 确认语言运行时 -> 3. 看共享协议规则 -> 4. 进入语言适配说明 -> 5. 调用业务接口
 ```
 
 ### 步骤 1：获取商户配置
@@ -91,7 +120,30 @@ dougong-aggregation-aggregate-refund/ (聚合支付 - 退款与退款查询)
 | RSA 私钥 | 商户私钥，用于请求签名 | `HUIFU_RSA_PRIVATE_KEY` |
 | RSA 公钥 | 汇付公钥，用于响应验签 | `HUIFU_RSA_PUBLIC_KEY` |
 
-### 步骤 2：配置环境变量
+### 步骤 2：先看语言运行时矩阵
+
+不同语言的安装方式和运行时要求不一样。  
+先看这份总表：
+
+- [server-sdk-matrix.md](../huifu-dougong-pay-shared-base/runtime/server-sdk-matrix.md)
+
+### 步骤 3：先看协议规则
+
+真正语言无关的规则，统一看这里：
+
+- [signing-v2.md](../huifu-dougong-pay-shared-base/protocol/signing-v2.md)
+- [async-notify.md](../huifu-dougong-pay-shared-base/protocol/async-notify.md)
+
+### 步骤 4：Java 适配说明
+
+当前仓库里的初始化示例和完整代码，还是以 Java 为主。  
+如果你现在用的是 Java，再继续看下面这部分。
+
+显式的 Java 适配层文件在这里：
+
+- [references/language-adapters/java.md](references/language-adapters/java.md)
+
+### 步骤 5：配置环境变量（Java 示例）
 
 `application.yml` 中配置（通过环境变量注入，**严禁硬编码**）：
 
@@ -106,10 +158,10 @@ huifu:
 ### 动手写业务代码前再补一步
 
 - 先核对 [customer-preparation.md](references/customer-preparation.md)，确认哪些值必须由客户预先准备、控台配置、前端授权、终端采集或上游订单沉淀。
-- 再看 [payload-construction.md](references/payload-construction.md)，把 `method_expand`、`tx_metadata` 等字段按“先对象建模和校验、后序列化”的方式接入。
+- 再看 [payload-construction.md](references/payload-construction.md)，把 `method_expand`、`acct_split_bunch`、`terminal_device_data`、`tx_metadata` 等字段按“先对象建模和校验、后序列化”的方式接入。
 - 如果字段来源不明确，不要让模型自己猜 `sub_openid`、`buyer_id`、`auth_code`、`devs_id`、`fee_sign` 这类值。
 
-### 步骤 3-4：SDK 安装与初始化
+### 步骤 6：SDK 安装与初始化（Java）
 
 详见 [sdk-quickstart.md](references/sdk-quickstart.md)
 
@@ -120,6 +172,11 @@ huifu:
 1. **请求签名**：SDK 自动使用商户 RSA 私钥对请求 `data` 字段签名，生成 `sign` 字段
 2. **响应验签**：SDK 自动使用汇付 RSA 公钥验证响应签名
 3. **开发者无需手动处理签名**，SDK 内部已封装（SHA256WithRSA，JSON key 按 ASCII 排序后签名）
+
+协议级说明看共享资料：
+
+- [signing-v2.md](../huifu-dougong-pay-shared-base/protocol/signing-v2.md)
+- [async-notify.md](../huifu-dougong-pay-shared-base/protocol/async-notify.md)
 
 ## 支付类型（trade_type）
 
@@ -142,15 +199,30 @@ huifu:
 
 | 文件 | 内容 |
 |-----|------|
+| [../huifu-dougong-pay-shared-base/runtime/server-sdk-matrix.md](../huifu-dougong-pay-shared-base/runtime/server-sdk-matrix.md) | 服务端多语言能力矩阵 |
+| [../huifu-dougong-pay-shared-base/protocol/signing-v2.md](../huifu-dougong-pay-shared-base/protocol/signing-v2.md) | V2 签名规则（语言无关） |
+| [../huifu-dougong-pay-shared-base/protocol/async-notify.md](../huifu-dougong-pay-shared-base/protocol/async-notify.md) | 异步通知规则（语言无关） |
 | [quickstart.md](references/quickstart.md) | 快速接入指南与 SDK 对比 |
 | [customer-preparation.md](references/customer-preparation.md) | 客户前置准备清单、trade_type 场景参数来源、权限准备 |
 | [payload-construction.md](references/payload-construction.md) | `method_expand` / `tx_metadata` 校验与 JSON 字符串构造规范 |
+| [language-adapters/java.md](references/language-adapters/java.md) | Java 适配层文件，集中放 Java 运行时和调用约束 |
 | [sdk-quickstart.md](references/sdk-quickstart.md) | SDK 安装 + 初始化 + Factory 调用模式 |
 | [common-params.md](references/common-params.md) | 公共请求/返回参数、支付类型详解 |
 | [error-codes.md](references/error-codes.md) | 统一错误码 |
-| [tech-spec.md](references/tech-spec.md) | 技术规范（签名、异步通知、webhook） |
+| [tech-spec.md](references/tech-spec.md) | Java 适配补充（连接池、Spring Boot 兼容、历史 Java 示例） |
 | [async-webhook.md](references/async-webhook.md) | `notify_url` 回调与 Webhook 使用说明 |
 | [faq.md](references/faq.md) | 各渠道常见问题汇总 |
+
+## Java 适配说明
+
+下面这些内容都属于 Java 适配层，不属于协议层：
+
+- `references/language-adapters/java.md` 这份显式 Java 适配层文件
+- `sdk-quickstart.md` 里的 Maven 安装和初始化
+- `tech-spec.md` 里的 Spring Boot 兼容性
+- `setProductId()` / Factory 模式这类 Java SDK 细节
+
+如果你不是 Java 项目，重点先看共享协议层和运行时矩阵。
 
 ## 联调环境
 
@@ -221,14 +293,4 @@ try {
 
 ---
 
-## 版权声明
-
-本 Skill 的内容来源于 **上海汇付支付有限公司** 官方开放平台文档。
-
-- **版权归属**：上海汇付支付有限公司
-- **客服热线**：400-820-2819
-- **客服邮箱**：cs@huifu.com
-- **官方网站**：[https://www.huifu.com/](https://www.huifu.com/)
-- **开放平台**：[https://paas.huifu.com/open/home/index.html](https://paas.huifu.com/open/home/index.html)
-
-本 Skill 仅作技术学习交流使用，原始内容由汇付支付官方维护和更新。如有任何疑问或需要商业支持，请直接联系汇付支付官方客服。
+> 版权声明与联系方式见 [copyright-notice.md](../huifu-dougong-pay-shared-base/governance/copyright-notice.md)

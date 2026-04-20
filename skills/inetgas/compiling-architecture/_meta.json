@@ -3,9 +3,15 @@
   "slug": "compiling-architecture",
   "displayName": "Compiling Architecture",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775853765676,
-    "commit": "https://github.com/openclaw/skills/commit/6b5491f87c1e07d7baefd07567deb144266df50e"
+    "version": "1.0.2",
+    "publishedAt": 1776193465948,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775853765676,
+      "commit": "https://github.com/openclaw/skills/commit/6b5491f87c1e07d7baefd07567deb144266df50e"
+    }
+  ]
 }

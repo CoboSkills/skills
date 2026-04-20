@@ -3,11 +3,16 @@
   "slug": "wechat-mp-push",
   "displayName": "wechat mp push 微信公众号图文生成与推送技能",
   "latest": {
-    "version": "1.0.22",
-    "publishedAt": 1776002075955,
-    "commit": "https://github.com/openclaw/skills/commit/d750b4a614f907b4f558ffeaeae9585138c8f217"
+    "version": "3.0.3",
+    "publishedAt": 1776565253154,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.22",
+      "publishedAt": 1776002075955,
+      "commit": "https://github.com/openclaw/skills/commit/d750b4a614f907b4f558ffeaeae9585138c8f217"
+    },
     {
       "version": "1.0.21",
       "publishedAt": 1775272592225,

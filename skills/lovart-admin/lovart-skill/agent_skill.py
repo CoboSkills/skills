@@ -216,22 +216,27 @@ class AgentSkill:
     @staticmethod
     def download_artifacts(result: dict, output_dir: str = "/tmp/openclaw", prefix: str = "lovart") -> list:
         """Download all artifacts from a result dict to local files.
-        Returns list of {"type", "url", "local_path"}."""
+        Idempotent: file names are derived from URL hash, and existing files are skipped.
+        Returns list of {"type", "url", "local_path", "new": bool}."""
         import os
         os.makedirs(output_dir, exist_ok=True)
         downloaded = []
-        idx = 0
+        seen_urls = set()
         for item in result.get("items", []):
             for artifact in item.get("artifacts", []):
                 url = artifact.get("content", "")
                 atype = artifact.get("type", "unknown")
-                if not url:
+                if not url or url in seen_urls:
                     continue
-                idx += 1
+                seen_urls.add(url)
                 ext = os.path.splitext(url.split("?")[0])[-1] or (
                     ".mp4" if atype == "video" else ".png"
                 )
-                local_path = os.path.join(output_dir, f"{prefix}_{idx:02d}{ext}")
+                url_hash = hashlib.sha1(url.encode()).hexdigest()[:12]
+                local_path = os.path.join(output_dir, f"{prefix}_{url_hash}{ext}")
+                if os.path.exists(local_path) and os.path.getsize(local_path) > 0:
+                    downloaded.append({"type": atype, "url": url, "local_path": local_path, "new": False})
+                    continue
                 try:
                     req = urllib.request.Request(url, headers={
                         "User-Agent": "Mozilla/5.0",
@@ -240,9 +245,9 @@ class AgentSkill:
                     with urllib.request.urlopen(req, timeout=60, context=_ssl_ctx) as resp:
                         with open(local_path, "wb") as f:
                             f.write(resp.read())
-                    downloaded.append({"type": atype, "url": url, "local_path": local_path})
+                    downloaded.append({"type": atype, "url": url, "local_path": local_path, "new": True})
                 except Exception:
-                    downloaded.append({"type": atype, "url": url, "local_path": None, "error": "download failed"})
+                    downloaded.append({"type": atype, "url": url, "local_path": None, "error": "download failed", "new": False})
         return downloaded
 
     # ── Chat ─────────────────────────────────────────────────────────
@@ -582,6 +587,15 @@ def main():
     p.add_argument("--thread-id", default=None, help="Reuse thread for context continuity")
     p.add_argument("--attachments", nargs="*", default=None)
 
+    # watch (stream partial results: send + incremental polling, emits NDJSON per completed artifact)
+    p = sub.add_parser("watch", help="Send a prompt (or attach to existing thread) and stream artifacts as they complete")
+    p.add_argument("--prompt", default=None, help="Prompt to send. If omitted, must provide --thread-id")
+    p.add_argument("--project-id", default=None)
+    p.add_argument("--thread-id", default=None, help="Attach to an existing running thread")
+    p.add_argument("--attachments", nargs="*", default=None)
+    p.add_argument("--output-dir", default="/tmp/openclaw")
+    p.add_argument("--interval", type=int, default=3, help="Poll interval in seconds")
+
     # create-project
     sub.add_parser("create-project")
 
@@ -811,6 +825,63 @@ def main():
             state.add_project(project_id, args.prompt[:30].strip())
             state.upsert_thread(tid, args.prompt[:50].strip())
             print(json.dumps({"thread_id": tid, "project_id": project_id}))
+
+        elif args.command == "watch":
+            if not args.thread_id and not args.prompt:
+                print("Error: watch requires either --thread-id or --prompt", file=sys.stderr)
+                sys.exit(1)
+
+            # Either send a new prompt or attach to an existing thread
+            if args.thread_id:
+                tid = args.thread_id
+                project_id = args.project_id or state.get_project_id()
+            else:
+                project_id = args.project_id or state.get_project_id()
+                if not project_id:
+                    project_id = skill.create_project()
+                tid = skill.send(prompt=args.prompt, project_id=project_id,
+                                 attachments=args.attachments)
+                state.add_project(project_id, args.prompt[:30].strip())
+                state.upsert_thread(tid, args.prompt[:50].strip())
+
+            # Emit initial event
+            print(json.dumps({"event": "started", "thread_id": tid, "project_id": project_id}, ensure_ascii=False), flush=True)
+
+            # Stream: poll status + result, download new artifacts each round, emit NDJSON
+            seen_urls = set()
+            deadline = time.time() + skill.timeout
+            final_status = "timeout"
+            while time.time() < deadline:
+                try:
+                    status_info = skill.get_status(tid)
+                    status = status_info.get("status", "running")
+                    result = skill.get_result(tid)
+                    dl = skill.download_artifacts(result, output_dir=args.output_dir)
+                    for d in dl:
+                        if d.get("url") in seen_urls or not d.get("new"):
+                            if d.get("url") not in seen_urls and d.get("local_path"):
+                                # Already on disk from previous run — still emit once
+                                seen_urls.add(d["url"])
+                                print(json.dumps({"event": "artifact", "type": d["type"], "url": d["url"], "local_path": d.get("local_path")}, ensure_ascii=False), flush=True)
+                            continue
+                        seen_urls.add(d["url"])
+                        print(json.dumps({"event": "artifact", "type": d["type"], "url": d["url"], "local_path": d.get("local_path")}, ensure_ascii=False), flush=True)
+                    pc = result.get("pending_confirmation")
+                    if pc:
+                        final_status = "pending_confirmation"
+                        print(json.dumps({"event": "pending_confirmation", "thread_id": tid, "pending_confirmation": pc}, ensure_ascii=False), flush=True)
+                        break
+                    if status == "abort":
+                        final_status = "abort"
+                        break
+                    if status == "done":
+                        final_status = "done"
+                        break
+                except AgentSkillError as e:
+                    print(json.dumps({"event": "error", "message": e.message}, ensure_ascii=False), flush=True)
+                time.sleep(args.interval)
+
+            print(json.dumps({"event": "finished", "thread_id": tid, "final_status": final_status, "artifact_count": len(seen_urls)}, ensure_ascii=False), flush=True)
 
         elif args.command == "confirm":
             skill.confirm(args.thread_id)

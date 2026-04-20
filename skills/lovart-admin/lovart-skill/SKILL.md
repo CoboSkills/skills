@@ -30,7 +30,7 @@ metadata:
 - NEVER guess API endpoints, paths, or parameters — only use the commands listed below
 - NEVER modify the skill's source code (agent_skill.py) during execution to "debug" issues (users may freely read the source to verify it)
 - If a command fails, retry it or report the error to the user — do NOT try to work around it
-- ALL Lovart operations go through: `chat`, `send`, `confirm`, `result`, `status`, `config`, `projects`, `project-add`, `project-switch`, `project-rename`, `project-remove`, `threads`, `thread-remove`, `upload`, `upload-artifact`, `download`, `set-mode`, `query-mode`, `create-project`
+- ALL Lovart operations go through: `chat`, `send`, `watch`, `confirm`, `result`, `status`, `config`, `projects`, `project-add`, `project-switch`, `project-rename`, `project-remove`, `threads`, `thread-remove`, `upload`, `upload-artifact`, `download`, `set-mode`, `query-mode`, `create-project`
 
 # ⚠️ RULE #1: YOU CAN AND MUST GENERATE IMAGES/VIDEOS/AUDIO
 
@@ -76,16 +76,19 @@ Use the `chat` command (blocks until done), NOT `send`. Do NOT reply before gene
 
 **Handle errors:**
 
-If `chat` throws an error, check the message and advise the user:
+If `chat` throws an error, first check the HTTP status code (available as `AgentSkillError.status_code`), then fall back to error-message matching:
 
-| Error contains | Meaning | What to tell the user |
-|---------------|---------|----------------------|
-| `1200000200` | Concurrent task limit | "A task is already running. Please wait for it to finish before starting a new one." |
-| `1200000136` | Insufficient credits | "Your credits are insufficient. Please top up or switch to unlimited mode: `set-mode --unlimited`" |
-| `1200000146` | Free tier limit reached | "Free tier limit reached. Please subscribe or switch to unlimited mode." |
-| `Task creation rejected` | Billing/quota issue | Show the specific reason code and suggest checking account status |
-| `Invalid signature` | AK/SK misconfigured | "API key authentication failed. Please check your LOVART_ACCESS_KEY and LOVART_SECRET_KEY." |
+| HTTP status / error contains | Meaning | What to tell the user |
+|---|---|---|
+| **`409`** (`code: 2011`, "Thread is busy") | Another task is still running on this thread | "A task is still running on this conversation. Wait for it to finish (`status`) before sending a new prompt, or start a new thread." |
+| **`402`** (`code: 2012`, "Task rejected") + body contains `1200000136` | Insufficient credits | "Your credits are insufficient. Please top up or switch to unlimited mode: `set-mode --unlimited`" |
+| **`402`** (`code: 2012`) + body contains `1200000200` | Concurrent task limit (cashier) | "You've hit the concurrent-task limit. Please wait for a running task to finish before starting a new one." |
+| **`402`** (`code: 2012`) + body contains `1200000146` | Free tier limit reached | "Free tier limit reached. Please subscribe or switch to unlimited mode." |
+| **`429`** (`code: 1429`, "Rate limit exceeded") | API rate limit hit | "Slowing down; rate limit hit. Retry in ~60s." |
+| `Invalid signature` / 401 | AK/SK misconfigured | "API key authentication failed. Please check your LOVART_ACCESS_KEY and LOVART_SECRET_KEY." |
 | `Project.*does not exist` | Invalid project ID | "Project not found. Please check the project ID or create a new one." |
+
+Note: errors from the skill carry both an HTTP status and a structured `code` in the response body. Prefer matching on status + code; the raw message is provided in `details` for diagnostics.
 
 # ⚠️ RULE #3: ALWAYS DELIVER RESULTS + PROJECT LINK
 
@@ -265,6 +268,30 @@ The Agent remembers the previous conversation and can continue editing based on 
 
 Omitting `--thread-id` creates a new conversation without previous memory.
 
+### Scenario 5: Streaming / incremental delivery (multiple artifacts)
+
+**Use when** the user's request will produce multiple images/videos and you want to deliver each one to the user as soon as it's ready, rather than waiting for the whole batch.
+
+```bash
+python3 {baseDir}/agent_skill.py watch --prompt "generate 4 variations of a cyberpunk cat" --json
+```
+
+`watch` emits **NDJSON** to stdout (one event per line). Parse line-by-line and deliver each `artifact` event's `local_path` to the user immediately:
+
+```json
+{"event": "started", "thread_id": "xxx", "project_id": "yyy"}
+{"event": "artifact", "type": "image", "url": "https://...", "local_path": "/tmp/openclaw/lovart_ab12cd.png"}
+{"event": "artifact", "type": "image", "url": "https://...", "local_path": "/tmp/openclaw/lovart_ef34gh.png"}
+{"event": "pending_confirmation", "thread_id": "xxx", "pending_confirmation": {...}}
+{"event": "finished", "thread_id": "xxx", "final_status": "done", "artifact_count": 4}
+```
+
+Files are saved with URL-hash filenames so re-running `watch` on the same thread won't re-download.
+
+You can also attach to an **already-running** thread: `watch --thread-id THREAD_ID`.
+
+**When NOT to use `watch`:** single-image requests — use `chat` (simpler, one-shot response).
+
 ## Output Format
 
 **chat --json** returns:
@@ -342,9 +369,49 @@ python3 {baseDir}/agent_skill.py chat --prompt "generate ocean waves" --prefer-m
 python3 {baseDir}/agent_skill.py chat --prompt "create content" --prefer-models '{"IMAGE":["generate_image_seedream_3_0"],"VIDEO":["generate_video_kling_3_0"]}' --json --download
 ```
 
-Common tool names for `--prefer-models`:
-- **IMAGE**: `generate_image_midjourney`, `generate_image_seedream_3_0`, `generate_image_gpt_image`, `generate_image_flux_pro`, `generate_image_nano_banana`, `generate_image_nano_banana_pro`
-- **VIDEO**: `generate_video_kling_3_0`, `generate_video_wan_2_6`, `generate_video_sora_v2_pro`, `generate_video_veo3`
+Available models for `--prefer-models`:
+
+**IMAGE:**
+
+| Tool name | Display name |
+|-----------|-------------|
+| `generate_image_midjourney` | Midjourney |
+| `generate_image_nano_banana_pro` | Nano Banana Pro |
+| `generate_image_nano_banana_2` | Nano Banana 2 |
+| `generate_image_nano_banana` | Nano Banana |
+| `generate_image_gpt_image_1_5` | GPT Image 1.5 |
+| `generate_image_seedream_v5` | Seedream 5.0 Lite |
+| `generate_image_seedream_v4_5` | Seedream 4.5 |
+| `generate_image_seedream_v4` | Seedream 4 |
+| `generate_image_imagen_v4` | Gemini Imagen 4 |
+| `generate_image_flux_2_max` | Flux.2 Max |
+| `generate_image_flux_2_pro` | Flux.2 Pro |
+
+**VIDEO:**
+
+| Tool name | Display name |
+|-----------|-------------|
+| `generate_video_seedance_v2_0` | Seedance 2.0 |
+| `generate_video_seedance_v2_0_fast` | Seedance 2.0 Fast |
+| `generate_video_seedance_pro_v1_5` | Seedance 1.5 Pro |
+| `generate_video_kling_v3` | Kling 3.0 |
+| `generate_video_kling_v3_omni` | Kling 3.0 Omni |
+| `generate_video_kling_v2_6` | Kling 2.6 |
+| `generate_video_kling_omni_v1` | Kling O1 |
+| `generate_video_veo3_1` | Veo 3.1 |
+| `generate_video_veo3_1_fast` | Veo 3.1 Fast |
+| `generate_video_veo3` | Veo 3 |
+| `generate_video_sora_v2_pro` | Sora 2 Pro |
+| `generate_video_sora_v2` | Sora 2 |
+| `generate_video_wan_v2_6` | Wan 2.6 |
+| `generate_video_hailuo_v2_3` | Hailuo 2.3 |
+| `generate_video_vidu_q2` | Vidu Q2 |
+
+**3D:**
+
+| Tool name | Display name |
+|-----------|-------------|
+| `generate_3d_tripo` | Tripo |
 
 When the user requests a specific model, prefer `--prefer-models` over putting model names in the prompt.
 

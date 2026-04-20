@@ -3,9 +3,15 @@
   "slug": "lovart-skill",
   "displayName": "Lovart API Skills",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776066803524,
-    "commit": "https://github.com/openclaw/skills/commit/c3919aae12a26b189429ae7b854ec48bd9f4ea2c"
+    "version": "1.0.5",
+    "publishedAt": 1776673686762,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776066803524,
+      "commit": "https://github.com/openclaw/skills/commit/c3919aae12a26b189429ae7b854ec48bd9f4ea2c"
+    }
+  ]
 }

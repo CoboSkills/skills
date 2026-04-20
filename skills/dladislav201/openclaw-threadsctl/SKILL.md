@@ -7,6 +7,15 @@ description: Manage Threads accounts, OAuth connect URLs, drafts, and publishing
 
 Use `threadsctl` as the default interface for Threads operations.
 
+This skill is model-agnostic. It can be used with `OpenAI Codex`, `Gemini`, or another OpenClaw text provider. Optional image generation providers are separate from Threads publishing.
+
+## Prerequisites
+
+- `threadsctl` is installed and available in `PATH`
+- `THREADS_SERVICE_URL` and `THREADS_SERVICE_API_KEY` are configured for the CLI
+- At least one working OpenClaw text model is configured
+- Optional: an image generation provider such as `Gemini` if the user wants help creating images before posting
+
 ## Use when
 
 - The user wants to publish to Threads
@@ -28,6 +37,8 @@ Use `threadsctl` as the default interface for Threads operations.
 7. Use `--confirmed` only when the user clearly intends immediate publishing.
 8. Show concise summaries of results and include IDs only when useful.
 9. If a command fails, surface the real error and explain the likely next step.
+10. If the user wants a new image created, handle image generation separately before publishing.
+11. Only publish image posts after you have a final reachable `media_url`.
 
 ## Commands
 
@@ -89,6 +100,16 @@ Example:
 threadsctl draft create --account main-brand --type text --text "Launching today" --created-by "OpenClaw"
 ```
 
+### Image generation plus publish
+
+If the user wants a brand new image, first use the configured image generation provider. After that, publish only when a final hosted image URL is available.
+
+Example publish step:
+
+```bash
+threadsctl publish image --account main-brand --media-url "https://example.com/generated-image.jpg" --text "Launching today" --alt-text "Product launch image" --confirmed
+```
+
 ## Account connection
 
 To connect a new Threads account:
@@ -109,6 +130,7 @@ threadsctl auth connect-url --label client-two
 - Do not silently switch accounts.
 - Do not pass `--confirmed` unless immediate publishing is intended.
 - Do not hide command errors.
+- Do not assume an image generation provider is configured unless the environment actually supports it.
 
 ## Output style
 

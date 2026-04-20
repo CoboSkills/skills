@@ -1,5 +1,14 @@
 # Examples
 
+## Provider setup note
+
+This skill works with any OpenClaw text provider. A common setup is:
+
+- `openai-codex/gpt-5.4` for the main agent model
+- `google/gemini-3.1-flash-image-preview` for image generation
+
+Image generation is optional. Threads image publishing still requires a final reachable `media_url`.
+
 ## Publish now
 
 User intent:
@@ -34,6 +43,24 @@ Command:
 
 ```bash
 threadsctl publish image --account main-brand --media-url "https://example.com/image.jpg" --text "..." --alt-text "..." --confirmed
+```
+
+## Generate an image, then post it
+
+User intent:
+
+`Create an image for this post and then publish it to Threads`
+
+Recommended flow:
+
+1. Use the configured image generation provider to create the asset.
+2. Make sure the final image is available at a reachable URL.
+3. Publish it with `threadsctl`.
+
+Command:
+
+```bash
+threadsctl publish image --account main-brand --media-url "https://example.com/generated-image.jpg" --text "..." --alt-text "..." --confirmed
 ```
 
 ## Connect another Threads account

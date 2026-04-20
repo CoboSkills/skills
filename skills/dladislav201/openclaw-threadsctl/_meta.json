@@ -3,9 +3,15 @@
   "slug": "openclaw-threadsctl",
   "displayName": "openclaw-threadsctl",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775675485002,
-    "commit": "https://github.com/openclaw/skills/commit/bd4d1b050e79ee14413d1153d7570ca125c14b10"
+    "version": "1.0.1",
+    "publishedAt": 1776710342622,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775675485002,
+      "commit": "https://github.com/openclaw/skills/commit/bd4d1b050e79ee14413d1153d7570ca125c14b10"
+    }
+  ]
 }

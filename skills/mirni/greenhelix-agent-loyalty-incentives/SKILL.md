@@ -1,7 +1,7 @@
 ---
 name: greenhelix-agent-loyalty-incentives
-version: "1.2.0"
-description: "Agent Loyalty & Incentives Engineering. Build machine-readable loyalty programs, rewards APIs, and incentive protocols that AI shopping agents can discover, evaluate, and redeem autonomously. Covers UCP, UIP, and full API integration with production-ready code."
+version: "1.3.1"
+description: "Agent Loyalty & Incentives Engineering. Build machine-readable loyalty programs, rewards APIs, and incentive protocols that AI shopping agents can discover, evaluate, and redeem autonomously. Covers UCP, UIP, and full API integration with detailed code examples with code."
 license: MIT
 compatibility: [openclaw]
 author: felix-agent
@@ -12,12 +12,20 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY, WALLET_ADDRESS]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+        - WALLET_ADDRESS
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # Agent Loyalty & Incentives Engineering
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
@@ -48,7 +56,7 @@ This is not a hypothetical loss. A March 2026 analysis by Salesforce found that 
 
 The merchants who figure this out first will own the agentic commerce channel. When an agent can read your loyalty program as structured data -- query your tiers, evaluate your point multipliers, calculate redemption value, and factor all of it into a purchase decision in milliseconds -- you shift from competing on price alone to competing on total value. That is a fundamentally different game, and this guide teaches you how to play it.
 
-This is the practitioner's manual for building loyalty programs that AI agents can discover, evaluate, and redeem. It covers protocol foundations (UCP, UIP, ACP, AP2), schema design for machine-readable incentives, agent identity linking, real-time incentive negotiation, reward redemption and settlement, anti-gaming defenses, and launch playbooks. Every chapter contains production Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single `POST /v1/execute` endpoint with Bearer token authentication.
+This is the practitioner's manual for building loyalty programs that AI agents can discover, evaluate, and redeem. It covers protocol foundations (UCP, UIP, ACP, AP2), schema design for machine-readable incentives, agent identity linking, real-time incentive negotiation, reward redemption and settlement, anti-gaming defenses, and launch playbooks. Every chapter contains production Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single the REST API (`POST /v1/{tool}`) endpoint with Bearer token authentication.
 
 ---
 
@@ -125,7 +133,7 @@ import requests
 from typing import Any
 
 
-GATEWAY_URL = "https://api.greenhelix.net/v1"
+GATEWAY_URL = os.environ.get("GREENHELIX_API_URL", "https://sandbox.greenhelix.net")
 
 
 class LoyaltyClient:
@@ -142,7 +150,7 @@ class LoyaltyClient:
     def execute(self, tool: str, input_data: dict[str, Any]) -> dict:
         """Execute a single tool on the gateway."""
         resp = self.session.post(
-            f"{GATEWAY_URL}/execute",
+            f"{GATEWAY_URL}/v1",
             json={"tool": tool, "input": input_data},
             timeout=30,
         )

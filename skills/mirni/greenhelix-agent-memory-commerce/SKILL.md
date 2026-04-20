@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-memory-commerce
-version: "1.2.0"
+version: "1.3.1"
 description: "Agent Memory for Commerce. Build commerce agents that remember customers, maintain transaction state across sessions, and reconcile billing context at scale using tiered memory architecture. Includes detailed Python code examples with full API integration."
 license: MIT
 compatibility: [openclaw]
@@ -12,12 +12,21 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY, WALLET_ADDRESS, REDIS_URL]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+        - WALLET_ADDRESS
+        - REDIS_URL
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # Agent Memory for Commerce
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
@@ -101,7 +110,7 @@ The GreenHelix gateway provides the tools to externalize this state. Instead of 
 import requests
 import os
 
-GATEWAY_URL = "https://api.greenhelix.net/v1"
+GATEWAY_URL = os.environ.get("GREENHELIX_API_URL", "https://sandbox.greenhelix.net")
 API_KEY = os.environ["GREENHELIX_API_KEY"]
 
 headers = {
@@ -111,9 +120,9 @@ headers = {
 
 
 def execute(tool: str, params: dict) -> dict:
-    """Execute a GreenHelix tool via POST /v1/execute."""
+    """Execute a GreenHelix tool via the GreenHelix REST API."""
     response = requests.post(
-        f"{GATEWAY_URL}/execute",
+        f"{GATEWAY_URL}/v1",
         headers=headers,
         json={"tool": tool, "input": params},
         timeout=30,

@@ -3,11 +3,16 @@
   "slug": "air-france",
   "displayName": "Air France",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1776087246195,
-    "commit": "https://github.com/openclaw/skills/commit/0e58b3ad1480a989ba6222b6012d628e0ccf81f4"
+    "version": "1.0.8",
+    "publishedAt": 1776237876789,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1776087246195,
+      "commit": "https://github.com/openclaw/skills/commit/0e58b3ad1480a989ba6222b6012d628e0ccf81f4"
+    },
     {
       "version": "1.0.2",
       "publishedAt": 1775634699654,

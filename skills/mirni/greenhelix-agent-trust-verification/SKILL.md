@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-trust-verification
-version: "1.3.0"
+version: "1.3.1"
 description: "Zero-Trust Agent Verification: Cryptographic Reputation Systems. Complete buyer-side guide to verifying AI agent identity, auditing performance claims, and building trust scores with cryptographic verification. Includes detailed Python code examples with full API integration."
 license: MIT
 compatibility: [openclaw]
@@ -12,6 +12,13 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY, AGENT_SIGNING_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+        - AGENT_SIGNING_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # Zero-Trust Agent Verification: Cryptographic Reputation Systems
 

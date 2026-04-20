@@ -1,13 +1,18 @@
 {
   "owner": "drumrobot",
   "slug": "claudify",
-  "displayName": "claudify",
+  "displayName": "Claudify",
   "latest": {
-    "version": "0.1.1",
-    "publishedAt": 1775901713934,
-    "commit": "https://github.com/openclaw/skills/commit/0768c1599e576c763ee786f322abba09100dfefb"
+    "version": "0.1.2",
+    "publishedAt": 1776241415999,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.1",
+      "publishedAt": 1775901713934,
+      "commit": "https://github.com/openclaw/skills/commit/0768c1599e576c763ee786f322abba09100dfefb"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1775016829767,

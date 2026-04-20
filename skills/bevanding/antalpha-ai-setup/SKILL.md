@@ -1,15 +1,15 @@
 ---
 name: antalpha-ai-setup
 description: >
-  Install and configure the Antalpha Skills MCP server. Provides 60+ Web3 tools for DEX swaps, smart money tracking, Polymarket prediction markets, Hyperliquid perpetuals, and DeFi analytics.
-version: 1.2.0
+  Install and configure the Antalpha Skills MCP server. Provides 76 Web3 tools for DEX swaps, smart money tracking, Polymarket prediction markets, Hyperliquid perpetuals, CEX trading, Bitcoin mining, and DeFi analytics.
+version: 1.3.0
 author: antalpha
 homepage: https://www.antalpha.com/
 ---
 
 # AntAlpha Skills MCP Server Setup
 
-Connect your AI agent to Antalpha's Web3 unified gateway — 60+ tools covering DEX swaps, smart money signals, Polymarket prediction markets, Hyperliquid perpetual trading, DeFi investment discovery, and EVM/BTC settlement intelligence.
+Connect your AI agent to Antalpha's Web3 unified gateway — 76 tools covering DEX swaps, smart money signals, Polymarket prediction markets, Hyperliquid perpetual trading, DeFi investment discovery, OKX spot/futures trading, Bitcoin mining management, and multi-chain asset queries.
 
 ## ⚡ Quick Install
 
@@ -28,7 +28,7 @@ Output:
  ✓ agent_id: "a3f1c8e7-4d2b-4a9f-b6e5-7c8d9e0f1a2b"
  ✓ api_key: "sk_4f7a2e...b2c3d4e5f6a7b8c9d"
 
- 62 tools ready.
+ 76 tools ready.
 ```
 
 > Add the returned `agent_id` and `api_key` to your MCP client config.
@@ -119,7 +119,7 @@ codex mcp add antalpha --url https://mcp-skills.ai.antalpha.com/mcp
 
 After adding the server, register your agent to receive an API key:
 
-1. Ask your agent to call the `antalpha-register` tool
+1. Ask your agent to call the registration tool
 2. It will return an `agent_id` (UUID) and a one-time `api_key`
 3. **Save the `api_key`** — it is shown only once
 
@@ -152,16 +152,19 @@ Try one of these prompts:
 | "What are the hottest crypto markets on Polymarket right now?" | `poly-trending` |
 | "Show me my Hyperliquid positions at 0x\<your_wallet_address\>" | `hl-positions` |
 | "Discover DeFi opportunities with low risk and APY above 5%" | `investor_discover` |
-| "What's the gas situation on Arbitrum?" | `settlement-gas-prediction` |
 | "Show all token balances for 0x\<your_wallet_address\> across every chain" | `multi-source-token-list` |
+| "Show me my OKX account summary" | `cex-account-get-info` |
+| "Place a spot buy for 0.01 BTC on OKX" | `cex-spot-place-order` |
+| "What are my futures positions on OKX?" | `cex-futures-get-positions` |
+| "List all miners in my farm with real-time status" | `easy-mining-list-miners` |
+| "Get historical hashrate for my farm" | `easy-mining-list-metrics-history` |
 
-## Available Tools (60+)
+## Available Tools (76)
+
+### DEX Swaps (9)
 
 | Tool | Description |
 |------|-------------|
-| `antalpha-register` | Register an agent to get agent_id and api_key |
-| `test-ping` | Verify server connectivity |
-| `multi-source-token-list` | Aggregate token balances across all EVM chains |
 | `swap-quote` | Real-time DEX swap quote via 0x |
 | `swap-create-page` | Firm 0x quote + cyberpunk swap page HTML |
 | `swap-full` | One-shot: quote + swap page + tx data |
@@ -171,17 +174,21 @@ Try one of these prompts:
 | `smart-swap-list` | List Smart Swap orders for a wallet |
 | `smart-swap-status` | Get order status by hash |
 | `smart-swap-cancel` | Check Fusion order cancellation status |
+
+### Smart Money (5)
+
+| Tool | Description |
+|------|-------------|
 | `smart-money-signal` | Trading signals from smart money wallets |
 | `smart-money-watch` | Recent activity for a specific wallet |
 | `smart-money-list` | List all monitored wallets (public + private) |
 | `smart-money-custom` | Add/remove private watchlist addresses |
 | `smart-money-scan` | On-demand scan of private watchlist |
-| `investor_discover` | Discover DeFi investment opportunities |
-| `investor_analyze` | Deep analysis of a DeFi product |
-| `investor_compare` | Compare multiple DeFi products |
-| `investor_feedback` | Submit feedback on a recommendation |
-| `investor_confirm_intent` | Confirm user investment intent |
-| `investor_get_stored_intent` | Retrieve stored investment intent |
+
+### Polymarket / Poly Master (17)
+
+| Tool | Description |
+|------|-------------|
 | `poly-master-traders` | Discover top Polymarket traders |
 | `poly-master-follow` | Follow/unfollow a trader for copy trading |
 | `poly-master-status` | Copy-trading status and risk config |
@@ -196,6 +203,11 @@ Try one of these prompts:
 | `poly-buy` | Buy outcome tokens via EIP-712 signing page |
 | `poly-sell` | Sell outcome tokens via EIP-712 signing page |
 | `poly-confirm` | Check poly-buy/sell order status |
+
+### Hyperliquid (13)
+
+| Tool | Description |
+|------|-------------|
 | `hl-price` | Get asset prices (Top 10 if no coin) |
 | `hl-account` | Hyperliquid account summary |
 | `hl-book` | L2 order book depth |
@@ -210,25 +222,76 @@ Try one of these prompts:
 | `hl-leverage` | Set leverage |
 | `hl-tp-sl` | Place take-profit / stop-loss order |
 | `hl-modify-order` | Modify an existing order |
-| `settlement-gas-prediction` | EVM gas tier estimates |
-| `settlement-predict-time` | Predict tx confirmation time |
-| `settlement-optimal-window` | Best time to send a tx |
-| `settlement-pending-pool` | Sandwich attack risk analysis |
-| `settlement-track-tx` | Track EVM tx status |
-| `settlement-verify-contract` | Check contract verification on explorer |
-| `settlement-token-info` | ERC-20 token metadata on-chain |
-| `settlement-btc-fee` | BTC mempool fee tiers |
-| `settlement-btc-settlement` | BTC confirmation time prediction |
-| `settlement-track-btc-tx` | Track BTC tx status |
+
+### DeFi Analytics (3)
+
+| Tool | Description |
+|------|-------------|
+| `investor_discover` | Discover DeFi investment opportunities |
+| `investor_analyze` | Deep analysis of a DeFi product |
+| `investor_compare` | Compare multiple DeFi products |
+
+### Multi-Chain Assets (2)
+
+| Tool | Description |
+|------|-------------|
+| `multi-source-token-list` | Aggregate token balances across all EVM chains |
+| `wallet-balance-query` | Query native balance for non-EVM chains |
+
+### CEX Trading / OKX (15)
+
+| Tool | Description |
+|------|-------------|
+| `cex-setup-check` | Check OKX API credentials status |
+| `cex-setup-save` | Save OKX API credentials |
+| `cex-setup-verify` | Verify OKX API credentials |
+| `cex-account-get-info` | OKX account summary (equity, PnL, balance) |
+| `cex-account-get-balance` | Detailed per-currency balance |
+| `cex-spot-place-order` | ⚠️ Place a spot order |
+| `cex-spot-cancel-order` | ⚠️ Cancel a spot order |
+| `cex-spot-get-orders` | Get spot orders (pending/history) |
+| `cex-futures-place-order` | ⚠️ Place a futures/swap order |
+| `cex-futures-cancel-order` | ⚠️ Cancel a futures order |
+| `cex-futures-get-positions` | Current futures positions + margin alerts |
+| `cex-futures-set-leverage` | ⚠️ Set leverage for an instrument |
+| `cex-futures-close-position` | ⚠️ Close position via market order |
+| `cex-market-get-ticker` | Real-time ticker (price, volume, bid/ask) |
+| `cex-market-get-kline` | OHLCV candlestick data |
+| `cex-market-get-orderbook` | Order book (bids + asks) |
+| `cex-market-get-instruments` | List available instruments |
+
+### Bitcoin Mining / Nonce (11)
+
+| Tool | Description |
+|------|-------------|
+| `easy-mining-get-workspace` | Get workspace info (connectivity check) |
+| `easy-mining-list-farms` | List all mining farms |
+| `easy-mining-list-agents` | List all Nonce Agents |
+| `easy-mining-list-miners` | Real-time miner status (hashrate, temp, power) |
+| `easy-mining-list-metrics-history` | Historical farm metrics |
+| `easy-mining-list-pool-diffs` | Mining pool change records |
+| `easy-mining-list-history` | Historical miner performance |
+| `easy-mining-list-miner-tasks` | Miner task execution history |
+| `easy-mining-list-task-batches` | List task batches |
+| `easy-mining-create-task-batch` | ⚠️ Create batch task (reboot, firmware, etc) |
+| `easy-mining-get-task-batch` | Get task batch status |
+
+### Utility (1)
+
+| Tool | Description |
+|------|-------------|
+| `test-ping` | Verify server connectivity |
 
 ## Troubleshooting
 
-- **"Agent validation failed"**: Call `antalpha-register` first and persist the returned `agent_id` and `api_key`. Then configure the `x-antalpha-agent-api-key` header with your `api_key`.
+- **"Agent validation failed"**: Register your agent first and persist the returned `agent_id` and `api_key`. Then configure the `x-antalpha-agent-api-key` header with your `api_key`.
 - **No tools available**: Verify the MCP server URL is exactly `https://mcp-skills.ai.antalpha.com/mcp` (note the `/mcp` path).
 - **Rate limited**: The tool call frequency is limited per IP. Wait a moment and retry, or register an agent for higher limits.
 - **Smart Swap not filling**: Smart Swap currently only supports `chain_id=1` (Ethereum mainnet) with `engine=1inch`. The order uses a Dutch auction mechanism — it may take 3–10 minutes to fill or auto-expire.
 - **Hyperliquid write tools require a private key**: Tools like `hl-limit-order` require your `agent_key` (Hyperliquid private key) and `owner` address in the input. The key is used only for signing the current request and is never stored server-side.
 - **Polymarket trades use signing pages**: `poly-buy` and `poly-sell` generate EIP-712 signing pages. Open the returned `preview_url` in your wallet browser to sign — your private key never leaves your wallet.
+- **OKX tools need API credentials**: Run `cex-setup-save` to configure your OKX API key, secret, and passphrase. Use `cex-setup-verify` to validate before trading.
+- **Mining tools need a Nonce API key**: Ensure your Nonce workspace API key is configured. Use `easy-mining-get-workspace` to verify connectivity.
 
 ---
 

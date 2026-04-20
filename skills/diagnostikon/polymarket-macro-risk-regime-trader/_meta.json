@@ -3,9 +3,15 @@
   "slug": "polymarket-macro-risk-regime-trader",
   "displayName": "Polymarket Macro Risk Regime Trader",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775317272518,
-    "commit": "https://github.com/openclaw/skills/commit/6fa4426cb57265c6d78a39c604ba0aff99094706"
+    "version": "0.0.2",
+    "publishedAt": 1776513466671,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775317272518,
+      "commit": "https://github.com/openclaw/skills/commit/6fa4426cb57265c6d78a39c604ba0aff99094706"
+    }
+  ]
 }

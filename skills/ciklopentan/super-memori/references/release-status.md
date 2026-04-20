@@ -27,7 +27,7 @@ It does **not** mean every host is semantic-ready by default.
 A host may still legitimately run `4.0.0` in degraded lexical mode if local semantic prerequisites or vector build state are missing.
 
 ## Candidate-line interpretation
-The current candidate preparation target is `4.0.0-candidate.10`.
+The current candidate preparation target is `4.0.0-candidate.25`.
 That means:
 - the v4 runtime capabilities claimed as implemented are present in code
 - host-state activation may still be degraded on a given machine

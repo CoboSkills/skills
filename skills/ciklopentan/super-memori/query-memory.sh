@@ -25,6 +25,7 @@ from super_memori_common import (
     skill_recall_gate,
     temporal_relational_rerank,
     build_hot_recovery_bundle,
+    summarize_authority_surface,
 )
 
 
@@ -193,7 +194,14 @@ def main() -> int:
                     warnings.append("using grep fallback")
                     degraded_reasons.append("using grep fallback")
 
+        degraded = bool(degraded_reasons)
+        authority_surface = summarize_authority_surface(fused_results, query=args.query, mode_used=mode_used, degraded=degraded)
+        fused_results = authority_surface["results"]
+        if authority_surface["requires_low_authority_warning"]:
+            warnings.append("low-authority matches only; results are heuristic/fallback and not confirmed memory truth")
+
         retrieval_stack_unavailable = lexical_error is not None and (fallback_error is not None or args.mode in {"exact", "recent", "learning"}) and (semantic_error is not None or args.mode in {"semantic", "hybrid"}) and not fused_results
+
         if retrieval_stack_unavailable:
             log_retrieval_event(
                 'retrieval_stack_unavailable',
@@ -227,7 +235,6 @@ def main() -> int:
                 print("error: retrieval stack unavailable")
             return 3
 
-        degraded = bool(degraded_reasons)
         relation_hits = sum(1 for item in fused_results if item.get('relation_hits'))
         if not fused_results:
             log_retrieval_event(
@@ -271,6 +278,8 @@ def main() -> int:
             "host_profile": profile,
             "skill_recall_gate": skill_gate,
             "skill_candidates": skill_candidates,
+            "authoritative_result_present": authority_surface["authoritative_result_present"] if fused_results else False,
+            "low_authority_only": authority_surface["low_authority_only"] if fused_results else False,
             "results": fused_results[: args.limit],
             "hot_recovery": hot_bundle,
         }
@@ -285,6 +294,8 @@ def main() -> int:
                 print("warnings:")
                 for w in warnings:
                     print(f"- {w}")
+            print(f"authoritative_result_present: {str(payload['authoritative_result_present']).lower()}")
+            print(f"low_authority_only: {str(payload['low_authority_only']).lower()}")
             if hot_bundle and hot_bundle.get("selected"):
                 print("hot_recovery:")
                 print(f"- truth_note: {hot_bundle.get('truth_note')}")
@@ -293,6 +304,7 @@ def main() -> int:
             print("results:")
             for idx, item in enumerate(payload["results"], 1):
                 print(f"{idx}. [{item.get('memory_type','unknown')}] {item.get('source_path','?')}")
+                print(f"   authority: {item.get('match_authority','unknown')}")
                 print(f"   {item.get('snippet','').strip()}")
 
         if hot_bundle and hot_bundle.get("selected"):

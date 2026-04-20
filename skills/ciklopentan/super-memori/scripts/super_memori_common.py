@@ -259,6 +259,8 @@ MEMORY_TYPES = ["episodic", "semantic", "procedural", "learning", "buffer"]
 VALID_LEARNING_TYPES = {"error", "correction", "lesson", "insight"}
 VALID_RELATION_KEYS = ["supersedes", "refines", "confirms", "contradicts", "extends"]
 CANONICAL_RELATION_TARGET_PREFIXES = ("learn:", "chunk:", "path:")
+CANONICAL_DAILY_NOTE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}\.md$")
+NONCANONICAL_SEMANTIC_SUBDIRS = {"agent-change-memory", "skill-memory", "system-hygiene"}
 MAX_LEARNING_CHARS = 4000
 CHUNK_TARGET_CHARS = 1200
 CHUNK_OVERLAP_CHARS = 150
@@ -575,13 +577,32 @@ def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _is_canonical_daily_note(path: Path) -> bool:
+    return path.parent == MEMORY_DIR and bool(CANONICAL_DAILY_NOTE_RE.match(path.name))
+
+
+
+def _is_noncanonical_semantic_path(path: Path) -> bool:
+    try:
+        rel = path.relative_to(MEMORY_DIR / "semantic")
+    except Exception:
+        return False
+    return bool(rel.parts) and rel.parts[0] in NONCANONICAL_SEMANTIC_SUBDIRS
+
+
+
 def canonical_memory_files() -> list[tuple[str, Path]]:
     files: list[tuple[str, Path]] = []
     if MEMORY_DIR.exists():
+        for path in sorted(MEMORY_DIR.glob("*.md")):
+            if _is_canonical_daily_note(path):
+                files.append(("episodic", path))
         for mem_type in ["episodic", "semantic", "procedural"]:
             d = MEMORY_DIR / mem_type
             if d.exists():
                 for path in sorted(d.rglob("*.md")):
+                    if mem_type == "semantic" and _is_noncanonical_semantic_path(path):
+                        continue
                     files.append((mem_type, path))
         buffer = MEMORY_DIR / "working-buffer.md"
         if buffer.exists():
@@ -1420,6 +1441,55 @@ def diversify_results(results: list[dict], *, limit: int = 5, per_source_cap: in
     return diversified
 
 
+def _query_has_exact_indicator(query: str) -> bool:
+    lowered = (query or "").casefold()
+    return any(token in lowered for token in ["/", ".md", ".py", ".sh", ".json", "#tags", "path:", "chunk:", "learn:"])
+
+
+def classify_result_authority(item: dict, *, query: str, mode_used: str) -> str:
+    chunk_id = str(item.get("chunk_id") or "")
+    if chunk_id.startswith("grep:"):
+        return "fallback"
+
+    fusion_sources = {str(source).casefold() for source in (item.get("fusion_sources") or [])}
+    source_path = str(item.get("source_path") or "")
+    snippet = str(item.get("snippet") or "")
+    query_lc = (query or "").strip().casefold()
+
+    exact_query_match = bool(query_lc) and (query_lc in source_path.casefold() or query_lc in snippet.casefold())
+    exact_indicator = exact_query_match or _query_has_exact_indicator(query)
+    lexical_signal = bool(fusion_sources & {"lexical"}) or item.get("rank") is not None or item.get("lexical_rank") is not None
+    semantic_signal = bool(fusion_sources & {"semantic"}) or item.get("semantic_score") is not None
+
+    if mode_used == "hybrid" and lexical_signal and semantic_signal:
+        return "hybrid"
+    if mode_used == "semantic" and semantic_signal and not lexical_signal:
+        return "semantic"
+    if exact_indicator and lexical_signal:
+        return "exact"
+    if semantic_signal:
+        return "semantic"
+    if lexical_signal:
+        return "exact" if mode_used in {"exact", "recent", "learning"} else "fallback"
+    return "fallback"
+
+
+def summarize_authority_surface(results: list[dict], *, query: str, mode_used: str, degraded: bool) -> dict:
+    classified = []
+    for item in results:
+        enriched = dict(item)
+        enriched["match_authority"] = classify_result_authority(enriched, query=query, mode_used=mode_used)
+        classified.append(enriched)
+    authoritative_result_present = any(item.get("match_authority") in {"exact", "hybrid"} for item in classified)
+    low_authority_only = bool(classified) and not authoritative_result_present
+    return {
+        "results": classified,
+        "authoritative_result_present": authoritative_result_present,
+        "low_authority_only": low_authority_only,
+        "requires_low_authority_warning": bool(degraded and low_authority_only),
+    }
+
+
 def grep_fallback(query: str, memory_type: str = "all", limit: int = 5, reviewed_only: bool = False) -> list[dict]:
     search_paths: list[Path] = []
     if memory_type == "all":
@@ -1534,7 +1604,9 @@ def audit_memory_integrity() -> dict:
     missing_vectors = sorted(chunk_id for chunk_id in lexical_ids if chunk_id not in vector_chunk_ids)
 
     vector_state = "ok"
-    if missing_vectors and not vector_chunk_ids:
+    if not lexical_ids and not vector_chunk_ids:
+        vector_state = "semantic-unbuilt"
+    elif missing_vectors and not vector_chunk_ids:
         vector_state = "semantic-unbuilt"
     elif missing_vectors:
         vector_state = "stale-vectors"

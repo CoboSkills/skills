@@ -3,11 +3,16 @@
   "slug": "super-memori",
   "displayName": "Super Memori",
   "latest": {
-    "version": "4.0.0-candidate.15",
-    "publishedAt": 1776070830957,
-    "commit": "https://github.com/openclaw/skills/commit/1efcaf242626949433492c842c68b9d637881bb7"
+    "version": "4.0.0-candidate.25",
+    "publishedAt": 1776691885937,
+    "commit": null
   },
   "history": [
+    {
+      "version": "4.0.0-candidate.15",
+      "publishedAt": 1776070830957,
+      "commit": "https://github.com/openclaw/skills/commit/1efcaf242626949433492c842c68b9d637881bb7"
+    },
     {
       "version": "3.2.4",
       "publishedAt": 1775548700243,

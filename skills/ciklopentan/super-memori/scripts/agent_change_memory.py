@@ -320,13 +320,13 @@ def build_hot_recovery_bundle(*, query: str | None = None, limit: int = 8) -> di
     return {
         "source": "hot-change-buffer",
         "query": query,
-        "truth_note": "hot buffer is recent recovery state only; it is not canonical truth and does not replace durable change-memory, direct live inspection, Context Guardian, or audit truth",
         "recent": recent,
         "unverified": unverified,
         "interrupted": interrupted.get("interrupted", []),
         "selected": selected[:limit],
         "decision": "hot-recovery" if selected else "no-recent-hot-change",
         "hot_buffer_health": hot_buffer_health_status(),
+        "truth_note": "hot buffer is not canonical truth; direct live inspection and durable change-memory remain stronger for exact current machine state",
     }
 
 

@@ -15,6 +15,7 @@ python3 tests/test_repair_plan.py
 python3 tests/test_semantic_unbuilt_state.py
 python3 tests/test_promotion_candidates.py
 python3 tests/test_hot_change_buffer.py
+python3 tests/test_result_authority_surface.py
 python3 tests/test_evals_surface.py
 python3 repair-memory.sh --classify --json >/tmp/super-memori-repair-classify.json
 python3 audit-memory.sh --json >/tmp/super-memori-audit.json

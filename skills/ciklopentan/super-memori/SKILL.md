@@ -8,9 +8,9 @@ description: >
   backup awareness before major operations, and risk-aware memory changes. Optimized for weak models by exposing a small command surface and clear degraded-mode rules.
 ---
 
-# Super Memori — v4.0.0-candidate.15 Project Skill
+# Super Memori — v4.0.0-candidate.25 Project Skill
 
-**Release line:** `v4.0.0-candidate.15` pre-release for the current-generation local-only memory runtime.
+**Release line:** `v4.0.0-candidate.25` pre-release for the current-generation local-only memory runtime.
 
 **Release-line truth boundary:** the release line identifies the packaged skill artifact, not the live freshness state of whatever host runs it later. Current host freshness, semantic readiness, degraded state, and authority limits must be read from live command outputs such as `./health-check.sh --json` and `./query-memory.sh ... --json` at use time, not inferred from the release label alone.
 
@@ -39,6 +39,7 @@ If you need the shortest safe operating path under OpenClaw, use this order and 
 4. If status is `WARN` → continue only in degraded mode and trust the returned warnings/checks.
 5. For first query: `./query-memory.sh "<your query>" --mode auto --json`
 6. Trust `mode_used`, `degraded`, `warnings`, `semantic_ready`, and `index_fresh`.
+6a. Also trust `authoritative_result_present`, `low_authority_only`, and each result's `match_authority` when they are returned. They tell you whether the answer contains confirmed exact/hybrid memory or only heuristic/fallback matches.
 7. Use `./memorize.sh` only for reusable lessons.
 8. Use `./index-memory.sh` only when the contract below tells you to refresh or repair freshness.
 
@@ -62,6 +63,7 @@ Expected: Python is installed and callable as `python3`.
 ```bash
 pip3 install --user sentence-transformers numpy qdrant-client
 ```
+Note: this installs only the Python client library; it does not install or start the Qdrant database service. Vector search will remain inactive until a reachable local Qdrant service is running and accessible.
 If this step fails, the skill can still run in degraded lexical-only mode and will report that state honestly.
 
 ### 4. Build or refresh local indexes
@@ -92,7 +94,6 @@ After setup, follow only the four public commands and the `FOR ALL MODELS — RE
 - Change-memory records are operational truth about agent-made changes.
 - A minimal internal hot-change-buffer may hold very recent recovery-only state for recent agent-made changes, but it is not canonical truth.
 - Neither durable change-memory nor the hot-change-buffer replaces direct live filesystem / service / package inspection when exact current machine state is required.
-- The hot-change-buffer does not replace Context Guardian, audit truth, or canonical files.
 - `reverted` or `unverified` records must not be presented as active current state.
 
 ## Change-memory truth
@@ -109,8 +110,8 @@ After setup, follow only the four public commands and the `FOR ALL MODELS — RE
 - Must not override direct live inspection or change-memory truth.
 
 ## Current host limitations
-- **Current validation host execution mode may be degraded lexical-only (`semantic-unbuilt`).** Confirm the live host state with `./health-check.sh --json` instead of inferring it from this document alone.
-- `system_hygiene` on the latest validation host may be stale / partial-visibility; do not read that as a clean-health signal and do not generalize it to every host that installs this release.
+- The latest validation host snapshot is host-scoped evidence, not artifact-wide truth. Confirm the live host state with `./health-check.sh --json` instead of inferring it from this document alone.
+- `system_hygiene` on the latest validation host may still be stale / partial-visibility; do not read that as a clean-health signal and do not generalize it to every host that installs this release.
 - Minimal hot-change-buffer is enabled in safe-first mode only: RAM-resident, circular-buffer, recovery-only, non-canonical, non-durable, and aggressively noise-filtered.
 - This is not a blocker for change-memory.
 - Destructive auto-actions remain disabled by default.
@@ -175,7 +176,7 @@ Never let inferred, stale, degraded, or retrieval-only surfaces override canonic
 
 ### Weak-model operating rules
 1. Default to `./query-memory.sh --mode auto`. The script will choose the strongest available local path and will report what actually ran via `mode_used`.
-2. Trust the returned `mode_used`, `degraded`, `warnings[]`, `semantic_ready`, `semantic_fresh`, and `index_fresh` fields. Do not infer stronger capability than the payload states.
+2. Trust the returned `mode_used`, `degraded`, `warnings[]`, `semantic_ready`, `semantic_fresh`, `index_fresh`, `authoritative_result_present`, and `low_authority_only` fields. Do not infer stronger capability than the payload states.
 3. `--mode semantic` and `--mode hybrid` are now real implemented runtime modes. They are no longer compatibility stubs. Weak models still should prefer `auto` unless the task clearly requires a forced semantic/hybrid retrieval query.
 4. If `--mode semantic` or `--mode hybrid` is requested on a host where the runtime reports `semantic_ready=false` or otherwise returns `degraded=true`, do not pretend semantic execution succeeded. Trust the returned `mode_used` and warnings: the request may honestly degrade to the strongest available local lexical path on this host. In that case, report the degraded lexical outcome as such and do not describe the result as semantic or hybrid retrieval. **Exception:** if the same payload also reports `index_fresh=false` (or `index_stale=true`) together with semantic unavailability, this rule no longer grants lexical fallback authority; defer to the Health & Safety Gate combined degraded-state rule and present the result only as a non-authoritative degraded match.
 5. For the lowest-friction safe path, weak models should think in this order: `health-check -> query(auto) -> read returned fields -> only then decide whether memorize or index is needed`.
@@ -188,6 +189,7 @@ Never let inferred, stale, degraded, or retrieval-only surfaces override canonic
 - **OK** → proceed normally.
 - **WARN** → state: `⚠️ MEMORY DEGRADED: <reason>. Results are partial.` You may continue only if you acknowledge the degradation limits. For write or maintenance continuations, also say: `⚠️ Continuing in degraded mode. Rollback path: <git/backup>.` For read-only degraded queries, state the degradation and fallback scope, then proceed without requiring a rollback path.
 - If semantic dependencies are unavailable but lexical freshness is still OK, lexical/index-backed results remain authoritative for exact/path/time-style matches, but do not describe them as semantic or meaning-based retrieval.
+- If `authoritative_result_present=false` and `low_authority_only=true`, treat returned matches as heuristic/fallback assistance only, not confirmed memory truth, even when the query still returned usable degraded results.
 - If `WARN` is caused by a stale lexical index, also say: `⚠️ Memory index may be stale. Results may miss recent changes. Consider running ./index-memory.sh.` In that stale-lexical-only case, indexed results remain usable but freshness-limited; do not present them as fully current.
 - If `index_stale=true` (or `index_fresh=false`) **and** semantic dependencies are unavailable in the same WARN state, rely only on the degraded results surfaced by `./query-memory.sh`; treat them as non-authoritative degraded matches only, not fresh indexed truth and not semantic matches. Do not present them as lexical truth or as `the best available answer`; lexical authority is revoked in this combined degraded state. Do not invent manual retrieval steps outside the four public commands. State: `⚠️ MEMORY DEGRADED: index stale, semantic unavailable. Results from query-memory fallback only. Missing recent changes and meaning-based matches. Run ./index-memory.sh and restore semantic prerequisites to resolve.` In JSON-capable outputs, mandatory degraded notices must live inside structured warning fields rather than outside the payload.
 - Do not treat every `warnings[]` note as a degraded retrieval result. Informational notes may appear even when the current request was satisfied exactly as designed; rely on the script's `degraded` field and exit code, not on the mere presence of warning text.
@@ -200,8 +202,8 @@ After running `./query-memory.sh`, you MUST check the exit code and act accordin
 | Exit Code | Meaning | Permitted Action |
 |-----------|---------|------------------|
 | `0` | Results found, stack healthy. | Use results normally. |
-| `1` | No results found. Check `degraded` and `warnings[]` to tell whether this was a clean miss or a degraded no-results outcome. | **First, inspect `degraded`.** If `degraded=true`, state: `⚠️ Degraded search found no entries for this query. Results may be incomplete.` If `degraded=false`, state: `No memory entries found for this query.` If the payload reflects the combined stale-index + semantic-unavailable WARN state, override the generic degraded phrasing above and use the exact degraded notice from the Health & Safety Gate WARN section so the lexical-authority revocation rule remains explicit. If `warnings[]` also contains freshness-relevant notes such as queue/backlog delay, stale lexical index, or similar recent-changes-may-be-missing warnings, append a short freshness caution so recent changes are not overstated as definitely absent. Do **not** treat exit code `1` as an automatic stack failure. |
-| `2` | Degraded but usable results returned. | State degradation explicitly using the query response itself (`degraded=true` and `warnings[]`). Do **not** treat this as a clean success. |
+| `1` | No results found. Check `degraded` and `warnings[]` to tell whether this was a clean miss or a degraded no-results outcome. | **First, inspect `degraded`.** If `degraded=true`, state: `⚠️ Degraded search found no entries for this query. Results may be incomplete.` If `degraded=false`, state: `No memory entries found for this query.` If the payload reflects the combined stale-index + semantic-unavailable WARN state, override the generic degraded phrasing above and use the exact degraded notice from the Health & Safety Gate WARN section so the lexical-authority revocation rule remains explicit. Outside that combined-state override, use returned `warnings[]` to surface any freshness-relevant notes such as queue/backlog delay, stale lexical index, or similar recent-changes-may-be-missing warnings. Do **not** treat exit code `1` as an automatic stack failure. |
+| `2` | Degraded but usable results returned. | State degradation explicitly using the query response itself (`degraded=true`, `warnings[]`, `authoritative_result_present`, and `low_authority_only`). Do **not** treat this as a clean success. |
 | `3` | Retrieval stack unavailable. | **STOP.** State: `❌ MEMORY UNAVAILABLE: Cannot search memory at all.` Do **not** continue as if this were a clean no-results case. Escalate to human maintenance. |
 | `4` | Bad arguments provided to script. | **STOP.** State the argument error and re-evaluate the command. |
 | `5` | Internal script error. | **STOP.** State: `❌ MEMORY INTERNAL ERROR.` Escalate to human maintenance. |
@@ -256,260 +258,5 @@ If you need machine-readable details, prefer `./index-memory.sh --json` and insp
 - If a request does not clearly map to the four public commands or the explicit maintenance path, reply: `Out of scope for super-memori v4 local-only runtime. Please specify which command to run or escalate to human maintenance.` After running a public command, follow the exit-code interpretation rules above exactly.
 - If you are unsure whether information qualifies for `memorize.sh`, default to not memorizing.
 
-<details>
-<summary>⚠️ MAINTENANCE — DO NOT EXPAND DURING NORMAL USE — HUMAN USE ONLY ⚠️</summary>
-
-## Execution Notes
-
-> ⚠️ This block is HUMAN / MAINTENANCE ONLY. Weak models must not expand it during normal operation.
-> Active mode selection, health gates, and execution rules are fully defined in the Runtime Capability Matrix and Implemented vs Optional sections above.
-> This section contains reference material, future-spec mapping, and migration notes only.
-
-## Core Position
-
-Build memory like an operating system component, not like a demo.
-
-Maintenance assumptions for this skill:
-- **Files are canonical truth**
-- **SQLite FTS5 handles exact / lexical retrieval**
-- **Qdrant handles semantic retrieval when available**
-- **A small CPU reranker is optional quality lift, not the foundation**
-- **Weak models should stay on the 4-command public interface**
-
-Everything else in this block is maintenance-only reference material for improving the skill rather than using it.
-
-## Retrieval Contract [REFERENCE ONLY — DESCRIBES CURRENT V4 RUNTIME SHAPE, NOT A MANUAL EXECUTION PLAN]
-
-> ⚠️ This describes the current v4 retrieval pipeline shape as implemented inside `query-memory.sh`. Do not reconstruct, simulate, or manually sequence these steps.
-
-The current v4 retrieval path is:
-
-```text
-query
-  → filters (type, time, tags, namespace)
-  → lexical retrieval (SQLite FTS5)
-  → semantic retrieval (Qdrant, when available / needed)
-  → fusion
-  → optional rerank
-  → deduplicate / diversify
-  → results + warnings + freshness state
-```
-
-**Health integration:** `query-memory.sh` already surfaces degraded state in its output. You do not need to run `health-check.sh` before every query. Use `health-check.sh` before major memory surgery, after suspicious behavior, or when you need to confirm whether degraded results are still trustworthy.
-
-## Write / Learning / Change-Memory Contract (target behavior)
-
-Use `memorize.sh` only when the new information is likely to help future runs.
-
-### What learning memory is for
-Learning memory is the scratch lane for self-improvement:
-- reusable failures
-- corrections
-- lessons
-- recurring anti-patterns
-- meaningful capability gaps
-- recurring retrieval misses
-- repeated success patterns worth operationalizing
-- stale or superseded lessons that should be reviewed
-
-Learning memory is not durable truth by default. It must earn promotion after repeated reuse or explicit permanence signals.
-Repeated signals should be aggregated into reviewable pattern reports instead of staying as isolated notes.
-
-### Change-memory operational rules
-- Treat change-memory as operational truth for agent-made changes, not as a substitute for direct live inspection when exact current machine state is required.
-- A minimal hot-change-buffer may retain very recent recovery-only event records for interrupted runs and recent-change recall; it is not canonical truth, not durable truth, and not exact current machine state.
-- Do not present `reverted` or `unverified` change records or hot events as active current state.
-- Harmless reads must not be logged as change-memory events or hot-buffer events.
-- Log only state-changing actions, failed writes, risky cleanup, package/service/config/runtime changes, rollback events, and recent multi-step risky change boundaries.
-
-### Before major memory work
-Major work = policy edits, index changes, mass rewrites, command-contract changes, retrying a previously failed memory task, or editing `SKILL.md`, references, or public scripts for this skill.
-1. Run `./health-check.sh`. If status is `FAIL`, stop. If status is `WARN`, continue only with explicit degraded-mode awareness and a rollback path.
-2. Verify rollback exists (`git status`, backup directory, or untouched canonical files).
-3. Run `./query-memory.sh --mode learning --limit 5` and reuse any clearly matching lesson.
-4. If learning quality or repeated misses matter, run `python3 mine-patterns.py` before changing promotion policy, retrieval logic, or memory structure.
-5. If the pattern report shows stale-success candidates, recurring misses, or related lesson clusters, review them manually before patching or proposing promotion.
-Read `references/learning-improvement.md` when you need the full pattern-mining workflow. Purpose: run promotion/retrieval review safely.
-
-### Good candidates
-- an unexpected failure with a reusable lesson
-- a user correction that changes future behavior
-- a better repeatable procedure
-- a recurring anti-pattern
-- a meaningful knowledge gap
-
-### Bad candidates
-- expected no-match results
-- one-off noise
-- weak guesses
-- duplicate lessons already recorded
-- `checked, nothing relevant`
-
-### Promotion to durable memory
-
-**DO NOT PERFORM PROMOTION.** Promotion is maintenance-only/manual review in the current v4 candidate line, not an automated runtime command.
-
-For the current skill:
-- **Promotion is manual. Do not auto-promote.**
-- `memorize.sh` writes stay in learning memory.
-- If a learning seems durable, say only: `Learning <summary> appears valuable for later manual promotion.`
-- If repeated lessons, corrections, misses, or successful reuse signals appear related, aggregate them through `python3 mine-patterns.py` before proposing manual promotion.
-- Use the same pattern report to identify retrieval-quality issues before changing indexing or degraded-mode rules.
-- If reuse evidence is stale, verify it manually before treating it as current best practice.
-
-### Durable target mapping (manual review mapping, not active runtime automation)
-Promotion into procedural or semantic memory is a manual maintenance layer, not a fifth public command.
-No current runtime command performs this promotion automatically.
-If a human-approved manual promotion exists later, use this mapping:
-- repeatable commands / debugging steps → procedural memory
-- anti-patterns / post-mortems → procedural lessons memory
-- durable facts / preferences / infrastructure facts → semantic memory
-- decisions with rationale → semantic decisions memory
-
-### Anti-patterns
-- Do not auto-log every non-zero exit code.
-- Do not duplicate the same lesson in multiple learning records.
-- Do not promote one-off context into durable memory.
-- Do not attempt to promote learnings without human action.
-- Do not invent commands for promotion.
-- Do not log that nothing relevant was found.
-
-## Health / Freshness Contract
-
-Health is not only about indexes. Health also means the agent can tell whether learning-memory is being used honestly instead of as a dumping ground, whether degraded mode is safe to continue in, and whether the host-side conditions still support trustworthy memory work.
-
-`health-check.sh` currently reports at least:
-- canonical files readable
-- lexical index status
-- semantic index status
-- queue backlog
-- last successful index update / freshness state
-- degraded state
-
-Advanced checks such as duplicate / orphan risk belong to the fuller semantic layer and should not be claimed until runtime support exists.
-
-`query-memory.sh` currently reports at least:
-- `mode_requested`
-- `mode_used`
-- `degraded`
-- `warnings[]`
-- `index_fresh`
-- `results[]`
-
-`--reviewed-only` excludes learning entries marked `- status: pending`. Grep fallback respects this behavior too.
-
-### Memory-safe operation rules
-- Follow the `WARN` vs `FAIL` rules from the Memory Health Contract before relying on results.
-- Before major memory surgery, confirm a rollback path exists and is accessible (`git status`, backup directory listing, or verified canonical file copies).
-- Prefer reversible changes to indexing, health scripts, and retrieval contracts.
-- Do not schedule recurring maintenance or audits without explicit approval.
-
-## Current Folder Meaning
-
-### Active public entrypoints
-- `query-memory.sh`
-- `memorize.sh`
-- `index-memory.sh`
-- `health-check.sh`
-
-These implement the current v4.0.0-candidate.12 local-only runtime: lexical retrieval is active by default, semantic/hybrid retrieval exists in code, and host state determines whether semantic/hybrid can activate on this machine.
-Promotion-to-durable-memory remains maintenance-only/manual review, and stable full-hybrid release claims remain blocked until an equipped host passes the stable-host readiness gate.
-
-### Maintenance-only entrypoints and support surfaces
-- `audit-memory.sh`
-- `repair-memory.sh`
-- `list-promotion-candidates.sh`
-- `validate-release.sh`
-- `validate-equipped-host.sh`
-- `mine-patterns.py`
-- `auto-learner.sh`
-- `references/`
-
-These are maintenance-only. Weak models must not open or inspect them during normal query/memorize/index/health operations.
-Only read or run them when an explicit maintenance step says `Read ...` or `Run ...`.
-
-### Legacy baseline (`scripts/legacy/` + archive material)
-These preserve older v2/v3-era behavior as historical reference only.
-They are not the current runtime truth.
-
-### Current references
-Detailed v4 architecture, contracts, release-state, and host-readiness surfaces live in the `references/` directory. Human maintainers should consult those files when improving the current candidate line.
-
-## Backup / Exposure / Risk Notes
-
-- Files remain the canonical recovery path if indexes degrade or semantic dependencies disappear.
-- If the host is remote, exposed, or lightly backed up, prefer plan-first changes over direct edits to memory scripts.
-- If backups or snapshots are unknown, assume caution and avoid irreversible cleanup.
-- Health guidance for this skill covers memory reliability, not full host hardening. Use `healthcheck` for broader host security decisions.
-
-## How to use this skill today
-
-### If you need current memory behavior
-Use the active root commands:
-- `query-memory.sh`
-- `memorize.sh`
-- `index-memory.sh`
-- `health-check.sh`
-
-### If you are improving the skill
-Do this order:
-1. Run `health-check.sh`
-2. Review recent learning-memory if the task is major or previously failed
-3. Confirm whether rollback exists (git, backup, untouched canonical files)
-4. Read `references/architecture.md`
-5. Read `references/command-contracts.md`
-6. Read `references/migration-plan.md`
-7. For learning-quality or promotion-policy work, run `python3 mine-patterns.py` and read `references/learning-improvement.md`
-8. Review both promotion candidates and retrieval-audit signals from the pattern report
-9. Check whether repeated successful reuse signals change the promotion decision
-10. Check whether stale success candidates or cooling clusters require manual re-validation
-11. Only then patch or replace scripts
-12. Re-run health after the patch
-
-## Design target
-
-The goal is not “the fanciest memory system”.
-The goal is:
-
-> **the strongest honest local-only memory skill that weak models can use reliably on a CPU-only Ubuntu OpenClaw host**
-
-That is the bar for the current `v4.0.0-candidate.12` line.
-
-## Release interpretation
-- **Historical v3 line (`3.x`)** = lexical-first baseline with degraded semantic reporting and a smaller runtime claim surface
-- **Current line (`4.0.0-candidate.12`)** = v4 candidate where lexical, semantic, hybrid, temporal-relational, audit, change-memory, and change-audit capabilities exist in code, while learning-improvement surfaces remain maintenance-only and host-state activation may still be degraded on a given machine
-- **Stable `4.0.0` release** = reserved for the first equipped-host-verified stable release after runtime behavior, docs, health/audit semantics, and host validation all agree
-
-## Stable-release gate [HUMAN/MAINTENANCE ONLY]
-
-> ⚠️ This is a stable-release verification checklist for already-implemented runtime features on an equipped host. Weak models must not execute, track, or report on these steps.
-
-Do not skip steps **when verifying on an equipped host**.
-1. [ ] `health-check.sh --json` shows lexical baseline healthy
-2. [ ] semantic prerequisites are installed and verified on an equipped host
-3. [ ] semantic / vector indexing for canonical files is verified on an equipped host
-4. [ ] semantic freshness / backlog state is visible and healthy on an equipped host
-5. [ ] `query-memory.sh --mode hybrid` is verified on an equipped host to fuse lexical + semantic results
-6. [ ] optional reranker, if enabled, is healthy on an equipped host and documented honestly
-7. [ ] docs, runtime, and health semantics all align before any 4.0.0 stable release
-
-For the short next-steps instruction, read `references/roadmap-to-4.0.0.md`.
-
-</details>
-
-## Maintenance Anti-Patterns (human reference)
-
-When editing this skill, do not:
-- claim semantic retrieval is fully active on the current host unless dependencies, local model, vectors, and health checks actually pass
-- add more public commands for weak models
-- make Qdrant the canonical source
-- let degraded lexical-only mode fail silently
-- log harmless reads as change-memory events
-- auto-log every non-zero exit code as a lesson
-- treat repeated failures as isolated one-off notes when they should be aggregated into pattern reports
-- ignore retrieval-audit signals when pattern mining shows recurring misses, lexical fallbacks, or fragmentation hints
-- ignore repeated successful reuse when deciding whether a procedure or lesson deserves manual promotion review
-- treat stale success as current truth without manual re-validation
-- auto-promote pattern clusters without human review
-- schedule recurring checks or maintenance without explicit approval
-- mix architecture notes back into the public command interface
+## Maintenance Reference
+For retrieval pipeline contracts, write/learning contracts, promotion rules, maintenance entrypoints, release gates, and anti-patterns, see [`references/maintenance.md`](references/maintenance.md).

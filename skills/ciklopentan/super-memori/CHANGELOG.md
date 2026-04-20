@@ -1,5 +1,82 @@
 # Changelog
 
+## 4.0.0-candidate.25 - 2026-04-20
+- Ran a fresh 6-round alternating Dual Thinking pass through ai-orchestrator (DeepSeek) and qwen-orchestrator (Qwen) starting from the already-published `4.0.0-candidate.24` baseline.
+- Fixed a false semantic-health WARN in `health-check.sh`: the warning path now falls back from Qdrant `indexed_vectors_count` to `points_count` before claiming that no indexed vectors are present.
+- Re-synchronized active support surfaces so current-line documentation no longer states that the current validation host is degraded/unbuilt when live validation shows semantic-ready execution; the earlier degraded claims are now explicitly historical snapshots.
+- Advanced the active artifact line to `4.0.0-candidate.25` across `_meta.json`, `SKILL.md`, `references/release-status.md`, `references/verification-evidence.md`, and `references/reference-test-log.md` instead of silently reusing the already-published `candidate.24` tag for this post-publish fix.
+- Candidate publication remains honest and host-truth-bound: stable `4.0.0` is still blocked pending the equipped-host readiness sequence, while current host state must still be taken from live health/audit output at use time.
+
+## 4.0.0-candidate.24 - 2026-04-20
+- Fixed `canonical_memory_files()` so ordinary daily notes in `memory/YYYY-MM-DD.md` are indexed as episodic memory instead of being silently skipped.
+- Excluded non-canonical operational memory under `memory/semantic/skill-memory`, `memory/semantic/system-hygiene`, and `memory/semantic/agent-change-memory` from canonical indexing so maintenance refreshes do not make the canonical freshness checks immediately self-stale.
+- Added the missing `.clawhubignore` file and excluded local review/runtime artifacts, bytecode caches, full `reports/`, and temporary validation leftovers from the published package.
+- This release is still a candidate line; publish honesty remains host-scoped and live `health-check.sh --json` output remains the source of truth for freshness and semantic readiness.
+
+## 4.0.0-candidate.23 - 2026-04-14
+- Fresh 10-round alternating Dual Thinking rerun started from the already-published `4.0.0-candidate.21` baseline and accepted a real package-hygiene fix before continuing the confirmatory rounds.
+- Tightened `.clawhubignore` so internal `reports/` review artifacts and the root temporary validator leftover `tmp_round2_strict.txt` no longer ship in the distributable ClawHub package payload.
+- Synced the active artifact line to `4.0.0-candidate.23` across `_meta.json`, `SKILL.md`, `references/release-status.md`, `references/verification-evidence.md`, and `references/reference-test-log.md` instead of silently reusing the already-published `candidate.21` tag for this post-publish packaging fix.
+- Updated `PACKAGING_CHECKLIST.md` so the exclusion contract explicitly covers full `reports/` review artifacts and root temporary validation leftovers.
+- Strict local release validation still passes after the accepted rerun patch.
+
+## 4.0.0-candidate.21 - 2026-04-14
+- Fresh 10-round alternating Dual Thinking rerun started from the already-published `4.0.0-candidate.20` baseline and accepted a narrow support-surface truth fix before continuing the confirmatory rounds.
+- Tightened `references/verification-evidence.md` so the current-host lexical-freshness line no longer hard-pins a stale `2026-04-12T14:24:01+0800` timestamp as if it were the active evidential anchor for the current line; it now points explicitly to the live `./health-check.sh --json` snapshot for the candidate line while preserving the true degraded state (`lexical_freshness.ok=false`).
+- Advanced the active artifact line to `4.0.0-candidate.21` instead of silently reusing the already-published `candidate.20` tag for this post-publish support-surface fix.
+- Synchronized current-line identity across `_meta.json`, `SKILL.md`, `references/release-status.md`, `references/verification-evidence.md`, and `references/reference-test-log.md` to `candidate.21` while leaving `.clawhub/origin.json` untouched as real prior-publication metadata for `candidate.20` until the next actual publish completes.
+- Strict local release validation still passes after the accepted rerun patch.
+
+## 4.0.0-candidate.20 - 2026-04-14
+- Fresh 10-round alternating Dual Thinking rerun started from the already-published `4.0.0-candidate.19` baseline and accepted two additional publish-honesty fixes before republish.
+- Fixed a live host-evidence drift in `references/verification-evidence.md`: the current host-observed block no longer falsely says `lexical freshness: working after refresh`; it now reports the real current host state that the lexical stack is operational but freshness is stale (`lexical_freshness.ok=false`, last indexed `2026-04-12T14:24:01+0800`).
+- Corrected release-history semantics after that post-publish fix by advancing the active artifact line from `4.0.0-candidate.19` to `4.0.0-candidate.20` instead of silently reusing the already-published candidate tag.
+- Synchronized current-line identity across `_meta.json`, `SKILL.md`, `references/release-status.md`, `references/verification-evidence.md`, and `references/reference-test-log.md` to the new `candidate.20` line while leaving `.clawhub/origin.json` untouched as real prior-publication metadata for `candidate.19`.
+- Strict local release validation still passes after the accepted rerun patches.
+
+## 4.0.0-candidate.19 - 2026-04-14
+- Ran another fresh alternating Dual Thinking rerun with explicit current-date internet research pressure through ai-orchestrator (DeepSeek) and qwen-orchestrator (Qwen).
+- Accepted one new runtime contract hardening from rounds 1-2:
+  - added per-result `match_authority` plus top-level `authoritative_result_present` / `low_authority_only` signals so weak models can distinguish confirmed exact/hybrid memory from heuristic semantic/fallback matches without suppressing valid lexical truth
+- Rejected a naive numeric confidence-floor proposal because this runtime's RRF/fusion scores are not globally calibrated and a hard cutoff would break the existing lexical-authority contract for exact/path matches.
+- Added targeted regression coverage for the new authority surface and synced public command/skill contract wording to the new payload fields.
+- Later rerun rounds 7-8 found one more real publish seam: active contract/reference surfaces still mixed `candidate.18` and `candidate.19` identity after the version bump. Fixed that release-truth drift by syncing `SKILL.md`, `release-status.md`, `verification-evidence.md`, and `reference-test-log.md` to `candidate.19` while preserving historical bridge notes and leaving `.clawhub/origin.json` untouched as real published `candidate.18` metadata.
+- Removed one harmless duplicate `retrieval_stack_unavailable` assignment from `query-memory.sh` during the same sync pass.
+- Candidate line remains `4.0.0-candidate.19` pending final convergence proof and publish.
+
+## 4.0.0-candidate.18 - 2026-04-14
+- Ran a brand-new full 10-round alternating Dual Thinking rerun from the published `4.0.0-candidate.17` baseline using ai-orchestrator (DeepSeek) and qwen-orchestrator (Qwen), with exact Qwen daemon-restart recovery applied when round 4 and round 6 hit `exit 2` / navigation-timeout continuity failures.
+- Accepted two real runtime/test-alignment fixes from this rerun:
+  - `audit_memory_integrity()` now classifies the zero-chunk / zero-vector degraded host state as `semantic-unbuilt` instead of `ok`, bringing runtime output back into line with the documented degraded-host contract and the strict semantic-unbuilt test
+  - `build_hot_recovery_bundle()` now emits an explicit truth note that the hot buffer is not canonical truth and that direct live inspection plus durable change-memory remain stronger for exact current machine state, bringing runtime output back into line with the hot-buffer authority test and public contract
+- After those two fixes, all remaining rounds were confirmatory only: DeepSeek rounds 3/5/7/9 and Qwen rounds 2/4/6/8/10 found no new material seam that justified another patch.
+- Fresh strict validation now passes end-to-end on the post-fix baseline, and current health remains publish-compatible `WARN` for the already-documented host-scoped degraded reasons (`semantic-unbuilt`, stale lexical freshness) rather than any forbidden critical failure surface.
+- Advanced the candidate line to `4.0.0-candidate.18` for this rerun-backed release.
+- No public command expansion, no stable-release claim, no capability overstatement.
+
+## 4.0.0-candidate.17 - 2026-04-14
+- Ran another fresh 10-round alternating Dual Thinking rerun using ai-orchestrator (DeepSeek) and qwen-orchestrator (Qwen), including one lawful Qwen recovery chat after a polluted session repeated an already-fixed stale-version finding.
+- Accepted four additional narrow, validated fixes during this rerun:
+  - updated `ARCHIVE.md` from a stale `candidate.10` pointer to a frozen-history-only note that now defers generically to the current contract in `SKILL.md` and live release/reference surfaces
+  - synchronized stale support-surface self-identification so `release-status.md`, `verification-evidence.md`, and `reference-test-log.md` now align to the live `candidate.17` line, while preserving a single explicit bridge note that the underlying evidence was captured at `candidate.12`
+  - added an internal frozen-reference restatement inside the maintenance `Execution Notes` subsection so weak models cannot skim into the `<details>` block and misread it as active operating contract
+  - removed the redundant secondary freshness-caution append path from the `query-memory.sh` exit-code `1` override when the exact combined degraded-state notice already governs, while still surfacing freshness notes from returned `warnings[]` outside that override
+- DeepSeek confirmatory rounds 5, 7, and 9 found no new material seam after those accepted fixes.
+- Qwen round 6 and round 10 both converged on confirmatory acceptance with no new material fix required; round 8 also found no new materially justified seam.
+- Advanced the candidate line to `4.0.0-candidate.17` after the rerun-specific accepted fixes and fresh validation passed.
+- No public command expansion, no stable-release claim, no capability overstatement.
+
+## 4.0.0-candidate.16 - 2026-04-14
+- Ran a fresh 10-round alternating Dual Thinking rerun with ai-orchestrator (DeepSeek) and qwen-orchestrator (Qwen), including honest recovery handling for Qwen daemon/session continuity failures and polluted repeat-finding chats.
+- Accepted three real micro-fixes from this rerun:
+  - synchronized stale lower-section `candidate.12` references so the live artifact no longer contradicts its own `candidate.15`/`candidate.16` release identity inside maintenance/reference sections
+  - added explicit frozen-reference scoping for the maintenance `<details>` block and neutralized the highest-risk present-tense maintenance claims so weak models cannot misread them as live runtime truth
+  - clarified in OpenClaw host setup that `qdrant-client` does not install or start the Qdrant database service, preventing weak operators from treating `pip install` as full semantic-stack readiness
+- Rejected Qwen's later proposal to hard-restrict weak models to `--mode auto` only, because that would under-document real implemented semantic/hybrid capability and create a release-truth seam.
+- Confirmatory DeepSeek/Qwen rounds converged with no further accepted material seam; remaining `Host profiles` weakness was judged optional fluff, not release-blocking.
+- Advanced the candidate line to `4.0.0-candidate.16` after validation passed on the accepted artifact.
+- No public command expansion, no stable-release claim, no capability under-reporting for convenience.
+
 ## 4.0.0-candidate.15 - 2026-04-13
 - Fixed a real weak-model operator-risk seam in rule #4: forced semantic/hybrid fallback wording now explicitly yields to the combined degraded-state lexical-authority revocation rule when `index_fresh=false` (or `index_stale=true`) and semantic is unavailable together.
 - Advanced the candidate line to `4.0.0-candidate.15` after this narrow contract fix.
@@ -44,7 +121,6 @@
 - Buffer is RAM-first, rotational, recovery-only, non-canonical, aggressively noise-filtered, and bounded to a 32 MiB default target (64/128 MiB optional, 128 MiB max in this phase).
 - Added only the minimal internal functions required for Phase 1: recent hot-event record/update/query, interrupted-sequence detection, recovery bundle assembly, compaction, and health reporting.
 - Integrated the hot buffer into write/change logging, recent-change query routing, health reporting, minimal audit reporting, and maintenance compaction without adding any new public command.
-- Explicitly kept hot-buffer truth below canonical files, durable change-memory, direct live inspection, Context Guardian, and audit truth.
 - Added targeted Phase 1 eval coverage and passed strict release validation.
 
 ## 4.0.0-candidate.8 - 2026-04-12

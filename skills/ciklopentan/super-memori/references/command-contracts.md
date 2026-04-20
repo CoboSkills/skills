@@ -41,6 +41,8 @@ Retrieve memory by exact, semantic, hybrid, recent, or learning-oriented query.
 - `degraded`
 - `warnings`
 - `index_fresh`
+- `authoritative_result_present`
+- `low_authority_only`
 - `results`
 
 ### `mode_used` honesty rule
@@ -50,6 +52,8 @@ Retrieve memory by exact, semantic, hybrid, recent, or learning-oriented query.
 ### Degraded vs informational warnings
 - `warnings[]` may include informational host-state notes that do not by themselves force `degraded=true`.
 - `degraded=true` is reserved for cases where the requested retrieval path became partial, stale, or fallback-backed for the current query.
+- `authoritative_result_present` indicates whether at least one returned result still counts as confirmed exact/hybrid memory under the current runtime contract.
+- `low_authority_only` indicates that every returned result is only semantic/fallback heuristic support rather than confirmed exact/hybrid memory.
 - Informational notes such as "learning mode ran on lexical search on this host" may appear in `warnings[]` while `degraded=false` if the request was satisfied exactly as designed.
 - `exit 2` must be interpreted from the query response itself (`degraded=true` plus returned `warnings[]`/results), without delegating to any separate health-state branch.
 - `exit 1` does not by itself mean the host was fully healthy; it means no results were returned. Weak models must inspect `degraded` and `warnings[]` first, then frame the result as either a clean miss (`degraded=false`) or a degraded no-results outcome (`degraded=true`).
@@ -59,6 +63,7 @@ Retrieve memory by exact, semantic, hybrid, recent, or learning-oriented query.
 - `--mode learning` remains the learning-memory-oriented retrieval lane. It may still execute on a degraded lexical path on weaker/degraded hosts, but it no longer implies that the whole skill is only a lexical-first baseline.
 - If `mode_requested=auto` on a degraded host, `auto` remains valid because the script may degrade internally to the lexical path.
 - If semantic dependencies are unavailable but lexical freshness remains OK, lexical/index-backed results remain authoritative for exact/path/time-style retrieval only; they must not be described as semantic or meaning-based retrieval.
+- If `authoritative_result_present=false` and `low_authority_only=true`, returned matches must be framed as heuristic/fallback support only, not as confirmed memory truth.
 - If lexical freshness is stale but semantic dependencies are otherwise available, indexed results remain usable but freshness-limited; they must not be described as fully current until `./index-memory.sh` is run.
 - If lexical freshness is stale and semantic dependencies are unavailable at the same time, rely only on the degraded results surfaced by `query-memory.sh` itself.
 - In that double-degraded state, returned matches must be interpreted as file-derived fallback matches only, not fresh indexed truth and not semantic matches.

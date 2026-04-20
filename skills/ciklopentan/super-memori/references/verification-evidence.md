@@ -1,10 +1,10 @@
-# Verification Evidence — super-memori 4.0.0-candidate.12
+# Verification Evidence — super-memori 4.0.0-candidate.25
 
 ## Current line classification
-- line: `4.0.0-candidate.12`
+- line: `4.0.0-candidate.25`
 - reason: runtime architecture has crossed the lexical-first v3 boundary and now includes real local semantic indexing/search, hybrid fusion, temporal-relational rerank, integrity audit, and relation-aware learning writes
 - frozen historical line: `3.4.9 release`
-- current host state: degraded lexical-only operation because local semantic dependencies/model and built vectors are absent on this host
+- current host state: host-dependent; read the live `./health-check.sh --json` snapshot for the active machine instead of inferring a degraded or semantic-ready state from this file alone
 
 ## Accepted structural upgrades in this line
 1. Added a real local semantic runtime spine in code:
@@ -37,15 +37,27 @@
    - full removal of the misleading `zero-findings` host-state token from current-host wording
    - explicit exit-code `1` override back to the exact Health & Safety Gate degraded notice for that same combined WARN state
 
-## Current host-observed truth
-- lexical index: working
-- lexical freshness: working after refresh
-- semantic deps/model: missing on this host
+## Historical validation snapshot (2026-04-12 / candidate.12)
+- lexical index: working (`lexical_db` and `lexical_fts` were healthy on that validation host snapshot)
+- lexical freshness: stale on that validation host snapshot (`lexical_freshness.ok=false`)
+- semantic deps/model: missing on that validation host snapshot
 - qdrant reachable: yes
 - qdrant collection populated: no
 - semantic vectors: absent
 - semantic host state: degraded / unbuilt
-- integrity audit: warns honestly about `semantic-unbuilt` vector state and legacy broken relation targets from earlier non-canonical writes
+- integrity audit: that validation snapshot reported `status=ok` with `vector_state=semantic-unbuilt`, no orphan chunk/vector drift, and no broken relations
+
+Validation evidence was originally captured at `4.0.0-candidate.12`; the runtime contract later advanced through `4.0.0-candidate.25` without breaking capability regressions.
+
+## Live validation snapshot (2026-04-20 / candidate.25)
+- lexical index: working (`lexical_db` and `lexical_fts` are healthy on the current validation host)
+- lexical freshness: current (`lexical_freshness.ok=true`)
+- semantic deps/model: ready on the current validation host
+- qdrant reachable: yes
+- qdrant collection populated: yes (`points_count=4`)
+- semantic vectors: present (`semantic_vectors=4`)
+- semantic host state: semantic-ready on the current validation host (`semantic_ready=true`)
+- integrity audit: currently reports `status=ok` with `vector_state=ok`, no orphan chunk/vector drift, and no broken relations
 
 ## Validation evidence recorded so far
 ### code syntax / runtime compile
@@ -89,6 +101,6 @@ Observed result:
 
 ## Release honesty rule for this line
 - Do not call this line stable `4.0.0 release` yet.
-- It is the current `4.0.0-candidate.12` line until an equipped host proves semantic-ready execution via `validate-equipped-host.sh` and the stable-host readiness sequence.
+- It is the current `4.0.0-candidate.25` line until an equipped host proves semantic-ready execution via `validate-equipped-host.sh` and the stable-host readiness sequence.
 - Historical `3.x` remains historical only; it is no longer the current runtime truth.
-- Current host WARN is publish-compatible only if the release surface explicitly states that semantic-ready behavior is implemented in code but not active on hosts lacking the required local dependencies/model/vector build.
+- Candidate publication remains host-truth-bound: current host readiness or degraded state must be taken from live command output, not inferred from historical evidence blocks in this file.

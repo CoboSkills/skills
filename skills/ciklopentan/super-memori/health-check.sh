@@ -99,8 +99,10 @@ def main() -> int:
         warnings.append("max profile requested but semantic stack not equipped on this host")
     if not qdrant_ready or not all(semantic_status["deps"].values()) or not semantic_status["model_ready"]:
         warnings.append("semantic layer degraded or unavailable")
-    elif qdrant_info and int(qdrant_info.get("indexed_vectors_count", 0) or 0) == 0:
-        warnings.append("semantic backend reachable but no indexed vectors reported")
+    elif qdrant_info:
+        reported_vectors = int(qdrant_info.get("indexed_vectors_count", 0) or qdrant_info.get("points_count", 0) or 0)
+        if reported_vectors == 0:
+            warnings.append("semantic backend reachable but no indexed vectors reported")
     if not state.get("lexical_last_indexed_at"):
         warnings.append("lexical index has not been built yet")
     elif not lexical_fresh:

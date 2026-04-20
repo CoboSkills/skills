@@ -11,7 +11,7 @@ Before setting publish-ready state, confirm:
 - [x] Package root contains required runtime helper code under `scripts/`
 - [x] Package root contains required references used by the skill
 - [x] Publish evidence files exist under `references/verification-evidence.md` and `references/reference-test-log.md`
-- [x] `.clawhubignore` excludes transient/local state (`.clawhub/`, `__pycache__/`, `*.pyc`, `*.tmp`, `*.pending`, `*.lock`, `.index_state`, `backups/`, `reports/test-generated/`)
+- [x] `.clawhubignore` excludes transient/local state (`.clawhub/`, `__pycache__/`, `*.pyc`, `*.tmp`, `*.pending`, `*.lock`, `.index_state`, `backups/`, full `reports/` review artifacts, `reports/test-generated/`, and root temporary validation leftovers such as `tmp_round2_strict.txt`)
 - [x] Skill heading version matches `_meta.json`
 - [x] Release health policy is explicit: `FAIL` blocks publish; `WARN` is allowed only when it reflects documented optional/degraded host conditions and the release surface does not imply semantic-ready or fully healthy baseline
 - [x] If release proceeds while the reference host is in `WARN`, the qualification is recorded deterministically from observed health-check fields/state, not free-text intuition alone

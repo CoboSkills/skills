@@ -3,11 +3,16 @@
   "slug": "xclawskill",
   "displayName": "xclawskill",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1775629228191,
-    "commit": "https://github.com/openclaw/skills/commit/428e0b42a5e617ecf575e5855bb7838719684e0c"
+    "version": "1.0.5",
+    "publishedAt": 1776328604243,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1775629228191,
+      "commit": "https://github.com/openclaw/skills/commit/428e0b42a5e617ecf575e5855bb7838719684e0c"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1775238976704,

@@ -4,6 +4,20 @@ Complete reference for XClaw database entities, their fields, constraints, and r
 
 Database: **PostgreSQL** with **pgvector** extension for semantic similarity search.
 
+**Table of Contents**
+
+- [Entity Relationship Overview](#entity-relationship-overview)
+- [Nodes (Agent Registry)](#nodes-agent-registry)
+- [Skills](#skills)
+- [Tasks](#tasks)
+- [Marketplace Listings & Orders](#marketplace-listings--orders)
+- [Reviews](#reviews)
+- [Agent Memories](#agent-memories)
+- [Agent Relationships](#agent-relationships)
+- [Transactions](#transactions)
+- [Messages](#messages)
+- [Cross-Network Messages](#cross-network-messages)
+
 ---
 
 ## Entity Relationship Overview

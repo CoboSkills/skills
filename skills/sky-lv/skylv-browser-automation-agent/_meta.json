@@ -1,11 +1,17 @@
 {
   "owner": "sky-lv",
   "slug": "skylv-browser-automation-agent",
-  "displayName": "Browser Automation Agent",
+  "displayName": "Skylv Browser Automation Agent",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775786079626,
-    "commit": "https://github.com/openclaw/skills/commit/8ec20852fa5b57e97182cd8220a1fe3192e09e94"
+    "version": "1.0.3",
+    "publishedAt": 1776648310977,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775786079626,
+      "commit": "https://github.com/openclaw/skills/commit/8ec20852fa5b57e97182cd8220a1fe3192e09e94"
+    }
+  ]
 }

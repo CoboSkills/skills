@@ -1,11 +1,13 @@
 ---
 name: "browser-automation-agent"
 slug: skylv-browser-automation-agent
-version: 1.0.0
-description: "浏览器自动化Agent。使用Playwright/Puppeteer进行网页自动化、数据采集、表单填写。触发词：browser、浏览器自动化、爬虫、playwright、puppeteer、网页抓取。"
+version: 1.0.2
+description: Browser automation Agent. Web scraping, form filling, and UI automation using Playwright or Puppeteer. Triggers: browser automation, web scraping, playwright, puppeteer.
 author: SKY-lv
 license: MIT-0
 tags: [browser, openclaw, agent]
+keywords: browser, automation, playwright, puppeteer, scraping
+triggers: browser automation agent
 ---
 
 # Browser Automation Agent
@@ -397,3 +399,9 @@ with BrowserAgent() as agent:
 3. **异常处理**：每个操作都要try-catch
 4. **资源清理**：总是关闭page和context
 5. **隐身模式**：每个任务用独立的context避免cookies污染
+
+## Usage
+
+1. Install the skill
+2. Configure as needed
+3. Run with OpenClaw

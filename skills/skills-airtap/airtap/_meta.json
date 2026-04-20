@@ -3,11 +3,16 @@
   "slug": "airtap",
   "displayName": "Airtap: Every claw now has a phone",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1775146251479,
-    "commit": "https://github.com/openclaw/skills/commit/92e2833454bf7c40276073400a5d5888b66dc063"
+    "version": "1.0.7",
+    "publishedAt": 1776172028276,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1775146251479,
+      "commit": "https://github.com/openclaw/skills/commit/92e2833454bf7c40276073400a5d5888b66dc063"
+    },
     {
       "version": "1.0.4",
       "publishedAt": 1774942427160,

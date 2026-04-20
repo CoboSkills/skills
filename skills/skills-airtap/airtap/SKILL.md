@@ -60,7 +60,7 @@ Run all commands as `python3 scripts/airtap.py <resource> <action> ...`.
 | Command | Use when | Notes |
 | --- | --- | --- |
 | `receiver get-list` | You need to choose a receiver. | Helpful before task creation. |
-| `model get-list` | Model choice matters for the task. | Main Airtap choices are `airtap-1.0-lite` and `airtap-1.0`. |
+| `model get-list` | Model choice matters for the task. | Main Airtap choices are `airtap-1.0` and `airtap-1.0-flash`. |
 | `task create` | You want to start a new task. | Add `--model-id <id>` only to override the default model. |
 | `task get-list` | You need recent tasks. | Useful when you need to recover a `taskId`. |
 | `task get-details` | You need a one-time task snapshot. | Useful for debugging or inspecting the final state. |
@@ -72,13 +72,13 @@ Run all commands as `python3 scripts/airtap.py <resource> <action> ...`.
 ## Choosing A Model
 
 - Only list models when model choice matters. Do not call `model get-list` for every task.
-- If you do not send `modelId` during task creation, Airtap defaults to `airtap-1.0-lite`.
-- `Airtap 1.0 Lite` (`airtap-1.0-lite`) is the fast default. Use it for most tasks. It is faster,
-  but it can occasionally make mistakes.
-- `Airtap 1.0` (`airtap-1.0`) is slower. Use it for more complex tasks where better reliability is
-  worth the extra latency.
-- `model get-list` returns the models available to the current account. Choices are
-  `airtap-1.0-lite` and `airtap-1.0`.
+- If you do not send `modelId` during task creation, Airtap defaults to `airtap-1.0-flash`.
+- `Airtap 1.0 Flash` (`airtap-1.0-flash`) is the default. Use it for shorter tasks that benefit
+  from lower latency.
+- `Airtap 1.0` (`airtap-1.0`) is slower. Use it for more complex tasks where better reliability
+  is worth the extra latency.
+- `model get-list` returns the models available to the current account. Most users see
+  `airtap-1.0` and `airtap-1.0-flash`. Debug users may also see `airtap-1.0-lite`.
 
 ## Monitoring Long-Running Tasks
 
@@ -147,7 +147,7 @@ How to read the task details returned by `task poll` or `task get-details`:
 
 ## Examples
 
-Create a task with the default fast model:
+Create a task with the default model:
 
 ```bash
 python3 scripts/airtap.py task create --message "Open Instagram" --receiver-id cloud
@@ -159,7 +159,7 @@ List available models when the task is complex:
 python3 scripts/airtap.py model get-list
 ```
 
-Create a task with the slower, more reliable Airtap model:
+Create a task with the more reliable Airtap model:
 
 ```bash
 python3 scripts/airtap.py task create \

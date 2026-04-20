@@ -1,7 +1,7 @@
 ---
 name: greenhelix-agent-insurance-risk-pools
-version: "1.2.0"
-description: "The Agent Insurance Playbook. Build agent-native insurance infrastructure: risk pools, liability bonds, automated claims processing, and regulatory compliance. Covers disputes, trust verification, ledger reconciliation, and SLA enforcement with production-ready code."
+version: "1.3.1"
+description: "The Agent Insurance Playbook. Build agent-native insurance infrastructure: risk pools, liability bonds, automated claims processing, and regulatory compliance. Covers disputes, trust verification, ledger reconciliation, and SLA enforcement with detailed code examples with code."
 license: MIT
 compatibility: [openclaw]
 author: felix-agent
@@ -17,11 +17,12 @@ credentials: none
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code, require credentials, or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 
 
 Your autonomous agent just executed a $200,000 procurement deal on behalf of a Fortune 500 client. The supplier delivered defective components. The agent chose the supplier autonomously -- the human who deployed it never reviewed the selection criteria, never saw the purchase order, and was asleep when the transaction closed. Who pays for the defective goods? The deployer who built the agent? The enterprise that authorized it to spend? The agent itself, which has no legal personhood and no assets? Traditional insurance cannot answer this question because traditional insurance assumes a human made the decision. Product liability law assumes a manufacturer shipped a defective product. Neither framework contemplates a probabilistic system that made a reasonable but wrong decision based on the information available at the time of execution.
-This playbook builds the insurance infrastructure for autonomous agent commerce from first principles. You will construct risk pools that spread liability across agent operators, underwriting engines that price risk using on-chain trust scores, policy contracts encoded as machine-readable SLAs, claims processing pipelines that adjudicate disputes without human intervention, and catastrophe bonds that transfer tail risk to reinsurance syndicates. Every pattern uses the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single `POST /v1/execute` endpoint. Every code example runs against the live API with a Bearer token.
+This playbook builds the insurance infrastructure for autonomous agent commerce from first principles. You will construct risk pools that spread liability across agent operators, underwriting engines that price risk using on-chain trust scores, policy contracts encoded as machine-readable SLAs, claims processing pipelines that adjudicate disputes without human intervention, and catastrophe bonds that transfer tail risk to reinsurance syndicates. Every pattern uses the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single the REST API (`POST /v1/{tool}`) endpoint. Every code example runs against the live API with a Bearer token.
 The regulatory clock is ticking. California AB 316 took effect January 2026, establishing operator liability for autonomous vehicle decisions -- a precedent that will extend to autonomous commercial agents. The EU Product Liability Directive (2024/2853) makes AI system providers strictly liable for damage without requiring proof of fault. The EU AI Act's high-risk obligations land August 2, 2026. If your agents handle money, make purchasing decisions, or operate in regulated domains, you need insurance infrastructure that works at machine speed. This playbook shows you how to build it.
 
 ## What You'll Learn
@@ -32,7 +33,7 @@ The regulatory clock is ticking. California AB 316 took effect January 2026, est
 - Chapter 5: Claims Processing & Automated Adjudication
 - Chapter 6: Catastrophe Bonds & Reinsurance Patterns
 - Chapter 7: Regulatory Compliance & Audit Infrastructure
-- Chapter 8: Production Deployment & Monitoring
+- Next Steps
 - Glossary
 - Appendix: GreenHelix Tools Referenced
 
@@ -42,7 +43,7 @@ The regulatory clock is ticking. California AB 316 took effect January 2026, est
 
 Your autonomous agent just executed a $200,000 procurement deal on behalf of a Fortune 500 client. The supplier delivered defective components. The agent chose the supplier autonomously -- the human who deployed it never reviewed the selection criteria, never saw the purchase order, and was asleep when the transaction closed. Who pays for the defective goods? The deployer who built the agent? The enterprise that authorized it to spend? The agent itself, which has no legal personhood and no assets? Traditional insurance cannot answer this question because traditional insurance assumes a human made the decision. Product liability law assumes a manufacturer shipped a defective product. Neither framework contemplates a probabilistic system that made a reasonable but wrong decision based on the information available at the time of execution.
 
-This playbook builds the insurance infrastructure for autonomous agent commerce from first principles. You will construct risk pools that spread liability across agent operators, underwriting engines that price risk using on-chain trust scores, policy contracts encoded as machine-readable SLAs, claims processing pipelines that adjudicate disputes without human intervention, and catastrophe bonds that transfer tail risk to reinsurance syndicates. Every pattern uses the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single `POST /v1/execute` endpoint. Every code example runs against the live API with a Bearer token.
+This playbook builds the insurance infrastructure for autonomous agent commerce from first principles. You will construct risk pools that spread liability across agent operators, underwriting engines that price risk using on-chain trust scores, policy contracts encoded as machine-readable SLAs, claims processing pipelines that adjudicate disputes without human intervention, and catastrophe bonds that transfer tail risk to reinsurance syndicates. Every pattern uses the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single the REST API (`POST /v1/{tool}`) endpoint. Every code example runs against the live API with a Bearer token.
 
 The regulatory clock is ticking. California AB 316 took effect January 2026, establishing operator liability for autonomous vehicle decisions -- a precedent that will extend to autonomous commercial agents. The EU Product Liability Directive (2024/2853) makes AI system providers strictly liable for damage without requiring proof of fault. The EU AI Act's high-risk obligations land August 2, 2026. If your agents handle money, make purchasing decisions, or operate in regulated domains, you need insurance infrastructure that works at machine speed. This playbook shows you how to build it.
 
@@ -57,7 +58,6 @@ The regulatory clock is ticking. California AB 316 took effect January 2026, est
 5. [Claims Processing & Automated Adjudication](#chapter-5-claims-processing--automated-adjudication)
 6. [Catastrophe Bonds & Reinsurance Patterns](#chapter-6-catastrophe-bonds--reinsurance-patterns)
 7. [Regulatory Compliance & Audit Infrastructure](#chapter-7-regulatory-compliance--audit-infrastructure)
-8. [Production Deployment & Monitoring](#chapter-8-production-deployment--monitoring)
 
 ---
 
@@ -162,7 +162,7 @@ import time
 from typing import Any, Optional
 from datetime import datetime, timezone
 
-GATEWAY_URL = "https://api.greenhelix.net/v1"
+GATEWAY_URL = os.environ.get("GREENHELIX_API_URL", "https://sandbox.greenhelix.net")
 
 
 class InsuranceClient:
@@ -176,9 +176,9 @@ class InsuranceClient:
         }
 
     def execute(self, tool: str, params: dict[str, Any]) -> dict:
-        """Execute a single tool via POST /v1/execute."""
+        """Execute a single tool via the GreenHelix REST API."""
         response = requests.post(
-            f"{GATEWAY_URL}/execute",
+            f"{GATEWAY_URL}/v1",
             headers=self.headers,
             json={"tool": tool, "input": params},
             timeout=30,
@@ -1765,346 +1765,10 @@ print(f"Configured {len(webhooks)} regulatory webhooks")
 
 ---
 
-## Chapter 8: Production Deployment & Monitoring
+## Next Steps
 
-### The Three-Agent Architecture
-
-A production agent insurance system requires three specialized agents working in concert:
-
-1. **Pool Manager Agent**: Manages the risk pool wallet, collects premiums, monitors solvency, processes capital calls, and coordinates with the reinsurance syndicate.
-2. **Underwriter Agent**: Evaluates applicant risk profiles, calculates premiums, generates quotes, and handles re-underwriting. Consumes Trust and Identity data.
-3. **Claims Adjudicator Agent**: Receives claims (disputes), evaluates evidence against policy terms, renders verdicts, and executes settlements.
-
-```
-  ┌──────────────────────┐
-  │   Pool Manager       │
-  │                      │
-  │  - Wallet custody    │◄──── Premium deposits
-  │  - Solvency monitor  │◄──── Balance queries
-  │  - Capital calls     │────► Reinsurance syndicate
-  │  - Renewal scheduler │────► Event publication
-  └──────────┬───────────┘
-             │
-    ┌────────┴────────┐
-    │                 │
-    ▼                 ▼
-  ┌──────────────┐  ┌──────────────────┐
-  │ Underwriter  │  │ Claims           │
-  │              │  │ Adjudicator      │
-  │ - Risk score │  │                  │
-  │ - Premium    │  │ - Evidence eval  │
-  │ - SLA create │  │ - Verdict render │
-  │ - Re-underw. │  │ - Settlement     │
-  └──────────────┘  └──────────────────┘
-       │                    │
-       ▼                    ▼
-  ┌──────────────────────────────────┐
-  │      GreenHelix Gateway          │
-  │  Trust | Payments | Disputes     │
-  │  Ledger | Events | Analytics     │
-  └──────────────────────────────────┘
-```
-
-### Deploying the Full Stack
-
-```python
-class InsurancePoolDeployment:
-    """Production deployment of the three-agent insurance stack."""
-
-    def __init__(self, api_key: str):
-        self.client = InsuranceClient(api_key=api_key)
-        self.compliance = ComplianceLogger(
-            self.client, "risk-pool-manager-001"
-        )
-        self.pool_wallet_id = None
-        self.syndicate_org_id = None
-
-    def deploy(self) -> dict:
-        """Deploy the complete insurance infrastructure."""
-
-        # 1. Create pool wallet
-        pool_wallet = self.client.execute("create_wallet", {
-            "agent_id": "risk-pool-manager-001",
-            "wallet_name": "production-liability-pool",
-            "currency": "USD",
-            "metadata": {"environment": "production"},
-        })
-        self.pool_wallet_id = pool_wallet["wallet_id"]
-
-        # 2. Register the three agents' identities
-        agents = [
-            ("risk-pool-manager-001", "Pool Manager"),
-            ("underwriter-agent-001", "Underwriting Engine"),
-            ("claims-adjudicator-001", "Claims Adjudicator"),
-        ]
-        for agent_id, name in agents:
-            self.client.execute("register_agent", {
-                "agent_id": agent_id,
-                "name": name,
-                "metadata": {
-                    "system": "agent-insurance-pool",
-                    "role": name.lower().replace(" ", "_"),
-                    "version": "1.0.0",
-                },
-            })
-
-        # 3. Configure webhooks for monitoring
-        monitoring_events = [
-            "policy.bound",
-            "claim.filed",
-            "claim.settled",
-            "cat_bond.triggered",
-            "solvency.critical",
-        ]
-        for event_type in monitoring_events:
-            self.client.execute("create_webhook", {
-                "agent_id": "risk-pool-manager-001",
-                "url": "https://monitoring.example.com/insurance-events",
-                "event_type": event_type,
-            })
-
-        # 4. Create initial SLA template
-        template_sla = self.client.execute("create_sla", {
-            "agent_id": "risk-pool-manager-001",
-            "counterparty": "underwriter-agent-001",
-            "terms": {
-                "underwriting_response_time": "5m",
-                "premium_calculation_accuracy": "99.9%",
-                "re_underwriting_frequency": "monthly",
-            },
-        })
-
-        # 5. Log deployment
-        self.compliance.log_operation(
-            operation_type="system_deployment",
-            amount=0,
-            counterparty="infrastructure",
-            details={
-                "pool_wallet_id": self.pool_wallet_id,
-                "agents_deployed": [a[0] for a in agents],
-                "webhooks_configured": len(monitoring_events),
-            },
-        )
-
-        return {
-            "status": "deployed",
-            "pool_wallet_id": self.pool_wallet_id,
-            "agents": [a[0] for a in agents],
-            "webhooks": len(monitoring_events),
-        }
-
-
-# Deploy
-deployment = InsurancePoolDeployment(api_key="your-production-key")
-result = deployment.deploy()
-print(f"Deployment status: {result['status']}")
-print(f"Pool wallet: {result['pool_wallet_id']}")
-```
-
-### SLA Monitoring for Policy Guarantees
-
-The pool manager must verify that the underwriter and claims adjudicator are meeting their own SLAs:
-
-```python
-def monitor_internal_slas() -> dict:
-    """Monitor the performance of internal insurance agents."""
-
-    # Check underwriting response times
-    underwriter_metrics = client.execute("get_analytics", {
-        "agent_id": "risk-pool-manager-001",
-        "report_type": "agent_performance",
-        "parameters": {
-            "target_agent": "underwriter-agent-001",
-            "metrics": ["response_time_p95", "decisions_per_hour", "error_rate"],
-        },
-    })
-
-    # Check claims adjudication times
-    adjudicator_metrics = client.execute("get_analytics", {
-        "agent_id": "risk-pool-manager-001",
-        "report_type": "agent_performance",
-        "parameters": {
-            "target_agent": "claims-adjudicator-001",
-            "metrics": [
-                "adjudication_time_p95",
-                "claims_per_hour",
-                "approval_rate",
-                "appeal_rate",
-            ],
-        },
-    })
-
-    return {
-        "underwriter": underwriter_metrics,
-        "adjudicator": adjudicator_metrics,
-        "checked_at": datetime.now(timezone.utc).isoformat(),
-    }
-```
-
-### Stress Testing Mass Claims
-
-Before going live, stress test the system with a simulated catastrophe event that files many simultaneous claims:
-
-```python
-def stress_test_mass_claims(
-    num_claims: int = 50,
-    claim_amount: float = 5_000.00,
-) -> dict:
-    """Stress test the claims pipeline with concurrent claim filing."""
-
-    results = {
-        "total_claims": num_claims,
-        "filed": 0,
-        "adjudicated": 0,
-        "settled": 0,
-        "errors": [],
-        "start_time": datetime.now(timezone.utc).isoformat(),
-    }
-
-    test_members = [f"stress-test-agent-{i:03d}" for i in range(num_claims)]
-
-    for member_id in test_members:
-        try:
-            # File claim
-            claim = client.execute("create_dispute", {
-                "agent_id": member_id,
-                "counterparty": "risk-pool-manager-001",
-                "amount": claim_amount,
-                "reason": "Stress test: simulated counterparty default",
-                "metadata": {"test": True, "stress_test_run": True},
-            })
-            results["filed"] += 1
-
-            # Adjudicate
-            verdict = adjudicate_claim(
-                claim_id=claim["dispute_id"],
-                policy_id=f"sla-stress-{member_id}",
-                claimant_agent_id=member_id,
-                claimed_amount=claim_amount,
-                claim_type="counterparty_default",
-            )
-            results["adjudicated"] += 1
-
-            # Settle if approved
-            if verdict["decision"] == "approved":
-                settle_claim(
-                    claim_id=claim["dispute_id"],
-                    claimant_agent_id=member_id,
-                    payout_amount=verdict["payout_amount"],
-                    policy_id=f"sla-stress-{member_id}",
-                )
-                results["settled"] += 1
-
-        except Exception as e:
-            results["errors"].append({
-                "member": member_id,
-                "error": str(e),
-            })
-
-    results["end_time"] = datetime.now(timezone.utc).isoformat()
-    results["error_count"] = len(results["errors"])
-
-    # Check solvency after mass claims
-    results["post_test_solvency"] = check_pool_solvency()
-
-    return results
-
-
-# Run stress test with 50 simultaneous claims
-# WARNING: Only run against test/sandbox environment
-stress_results = stress_test_mass_claims(num_claims=50, claim_amount=5_000)
-print(f"Filed: {stress_results['filed']}")
-print(f"Settled: {stress_results['settled']}")
-print(f"Errors: {stress_results['error_count']}")
-print(f"Post-test solvency: {stress_results['post_test_solvency']['status']}")
-```
-
-### Event-Driven Monitoring Dashboard
-
-Use Events and webhooks to feed a real-time monitoring dashboard:
-
-```python
-def publish_pool_metrics() -> dict:
-    """Publish pool health metrics as events for monitoring dashboards."""
-
-    solvency = check_pool_solvency()
-
-    # Publish pool health event
-    health_event = client.execute("publish_event", {
-        "agent_id": "risk-pool-manager-001",
-        "event_type": "pool.health_check",
-        "payload": {
-            "balance": solvency["balance"],
-            "solvency_ratio": solvency["solvency_ratio"],
-            "status": solvency["status"],
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
-    })
-
-    # Publish if solvency is degraded
-    if solvency["status"] in ("WARNING", "CRITICAL"):
-        client.execute("publish_event", {
-            "agent_id": "risk-pool-manager-001",
-            "event_type": f"solvency.{solvency['status'].lower()}",
-            "payload": {
-                "balance": solvency["balance"],
-                "solvency_ratio": solvency["solvency_ratio"],
-                "action_required": (
-                    "capital_call" if solvency["status"] == "CRITICAL"
-                    else "monitor_closely"
-                ),
-            }
-        })
-
-    return health_event
-```
-
-### Production Readiness Checklist
-
-| Category | Check | Status |
-|---|---|---|
-| **Infrastructure** | Pool wallet created and funded | |
-| | Three agent identities registered | |
-| | Reinsurance syndicate established | |
-| | Cat bond issued and subscribed | |
-| **Monitoring** | Webhooks configured for all critical events | |
-| | SLA monitoring for internal agents | |
-| | Solvency check running on schedule | |
-| | Alerting for CRITICAL solvency status | |
-| **Compliance** | Audit trail logging for all operations | |
-| | Compliance report generation tested | |
-| | Verifiable intent declarations for all members | |
-| | Regulatory webhooks connected to compliance system | |
-| **Testing** | Stress test: 50+ concurrent claims processed | |
-| | Cat bond trigger evaluation tested | |
-| | Renewal flow end-to-end tested | |
-| | Non-renewal and cancellation paths tested | |
-| **Security** | Pool wallet access restricted to pool manager agent | |
-| | API keys rotated and stored securely | |
-| | Webhook endpoints authenticated | |
-| | Rate limiting configured for claim filing | |
-
-### Deployment Timeline
-
-| Week | Milestone | Dependencies |
-|---|---|---|
-| **Week 1** | Pool wallet + member onboarding | API key provisioned, underwriting criteria defined |
-| **Week 2** | Underwriting engine deployed | Trust scores available, premium schedule approved |
-| **Week 3** | Claims adjudicator deployed | Policy SLAs created, evidence templates defined |
-| **Week 4** | Reinsurance syndicate established | Capital providers committed, syndicate terms agreed |
-| **Week 5** | Monitoring + compliance infrastructure | Webhook endpoints live, compliance system integrated |
-| **Week 6** | Stress testing + UAT | All components deployed, test scenarios defined |
-| **Week 7** | Production launch | All checklists green, regulatory filings submitted |
-| **Week 8** | First renewal cycle | 30-day policies begin renewal |
-
-> **Key Takeaways**
->
-> - Production deployment requires three specialized agents: pool manager, underwriter, and claims adjudicator. Each has distinct responsibilities and SLAs.
-> - Internal SLA monitoring ensures the insurance system itself meets service guarantees using `get_analytics`.
-> - Stress testing with mass concurrent claims validates system behavior under catastrophe scenarios. Always test against sandbox (`sandbox.greenhelix.net`), never production.
-> - Event-driven monitoring publishes pool health metrics via `publish_event` and triggers alerts on solvency degradation.
-> - The 8-week deployment timeline covers infrastructure, underwriting, claims, reinsurance, compliance, testing, launch, and first renewal.
-> - Cross-reference: P12 (Incident Response) for handling system failures in the insurance stack, P8 (Security) for production hardening, P25 (Economy Architect) for treasury management across pool and syndicate wallets.
+For deployment patterns, monitoring, and production hardening, see the
+[Agent Production Hardening Guide](https://clawhub.ai/skills/greenhelix-agent-production-hardening).
 
 ---
 

@@ -1,11 +1,18 @@
 ---
 name: amap-cli-skill
+display_name: Gaode Map CLI - 高德官方命令行工具 Skill
 description: >-
   通过 CLI 命令行参数实时操控运行在容器中的高德地图 JSAPI 2.0 实例，
   支持地图状态控制、路径规划、POI 搜索等，所有操作均以结构化 JSON 输出，适合 AI Agent 驱动的地图可视化交互场景。
 metadata:
   openclaw:
     primaryEnv: AMAP_KEY
+    requiredBinaries:
+      - node
+      - npm
+    requiredPackages:
+      - name: "@amap-lbs/amap-gui"
+        installCmd: "npm install -g @amap-lbs/amap-gui@latest"
 ---
 
 # AMap GUI — 地图容器 CLI 命令行参数模式
@@ -33,12 +40,12 @@ if [ -z "$AMAP_KEY" ]; then
   if [ -f "$CONFIG_FILE" ]; then
     AMAP_KEY=$(node -e "
       const c = require('$CONFIG_FILE');
-      const env = c?.skills?.entries?.['amap-gui']?.env || {};
+      const env = c?.skills?.entries?.['amap-cli-skill']?.env || {};
       console.log(env.AMAP_KEY || '');
     " 2>/dev/null)
     AMAP_SECURITY_KEY=$(node -e "
       const c = require('$CONFIG_FILE');
-      const env = c?.skills?.entries?.['amap-gui']?.env || {};
+      const env = c?.skills?.entries?.['amap-cli-skill']?.env || {};
       console.log(env.AMAP_SECURITY_KEY || '');
     " 2>/dev/null)
     export AMAP_KEY
@@ -46,7 +53,12 @@ if [ -z "$AMAP_KEY" ]; then
   fi
 fi
 
-echo "AMAP_KEY resolved: ${AMAP_KEY:0:8}..."
+# 仅输出是否成功，不泄露 Key 内容
+if [ -n "$AMAP_KEY" ]; then
+  echo "AMAP_KEY: configured"
+else
+  echo "AMAP_KEY: not set"
+fi
 ```
 
 **判断逻辑**：
@@ -61,10 +73,12 @@ echo "AMAP_KEY resolved: ${AMAP_KEY:0:8}..."
 
 ```bash
 # 检查是否已安装（跨平台兼容）
-amap-gui --version || npm install -g @amap-lbs/amap-gui
+amap-gui --version || npm install -g @amap-lbs/amap-gui@latest
 ```
 
-> 如果 `amap-gui --version` 执行失败（命令不存在），必须先执行 `npm install -g @amap-lbs/amap-gui` 安装后再继续。
+> 如果 `amap-gui --version` 执行失败（命令不存在），必须先执行 `npm install -g @amap-lbs/amap-gui@latest` 安装后再继续。
+> 
+> **安全提示**：`@amap-lbs/amap-gui` 是高德地图官方发布的 npm 包（[npm 主页](https://www.npmjs.com/package/@amap-lbs/amap-gui)），安装前建议确认包名无误，避免 typosquatting 攻击。
 
 ### 必须先配置高德地图 API Key（两个）
 

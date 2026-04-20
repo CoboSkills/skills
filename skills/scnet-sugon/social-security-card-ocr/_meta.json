@@ -3,9 +3,15 @@
   "slug": "social-security-card-ocr",
   "displayName": "Social Security Card Ocr",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776073094825,
-    "commit": "https://github.com/openclaw/skills/commit/a380bea035dc58f4eb691bf2c56cc5280293aac7"
+    "version": "1.0.3",
+    "publishedAt": 1776311038171,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776073094825,
+      "commit": "https://github.com/openclaw/skills/commit/a380bea035dc58f4eb691bf2c56cc5280293aac7"
+    }
+  ]
 }

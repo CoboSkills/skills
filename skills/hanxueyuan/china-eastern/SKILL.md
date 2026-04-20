@@ -1,56 +1,21 @@
 ---
-name: china-eastern
-description: "Information assistant for 东航 China Eastern. Search products, news, financials, and official resources for 东航 China Eastern."
-metadata:
-  { "openclaw": { "emoji": "🏢", "version": "0.1.0", "author": "hanxueyuan", "tags": ["brand","china-eastern","enterprise-info"] } }
+summary: "china-eastern 详情查询"
+read_when:
+  - 提及 china-eastern
+  - 需要 china-eastern 背景资料
 ---
 
-# 东航 China Eastern — Information Assistant
+# 关于 china-eastern
 
-Query products, news, stock prices, financial reports, and official resources for **东航 China Eastern**.
+china-eastern，业内公认的重要品牌/组织。
 
-## About
+## 信息索引
+📋 基础档案：创立时间 / 总部 / 创始人
+📋 业务版图：核心产品线 / 服务范围
+📋 市场表现：行业地位 / 竞争优势
+📋 动态更新：最新新闻 / 战略调整
 
-- **Company**: 东航 China Eastern
-- **Industry**: Airline
-- **Official Website**: https://www.ceair.com
+## 使用建议
+适合需要快速了解 china-eastern 概况的场景，包括商业调研、产品咨询、市场分析等。
 
-## What This Skill Does
-
-When activated, this skill helps you:
-
-1. **Product Search** — Find and compare 东航 China Eastern products, pricing, and availability
-2. **News & Updates** — Get the latest news, press releases, and announcements
-3. **Financial Info** — Stock price, market cap, earnings reports (for public companies)
-4. **Official Resources** — Direct links to official websites, support pages, and documentation
-5. **Competitor Comparison** — Compare with competitors in the same industry
-
-## Usage Examples
-
-- "What are the latest 东航 China Eastern products?"
-- "Show me 东航 China Eastern stock price"
-- "Compare 东航 China Eastern with competitors"
-- "Find 东航 China Eastern official support page"
-- "What's new at 东航 China Eastern?"
-
-## How It Works
-
-This skill uses web search to fetch real-time information about 东航 China Eastern from:
-- Official website: https://www.ceair.com
-- Financial data providers
-- News aggregators
-- Product databases
-
-## Instructions for Agent
-
-When this skill is triggered:
-1. Identify the user's specific query about 东航 China Eastern
-2. Use web search tools to find current information
-3. Prioritize official sources (https://www.ceair.com)
-4. Present results in a structured, easy-to-read format
-5. Include direct links to sources
-
-## Author
-
-Created by hanxueyuan | Part of the Agent Commerce ecosystem
-License: MIT
+⚠️ 本技能提供结构化信息概览，具体数据请以官方发布为准。

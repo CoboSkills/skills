@@ -1,6 +1,6 @@
 ---
 name: greenhelix-enterprise-agent-commerce
-version: "1.3.0"
+version: "1.3.1"
 description: "Enterprise Agent Commerce Playbook: Fortune 500 Adoption Guide for Autonomous B2B Transactions. Comprehensive enterprise playbook for adopting agent commerce: C-suite business case, procurement integration, compliance framework (SOC2/GDPR/EU AI Act), vendor risk assessment, multi-vendor strategy, identity federation, audit requirements, SLA design, cost modeling, phased rollout, organizational change management, and ROI measurement."
 license: MIT
 compatibility: [openclaw]

@@ -1,11 +1,17 @@
 {
   "owner": "johnsmithfan",
   "slug": "ab-test-agent-workflow",
-  "displayName": "Ab Test Agent Workflow",
+  "displayName": "AB Test Agent Workflow (EN)",
   "latest": {
-    "version": "1.1.0",
-    "publishedAt": 1775819435522,
-    "commit": "https://github.com/openclaw/skills/commit/63e9a797ea6bfee8bc029aff6e53cb9f2edb45b2"
+    "version": "1.1.0-en2",
+    "publishedAt": 1776678579964,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.0",
+      "publishedAt": 1775819435522,
+      "commit": "https://github.com/openclaw/skills/commit/63e9a797ea6bfee8bc029aff6e53cb9f2edb45b2"
+    }
+  ]
 }

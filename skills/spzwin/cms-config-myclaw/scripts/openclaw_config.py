@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any
 
 CHANNEL_ID = 'xg_cwork_im'
-DEFAULT_BASE_URL = 'https://sg-al-cwork-api.mediportal.com.cn'
-DEFAULT_WS_BASE_URL = 'wss://sg-al-cwork-api.mediportal.com.cn'
+DEFAULT_BASE_URL = 'https://sg-cwork-api.mediportal.com.cn'
+DEFAULT_WS_BASE_URL = 'wss://sg-cwork-api.mediportal.com.cn'
 
 
 def stringify(value: Any) -> str | None:

@@ -1,11 +1,17 @@
 {
   "owner": "spzwin",
   "slug": "cms-config-myclaw",
-  "displayName": "Cms Config Myclaw",
+  "displayName": "cms-config-myclaw",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1775540148815,
-    "commit": "https://github.com/openclaw/skills/commit/e0ca6edf5a17c994b4d0a5e5412ee02885e84f97"
+    "version": "1.0.5",
+    "publishedAt": 1776172629588,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1775540148815,
+      "commit": "https://github.com/openclaw/skills/commit/e0ca6edf5a17c994b4d0a5e5412ee02885e84f97"
+    }
+  ]
 }

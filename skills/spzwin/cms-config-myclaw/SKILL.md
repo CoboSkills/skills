@@ -2,13 +2,11 @@
 name: cms-config-myclaw
 description: 一键交互式配置自己的 OpenClaw（龙虾）机器人，把公司内部 xg_cwork_im channel 绑定到指定 agent。
 skillcode: cms-config-myclaw
-dependencies:
-  - cms-auth-skills
 ---
 
 # cms-config-myclaw
 
-**版本**: v1.0.3
+**版本**: v1.0.5
 
 这个 skill 只做一件事：
 
@@ -61,7 +59,13 @@ dependencies:
 
 ## 配置前用户需要准备什么
 
-用户只需要准备：
+**首要前置条件**：必须事先安装并固定以下插件：
+```bash
+openclaw plugins install @xgjktech/xg_cwork_im --pin
+openclaw plugins install clawhub:dynamic-session-context
+```
+
+除此之外，用户还需要准备：
 
 1. 一个可用的工作协同登录 `appKey`
 2. 想绑定到哪个 agent
@@ -131,7 +135,8 @@ dependencies:
 主向导：
 
 ```bash
-npx clawhub@latest install cms-auth-skills --force
+openclaw plugins install @xgjktech/xg_cwork_im --pin
+openclaw plugins install clawhub:dynamic-session-context
 python3 cms-config-myclaw/scripts/setup_myclaw.py
 ```
 

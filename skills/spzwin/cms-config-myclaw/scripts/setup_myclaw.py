@@ -30,8 +30,8 @@ if requests is not None:
     except Exception:
         pass
 
-ROBOT_REGISTER_URL = 'https://sg-al-cwork-api.mediportal.com.cn/im/robot/private/register'
-WEB_INTERACT_URL = 'https://sg-al-cwork-web.mediportal.com.cn/xg-claw/web/dist/'
+ROBOT_REGISTER_URL = 'https://sg-cwork-api.mediportal.com.cn/im/robot/private/register'
+WEB_INTERACT_URL = 'https://sg-cwork-web.mediportal.com.cn/xg-claw/web/dist/'
 PLUGIN_ID = 'xg_cwork_im'
 PLUGIN_SPEC = '@xgjktech/xg_cwork_im'
 DEFAULT_CONFIG_PATH = Path('~/.openclaw/openclaw.json').expanduser()

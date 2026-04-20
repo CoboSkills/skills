@@ -1,11 +1,17 @@
 {
   "owner": "infiniteask",
   "slug": "publish-douyin-article-infinite",
-  "displayName": "publish-douyin-article-infinite",
+  "displayName": "发布抖音文章_无限",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775680212508,
-    "commit": "https://github.com/openclaw/skills/commit/2d5d745abcbe629a8a26919e14d144e042115fbd"
+    "version": "1.0.2",
+    "publishedAt": 1776599809075,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775680212508,
+      "commit": "https://github.com/openclaw/skills/commit/2d5d745abcbe629a8a26919e14d144e042115fbd"
+    }
+  ]
 }

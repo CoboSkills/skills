@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-agentic-advertising
-version: "1.2.0"
+version: "1.3.1"
 description: "Agentic Advertising: Build Autonomous Media-Buying Agents. Build autonomous ad-buying agents: publisher discovery, trust verification, escrow-based ad spend, real-time ROAS tracking, compliance guardrails, and fleet-scale campaign management. Includes detailed Python code examples with full API integration."
 license: MIT
 compatibility: [openclaw]
@@ -12,12 +12,19 @@ content_type: markdown
 executable: false
 install: none
 credentials: [AGENT_SIGNING_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - AGENT_SIGNING_KEY
+    primaryEnv: AGENT_SIGNING_KEY
 ---
 # Agentic Advertising: Build Autonomous Media-Buying Agents
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `AGENT_SIGNING_KEY`: Cryptographic signing key for agent identity (Ed25519 key pair for request signing)
@@ -35,7 +42,7 @@ This guide builds that layer using the GreenHelix A2A Commerce Gateway. You will
 - Chapter 5: Escrow-Based Ad Spend
 - Chapter 6: Real-Time Campaign Analytics
 - Chapter 7: Compliance Guardrails
-- Chapter 8: Production Deployment
+- Next Steps
 - What You Get
 
 ## Full Guide
@@ -50,6 +57,10 @@ This guide builds that layer using the GreenHelix A2A Commerce Gateway. You will
 
 ---
 
+
+> **Getting started**: All examples in this guide work with the GreenHelix sandbox
+> (https://sandbox.greenhelix.net) which provides 500 free credits — no API key required.
+
 ## Table of Contents
 
 1. [The Agentic Advertising Landscape](#chapter-1-the-agentic-advertising-landscape)
@@ -59,7 +70,6 @@ This guide builds that layer using the GreenHelix A2A Commerce Gateway. You will
 5. [Escrow-Based Ad Spend](#chapter-5-escrow-based-ad-spend)
 6. [Real-Time Campaign Analytics](#chapter-6-real-time-campaign-analytics)
 7. [Compliance Guardrails](#chapter-7-compliance-guardrails)
-8. [Production Deployment](#chapter-8-production-deployment)
 
 ---
 
@@ -186,7 +196,7 @@ session.headers["Content-Type"] = "application/json"
 def execute(tool: str, inputs: dict) -> dict:
     """Execute a GreenHelix tool and return the result."""
     resp = session.post(
-        f"{base_url}/execute",
+        f"{base_url}/v1",
         json={"tool": tool, "input": inputs}
     )
     resp.raise_for_status()
@@ -1715,509 +1725,10 @@ def track_platform_costs(campaign_id: str) -> dict:
 
 ---
 
-## Chapter 8: Production Deployment
+## Next Steps
 
-### Monitoring, Alerting, and Scaling Your Ad-Buying Agent Fleet
-
-A single media-buying agent managing one campaign is a proof of concept. Production means running dozens or hundreds of agents across campaigns, channels, and advertisers -- with monitoring that catches problems before they drain budget, alerting that escalates to humans when autonomous resolution fails, and scaling patterns that add capacity without rewriting code.
-
-The fleet model mirrors how human buying teams scale. A media buying team does not have one person managing every campaign. It has specialists -- a CTV buyer, a DOOH buyer, an audio buyer -- each managing a portfolio of campaigns in their channel. A team lead oversees the specialists, a compliance officer audits the books, and management gets escalation alerts for exceptions. The autonomous fleet replicates this structure: channel-specific buyer agents, an analyst agent that synthesizes cross-campaign performance, a compliance agent that enforces guardrails, and an alerting pipeline that escalates to human operators when autonomous resolution is not sufficient.
-
-The scaling challenge is economic, not technical. Registering 100 agents is trivial. The question is whether 100 agents each managing 5 campaigns deliver better ROAS than 10 agents each managing 50 campaigns. The answer depends on optimization loop frequency, publisher diversity, and the complexity of attention signal analysis. This chapter provides the infrastructure to test both models and scale dynamically based on results.
-
-### Fleet Architecture
-
-```
-+---------------------------------------------------------------------+
-|                        Fleet Controller                               |
-|                   (Orchestration + Health Checks)                     |
-+---------------------------------------------------------------------+
-      |              |              |              |
-      v              v              v              v
-+-----------+  +-----------+  +-----------+  +-----------+
-| CTV Fleet |  | DOOH Fleet|  |Audio Fleet|  |Social     |
-| Manager   |  | Manager   |  | Manager   |  |Fleet Mgr  |
-+-----------+  +-----------+  +-----------+  +-----------+
-  |   |   |      |   |          |   |          |
-  v   v   v      v   v          v   v          v
- [A] [A] [A]    [A] [A]        [A] [A]        [A]
-  |   |   |      |   |          |   |          |
-  v   v   v      v   v          v   v          v
- [W] [W] [W]    [W] [W]        [W] [W]        [W]
-
-[A] = Buyer Agent    [W] = Campaign Wallet
-```
-
-### Fleet Agent Registration
-
-```python
-def create_fleet(channel: str, count: int, org_id: str) -> list:
-    """Register a fleet of buyer agents for a channel."""
-
-    fleet = []
-
-    for i in range(count):
-        agent = execute("register_agent", {
-            "name": f"media-buyer-{channel}-{i+1:03d}",
-            "description": f"Autonomous {channel.upper()} media buyer "
-                           f"#{i+1} for organization {org_id}",
-            "capabilities": [
-                "media_buying",
-                "campaign_optimization",
-                f"{channel}_specialist"
-            ],
-            "metadata": {
-                "agent_type": "media_buyer",
-                "channel": channel,
-                "fleet_index": i + 1,
-                "organization": org_id,
-                "max_concurrent_campaigns": 5,
-                "max_daily_spend": 25000
-            }
-        })
-
-        fleet.append({
-            "agent_id": agent["agent_id"],
-            "name": agent.get("name", f"buyer-{channel}-{i+1:03d}"),
-            "channel": channel,
-            "status": "idle",
-            "active_campaigns": 0
-        })
-
-    print(f"Fleet created: {count} {channel.upper()} buyer agents")
-    return fleet
-
-# ctv_fleet = create_fleet("ctv", 5, "your-org-id")
-# dooh_fleet = create_fleet("dooh", 3, "your-org-id")
-# audio_fleet = create_fleet("audio", 2, "your-org-id")
-```
-
-### Fleet Health Monitoring
-
-```python
-def monitor_fleet_health(fleet: list) -> dict:
-    """Monitor health across all agents in a fleet."""
-
-    health = {
-        "timestamp": datetime.utcnow().isoformat(),
-        "agents_total": len(fleet),
-        "agents_active": 0,
-        "agents_idle": 0,
-        "agents_error": 0,
-        "total_daily_spend": 0.0,
-        "total_active_campaigns": 0,
-        "agent_details": []
-    }
-
-    for agent_info in fleet:
-        agent_id = agent_info["agent_id"]
-
-        try:
-            # Check agent balance and activity
-            balance = execute("get_balance", {
-                "agent_id": agent_id
-            })
-
-            # Get recent analytics
-            recent = execute("get_analytics", {
-                "agent_id": agent_id,
-                "filters": {
-                    "metric_types": ["campaign_delivery",
-                                     "optimization_cycle"],
-                    "time_range": "last_1h"
-                }
-            })
-
-            active_campaigns = len(set(
-                r.get("metrics", {}).get("campaign_id")
-                for r in recent.get("results", [])
-                if r.get("metrics", {}).get("campaign_id")
-            ))
-
-            status = "active" if active_campaigns > 0 else "idle"
-
-            detail = {
-                "agent_id": agent_id,
-                "name": agent_info["name"],
-                "status": status,
-                "balance_available": float(balance.get("available", 0)),
-                "balance_locked": float(balance.get("locked", 0)),
-                "active_campaigns": active_campaigns,
-                "recent_activity": len(recent.get("results", []))
-            }
-
-            health["agent_details"].append(detail)
-
-            if status == "active":
-                health["agents_active"] += 1
-                health["total_active_campaigns"] += active_campaigns
-            else:
-                health["agents_idle"] += 1
-
-        except Exception as e:
-            health["agents_error"] += 1
-            health["agent_details"].append({
-                "agent_id": agent_id,
-                "name": agent_info["name"],
-                "status": "error",
-                "error": str(e)
-            })
-
-    return health
-
-# fleet_health = monitor_fleet_health(ctv_fleet)
-# print(f"Fleet Health: {fleet_health['agents_active']} active, "
-#       f"{fleet_health['agents_idle']} idle, "
-#       f"{fleet_health['agents_error']} error")
-```
-
-### SLA Monitoring for Fleet Operations
-
-Create an SLA that monitors the fleet as a whole, not just individual campaigns.
-
-```python
-def create_fleet_sla(fleet_name: str, agent_id: str) -> dict:
-    """Create fleet-level SLA for operational monitoring."""
-
-    sla = execute("create_sla", {
-        "agent_id": agent_id,
-        "name": f"fleet-ops-{fleet_name}",
-        "description": f"Operational SLA for {fleet_name} buyer fleet",
-        "conditions": {
-            "agent_health": {
-                "metric": "fleet_error_rate",
-                "operator": "lte",
-                "value": 0.05,
-                "action_on_violation": "alert_ops"
-            },
-            "budget_utilization": {
-                "metric": "fleet_budget_utilization",
-                "operator": "gte",
-                "value": 0.70,
-                "action_on_violation": "scale_down_alert"
-            },
-            "avg_roas": {
-                "metric": "fleet_avg_roas",
-                "operator": "gte",
-                "value": 2.0,
-                "action_on_violation": "optimization_review"
-            },
-            "escrow_failure_rate": {
-                "metric": "fleet_escrow_cancellation_rate",
-                "operator": "lte",
-                "value": 0.10,
-                "action_on_violation": "publisher_review"
-            }
-        },
-        "monitoring_interval": "5m",
-        "metadata": {
-            "fleet_name": fleet_name,
-            "sla_type": "fleet_operations"
-        }
-    })
-
-    return sla
-
-# fleet_sla = create_fleet_sla("ctv-production", buyer_agent_id)
-```
-
-### Alerting via Messaging
-
-GreenHelix's messaging system delivers alerts between agents and to external systems (via webhook-registered agents).
-
-```python
-def configure_alerting(fleet_name: str, ops_agent_id: str,
-                       escalation_agent_id: str) -> dict:
-    """Configure multi-tier alerting for a fleet.
-
-    Tier 1: Agent-to-agent (autonomous resolution)
-    Tier 2: Agent-to-ops (human ops team notification)
-    Tier 3: Agent-to-escalation (management escalation)
-    """
-
-    alert_config = {
-        "fleet_name": fleet_name,
-        "tiers": {
-            "tier_1": {
-                "recipients": [compliance_id, analyst_id],
-                "conditions": ["sla_warning", "optimization_recommendation"],
-                "response": "autonomous"
-            },
-            "tier_2": {
-                "recipients": [ops_agent_id],
-                "conditions": ["sla_violation", "budget_overrun",
-                               "agent_error"],
-                "response": "human_review_required"
-            },
-            "tier_3": {
-                "recipients": [escalation_agent_id],
-                "conditions": ["critical_sla_violation", "fraud_detected",
-                               "fleet_wide_failure"],
-                "response": "immediate_escalation"
-            }
-        }
-    }
-
-    # Register the alert configuration as a service
-    execute("register_service", {
-        "agent_id": ops_agent_id,
-        "name": f"alert-router-{fleet_name}",
-        "description": f"Alert routing for {fleet_name} fleet",
-        "capabilities": ["alert_routing", "escalation"],
-        "metadata": alert_config
-    })
-
-    return alert_config
-
-
-def send_fleet_alert(tier: str, alert_type: str, details: dict,
-                     alert_config: dict) -> None:
-    """Send an alert through the configured tier."""
-
-    tier_config = alert_config["tiers"].get(tier, {})
-    recipients = tier_config.get("recipients", [])
-
-    for recipient_id in recipients:
-        execute("send_message", {
-            "from_agent_id": buyer_agent_id,
-            "to_agent_id": recipient_id,
-            "message_type": f"fleet_alert_{alert_type}",
-            "content": {
-                "tier": tier,
-                "alert_type": alert_type,
-                "fleet_name": alert_config["fleet_name"],
-                "details": details,
-                "timestamp": datetime.utcnow().isoformat(),
-                "response_required": tier_config.get("response", "autonomous")
-            }
-        })
-
-    print(f"[{tier.upper()}] Alert '{alert_type}' sent to "
-          f"{len(recipients)} recipients")
-```
-
-### Scaling Patterns
-
-When campaign load exceeds fleet capacity, the controller registers new agents dynamically.
-
-```python
-def auto_scale_fleet(fleet: list, channel: str,
-                     org_id: str, health: dict) -> list:
-    """Scale fleet based on utilization metrics.
-
-    Scale up:  if >80% of agents are active and campaigns are queued.
-    Scale down: if <30% of agents are active for >1 hour.
-    """
-
-    utilization = health["agents_active"] / max(health["agents_total"], 1)
-
-    if utilization > 0.80:
-        # Scale up: add 2 agents
-        new_agents = create_fleet(channel, 2, org_id)
-        fleet.extend(new_agents)
-
-        execute("submit_metrics", {
-            "agent_id": buyer_agent_id,
-            "metrics": {
-                "metric_type": "fleet_scale_event",
-                "action": "scale_up",
-                "channel": channel,
-                "agents_added": 2,
-                "new_total": len(fleet),
-                "trigger_utilization": utilization
-            }
-        })
-
-        print(f"Fleet scaled up: +2 agents (total: {len(fleet)})")
-
-    elif utilization < 0.30 and len(fleet) > 2:
-        # Scale down: mark 1 idle agent for decommission
-        idle_agents = [
-            a for a in health["agent_details"] if a["status"] == "idle"
-        ]
-        if idle_agents:
-            decommission = idle_agents[0]
-            fleet = [a for a in fleet
-                     if a["agent_id"] != decommission["agent_id"]]
-
-            execute("submit_metrics", {
-                "agent_id": buyer_agent_id,
-                "metrics": {
-                    "metric_type": "fleet_scale_event",
-                    "action": "scale_down",
-                    "channel": channel,
-                    "agents_removed": 1,
-                    "new_total": len(fleet),
-                    "trigger_utilization": utilization
-                }
-            })
-
-            print(f"Fleet scaled down: -1 agent (total: {len(fleet)})")
-
-    return fleet
-```
-
-### Production Checklist
-
-Before launching an autonomous media-buying fleet, verify each item:
-
-```python
-production_checklist = {
-    "identity": [
-        "All agents registered with unique Ed25519 keypairs",
-        "Agent capabilities accurately describe buying authority",
-        "Organization metadata links agents to advertiser",
-    ],
-    "wallets": [
-        "Separate wallet per campaign (budget isolation)",
-        "Wallets funded before campaign flight starts",
-        "Balance monitoring active with low-balance alerts",
-    ],
-    "publishers": [
-        "Publisher verification pipeline tested",
-        "Supply path quality scoring calibrated",
-        "Claim chain verification passing for all selected publishers",
-        "Minimum reputation threshold set (recommend >= 0.7)",
-    ],
-    "escrow": [
-        "Milestone definitions match campaign delivery schedule",
-        "Cancellation conditions match IVT and fraud thresholds",
-        "Partial release logic tested for underdelivery scenarios",
-    ],
-    "compliance": [
-        "Spending SLAs created for daily and total caps",
-        "Compliance agent monitoring interval set (recommend 15min)",
-        "Escalation tiers configured with correct recipients",
-        "Audit trail generation tested end-to-end",
-    ],
-    "analytics": [
-        "Metric submission pipeline active",
-        "ROAS tracking calibrated against conversion data",
-        "Attention signal integration tested",
-        "Optimization loop running at correct interval",
-    ],
-    "fleet": [
-        "Fleet health monitoring active",
-        "Auto-scaling thresholds configured",
-        "Alerting tiers tested (Tier 1, 2, 3)",
-        "Fleet SLA created and monitoring",
-    ],
-    "testing": [
-        "Full campaign lifecycle tested in sandbox",
-        "Fraud detection and cancellation flow tested",
-        "Budget exhaustion handling verified",
-        "Publisher removal and replacement flow tested",
-    ]
-}
-
-print("Production Readiness Checklist:")
-for category, items in production_checklist.items():
-    print(f"\n  {category.upper()}:")
-    for item in items:
-        print(f"    [ ] {item}")
-```
-
-### Campaign Lifecycle: Putting It All Together
-
-The following function orchestrates the complete campaign lifecycle, tying together every component from the preceding chapters. This is the entry point for a production media-buying agent: give it a campaign brief, and it handles the rest.
-
-```python
-def run_campaign(brief: dict, api_key: str) -> dict:
-    """Execute a complete autonomous media buying campaign.
-
-    Lifecycle:
-    1. Register agents and create wallets (Chapter 2)
-    2. Discover and verify publishers (Chapter 3)
-    3. Execute media buys with escrow (Chapters 4-5)
-    4. Monitor, optimize, and enforce compliance (Chapters 6-7)
-    5. Settle escrows and generate audit trail (Chapters 5, 7)
-    """
-
-    campaign_log = {
-        "campaign_id": brief["campaign_id"],
-        "started_at": datetime.utcnow().isoformat(),
-        "phases": []
-    }
-
-    # Phase 1: Setup
-    buyer = execute("register_agent", {
-        "name": f"buyer-{brief['campaign_id']}",
-        "description": f"Buyer for {brief['campaign_id']}",
-        "capabilities": ["media_buying", "campaign_optimization"],
-        "metadata": {"campaign_id": brief["campaign_id"]}
-    })
-
-    wallet = execute("create_wallet", {
-        "agent_id": buyer["agent_id"],
-        "label": brief["campaign_id"],
-        "metadata": {"budget": brief["budget"]["total"]}
-    })
-
-    campaign_log["phases"].append({
-        "phase": "setup",
-        "agent_id": buyer["agent_id"],
-        "wallet_id": wallet["wallet_id"]
-    })
-
-    # Phase 2: Publisher Discovery
-    publishers = execute("best_match", {
-        "requirements": {
-            "channel": brief["channel"],
-            "min_impressions": 500000,
-            "brand_safety": brief["brand_safety"]["level"]
-        },
-        "limit": 5
-    })
-
-    verified = []
-    for pub in publishers["results"]:
-        v = verify_publisher(pub["agent_id"])
-        spq = score_supply_path(pub["agent_id"], v)
-        if spq >= 0.5 and v["reputation_score"] >= 0.7:
-            verified.append({
-                "publisher": pub,
-                "verification": v,
-                "supply_path_quality": spq
-            })
-
-    campaign_log["phases"].append({
-        "phase": "discovery",
-        "publishers_found": len(publishers["results"]),
-        "publishers_verified": len(verified)
-    })
-
-    # Phase 3: Media Buy Execution
-    deals = execute_media_buy(brief, verified[:3], wallet["wallet_id"])
-
-    campaign_log["phases"].append({
-        "phase": "execution",
-        "deals": len(deals),
-        "total_committed": sum(d["amount"] for d in deals)
-    })
-
-    # Phase 4: Create compliance guardrails
-    sla = create_spending_sla(brief)
-
-    campaign_log["phases"].append({
-        "phase": "compliance_setup",
-        "sla_id": sla["sla_id"]
-    })
-
-    # Phase 5: Initialize creative rotation
-    creative = manage_creative_rotation(brief, deals)
-
-    # Phase 6: Run optimization loop for campaign duration
-    # In production, this runs on a scheduler (e.g., cron, APScheduler)
-    # Here we show a single iteration
-    run_optimization_loop(deals, brief, creative)
-
-    campaign_log["completed_at"] = datetime.utcnow().isoformat()
-    return campaign_log
-
-# campaign_result = run_campaign(campaign_brief, api_key)
-```
-
-This function is deliberately sequential and synchronous for clarity. A production implementation would use asyncio or a task queue (Celery, Temporal) to run the optimization loop on a schedule, handle publisher responses asynchronously, and process multiple campaigns concurrently within a single agent.
+For deployment patterns, monitoring, and production hardening, see the
+[Agent Production Hardening Guide](https://clawhub.ai/skills/greenhelix-agent-production-hardening).
 
 ---
 

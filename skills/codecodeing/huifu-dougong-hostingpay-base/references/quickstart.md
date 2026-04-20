@@ -1,4 +1,4 @@
-# dougong-hostingpay-pay-base — 汇付支付公共基座
+# huifu-dougong-hostingpay-base — 汇付支付公共基座
 
 所有汇付支付业务 Skill 的前置依赖，包含 SDK 安装初始化、技术规范、公共参数和错误码。
 
@@ -74,9 +74,9 @@ huifu:
 
 | 业务需求 | 下一步 |
 |---------|-------|
-| 发起支付 | [dougong-hostingpay-cashier-order](../../dougong-hostingpay-cashier-order/SKILL.md) |
-| 查询订单 / 关单 | [dougong-hostingpay-cashier-query](../../dougong-hostingpay-cashier-query/SKILL.md) |
-| 退款 | [dougong-hostingpay-cashier-refund](../../dougong-hostingpay-cashier-refund/SKILL.md) |
+| 发起支付 | [huifu-dougong-hostingpay-cashier-preorder](../../huifu-dougong-hostingpay-cashier-preorder/SKILL.md) |
+| 查询订单 / 关单 | [huifu-dougong-hostingpay-cashier-query](../../huifu-dougong-hostingpay-cashier-query/SKILL.md) |
+| 退款 | [huifu-dougong-hostingpay-cashier-refund](../../huifu-dougong-hostingpay-cashier-refund/SKILL.md) |
 
 ### 第 5 步之前建议先做的两件事
 

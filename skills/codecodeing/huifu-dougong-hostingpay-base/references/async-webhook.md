@@ -1,6 +1,6 @@
 # 异步通知与 Webhook
 
-> 本文面向 `dougong-hostingpay-pay-base` 依赖的托管支付 Skill，重点解决 3 个常见误区：回调报文到底长什么样、验签应该验哪一段、哪些字段能用于驱动订单终态。
+> 本文面向 `huifu-dougong-hostingpay-base` 依赖的托管支付 Skill，重点解决 3 个常见误区：回调报文到底长什么样、验签应该验哪一段、哪些字段能用于驱动订单终态。
 
 ## 两种机制的区别
 

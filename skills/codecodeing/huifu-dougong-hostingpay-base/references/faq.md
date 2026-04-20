@@ -58,7 +58,7 @@ A：dg-java-sdk 3.0.34 内部使用 `javax.validation` 注解。Spring Boot 3.x 
 或在 Spring Boot 3.x 中排除 SDK 的 validation 依赖，手动处理参数校验。
 
 **Q：退款调用 `setOrgReqSeqId()` 编译报错？**
-A：退款接口的 `org_req_seq_id` 字段**没有独立的 setter**，必须通过 `extendInfoMap` 传入。详见 [dougong-hostingpay-cashier-refund](../../dougong-hostingpay-cashier-refund/SKILL.md)。
+A：退款接口的 `org_req_seq_id` 字段**没有独立的 setter**，必须通过 `extendInfoMap` 传入。详见 [huifu-dougong-hostingpay-cashier-refund](../../huifu-dougong-hostingpay-cashier-refund/SKILL.md)。
 
 ```java
 // ✗ 编译错误

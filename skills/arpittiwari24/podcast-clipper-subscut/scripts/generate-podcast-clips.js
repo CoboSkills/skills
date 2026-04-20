@@ -6,17 +6,29 @@ Usage:
   npm run generate-podcast-clips -- --video-url <url> [options]
 
 Options:
-  --video-url <url>        Public long-form video URL to process
-  --max-clips <number>     Number of clips to generate (1-10, default 5)
-  --clip-style <style>     viral | clean | minimal (default: viral)
-  --captions <boolean>     true | false (default: true)
-  --api-key <token>        Overrides SUBSCUT_API_KEY
-  --api-base-url <url>     Overrides SUBSCUT_API_BASE_URL
-  --help                   Show this help text
+  --video-url <url>            Public long-form video URL to process
+  --max-clips <number>         Number of clips to generate (1-20, default 5)
+  --clip-style <style>         viral | clean | minimal | leon | hormozi (default: viral)
+  --format <format>            dynamic | hook_frame (default: dynamic)
+  --captions <boolean>         true | false (default: true)
+  --min-clip-duration <secs>   Minimum clip length in seconds (default 20, min 10)
+  --max-clip-duration <secs>   Maximum clip length in seconds (default 60, max 60)
+  --api-key <token>            Overrides SUBSCUT_API_KEY
+  --api-base-url <url>         Overrides SUBSCUT_API_BASE_URL
+  --help                       Show this help text
 
 Environment:
-  SUBSCUT_API_KEY          Required if --api-key is not passed
-  SUBSCUT_API_BASE_URL     Optional, defaults to https://subscut.com`;
+  SUBSCUT_API_KEY              Required if --api-key is not passed
+  SUBSCUT_API_BASE_URL         Optional, defaults to https://subscut.com
+
+Formats:
+  dynamic     Auto-detects split-screen vs. solo framing, reframes to 9:16 (default)
+  hook_frame  Preserves original frame, adds a title card at top and captions at bottom
+
+Styles:
+  viral / beast    Bold animated-word captions (default)
+  leon / hormozi   Single highlighted word, clean font
+  clean / minimal  Plain white subtitles, no animation`;
 
 function parseArgs(argv) {
   if (argv.includes("--help")) {
@@ -51,7 +63,16 @@ function parseArgs(argv) {
   const videoUrl = values.get("video-url") || "";
   const maxClips = Number.parseInt(values.get("max-clips") || "5", 10);
   const clipStyle = values.get("clip-style") || "viral";
+  const format = values.get("format") || "dynamic";
   const captions = parseBoolean(values.get("captions"), true);
+  const minClipDuration = Number.parseInt(
+    values.get("min-clip-duration") || "20",
+    10,
+  );
+  const maxClipDuration = Number.parseInt(
+    values.get("max-clip-duration") || "60",
+    10,
+  );
 
   if (!videoUrl) {
     throw new Error("Missing required argument: --video-url");
@@ -61,17 +82,27 @@ function parseArgs(argv) {
     throw new Error("Missing API key. Set SUBSCUT_API_KEY or pass --api-key.");
   }
 
+  const normalizedFormat = normalizeFormat(format);
   const normalizedApiBaseUrl = normalizeApiBaseUrl(apiBaseUrl);
+
+  const normalizedMinClip = Math.max(10, Number.isFinite(minClipDuration) ? minClipDuration : 20);
+  const normalizedMaxClip = Math.max(
+    normalizedMinClip,
+    Math.min(60, Number.isFinite(maxClipDuration) ? maxClipDuration : 60),
+  );
 
   return {
     apiBaseUrl: normalizedApiBaseUrl,
     apiKey,
     videoUrl,
     maxClips: Number.isFinite(maxClips)
-      ? Math.max(1, Math.min(10, maxClips))
+      ? Math.max(1, Math.min(20, maxClips))
       : 5,
     clipStyle,
+    format: normalizedFormat,
     captions,
+    minClipDuration: normalizedMinClip,
+    maxClipDuration: normalizedMaxClip,
   };
 }
 
@@ -89,6 +120,11 @@ function parseBoolean(value, fallback) {
   }
 
   return fallback;
+}
+
+function normalizeFormat(value) {
+  const normalized = (value || "").trim().toLowerCase();
+  return normalized === "hook_frame" ? "hook_frame" : "dynamic";
 }
 
 function normalizeApiBaseUrl(value) {
@@ -125,6 +161,11 @@ async function main() {
       max_clips: args.maxClips,
       captions: args.captions,
       style: args.clipStyle,
+      format: args.format,
+      clip_duration: {
+        min: args.minClipDuration,
+        max: args.maxClipDuration,
+      },
     }),
   });
 

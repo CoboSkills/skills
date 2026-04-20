@@ -7,7 +7,7 @@
 #   antenna-send.sh <peer> [options] --stdin
 #
 # Options:
-#   --session <key>     Target session on recipient (default: main)
+#   --session <key>     Target session on recipient (full key, e.g. agent:betty:main)
 #   --subject <text>    Optional subject line
 #   --reply-to <url>    Override reply URL
 #   --dry-run           Print envelope and POST payload without sending
@@ -125,8 +125,13 @@ TOKEN=$(cat "$TOKEN_FILE")
 # ── Load config defaults ────────────────────────────────────────────────────
 
 MAX_LEN=$(jq -r '.max_message_length // 10000' "$CONFIG_FILE" 2>/dev/null || echo "10000")
-DEFAULT_SESSION=$(jq -r '.default_target_session // "main"' "$CONFIG_FILE" 2>/dev/null || echo "main")
-TARGET_SESSION="${SESSION:-$DEFAULT_SESSION}"
+
+# Session resolution:
+# - If --session was explicitly provided, include target_session in envelope.
+# - If not, OMIT target_session entirely and let the recipient resolve it
+#   from their own default_target_session config. The sender should not need
+#   to know the recipient's internal session layout.
+TARGET_SESSION="$SESSION"
 
 # Check allowed outbound peers
 ALLOWED=$(jq -r --arg peer "$PEER" '
@@ -149,8 +154,8 @@ fi
 # ── Build sender identity ───────────────────────────────────────────────────
 
 # Find the local peer entry (self: true)
-SELF_ID=$(jq -r 'to_entries[] | select(.value.self == true) | .key' "$PEERS_FILE" 2>/dev/null || echo "")
-SELF_URL=$(jq -r 'to_entries[] | select(.value.self == true) | .value.url // empty' "$PEERS_FILE" 2>/dev/null || echo "")
+SELF_ID=$(jq -r 'to_entries[] | select((.value | type) == "object" and (.value.url? | type) == "string" and .value.self == true) | .key' "$PEERS_FILE" 2>/dev/null || echo "")
+SELF_URL=$(jq -r 'to_entries[] | select((.value | type) == "object" and (.value.url? | type) == "string" and .value.self == true) | .value.url // empty' "$PEERS_FILE" 2>/dev/null || echo "")
 
 if [[ -z "$SELF_ID" ]]; then
   SELF_ID=$(hostname | tr '[:upper:]' '[:lower:]')
@@ -178,8 +183,14 @@ fi
 
 ENVELOPE="[ANTENNA_RELAY]
 from: ${SELF_ID}
-target_session: ${TARGET_SESSION}
 timestamp: ${TIMESTAMP}"
+
+# Only include target_session if explicitly specified via --session.
+# Otherwise, the recipient resolves it from their own config.
+if [[ -n "$TARGET_SESSION" ]]; then
+  ENVELOPE="${ENVELOPE}
+target_session: ${TARGET_SESSION}"
+fi
 
 if [[ -n "$SELF_SECRET" ]]; then
   ENVELOPE="${ENVELOPE}
@@ -237,7 +248,7 @@ HTTP_RESPONSE=$(curl -s --max-time 30 -w '\n__HTTP_CODE__%{http_code}' \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
   -d "$PAYLOAD" 2>&1) || {
-  log_entry "OUTBOUND | to:$PEER | session:$TARGET_SESSION | status:FAILED (connection error) | chars:$MSG_LEN"
+  log_entry "OUTBOUND | to:$PEER | session:${TARGET_SESSION:-recipient-default} | status:FAILED (connection error) | chars:$MSG_LEN"
   die "Connection failed to $PEER ($PEER_URL)" 3
 }
 
@@ -250,10 +261,10 @@ HTTP_CODE=$(echo "$HTTP_RESPONSE" | grep '__HTTP_CODE__' | sed 's/__HTTP_CODE__/
 case "$HTTP_CODE" in
   200)
     RUN_ID=$(echo "$BODY" | jq -r '.runId // empty' 2>/dev/null || echo "")
-    log_entry "OUTBOUND | to:$PEER | session:$TARGET_SESSION | status:delivered | chars:$MSG_LEN"
+    log_entry "OUTBOUND | to:$PEER | session:${TARGET_SESSION:-recipient-default} | status:delivered | chars:$MSG_LEN"
     jq -n \
       --arg peer "$PEER" \
-      --arg session "$TARGET_SESSION" \
+      --arg session "${TARGET_SESSION:-recipient-default}" \
       --arg runId "$RUN_ID" \
       --argjson chars "$MSG_LEN" \
       '{status:"delivered", peer:$peer, session:$session, runId:$runId, chars:$chars}'

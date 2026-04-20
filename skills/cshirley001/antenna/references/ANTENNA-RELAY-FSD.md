@@ -1,9 +1,9 @@
 # Antenna Relay Protocol — Functional Specification
 
-**Version:** 1.0.10  
+**Version:** 1.0.10 (historical reference)  
 **Date:** 2026-04-01  
 **Author:** Antenna Contributors  
-**Status:** v1.0.10 — stable relay baseline plus Layer A encrypted bootstrap exchange
+**Status:** historical baseline reference; parts of this document are superseded by the current 1.2.19-era relay contract and Apr 17 hardening work
 
 **Companion docs:**
 - `SECRET-EXCHANGE-OPTIONS.md` — secret-exchange layers and tradeoffs
@@ -86,7 +86,6 @@ The hook message body contains a structured envelope wrapped in markers.
 [ANTENNA_RELAY]
 from: <sender-peer-id>
 reply_to: https://<sender-tailscale-hostname>/hooks/agent
-target_session: main
 timestamp: 2026-03-28T22:20:00Z
 subject: NVIDIA config sync
 
@@ -100,7 +99,7 @@ Hey Sis, here's the config block you need...
 |---|---|---|
 | `from` | Yes | Sender peer ID (must match key in local `antenna-peers.json`) |
 | `reply_to` | No | Sender's hook URL for replies (enables two-way) |
-| `target_session` | Yes | Session key to deliver into. `main` is shorthand for the recipient's primary agent main session. |
+| `target_session` | No | Full session key to deliver into (e.g. `agent:lobster:main`). When **omitted**, the recipient resolves from its own `default_target_session` config. When present, must be a full session key — bare names like `main` are rejected. |
 | `timestamp` | Yes | ISO-8601 send time |
 | `subject` | No | Optional subject/thread label for context |
 | `user` | No | Optional human sender name (experimental; only include when explicitly requested) |
@@ -198,9 +197,9 @@ echo "<raw_message>" | antenna-relay.sh --stdin
 2. **Parse headers:** Extract `from`, `reply_to`, `target_session`, `timestamp`, `subject` from the header block.
 3. **Extract body:** Everything between the blank line after headers and `[/ANTENNA_RELAY]`.
 4. **Validate `from`:** Check against `antenna-peers.json` allowed inbound peers list. Unknown → `RELAY_REJECT`.
-5. **Validate `target_session`:** Must be non-empty, must match allowed patterns. Empty → `RELAY_REJECT`.
+5. **Resolve `target_session`:** If present, validate against allowed patterns. If absent, resolve from local `default_target_session` config (fallback: `agent:<local_agent_id>:main`). Invalid or disallowed → `RELAY_REJECT`.
 6. **Check message length:** Body must not exceed `max_message_length` from config. Over limit → `RELAY_REJECT`.
-7. **Resolve `target_session`:** If value is `main`, expand to `agent:<local_agent_id>:main` using config defaults.
+7. **Expand legacy values:** If value is `main`, expand to `agent:<local_agent_id>:main` using config defaults. (Note: bare `main` is rejected by current full-session-key enforcement; this step exists for backward compatibility.)
 8. **Format delivery message:** Construct the final message that will appear in the target session. In v0.1, the stable default is the plain/original host-based form; if `user` is explicitly present, a friendlier humanized form may be used.
    ```
    📡 Antenna from <sender-display-name> (<sender-peer-id>) — 2026-03-28 18:20 EDT
@@ -346,7 +345,7 @@ Two possible paths. Two possible tool calls. Zero ambiguity. Any lightweight mod
 ```json
 {
   "max_message_length": 10000,
-  "default_target_session": "main",
+  "default_target_session": "agent:<local_agent_id>:main",
   "relay_agent_id": "antenna",
   "relay_agent_model": "openai/gpt-5.4",
   "note": "Use a full provider/model ID, not a local alias, for portability",
@@ -728,7 +727,7 @@ Decomposed three-tier tester that evaluates relay agent model compatibility with
 | A.2 | No envelope markers | `status:malformed` |
 | A.3 | Missing `from` header | `action:reject` |
 | A.4 | Unknown peer | `action:reject` |
-| A.5 | `target_session: main` | `sessionKey` = `agent:<local_agent_id>:main` |
+| A.5 | Historical note: `target_session: main` shorthand | Superseded by current full-session-key relay contract; use `agent:<local_agent_id>:main` |
 | A.6 | Oversized body (>`max_message_length`) | `action:reject` |
 | A.7 | Missing closing marker | `status:malformed` |
 | A.8 | `user` header present | Delivery message includes user name |
@@ -738,7 +737,7 @@ Decomposed three-tier tester that evaluates relay agent model compatibility with
 | # | Check | Pass condition |
 |---|-------|----------------|
 | B.1 | API call succeeds | HTTP 200 |
-| B.2 | First tool call is `exec` | `function.name == "exec"` |
+| B.2 | Historical note: this older spec expected `exec` first | Superseded in current relay-agent contract, which uses `write` first and validates continuation separately |
 | B.3 | Command references relay script | Contains `antenna-relay` |
 | B.4 | Command includes envelope | Contains `ANTENNA_RELAY` |
 

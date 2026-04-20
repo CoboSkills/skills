@@ -12,11 +12,11 @@ description: >
   "cross-host message", "inter-host relay", "ping PEER", "peer list",
   "check antenna inbox", "approve message".
 metadata:
-  version: 1.2.17
+  version: 1.2.20
 postInstall: "bash skills/antenna/bin/antenna.sh setup"
 ---
 
-# Antenna — Inter-Host OpenClaw Messaging (v1.2.17)
+# Antenna — Inter-Host OpenClaw Messaging (v1.2.20)
 
 Send messages between OpenClaw instances over reachable HTTPS via the built-in `/hooks/agent` webhook.
 
@@ -81,7 +81,7 @@ Use `antenna setup` for normal installation; use the `*.example.json` files for 
 ```json
 {
   "max_message_length": 10000,
-  "default_target_session": "main",
+  "default_target_session": "agent:betty:main",
   "relay_agent_id": "antenna",
   "relay_agent_model": "openai/gpt-5.4",
   "local_agent_id": "<your-agent-id>",
@@ -92,7 +92,7 @@ Use `antenna setup` for normal installation; use the `*.example.json` files for 
   "log_verbose": false,
   "mcs_enabled": false,
   "mcs_model": "sonnet",
-  "allowed_inbound_sessions": ["main", "antenna"],
+  "allowed_inbound_sessions": ["agent:betty:main", "agent:betty:antenna"],
   "allowed_inbound_peers": ["<peer-a>", "<peer-b>"],
   "allowed_outbound_peers": ["<peer-a>", "<peer-b>"],
   "rate_limit": {
@@ -104,9 +104,9 @@ Use `antenna setup` for normal installation; use the `*.example.json` files for 
 
 Key fields:
 - `relay_agent_model` — use a full provider/model ID, not a local alias
-- `local_agent_id` — used to resolve `main` → `agent:<id>:main`
+- `local_agent_id` — used by local CLI conveniences when expanding bare names to full session keys like `agent:<id>:main`
 - `install_path` — absolute path to this skill directory
-- `allowed_inbound_sessions` — inbound delivery allowlist
+- `allowed_inbound_sessions` — inbound delivery allowlist (full session keys, e.g. `agent:betty:main`)
 - `allowed_inbound_peers` / `allowed_outbound_peers` — peer allowlists
 - `rate_limit.*` — inbound abuse controls
 
@@ -147,12 +147,16 @@ Key fields:
 
 ```bash
 scripts/antenna-send.sh <peer> "Your message here"
-antenna msg <peer> "Your message here"
+antenna msg <peer> "Your message here"                              # recipient resolves target session
 antenna msg <peer> --subject "Config sync" "Here's the block you need..."
-antenna msg <peer> --session "agent:<agent-id>:mychannel" "Your message"
+antenna msg <peer> --session "agent:<agent-id>:mychannel" "Your message"  # explicit session override
 echo "Long message body..." | antenna send <peer> --stdin
 antenna send <peer> --dry-run "Test message"
 ```
+
+> **Session resolution:** When `--session` is omitted, `target_session` is left out of the
+> envelope entirely. The recipient resolves from their own `default_target_session` config.
+> You don't need to know another host's internal session layout.
 
 ### Peer pairing (interactive wizard)
 
@@ -197,6 +201,22 @@ Notes:
 - Optional direct-send requires `himalaya`
 - Email is convenience transport only, not part of the trust model
 - Import shows a preview and asks before allowlist changes unless `--yes` is used
+
+### Session allowlist management
+
+```bash
+antenna sessions list                             # Show allowed inbound session targets
+antenna sessions add antv3                        # Bare name → auto-expanded to agent:<local>:antv3
+antenna sessions add "agent:marie:lab1"            # Cross-agent: use full session key
+antenna sessions remove antv3                     # Remove (bare names are expanded)
+antenna sessions remove "agent:betty:main" --force # Core sessions need --force
+```
+
+Controls which session targets inbound messages can request via `allowed_inbound_sessions` in `antenna-config.json`.
+
+**Convention: full session keys everywhere.** The allowlist stores full keys like `agent:betty:main` and `agent:marie:lab1`. The relay requires full keys from senders — bare names are rejected. The CLI auto-expands bare names to `agent:<local_agent>:<name>` for convenience when adding/removing, but the stored value is always the full key.
+
+Core sessions (`agent:<local>:main`, `agent:<local>:antenna`) are protected from removal unless `--force` is used. Supports batch add/remove.
 
 ### Health and status
 
@@ -280,7 +300,7 @@ summarize the queue and ask me.
 - **Send invites** — ClawReef delivers them via Antenna to the recipient's default session
 - **Accept & pair** — accepting an invite starts the normal `antenna pair` flow locally
 
-ClawReef stores public keys and endpoints, never bilateral secrets. All trust decisions remain local to Antenna.
+ClawReef stores webhook credentials (`hooksToken`, `identitySecret`) for push delivery alongside public keys and endpoints — standard webhook-provider behavior. It does not store messages, private age keys, or message content. All trust decisions remain local to Antenna.
 
 The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to manual encrypted exchange. Setup also displays ClawReef info after completion.
 
@@ -304,10 +324,9 @@ The pairing wizard (`antenna pair`) offers ClawReef invites as an alternative to
 - **Relay rejected**: peer not allowlisted, session not allowlisted, or identity secret mismatch
 - **Encrypted exchange fails immediately**: `age` / `age-keygen` missing
 - **Email send convenience fails**: `himalaya` missing or no suitable account configured
-- **Message sent but not visible**: check `commands.ownerDisplay = "raw"` on the receiver; without it, hook-delivered messages are processed but invisible in Control UI
+- **Message sent but not visible**: ensure `tools.sessions.visibility = "all"` and `tools.agentToAgent.enabled = true` on the receiver; the relay agent uses cross-agent `sessions_send`, which requires both settings. Also ensure `sandbox: { mode: "off" }` on the Antenna agent — sandboxed sessions silently clamp visibility to `tree`, blocking cross-agent delivery
 - **Exec denied / allowlist miss**: ensure relay agent instructions use only simple commands (no `$(...)`, heredocs, or chaining); the `antenna-relay-file.sh` wrapper accepts a file path only
-- **Model refuses to encode / base64 errors**: this was fixed in v1.1.8 — the model no longer performs any encoding; if you see encoding errors, ensure you are on v1.1.8+ with the updated `agent/AGENTS.md`
-- **Repeated approval prompts**: ensure Antenna agent has `tools.exec.security: "allowlist"`, `tools.exec.ask: "off"`, and `sandbox: { mode: "off" }` in registration
+- **Repeated approval prompts**: ensure Antenna agent has `sandbox: { mode: "off" }` in registration. Do **not** set `tools.exec.security` or `tools.exec.ask` on the Antenna agent — explicit exec overrides cause silent relay failure (fixed in v1.2.14)
 
 ## File Inventory
 
@@ -360,13 +379,13 @@ Notes:
 On each host:
 - agent `antenna` registered in OpenClaw config under `agents` with:
   - `agentDir` and `workspace` both pointing to the Antenna `agent/` directory
-  - `sandbox: { mode: "off" }`
-  - `tools.exec: { security: "allowlist", ask: "off" }`
+  - `sandbox: { mode: "off" }` (required — sandbox silently clamps session visibility, breaking cross-agent relay)
   - restrictive `tools.deny` (block web, browser, image, cron, memory tools)
+  - **Do not** set `tools.exec.security` or `tools.exec.ask` on the Antenna agent — explicit exec overrides cause silent relay failure (see v1.2.14 changelog)
 - `hooks.allowedAgentIds` includes `"antenna"`
 - `hooks.allowedSessionKeyPrefixes` includes `"hook:antenna"`
-- `commands.ownerDisplay` set to `"raw"` (required for relay messages to appear in Control UI)
-- Exec allowlist entries for Antenna agent: `/usr/bin/bash`, `/usr/bin/echo`, `/usr/bin/jq`, `/usr/bin/cat`
+- `tools.sessions.visibility` set to `"all"` (required for cross-agent `sessions_send`)
+- `tools.agentToAgent.enabled` set to `true`
 
 ## Support
 

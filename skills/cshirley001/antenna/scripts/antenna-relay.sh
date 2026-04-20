@@ -164,8 +164,12 @@ if [[ -z "$FROM" ]]; then
 fi
 
 if [[ -z "$TARGET_SESSION" ]]; then
-  # Use default from config
-  TARGET_SESSION=$(jq -r '.default_target_session // "main"' "$CONFIG_FILE" 2>/dev/null || echo "main")
+  # Use default from config; if absent, build full key for main session
+  TARGET_SESSION=$(jq -r '.default_target_session // empty' "$CONFIG_FILE" 2>/dev/null || true)
+  if [[ -z "$TARGET_SESSION" ]]; then
+    LOCAL_AGENT=$(jq -r '.local_agent_id // "agent"' "$CONFIG_FILE" 2>/dev/null || echo "agent")
+    TARGET_SESSION="agent:${LOCAL_AGENT}:main"
+  fi
 fi
 
 if [[ -z "$TIMESTAMP" ]]; then
@@ -245,10 +249,11 @@ fi
 # ── Rate limiting ────────────────────────────────────────────────────────────
 
 RATE_LIMIT_FILE="$SKILL_DIR/antenna-ratelimit.json"
+RATE_LIMIT_LOCK_FILE="${RATE_LIMIT_FILE}.lock"
 PEER_LIMIT=$(jq -r '.rate_limit.per_peer_per_minute // 10' "$CONFIG_FILE" 2>/dev/null || echo "10")
 GLOBAL_LIMIT=$(jq -r '.rate_limit.global_per_minute // 30' "$CONFIG_FILE" 2>/dev/null || echo "30")
 
-# Initialize state file if missing
+mkdir -p "$(dirname "$RATE_LIMIT_FILE")"
 if [[ ! -f "$RATE_LIMIT_FILE" ]]; then
   echo '{}' > "$RATE_LIMIT_FILE"
 fi
@@ -256,32 +261,41 @@ fi
 NOW_EPOCH=$(date +%s)
 WINDOW_START=$((NOW_EPOCH - 60))
 
-# Read current state, prune entries older than 60s, count per-peer and global
-RATE_CHECK=$(jq -r --arg from "$FROM" --argjson now "$NOW_EPOCH" --argjson cutoff "$WINDOW_START" \
-  --argjson peer_limit "$PEER_LIMIT" --argjson global_limit "$GLOBAL_LIMIT" '
-  # Prune all peers: keep only timestamps within the window
-  . as $state |
-  ([$state | to_entries[] | {key, value: [.value[] | select(. > $cutoff)]}] | from_entries) as $pruned |
+rate_limit_check_and_record() {
+  local result tmp_file
+  tmp_file="${RATE_LIMIT_FILE}.tmp.$$"
 
-  # Count for this peer
-  ($pruned[$from] // [] | length) as $peer_count |
+  result=$(jq -r --arg from "$FROM" --argjson now "$NOW_EPOCH" --argjson cutoff "$WINDOW_START" \
+    --argjson peer_limit "$PEER_LIMIT" --argjson global_limit "$GLOBAL_LIMIT" '
+    . as $state |
+    ([$state | to_entries[] | {key, value: [.value[] | select(. > $cutoff)]}] | from_entries) as $pruned |
+    ($pruned[$from] // [] | length) as $peer_count |
+    ([($pruned | to_entries[] | .value | length)] | add // 0) as $global_count |
+    if $peer_count >= $peer_limit then
+      "peer_limited|\($peer_count)|\($global_count)"
+    elif $global_count >= $global_limit then
+      "global_limited|\($peer_count)|\($global_count)"
+    else
+      ($pruned | .[$from] = ((.[$from] // []) + [$now])) as $updated |
+      ($updated | tostring) as $state_json |
+      "ok|\($peer_count)|\($global_count)|\($state_json)"
+    end
+  ' "$RATE_LIMIT_FILE" 2>/dev/null || echo "ok|0|0|{}")
 
-  # Count global (all peers)
-  ([($pruned | to_entries[] | .value | length)] | add // 0) as $global_count |
+  RATE_VERDICT=$(echo "$result" | cut -d'|' -f1)
+  RATE_PEER_COUNT=$(echo "$result" | cut -d'|' -f2)
+  RATE_GLOBAL_COUNT=$(echo "$result" | cut -d'|' -f3)
 
-  # Decide
-  if $peer_count >= $peer_limit then
-    "peer_limited|\($peer_count)|\($global_count)"
-  elif $global_count >= $global_limit then
-    "global_limited|\($peer_count)|\($global_count)"
-  else
-    "ok|\($peer_count)|\($global_count)"
-  end
-' "$RATE_LIMIT_FILE" 2>/dev/null || echo "ok|0|0")
+  if [[ "$RATE_VERDICT" == "ok" ]]; then
+    RATE_UPDATED_STATE=$(echo "$result" | cut -d'|' -f4-)
+    printf '%s\n' "$RATE_UPDATED_STATE" > "$tmp_file"
+    mv "$tmp_file" "$RATE_LIMIT_FILE"
+  fi
+}
 
-RATE_VERDICT=$(echo "$RATE_CHECK" | cut -d'|' -f1)
-RATE_PEER_COUNT=$(echo "$RATE_CHECK" | cut -d'|' -f2)
-RATE_GLOBAL_COUNT=$(echo "$RATE_CHECK" | cut -d'|' -f3)
+exec 8>"$RATE_LIMIT_LOCK_FILE"
+flock -x 8
+rate_limit_check_and_record
 
 if [[ "$RATE_VERDICT" == "peer_limited" ]]; then
   json_reject "Rate limited: peer '$FROM' exceeded $PEER_LIMIT messages/minute ($RATE_PEER_COUNT in window)" "$FROM"
@@ -294,14 +308,6 @@ if [[ "$RATE_VERDICT" == "global_limited" ]]; then
   log_entry "INBOUND  | from:$FROM | status:REJECTED (rate limited: global $RATE_GLOBAL_COUNT/$GLOBAL_LIMIT per min)"
   exit 0
 fi
-
-# Record this message in the rate limit state
-jq --arg from "$FROM" --argjson now "$NOW_EPOCH" --argjson cutoff "$WINDOW_START" '
-  # Prune old entries and append current timestamp
-  . as $state |
-  ([$state | to_entries[] | {key, value: [.value[] | select(. > $cutoff)]}] | from_entries) as $pruned |
-  $pruned | .[$from] = ((.[$from] // []) + [$now])
-' "$RATE_LIMIT_FILE" > "${RATE_LIMIT_FILE}.tmp" 2>/dev/null && mv "${RATE_LIMIT_FILE}.tmp" "$RATE_LIMIT_FILE"
 
 # ── Validate message length ─────────────────────────────────────────────────
 
@@ -325,13 +331,9 @@ if [[ "$INBOX_ENABLED" == "true" ]]; then
   ' "$CONFIG_FILE" 2>/dev/null || echo "no")
   
   if [[ "$AUTO_APPROVED" != "yes" ]]; then
-    # Resolve target session early for queueing
-    if [[ "$TARGET_SESSION" == "main" ]]; then
-      LOCAL_AGENT=$(jq -r '.local_agent_id // "agent"' "$CONFIG_FILE" 2>/dev/null || echo "agent")
-      RESOLVED_SESSION="agent:${LOCAL_AGENT}:main"
-    else
-      RESOLVED_SESSION="$TARGET_SESSION"
-    fi
+    # Queued messages bypass the session allowlist check below.
+    # Session target is validated at delivery time via sessions_send.
+    RESOLVED_SESSION="$TARGET_SESSION"
     
     DISPLAY_NAME=$(jq -r --arg from "$FROM" '.[$from].display_name // $from' "$PEERS_FILE" 2>/dev/null || echo "$FROM")
     
@@ -390,26 +392,17 @@ ${BODY}"
 fi
 
 # ── Validate target session against allowlist ───────────────────────────────
+# Full session keys only. Exact match. No expansion — senders must use full keys.
 
-# Load allowed session prefixes from config (default: only antenna-namespaced sessions + main)
 ALLOWED_SESSIONS=$(jq -r '
-  .allowed_inbound_sessions // ["main", "antenna"] | .[]
+  .allowed_inbound_sessions // [] | .[]
 ' "$CONFIG_FILE" 2>/dev/null)
 
 session_allowed() {
   local target="$1"
   while IFS= read -r pattern; do
     [[ -z "$pattern" ]] && continue
-    # Exact match on full target
     [[ "$target" == "$pattern" ]] && return 0
-    # Prefix match on full target (e.g., "antenna" matches "antennatest1")
-    [[ "$target" == "$pattern"* ]] && return 0
-    # Segment match: check each colon-separated segment of the target
-    # e.g., pattern "antenna" matches "agent:antenna:test" because "antenna" is a segment
-    IFS=':' read -ra segments <<< "$target"
-    for seg in "${segments[@]}"; do
-      [[ "$seg" == "$pattern" || "$seg" == "$pattern"* ]] && return 0
-    done
   done <<< "$ALLOWED_SESSIONS"
   return 1
 }
@@ -418,13 +411,6 @@ if ! session_allowed "$TARGET_SESSION"; then
   json_reject "Session target '$TARGET_SESSION' not in allowed_inbound_sessions" "$FROM"
   log_entry "INBOUND  | from:$FROM | session:$TARGET_SESSION | status:REJECTED (session not allowed)"
   exit 0
-fi
-
-# ── Resolve target session ──────────────────────────────────────────────────
-
-if [[ "$TARGET_SESSION" == "main" ]]; then
-  LOCAL_AGENT=$(jq -r '.local_agent_id // "agent"' "$CONFIG_FILE" 2>/dev/null || echo "agent")
-  TARGET_SESSION="agent:${LOCAL_AGENT}:main"
 fi
 
 # ── Format delivery message ─────────────────────────────────────────────────

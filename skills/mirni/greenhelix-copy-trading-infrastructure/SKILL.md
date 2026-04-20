@@ -1,6 +1,6 @@
 ---
 name: greenhelix-copy-trading-infrastructure
-version: "1.3.0"
+version: "1.3.1"
 description: "Copy Trading Infrastructure: Protocol-Agnostic Copy Trading with Verified Leader Performance. Build copy trading infrastructure with verified leader performance, follower allocation models, slippage handling, performance escrow, and revenue sharing. Includes detailed Python code examples with marketplace and escrow integration patterns."
 license: MIT
 compatibility: [openclaw]
@@ -12,6 +12,13 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY, AGENT_SIGNING_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+        - AGENT_SIGNING_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # Copy Trading Infrastructure: Protocol-Agnostic Copy Trading with Verified Leader Performance
 

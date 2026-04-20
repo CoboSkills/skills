@@ -101,7 +101,7 @@ data
 
 ```java
 // 需要 dg-java-sdk 依赖
-// 按照 dougong-hostingpay-pay-base 的方式初始化后调用
+// 按照 huifu-dougong-hostingpay-base 的方式初始化后调用
 // 具体 Request 类参见 dg-java-sdk 文档
 ```
 

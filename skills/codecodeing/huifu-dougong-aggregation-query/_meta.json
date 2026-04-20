@@ -3,9 +3,15 @@
   "slug": "huifu-dougong-aggregation-query",
   "displayName": "Huifu DouGong Aggregation Query",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775552375612,
-    "commit": "https://github.com/openclaw/skills/commit/0a09d641a957b5b76714c50c335946ddfce22666"
+    "version": "1.0.2",
+    "publishedAt": 1776162209718,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775552375612,
+      "commit": "https://github.com/openclaw/skills/commit/0a09d641a957b5b76714c50c335946ddfce22666"
+    }
+  ]
 }

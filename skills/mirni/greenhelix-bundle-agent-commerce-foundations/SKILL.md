@@ -1,6 +1,6 @@
 ---
 name: greenhelix-bundle-agent-commerce-foundations
-version: "1.3.0"
+version: "1.3.1"
 description: "The complete foundation for agent-to-agent commerce. Covers B2B transactions, API migration, security hardening, payment rails, pricing strategy, and multi-agent orchestration. 6 guides, $184 value."
 license: MIT
 compatibility: [openclaw]
@@ -12,6 +12,14 @@ tags: [bundle, agent-commerce, payments, security, pricing, multi-agent, guide, 
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY, AGENT_SIGNING_KEY, STRIPE_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+        - AGENT_SIGNING_KEY
+        - STRIPE_API_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # Agent Commerce Foundations: 6-Guide Bundle for Building Autonomous Transaction Systems
 

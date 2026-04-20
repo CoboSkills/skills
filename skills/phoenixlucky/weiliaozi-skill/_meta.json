@@ -1,11 +1,17 @@
 {
   "owner": "phoenixlucky",
   "slug": "weiliaozi-skill",
-  "displayName": "Weiliaozi Skill",
+  "displayName": "Wei Liaozi Strategic Analysis",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775550476852,
-    "commit": "https://github.com/openclaw/skills/commit/d3390d1ef86a89f6319d223957cf971e23ed2f3c"
+    "version": "1.5.1",
+    "publishedAt": 1776504260041,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775550476852,
+      "commit": "https://github.com/openclaw/skills/commit/d3390d1ef86a89f6319d223957cf971e23ed2f3c"
+    }
+  ]
 }

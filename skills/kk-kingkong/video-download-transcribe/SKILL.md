@@ -128,9 +128,8 @@ curl -L -o /tmp/video.mp4 "https://cdn.example.com/video.mp4"
 
 # 转录（本地 mlx_whisper）
 python3 << 'PYEOF'
-import os
-os.environ["HF_HUB_OFFLINE"] = "1"
-import mlx_whisper
+import mlx_whisper  # 首次运行直接 import，不加 HF_HUB_OFFLINE=1
+
 result = mlx_whisper.transcribe(
     "/tmp/video.mp4",
     path_or_hf_repo="mlx-community/whisper-small-mlx",
@@ -139,7 +138,6 @@ result = mlx_whisper.transcribe(
 for seg in result.get("segments", []):
     print(f"[{seg['start']:.1f}s - {seg['end']:.1f}s] {seg['text']}")
 PYEOF
-```
 
 ### 长视频（≥5分钟，后台转录）
 
@@ -248,7 +246,7 @@ PLAYWRIGHT_DOWNLOAD_HOST=https://npmmirror.com/mirrors/playwright \
 
 ```python
 import os
-os.environ["HF_HUB_OFFLINE"] = "1"  # 必须放在 import 之前！
+# os.environ["HF_HUB_OFFLINE"] = "1"  # 首次运行不能加！需联网下载模型
 
 import mlx_whisper
 
@@ -299,3 +297,35 @@ for seg in result.get("segments", []):
 - `analyze_video` 把下载+转录绑在一起容易超时，**两步走更稳定**
 - TikHub 返回 `original_video_url` 是真实 CDN 地址，比 `iesdouyin.com` 重定向 URL 更可靠
 - f-string 中的 `{{` 会先被外层 f-string 处理，需用 `dict()` 代替字典字面量
+
+### 2026-04-19 mlx_whisper 模型未缓存 / 转录失败
+
+**问题**：mlx_whisper 转录时报 `LocalEntryNotFoundError`，模型从未下载
+
+**排查过程**：
+1. `HF_HUB_OFFLINE=1` 阻止了首次下载（HuggingFace Hub 请求被拦截）
+2. 网络不通 huggingface.co（Mac mini 无代理）
+3. 配置代理后首次运行仍失败（`HF_HUB_OFFLINE=1` 在代码里被设置）
+4. 去掉 `HF_HUB_OFFLINE=1` 后成功下载模型并转录
+
+**根因**：
+- `HF_HUB_OFFLINE=1` 是为了防止 import 时意外联网，但 mlx_whisper 首次运行需要联网下载模型
+- 首次运行后模型会缓存到 `~/.cache/huggingface/hub/`，之后加 `HF_HUB_OFFLINE=1` 才能正常工作
+
+**正确用法**：
+```python
+# 首次运行（需要网络，下载模型）
+import mlx_whisper
+result = mlx_whisper.transcribe("/path/video.mp4", path_or_hf_repo="mlx-community/whisper-base-mlx")
+
+# 后续运行（离线模式，加回 HF_HUB_OFFLINE=1）
+import os
+os.environ["HF_HUB_OFFLINE"] = "1"  # 放 import 之前
+import mlx_whisper
+result = mlx_whisper.transcribe("/path/video.mp4", ...)
+```
+
+**教训**：
+- mlx_whisper 模型（mlx-community/whisper-xxx）必须联网下载一次，之后才能离线使用
+- 已在代码中全局设置 `HF_HUB_OFFLINE=1` 的环境会阻止首次下载，需临时去掉
+- 建议：mlx_whisper 的首次转录不要设置 `HF_HUB_OFFLINE=1`

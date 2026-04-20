@@ -3,9 +3,15 @@
   "slug": "vip-login",
   "displayName": "唯品会用户登录",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775813288520,
-    "commit": "https://github.com/openclaw/skills/commit/635d38ea8cac880eda6b8e8459e5292deda93689"
+    "version": "1.0.3",
+    "publishedAt": 1776259383855,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775813288520,
+      "commit": "https://github.com/openclaw/skills/commit/635d38ea8cac880eda6b8e8459e5292deda93689"
+    }
+  ]
 }

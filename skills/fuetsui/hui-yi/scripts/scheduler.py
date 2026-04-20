@@ -6,6 +6,13 @@ It reads a schedule config, filters eligible notes, and prints the best recall c
 """
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+if str(SKILL_ROOT) not in sys.path:
+    sys.path.insert(0, str(SKILL_ROOT))
+
 import argparse
 import json
 import sys
@@ -19,28 +26,18 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from review import load_context_text, load_tags, parse_date, read_text_fallback, resurfacing_priority
-WORKSPACE_ROOT = SCRIPT_DIR.parents[2]
-DEFAULT_MEMORY_ROOT = WORKSPACE_ROOT / "memory" / "cold"
+from core.signal_detect import load_context_text
+from review import load_tags
+from core.scoring import resurfacing_priority
+from core.common import DEFAULT_MEMORY_ROOT, parse_date, read_text_fallback, repetition_signal, resolve_memory_root as common_resolve_memory_root, load_json
+
+
 DEFAULT_CONFIG_PATH = DEFAULT_MEMORY_ROOT / "schedule.json"
 IMPORTANCE_ORDER = {"low": 1, "medium": 2, "high": 3}
 
 
 def resolve_memory_root(arg: str | None) -> Path:
-    if arg:
-        candidate = Path(arg)
-        return candidate if candidate.is_absolute() else (Path.cwd() / candidate).resolve()
-    return DEFAULT_MEMORY_ROOT
-
-
-def load_json(path: Path) -> dict:
-    if not path.exists():
-        return {}
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
+    return common_resolve_memory_root(arg, default=DEFAULT_MEMORY_ROOT)
 
 
 def parse_time_hhmm(value: str | None) -> tuple[int, int] | None:
@@ -69,40 +66,9 @@ def schedule_matches_now(schedule: dict, now: datetime) -> bool:
     return False
 
 
-def recent_log_hits(memory_root: Path, note_name: str, hours: int) -> int:
-    if hours <= 0:
-        return 0
-    log_path = memory_root / "retrieval-log.md"
+def _iter_recent_log_datetimes(log_path: Path):
     if not log_path.exists():
-        return 0
-    threshold = datetime.now().astimezone() - timedelta(hours=hours)
-    hits = 0
-    # Use the multi-encoding fallback: a retrieval-log written on a Chinese Windows
-    # system may be GB18030/cp936; hardcoding utf-8 would crash the entire scheduler.
-    for line in read_text_fallback(log_path).splitlines():
-        if note_name not in line or not line.startswith("|"):
-            continue
-        parts = [part.strip() for part in line.strip("|").split("|")]
-        if len(parts) < 5:
-            continue
-        try:
-            line_date = datetime.fromisoformat(parts[0]).date()
-            line_dt = datetime.combine(line_date, datetime.min.time()).astimezone()
-        except Exception:
-            continue
-        if line_dt >= threshold:
-            hits += 1
-    return hits
-
-
-def recent_total_hits(memory_root: Path, hours: int) -> int:
-    if hours <= 0:
-        return 0
-    log_path = memory_root / "retrieval-log.md"
-    if not log_path.exists():
-        return 0
-    threshold = datetime.now().astimezone() - timedelta(hours=hours)
-    hits = 0
+        return
     for line in read_text_fallback(log_path).splitlines():
         if not line.startswith("|"):
             continue
@@ -111,12 +77,29 @@ def recent_total_hits(memory_root: Path, hours: int) -> int:
             continue
         try:
             line_date = datetime.fromisoformat(parts[0]).date()
-            line_dt = datetime.combine(line_date, datetime.min.time()).astimezone()
+            yield line, datetime.combine(line_date, datetime.min.time()).astimezone()
         except Exception:
             continue
-        if line_dt >= threshold:
+
+
+def recent_log_hits(memory_root: Path, note_name: str, hours: int) -> int:
+    if hours <= 0:
+        return 0
+    log_path = memory_root / "retrieval-log.md"
+    threshold = datetime.now().astimezone() - timedelta(hours=hours)
+    hits = 0
+    for line, line_dt in _iter_recent_log_datetimes(log_path):
+        if note_name in line and line_dt >= threshold:
             hits += 1
     return hits
+
+
+def recent_total_hits(memory_root: Path, hours: int) -> int:
+    if hours <= 0:
+        return 0
+    log_path = memory_root / "retrieval-log.md"
+    threshold = datetime.now().astimezone() - timedelta(hours=hours)
+    return sum(1 for _, line_dt in _iter_recent_log_datetimes(log_path) if line_dt >= threshold)
 
 
 def importance_ok(note: dict, minimum: str) -> bool:
@@ -191,9 +174,13 @@ def select_candidates(
                 continue
             if not preview and note.get("state") not in (schedule.get("allowed_states") or ["warm", "cold"]):
                 continue
+            repeat_value = repetition_signal(note, now.date())
+            min_repeat = float(schedule.get("min_repetition", 0.0) or 0.0)
             if not preview and schedule.get("require_due", True):
                 next_review = parse_date(note.get("next_review"))
-                if not next_review or next_review > now.date():
+                due_by_time = bool(next_review and next_review <= now.date())
+                due_by_repeat = repeat_value >= max(0.35, min_repeat)
+                if not due_by_time and not due_by_repeat:
                     continue
 
             note_name = Path(note.get("path", "")).name
@@ -210,6 +197,8 @@ def select_candidates(
                 continue
             if not preview and context and meta.get("relevance_value", 0.0) < min_relevance:
                 continue
+            if not preview and repeat_value < min_repeat:
+                continue
             if score < float(schedule.get("min_priority", 0.0) or 0.0):
                 continue
 
@@ -225,6 +214,7 @@ def select_candidates(
                     "meta": meta,
                     "note": note,
                     "dedupe_group": dedupe_key(note, str(schedule.get("dedupe_by", "title"))),
+                    "repetition_signal": repeat_value,
                 }
             )
 
@@ -302,6 +292,7 @@ def build_json_payload(
                     "relevance": meta.get("relevance_value", 0.0),
                     "forgettingRisk": meta.get("forgetting_risk", 0.0),
                     "overdueDays": meta.get("overdue_days", 0),
+                    "memoryStrength": meta.get("memory_strength", "weak"),
                 },
                 "dedupeGroup": candidate.get("dedupe_group"),
                 "preview": mode == "preview",
@@ -323,7 +314,7 @@ def main() -> int:
     args = parser.parse_args()
 
     memory_root = resolve_memory_root(args.memory_root)
-    config_path = Path(args.config).resolve() if args.config else DEFAULT_CONFIG_PATH
+    config_path = common_resolve_memory_root(args.config, default=DEFAULT_CONFIG_PATH) if args.config else DEFAULT_CONFIG_PATH
     config = load_json(config_path)
     now = datetime.now().astimezone()
     mode = "preview" if args.preview else "normal"
@@ -397,7 +388,8 @@ def main() -> int:
         print(f"- schedule={candidate['schedule_id']} score={candidate['score']:.3f} title={note.get('title')}")
         print(
             f"  importance={note.get('importance')} state={note.get('state')} next_review={note.get('next_review')} "
-            f"relevance={meta.get('relevance_value', 0.0):.3f} forgetting_risk={meta.get('forgetting_risk', 0.0):.3f}"
+            f"strength={meta.get('memory_strength', 'weak')} repetition={candidate.get('repetition_signal', 0.0):.3f} "
+            f"relevance={meta.get('relevance_value', 0.0):.3f} due_pressure={meta.get('due_pressure', meta.get('forgetting_risk', 0.0)):.3f}"
         )
         print(f"  delivery_mode={candidate.get('delivery_mode')}")
         if args.preview:

@@ -5,37 +5,37 @@ Extended with lightweight forgetting-aware cold-memory stats.
 """
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+if str(SKILL_ROOT) not in sys.path:
+    sys.path.insert(0, str(SKILL_ROOT))
+
 import argparse
 import json
 from datetime import date, datetime
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-WORKSPACE_ROOT = SCRIPT_DIR.parents[2]
+from core.common import WORKSPACE_ROOT, load_json, save_json, resolve_path
+
 DEFAULT_MEMORY_ROOT = WORKSPACE_ROOT / "memory"
 DEFAULT_COLD_ROOT = DEFAULT_MEMORY_ROOT / "cold"
 
 
 def resolve_memory_root(arg: str | None) -> Path:
     if arg:
-        candidate = Path(arg)
-        return candidate if candidate.is_absolute() else (Path.cwd() / candidate).resolve()
+        return resolve_path(arg)
     return DEFAULT_MEMORY_ROOT
 
 
 def load_state(path: Path) -> dict:
-    if path.exists():
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                return data
-        except Exception:
-            pass
-    return {}
+    data = load_json(path, default={})
+    return data if isinstance(data, dict) else {}
 
 
 def save_state(path: Path, state: dict) -> None:
-    path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    save_json(path, state)
 
 
 def ensure_cold_state(state: dict) -> dict:

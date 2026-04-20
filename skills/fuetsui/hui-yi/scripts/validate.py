@@ -12,6 +12,13 @@ Options:
 """
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+if str(SKILL_ROOT) not in sys.path:
+    sys.path.insert(0, str(SKILL_ROOT))
+
 import argparse
 from datetime import date
 from pathlib import Path
@@ -21,7 +28,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from common import DEFAULT_MEMORY_ROOT, parse_heading_value, resolve_memory_root
+from core.common import parse_heading_value, parse_metric_block, parse_section_metric, resolve_memory_root
 import json
 import re
 
@@ -52,12 +59,8 @@ OVERDUE_WARN_DAYS = 90  # warn if next_review is more than this many days in the
 
 
 def parse_review_metric(text: str, key: str) -> int | None:
-    match = re.search(r"^## Review cadence\s*$(.*?)^(?:## |\Z)", text, re.MULTILINE | re.DOTALL)
-    if not match:
-        return None
-    block = match.group(1)
-    metric = re.search(rf"^-\s*{re.escape(key)}\s*:\s*(\d+)\s*$", block, re.MULTILINE)
-    return int(metric.group(1)) if metric else None
+    value = parse_section_metric(text, "Review cadence", key, default=-1)
+    return None if value == -1 else value
 
 
 def section_exists(text: str, heading: str) -> bool:
@@ -127,6 +130,8 @@ def validate_note(path: Path) -> tuple[list[str], list[str]]:
     r_count = parse_review_metric(text, "review_count")
     r_success = parse_review_metric(text, "review_success")
     r_fail = parse_review_metric(text, "review_fail")
+    retrieval_count = parse_review_metric(text, "retrieval_count")
+    reinforcement_count = parse_review_metric(text, "reinforcement_count")
     if r_count is not None and r_success is not None and r_fail is not None:
         if r_success + r_fail > r_count:
             errors.append(
@@ -135,6 +140,50 @@ def validate_note(path: Path) -> tuple[list[str], list[str]]:
             )
         if r_success < 0 or r_fail < 0 or r_count < 0:
             errors.append("Review cadence contains negative values")
+    if retrieval_count is not None and retrieval_count < 0:
+        errors.append("Review cadence contains negative retrieval_count")
+    if reinforcement_count is not None and reinforcement_count < 0:
+        errors.append("Review cadence contains negative reinforcement_count")
+    if retrieval_count is not None and r_count is not None and retrieval_count > r_count:
+        warnings.append(
+            f"retrieval_count({retrieval_count}) > review_count({r_count}); "
+            "check whether reinforcement metrics were edited manually"
+        )
+    if reinforcement_count is not None and retrieval_count is not None and reinforcement_count > retrieval_count:
+        errors.append(
+            f"reinforcement_count({reinforcement_count}) > retrieval_count({retrieval_count})"
+        )
+
+    session_metrics = parse_metric_block(
+        text,
+        "Session signals",
+        [
+            "current_session_hits",
+            "recent_session_hits",
+            "cross_session_repeat_count",
+            "consecutive_session_count",
+        ],
+        defaults={
+            "current_session_hits": 0,
+            "recent_session_hits": 0,
+            "cross_session_repeat_count": 0,
+            "consecutive_session_count": 0,
+        },
+    ) if section_exists(text, "Session signals") else {}
+    current_hits = session_metrics.get("current_session_hits") if session_metrics else None
+    recent_hits = session_metrics.get("recent_session_hits") if session_metrics else None
+    cross_hits = session_metrics.get("cross_session_repeat_count") if session_metrics else None
+    consecutive_hits = session_metrics.get("consecutive_session_count") if session_metrics else None
+    if current_hits is not None and current_hits < 0:
+        errors.append("Session signals contains negative current_session_hits")
+    if recent_hits is not None and recent_hits < 0:
+        errors.append("Session signals contains negative recent_session_hits")
+    if cross_hits is not None and cross_hits < 0:
+        errors.append("Session signals contains negative cross_session_repeat_count")
+    if consecutive_hits is not None and consecutive_hits < 0:
+        errors.append("Session signals contains negative consecutive_session_count")
+    if consecutive_hits is not None and current_hits is not None and consecutive_hits > max(current_hits, 1) and current_hits == 0:
+        warnings.append("consecutive_session_count looks inconsistent with current_session_hits")
 
     return errors, warnings
 

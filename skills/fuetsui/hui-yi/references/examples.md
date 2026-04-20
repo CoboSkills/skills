@@ -39,10 +39,12 @@
 - warm
 
 ## Review cadence
-- interval_days: 7
+- interval_days: 4
 - review_count: 2
 - review_success: 2
 - review_fail: 0
+- retrieval_count: 2
+- reinforcement_count: 2
 
 ## Last seen
 - 2025-03-15
@@ -51,7 +53,7 @@
 - 2025-03-15
 
 ## Next review
-- 2025-03-22
+- 2025-03-19
 
 ## Confidence
 - high
@@ -103,9 +105,11 @@
 
 ## Review cadence
 - interval_days: 30
-- review_count: 1
-- review_success: 1
+- review_count: 5
+- review_success: 5
 - review_fail: 0
+- retrieval_count: 5
+- reinforcement_count: 3
 
 ## Last seen
 - 2025-02-20
@@ -201,6 +205,23 @@
 ## Memory state
 - dormant
 
+## Review cadence
+- interval_days: 365
+- review_count: 7
+- review_success: 7
+- review_fail: 0
+- retrieval_count: 8
+- reinforcement_count: 5
+
+## Last seen
+- 2025-01-15
+
+## Last reviewed
+- 2025-01-15
+
+## Next review
+- 2026-01-15
+
 ## Confidence
 - low
 
@@ -220,7 +241,8 @@
 - `fact`：短、稳、直接可复用
 - `experience`：最值钱，重点写 lesson
 - `background`：给未来做综合判断
-- `dormant`：保留，但别乱提醒
+- 多次被证明有用的 note 会逐步形成 `strong memory`
+- `dormant`：已经充分巩固后进入长周期归档，不是失败后的降级
 
 一句话：
 

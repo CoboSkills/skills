@@ -2,34 +2,32 @@
 """Search Hui-Yi cold memory metadata by keyword or short query."""
 from __future__ import annotations
 
-import argparse
-import json
+import sys
 from pathlib import Path
 
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+if str(SKILL_ROOT) not in sys.path:
+    sys.path.insert(0, str(SKILL_ROOT))
+
+import argparse
+from pathlib import Path
+import sys
+
 SCRIPT_DIR = Path(__file__).resolve().parent
-WORKSPACE_ROOT = SCRIPT_DIR.parents[2]
-DEFAULT_MEMORY_ROOT = WORKSPACE_ROOT / "memory" / "cold"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from core.common import load_tags_payload, read_text_fallback, resolve_memory_root
+
 STATE_BOOST = {"hot": 0.2, "warm": 0.35, "cold": 0.25, "dormant": 0.05}
 IMPORTANCE_BOOST = {"high": 0.35, "medium": 0.2, "low": 0.05}
-
-
-def resolve_memory_root(arg: str | None) -> Path:
-    if arg:
-        candidate = Path(arg)
-        return candidate if candidate.is_absolute() else (Path.cwd() / candidate).resolve()
-    return DEFAULT_MEMORY_ROOT
+STRENGTH_BOOST = {"strong": 0.25, "normal": 0.1, "weak": 0.0}
 
 
 def load_tags(path: Path) -> list[dict]:
-    if not path.exists():
-        return []
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if isinstance(data, dict):
-        notes = data.get("notes", [])
-        return notes if isinstance(notes, list) else []
-    if isinstance(data, list):
-        return data
-    return []
+    payload = load_tags_payload(path.parent)
+    notes = payload.get("notes", []) if isinstance(payload, dict) else []
+    return notes if isinstance(notes, list) else []
 
 
 def score_note(note: dict, query_terms: list[str]) -> tuple[float, dict]:
@@ -69,6 +67,7 @@ def score_note(note: dict, query_terms: list[str]) -> tuple[float, dict]:
 
     score += IMPORTANCE_BOOST.get(note.get("importance", "medium"), 0.0)
     score += STATE_BOOST.get(note.get("state", "cold"), 0.0)
+    score += STRENGTH_BOOST.get(note.get("strength", "weak"), 0.0)
     return score, {"matched_fields": sorted(set(matched_fields))}
 
 
@@ -80,7 +79,7 @@ def search_full_text(memory_root: Path, query_terms: list[str]) -> list[tuple[st
         if path.name in skip:
             continue
         try:
-            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+            lines = read_text_fallback(path).splitlines()
         except OSError:
             continue
         for lineno, line in enumerate(lines, 1):
@@ -110,7 +109,7 @@ def main() -> int:
     print(f"=== Searching cold memory for: {query_raw} ===\n")
 
     if index_path.exists():
-        lines = index_path.read_text(encoding="utf-8").splitlines()
+        lines = read_text_fallback(index_path).splitlines()
         hits = [(i + 1, line) for i, line in enumerate(lines) if any(term in line.lower() for term in query_terms)]
         if hits:
             print("## index.md matches:")
@@ -141,7 +140,8 @@ def main() -> int:
                 print(f"- score={score:.2f} | {note.get('title', 'untitled')} -> {note.get('path', '(missing path)')}")
                 print(
                     f"  importance={note.get('importance', 'medium')} state={note.get('state', 'cold')} "
-                    f"confidence={note.get('confidence', 'unknown')} next_review={note.get('next_review', 'n/a')}"
+                    f"strength={note.get('strength', 'weak')} confidence={note.get('confidence', 'unknown')} "
+                    f"next_review={note.get('next_review', 'n/a')}"
                 )
                 matched_fields = ", ".join(meta.get("matched_fields", [])) or "n/a"
                 print(f"  matched_fields={matched_fields}")

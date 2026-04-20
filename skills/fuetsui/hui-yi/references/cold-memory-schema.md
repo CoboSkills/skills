@@ -39,10 +39,12 @@
 - hot | warm | cold | dormant
 
 ## Review cadence
-- interval_days: 7
+- interval_days: 1
 - review_count: 0
 - review_success: 0
 - review_fail: 0
+- retrieval_count: 0
+- reinforcement_count: 0
 
 ## Last seen
 - YYYY-MM-DD
@@ -94,6 +96,8 @@
 - `Importance`：历史价值
 - `Memory state`：当前温度
 - `Review cadence`：复习节奏
+  - `retrieval_count`：这条 note 被实际提起 / 复习的次数
+  - `reinforcement_count`：被证明“有用”的提起次数；多次有用后视为强记忆
 - `Confidence`：可靠程度
 
 ---
@@ -104,7 +108,7 @@
 hot      最近强化过，能直接用
 warm     适合轻提醒
 cold     保留但低优先级
-dormant  除非强触发，否则别主动拿出来
+dormant  长周期归档；只在强触发下拿出来，不是失败惩罚态
 ```
 
 ---
@@ -114,15 +118,19 @@ dormant  除非强触发，否则别主动拿出来
 ```text
 创建
 +1d
-+3d
++2d
++4d
 +7d
-+14d
++15d
 +30d
++60d
 ```
 
 之后：
-- helpful recall → 间隔拉长
-- unhelpful recall → 间隔缩短或继续冷却
+- helpful recall → 间隔逐步拉长
+- failed recall → 回到 +1d / +2d relearning step
+- dormant 只应来自充分巩固或明确归档，不应来自失败
+- 多次有用提及 → 视为 strong memory，降低遗忘风险并更容易进入 `hot`
 
 ---
 
@@ -155,7 +163,7 @@ dormant  除非强触发，否则别主动拿出来
 {
   "_meta": {
     "description": "Structured metadata for cold-memory retrieval",
-    "version": 4,
+    "version": 5,
     "updated": "YYYY-MM-DD"
   },
   "notes": [
@@ -178,8 +186,11 @@ dormant  除非强触发，否则别主动拿出来
         "interval_days": 7,
         "review_count": 0,
         "review_success": 0,
-        "review_fail": 0
+        "review_fail": 0,
+        "retrieval_count": 0,
+        "reinforcement_count": 0
       },
+      "strength": "weak|normal|strong",
       "last_verified": "YYYY-MM-DD",
       "updated": "YYYY-MM-DD"
     }

@@ -1,278 +1,432 @@
-# Hui-Yi README / 使用速查
+# 回忆（Hui-Yi）
 
-> **Python 3.10+** required — scripts use `X | Y` union-type syntax.
+回忆（Hui-Yi ）是一个面向冷记忆的 skill。它的核心不是“时间到了就复习”，而是：
 
-Hui-Yi 是一个**冷记忆管理 skill**。
-它的任务很简单：
+> **会话里反复出现、反复被激活的信息，优先强化；艾宾浩斯曲线负责安排强化节奏。**
 
-**把低频但高价值的信息整理进 `memory/cold/`，并在“当前相关 + 快被遗忘”时再唤起。**
+也就是说，Hui-Yi 是一个把**冷记忆归档、历史唤回、重复强化**合在一起的系统，而不是普通的定时复习器。
 
 ---
 
-## 什么时候用
+## 第一层：定位与边界
 
-适合：
-- 长期保留经验、决策、背景知识
-- 问“之前这个问题怎么处理的”
-- 定期冷却 daily notes
-- 维护冷记忆质量和 review 节奏
+### 一句话理解
 
-不适合：
-- 当天临时事项 → `memory/YYYY-MM-DD.md`
-- 高频个人/项目背景 → `MEMORY.md`
-- 工具路径、环境坑点 → `TOOLS.md`
-- 新错误、新纠正、未验证 lesson → `.learnings/`
+适合 Hui-Yi 的内容：
+- 30 天后仍然有价值的经验、决策、背景知识、排障结果
+- “我们以前怎么做过这件事” 这类需要历史连续性的内容
+- 在会话里反复出现、值得强化的低频知识
+
+不适合 Hui-Yi 的内容：
+- 当天临时记录：`memory/YYYY-MM-DD.md`
+- 高频个人或项目事实：`MEMORY.md`
+- 机器环境、路径、工具坑点：`TOOLS.md`
+- 新鲜但还没验证的教训：`.learnings/`
+- 密钥、口令、token、敏感凭据
+
+### 与 OpenClaw 系统记忆的分工边界
+
+为了避免重复存储、重复召回、重复维护，Hui-Yi 只管理 **冷记忆强化层**，不替代 OpenClaw 自带的系统记忆。
+
+#### OpenClaw 系统记忆负责
+- 当前会话上下文
+- `memory/YYYY-MM-DD.md` 中的日常流水与最近连续性
+- `MEMORY.md` 中的高频稳定事实、用户背景与长期偏好
+- `TOOLS.md` 中的环境配置、路径、机器与工具注意事项
+- `.learnings/` 中尚在验证期的经验、错误与改进建议
+
+#### Hui-Yi 负责
+- `memory/cold/` 下的低频、高价值、可复用历史知识
+- 在真实会话里被反复提起、值得长期强化的经验、决策、背景与排障结论
+- 对冷记忆进行 repetition-first 的强化、唤回、轻维护和归档质量控制
+
+#### 选择规则
+- **高频且稳定** → 进 OpenClaw 主记忆层，不进 Hui-Yi
+- **低频但高价值** → 优先考虑 Hui-Yi
+- **当天新鲜上下文** → 留在 daily memory，不急着冷却
+- **工具/环境信息** → 固定进 `TOOLS.md`
+- **还没验证的新教训** → 先进 `.learnings/`
 
 一句话：
 
-**近期放 warm，长期低频放 cold。不要把高频词误当高价值记忆。**
+> **OpenClaw 负责“记住”，Hui-Yi 负责“强化那些值得长期巩固、但不应常驻主记忆的信息”。**
 
----
+### 核心原则
 
-## 核心思路
+- archive less, but archive better
+- reinforce what keeps reappearing
+- use time as pacing, not as the only trigger
 
-Hui-Yi 不按“词”记忆，而按**记忆单元**记忆。
+### 核心模型
 
-一个记忆单元可以是：
-- lesson
-- decision
-- stable fact
-- troubleshooting result
-- background context
+#### 1. 主触发：重复出现
+优先强化这些内容：
+- 当前会话里反复出现的
+- 最近多个会话里重复出现的
+- 被再次召回且证明有用的
+- 用户持续追问或重复关注的
 
-推荐的回忆逻辑：
+#### 2. 辅助触发：时间压力
+艾宾浩斯曲线仍然保留，但它主要用来决定：
+- 成功后间隔怎么拉长
+- 失败后怎么快速回到短间隔
+- 长期未强化的记忆如何保持“应复习”状态
+
+而不是机械地说：
+- 日期到了，无论有没有再次出现，都必须优先复习
+
+### 优先级公式
+
+当前实现更接近：
 
 ```text
 Priority ≈
-  0.35 * CurrentRelevance
-+ 0.25 * ForgettingRisk
-+ 0.20 * Importance
-+ 0.10 * CrossSessionReuse
-+ 0.10 * StateBias
+  0.40 * RepetitionSignal
++ 0.25 * CurrentRelevance
++ 0.15 * DuePressure
++ 0.10 * Importance
++ 0.10 * ReinforcementStrength
 ```
 
-也就是优先找这种内容：
-- 曾经重要
-- 最近变冷
-- 当前又重新相关
+含义：
+- `RepetitionSignal`：真实会话中的重复激活
+- `CurrentRelevance`：当前上下文相关性
+- `DuePressure`：相对 interval 的时间压力
+- `Importance`：长期价值
+- `ReinforcementStrength`：weak / normal / strong 记忆强度修正
 
 ---
 
-## 关键字段
+## 第二层：快速开始与常用操作
 
-*已更新：* 近期加入 **Bridge** 模块，提供从 scheduler 到实际投递的桥接层。以下章节包含其使用说明。
+## 运行方式
 
-一条冷记忆 note 建议至少有：
+### 模式 A：当前仓库根目录直接运行
 
-- `Importance`
-- `Memory state`
-- `Last seen`
-- `Last reviewed`
-- `Next review`
-- `Review cadence`
-- `Confidence`
-- `Related tags`
+```text
+hui-yi/
+├── memory/
+│   ├── cold/
+│   └── heartbeat-state.json
+├── scripts/
+├── core/
+├── templates/
+├── templates/
+├── references/
+├── SKILL.md
+└── manifest.yaml
+```
 
-状态含义：
-- `hot`：最近强化过，可直接用
-- `warm`：适合轻提醒
-- `cold`：保留但低优先级
-- `dormant`：仅在强触发下唤醒
+### 模式 B：安装到 `skills/hui-yi/`
+
+```text
+<workspace>/
+├── memory/
+│   ├── cold/
+│   └── heartbeat-state.json
+└── skills/
+    └── hui-yi/
+```
+
+从 `<workspace>` 根目录运行时，把：
+- `scripts/...` 替换为 `skills/hui-yi/scripts/...`
+- `hook-template/...` 视为 skill 内模板目录，安装目标仍为 `workspace/hooks/hui-yi-signal-hook/...`
+
+---
+
+## 快速开始
+
+### 1. 准备目录
+
+至少准备：
+
+```text
+memory/
+├── cold/
+│   ├── index.md
+│   ├── tags.json
+│   ├── retrieval-log.md
+│   └── _template.md
+└── heartbeat-state.json
+```
+
+最小内容：
+
+`memory/cold/index.md`
+
+```md
+# Cold Memory Index
+```
+
+`memory/cold/tags.json`
+
+```json
+{ "_meta": { "version": 5 }, "notes": [] }
+```
+
+`memory/cold/retrieval-log.md`
+
+```md
+# Retrieval Log
+```
+
+`memory/heartbeat-state.json`
+
+```json
+{}
+```
+
+然后复制：
+- `templates/note-template.md` -> `memory/cold/_template.md`
+
+### 2. 新建第一条冷记忆
+
+```bash
+python scripts/create.py --title "主题" --type experience --importance high --tags "tag1,tag2"
+```
+
+创建后会自动：
+- 生成 note
+- 设置 `interval_days: 1`
+- 设置 `next_review: tomorrow`
+- 初始化 `Session signals`
+- 触发一次 `rebuild.py`
+
+### 3. 校验与搜索
+
+```bash
+python scripts/validate.py --strict
+python scripts/search.py 主题
+python scripts/search.py 主题 --full-text
+```
+
+### 4. 开始复习或唤回
+
+```bash
+python scripts/review.py due
+python scripts/review.py session
+python scripts/review.py resurface --query "当前话题"
+python scripts/review.py resurface --query "当前话题" --session-key "feishu:user:ou_xxx:main" --write-signals
+```
 
 ---
 
 ## 最常用命令
 
-### 搜索
+| 命令 | 用途 |
+| --- | --- |
+| `python scripts/create.py --title "主题"` | 新建一条冷记忆 |
+| `python scripts/validate.py --strict` | 校验 note schema、字段和索引一致性 |
+| `python scripts/search.py <keyword>` | 按 metadata 检索 |
+| `python scripts/search.py <keyword> --full-text` | 检索 metadata + note 正文 |
+| `python scripts/rebuild.py` | 重建 `index.md` 和 `tags.json` |
+| `python scripts/review.py due` | 查看时间到期或重复激活的条目 |
+| `python scripts/review.py session` | 进入交互式批量强化 |
+| `python scripts/review.py resurface --query "..."` | 按当前话题找最值得强化的旧内容 |
+| `python scripts/review.py resurface --query "..." --session-key "..." --write-signals` | 对高置信 resurfacing 命中写回 weak activation |
+| `python scripts/review.py feedback <note> --useful yes|no --query "..." --session-key "..."` | 对单条 recall 写回反馈，并在 useful=yes 时写入强激活 |
+| `python scripts/decay.py --dry-run --rebuild` | 预览轻量维护结果并同步索引 |
+| `python scripts/cool.py status` | 查看 cold-memory heartbeat 状态 |
+| `python scripts/cool.py scan` | 扫描 cooling 状态 |
+| `python scripts/cool.py done <reviewed> <archived> <merged>` | 记录一次 cooling 完成情况 |
+| `python scripts/scheduler.py --schedule-id <id>` | 运行指定 schedule 的筛选逻辑 |
+| `python scripts/install_hook.py --dry-run` | 预览 Hui-Yi hook 模板安装结果 |
 
-```bash
-python3 skills/hui-yi/scripts/search.py <keyword>
-```
-
-### 重建索引
-
-```bash
-python3 skills/hui-yi/scripts/rebuild.py
-```
-
-### 看冷却状态
-
-```bash
-python3 skills/hui-yi/scripts/cool.py status
-python3 skills/hui-yi/scripts/cool.py scan
-python3 skills/hui-yi/scripts/cool.py done <reviewed> <archived> <merged>
-```
-
-### 看衰减 / review
-
-```bash
-python3 skills/hui-yi/scripts/decay.py --dry-run
-python3 skills/hui-yi/scripts/review.py due
-python3 skills/hui-yi/scripts/review.py resurface --query "当前话题"
-python3 skills/hui-yi/scripts/review.py resurface --context-file context.txt
-Get-Content context.txt | python3 skills/hui-yi/scripts/review.py resurface --stdin
-python3 skills/hui-yi/scripts/scheduler.py --schedule-id daily-evening-review
-```
-
-### 写回反馈
-
-```bash
-python3 skills/hui-yi/scripts/review.py feedback <note> --useful yes|no --query "触发它的当前话题"
-```
-
-`<note>` 支持精确标题、文件 slug（无扩展名）、或所有词都出现在标题中的关键词组合。
-
-### 批量复习（今日到期，Ebbinghaus 闭环）
-
-```bash
-python3 skills/hui-yi/scripts/review.py session
-```
-
-逐条展示 TL;DR，输入 `y / n / s / q` 完成反馈，自动更新间隔和状态。
-
-### 新建笔记
-
-```bash
-python3 skills/hui-yi/scripts/create.py --title "主题" --type experience --importance high --tags "tag1,tag2"
-```
-
-自动设置 `interval_days: 1`、`next_review: tomorrow`，并在创建后运行 `rebuild.py`。
-
-### Schema 校验
-
-```bash
-python3 skills/hui-yi/scripts/validate.py            # 检查所有 note
-python3 skills/hui-yi/scripts/validate.py --strict   # 警告也报错
-```
-
-### 启用定时回忆 scheduler
-
-```bash
-cp skills/hui-yi/references/schedule.example.json memory/cold/schedule.json
-# 编辑 schedule.json：时区、时间、importance 门槛等
-python3 skills/hui-yi/scripts/scheduler.py --schedule-id daily-evening-review
-python3 skills/hui-yi/scripts/scheduler.py --schedule-id daily-evening-review --preview --query "当前话题"
-```
-
-注意：
-- `--schedule-id` 的含义是“只运行这条 schedule 的筛选规则”，**不是**“忽略门槛强制预览一个结果”
-- `--preview` 才是调试 / 预览模式，会绕过 due、importance、allowed_states、cooldown、require_relevance 等筛选门槛，方便看候选排序
+说明：
+- `review.py` 现在会同时考虑 **重复出现** 和 **时间压力**
+- `scheduler.py --preview` 适合调试 repetition / relevance / due_pressure 的排序结果
+- `search.py` 支持把 `memory_root` 作为第二个位置参数传入
 
 ---
 
-## 常见工作流
+## 四个典型工作流
 
-### 1. 找以前的经验
+### 1. 找回以前处理过的问题
 
-1. 先看当前对话 / recent memory / `MEMORY.md`
-2. 不够再搜 cold memory
-3. 如果当前上下文比较长，用：
-   - `--query` 传短主题
-   - `--context-file` 传文本文件
-   - `--stdin` 直接喂上下文
-4. 只读最相关的 1-3 条
-5. 总结输出，不要整块倒 raw note
+短上下文：
+
+```bash
+python scripts/review.py resurface --query "数据库迁移失败"
+```
+
+长上下文：
+
+```bash
+python scripts/review.py resurface --context-file context.txt
+```
+
+从标准输入传入：
+
+```bash
+Get-Content context.txt | python scripts/review.py resurface --stdin
+```
+
+建议做法：
+- 只打开最相关的 1 到 3 条 note
+- 输出总结，不要直接倾倒原始笔记
+- 如果 recall 确实有帮助，补一条 `feedback`
 
 ### 2. 新增一条冷记忆
 
-1. 判断它 30 天后是否还值钱
-2. 查 `index.md` 是否已有同主题 note
-3. 没有就用 `_template.md` 建新 note
-4. 补齐核心字段
-5. 跑 `rebuild.py`
+判断标准：
+- 30 天后还会有价值
+- 它是可复用的经验、决策或背景
+- 它会明显提升未来回答质量
 
-### 3. 定期 cooling
+建议顺序：
+1. 先搜有没有同主题 note
+2. 没有再 `create.py`
+3. 补齐 `TL;DR`、`Semantic context`、`Triggers`、`Use this when`
+4. 运行 `validate.py`
 
-1. `cool.py scan`
-2. 从 daily notes 中挑真正值得长期保存的内容
-3. 路由到正确位置
-4. 更新或新建 cold note
-5. 跑 `rebuild.py`
-6. `cool.py done ...`
+### 3. 做一次强化维护
+
+```bash
+python scripts/review.py due
+python scripts/review.py session
+python scripts/decay.py --dry-run --rebuild
+python scripts/cool.py status
+```
+
+维护时重点看：
+- 是否有重复 note 可以合并
+- 哪些 note 在会话里反复出现
+- 哪些 recall 经常有用，哪些经常无用
+- 高价值 note 的 `Importance`、`Session signals`、`Next review` 是否合理
+
+### 4. 做定时轻提醒
+
+先准备 `memory/cold/schedule.json`，再运行：
+
+```bash
+python scripts/scheduler.py --schedule-id daily-evening-review
+python scripts/scheduler.py --schedule-id daily-evening-review --preview --query "当前话题"
+```
+
+边界要明确：
+- `scheduler.py` 负责选候选，不负责真正发消息
+- 是否投递、何时投递、通过什么消息链路投递，应由外部 scheduler / runtime / agent 层决定
+
+### 5. 安装并启用 Hui-Yi hook
+
+如果你希望在初始化 skill 时把 Hui-Yi 的 signal hook 一起装上并启用，可直接运行：
+
+```bash
+python scripts/install_hook.py --enable
+```
+
+常用形式：
+
+```bash
+python scripts/install_hook.py --dry-run --enable
+python scripts/install_hook.py --force --enable
+python scripts/install_hook.py --enable --config-path C:\path\to\openclaw.json
+```
+
+行为说明：
+- 默认会把 `skills/hui-yi/templates/hook/` 下的模板文件安装到 `workspace/hooks/hui-yi-signal-hook/`
+- 模板来源是 skill 包内的 `skills/hui-yi/templates/hook/`，不是 workspace 中旧的已安装文件
+- `--enable` 会同时确保 `openclaw.json` 里的以下配置开启：
+  - `hooks.internal.enabled = true`
+  - `hooks.internal.entries.hui-yi-signal-hook.enabled = true`
+- 如果文件已存在、配置已启用，安装器会直接报告状态，不会无意义重写；如需覆盖旧占位文件，请使用 `--force --enable`
 
 ---
 
-## 设计原则
+## Scheduler
 
-- archive less, but archive better
-- recall less, but recall at the right time
-- 主动回忆优先用轻提醒，不要直接 dump 老笔记
-- `resurface` 现在支持 `query / context-file / stdin` 三种输入
-- `scheduler.py` 是自定义定时回忆的最小原型，目前负责“筛选候选”，不是自动发消息守护进程
-- scheduler 现在支持低打扰策略：单次上限、全局 cooldown、去重、quiet hours、gentle mode
-- 当前仍是轻量 relevance 排序，不是 embedding 级语义召回
+`scheduler.py` 负责：
+- 读取 `schedule.json`
+- 根据 repetition、due pressure、importance、allowed_states、context、cooldown 选择候选
+- 输出人类可读结果或 JSON
 
 ---
 
-## 文件说明
+## 常见问题
 
-- `SKILL.md`：完整规则
-- `scripts/common.py`：脚本共享 helper（路径解析、heading/date 解析、tags 读取等）
-- `scripts/smoke_test.py`：最小可执行冒烟测试，临时创建隔离的 cold memory 环境后依次跑 create / validate / search / review / decay / cool / scheduler
-- `references/cold-memory-schema.md`：schema
-- `references/examples.md`：示例
+### 1. 运行后提示 `memory root not found`
+
+原因通常有两个：
+- 还没初始化 `memory/cold`
+- 你当前不在预期的 workspace 根目录
+
+处理方式：
+- 先按“快速开始”创建最小目录
+- 或显式传入 `--memory-root`
+
+### 2. `index.md` / `tags.json` 缺失或损坏
+
+直接运行：
+
+```bash
+python scripts/rebuild.py
+```
+
+### 3. `resurface` 没有返回结果
+
+优先检查：
+- `tags.json` 是否为空
+- query 是否太短或太噪
+- note 的 `Triggers`、`Semantic context` 是否写得太弱
+- note 是否缺少足够的 `Session signals`
+- schedule 是否开了过严的 `min_relevance`、`min_priority`、`min_repetition`
+
+调试时可先用：
+
+```bash
+python scripts/scheduler.py --schedule-id <id> --preview --query "当前话题"
+```
+
+### 4. 为什么有些 note 没到日期也会进入 review 池
+
+因为 Hui-Yi 现在的核心是：
+- **重复出现优先强化**
+
+如果一条记忆在当前会话或近期会话里反复被激活，它可以在没到 `Next review` 时提前进入候选池。
+
+### 5. 如何确认改动没有破坏主流程
+
+运行：
+
+```bash
+python scripts/smoke_test.py
+```
+
+它会在 skill 目录下创建隔离的临时工作区，串行验证：
+- create
+- validate
+- search
+- review/resurface
+- feedback
+- decay
+- cool
+- scheduler
+
+---
+
+## 第三层：延伸文档与实现细节
+
+这一层不放在 `SKILL.md`，只在需要时再展开。
+
+### references/
+- `references/cold-memory-schema.md`：note / index / tags 结构说明
+- `references/examples.md`：示例 note
 - `references/heartbeat-cooling-playbook.md`：cooling 流程
-- `references/integration-patterns.md`：Trigger Modes、heartbeat / cron 对接、scheduler 边界与 preview 用法
+- `references/integration-patterns.md`：scheduler 与外部系统的对接边界
+- `references/real-session-signals-design.md`：真实会话信号如何自动累积到 `Session signals`
 
-### 开发时建议先跑一次
+### 补充脚本与模块
+- `python scripts/install_hook.py --dry-run`：预览 Hui-Yi hook 文件安装
+- `python scripts/install_hook.py`：将 Hui-Yi hook 模板显式安装到 `hooks/hui-yi-signal-hook/`
+- `python core/signal_detect.py --query "..." --json`：把当前 query / 上下文转成高置信 activation candidates
+- `python core/signal_pipeline.py --query "..." --session-key "..." --apply --json`：统一执行 detect + threshold + weak activation writeback
+- `python core/openclaw_signal_hook.py --query "..." --channel feishu --scope-type user --scope-id "..." --dry-run`：模拟 OpenClaw 上层在 skill-hit 场景中的最小 hook 调用
+- `python core/openclaw_runtime_probe.py --query "..." --channel feishu --scope-type user --scope-id "..." --dry-run`：workspace 侧上层接入原型 runner，不直接修改 OpenClaw runtime
 
-```bash
-python3 skills/hui-yi/scripts/smoke_test.py
-```
+### Signal / Hook contract
 
-如果你只记 7 条命令，就记这 7 条：
-
-```bash
-python3 skills/hui-yi/scripts/create.py --title "主题"          # 新建笔记
-python3 skills/hui-yi/scripts/review.py session                   # 今日复习
-python3 skills/hui-yi/scripts/search.py <keyword>                 # 搜索
-python3 skills/hui-yi/scripts/rebuild.py                          # 重建索引
-python3 skills/hui-yi/scripts/cool.py status                      # 查冷却状态
-python3 skills/hui-yi/scripts/decay.py --dry-run --rebuild        # 预览衰减
-python3 skills/hui-yi/scripts/validate.py                         # 校验 schema
-```
-
-## 桥接层 (Bridge)
-
-`skills/hui-yi/bridge/bridge.py` 提供一个轻量的桥接层，将 `scheduler.py` 的候选结果进一步过滤、去重、限流并（可选）投递。
-
-### 主要特性
-- **配置路径统一**：默认读取 `skills/hui-yi/bridge/config.example.json`，其中 `statePath`、`outputPath` 已指向 bridge 目录。
-- **投递模式**：`logOnly`（默认，仅在返回 JSON 中记录），`stdout`（打印消息），`file`（写入 `deliveries.log`），`message`（占位，后续可接 OpenClaw `message` 工具）。
-- **策略**：支持 `maxCandidates`、`minScore`、`preferScheduleIds`、`globalCooldownHours`、`perScheduleCooldownHours`、`maxDeliveriesPerDay`、`quietHours`，并返回 `rejectedCandidates` 与原因。
-- **dry‑run / preview**：`--dry-run` 或配置 `dryRun:true` 仅输出结果，不写状态，也不投递。
-
-### 快速运行示例
-```bash
-# 预览一次调度并查看候选
-python3 skills/hui-yi/bridge/bridge.py --dry-run
-
-# 正式投递（假设已配置 delivery mode 为 file）
-python3 skills/hui-yi/bridge/bridge.py
-```
-
-### 配置示例（已在 `config.example.json` 中）
-```json
-{
-  "enabled": true,
-  "memoryRoot": "memory/cold",
-  "scheduleConfig": "memory/cold/schedule.json",
-  "schedulerScript": "skills/hui-yi/scripts/scheduler.py",
-  "statePath": "skills/hui-yi/bridge/bridge-state.json",
-  "delivery": {
-    "mode": "logOnly",
-    "outputPath": "skills/hui-yi/bridge/deliveries.log"
-  },
-  "deliveryPolicy": {
-    "maxCandidates": 3,
-    "minScore": 0.45,
-    "preferScheduleIds": [],
-    "globalCooldownHours": 0,
-    "perScheduleCooldownHours": 0,
-    "maxDeliveriesPerDay": 0,
-    "quietHours": { "enabled": false, "start": "23:00", "end": "08:00" }
-  }
-}
-```
-
-如需在实际投递时使用 OpenClaw 消息工具，请将 `delivery.mode` 改为 `message` 并在后续集成中调用 `message` API。
+当前建议的理解方式：
+- hook 只负责监听事件和调用 adapter
+- `core/openclaw_signal_hook.py` 只负责 OpenClaw-facing 参数归一化
+- `core/signal_*` 模块负责 detection / apply / pipeline
+- session key 形状和 trigger-source 默认值由 `core/signal_contract.py` 统一维护

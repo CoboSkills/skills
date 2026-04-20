@@ -6,17 +6,23 @@ last_seen, last_reviewed, and next_review.
 """
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+if str(SKILL_ROOT) not in sys.path:
+    sys.path.insert(0, str(SKILL_ROOT))
+
 import argparse
 import json
 import shutil
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from core.common import DEFAULT_HEARTBEAT_PATH, DEFAULT_MEMORY_ROOT, WORKSPACE_ROOT, load_json, memory_strength, save_json
+
 SKIP = {"index.md", "retrieval-log.md", "_template.md"}
 SCRIPT_DIR = Path(__file__).resolve().parent
-WORKSPACE_ROOT = SCRIPT_DIR.parents[2]
-DEFAULT_MEMORY_ROOT = WORKSPACE_ROOT / "memory" / "cold"
-DEFAULT_HEARTBEAT_PATH = WORKSPACE_ROOT / "memory" / "heartbeat-state.json"
 DEFAULT_INTERVAL_DAYS = 1  # Ebbinghaus: first review at +1 day while memory is still fresh
 DEFAULT_IMPORTANCE = "medium"
 DEFAULT_STATE = "cold"
@@ -30,21 +36,6 @@ def resolve_memory_root(arg: str | None) -> Path:
         candidate = Path(arg)
         return candidate if candidate.is_absolute() else (Path.cwd() / candidate).resolve()
     return DEFAULT_MEMORY_ROOT
-
-
-def load_json(path: Path) -> dict:
-    if path.exists():
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(data, dict):
-                return data
-        except Exception:
-            pass
-    return {}
-
-
-def save_json(path: Path, data: dict) -> None:
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def ensure_cold_state(state: dict) -> dict:
@@ -138,6 +129,27 @@ def relative_note_path(path: Path, memory_root: Path) -> Path:
     return Path("memory") / "cold" / rel
 
 
+def parse_session_signals(lines: list[str]) -> dict:
+    values = parse_section_lines(lines, "## Session signals")
+    current_session_hits = parse_int_after_colon(values, "current_session_hits", 0)
+    recent_session_hits = parse_int_after_colon(values, "recent_session_hits", 0)
+    cross_session_repeat_count = parse_int_after_colon(values, "cross_session_repeat_count", 0)
+    consecutive_session_count = parse_int_after_colon(values, "consecutive_session_count", 0)
+    last_activated = None
+    for value in values:
+        if value.lower().startswith("last_activated:"):
+            raw = value.split(":", 1)[1].strip()
+            last_activated = parse_date_value(raw)
+            break
+    return {
+        "current_session_hits": current_session_hits,
+        "recent_session_hits": recent_session_hits,
+        "cross_session_repeat_count": cross_session_repeat_count,
+        "consecutive_session_count": consecutive_session_count,
+        "last_activated": last_activated,
+    }
+
+
 def parse_note(path: Path, memory_root: Path) -> dict:
     lines = path.read_text(encoding="utf-8").splitlines()
     title = next((line[2:].strip() for line in lines if line.startswith("# ")), path.stem)
@@ -152,10 +164,13 @@ def parse_note(path: Path, memory_root: Path) -> dict:
     last_verified = parse_date_value(parse_single_value(lines, "## Last verified") or "")
     tags = parse_section_lines(lines, "## Related tags")
     review_lines = parse_section_lines(lines, "## Review cadence")
+    session_signals = parse_session_signals(lines)
     interval_days = parse_int_after_colon(review_lines, "interval_days", DEFAULT_INTERVAL_DAYS)
     review_count = parse_int_after_colon(review_lines, "review_count", 0)
     review_success = parse_int_after_colon(review_lines, "review_success", 0)
     review_fail = parse_int_after_colon(review_lines, "review_fail", 0)
+    retrieval_count = parse_int_after_colon(review_lines, "retrieval_count", 0)
+    reinforcement_count = parse_int_after_colon(review_lines, "reinforcement_count", 0)
     last_seen = parse_date_value(parse_single_value(lines, "## Last seen") or "") or last_verified
     last_reviewed = parse_date_value(parse_single_value(lines, "## Last reviewed") or "")
     next_review = parse_date_value(parse_single_value(lines, "## Next review") or "")
@@ -166,6 +181,14 @@ def parse_note(path: Path, memory_root: Path) -> dict:
     rel_path = relative_note_path(path, memory_root).as_posix()
     summary = summary_lines[0] if summary_lines else title
     updated = last_verified or last_seen or date.today().isoformat()
+    review = {
+        "interval_days": interval_days,
+        "review_count": review_count,
+        "review_success": review_success,
+        "review_fail": review_fail,
+        "retrieval_count": retrieval_count,
+        "reinforcement_count": reinforcement_count,
+    }
 
     return {
         "title": title,
@@ -182,12 +205,9 @@ def parse_note(path: Path, memory_root: Path) -> dict:
         "last_seen": last_seen,
         "last_reviewed": last_reviewed,
         "next_review": next_review,
-        "review": {
-            "interval_days": interval_days,
-            "review_count": review_count,
-            "review_success": review_success,
-            "review_fail": review_fail,
-        },
+        "review": review,
+        "session_signals": session_signals,
+        "strength": memory_strength({"review": review, "state": state}, DEFAULT_INTERVAL_DAYS),
         "last_verified": last_verified or "unknown",
         "updated": updated,
     }
@@ -220,6 +240,9 @@ def build_index(notes: list[dict]) -> str:
         lines.append(f"  - triggers: {', '.join(note['triggers']) if note['triggers'] else 'none'}")
         lines.append(f"  - read when: {'; '.join(note['scenarios']) if note['scenarios'] else 'n/a'}")
         lines.append(f"  - confidence: {note['confidence']}")
+        lines.append(f"  - strength: {note.get('strength', 'weak')}")
+        signals = note.get('session_signals', {}) if isinstance(note.get('session_signals'), dict) else {}
+        lines.append(f"  - repetition: current={signals.get('current_session_hits', 0)}, recent={signals.get('recent_session_hits', 0)}, cross={signals.get('cross_session_repeat_count', 0)}")
         lines.append(f"  - updated: {note['updated']}")
         lines.append(f"  - next review: {note['next_review'] or 'none'}")
         lines.append("")
@@ -230,7 +253,7 @@ def build_tags(notes: list[dict]) -> str:
     payload = {
         "_meta": {
             "description": "Structured metadata for cold-memory retrieval",
-            "version": 4,
+            "version": 5,
             "updated": date.today().isoformat(),
         },
         "notes": notes,

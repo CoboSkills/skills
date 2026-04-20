@@ -3,67 +3,43 @@
 
 Commands:
 - due:      list notes whose next_review is due or overdue
-- resurface: rank resurfacing candidates using forgetting risk + current relevance
+- resurface: rank resurfacing candidates using repetition-first reinforcement
 - feedback: log retrieval feedback and update note review metadata
-- session:  interactive batch review of all due notes (Ebbinghaus closed loop)
+- session:  interactive batch review of due or repeatedly-activated notes
 """
 from __future__ import annotations
 
-import argparse
-import math
-import re
 import sys
-from datetime import date, timedelta
 from pathlib import Path
+
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+if str(SKILL_ROOT) not in sys.path:
+    sys.path.insert(0, str(SKILL_ROOT))
+
+import argparse
+from datetime import date
+from pathlib import Path
+import sys
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
-from common import (
-    DEFAULT_MEMORY_ROOT,
+from core.common import (
+    load_python_module,
     load_tags_payload,
+    memory_strength,
     note_file_path,
     parse_date,
     parse_heading_value,
-    parse_review_metric,
-    read_text_fallback,
+    repetition_signal,
     resolve_memory_root,
     save_json,
 )
-
-# Ebbinghaus: first review should happen while the memory is still fresh (+1 day).
-# Using 7 as the default skips the steepest part of the forgetting curve entirely.
-DEFAULT_INTERVAL_DAYS = 1
-
-# Fixed review ladder (Ebbinghaus initial phase, indexed by review_count after increment).
-# review_count=0 → note just created, next_review set to today+1 by create.py / rebuild.py
-# review_count=1 → first review completed  → next interval = REVIEW_LADDER[1] = 3 days
-# review_count=2 → second review completed → next interval = REVIEW_LADDER[2] = 7 days
-# ...
-# review_count>=5 → graduated to adaptive (multiplicative) phase
-REVIEW_LADDER = [1, 3, 7, 14, 30]
-
-# Graduation: a note that has been reviewed ≥5 times with ≥80% success AND its
-# adaptive interval has grown to ≥90 days is considered well-consolidated.
-# It transitions to Memory state=dormant and interval=365 days.
-GRADUATION_MIN_REVIEWS = 5
-GRADUATION_MIN_SUCCESS_RATE = 0.8
-GRADUATION_MIN_INTERVAL = 90
-
-IMPORTANCE_WEIGHT = {"high": 3.0, "medium": 2.0, "low": 1.0}
-STATE_WEIGHT = {"hot": 1.0, "warm": 1.5, "cold": 2.0, "dormant": 1.2}
-FIELD_WEIGHTS = {
-    "title": 2.2,
-    "summary": 1.5,
-    "semantic_context": 1.8,
-    "tags": 1.0,
-    "triggers": 1.2,
-    "scenarios": 1.1,
-}
-# StateBias: hot and warm are in active use and should resurface readily;
-# cold is preserved but lower urgency; dormant surfaces only on strong triggers.
-_STATE_BIAS = {"hot": 1.0, "warm": 1.0, "cold": 0.7, "dormant": 0.3}
+from core.feedback_core import DORMANT_INTERVAL_DAYS, write_note_feedback
+from core.scoring import resurfacing_priority
+from core.signal_detect import load_context_text
+from core.signal_pipeline import apply_candidates
 
 
 def load_tags(memory_root: Path) -> dict:
@@ -75,278 +51,6 @@ def save_tags(memory_root: Path, payload: dict) -> None:
     save_json(memory_root / "tags.json", payload)
 
 
-def replace_heading_bullet(text: str, heading: str, new_value: str) -> str:
-    pattern = re.compile(rf"(^## {re.escape(heading)}\s*\n)(?:-\s*)?([^\n]+)(\s*$)", re.MULTILINE)
-    if pattern.search(text):
-        return pattern.sub(rf"\1- {new_value}\3", text, count=1)
-    return text + f"\n## {heading}\n- {new_value}\n"
-
-
-def replace_review_metric(text: str, key: str, new_value: int) -> str:
-    block_pattern = re.compile(r"(^## Review cadence\s*$)(.*?)(^(?:## |\Z))", re.MULTILINE | re.DOTALL)
-    match = block_pattern.search(text)
-    if not match:
-        insertion = f"\n## Review cadence\n- interval_days: {DEFAULT_INTERVAL_DAYS}\n- review_count: 0\n- review_success: 0\n- review_fail: 0\n"
-        text += insertion
-        match = block_pattern.search(text)
-        if not match:
-            return text
-    block = match.group(2)
-    metric_pattern = re.compile(rf"(^-\s*{re.escape(key)}\s*:\s*)(\d+)(\s*$)", re.MULTILINE)
-    if metric_pattern.search(block):
-        block = metric_pattern.sub(rf"\g<1>{new_value}\g<3>", block, count=1)
-    else:
-        if not block.endswith("\n"):
-            block += "\n"
-        block += f"- {key}: {new_value}\n"
-    return text[: match.start(2)] + block + text[match.end(2) :]
-
-
-def append_retrieval_log(log_path: Path, row: str) -> None:
-    header = "# Retrieval Log\n\n| Date | Query | Matched | Useful | Action |\n|---|---|---|---|---|\n"
-    if not log_path.exists():
-        log_path.write_text(header, encoding="utf-8")
-    # Use the multi-encoding fallback so an existing log with GB18030 or cp936
-    # encoding (common on Windows) does not silently drop the new entry.
-    current = read_text_fallback(log_path)
-    if not current.endswith("\n"):
-        current += "\n"
-    current += row + "\n"
-    log_path.write_text(current, encoding="utf-8")
-
-
-def tokenize(text: str | None) -> list[str]:
-    if not text:
-        return []
-    return [part for part in re.split(r"[^\w\-\u4e00-\u9fff]+", text.lower()) if part]
-
-
-def field_text(note: dict, field: str) -> str:
-    value = note.get(field, "")
-    if isinstance(value, list):
-        return " ".join(str(x) for x in value)
-    if value is None:
-        return ""
-    return str(value)
-
-
-def load_context_text(query: str | None, context_file: str | None, stdin_flag: bool) -> str | None:
-    parts: list[str] = []
-    if query:
-        parts.append(query.strip())
-    if context_file:
-        path = Path(context_file)
-        parts.append(read_text_fallback(path).strip())
-    if stdin_flag:
-        stdin_text = sys.stdin.read().strip()
-        if stdin_text:
-            parts.append(stdin_text)
-    combined = "\n".join(part for part in parts if part)
-    return combined or None
-
-
-def relevance_score(note: dict, query: str | None) -> tuple[float, dict]:
-    if not query:
-        return 0.0, {"matched_fields": [], "overlap_terms": []}
-
-    query_terms = tokenize(query)
-    if not query_terms:
-        return 0.0, {"matched_fields": [], "overlap_terms": []}
-
-    matched_fields: list[str] = []
-    overlap_terms: set[str] = set()
-    score = 0.0
-    for field, weight in FIELD_WEIGHTS.items():
-        text = field_text(note, field)
-        field_lower = text.lower()
-        field_terms = set(tokenize(text))
-        field_hits = 0
-        for term in query_terms:
-            if term in field_lower:
-                score += weight
-                field_hits += 1
-                overlap_terms.add(term)
-            elif term in field_terms:
-                score += weight * 0.8
-                field_hits += 1
-                overlap_terms.add(term)
-        if field_hits:
-            matched_fields.append(field)
-            score += min(field_hits, 3) * 0.15
-
-    semantic_context = field_text(note, "semantic_context")
-    summary = field_text(note, "summary")
-    combined_terms = set(tokenize(semantic_context + " " + summary))
-    if combined_terms and query_terms:
-        overlap_ratio = len(set(query_terms) & combined_terms) / max(len(set(query_terms)), 1)
-        score += overlap_ratio * 2.0
-
-    return score, {
-        "matched_fields": sorted(set(matched_fields)),
-        "overlap_terms": sorted(overlap_terms),
-    }
-
-
-def forgetting_risk(note: dict, today: date) -> tuple[float, int]:
-    next_review = parse_date(note.get("next_review"))
-    if not next_review:
-        return 0.0, 0
-    overdue = (today - next_review).days
-    if overdue <= 0:
-        return 0.2, overdue
-    capped = min(overdue, 30)
-    risk = 0.2 + (capped / 30.0) * 0.8
-    return min(risk, 1.0), overdue
-
-
-def current_relevance_value(raw_score: float) -> float:
-    if raw_score <= 0:
-        return 0.0
-    return min(1.0, math.log1p(raw_score) / math.log(10))
-
-
-def resurfacing_priority(note: dict, today: date, query: str | None) -> tuple[float, dict]:
-    importance_value = IMPORTANCE_WEIGHT.get(note.get("importance", "medium"), 2.0) / 3.0
-    risk_value, overdue = forgetting_risk(note, today)
-    raw_relevance, meta = relevance_score(note, query)
-    relevance_value = current_relevance_value(raw_relevance)
-    cross_session = min(1.0, int((note.get("review") or {}).get("review_success", 0) or 0) / 3.0)
-
-    score = (
-        0.35 * relevance_value
-        + 0.25 * risk_value
-        + 0.20 * importance_value
-        + 0.10 * cross_session
-        + 0.10 * _STATE_BIAS.get(note.get("state", "cold"), 0.6)
-    )
-    meta.update(
-        {
-            "overdue_days": overdue,
-            "raw_relevance": raw_relevance,
-            "relevance_value": relevance_value,
-            "forgetting_risk": risk_value,
-            "importance_value": importance_value,
-            "cross_session": cross_session,
-        }
-    )
-    return score, meta
-
-
-def _compute_next_state(
-    text: str,
-    note: dict,
-    useful: str,
-    today: date,
-) -> tuple[str, int, int, int, int, str]:
-    """Compute new review state after a recall feedback event.
-
-    Returns (state, interval_days, review_count, review_success, review_fail, next_review_iso).
-
-    Algorithm:
-    - For early reviews (review_count <= len(REVIEW_LADDER)-1 after increment):
-        use the fixed Ebbinghaus ladder to advance the interval on success.
-    - For later reviews (adaptive phase): multiply/shrink interval by performance factors.
-    - On meeting graduation criteria: lock state=dormant, interval=365.
-    """
-    interval_days = parse_review_metric(text, "interval_days", DEFAULT_INTERVAL_DAYS)
-    review_count = parse_review_metric(text, "review_count", 0) + 1
-    review_success = parse_review_metric(text, "review_success", 0)
-    review_fail = parse_review_metric(text, "review_fail", 0)
-    state = parse_heading_value(text, "Memory state") or note.get("state", "cold")
-    importance = note.get("importance", "medium")
-
-    if useful == "yes":
-        review_success += 1
-        if review_count <= len(REVIEW_LADDER) - 1:
-            # Still in the initial ladder phase — use the pre-defined next step
-            interval_days = REVIEW_LADDER[review_count]
-        else:
-            # Adaptive phase: grow interval based on importance
-            growth = 2.0 if importance == "high" else 1.6
-            interval_days = max(REVIEW_LADDER[-1], int(math.ceil(interval_days * growth)))
-        # State promotion
-        if state == "cold":
-            state = "warm"
-        elif state == "warm" and importance == "high":
-            state = "hot"
-    else:
-        review_fail += 1
-        shrink = 0.5 if review_fail >= 2 else 0.7
-        interval_days = max(1, int(math.ceil(interval_days * shrink)))
-        if state == "hot":
-            state = "warm"
-        elif state == "warm":
-            state = "cold"
-        elif state == "cold" and importance != "high" and review_fail >= 2:
-            state = "dormant"
-
-    # Graduation check: well-consolidated notes transition to dormant / 1-year intervals
-    success_rate = review_success / max(review_count, 1)
-    if (
-        state != "dormant"
-        and review_count >= GRADUATION_MIN_REVIEWS
-        and success_rate >= GRADUATION_MIN_SUCCESS_RATE
-        and interval_days >= GRADUATION_MIN_INTERVAL
-    ):
-        state = "dormant"
-        interval_days = 365
-
-    next_review = (today + timedelta(days=interval_days)).isoformat()
-    return state, interval_days, review_count, review_success, review_fail, next_review
-
-
-def _write_note_feedback(
-    note_path: Path,
-    note: dict,
-    text: str,
-    useful: str,
-    today: date,
-    log_path: Path | None = None,
-    query: str | None = None,
-    action: str | None = None,
-) -> tuple[str, int, str]:
-    """Apply feedback, write note file and update the in-memory note dict.
-
-    Returns (state, interval_days, next_review).
-    Note: the caller is responsible for saving tags.json after this call.
-    """
-    state, interval_days, review_count, review_success, review_fail, next_review = (
-        _compute_next_state(text, note, useful, today)
-    )
-    today_str = today.isoformat()
-
-    new_text = replace_review_metric(text, "interval_days", interval_days)
-    new_text = replace_review_metric(new_text, "review_count", review_count)
-    new_text = replace_review_metric(new_text, "review_success", review_success)
-    new_text = replace_review_metric(new_text, "review_fail", review_fail)
-    new_text = replace_heading_bullet(new_text, "Last reviewed", today_str)
-    new_text = replace_heading_bullet(new_text, "Last seen", today_str)
-    new_text = replace_heading_bullet(new_text, "Next review", next_review)
-    new_text = replace_heading_bullet(new_text, "Memory state", state)
-    note_path.write_text(new_text, encoding="utf-8")
-
-    note["state"] = state
-    note["last_reviewed"] = today_str
-    note["last_seen"] = today_str
-    note["next_review"] = next_review
-    if not isinstance(note.get("review"), dict):
-        note["review"] = {}
-    note["review"]["interval_days"] = interval_days
-    note["review"]["review_count"] = review_count
-    note["review"]["review_success"] = review_success
-    note["review"]["review_fail"] = review_fail
-
-    if log_path is not None:
-        _q = query or note.get("title") or "session review"
-        _a = action or ("reinforced note" if useful == "yes" else "weakened note")
-        append_retrieval_log(
-            log_path,
-            f"| {today_str} | {_q} | {Path(note.get('path', '')).name} | {useful} | {_a} |",
-        )
-
-    return state, interval_days, next_review
-
-
 def cmd_due(args: argparse.Namespace) -> int:
     memory_root = resolve_memory_root(args.memory_root)
     payload = load_tags(memory_root)
@@ -355,7 +59,8 @@ def cmd_due(args: argparse.Namespace) -> int:
     due = []
     for note in notes:
         next_review = parse_date(note.get("next_review"))
-        if next_review and next_review <= today:
+        repeat_value = repetition_signal(note, today)
+        if (next_review and next_review <= today) or repeat_value >= 0.35:
             score, meta = resurfacing_priority(note, today, None)
             due.append((score, meta, note))
 
@@ -367,8 +72,9 @@ def cmd_due(args: argparse.Namespace) -> int:
     print("Due notes:")
     for score, meta, note in due[: args.limit]:
         print(
-            f"- priority={score:.3f} overdue={meta['overdue_days']}d | {note.get('title')} | "
-            f"importance={note.get('importance')} state={note.get('state')} next_review={note.get('next_review')}"
+            f"- priority={score:.3f} overdue={meta['overdue_days']}d repeat={meta.get('repetition_signal', 0.0):.3f} | {note.get('title')} | "
+            f"importance={note.get('importance')} state={note.get('state')} "
+            f"strength={meta.get('memory_strength')} next_review={note.get('next_review')}"
         )
     return 0
 
@@ -384,18 +90,15 @@ def cmd_resurface(args: argparse.Namespace) -> int:
     for note in notes:
         score, meta = resurfacing_priority(note, today, query_text)
         if query_text:
-            if meta["relevance_value"] < args.min_relevance:
+            if meta["relevance_value"] < args.min_relevance and meta.get("repetition_signal", 0.0) < 0.35:
                 continue
             strong_fields = {"title", "summary", "tags", "triggers"}
             matched_fields = set(meta.get("matched_fields", []))
-            if not (strong_fields & matched_fields):
-                continue
-            overlap_terms = meta.get("overlap_terms", [])
-            if len(matched_fields) < 2 and len(overlap_terms) < 2 and meta["relevance_value"] < 0.75:
+            if not (strong_fields & matched_fields) and meta.get("repetition_signal", 0.0) < 0.35:
                 continue
         else:
             next_review = parse_date(note.get("next_review"))
-            if not next_review or next_review > today:
+            if (not next_review or next_review > today) and meta.get("repetition_signal", 0.0) < 0.35:
                 continue
         if score >= args.min_priority:
             candidates.append((score, meta, note))
@@ -406,12 +109,42 @@ def cmd_resurface(args: argparse.Namespace) -> int:
         return 0
 
     print("Resurfacing candidates:")
-    for score, meta, note in candidates[: args.limit]:
+    surfaced = candidates[: args.limit]
+    if args.write_signals and args.session_key:
+        signal_candidates = [
+            {
+                "title": note.get("title"),
+                "path": note.get("path"),
+                "relevance": meta.get("relevance_value", 0.0),
+                "confidence": "high" if meta.get("relevance_value", 0.0) >= 0.60 else "medium",
+                "matched_fields": meta.get("matched_fields", []),
+                "overlap_terms": meta.get("overlap_terms", []),
+                "raw_score": meta.get("raw_relevance", 0.0),
+                "repetition_signal": meta.get("repetition_signal", 0.0),
+            }
+            for _, meta, note in surfaced
+            if meta.get("relevance_value", 0.0) >= max(args.min_relevance, 0.30) or meta.get("repetition_signal", 0.0) >= 0.35
+        ]
+        apply_candidates(
+            memory_root,
+            signal_candidates,
+            args.session_key,
+            strength="weak",
+            source="resurface_candidate",
+            activated_at=today.isoformat(),
+        )
+        payload = load_tags(memory_root)
+        notes = payload.get("notes", []) if isinstance(payload.get("notes"), list) else []
+        by_path = {n.get("path"): n for n in notes}
+        surfaced = [(score, meta, by_path.get(note.get("path"), note)) for score, meta, note in surfaced]
+
+    for score, meta, note in surfaced:
         prompt = f"You previously touched on '{note.get('title')}'. Want me to pull that thread back in?"
         print(f"- priority={score:.3f} | {note.get('title')}")
         print(
-            f"  relevance={meta['relevance_value']:.3f} forgetting_risk={meta['forgetting_risk']:.3f} "
-            f"overdue={meta['overdue_days']}d importance={note.get('importance')} state={note.get('state')}"
+            f"  repetition={meta.get('repetition_signal', 0.0):.3f} relevance={meta['relevance_value']:.3f} due_pressure={meta['due_pressure']:.3f} "
+            f"overdue={meta['overdue_days']}d importance={note.get('importance')} "
+            f"state={note.get('state')} strength={meta.get('memory_strength')}"
         )
         if query_text:
             overlap = ", ".join(meta.get("overlap_terms", [])) or "n/a"
@@ -422,6 +155,57 @@ def cmd_resurface(args: argparse.Namespace) -> int:
         print(f"  prompt: {prompt}")
         print(f"  path: {note.get('path')}")
     return 0
+
+
+def apply_session_signal(
+    memory_root: Path,
+    note_name: str,
+    session_key: str | None,
+    today: date,
+    *,
+    strength: str,
+    source: str,
+) -> None:
+    if not session_key:
+        return
+
+    signal_apply_path = Path(__file__).with_name("signal_apply.py")
+    signal_apply_mod = load_python_module(signal_apply_path, "signal_apply")
+
+    original_argv = sys.argv
+    try:
+        sys.argv = [
+            "signal_apply.py",
+            note_name,
+            "--memory-root",
+            str(memory_root),
+            "--session-key",
+            session_key,
+            "--strength",
+            strength,
+            "--source",
+            source,
+            "--activated-at",
+            today.isoformat(),
+        ]
+        exit_code = signal_apply_mod.main()
+        if exit_code != 0:
+            print(f"Warning: signal_apply reported error (exit code {exit_code}).")
+    finally:
+        sys.argv = original_argv
+
+
+def apply_feedback_signal(memory_root: Path, note_name: str, useful: str, session_key: str | None, today: date) -> None:
+    if useful != "yes" or not session_key:
+        return
+    apply_session_signal(
+        memory_root,
+        note_name,
+        session_key,
+        today,
+        strength="strong",
+        source="feedback_useful",
+    )
 
 
 def cmd_feedback(args: argparse.Namespace) -> int:
@@ -438,7 +222,6 @@ def cmd_feedback(args: argparse.Namespace) -> int:
         title_lower = (note.get("title") or "").strip().lower()
         path_lower = (note.get("path") or "").strip().lower()
         note_slug = Path(path_lower).stem
-        # Match priority: exact title → exact path suffix → slug → all-words in title
         if (
             title_lower == target
             or path_lower.endswith(target)
@@ -459,7 +242,7 @@ def cmd_feedback(args: argparse.Namespace) -> int:
         return 1
 
     text = note_path.read_text(encoding="utf-8")
-    state, interval_days, next_review = _write_note_feedback(
+    state, interval_days, next_review = write_note_feedback(
         note_path,
         matched,
         text,
@@ -469,36 +252,50 @@ def cmd_feedback(args: argparse.Namespace) -> int:
         query=args.query,
         action=args.action,
     )
+    apply_feedback_signal(memory_root, matched.get("path") or matched.get("title") or args.note, args.useful, args.session_key, today)
+    payload = load_tags(memory_root)
+    notes = payload.get("notes", []) if isinstance(payload.get("notes"), list) else []
+    refreshed = next((n for n in notes if (n.get("path") == matched.get("path"))), matched)
+
+    note_path = note_file_path(memory_root, refreshed)
+    if note_path.exists():
+        refreshed_text = note_path.read_text(encoding="utf-8")
+        refreshed["strength"] = memory_strength(refreshed)
+        refreshed["state"] = parse_heading_value(refreshed_text, "Memory state") or refreshed.get("state")
+        refreshed["next_review"] = parse_heading_value(refreshed_text, "Next review") or refreshed.get("next_review")
+        refreshed["last_reviewed"] = parse_heading_value(refreshed_text, "Last reviewed") or refreshed.get("last_reviewed")
+
     save_tags(memory_root, payload)
 
-    graduated = state == "dormant" and interval_days == 365
+    matched = refreshed
+    strength = matched.get("strength", memory_strength(matched))
+    graduated = state == "dormant" and interval_days >= min(DORMANT_INTERVAL_DAYS.values())
     if graduated:
         print(
             f"🎓 Graduated: {matched.get('title')} — well-consolidated after "
             f"{matched.get('review', {}).get('review_count', '?')} reviews. "
-            f"State → dormant, next review in 1 year."
+            f"State → dormant, strength={strength}, next review in {interval_days} days."
         )
     else:
         print(
             f"Updated {matched.get('title')}: useful={args.useful}, "
-            f"state={state}, interval_days={interval_days}, next_review={next_review}"
+            f"state={state}, strength={strength}, interval_days={interval_days}, next_review={next_review}"
         )
     return 0
 
 
 def cmd_session(args: argparse.Namespace) -> int:
-    """Interactive batch review session: work through all due notes one by one."""
     memory_root = resolve_memory_root(args.memory_root)
     payload = load_tags(memory_root)
     notes = payload.get("notes", []) if isinstance(payload.get("notes"), list) else []
     today = date.today()
     log_path = memory_root / "retrieval-log.md"
 
-    # Collect due notes sorted by priority (most urgent first)
     due: list[tuple[float, dict, dict]] = []
     for note in notes:
         next_review = parse_date(note.get("next_review"))
-        if next_review and next_review <= today:
+        repeat_value = repetition_signal(note, today)
+        if (next_review and next_review <= today) or repeat_value >= 0.35:
             score, meta = resurfacing_priority(note, today, None)
             due.append((score, meta, note))
     due.sort(key=lambda item: item[0], reverse=True)
@@ -509,7 +306,7 @@ def cmd_session(args: argparse.Namespace) -> int:
 
     total = len(due)
     print(f"\n{'─' * 60}")
-    print(f"  Review session — {total} note(s) due today")
+    print(f"  Review session — {total} note(s) due or repeatedly activated")
     print(f"  Commands:  y = useful   n = not useful   s = skip   q = quit")
     print(f"{'─' * 60}\n")
 
@@ -525,8 +322,6 @@ def cmd_session(args: argparse.Namespace) -> int:
             continue
 
         text = note_path.read_text(encoding="utf-8")
-
-        # Extract TL;DR lines for the prompt
         tldr: list[str] = []
         in_section = False
         for line in text.splitlines():
@@ -545,8 +340,8 @@ def cmd_session(args: argparse.Namespace) -> int:
         overdue = meta.get("overdue_days", 0)
         print(f"[{idx}/{total}]  {note.get('title', 'untitled')}")
         print(f"         importance={note.get('importance','?')}  "
-              f"state={note.get('state','?')}  overdue={overdue}d  "
-              f"priority={score:.3f}")
+              f"state={note.get('state','?')}  strength={memory_strength(note)}  overdue={overdue}d  "
+              f"repeat={meta.get('repetition_signal', 0.0):.3f}  priority={score:.3f}")
         for line in tldr[:4]:
             print(f"         → {line}")
         print()
@@ -569,19 +364,20 @@ def cmd_session(args: argparse.Namespace) -> int:
                 break
             if raw in ("y", "n"):
                 useful = "yes" if raw == "y" else "no"
-                state, interval_days, next_review = _write_note_feedback(
+                state, interval_days, next_review = write_note_feedback(
                     note_path, note, text, useful, today, log_path=log_path
                 )
-                # Save tags.json after each note so an interrupt doesn't lose progress
                 save_tags(memory_root, payload)
 
-                graduated = state == "dormant" and interval_days == 365
+                note["strength"] = memory_strength(note)
+                graduated = state == "dormant" and interval_days >= min(DORMANT_INTERVAL_DAYS.values())
+                strength = note.get("strength", memory_strength(note))
                 if graduated:
                     graduated_titles.append(note.get("title", "?"))
-                    print(f"  🎓 Graduated! → dormant, next review +1 year\n")
+                    print(f"  🎓 Graduated! → dormant, strength={strength}, next review +{interval_days}d\n")
                 else:
                     arrow = "↑" if useful == "yes" else "↓"
-                    print(f"  {arrow} {state} | +{interval_days}d → next: {next_review}\n")
+                    print(f"  {arrow} {state} / {strength} | +{interval_days}d → next: {next_review}\n")
                 reviewed += 1
                 break
             else:
@@ -591,16 +387,8 @@ def cmd_session(args: argparse.Namespace) -> int:
     return 0
 
 
-def _save_and_report(
-    payload: dict,
-    memory_root: Path,
-    reviewed: int,
-    skipped: int,
-    total: int,
-    graduated_titles: list[str],
-) -> None:
+def _save_and_report(payload: dict, memory_root: Path, reviewed: int, skipped: int, total: int, graduated_titles: list[str]) -> None:
     save_tags(memory_root, payload)
-    # Find earliest next_review among all notes
     notes = payload.get("notes", []) if isinstance(payload.get("notes"), list) else []
     upcoming = [n.get("next_review") for n in notes if n.get("next_review")]
     today_str = date.today().isoformat()
@@ -631,18 +419,18 @@ def main() -> int:
     resurface.add_argument("--stdin", action="store_true", help="read additional context from stdin")
     resurface.add_argument("--min-relevance", type=float, default=0.15)
     resurface.add_argument("--min-priority", type=float, default=0.20)
+    resurface.add_argument("--session-key", default=None, help="stable session identifier for optional weak activation writeback")
+    resurface.add_argument("--write-signals", action="store_true", help="write weak activation signals for high-confidence resurfacing hits")
 
     feedback = sub.add_parser("feedback")
     feedback.add_argument("note")
     feedback.add_argument("--useful", choices=["yes", "no"], required=True)
     feedback.add_argument("--query", default=None)
     feedback.add_argument("--action", default=None)
+    feedback.add_argument("--session-key", default=None, help="stable session identifier for real-session signal accumulation")
     feedback.add_argument("--memory-root", default=None)
 
-    session = sub.add_parser(
-        "session",
-        help="Interactive batch review of all due notes (Ebbinghaus closed loop)",
-    )
+    session = sub.add_parser("session", help="Interactive batch review of all due or repeatedly activated notes")
     session.add_argument("--memory-root", default=None)
 
     args = parser.parse_args()

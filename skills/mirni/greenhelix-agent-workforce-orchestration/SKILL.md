@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-workforce-orchestration
-version: "1.3.0"
+version: "1.3.1"
 description: "Agent Workforce Orchestration: Hybrid Human+AI Teams. Build agent-led workforce orchestration: capability matching, escrow-based payments for AI agents and human gig workers, unified reputation scoring, SLA enforcement, dispute resolution, and compliance reporting. Includes detailed Python code examples for every pattern."
 license: MIT
 compatibility: [openclaw]
@@ -12,6 +12,12 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # Agent Workforce Orchestration: Hybrid Human+AI Teams
 

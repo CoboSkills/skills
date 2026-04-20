@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-黄历生成脚本 V3.0.1 - 通用化版
+黄历生成脚本 V3.0.3 - 抖音优化版
 升级内容：
 1. 【V3.0.1 新增】节气计算通用化（支持 1900-2100 年）
 2. 【V3.0.1 新增】批量生成功能（一次生成 7 天/30 天）
@@ -10,8 +10,8 @@
 5. 干支计算 - 使用 lunar-python 准确计算
 6. 宜忌生成 - 使用 lunar-python 传统算法
 
-版本：V3.0.1
-日期：2026-04-12
+版本：V3.0.3
+日期：2026-04-18
 """
 
 import sys
@@ -151,9 +151,9 @@ def load_config(config_path=None):
                             default_config[key].update(config[key])
                         else:
                             default_config[key] = config[key]
-            print(f"✅ 已加载配置文件：{config_path}")
+            print(f" 已加载配置文件：{config_path}")
         except Exception as e:
-            print(f"⚠️ 配置文件加载失败：{e}，使用默认配置")
+            print(f" 配置文件加载失败：{e}，使用默认配置")
     else:
         print(f"ℹ️ 未找到配置文件，使用默认配置")
     
@@ -192,8 +192,18 @@ def load_fonts(template_name='traditional'):
             'content': ImageFont.truetype(font_file, FONT_SIZES['content']),
             'small': ImageFont.truetype(font_file, FONT_SIZES['small'])
         }
+        
+        # 【V3.0.3 新增】加载 emoji 字体（Windows Segoe UI Emoji）
+        try:
+            emoji_font_file = 'C:/Windows/Fonts/seguiemj.ttf'
+            fonts['emoji'] = ImageFont.truetype(emoji_font_file, FONT_SIZES['content'])
+        except:
+            # 如果找不到 emoji 字体，回退到黑体
+            fonts['emoji'] = fonts['content']
+            
     except:
         fonts = {size: ImageFont.load_default() for size in FONT_SIZES}
+        fonts['emoji'] = fonts['content']
     return fonts
 
 def draw_centered_text(draw, text, y, font, color):
@@ -1123,9 +1133,11 @@ def generate_page1(data, fonts, output_dir, date_str, template_name=None, templa
     y += SPACING['after_subtitle']
     y = draw_centered_text(draw, data['date_lunar'], y, fonts['section'], template['text'])
     y += SPACING['after_lunar']
-    y = draw_centered_text(draw, data['ganzhi_full'], y, fonts['content'], template['text'])
-    y += SPACING['after_ganzhi']
-    y = draw_centered_text(draw, data['special_day'], y, fonts['small'], template['small'])
+    # 【V3.0.5 优化】干支和节气合并到一行
+    ganzhi_with_jieqi = data['ganzhi_full']
+    if data['special_day']:
+        ganzhi_with_jieqi += f"  {data['special_day']}"
+    y = draw_centered_text(draw, ganzhi_with_jieqi, y, fonts['content'], template['text'])
     
     y = draw_separator(draw, y + 25, template['separator'])
     
@@ -1153,6 +1165,7 @@ def generate_page1(data, fonts, output_dir, date_str, template_name=None, templa
     y = draw_centered_text(draw, "今日吉生肖", y, fonts['content'], template['section'])
     y += SPACING['after_zodiac_item']
     
+    # 【V3.0.5 修复】生肖运势使用纯文字，移除所有 emoji
     for zodiac in data['zodiac_red']:
         y = draw_centered_text(draw, zodiac, y, fonts['content'], template['text'])
         y += SPACING['after_zodiac_item']
@@ -1171,8 +1184,8 @@ def generate_page1(data, fonts, output_dir, date_str, template_name=None, templa
     # 【V2.3 整改】增加免责声明
     disclaimer_text = "传统文化参考 请理性看待 相信科学"
     y = draw_centered_text(draw, disclaimer_text, y, fonts['small'], template['small'])
-    y += 5
-    draw_centered_text(draw, data['date_gregorian'], y, fonts['small'], template['small'])
+    y += 15  # 【V3.0.3 优化】删除底部日期，增加边距
+    # draw_centered_text(draw, data['date_gregorian'], y, fonts['small'], template['small'])  # 已删除
     
     date_only = date_str.replace('-', '')
     filename = f"{date_only}_黄历.png"
@@ -1251,7 +1264,12 @@ def generate_page2(data, fonts, output_dir, date_str, template_name=None, templa
     
     y = draw_separator(draw, y + 20, template['separator'])
     
-    y += 8
+    y += 15
+    # 【V3.0.3 新增】抖音互动引导
+    interaction_text = " 点赞接好运 | 评论留生肖 | 关注每日更新"
+    y = draw_centered_text(draw, interaction_text, y, fonts['content'], template['section'])
+    
+    y += 15
     y = draw_centered_text(draw, "传统文化 仅供参考", y, fonts['small'], template['small'])
     y += 5
     draw_centered_text(draw, data['date_gregorian'], y, fonts['small'], template['small'])
@@ -1316,7 +1334,12 @@ def generate_page3(data, fonts, output_dir, date_str, template_name=None, templa
     
     y = draw_separator(draw, y + 15, template['separator'])
     
-    y += 8
+    y += 15
+    # 【V3.0.3 新增】抖音互动引导
+    interaction_text = " 点赞接好运 | 评论留生肖 | 关注每日更新"
+    y = draw_centered_text(draw, interaction_text, y, fonts['content'], template['section'])
+    
+    y += 15
     y = draw_centered_text(draw, "传统文化 仅供参考", y, fonts['small'], template['small'])
     y += 5
     draw_centered_text(draw, data['date_gregorian'], y, fonts['small'], template['small'])

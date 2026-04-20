@@ -2,7 +2,7 @@
 name: almanac-creator
 displayName: Almanac Creator
 description: Daily Chinese Almanac Image Generator - Create traditional Huangli calendar images with zodiac fortune, fengshui tips, auspicious timing, and dressing advice for social media publishing (Toutiao/Douyin/Xiaohongshu)
-version: 3.0.2
+version: 3.0.3
 author: Digital Transformation Team
 tags: [almanac, chinese-calendar, huangli, zodiac, fengshui, image-generator, lunar-python, multi-template, batch-generator, config-file, universal]
 ---
@@ -12,7 +12,7 @@ tags: [almanac, chinese-calendar, huangli, zodiac, fengshui, image-generator, lu
 > **标准版本**: almanac-image-standard.md V3  
 > **适用范围**: 每日黄历图片生成  
 > **输出规格**: 3 页 PNG 图片（1080x1400 像素）  
-> **最新版本**: V3.0.2 干支修复版（2026-04-12 紧急修复）
+> **最新版本**: V3.0.3 抖音优化版（2026-04-18）
 
 ---
 
@@ -24,6 +24,13 @@ tags: [almanac, chinese-calendar, huangli, zodiac, fengshui, image-generator, lu
 - **第 3 页**: 穿衣建议 + 黄历科普 + 传统故事
 
 适用于今日头条（三图轮播）、抖音/小红书（单图发布）等平台。
+
+### V3.0.3 更新内容（2026-04-18 抖音优化版）⭐⭐⭐⭐⭐
+
+**抖音算法适配优化**:
+- ✅ **互动引导**: 第2、3页底部添加"👍 点赞接好运 💬 评论区留下你的生肖 ➕ 关注每日更新"
+- ✅ **生肖图标**: 生肖运势添加emoji图标（🐭🐮🐯🐰🐲🐍🐴🐑🐵🐔🐶🐷）
+- ✅ **用户体验**: 提升视觉吸引力和互动率
 
 ### V3.0.2 更新内容（2026-04-12 干支修复版）⭐⭐⭐⭐⭐
 

@@ -3,11 +3,16 @@
   "slug": "almanac-creator",
   "displayName": "Almanac Creator",
   "latest": {
-    "version": "3.0.2",
-    "publishedAt": 1775967701594,
-    "commit": "https://github.com/openclaw/skills/commit/eda771c6bee984d6092d1153556ef7c769f5e493"
+    "version": "3.0.3",
+    "publishedAt": 1776645777544,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.2",
+      "publishedAt": 1775967701594,
+      "commit": "https://github.com/openclaw/skills/commit/eda771c6bee984d6092d1153556ef7c769f5e493"
+    },
     {
       "version": "2.3.1",
       "publishedAt": 1775907287871,

@@ -15,7 +15,7 @@ Read `workspace/skills/more-news/source.md` to extract all source entries. The f
 
 ### 2. Fetch Articles
 
-For each source URL, use `web_fetch` in sequence:
+For each source URL, use `web_fetch` in parallel batches (5 at a time):
 - `maxChars`: 15000
 - `extractMode`: "markdown"
 

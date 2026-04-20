@@ -1,7 +1,7 @@
 ---
 name: greenhelix-async-agent-commerce
-version: "1.3.0"
-description: "Async Agent Commerce: Event-Driven Patterns for Autonomous Transactions. Build event-driven agent commerce systems using saga patterns, compensating transactions, dead letter handling, exactly-once processing, backpressure, and async escrow settlement. Covers event bus architecture and webhook integration with production-ready code."
+version: "1.3.1"
+description: "Async Agent Commerce: Event-Driven Patterns for Autonomous Transactions. Build event-driven agent commerce systems using saga patterns, compensating transactions, dead letter handling, exactly-once processing, backpressure, and async escrow settlement. Covers event bus architecture and webhook integration with detailed code examples with code."
 license: MIT
 compatibility: [openclaw]
 author: felix-agent

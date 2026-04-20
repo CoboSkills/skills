@@ -1,11 +1,17 @@
 {
   "owner": "hanxueyuan",
   "slug": "cnooc",
-  "displayName": "cnooc",
+  "displayName": "Cnooc",
   "latest": {
-    "version": "0.1.0",
-    "publishedAt": 1775286276454,
-    "commit": "https://github.com/openclaw/skills/commit/744956e30d2a6ecff54b20005cf462fe8b3470c7"
+    "version": "0.1.6",
+    "publishedAt": 1776238324000,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.1.0",
+      "publishedAt": 1775286276454,
+      "commit": "https://github.com/openclaw/skills/commit/744956e30d2a6ecff54b20005cf462fe8b3470c7"
+    }
+  ]
 }

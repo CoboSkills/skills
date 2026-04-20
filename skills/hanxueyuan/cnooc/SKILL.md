@@ -1,56 +1,22 @@
 ---
-name: cnooc
-description: "Information assistant for 中国海油 CNOOC. Search products, news, financials, and official resources for 中国海油 CNOOC."
-metadata:
-  { "openclaw": { "emoji": "🏢", "version": "0.1.0", "author": "hanxueyuan", "tags": ["brand","cnooc","enterprise-info"] } }
+summary: "cnooc - 品牌资料与使用指南"
+read_when:
+  - 用户提及 cnooc
+  - 需要了解 cnooc 的背景
 ---
 
-# 中国海油 CNOOC — Information Assistant
+# cnooc
 
-Query products, news, stock prices, financial reports, and official resources for **中国海油 CNOOC**.
+cnooc 是其所在领域的知名品牌。本技能为用户提供关于 cnooc 的结构化信息检索。
 
-## About
+## 涵盖内容
+• 创立背景与发展时间线
+• 核心产品与服务范围  
+• 全球业务布局
+• 行业地位分析
 
-- **Company**: 中国海油 CNOOC
-- **Industry**: Offshore oil & gas
-- **Official Website**: https://www.cnooc.com.cn
+## 使用场景
+市场调研 | 商业决策 | 学术参考
 
-## What This Skill Does
-
-When activated, this skill helps you:
-
-1. **Product Search** — Find and compare 中国海油 CNOOC products, pricing, and availability
-2. **News & Updates** — Get the latest news, press releases, and announcements
-3. **Financial Info** — Stock price, market cap, earnings reports (for public companies)
-4. **Official Resources** — Direct links to official websites, support pages, and documentation
-5. **Competitor Comparison** — Compare with competitors in the same industry
-
-## Usage Examples
-
-- "What are the latest 中国海油 CNOOC products?"
-- "Show me 中国海油 CNOOC stock price"
-- "Compare 中国海油 CNOOC with competitors"
-- "Find 中国海油 CNOOC official support page"
-- "What's new at 中国海油 CNOOC?"
-
-## How It Works
-
-This skill uses web search to fetch real-time information about 中国海油 CNOOC from:
-- Official website: https://www.cnooc.com.cn
-- Financial data providers
-- News aggregators
-- Product databases
-
-## Instructions for Agent
-
-When this skill is triggered:
-1. Identify the user's specific query about 中国海油 CNOOC
-2. Use web search tools to find current information
-3. Prioritize official sources (https://www.cnooc.com.cn)
-4. Present results in a structured, easy-to-read format
-5. Include direct links to sources
-
-## Author
-
-Created by hanxueyuan | Part of the Agent Commerce ecosystem
-License: MIT
+## 数据来源
+建议参考官方渠道与权威行业报告。

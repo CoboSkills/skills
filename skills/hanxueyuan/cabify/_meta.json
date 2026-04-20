@@ -3,9 +3,15 @@
   "slug": "cabify",
   "displayName": "Cabify",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775808929440,
-    "commit": "https://github.com/openclaw/skills/commit/65e8548cfe4a86252514c5877a62454df9832067"
+    "version": "1.0.5",
+    "publishedAt": 1776237880292,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775808929440,
+      "commit": "https://github.com/openclaw/skills/commit/65e8548cfe4a86252514c5877a62454df9832067"
+    }
+  ]
 }

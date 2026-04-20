@@ -3,11 +3,16 @@
   "slug": "moltbank",
   "displayName": "Moltbank",
   "latest": {
-    "version": "0.1.5",
-    "publishedAt": 1775855738240,
-    "commit": "https://github.com/openclaw/skills/commit/16b30d04fa6d24737253023c384de682dea1f8d3"
+    "version": "0.1.9",
+    "publishedAt": 1776383245856,
+    "commit": null
   },
   "history": [
+    {
+      "version": "0.1.5",
+      "publishedAt": 1775855738240,
+      "commit": "https://github.com/openclaw/skills/commit/16b30d04fa6d24737253023c384de682dea1f8d3"
+    },
     {
       "version": "0.1.0",
       "publishedAt": 1775082840683,

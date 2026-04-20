@@ -1,8 +1,8 @@
 ---
-name: seo-geo-playbook
+name: "SEO & GEO (Generative Engine Optimization) Playbook"
 version: 1.0.2
 description: |
-  SEO & GEO (Generative Engine Optimization) — Complete guide to ranking on Google AND being cited by AI engines like ChatGPT, Perplexity, Claude, and Bing Copilot. Built from 30+ Product Hunt #1 launches and 10k+ GitHub stars campaigns.
+  Rank on Google AND get cited by ChatGPT, Perplexity, and Claude. A dual SEO + GEO strategy built from 30+ Product Hunt #1 launches and 10k+ GitHub stars campaigns — so your product shows up whether users search or ask AI.
 
   This playbook covers: GEO fundamentals including IndexNow instant push and Schema markup (FAQPage, Article, Organization), the E-E-A-T writing voice system with founder authenticity signals, SEO article templates using the QAE pattern (Question → Answer → Evidence), keyword funnel strategy (TOFU/MOFU/BOFU), content marketing for startups and developers, AI SEO tactics for Perplexity and ChatGPT search, perplexity SEO optimization, seo article template creation, seo writing best practices, seo checklist and seo audit workflows, seo tools for developers, seo for startups, and multi-platform distribution via Dev.to and Hashnode with canonical URLs.
 

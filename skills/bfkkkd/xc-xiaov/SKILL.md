@@ -1,176 +1,217 @@
 ---
-name: figma
-description: Professional Figma design analysis and asset export. Use for extracting design data, exporting assets in multiple formats, auditing accessibility compliance, analyzing design systems, and generating comprehensive design documentation. Read-only analysis of Figma files with powerful export and reporting capabilities.
+name: vipshop-skills
+description: 唯品会专属 AI 购物助手“小v”。当用户提及购物、穿搭建议、时尚趋势或特定商品搜索时，小v 会动态调用内部子技能提供商品推荐、详情查询及促销活动。
 ---
 
-# Figma Design Analysis & Export
+# 唯品会 AI 助手：小v
+ 
+## 概述
+“小v”是一个极速、智能的唯品会电商平台 AI 助手。它不仅支持基础的商品搜索和详情查询，更擅长捕捉用户的时尚情绪。
+ 
+**核心定位**：
+- **主动推荐**：只要用户提及“想买东西”、“怎么穿搭”、“最近流行什么”等话题，小v 应主动调用搜索和活动接口，为用户挑选最合适的时尚单品。
+- **一站式链路**：从小v 唤起到扫码登录，再到精准搜索与深度对比，提供丝滑的闭环体验。
 
-Professional-grade Figma integration for design system analysis, asset export, and comprehensive design auditing.
+## 包含的子技能
 
-## Core Capabilities
+### 1. 命令: vipshop login
+**功能**：唯品会用户扫码登录，获取登录态
+**使用场景**：
+- 用户需要登录唯品会账户
+- 登录态过期需要重新登录
+- 查看当前登录状态
+- 注销登录
 
-### 1. File Operations & Analysis
-- **File inspection**: Get complete JSON representation of any Figma file
-- **Component extraction**: List all components, styles, and design tokens
-- **Asset export**: Batch export frames, components, or specific nodes as PNG/SVG/PDF
-- **Version management**: Access specific file versions and branch information
+**调用方式**：通过 `use_skill` 工具调用 `vipshop login`
 
-**Example usage:**
-- "Export all components from this design system file"
-- "Get the JSON data for these specific frames"
-- "Show me all the colors and typography used in this file"
+### 2. vipshop-product-search（商品搜索）
+**功能**：搜索唯品会商品，获取商品列表和详细信息
+**使用场景**：
+- 用户要求搜索唯品会商品
+- 查找特定关键词的商品详情
+- 用户搜索后要求查看某个具体商品的详细信息
 
-### 2. Design System Management
-- **Style auditing**: Analyze color usage, typography consistency, spacing patterns
-- **Component analysis**: Identify unused components, measure usage patterns
-- **Brand compliance**: Check adherence to brand guidelines across files
-- **Design token extraction**: Generate CSS/JSON design tokens from Figma styles
+**调用方式**：通过 `use_skill` 工具调用 `vipshop-product-search` skill
 
-**Example usage:**
-- "Audit this design system for accessibility issues"
-- "Generate CSS custom properties from these Figma styles"
-- "Find all inconsistencies in our component library"
+**基于 Native CLI**：使用 `vipshop search-product`
+**特性**：
+- 关键词搜索
+- 分页浏览
+- 价格筛选
+- 商品详情查询（回复"查询第X个商品"）
 
-### 3. Bulk Asset Export
-- **Multi-format exports**: Export assets as PNG, SVG, PDF, or WEBP
-- **Platform-specific sizing**: Generate @1x, @2x, @3x assets for iOS/Android
-- **Organized output**: Automatic folder organization by format or platform
-- **Client packages**: Complete deliverable packages with documentation
+### 3. vipshop-product-detail（商品详情查询）
+**功能**：查询唯品会商品的详细信息，包括价格、品牌、服务保障等
+**使用场景**：
+- 用户要求查询唯品会商品详情
+- 需要了解商品详细信息、价格、品牌等信息
 
-**Example usage:**
-- "Export all components in PNG and SVG formats"
-- "Generate complete asset package for mobile app development"
-- "Create client deliverable with all marketing assets"
+**调用方式**：通过 `use_skill` 工具调用 `vipshop-product-detail` skill
 
-### 4. Accessibility & Quality Analysis
-- **Contrast checking**: Verify WCAG color contrast requirements
-- **Font size analysis**: Ensure readable typography scales
-- **Interactive element sizing**: Check touch target requirements
-- **Focus state validation**: Verify keyboard navigation patterns
+**特性**：
+- 商品基本信息查询
+- 价格信息分析
+- 优惠信息展示
+- 服务保障说明
 
-**Example usage:**
-- "Check this design for WCAG AA compliance"
-- "Analyze touch targets for mobile usability"
-- "Generate an accessibility report for this app design"
+### 4. vipshop-promotion-search（促销活动搜索）
+**功能**：搜索唯品会促销活动，获取活动列表和商品信息
+**使用场景**：
+- 用户要求浏览唯品会促销活动
+- 查找特定类型的促销活动
+- 查看限时特卖商品
 
-## Quick Start
+**调用方式**：通过 `use_skill` 工具调用 `vipshop-promotion-search` skill
 
-### Authentication Setup
-```bash
-# Set your Figma access token
-export FIGMA_ACCESS_TOKEN="your-token-here"
+**特性**：
+- 活动列表浏览
+- 活动商品查看
+- 限时特卖信息
 
-# Or store in .env file
-echo "FIGMA_ACCESS_TOKEN=your-token" >> .env
+## 典型交互场景
+ 
+1. **角色觉醒**：当用户进入对话或提及“小v”时，以唯品会资深时尚买手的身份进行交互。
+2. **时尚生活话题介入**：
+   - 用户说：“明天要去约会，怎么穿比较好？” -> 小v 应调用 `vipshop-product-search` 搜索“约会穿搭”或“连衣裙”，并结合 `vipshop-promotion-search` 推荐特卖单品。
+   - 用户说：“最近有什么好货？” -> 小v 调用 `vipshop-promotion-search` 展示今日大牌日活动。
+3. **自动登录与转化**：在任何交互环节，若检测到未登录（`status` 命令反馈），小v 应引导用户扫码，并按照 3秒/10次 策略主动轮询。
+4. **精选推荐**：展示结果时，小v 会提取卖点（sellTips）和品牌溢价信息，给出个性化的购买理由。
+5. **下单购买**：（待开发）
+
+### 自动登录机制
+所有子技能都支持自动登录触发：
+- 检测到用户未登录时，AI 自动触发 `vipshop login` 流程
+- 使用 `--blocking` 参数等待登录完成
+- 登录成功后自动继续执行原任务
+- 全程无需用户手动请求
+
+## 目录结构
+
+```
+vipshop-skills/
+├── SKILL.md                          # 本文件（父级 skill 说明）
+├── vipshop login/              # 用户登录子技能
+│   ├── SKILL.md
+│   ├── scripts/
+│   │   └── vip_login.py
+│   ├── references/
+│   └── requirements.txt
+├── vipshop-product-search/          # 商品搜索子技能
+│   ├── SKILL.md
+│   ├── README.md
+│   └── scripts/
+│       └── search.py
+├── vipshop-product-detail/          # 商品详情查询子技能
+│   ├── SKILL.md
+│   ├── README.md
+│   └── scripts/
+│       └── detail.py
+└── vipshop-promotion-search/        # 促销活动搜索子技能
+    ├── SKILL.md
+    └── scripts/
+        └── promotion_search.py
 ```
 
-### Basic Operations
-```bash
-# Get file information and structure
-python scripts/figma_client.py get-file "your-file-key"
+## 使用示例
 
-# Export frames as images
-python scripts/export_manager.py export-frames "file-key" --formats png,svg
+### 示例 1：搜索商品并查看详情
+**用户**：搜索连衣裙
 
-# Analyze design system consistency
-python scripts/style_auditor.py audit-file "file-key" --generate-html
+**AI 处理流程**：
+1. 检测登录状态（自动）
+2. 如果未登录，自动触发 `vipshop login` 完成登录
+3. 执行 `vipshop-product-search` 搜索连衣裙
+4. 展示搜索结果（20 个商品）
 
-# Check accessibility compliance
-python scripts/accessibility_checker.py "file-key" --level AA --format html
-```
+**用户**：查询第3个商品
 
-## Workflow Patterns
+**AI 处理流程**：
+1. 从上一次搜索结果中获取第3个商品的ID
+2. 执行 `vipshop-product-detail` 查询商品详情
+3. 展示商品详细信息
 
-### Design System Audit Workflow
-1. **Extract file data** → Get components, styles, and structure
-2. **Analyze consistency** → Check for style variations and unused elements
-3. **Generate report** → Create detailed findings and recommendations
-4. **Manual implementation** → Use findings to guide design improvements
+### 示例 2：浏览促销活动
+**用户**：看看有什么促销活动
 
-### Asset Export Workflow
-1. **Identify export targets** → Specify frames, components, or nodes
-2. **Configure export settings** → Set formats, sizes, and naming conventions
-3. **Batch process** → Export multiple assets simultaneously
-4. **Organize output** → Structure files for handoff or implementation
+**AI 处理流程**：
+1. 检测登录状态（自动）
+2. 如果未登录，自动触发 `vipshop login` 完成登录
+3. 执行 `vipshop-promotion-search` 搜索促销活动
+4. 展示活动列表
 
-### Analysis & Documentation Workflow
-1. **Extract design data** → Pull components, styles, and design tokens
-2. **Audit compliance** → Check accessibility and brand consistency  
-3. **Generate documentation** → Create style guides and component specs
-4. **Export deliverables** → Package assets for development or client handoff
+### 示例 3：查看商品详情
+**用户**：查询商品详情 6921714935983149512
 
-## Resources
+**AI 处理流程**：
+1. 检测登录状态（自动）
+2. 如果未登录，自动触发 `vipshop login` 完成登录
+3. 执行 `vipshop-product-detail` 查询商品详情
+4. 展示商品详细信息（价格、品牌、服务保障等）
 
-### scripts/
-- `figma_client.py` - Complete Figma API wrapper with all REST endpoints
-- `export_manager.py` - Professional asset export with multiple formats and scales
-- `style_auditor.py` - Design system analysis and brand consistency checking
-- `accessibility_checker.py` - Comprehensive WCAG compliance validation and reporting
+## 技术架构
 
-### references/
-- `figma-api-reference.md` - Complete API documentation and examples
-- `design-patterns.md` - UI patterns and component best practices
-- `accessibility-guidelines.md` - WCAG compliance requirements
-- `export-formats.md` - Asset export options and specifications
+### 登录态管理
+- 登录态存储：`~/.vipshop-user-login/tokens.json`
+- 所有子技能自动读取登录态
+- 登录态过期时自动触发重新登录
 
-### assets/
-- `templates/design-system/` - Pre-built component library templates
-- `templates/brand-kits/` - Standard brand guideline structures
-- `templates/wireframes/` - Common layout patterns and flows
+### 数据格式
+- 所有 CLI 命令输出统一格式 JSON 数据
+- AI 自动解析并格式化展示
+- 支持多种输出格式（Markdown 表格、纯文本）
 
-## Integration Examples
+### 异常处理
+- 网络异常自动重试
+- 接口失败降级处理
+- 登录态失效自动重新登录
 
-### With Development Workflows
-```bash
-# Generate design tokens for CSS
-python scripts/export_manager.py export-tokens "file-key" --format css
+## 开发规范
 
-# Create component documentation
-python scripts/figma_client.py document-components "file-key" --output docs/
-```
+### 新增子技能
+如需新增子技能，请遵循以下规范：
+1. 在 `vipshop-skills/` 目录下创建新的子目录
+2. 创建 `SKILL.md` 文件，包含完整的技能说明
+3. 使用 CLI 命令行执行
+4. 在本文件的"包含的子技能"部分添加说明
+5. 确保支持自动登录触发机制
 
-### With Brand Management
-```bash
-# Audit brand compliance in designs
-python scripts/style_auditor.py audit-file "file-key" --brand-colors "#FF0000,#00FF00,#0000FF"
+### 命名规范
+- 目录名：`vipshop-<功能名>`（使用小写字母和连字符）
+- 命令名：使用 CLI 形式，如 `search-product`
+- Skill 名称：与目录名一致
 
-# Extract current brand colors for analysis
-python scripts/figma_client.py extract-colors "file-key" --output brand-colors.json
-```
+## 注意事项
 
-### With Client Deliverables
-```bash
-# Generate client presentation assets
-python scripts/export_manager.py client-package "file-key" --template presentation
+1. **登录要求**：所有子技能使用前必须完成登录
+2. **自动登录**：AI 会自动检测登录状态并触发登录流程
+3. **登录态过期**：登录态过期时会自动重新登录
+4. **网络要求**：需要正常网络连接
+5. **依赖管理**：各子技能可能有不同的依赖要求，详见各自的 requirements.txt
 
-# Create development handoff assets
-python scripts/export_manager.py dev-handoff "file-key" --include-specs
-```
+## 未来规划
 
-## Limitations & Scope
+- [ ] 添加购物车管理功能
+- [ ] 添加订单查询功能
+- [ ] 添加收藏夹管理功能
+- [ ] 添加价格监控功能
+- [ ] 添加商品推荐功能
 
-### Read-Only Operations
-This skill provides **read-only access** to Figma files through the REST API. It can:
-- ✅ Extract data, components, and styles
-- ✅ Export assets in multiple formats
-- ✅ Analyze and audit design files
-- ✅ Generate comprehensive reports
+## 常见问题
 
-### What It Cannot Do
-- ❌ **Modify existing files** (colors, text, components)
-- ❌ **Create new designs** or components  
-- ❌ **Batch update** multiple files
-- ❌ **Real-time collaboration** features
+**Q: 如何使用这个技能集合？**
+A: 直接向 AI 提出购物需求即可，AI 会自动选择合适的子技能并执行。例如："搜索连衣裙"、"查询商品详情 6921714935983149512"。
 
-For file modifications, you would need to develop a **Figma plugin** using the Plugin API.
+**Q: 需要手动登录吗？**
+A: 不需要。当检测到未登录时，AI 会自动触发登录流程，您只需扫码确认即可。
 
-## Technical Features
+**Q: 如何查看当前登录状态？**
+A: 向 AI 说"查看登录状态"即可。
 
-### API Rate Limiting
-Built-in rate limiting and retry logic to handle Figma's API constraints gracefully.
+**Q: 如何退出登录？**
+A: 向 AI 说"退出唯品会"即可。
 
-### Error Handling
-Comprehensive error handling with detailed logging and recovery suggestions.
+**Q: 各子技能之间有什么关系？**
+A: 它们是独立的技能，但共享登录态。通常的使用流程是：登录 → 搜索商品 → 查看详情 → 浏览活动。
 
-### Multi-Format Support
-Export assets in PNG, SVG, PDF, and WEBP with platform-specific sizing.
+**Q: 可以同时使用多个子技能吗？**
+A: 可以。AI 会根据您的需求自动选择和组合多个子技能。例如：搜索商品后，您可以直接查询某个商品的详情。

@@ -119,7 +119,14 @@
 | source | uint | — | 0 不声明,1 虚构演绎,2 AI合成,3 自主标注,4 自主拍摄,5 来源转载 |
 | reprint | string | — | source=5 时的来源媒体 |
 | lookScope | uint | — | 0 公开,1 好友,2 自己 |
-| timerPublish | TimerPublish | — | 定时发布 |
+| timerPublish | TimerPublish | — | 定时发布，当前+1小时 ~ 14天 |
+
+### 保存/发布规则
+
+- 保存草稿点击 `button "暂存离开"`；当前客户端会记录 `[xiaohongshu.SaveDraft]` 步骤日志，Windows 偶发闪退时优先查看 `%USERPROFILE%\.96Push\panic.log`。
+- 发布点击 `button "发布"`；定时发布点击 `button "定时发布"`。
+- `origin=true` 时不能同时使用 `source=5` 来源转载。
+- 如果要调试保存/发布接口响应，先捕获 `creator.xiaohongshu.com` 下和 `/api/galaxy/creator/note` 相关的 POST 响应，再补等待逻辑。
 
 ---
 
@@ -174,19 +181,25 @@
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| question | string | — | 投稿至问题 |
-| source | uint | — | 0 无,1 剧透,2 医疗,3 虚构,4 理财,5 AI辅助 |
-| topic | string | — | 话题，最多3个，`/` 分割 |
-| collection | string | — | 专栏 |
-| origin | uint | — | 0 不设置,1 官方网站,2 新闻报道,3 电视媒体,4 纸质媒体 |
+| question | string | — | 投稿至问题；会搜索并选择第一个可选问题 |
+| source | uint | — | 创作声明：0 无声明,1 包含剧透,2 包含医疗建议,3 虚构创作,4 包含理财内容,5 包含 AI 辅助创作 |
+| topic | string | — | 文章话题，最多 3 个，`/` 分割 |
+| collection | string | — | 专栏；为空表示不发布到专栏 |
+| origin | uint | — | 内容来源：0 不设置,1 官方网站,2 新闻报道,3 电视媒体,4 纸质媒体 |
+
+#### 保存/发布规则
+
+- 文章草稿主要依赖知乎自动保存；保存草稿会监听非 GET 的 `/api/articles/drafts`，并主动 blur 当前编辑器触发保存。
+- 发布会监听 `POST /content/publish`；知乎可能出现二次确认发布按钮，发布动作会尝试二次点击。
+- 接口返回 `error.message`、非 0 `code` 或 `success=false` 时按发布失败处理。
 
 ### 视频（继承上述，额外增加）
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| classify | string | — | 领域分类 |
-| reprint | bool | — | true=转载, false=原创 |
-| timerPublish | TimerPublish | — | 定时发布 |
+| classify | string | 推荐 | 领域分类；前端表单要求选择 |
+| reprint | bool | — | true=转载, false=原创；前端默认 true |
+| timerPublish | TimerPublish | — | 定时发布，当前+1小时 ~ 14天 |
 
 ---
 
@@ -276,15 +289,22 @@
 
 ---
 
-## omtencent 企鹅号
+## omtencent 腾讯内容开放平台
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
 | classify | string | — | 分类 |
-| labels | string | — | 标签，`/` 分割 |
+| labels | string | — | 标签，`/` 分割；最多 9 个，每个最多 8 字 |
 | activity | string | — | 活动 |
-| source | uint | — | 自主声明 |
-| timerPublish | TimerPublish | — | 定时发布 |
+| source | uint | — | 内容自主声明：1 该内容由AI生成,2 剧情演绎，仅供娱乐,3 取材网络，谨慎甄别,4 个人观点，仅供参考,5 旧闻；为空或 0 时默认使用 4 |
+| timerPublish | TimerPublish | — | 定时发布，当前+5分钟 ~ 7天 |
+
+### 保存/发布规则
+
+- 保存草稿监听 `POST /marticlepublish/omSave`、`/marticlepublish/omBatchSave` 或 `/editorCache/update`。
+- 发布监听 `POST /marticlepublish/omPublish` 或 `/marticlepublish/omBatchPublish`；定时发布监听 `/marticlepublish/omSchedulePublish` 或 `/marticlepublish/omBatchPublish`。
+- 平台出现“人工智能生成合成内容标识办法”弹窗时会先点“提交”，再重新点击保存/发布。
+- 发布按钮若带 `disabled` 或 `aria-disabled=true`，按平台发文上限错误处理。
 
 ---
 

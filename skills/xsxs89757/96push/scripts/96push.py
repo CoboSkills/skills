@@ -211,7 +211,53 @@ def cmd_publish(args):
         "graph_text": f"publish/graphText/{args.id}",
         "video": f"publish/video/{args.id}",
     }
-    return request("POST", endpoints.get(args.type, f"publish/article/{args.id}"), body=body, timeout=60)
+    result = request("POST", endpoints.get(args.type, f"publish/article/{args.id}"), body=body, timeout=60)
+
+    # 自动 poll 等待结果（除非 --no-wait）
+    if getattr(args, "no_wait", False):
+        return result
+
+    if "error" in result:
+        return result
+
+    data = result.get("data", result)
+    rid = data.get("publishRecordId")
+    if not rid:
+        return result
+
+    print(f"[publish] 已提交，recordId={rid}，等待完成...", file=sys.stderr)
+
+    max_attempts = 200
+    interval = 5
+    for i in range(max_attempts):
+        time.sleep(interval)
+        rec = request("GET", "record/list", query={"current": "1", "size": "10"})
+        rec_list = rec.get("list", []) if isinstance(rec, dict) else []
+        target = next((r for r in rec_list if r.get("id") == rid), None)
+        if not target:
+            continue
+        status = target.get("status", 1)
+        if status == 6:
+            return {"publish": "cancelled", "record": target, "detail": []}
+        if status not in (1, 5):
+            info = request("GET", f"record/info/{rid}")
+            detail = info if isinstance(info, list) else info.get("data", [])
+            return {
+                "publish": "done",
+                "record": target,
+                "detail": detail if isinstance(detail, list) else [],
+            }
+        qpos = target.get("queue_position")
+        if qpos is not None and status == 5:
+            print(f"[poll {i+1}/{max_attempts}] 排队中，位置: {qpos}", file=sys.stderr)
+        elif status == 1:
+            print(f"[poll {i+1}/{max_attempts}] 发布中...", file=sys.stderr)
+
+    return {
+        "publish": "timeout",
+        "publishRecordId": rid,
+        "message": f"Record {rid} still active after {max_attempts * interval // 60}min",
+    }
 
 
 def cmd_poll(args):
@@ -369,6 +415,7 @@ def main():
     p.add_argument("--accounts-json", default="", help='Advanced: JSON array of {"id":N,"platName":"...","settings":{...}}')
     p.add_argument("--draft", action="store_true", help="Save as draft only (syncDraft)")
     p.add_argument("--force", action="store_true", help="Skip active-publish check (dangerous, can create duplicates)")
+    p.add_argument("--no-wait", action="store_true", help="Return immediately without polling for result")
 
     p = sub.add_parser("poll", help="Poll publish result")
     p.add_argument("--id", type=int, required=True, help="publishRecordId")

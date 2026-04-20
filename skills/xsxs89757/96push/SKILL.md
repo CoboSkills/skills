@@ -112,8 +112,8 @@ python3 {baseDir}/scripts/96push.py delete-plat-set --sid 1
 1. `check` — confirm client is online
 2. `accounts` — list available accounts, let user pick targets
 3. `create` — create content (see content creation rules below)
-4. `publish` — submit publish task (**call ONCE only**, see critical rules below)
-5. `poll` — wait for results (this is the ONLY way to check publish status)
+4. `publish` — submit and wait for results (**call ONCE only**, see critical rules below). The command automatically polls until completion — no need to call `poll` separately.
+5. Report results to the user
 
 ---
 
@@ -123,12 +123,12 @@ python3 {baseDir}/scripts/96push.py delete-plat-set --sid 1
 
 The publish command triggers browser automation that takes 30-60 seconds to complete. The script has a built-in guard that rejects publish if another task is already running. Follow these rules strictly:
 
-1. **ONE publish call → ONE poll loop.** After calling `publish`, you MUST call `poll --id <recordId>` and wait for it to complete (status != 1). NEVER call `publish` again while poll is running.
-2. **If poll times out**, it does NOT mean publish failed — the browser automation may still be running. Do NOT retry publish. Instead, wait longer or ask the user to check the 96Push client.
-3. **If publish returns `PUBLISH_ALREADY_RUNNING`**, do NOT retry. Use `poll --id <active_record_id>` to wait for the active task.
-4. **If publish returns HTTP 425**, another task is in progress. Wait and poll, do NOT retry.
+1. **ONE publish call per batch.** The `publish` command now automatically waits for completion — it submits the task and polls until done. Do NOT call `poll` separately unless you used `--no-wait`.
+2. **If publish times out**, it does NOT mean publish failed — the browser automation may still be running. Do NOT retry publish. Instead, ask the user to check the 96Push client.
+3. **If publish returns `PUBLISH_ALREADY_RUNNING`**, do NOT retry. Wait for the active task to complete.
+4. **If publish returns HTTP 425**, another task is in progress. Wait and report to user, do NOT retry.
 5. **NEVER loop or retry the publish command.** Each call creates a new browser automation task. Calling it 10 times creates 10 browser windows fighting for the same page.
-6. **The complete sequence is always**: `publish` (once) → `poll` (loop until done/timeout) → report result to user.
+6. **The complete sequence is always**: `publish` (once, waits automatically) → report result to user.
 
 ---
 
@@ -243,8 +243,12 @@ When publishing, each account in `postAccounts` needs a `settings` object. **Dif
 **xiaohongshu (小红书)**:
 
 - `origin`: Declare original
+- `source`: Content declaration — 0=none, 1=fiction/entertainment, 2=AI-generated, 3=marked in body, 4=self-shot, 5=repost source
+- `reprint`: Media/source name, only used when `source=5`. Do not combine `origin=true` with `source=5`.
 - `mark`: Tag user/location `{"user": true, "search": "keyword"}`
 - `lookScope`: 0=public, 1=friends, 2=private
+- Timer: now+1h ~ 14 days.
+- Draft save clicks `暂存离开`; publish clicks `发布` or `定时发布`.
 
 **bilibili (哔哩哔哩)** — Video/Graph Text:
 
@@ -262,8 +266,21 @@ When publishing, each account in `postAccounts` needs a `settings` object. **Dif
 **zhihu (知乎)** — Article:
 
 - `question`: Submit to a question
+- `source`: Creation declaration — 0=none, 1=spoiler, 2=medical, 3=fiction, 4=finance, 5=AI-assisted
 - `topic`: Article topics (max 3, `/` separated)
 - `collection`: Column name
+- `origin`: Source type — 0=none, 1=official site, 2=news report, 3=TV media, 4=print media
+- Draft save is auto-save based and waits for `/api/articles/drafts`; publish waits for `POST /content/publish`.
+- Video: set `classify` when possible; `reprint=true` means repost, `false` means original. Timer: now+1h ~ 14 days.
+
+**omtencent (腾讯内容开放平台)** — Article/Video:
+
+- `classify`: Category. For stable tests, use `科技` for articles.
+- `labels`: Tags separated by `/`, max 9 tags and max 8 Chinese chars each.
+- `activity`: Platform activity keyword.
+- `source`: Content declaration — 1=AI generated, 2=fiction/entertainment, 3=from internet, 4=personal opinion, 5=old news. Empty or 0 currently defaults to 4.
+- Timer: now+5min ~ 7 days.
+- Save/publish waits for platform submit responses; if the AIGC declaration dialog appears, submit it and click save/publish again.
 
 **baijiahao (百家号)**:
 
@@ -374,4 +391,3 @@ Success: 2/3, Failed: 1/3
 - **NEVER call `publish` more than once for the same content+accounts batch.** Each call creates a real browser automation task. Duplicate calls will open multiple browsers fighting over the same page, causing all of them to fail and potentially crashing the client.
 - **NEVER retry `publish` on failure or timeout.** If publish fails, report the error to the user. If poll times out, report timeout to the user. Let the user decide what to do.
 - **Always use `poll` after `publish`.** The publish command only starts the task — it returns immediately. You MUST poll to get the result.
-

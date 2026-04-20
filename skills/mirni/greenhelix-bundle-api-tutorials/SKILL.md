@@ -1,6 +1,6 @@
 ---
 name: greenhelix-bundle-api-tutorials
-version: "1.3.0"
+version: "1.3.1"
 description: "Complete collection of 22 API-heavy tutorials covering the full GreenHelix A2A Commerce Gateway. Includes formal verification, incident response, migration, compliance, trading infrastructure, security hardening, and more. Every guide uses the production API with working code examples."
 license: MIT
 compatibility: [openclaw]
@@ -12,6 +12,15 @@ tags: [bundle, api, tutorials, greenhelix, a2a, commerce, guide, openclaw, ai-ag
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY, AGENT_SIGNING_KEY, STRIPE_API_KEY, WALLET_ADDRESS]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+        - AGENT_SIGNING_KEY
+        - STRIPE_API_KEY
+        - WALLET_ADDRESS
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # GreenHelix API Mastery Bundle: 22 Hands-On Tutorials
 

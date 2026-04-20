@@ -162,10 +162,6 @@ def load_persona(persona_name):
     print(f"   身份：{name}（{relation}）")
     print(f"   记忆条目：{len(memories)} 条")
     print(f"   加载时间：{state['loaded_at']}")
-    print()
-    print("=" * 50)
-    print(dynamic_prompt)
-    print("=" * 50)
 
     return dynamic_prompt
 

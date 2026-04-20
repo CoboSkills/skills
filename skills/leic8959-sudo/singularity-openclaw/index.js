@@ -172,7 +172,7 @@ async function singularity_submit_bug(params) {
  * singularity_search_genes — Search Hub for matching Gene assets
  * POST /api/evomap/a2a/fetch
  *
- * Requires Hub credentials (nodeId:nodeSecret) via env vars.
+ * Uses Bearer API_KEY (official simple way, no signature needed).
  * Falls back to local cache search if Hub is unreachable.
  *
  * Input: { signals, taskType?, minConfidence? }
@@ -180,12 +180,10 @@ async function singularity_submit_bug(params) {
 async function singularity_search_genes(params) {
   const { signals = [], taskType = null, minConfidence = 0.5 } = params;
 
-  const hubBase  = process.env.HUB_BASE_URL;
-  const nodeId   = process.env.EVOMAP_NODE_ID;
-  const nodeSecret = process.env.EVOMAP_NODE_SECRET;
+  const hubBase = process.env.HUB_BASE_URL;
 
-  if (!hubBase || !nodeId || !nodeSecret) {
-    return { genes: [], total: 0, source: 'unavailable', note: 'Set HUB_BASE_URL, EVOMAP_NODE_ID, EVOMAP_NODE_SECRET to search Hub' };
+  if (!hubBase || !API_KEY) {
+    return { genes: [], capsules: [], total: 0, source: 'unavailable', note: 'Set HUB_BASE_URL and SINGULARITY_API_KEY to search Hub' };
   }
 
   try {
@@ -193,12 +191,12 @@ async function singularity_search_genes(params) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${nodeId}:${nodeSecret}`,
+        Authorization: `Bearer ${API_KEY}`,
       },
       body: JSON.stringify({
         protocol: 'gep-a2a',
         message_type: 'fetch',
-        payload: { asset_type: 'Gene', signals, task_type: taskType || '', min_confidence: minConfidence },
+        payload: { asset_type: 'auto', signals, task_type: taskType || '', min_confidence: minConfidence, fallback: true },
       }),
       signal: AbortSignal.timeout(8000),
     });
@@ -209,16 +207,15 @@ async function singularity_search_genes(params) {
 
     const data = await resp.json();
     return {
-      genes:  data.assets ?? [],
-      total:  (data.assets ?? []).length,
-      source: 'hub',
+      genes:    data.genes ?? [],
+      capsules: data.capsules ?? [],
+      total:    (data.genes?.length ?? 0) + (data.capsules?.length ?? 0),
+      source:   'hub',
     };
   } catch (err) {
     return {
-      genes:  [],
-      total:  0,
-      source: 'hub_error',
-      error:  err instanceof Error ? err.message : String(err),
+      genes: [], capsules: [], total: 0, source: 'hub_error',
+      error: err instanceof Error ? err.message : String(err),
     };
   }
 }
@@ -227,19 +224,17 @@ async function singularity_search_genes(params) {
  * singularity_apply_gene — Apply a Gene/Capsule from the Hub to this node
  * POST /api/evomap/a2a/apply
  *
- * Requires Hub credentials via env vars.
+ * Uses Bearer API_KEY (official simple way, no signature needed).
  *
  * Input: { geneId, capsuleId?, agentId? }
  */
 async function singularity_apply_gene(params) {
   const { geneId, capsuleId = null, agentId = null } = params;
 
-  const hubBase   = process.env.HUB_BASE_URL;
-  const nodeId    = process.env.EVOMAP_NODE_ID;
-  const nodeSecret = process.env.EVOMAP_NODE_SECRET;
+  const hubBase = process.env.HUB_BASE_URL;
 
-  if (!hubBase || !nodeId || !nodeSecret) {
-    return { success: false, note: 'Set HUB_BASE_URL, EVOMAP_NODE_ID, EVOMAP_NODE_SECRET to apply from Hub' };
+  if (!hubBase || !API_KEY) {
+    return { success: false, note: 'Set HUB_BASE_URL and SINGULARITY_API_KEY to apply from Hub' };
   }
 
   try {
@@ -247,13 +242,12 @@ async function singularity_apply_gene(params) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${nodeId}:${nodeSecret}`,
+        Authorization: `Bearer ${API_KEY}`,
       },
       body: JSON.stringify({
         protocol: 'gep-a2a',
         message_type: 'apply',
         payload: {
-          node_id: nodeId,
           gene_id: geneId,
           ...(capsuleId && { capsule_id: capsuleId }),
           ...(agentId  && { agent_id:  agentId }),

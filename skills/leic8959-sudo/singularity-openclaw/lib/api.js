@@ -1,6 +1,6 @@
 /**
  * singularity - Singularity AI Agent Social Network API Client
- * 版本: 2.4.2
+ * 版本: 2.5.0  // GEP-A2A heartbeat + task protocol
  * API Base: https://www.singularity.mba
  */
 
@@ -20,7 +20,7 @@ const LOG_FILE     = path.join(CACHE_DIR, 'skill.log');
 // Base: API Request
 // ============================================================================
 
-async function apiRequest(params) {
+export async function apiRequest(params) {
   const { method = 'GET', path: endpoint, apiKey, body, timeout = 15000, nodeId, nodeSecret } = params;
 
   const headers = {
@@ -449,35 +449,74 @@ export async function applyCapsule(apiKey, params) {
 // A2A Protocol (Hub Communication)
 // ============================================================================
 
-/** 从 Hub 搜索匹配资产 */
+/** 从 Hub 搜索匹配资产（官方 simple 方式，无需签名）*/
 export async function a2aFetch(apiKey, params) {
   return apiRequest({
-    method: 'POST', path: '/api/evomap/a2a/fetch', apiKey,
+    method: 'POST', path: '/api/evomap/a2a/fetch',
+    apiKey,
     body: { protocol: 'gep-a2a', message_type: 'fetch', payload: params },
   });
 }
 
-/** 上报执行结果（需 nodeId+nodeSecret）*/
-export async function a2aReport(nodeId, nodeSecret, params) {
+/** 上报执行结果（官方 simple 方式）*/
+export async function a2aReport(apiKey, params) {
   return apiRequest({
     method: 'POST', path: '/api/evomap/a2a/report',
-    nodeId, nodeSecret,
-    body: { protocol: 'gep-a2a', message_type: 'report', payload: { node_id: nodeId, ...params }, sender_id: nodeId },
+    apiKey,
+    body: { protocol: 'gep-a2a', message_type: 'report', payload: params },
   });
 }
 
-/** 从 Hub 申请应用 Capsule（需 nodeId+nodeSecret）*/
-export async function a2aApply(nodeId, nodeSecret, params) {
+/** 从 Hub 申请应用 Capsule（官方 simple 方式）*/
+export async function a2aApply(apiKey, params) {
   return apiRequest({
     method: 'POST', path: '/api/evomap/a2a/apply',
-    nodeId, nodeSecret,
-    body: { protocol: 'gep-a2a', message_type: 'apply', payload: { node_id: nodeId, ...params }, sender_id: nodeId },
+    apiKey,
+    body: { protocol: 'gep-a2a', message_type: 'apply', payload: params },
   });
 }
 
-/** EvoMap 节点心跳 */
-export async function evomapHeartbeat(nodeId, nodeSecret) {
-  return apiRequest({ method: 'POST', path: '/api/a2a/heartbeat', body: { nodeId, nodeSecret } });
+/**
+ * EvoMap A2A 节点心跳（官方 GEP-A2A 格式）
+ * 请求体: { node_id, worker_enabled, worker_domains, workload }
+ * 响应: { success, status, next_heartbeat_ms, pending_events: [...] }
+ */
+export async function evomapHeartbeat(nodeId, nodeSecret, options = {}) {
+  const { workerDomains = [], workload = {} } = options;
+  return apiRequest({
+    method: 'POST',
+    path: '/api/a2a/heartbeat',
+    nodeId, nodeSecret,
+    body: {
+      node_id: nodeId,
+      worker_enabled: true,
+      worker_domains: workerDomains,
+      workload,
+    },
+  });
+}
+
+/** 获取可认领的 A2A 任务列表 */
+export async function fetchA2ATasks(nodeId, nodeSecret, options = {}) {
+  const { status = 'PENDING', limit = 20, taskType } = options;
+  let path = `/api/a2a/tasks?status=${status}&limit=${limit}`;
+  if (taskType) path += `&task_type=${encodeURIComponent(taskType)}`;
+  return apiRequest({ method: 'GET', path, nodeId, nodeSecret });
+}
+
+/** 认领一个 A2A 任务 */
+export async function claimA2ATask(nodeId, nodeSecret, taskId) {
+  return apiRequest({ method: 'POST', path: `/api/a2a/tasks/${taskId}/claim`, nodeId, nodeSecret });
+}
+
+/** 完成一个 A2A 任务 */
+export async function completeA2ATask(nodeId, nodeSecret, taskId, result) {
+  return apiRequest({
+    method: 'POST',
+    path: `/api/a2a/tasks/${taskId}/complete`,
+    nodeId, nodeSecret,
+    body: result,
+  });
 }
 
 // ============================================================================

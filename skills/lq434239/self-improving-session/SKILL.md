@@ -1,143 +1,196 @@
 ---
 name: self-improving-session
-description: Triggers when a session contains user corrections, repeated workflow preferences, or project conventions that should be preserved for future sessions. Also triggers when the user explicitly asks to remember rules, update guidance, or summarize lessons. Runs automatically at session end.
+description: Extracts durable workflow preferences and project conventions from a session, then proposes the smallest valid update to global or project CLAUDE.md files. Trigger when the user asks to remember rules, when repeated preference patterns appear, or at session end for non-trivial sessions.
 ---
 
 # self-improving-session
 
-> A good learning loop stores stable preferences and rules, not temporary artifacts.
+> Good session learning captures durable guidance, not conversational residue.
 
-Extract durable, reusable lessons from the current session and merge them into `CLAUDE.md`, so future sessions start more aligned. Forms a closed loop with `self-improving-prompt` — the latter generates preference signals from the user's choices.
+Extract reusable lessons from the current session and propose the smallest valid update to `CLAUDE.md`. The goal is not to remember everything. The goal is to preserve only rules that improve future sessions while keeping the rule set small.
+
+This skill works standalone.
+It can learn from ordinary sessions or from sessions shaped by `self-improving-prompt`.
+
+When paired together:
+- `self-improving-prompt` shapes task framing and execution behavior
+- `self-improving-session` reviews the resulting session and extracts durable workflow rules
+
+This skill should learn from behavior patterns, corrections, and repeated outcomes, not from storing the refined prompt text itself.
+
+## Security and Runtime
+
+- Instruction-only skill; no bundled scripts or external services required
+- No credentials, API keys, or network access required for normal use
+- Does not modify system configuration; may propose writing to `CLAUDE.md` files after user confirmation
+- Optional session-end automation belongs in README only and is not required for core skill behavior
 
 ## Quick Reference
 
 | Signal | Action |
 |--------|--------|
-| Stable repeated preference | Learn as a rule, mark `[stable]` |
-| Explicit user correction | Old rule gets `[corrected: YYYY-MM-DD]`, new rule marked `[stable]` |
-| First appearance of a new rule | Mark `[tentative]` |
-| `[tentative]` rule validated again | Upgrade to `[stable]` |
-| Occasional different choice | Usually don't learn |
+| Explicit user correction | Add or update a `[stable]` rule immediately |
+| Explicit durable project rule | Add as `[stable]` project rule |
+| Repeated preference seen 2 times across meaningfully different tasks | Add as `[tentative]` |
+| Repeated preference seen 4 times across multiple task contexts | Upgrade to `[stable]` |
+| One-off scenario-specific choice | Skip |
 | Full prompt text | Never store |
-| Code facts / file paths | Never store |
-| Secrets / passwords / sensitive data | Never store |
-| Nothing worth learning | Say so directly, don't force it |
+| Code facts, file paths, temporary state | Never store |
+| Nothing worth learning | Say so directly |
 
-## Core Flow
+## Core Principle
 
-### Step 1: Scan the Session
+Prefer under-learning to over-learning. A noisy `CLAUDE.md` harms future sessions more than a missed weak signal.
+The best outcome is often:
 
-Review the whole session and look for two categories of content:
+- no change, or
+- one compact replacement that improves existing guidance without increasing rule count
 
-**A. Workflow preferences and corrections**
-- User corrections ("don't do that", "stop...")
-- Confirmed non-obvious approaches ("yes exactly", "perfect")
-- Output format, communication style, and collaboration-flow preferences
-- Tool usage guidance
-- `self-improving-prompt` choice preferences (prefers refined vs original, wants compare-first flow, etc.)
+## Step 1: Scan the Session
 
-**How to judge self-improving-prompt preference signals:**
-- Repeatedly chooses the same version → store as stable preference
-- One-off different choice → don't overfit, likely scenario-specific
-- Explicit verbal correction ("don't show me the original anymore") → promote immediately to a rule
+Look for two categories:
 
-**B. Project rules and conventions**
-- Coding conventions (naming, formatting, comment style)
-- Architecture conventions (directory structure, layering, design patterns)
-- Tech-stack preferences (framework or library usage)
-- Testing strategy, deployment flow, and other project-specific rules
+### A. Workflow preferences and corrections
 
-See `references/learning-rules.md` for detailed examples of what to learn and what to skip.
+- Explicit user corrections
+- Repeated output-format preferences
+- Collaboration-flow preferences
+- Tool-usage preferences
+- Repeated `self-improving-prompt` workflow choices
 
-### Step 2: Filter Noise
+Only treat a signal as durable if it appears reusable across tasks.
+
+### B. Project rules and conventions
+
+- Coding conventions
+- Architecture decisions
+- Tech-stack preferences
+- Testing and deployment rules
+- Team or repo-specific collaboration conventions
+
+## Step 2: Filter Noise
 
 Skip:
-- One-off debugging details (already captured in code or git history)
-- Information directly derivable from code (paths, function signatures)
-- Temporary task state
-- Rules already present in `CLAUDE.md`
-- Full prompts generated by `self-improving-prompt` (learn rules and preferences only, never full prompt content)
 
-Keep only content that will guide future sessions.
+- One-off debugging details
+- Temporary workarounds
+- Facts already derivable from code
+- Rules already documented clearly elsewhere
+- Full prompts produced by `self-improving-prompt`
+- Generic praise such as "perfect" or "yes exactly" unless it clearly confirms a reusable workflow rule
 
-### Step 3: Read Current CLAUDE.md
+Do not learn courtesy language as a durable preference.
+See `references/rule-quality.md` for what counts as a strong, reusable rule versus noise.
 
-Choose the target file based on scope:
-- **Global rules** → `~/.claude/CLAUDE.md`
-- **Project-specific rules** → project `CLAUDE.md`
+## Step 3: Classify Scope
 
-If a project file is needed but doesn't exist, create one.
+Choose the destination by scope:
 
-### Step 4: Merge Intelligently
+- Cross-project workflow rules -> `~/.claude/CLAUDE.md`
+- Project-specific engineering conventions -> project `CLAUDE.md`
+- Temporary lessons or one-off incident notes -> separate task notes, not `CLAUDE.md`
 
-- **Deduplicate**: skip rules with the same meaning
-- **Update**: replace outdated or conflicting rules with the new preference
-- **Classify**: place rules into the most appropriate section
-- **Compress**: keep rules short and clear using bullet points
+Do not mix personal workflow rules into a project convention section.
 
-**Rule confidence markers:**
-- New rules default to `[tentative]`, meaning first seen and not yet stable
-- If the same rule is validated again in later sessions → upgrade to `[stable]`
-- When the user corrects an old rule: keep the old rule with `[corrected: YYYY-MM-DD]`, and mark the new rule `[stable]`
-- `[tentative]` rules may be overwritten the next time `self-improving-session` runs; `[stable]` rules should only change after explicit user correction
+## Step 4: Apply Confidence Rules
 
-**Example:**
+Use one consistent threshold:
+
+- Explicit correction or explicit permanent instruction -> `[stable]`
+- Same reusable preference observed 2 times across meaningfully different tasks -> `[tentative]`
+- Same reusable preference observed 4 times across multiple task contexts -> `[stable]`
+
+If the evidence is weaker than that, do not learn it.
+
+## Step 5: Merge Carefully
+
+- Deduplicate rules with the same meaning
+- Merge wording variants into one concise rule
+- Do not let a new `[tentative]` overwrite an existing `[stable]`
+- Only explicit correction can rewrite an existing `[stable]`
+- Keep the total rule set compact
+- Prefer compressing or replacing low-quality rules rather than appending near-duplicates
+- Prefer replacing multiple weaker rules with one stronger rule when possible
+- If existing rules already cover the behavior, propose no change
+
+## Rule Budget
+
+To prevent `CLAUDE.md` bloat:
+
+- Keep global workflow rules under about 20 bullets
+- Keep project-specific convention rules under about 15 bullets unless the project genuinely requires more
+- If a section grows too large, merge or compress instead of appending
+- A single session should usually propose no more than 3 new rules unless the user explicitly asks for broader guidance cleanup
+- If the target `CLAUDE.md` section is already over budget, compact first and do not append new rules unless the user explicitly approves
+- Zero new rules is a normal and healthy outcome
+
+## Confidence Markers
+
+- `[tentative]`: observed twice and likely reusable, but not well validated yet
+- `[stable]`: explicitly stated or validated repeatedly
+- `[corrected: YYYY-MM-DD]`: old rule superseded by explicit user correction
+
+Example:
+
 ```markdown
-- Don't summarize at the end of responses [stable]
-- User prefers seeing the refined prompt before confirming [stable]
-- ~~Always show popup confirmation~~ → only show popup when refinement has substantial value [corrected: 2026-04-10]
-- Write scope explicitly for code tasks [tentative]
+- Prefer concise final answers by default [stable]
+- Show refined prompts only when refinement materially improves execution [stable]
+- Write scope explicitly for risky code tasks [tentative]
+- ~~Always use popup confirmation~~ -> Use compare-first only when refinement adds substantial value [corrected: 2026-04-14]
 ```
 
-### Step 5: Confirm Changes
+## Event Consumption from self-improving-prompt
 
-Show the user:
-- New rules to add
-- Rules to update (old → new)
-- Target file
+If `self-improving-prompt` emits abstract events, use them as weak evidence only.
 
-Wait for confirmation before writing. If the user says "update directly" or the skill is running automatically from a SessionEnd hook, confirmation can be skipped.
+Examples:
+
+- `choose_refined`
+- `choose_original`
+- `explicit_no_compare`
+- `explicit_compare_first`
+
+Rules:
+
+- A single event is not enough to create a durable rule unless paired with an explicit verbal instruction
+- Repeated events may support a `[tentative]` or `[stable]` rule using the thresholds above
+- The refined prompt may have shaped the session, but the refined prompt text itself should not be stored as a durable rule
+- Never store the refined prompt text itself
+
+## Confirmation Before Writing
+
+By default, show the user:
+
+- new rules to add
+- existing rules to update
+- target file
+
+Then wait for confirmation before writing.
+
+Skip confirmation only when:
+
+- the user explicitly says to update directly, or
+- the skill is running automatically at session end with prior permission to write
+
+If interactive confirmation is unavailable, fall back to plain-text confirmation.
 
 ## Output Format
 
-When updating `CLAUDE.md`:
-- Use markdown bullets (`-`)
-- Keep each rule concise and clear
-- Include enough context for future Claude instances to understand why the rule exists
-- Add a confidence marker at the end of each rule: `[tentative]` or `[stable]`
-- If a rule comes from a correction: old rule gets `[corrected: YYYY-MM-DD]`, new rule gets `[stable]`
+When writing rules:
 
-## Integration with self-improving-prompt
+- Use concise markdown bullets
+- Separate `Global Workflow Rules` from `Project Conventions`
+- Keep each rule broadly reusable
+- Include a confidence marker at the end
+- Prefer the smallest valid update: no change, replacement, merge, or at most a few additions
 
-- `self-improving-prompt` is the main source of workflow preference signals.
-- Learn selection patterns (such as "user always chooses the refined version") without storing the generated prompt text.
-- Over time, the accumulated preference profile makes `self-improving-prompt` more aligned with the user's habits.
+Before adding a rule, validate it against `references/rule-quality.md`.
 
 ## Notes
 
-- Do not store secrets, passwords, personal privacy, or other sensitive information
-- Do not store obvious programming common sense
-- If the session contains nothing worth preserving, say so directly
-- Keep `CLAUDE.md` tidy; if a section accumulates too many rules, merge or simplify them
+- Do not store secrets, passwords, tokens, or sensitive personal data
+- Do not store full prompt text
+- Do not store temporary task state
+- If there is nothing durable to learn, say so plainly
 
-## Setup
-
-To auto-trigger at session end, add to `~/.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "echo '{\"decision\":\"block\",\"reason\":\"Session ending\",\"hookSpecificOutput\":{\"hookEventName\":\"SessionEnd\",\"additionalContext\":\"Session is ending. Run /self-improving-session to extract user corrections, workflow preferences, and project conventions, then merge into CLAUDE.md. Skip if session was trivial.\"}}'",
-            "timeout": 10
-          }
-        ]
-      }
-    ]
-  }
-}
-```
+Optional session-end automation examples are documented in `README.md`. They are convenience setup, not a requirement of the skill itself.

@@ -2,7 +2,7 @@
 
 ## 基址来源（可配置）
 
-1. **环境变量** `WENLV_API_ORIGIN`：仅站点根（如 `https://www.data0086.com`）。若设置，优先使用。
+1. **环境变量** `WENLV_API_ORIGIN`：仅站点根（如 `https://test.data0086.com`）。若设置，优先使用。
 2. 否则使用与本 Skill 同目录的 [config.json](../config.json) 中的 `api_origin`。
 3. **`search_url`** = `api_origin`（去尾 `/`）+ `search_path`（默认 `/ms-base/home/getList`）+ `?pageNum={pageNum}&pageSize={pageSize}`。
 
@@ -33,7 +33,7 @@
 |------|------|------|------|
 | `search` | string | 是 | 搜索关键词，支持中文 |
 | `city` | string | 否 | 城市行政区划代码，默认 `"330300"`（温州） |
-| `commodityCode` | string \| null | 否 | 按商品编码精确筛选 |
+| `commodityCode` | string \| null | 否 | 按商品编码精确筛选。Skill 用此字段分两次调用：成片传 `finished_commodity_code`（见 config.json），素材传 `null` |
 | `sceneType` | string | 否 | 场景类型筛选，逗号分隔 |
 | `tradeType` | string | 否 | 交易类型筛选，如 `"cash"` |
 
@@ -105,10 +105,11 @@
 ## 调用示例
 
 ```bash
-curl 'https://www.data0086.com/ms-base/home/getList?pageNum=1&pageSize=5' \
+ORIGIN="${WENLV_API_ORIGIN:-https://test.data0086.com}"
+curl "${ORIGIN}/ms-base/home/getList?pageNum=1&pageSize=5" \
   -H 'Content-Type: application/json' \
-  -H 'Origin: https://www.data0086.com' \
-  -H 'Referer: https://www.data0086.com/' \
+  -H "Origin: ${ORIGIN}" \
+  -H "Referer: ${ORIGIN}/" \
   -H 'token;' \
   --data-raw '{"commodityCode":null,"sceneType":"","tradeType":"","search":"雁荡山","city":"330300"}'
 ```

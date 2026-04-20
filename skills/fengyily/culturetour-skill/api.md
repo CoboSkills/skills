@@ -6,7 +6,7 @@
 
 | 项目 | 说明 |
 |------|------|
-| 基址 | `https://www.data0086.com` |
+| 基址 | 由 [config.json](config.json) 的 `api_origin` 决定（当前：`https://test.data0086.com`）；可通过环境变量 `WENLV_API_ORIGIN` 覆盖 |
 | 协议 | HTTPS |
 | Content-Type | `application/json` |
 | 字符编码 | UTF-8 |
@@ -61,16 +61,32 @@
 |------|------|:----:|--------|------|
 | `search` | string | **是** | — | 搜索关键词，支持中文自然语言 |
 | `city` | string | 否 | `"330300"` | 城市行政区划代码（默认温州），缩小搜索范围 |
-| `commodityCode` | string \| null | 否 | `null` | 按商品编码精确筛选 |
+| `commodityCode` | string \| null | 否 | `null` | 按商品编码精确筛选；本 Skill 用此字段区分成片（传 `finished_commodity_code`）与素材（传 `null`）——见下方「两次调用」 |
 | `sceneType` | string | 否 | `""` | 场景类型筛选，如 `"慢直播"`、`"创作素材"`、`"无人机航拍"`；多值逗号分隔 |
 | `tradeType` | string | 否 | `""` | 交易类型筛选，如 `"cash"` |
+
+### 两次调用：成片 + 素材
+
+本 Skill 针对同一 `search` 关键词**依次发起两次搜索**，请求时的 `commodityCode` 分别为：
+
+| 次序 | 请求 `commodityCode` |
+|------|---------------------|
+| 1 | `finished_commodity_code`（config.json，默认 `"CommodityType-7bf0aa3057bc"`） |
+| 2 | `null` |
+
+**类别判定以返回数据为准**：合并两次 `resData.datas`（按 `businessCode`/`id` 去重）后，对每条记录：
+
+- `item.commodityCode === finished_commodity_code` → `category = "成片"`
+- 否则 → `category = "素材"`
+
+排序：成片在前、素材在后。其他请求字段（`search`、`city`、`sceneType`、`tradeType`）两次保持一致；`pageSize` 对每次调用独立。若 `finished_commodity_code` 为空字符串或未配置，则跳过第 1 次调用，所有返回记录归为 `category = "素材"`。
 
 ### 请求头
 
 ```
 Content-Type: application/json
-Origin: https://www.data0086.com
-Referer: https://www.data0086.com/
+Origin: {api_origin}
+Referer: {api_origin}/
 token: (可为空)
 ```
 
@@ -168,16 +184,18 @@ token: (可为空)
 
 **示例**：
 ```
-https://www.data0086.com/#/multimodal?businessCode=Commodity-20260406211854879
+https://test.data0086.com/#/multimodal?businessCode=Commodity-20260406211854879
 ```
 
 ---
 
-## 3. 交易下单（预留）
+## 3. 交易下单
 
 ### `POST {TRADE_API_BASE}/orders`
 
-批量购买素材，创建交易订单。**当前未启用**，待 `trade_api_base` 配置后接入。
+批量购买素材，创建交易订单。
+
+> **当前阶段（`trade_api_base` 为空）**：不调用此真实接口，改为 **mock 交易响应**（`video_url` = 搜索结果的 `fragmentUrl`），然后**下载视频到本地**。详见 SKILL.md「购买后输出」。智能体收到购买指令时**必须执行 mock + 下载**，不得拒绝。
 
 ### 鉴权
 

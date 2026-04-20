@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-commerce-discovery
-version: "1.2.0"
+version: "1.3.1"
 description: "Agent Commerce Discovery. Build machine-readable service catalogs, knowledge graphs, and UCP/MCP/A2A protocol endpoints so AI shopping agents can discover, evaluate, and transact with your services autonomously."
 license: MIT
 compatibility: [openclaw]
@@ -12,12 +12,21 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY, AGENT_SIGNING_KEY, STRIPE_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+        - AGENT_SIGNING_KEY
+        - STRIPE_API_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # Agent Commerce Discovery
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
@@ -27,7 +36,7 @@ credentials: [GREENHELIX_API_KEY, AGENT_SIGNING_KEY, STRIPE_API_KEY]
 
 Forty percent of digital commerce services are invisible to AI agents. Not because the services are bad, but because they are structured for humans -- HTML pages, marketing copy, PDF brochures -- and agents cannot parse any of it. The services exist, the demand exists, and the agents have budgets to spend. But the transaction never happens because the agent never finds the service. This is the discovery gap, and it is the single largest source of lost revenue in the agentic economy.
 Between January 2025 and March 2026, AI-referred traffic to commerce services grew 805% year-over-year. Google Shopping Graph now indexes over 45 billion product listings with structured attributes. ChatGPT's product search handles 2.3 million commerce queries per day. Perplexity Shopping launched with 30+ retail partners and AI-native product cards. The agents are shopping. The question is whether they can find you.
-This guide is the practitioner's manual for making your services discoverable to AI agents. It covers the full stack: knowledge graphs that model your service catalog as machine-readable entities, protocol endpoints that announce your capabilities through UCP, MCP, A2A, and ACP, structured data that agents can parse and compare, real-time catalog synchronization that prevents stale listings, trust signals that help agents rank you above competitors, and analytics that measure whether discovery is actually converting into transactions. Every chapter contains production Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single `POST /v1/execute` endpoint.
+This guide is the practitioner's manual for making your services discoverable to AI agents. It covers the full stack: knowledge graphs that model your service catalog as machine-readable entities, protocol endpoints that announce your capabilities through UCP, MCP, A2A, and ACP, structured data that agents can parse and compare, real-time catalog synchronization that prevents stale listings, trust signals that help agents rank you above competitors, and analytics that measure whether discovery is actually converting into transactions. Every chapter contains production Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single the REST API (`POST /v1/{tool}`) endpoint.
 
 ## What You'll Learn
 - Chapter 1: The Discovery Problem
@@ -48,7 +57,7 @@ Forty percent of digital commerce services are invisible to AI agents. Not becau
 
 Between January 2025 and March 2026, AI-referred traffic to commerce services grew 805% year-over-year. Google Shopping Graph now indexes over 45 billion product listings with structured attributes. ChatGPT's product search handles 2.3 million commerce queries per day. Perplexity Shopping launched with 30+ retail partners and AI-native product cards. The agents are shopping. The question is whether they can find you.
 
-This guide is the practitioner's manual for making your services discoverable to AI agents. It covers the full stack: knowledge graphs that model your service catalog as machine-readable entities, protocol endpoints that announce your capabilities through UCP, MCP, A2A, and ACP, structured data that agents can parse and compare, real-time catalog synchronization that prevents stale listings, trust signals that help agents rank you above competitors, and analytics that measure whether discovery is actually converting into transactions. Every chapter contains production Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single `POST /v1/execute` endpoint.
+This guide is the practitioner's manual for making your services discoverable to AI agents. It covers the full stack: knowledge graphs that model your service catalog as machine-readable entities, protocol endpoints that announce your capabilities through UCP, MCP, A2A, and ACP, structured data that agents can parse and compare, real-time catalog synchronization that prevents stale listings, trust signals that help agents rank you above competitors, and analytics that measure whether discovery is actually converting into transactions. Every chapter contains production Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single the REST API (`POST /v1/{tool}`) endpoint.
 
 ---
 
@@ -87,7 +96,7 @@ Human discovery follows a browse-and-click pattern: Google search, scan results,
 | **Trust evaluation** | Reviews, brand recognition | Cryptographic verification, trust scores, claim chains |
 | **Transaction method** | Shopping cart, checkout form | API call with payment proof |
 
-The implication is stark: optimizing for human browsing does nothing for agent crawling. A beautifully designed landing page with compelling copy and high-resolution product photos generates zero signal for an agent that queries `POST /v1/execute` with `{"tool": "search_services", "input": {"query": "data enrichment API under $0.01 per call with 99.9% uptime SLA"}}`. The agent needs structured attributes, machine-readable pricing, and verifiable SLA terms. It needs to find your service through a discovery protocol, not a Google search.
+The implication is stark: optimizing for human browsing does nothing for agent crawling. A beautifully designed landing page with compelling copy and high-resolution product photos generates zero signal for an agent that queries the REST API (`POST /v1/{tool}`) with `{"tool": "search_services", "input": {"query": "data enrichment API under $0.01 per call with 99.9% uptime SLA"}}`. The agent needs structured attributes, machine-readable pricing, and verifiable SLA terms. It needs to find your service through a discovery protocol, not a Google search.
 
 ### How the Major Platforms Do Discovery
 
@@ -110,7 +119,7 @@ import requests
 from typing import Any
 
 
-GATEWAY_URL = "https://api.greenhelix.net/v1"
+GATEWAY_URL = os.environ.get("GREENHELIX_API_URL", "https://sandbox.greenhelix.net")
 
 
 class DiscoveryClient:
@@ -127,7 +136,7 @@ class DiscoveryClient:
     def execute(self, tool: str, input_data: dict[str, Any]) -> dict:
         """Execute a single tool on the gateway."""
         resp = self.session.post(
-            f"{GATEWAY_URL}/execute",
+            f"{GATEWAY_URL}/v1",
             json={"tool": tool, "input": input_data},
             timeout=30,
         )

@@ -3,11 +3,16 @@
   "slug": "compound-eng-orchestrating-swarms",
   "displayName": "orchestrating-swarms",
   "latest": {
-    "version": "2.55.1",
-    "publishedAt": 1776004212774,
-    "commit": "https://github.com/openclaw/skills/commit/f5c0e719765a7d3f64f8d087acb7ff5f8d8512f7"
+    "version": "2.56.1",
+    "publishedAt": 1776518990537,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.55.1",
+      "publishedAt": 1776004212774,
+      "commit": "https://github.com/openclaw/skills/commit/f5c0e719765a7d3f64f8d087acb7ff5f8d8512f7"
+    },
     {
       "version": "2.53.0",
       "publishedAt": 1775440571850,

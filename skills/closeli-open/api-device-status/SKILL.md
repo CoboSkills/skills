@@ -1,6 +1,6 @@
 ---
 name: api-device-status
-description: "调用 ai-open-gateway 的设备状态查询接口 POST /api/device/status，批量查询设备在线或离线状态。Use when: 需要检查设备是否在线、批量监控设备状态。⚠️ 需设置 AI_GATEWAY_API_KEY。"
+description: "Closeli 设备状态查询接口。用于查询指定设备的当前状态，支持判断设备是否在线、离线或休眠。Use when: 需要确认设备当前是否可用，或在直播、事件查询前先检查设备状态。⚠ 安全要求：必须设置 AI_GATEWAY_API_KEY 环境变量，使用最小权限凭证，环境变量请前往APP中AI设置页获取。"
 metadata:
   openclaw:
     requires:

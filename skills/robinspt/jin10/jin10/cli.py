@@ -50,6 +50,11 @@ def build_parser() -> argparse.ArgumentParser:
     quote_parser = subparsers.add_parser('quote', help='查询单个品种报价')
     quote_parser.add_argument('code', help='品种代码，例如 XAUUSD')
 
+    kline_parser = subparsers.add_parser('kline', help='查询指定品种 K 线')
+    kline_parser.add_argument('code', help='品种代码，例如 XAUUSD')
+    kline_parser.add_argument('--time', help='K 线周期，例如 1m、5m、1h、1d')
+    kline_parser.add_argument('--count', type=int, help='返回 K 线数量')
+
     flash_parser = subparsers.add_parser('flash', help='快讯查询')
     flash_subparsers = flash_parser.add_subparsers(dest='flash_command', required=True)
     flash_list_parser = flash_subparsers.add_parser('list', help='读取最新快讯')
@@ -89,6 +94,13 @@ def run_command(args: argparse.Namespace, client: Optional[Jin10Client] = None) 
             client.quotes.get_quote(args.code),
             args.format,
             QuotesClient.format_quote,
+        )
+
+    if args.command == 'kline':
+        return _print_output(
+            client.quotes.get_kline(args.code, args.time, args.count),
+            args.format,
+            QuotesClient.format_kline,
         )
 
     if args.command == 'flash':

@@ -12,6 +12,8 @@ Do not send raw MCP protocol messages from the conversation. Use the bundled scr
 python3 scripts/jin10.py --format json codes
 python3 scripts/jin10.py --format json quote XAUUSD
 python3 scripts/jin10.py --format text quote XAUUSD
+python3 scripts/jin10.py --format json kline XAUUSD --time 1h --count 20
+python3 scripts/jin10.py --format text kline XAUUSD --time 1d --count 5
 ```
 
 Common symbols:
@@ -64,6 +66,16 @@ python3 scripts/jin10.py --format text calendar --high-importance
   - `data.volume`
   - `data.ups_price`
   - `data.ups_percent`
+- `kline`:
+  - `data.code`
+  - `data.name`
+  - `data.klines[]`
+  - `data.klines[].time`
+  - `data.klines[].open`
+  - `data.klines[].high`
+  - `data.klines[].low`
+  - `data.klines[].close`
+  - `data.klines[].volume`
 - `flash list/search`:
   - `data.items`
   - `data.next_cursor`
@@ -92,9 +104,9 @@ python3 scripts/jin10.py --format text calendar --high-importance
 
 ## Query Selection Rules
 
-1. Quote request:
+1. Quote or K-line request:
    - If the symbol is ambiguous, call `codes` first.
-   - Then call `quote <CODE>`.
+   - Then call `quote <CODE>` or `kline <CODE> [--time ...] [--count ...]`.
 2. Latest flash by topic:
    - Use `flash search <keyword>`.
    - For chronological browsing, use `flash list` and paginate with `--cursor`.

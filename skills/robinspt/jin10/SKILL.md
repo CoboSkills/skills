@@ -1,8 +1,8 @@
 ---
 name: jin10
 description: |
-  金十数据财经信息查询 skill。查询黄金/白银/原油等行情报价、最新财经快讯、资讯新闻、财经日历数据时使用。
-  触发场景：问"黄金价格"、"XAUUSD报价"、"原油快讯"、"财经日历"、"非农什么时候"、"资讯详情"等。
+  金十数据财经信息查询 skill。查询黄金/白银/原油等行情报价、K线、最新财经快讯、资讯新闻、财经日历数据时使用。
+  触发场景：问"黄金价格"、"XAUUSD报价"、"黄金1小时K线"、"原油快讯"、"财经日历"、"非农什么时候"、"资讯详情"等。
   本 skill 包含 Python 代码（jin10/ 模块 + scripts/jin10.py），非纯指令型 skill。
 metadata:
   openclaw:
@@ -63,7 +63,7 @@ export JIN10_API_TOKEN="sk-xxxxxxx"
 
 1. 默认使用 `python3 scripts/jin10.py --format json ...`，优先读取 JSON 输出。
 2. 只有在需要给用户展示更自然的可读文本时，才使用 `--format text`。
-3. 用户问“某个品种报价”时，如果代码不明确，先执行 `python3 scripts/jin10.py --format json codes` 查代码，再执行 `quote`。
+3. 用户问“某个品种报价或 K 线”时，如果代码不明确，先执行 `python3 scripts/jin10.py --format json codes` 查代码，再执行 `quote` 或 `kline`。
 4. 用户问“某个主题的最新快讯”时，优先用 `flash search <关键词>`；若要顺序浏览，再用 `flash list` 和 `--cursor` 翻页。
 5. 用户问“某个主题的深度文章”时，先用 `news search` 或 `news list` 找 `id`，再用 `news get <id>` 取详情。
 6. 用户问“财经日历 / 本周数据”时，直接用 `calendar`。
@@ -77,6 +77,8 @@ export JIN10_API_TOKEN="sk-xxxxxxx"
 python3 scripts/jin10.py --format json codes
 python3 scripts/jin10.py --format json quote XAUUSD
 python3 scripts/jin10.py --format text quote XAUUSD
+python3 scripts/jin10.py --format json kline XAUUSD --time 1h --count 20
+python3 scripts/jin10.py --format text kline XAUUSD --time 1d --count 5
 ```
 
 ### 快讯

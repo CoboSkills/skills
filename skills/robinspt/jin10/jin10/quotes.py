@@ -1,6 +1,6 @@
 """
 行情报价模块
-支持获取品种代码列表和实时行情
+支持获取品种代码列表、实时行情和 K 线数据
 """
 
 from typing import List, Dict, Optional
@@ -14,6 +14,16 @@ class Quote(Dict):
 
 class QuoteCode(Dict):
     """品种代码"""
+    pass
+
+
+class Kline(Dict):
+    """单条 K 线数据"""
+    pass
+
+
+class KlineResult(Dict):
+    """K 线响应"""
     pass
 
 
@@ -49,6 +59,20 @@ class QuotesClient(BaseClient):
         """获取指定品种实时行情"""
         return self.call_tool('get_quote', {'code': code})
 
+    def get_kline(
+        self,
+        code: str,
+        time: Optional[str] = None,
+        count: Optional[int] = None,
+    ) -> KlineResult:
+        """获取指定品种 K 线数据。"""
+        params = {'code': code}
+        if time is not None:
+            params['time'] = time
+        if count is not None:
+            params['count'] = count
+        return self.call_tool('get_kline', params)
+
     async def get_quote_async(self, code: str) -> Dict:
         """异步获取指定品种实时行情"""
         return self.call_tool('get_quote', {'code': code})
@@ -74,3 +98,28 @@ class QuotesClient(BaseClient):
             f"最低: {data.get('low', 'N/A')}\n"
             f"时间: {data.get('time', 'N/A')}"
         )
+
+    @staticmethod
+    def format_kline(result: KlineResult) -> str:
+        """格式化 K 线结果为可读字符串。"""
+        data = result.get('data', result)
+        code = data.get('code', '')
+        name = data.get('name', '')
+        klines = data.get('klines', [])
+
+        header = f"{name} ({code}) K线"
+        if not klines:
+            return f"{header}\n没有返回K线数据"
+
+        lines = [header]
+        for item in klines:
+            lines.append(
+                f"[{item.get('time', 'N/A')}] "
+                f"O:{item.get('open', 'N/A')} "
+                f"H:{item.get('high', 'N/A')} "
+                f"L:{item.get('low', 'N/A')} "
+                f"C:{item.get('close', 'N/A')} "
+                f"V:{item.get('volume', 'N/A')}"
+            )
+
+        return '\n'.join(lines)

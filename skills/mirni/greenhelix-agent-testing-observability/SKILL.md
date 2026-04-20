@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-testing-observability
-version: "1.2.0"
+version: "1.3.1"
 description: "The Agent Testing & Observability Cookbook: Ship Reliable Agent Commerce Systems. Practitioner cookbook for testing and monitoring agent commerce: tool contract tests, workflow saga tests, chaos injection, OpenTelemetry tracing, health checks, alerting, and CI/CD pipelines."
 license: MIT
 compatibility: [openclaw]
@@ -11,18 +11,25 @@ price_usd: 0.0
 content_type: markdown
 executable: false
 install: none
-credentials: [GREENHELIX_API_KEY, AGENT_SIGNING_KEY, SSH_DEPLOY_KEY]
+credentials: [GREENHELIX_API_KEY, AGENT_SIGNING_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+        - AGENT_SIGNING_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # The Agent Testing & Observability Cookbook: Ship Reliable Agent Commerce Systems
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
 > - `AGENT_SIGNING_KEY`: Cryptographic signing key for agent identity (Ed25519 key pair for request signing)
-> - `SSH_DEPLOY_KEY`: SSH key for remote server deployment (deploy-only access to target server)
 
 
 Your agent commerce system works on your laptop. It passes a smoke test against the GreenHelix sandbox. You deploy to production on a Friday afternoon and go home. By Saturday morning, a retry loop has created 47 duplicate escrows, a performance escrow released funds against stale metrics, and a settlement webhook silently failed for six hours because the endpoint returned 503 and nobody was watching. The system was never tested for these failures because the traditional testing pyramid -- unit tests at the bottom, integration tests in the middle, end-to-end tests at the top -- was not designed for autonomous agents that make financial decisions across unreliable networks against counterparties that may themselves be failing. This guide rebuilds the testing pyramid for agent commerce, then layers production observability, chaos testing, alerting, and CI/CD on top. Every pattern is backed by working Python code, grounded in the 260-test suite that ships with the GreenHelix gateway, and designed to be copied directly into your project.
@@ -218,7 +225,7 @@ class AgentTestHarness:
 
         if self._sandbox_mode:
             resp = self._session.post(
-                f"{self.base_url}/execute",
+                f"{self.base_url}/v1",
                 json={"tool": tool, "input": input_data},
             )
             resp.raise_for_status()
@@ -1535,7 +1542,7 @@ class AgentTracer:
 
         try:
             resp = self._session.post(
-                f"{self.base_url}/execute",
+                f"{self.base_url}/v1",
                 json={"tool": tool, "input": input_data},
             )
             resp.raise_for_status()
@@ -1830,7 +1837,7 @@ class HealthChecker:
         """Execute a tool and return (result, latency_ms)."""
         start = time.time()
         resp = self._session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
             timeout=self.timeout_ms / 1000.0,
         )

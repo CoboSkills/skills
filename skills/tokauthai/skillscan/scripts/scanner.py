@@ -113,6 +113,7 @@ def skill_install_paths():
         appdata = os.environ.get("APPDATA")
         if appdata:
             candidates.append(Path(appdata) / "OpenClaw/skills")
+            candidates.append(Path(appdata) / "Programs/LobsterAI/resources/SKILLs")
 
     # Dynamically scan extensions: .openclaw/extensions/{xxxx}/skills
     if oc_dir.exists():

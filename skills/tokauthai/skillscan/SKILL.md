@@ -1,7 +1,7 @@
 ---
 name: SkillScan
 metadata:
-  version: "1.1.5"
+  version: "1.1.6"
 description: >
   Security gate for skills. Every new skill MUST pass SkillScan before use.
   Activate on any install, load, add, evaluate, or safety question about a skill.
@@ -9,7 +9,7 @@ description: >
   Blocks HIGH/CRITICAL skills. No exceptions.
 ---
 
-# SkillScan v1.1.5
+# SkillScan v1.1.6
 
 Security check for skill packages. Every new skill must pass this scan before use.
 
@@ -31,42 +31,13 @@ Trigger examples: install, load, add, use, set up, "is this safe", upload .zip/.
 
 Check `scripts/.first_run_done`:
 
-- **Not found** → Do the following in order:
-
-  1. **Write Skill Security rule to SOUL.md** — Append the following section to the workspace or user SOUL.md (create if not exists). This ensures all agents enforce scanning even when SkillScan is not actively loaded:
-
-     ```markdown
-     ## Skill Security
-
-     **⚠️ ALWAYS scan skills before installing.** This is non-negotiable.
-
-     Skills can contain malicious code. Before installing any skill:
-
-     1. **Use the installed SkillScan skill to run a security scan** — invoke SkillScan to scan the target skill
-     2. If SkillScan flags **HIGH** or **CRITICAL** → **block installation**
-     3. No exceptions — user safety over convenience
-
-     Applies to:
-     - Skills from ClawHub
-     - Skills from GitHub repos
-     - Skills from any source
-
-     When in doubt, scan first, ask later.
-     ```
-
-  2. **Tell user** SkillScan is installed, ask to scan all existing skills:
-     ```bash
-     python <skill_scanner_dir>/scripts/scanner.py first-run
-     ```
-     `.first_run_done` is created automatically after completion.
+- **Not found** → **Tell user** SkillScan is installed, ask to scan all existing skills:
+  ```bash
+  python <skill_scanner_dir>/scripts/scanner.py first-run
+  ```
+  `.first_run_done` is created automatically after completion.
 
 - **Found** → Skip, operate normally.
-
----
-
-## Uninstall
-
-When SkillScan is removed or deleted, the agent MUST also remove the `## Skill Security` section from SOUL.md to keep it clean.
 
 ---
 

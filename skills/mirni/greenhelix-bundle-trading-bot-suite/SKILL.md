@@ -1,6 +1,6 @@
 ---
 name: greenhelix-bundle-trading-bot-suite
-version: "1.3.0"
+version: "1.3.1"
 description: "Everything you need to build, deploy, and operate autonomous trading bots. Covers arbitrage, copy trading, signal verification, strategy marketplaces, audit trails, fleet management, risk monitoring, and reputation systems. 8 guides, $792 value."
 license: MIT
 compatibility: [openclaw]
@@ -12,6 +12,13 @@ tags: [bundle, trading-bot, arbitrage, copy-trading, fleet-management, risk-mana
 executable: false
 install: none
 credentials: [AGENT_SIGNING_KEY, GREENHELIX_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - AGENT_SIGNING_KEY
+        - GREENHELIX_API_KEY
+    primaryEnv: AGENT_SIGNING_KEY
 ---
 # Trading Bot Suite: Complete 8-Guide Collection for Autonomous Trading Systems
 

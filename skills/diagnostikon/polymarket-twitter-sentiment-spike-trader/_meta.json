@@ -3,11 +3,16 @@
   "slug": "polymarket-twitter-sentiment-spike-trader",
   "displayName": "Polymarket Twitter Sentiment Spike Trader",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775317381312,
-    "commit": "https://github.com/openclaw/skills/commit/018aa01215a0f976be731e5ffbe74a685754f046"
+    "version": "0.0.2",
+    "publishedAt": 1776513617794,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775317381312,
+      "commit": "https://github.com/openclaw/skills/commit/018aa01215a0f976be731e5ffbe74a685754f046"
+    },
     {
       "version": "1.0.1",
       "publishedAt": 1775136313399,

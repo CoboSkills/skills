@@ -1,7 +1,7 @@
 ---
 name: greenhelix-agent-interoperability-bridge
-version: "1.2.0"
-description: "The Agent Interoperability Bridge: Connecting GreenHelix Agents to x402, ACP, A2A, MCP, Visa TAP, Google AP2/UCP, PayPal Agent Ready, and OpenAI ACP Ecosystems. Practical guide to building working protocol bridges between all nine major agentic web protocols: x402 v2 micropayments, ACP merchant checkout, A2A v2 task orchestration, MCP 1.5+ tool integration, Visa TAP card-network payments, Google AP2 real-time payments, UCP service orchestration, PayPal Agent Ready, and OpenAI ACP commerce flows. Includes production-ready Python bridge classes for protocol translation, cross-protocol identity mapping, intelligent payment routing, and event bridging."
+version: "1.3.1"
+description: "The Agent Interoperability Bridge: Connecting GreenHelix Agents to x402, ACP, A2A, MCP, Visa TAP, Google AP2/UCP, PayPal Agent Ready, and OpenAI ACP Ecosystems. Practical guide to building working protocol bridges between all nine major agentic web protocols: x402 v2 micropayments, ACP merchant checkout, A2A v2 task orchestration, MCP 1.5+ tool integration, Visa TAP card-network payments, Google AP2 real-time payments, UCP service orchestration, PayPal Agent Ready, and OpenAI ACP commerce flows. Includes detailed code examples with Python bridge classes for protocol translation, cross-protocol identity mapping, intelligent payment routing, and event bri"
 license: MIT
 compatibility: [openclaw]
 author: felix-agent
@@ -12,12 +12,21 @@ content_type: markdown
 executable: false
 install: none
 credentials: [WALLET_ADDRESS, AGENT_SIGNING_KEY, STRIPE_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - WALLET_ADDRESS
+        - AGENT_SIGNING_KEY
+        - STRIPE_API_KEY
+    primaryEnv: WALLET_ADDRESS
 ---
 # The Agent Interoperability Bridge: Connecting GreenHelix Agents to x402, ACP, A2A, MCP, Visa TAP, Google AP2/UCP, PayPal Agent Ready, and OpenAI ACP Ecosystems
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `WALLET_ADDRESS`: Blockchain wallet address for receiving payments (public address only — no private keys)
@@ -131,7 +140,7 @@ The solution is not to abandon GreenHelix and rewrite everything for each protoc
                         └─────────────────────┘     └──────────────┘
 ```
 
-Each bridge class handles three responsibilities: **translate** the incoming protocol message into a GreenHelix API call, **execute** the call against `POST /v1/execute`, and **translate** the GreenHelix response back into the external protocol's expected format. The bridges share a common `GreenHelixClient` base class and a unified `IdentityMapper` for cross-protocol identity resolution.
+Each bridge class handles three responsibilities: **translate** the incoming protocol message into a GreenHelix API call, **execute** the call against the REST API (`POST /v1/{tool}`), and **translate** the GreenHelix response back into the external protocol's expected format. The bridges share a common `GreenHelixClient` base class and a unified `IdentityMapper` for cross-protocol identity resolution.
 
 The remainder of this guide builds each bridge, starting with x402.
 
@@ -179,7 +188,7 @@ class GreenHelixClient:
     def execute(self, tool: str, inputs: dict) -> dict:
         """Execute a GreenHelix tool."""
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": inputs},
         )
         resp.raise_for_status()
@@ -841,7 +850,7 @@ With 10,000+ servers and enterprise adoption accelerating after the Linux Founda
 
 ### Exposing GreenHelix Tools as MCP Tool Definitions
 
-The bridge translates GreenHelix's tool catalog into MCP tool schemas and wraps each `POST /v1/execute` call as an MCP tool invocation.
+The bridge translates GreenHelix's tool catalog into MCP tool schemas and wraps each the REST API (`POST /v1/{tool}`) call as an MCP tool invocation.
 
 ```python
 class MCPBridge:

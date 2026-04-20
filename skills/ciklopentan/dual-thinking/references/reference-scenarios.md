@@ -58,11 +58,13 @@ These are the required scenarios for the frozen reference line.
 - recovery resumes from vague chat memory
 - alternation invariant lost
 - `LAST_CONSULTANT` overrides orchestrator selection
+- excerpt narrowing is used in a fresh/recovery/replacement consultant session before visible baseline repaste is proven there
 
 ### Pass conditions
 - recovery resumes from latest accepted state
 - patched artifact continuity is preserved
 - `LAST_CONSULTANT` helps continuity only
+- fresh/recovery sessions repaste baseline artifact before any lawful narrowing
 
 ## 4. weak-shortcut-honesty
 ### Setup
@@ -252,7 +254,27 @@ These are the required scenarios for the frozen reference line.
 - user-facing reply appears only after all declared cycles complete, unless lawful force majeure or explicit user override applies
 - stronger no-intercycle-reply interpretation wins over convenience or status-chatter impulses
 
-## 14. no-idle-after-completed-step
+## 14. baseline-visibility-fail-closed
+### Setup
+- consultant-bearing review uses a fresh, replacement, or recovery consultant session
+- the next prompt tries to use an excerpt, summary, or narrowed fragment before proving visible baseline repaste in that same session
+
+### Expected statuses
+- the round is marked invalid or blocked for visibility reasons
+- the invalid round is not counted toward quotas, convergence, or release claims
+- the next lawful action is baseline repaste in that same session or a fresh recovery session with baseline repaste
+
+### Invalid outcomes
+- excerpt use is accepted on assumed continuity alone
+- the round is counted anyway
+- the agent answers with another summary instead of baseline repaste after an artifact-visibility failure
+
+### Pass conditions
+- fresh/recovery/replacement sessions fail closed until visible baseline repaste exists in that same session
+- narrowing rights appear only after visible baseline proof in that session
+- stronger baseline-visibility interpretation wins over convenience or payload-size arguments
+
+## 15. no-idle-after-completed-step
 ### Setup
 - user-declared plan remains unfinished
 - a consultant round, validation step, or other checkpointed execution step completes successfully

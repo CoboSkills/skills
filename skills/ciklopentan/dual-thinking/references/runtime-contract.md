@@ -1,7 +1,7 @@
 # Runtime Contract
 #tags: skills review
 
-Version note: aligned with the live Dual Thinking v8.5.14 reference-verified line after the current-date trend grounding support-surface sync publish.
+Version note: aligned with the live Dual Thinking v8.5.21 reference-candidate line after the recovery-key canonicalization sync and frozen-reference version-honesty fix on top of the non-weakenable baseline-visibility fail-closed lock release.
 
 ## External Required Output
 Keep these rules short and machine-checkable.
@@ -141,12 +141,13 @@ For the first consultant-bearing round on a new skill topic, do not use summary-
 
 Paste the artifact as fully as practical, or paste a large enough canonical excerpt bundle that really covers the issue.
 
-Only after that baseline context exists may later rounds narrow to smaller relevant excerpts within that same consultant's own continuing session.
+Only after that baseline context exists may later rounds narrow to smaller relevant excerpts within that same consultant's own continuing session. Fresh, replacement, and recovery consultant sessions have no excerpt rights until visible baseline repaste is proven in that same session.
 
 Clarification:
 - the consultant must see the artifact itself, not only a summary about it
 - first-round exact artifact review requires a substantial artifact payload
 - later narrower prompts are valid only after baseline context was already transmitted
+- fresh/recovery/replacement consultant sessions have no excerpt rights until visible baseline repaste is proven in that same session
 
 Example consultant prompt shape:
 
@@ -254,6 +255,7 @@ SYNC_POINT:
 |---|---|
 | artifact not pasted | ask once, request inline artifact, no path-only review |
 | artifact represented only by paths, filenames, `FILE:` labels without body text, shell snippets, or literal placeholders like `$(cat ...)` | treat as `artifact not pasted`; repaste the actual text inline before continuing |
+| fresh/recovery/replacement consultant session is using excerpts without proven visible baseline repaste in that same session | mark the round invalid, do not count it toward any quota or convergence claim, and repaste the real baseline artifact before continuing |
 | second request still no artifact | switch to `analysis-only` and stop patch loop |
 | self opinion is vague | tighten `SELF_POSITION` before asking the consultant |
 | consultant slow after successful submit | if the prompt was successfully submitted and no explicit failure signal appears, keep waiting; do not narrow, downgrade, or declare the round weak only because a long prompt is thinking slowly |
@@ -265,7 +267,7 @@ SYNC_POINT:
 | continuation missing | default `continue` |
 | session polluted | open recovery chat, paste latest accepted artifact, add `RESUME_SNIPPET`, and rebuild from `STATE_SNAPSHOT` |
 | consultant/orchestrator launch transport triggers approval cards or repeated authorization prompts for otherwise allowed work | do not claim safeguards can be disabled globally; switch once to a launch transport that stays inside the same safety boundary but avoids the prompt-triggering path, preferably direct stdin or file redirection when supported, then resume the same round honestly |
-| current-date-optimized, trend-aware, state-of-the-art, latest-practice-aligned, or materially-improved-against-current-external-practice claims are being made without live public internet evidence even though an allowed internet-capable consultant/orchestrator is available and the task materially benefits from that check | set `VALIDATIONSTATUS: blocked`, emit `BLOCKEDSTATE: current-date-trend-not-grounded`, inspect the missing live public evidence when allowed, or narrow the claim explicitly to `offline-only-provisional-not-verified-against-current-public-trends` |
+| current-date-optimized, trend-aware, state-of-the-art, latest-practice-aligned, or materially-improved-against-current-external-practice claims are being made without live public internet evidence even though an allowed internet-capable consultant/orchestrator is available and the task materially benefits from that check | set `VALIDATION_STATUS: blocked`, emit `BLOCKED_STATE: current-date-trend-not-grounded`, inspect the missing live public evidence when allowed, or narrow the claim explicitly to `offline-only-provisional-not-verified-against-current-public-trends` |
 | an in-scope current-date-sensitive task is using consultant-bearing review but the mandatory round-1 / round-2 internet-assisted minimum floor has not yet been satisfied even though an allowed internet-capable consultant/orchestrator is available | keep the run blocked for current-date-strength claims, satisfy round 1 by naming the strongest seam from live external evidence against the real artifact, satisfy round 2 by challenging that finding against local constraints and truth boundaries, or narrow the claim explicitly to offline-only/provisional |
 | accepted fix not patched | patch before next review |
 | validation failed | block packaging and publishing, retain the failed diff, and revert to the last passed artifact |

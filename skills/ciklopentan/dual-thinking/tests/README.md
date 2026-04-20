@@ -46,6 +46,7 @@ Purpose:
 - verify multi-orchestrator and round-limit wording does not drift across documents
 - verify the current-date trend-grounding hard-lock family is reflected in the lower support surfaces that must mirror the live inline contract
 - verify the lower support surfaces preserve the round-1 / round-2 internet-assisted minimum floor for in-scope current-date-sensitive work
+- verify fresh/recovery/replacement consultant sessions have no excerpt rights until visible baseline repaste is proven in that same session
 - treat this as a required publish-gate check, not an optional doc nicety
 
 ## Validation rollback test

@@ -1,5 +1,34 @@
 # Changelog
 
+## 8.5.21 - 2026-04-14
+- Canonicalized Recovery Decision Tree state/block key names to the same underscore-separated forms used by the live runtime contract (`VALIDATION_STATUS`, `BLOCKED_STATE`, `CONSULTANT_QUALITY`, `CONSULTANT_POSITION_STATUS`, `SYNC_POINT`, `STATE_SNAPSHOT`, `RESUME_SNIPPET`, `SYNC_DRIFT`).
+- Synced subordinate runtime/failure/test surfaces to that recovery-key canonicalization so weak-model parsing and recovery routing no longer rely on mixed naming styles.
+- Corrected `references/reference-freeze.md` to the truthful active `v8.5.21` reference-candidate line and synchronized remaining active-line version-honesty surfaces.
+
+## 8.5.20 - 2026-04-14
+- Added a non-weakenable `Baseline Visibility Fail-Closed Lock`: fresh, replacement, and recovery consultant sessions now have no excerpt rights until visible baseline repaste is proven in that same session.
+- Invalid consultant rounds caused by missing visible baseline must not be counted toward quotas, convergence, or release-readiness claims.
+- Synced runtime/reference/failure/test surfaces to that fail-closed ratchet.
+
+## 8.5.19 - 2026-04-14
+- Corrected the visible `SKILL.md` heading version from stale `v8.5.14` to the truthful active `v8.5.19` line so the published artifact stays version-honest.
+- Synced active support/evidence surfaces to the publish-honesty heading fix.
+
+## 8.5.18 - 2026-04-14
+- Added a guardrail to the current-date evidence-refresh rule: it now applies only when genuinely fresh live external evidence is visible in the current round, not when a consultant is merely repeating stale session residue or unsupported memory.
+- Synced failure-handling and active support/evidence surfaces to that guardrail.
+
+## 8.5.17 - 2026-04-14
+- Added an explicit current-date evidence-refresh rule to the inline `Current-date Internet Trend Grounding Lock`: if a fresh live internet check later contradicts an earlier-round external finding while the artifact is still materially the same, the newer live check governs for synthesis instead of being treated as unlawful research drift.
+- Synced failure-handling and active support/evidence surfaces to the new evidence-refresh rule.
+- Corrected active line metadata to the live `v8.5.17` candidate line, including the stale `references/runtime-contract.md` version note.
+
+## 8.5.16 - 2026-04-14
+- Added an explicit orchestrator late-answer minimum wait-floor to the inline Recovery Decision Tree so successful submits are not misclassified as weak/degraded/failed merely because the reply arrives later than expected.
+- Bound lateness-only handling to a concrete floor: wait at least 60s for ordinary prompts and 120s for long/heavy prompts before lateness alone may contribute to degradation handling, and prefer one longer same-session wait/poll before recovery.
+- Clarified that late-but-valid orchestrator answers count as normal round completion rather than retroactive evidence that the round was weak or failed.
+- Synced subordinate failure-handling and reference-test-log surfaces to the new wait-floor rule.
+
 ## 8.5.15 - 2026-04-14
 - Strengthened the inline `Current-date Internet Trend Grounding Lock` with a ratchet-rule minimum floor for in-scope current-date-sensitive tasks.
 - Bound round 1 and round 2 consultant-bearing review to internet-assisted inspection when an allowed internet-capable consultant/orchestrator is available and the task is materially about current best practice, current comparative strength, current architectural direction, or publish/release readiness against current external practice.

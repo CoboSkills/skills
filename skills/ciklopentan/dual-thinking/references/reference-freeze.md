@@ -5,7 +5,7 @@
 The frozen line is the current reference-candidate or reference-release branch of the skill.
 Its purpose is stability, comparability, and publish discipline.
 The frozen line should not absorb speculative architecture improvements just because they sound better.
-For Dual Thinking specifically, `v8.5.9` is the frozen prior reference-release line and `v8.5.14` is the active frozen reference-release line after the current-date trend-grounding support-surface sync publish.
+For Dual Thinking specifically, `v8.5.9` is the frozen prior reference-release line and `v8.5.21` is the active frozen reference-candidate line after the recovery-key canonicalization sync and frozen-reference version-honesty fix.
 
 ## What can still change
 Allowed changes in the frozen line:

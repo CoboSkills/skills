@@ -1,7 +1,7 @@
 # Self-Evolution Lens
 #tags: skills review
 
-Version note: aligned with the live Dual Thinking v8.5.15 reference-candidate line after the current-date trend-grounding ratchet strengthening.
+Version note: aligned with the live Dual Thinking v8.5.21 reference-candidate line after the recovery-key canonicalization sync and frozen-reference version-honesty fix on top of the non-weakenable baseline-visibility fail-closed lock release.
 
 ## Purpose
 Use this lens when `dual-thinking` reviews itself or a skill in its native review/orchestrator/problem-framing domain.

@@ -3,7 +3,7 @@ name: dual-thinking
 description: Second-opinion consultation plus automatic skill-engineering escalation for reviews, rewrites, hardening, weak-model optimization, packaging, testing, and publish readiness.
 ---
 
-# Dual Thinking Method — v8.5.14
+# Dual Thinking Method — v8.5.21
 
 **Purpose:** consult a second model, then escalate skill topics into structured, patch-bearing skill engineering instead of generic advice when the topic is a skill or skill-adjacent artifact. In the next candidate line, the method also includes a self-evolution lens for self-review and native-domain-adjacent review without changing the public three-step architecture.
 
@@ -50,15 +50,16 @@ Evaluate conditions in order. Execute the first matching next action exactly onc
 
 | Trigger condition | Required next action | Max attempts |
 |---|---|---|
-| consultant-visible prompt contains path-only artifact references, `FILE:` labels without body text, shell snippets instead of artifact text, unresolved placeholders such as `$(cat ...)`, hidden-local assertions, or thin excerpts that do not actually cover the exact claim being reviewed | set `VALIDATIONSTATUS: blocked`, emit `BLOCKEDSTATE: artifact-not-pasted`, ask once for sufficient inline artifact text, and stop patching until the artifact is really pasted | 1 |
-| `BLOCKEDSTATE: artifact-not-pasted` persists after the one allowed ask | downgrade to `analysis-only`, set `CONSULTANTPOSITIONSTATUS: omitted-invalid`, and stop the patch loop for that scope | 0 additional |
-| consultant response is missing any member of the consultant-shaped minimum (`consultant_verdict`, `strongest_finding`, `proposed_fix`) | set `CONSULTANTQUALITY: failed` and retry once with the narrow consultant template | 1 |
-| `CONSULTANTQUALITY: failed` still holds after the one allowed retry | downgrade to `analysis-only`, keep the contiguous status block honest, and do not pretend a consultant-bearing success occurred | 0 additional |
+| consultant-visible prompt contains path-only artifact references, `FILE:` labels without body text, shell snippets instead of artifact text, unresolved placeholders such as `$(cat ...)`, hidden-local assertions, or thin excerpts that do not actually cover the exact claim being reviewed | set `VALIDATION_STATUS: blocked`, emit `BLOCKED_STATE: artifact-not-pasted`, ask once for sufficient inline artifact text, and stop patching until the artifact is really pasted | 1 |
+| `BLOCKED_STATE: artifact-not-pasted` persists after the one allowed ask | downgrade to `analysis-only`, set `CONSULTANT_POSITION_STATUS: omitted-invalid`, and stop the patch loop for that scope | 0 additional |
+| consultant response is missing any member of the consultant-shaped minimum (`consultant_verdict`, `strongest_finding`, `proposed_fix`) | set `CONSULTANT_QUALITY: failed` and retry once with the narrow consultant template | 1 |
+| `CONSULTANT_QUALITY: failed` still holds after the one allowed retry | downgrade to `analysis-only`, keep the contiguous status block honest, and do not pretend a consultant-bearing success occurred | 0 additional |
 | validation failed or blocked after a real patch | execute the `State Transition & Rollback Gate`, refresh continuity from the reverted artifact, and mark the patch attempt failed for that scope; do not continue the patch loop there unless a new materially different fix is proposed from the failure evidence | 1 |
-| an OpenClaw-targeted skill, code artifact, workflow, runtime component, package-readiness claim, or publish-readiness claim is being optimized, validated, or described as OpenClaw-grounded without inspection of the relevant real local OpenClaw runtime code and instruction surfaces for that scope | set `VALIDATIONSTATUS: blocked`, emit `BLOCKEDSTATE: openclaw-runtime-not-grounded`, inspect the missing local OpenClaw runtime surfaces when available, or narrow the claim explicitly to `theoretical-provisional-unverified-against-local-OpenClaw`, then continue only from that honest narrowed state | 1 |
-| a skill, code artifact, workflow, tool, runtime component, memory system, orchestrator, or program is being described as current-date-optimized, trend-aware, state-of-the-art, latest-practice-aligned, or materially improved against current external practice without live inspection of relevant public internet evidence even though an allowed internet-capable consultant/orchestrator is available and the task materially benefits from that check | set `VALIDATIONSTATUS: blocked`, emit `BLOCKEDSTATE: current-date-trend-not-grounded`, inspect the missing live public evidence when allowed, or narrow the claim explicitly to `offline-only-provisional-not-verified-against-current-public-trends`, then continue only from that honest narrowed state | 1 |
-| runtime ambiguity is being resolved from a subordinate section or `references/` file instead of the `Runtime Core Lock` and inline artifact text | ignore the subordinate wording for runtime resolution, re-evaluate from the `Runtime Core Lock` and inline artifact text only, record `SYNCDRIFT: subordinate-runtime-shadow` in the next `SYNCPOINT` or accepted-state summary, then synchronize the stale support surface | 1 |
-| session pollution, stale continuity, or context-length degradation is detected because the active orchestrator session is critiquing a pre-patch artifact state, repeating already-fixed findings, losing task identity, hallucinating against the visible same-topic chat history, carrying obvious nonsense against the visible accepted state, or the latest accepted `STATESNAPSHOT` does not match the active artifact | first try to resume the intended persistent same-topic session and verify continuity there; open a recovery session only if that intended session is unusable or has clearly degraded into nonsense, then repaste the latest accepted artifact and `RESUMESNIPPET`, rebuild from the latest accepted `STATESNAPSHOT`, and verify continuity before continuing; if that recovery session also degrades into nonsense, repeat the same same-orchestrator recovery shape instead of abandoning persistent-chat law | 1 per degraded chat |
+| an OpenClaw-targeted skill, code artifact, workflow, runtime component, package-readiness claim, or publish-readiness claim is being optimized, validated, or described as OpenClaw-grounded without inspection of the relevant real local OpenClaw runtime code and instruction surfaces for that scope | set `VALIDATION_STATUS: blocked`, emit `BLOCKED_STATE: openclaw-runtime-not-grounded`, inspect the missing local OpenClaw runtime surfaces when available, or narrow the claim explicitly to `theoretical-provisional-unverified-against-local-OpenClaw`, then continue only from that honest narrowed state | 1 |
+| a skill, code artifact, workflow, tool, runtime component, memory system, orchestrator, or program is being described as current-date-optimized, trend-aware, state-of-the-art, latest-practice-aligned, or materially improved against current external practice without live inspection of relevant public internet evidence even though an allowed internet-capable consultant/orchestrator is available and the task materially benefits from that check | set `VALIDATION_STATUS: blocked`, emit `BLOCKED_STATE: current-date-trend-not-grounded`, inspect the missing live public evidence when allowed, or narrow the claim explicitly to `offline-only-provisional-not-verified-against-current-public-trends`, then continue only from that honest narrowed state | 1 |
+| runtime ambiguity is being resolved from a subordinate section or `references/` file instead of the `Runtime Core Lock` and inline artifact text | ignore the subordinate wording for runtime resolution, re-evaluate from the `Runtime Core Lock` and inline artifact text only, record `SYNC_DRIFT: subordinate-runtime-shadow` in the next `SYNC_POINT` or accepted-state summary, then synchronize the stale support surface | 1 |
+| orchestrator response is still pending after a successful submit, with no explicit tool/runtime failure signal and no visible continuity break | keep waiting inside the same round/session; do not classify the round as failed, weak, degraded, or non-meaningful yet. Minimum wait floor after a confirmed successful submit is 60s for ordinary prompts and 120s for long/heavy prompts before lateness alone may contribute to degradation handling. After that floor, prefer one longer poll/wait on the same session before any recovery move. Late-but-valid answers count as normal round completion, not recovery evidence. | 1 wait-floor extension before any degradation judgment |
+| session pollution, stale continuity, or context-length degradation is detected because the active orchestrator session is critiquing a pre-patch artifact state, repeating already-fixed findings, losing task identity, hallucinating against the visible same-topic chat history, carrying obvious nonsense against the visible accepted state, or the latest accepted `STATE_SNAPSHOT` does not match the active artifact | first try to resume the intended persistent same-topic session and verify continuity there; open a recovery session only if that intended session is unusable or has clearly degraded into nonsense, then repaste the latest accepted artifact and `RESUME_SNIPPET`, rebuild from the latest accepted `STATE_SNAPSHOT`, and verify continuity before continuing; do not trigger this branch from lateness alone before the orchestrator-response wait-floor rule above is satisfied. If that recovery session also degrades into nonsense, repeat the same same-orchestrator recovery shape instead of abandoning persistent-chat law | 1 per degraded chat |
 | the current consultant/orchestrator launch path triggers approval cards or repeated authorization prompts for work that is otherwise allowed | do not claim the safeguard can be disabled and do not try to remove authorization globally; switch once to a launch path that stays inside the same safety boundary but avoids the prompt-triggering transport, preferably direct stdin or file redirection when the runtime supports it, then resume the same round/session and record the transport change honestly | 1 |
 | a failure condition is not an exact match for any rule above | narrow scope explicitly or stop as blocked; do not improvise a multi-step recovery chain | 0 |
 
@@ -84,7 +85,7 @@ When active:
 - when `dual-thinking` reviews itself, improves itself, or improves a skill, code artifact, program, workflow, or runtime component inside OpenClaw, inspect the relevant local skill corpus and the relevant real local OpenClaw runtime surfaces, including code and instruction surfaces that govern how that artifact is actually loaded, routed, constrained, validated, packaged, or executed on that host, before convergence, structural deferral, or publish-readiness conclusions
 - when an allowed internet-capable consultant/orchestrator is available and the task materially benefits from current-date external research, inspect the latest relevant public trend, architecture, implementation, benchmark, and maintainer evidence for the artifact's native domain on the current date, but preserve all binding local-only, privacy, hardware, runtime, and user-defined constraints while translating that evidence into the strongest compatible solution
 - capability harvest is runtime-complete only if it proposes at least one evidenced reusable quality tied to a specific failure mode, validation gap, recovery seam, operator-risk seam, or publish-risk seam in the current artifact, or explicitly records that no evidenced transfer applies
-- when local capability harvest is active, execute the compact validation defined in `## Local Capability Harvest Rule`; do not run verbose interrogation lists, but do not relax the minimum required round block or `VALIDATIONSTATUS` visibility
+- when local capability harvest is active, execute the compact validation defined in `## Local Capability Harvest Rule`; do not run verbose interrogation lists, but do not relax the minimum required round block or `VALIDATION_STATUS` visibility
 - do not hallucinate harvested strengths, and do not treat decorative wording or project-specific noise as harvested capability
 - keep unique downstream consequences in later sections only; do not redeclare this doctrine as parallel runtime law below the Reference Manual Boundary
 
@@ -136,6 +137,7 @@ Binding rules:
 - Round 1 internet-assisted review must answer both: what current external practices or trends are actually relevant here, and what strongest missing seam or strength gap they imply for the real artifact.
 - Round 2 internet-assisted review must attack round 1's applicability to the real artifact and may reject, narrow, or redirect the external finding if it would break local truth, runtime constraints, safety, or operator honesty.
 - After that minimum floor is satisfied, repeated broad internet scanning is optional and should happen only when a new materially disputed seam appears; do not turn this lock into ritual web-search churn for purely local bug, test, contract, or consistency work.
+- If genuinely fresh live internet evidence visible in the current round materially contradicts an earlier-round external finding while the artifact under review is still materially the same, treat the fresh live check as evidence refresh rather than unlawful research drift or session inconsistency. Do not invoke this rule for stale session residue, repeated consultant memory, or unsupported restatements that do not actually present refreshed external evidence in the current round. Re-evaluate synthesis from the refreshed external evidence, and if the conflict matters, record that the earlier finding became stale instead of preserving it for continuity comfort alone.
 - Do not treat offline prior knowledge, stale model memory, or generic architectural intuition as sufficient proof of current-date external alignment when live verification is available and relevant.
 - Do not use internet trend scouting to override explicit local-only, privacy, hardware, latency, budget, safety, runtime, or user-defined constraints.
 - If the artifact must stay local, use the internet only to discover the strongest compatible local methods, not to smuggle in cloud-first, hosted, or external-API solutions.
@@ -332,7 +334,32 @@ If any conflict appears, the stricter round-commitment interpretation wins.
 - Do not assume one consultant can see another consultant's answer, prompt, or context unless it is explicitly pasted.
 - Do not assume the consultant knows file contents because the arbiter knows them.
 - Do not assume prior rounds, prior system context, or prior validation results are visible unless they were explicitly resent in text to that same consultant.
+- Do not use excerpts in a fresh or recovery consultant session unless the baseline artifact is visibly repasted in that same session first.
+- Do not count a consultant round whose visible baseline was not proven in that same session.
 - Do not weaken or shorten the context-isolation rule just because repeated context passing feels expensive, redundant, or inconvenient.
+
+## Baseline Visibility Fail-Closed Lock
+This is a stability-critical hard rule for consultant-bearing review.
+In any fresh consultant chat, replacement chat, recovery chat, or other consultant session where visible baseline continuity is not already proven inside that same session, excerpt use is forbidden until the baseline artifact is visibly repasted there.
+
+Binding rules:
+- Fresh consultant session means no excerpt rights by default.
+- Recovery consultant session means no excerpt rights by default.
+- Replacement consultant session means no excerpt rights by default.
+- In those sessions, the arbiter must repaste the real artifact as fully as practical, or a genuinely sufficient canonical excerpt bundle that fully covers the exact claims under review, before any narrowing is allowed.
+- Excerpt use becomes lawful only after that baseline artifact payload is visibly present in that same consultant session.
+- If baseline visibility in that same session is uncertain, treat it as not proven.
+- If baseline visibility in that same session is not proven, the round is invalid and must not be counted toward any user-declared quota, round total, convergence claim, or release-readiness claim.
+- After an `artifact not pasted`, `not visible`, or equivalent consultant response, the next step must be a real baseline repaste in that same session or a new recovery session; do not answer with another summary, pointer, or thin excerpt.
+- Paraphrase, wrapper text, intent summary, path mention, or assumed continuity does not satisfy this lock.
+- A later section may clarify or strengthen this lock, but it may not weaken, soften, bypass, or reinterpret it into best-effort behavior.
+
+## Baseline Visibility Stability Lock
+The Baseline Visibility Fail-Closed Lock is stability-critical.
+It may only be clarified or strengthened.
+It must not be weakened, softened, bypassed, narrowed, or removed without the user's explicit personal instruction.
+No convenience argument, payload-size argument, latency argument, token-saving argument, transport assumption, session-memory assumption, or "the consultant probably saw it" argument is valid grounds for relaxing it.
+If any conflict appears, the stricter baseline-visibility interpretation wins.
 
 ## Before Sending Any Consultant Request
 Before any external consultant call, check all:
@@ -344,6 +371,7 @@ Before any external consultant call, check all:
 - If the answer requires file content, did I paste the relevant content instead of only naming the file or path?
 - If the answer depends on prior rounds, did I explicitly resend the needed prior-round text to this same consultant?
 - Am I silently relaxing the context-isolation invariant for convenience, brevity, token savings, or payload reduction?
+- If this is a fresh, replacement, or recovery consultant session, did I prove visible baseline repaste in this same session before using any excerpt?
 - If anything required is missing, stop and resend the missing context in text or acknowledge that it was not provided.
 
 ## Reference Manual Boundary
@@ -538,11 +566,12 @@ For the first consultant-bearing round on a new skill topic, do not use summary-
 Paste the artifact as fully as practical, or paste a large enough canonical excerpt bundle that really covers the issue.
 If the round asks the consultant to judge a specific section, invariant, failure mode, code path, test result, or local verification outcome, the prompt must also paste the exact relevant text for that claim in visible form.
 
-Later narrower rounds are valid only after baseline context was already transmitted in that same consultant-visible conversation and only when the omitted material is truly unchanged and already visible in that same consultant's own session.
+Later narrower rounds are valid only after baseline context was already transmitted in that same consultant-visible conversation and only when the omitted material is truly unchanged and already visible in that same consultant's own session. If that session is fresh, replacement, or recovery, narrowing is forbidden until visible baseline repaste is proven there under the Baseline Visibility Fail-Closed Lock.
 
 Clarification:
 - first consultant-bearing round on a new skill topic should use a baseline artifact payload, not a thin summary
 - later narrower prompts are valid only after that baseline context already exists in the same visible consultant session
+- fresh/recovery/replacement consultant sessions have no excerpt rights until that visible baseline is repasted and therefore proven in that same session
 - if you switch consultants, do not assume the new consultant inherits the other consultant's pasted context; repaste what the new consultant needs
 - do not assume the consultant can infer unseen artifact sections from the skill name, file path, repository, prior hidden state, or your private local work
 - if you want the consultant to reason about code, checks, logs, tests, or validation, paste that material in text
@@ -730,7 +759,7 @@ Disallowed:
 #### Failure and round-meaningfulness authority
 For runtime failure handling, blocked states, retry caps, and non-meaningful-round recovery, use the authoritative `Recovery Decision Tree` in `## Runtime Core Lock`.
 This subordinate section no longer carries primary runtime law for the current execution line.
-Preserve only the boundary rule here: a long wait after a successful consultant submit is not by itself evidence of a weak or failed round, `SELF_POSITION` alone is not enough in `api` or `multi` when consultant input was required and available, and `SYNTHESIS` must still exist.
+Preserve only the boundary rule here: a long wait after a successful consultant submit is not by itself evidence of a weak or failed round. Minimum wait floor before lateness alone can contribute to failure/degradation handling is 60s for ordinary prompts and 120s for long/heavy prompts, and one longer same-session wait/poll should be preferred before recovery. `SELF_POSITION` alone is not enough in `api` or `multi` when consultant input was required and available, and `SYNTHESIS` must still exist.
 
 #### Round-Limit & Stop Precedence
 Resolve stop behavior in this order:

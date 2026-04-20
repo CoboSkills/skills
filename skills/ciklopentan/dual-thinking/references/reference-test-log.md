@@ -1,8 +1,8 @@
 # Reference Test Log
 #tags: skills review
 
-Validation run: 2026-04-14T16:55:00+08:00
-Validated version: `v8.5.15`
+Validation run: 2026-04-14T20:40:00+08:00
+Validated version: `v8.5.21`
 Prior frozen line: `v8.5.9 reference-release`
 Frozen current baseline: `v8.5.9 reference-release`
 Current line state: `reference-candidate`
@@ -12,6 +12,7 @@ Current line state: `reference-candidate`
 | `local-basic` | `ORCHESTRATOR_MODE: local`; no external consultant | self+synthesis preserved; terminal round block | validation pack passed; terminal block semantics remain coherent | PASS | no local-path regression | none |
 | `api-divergence` | consultant-bearing single external consultation | synthesis remains final owner after consultant input | inline contract still preserves synthesis-owned decision path after the accepted clarifications | PASS | synthesis ownership preserved | none |
 | `multi-recovery` | alternating orchestrators across rounds with accepted-state recovery | later rounds return to same per-orchestrator chats; recovery resumes from accepted state when needed | stale Qwen repeat and stalled Qwen follow-up were both handled honestly as non-meaningful and recovered from the latest accepted state | PASS | recovery contract behaved as intended | none |
+| `orchestrator-late-answer-wait-floor` | consultant-bearing `api`/`multi` round where submit succeeded but the orchestrator answers later than the operator expected | lateness alone must not trigger weak/degraded/recovery handling before the minimum wait floor, and a late valid answer still counts as normal completion | inline/runtime support now requires a 60s ordinary / 120s heavy minimum wait floor plus one same-session longer wait before lateness alone can drive recovery | PASS | premature late-answer misclassification blocked | none |
 | `weak-shortcut-honesty` | compact consultant-bearing path | compact path remains truthful and non-duplicative | no drift introduced by the accepted fixes | PASS | shortcut boundary preserved | none |
 | `publish-readiness-gate` | publish-gated release work | support-surface sync completes before promotion/publication | current line keeps publish sequencing subordinate to validation and accepted-state gates | PASS | publish sequencing preserved | none |
 | `self-review-dual-thinking` | self-review lens remains active for `dual-thinking` itself | no fake convergence; real cuts or explicit stop only | full 8-round rerun on top of `v8.5.9` accepted three narrow continuity/recovery/publish-honesty clarifications, rejected stale or stalled non-meaningful rounds honestly, then converged without cosmetic churn | PASS | self-review stayed honest | none |
@@ -25,9 +26,10 @@ Current line state: `reference-candidate`
 | `no-idle-after-completed-step` | declared plan remains unfinished and a completed step already resolved `NEXT_ACTION` | execution continues immediately into the known next step | no unlawful idle pauses introduced; execution continued directly into the next required step | PASS | anti-idle rule preserved | none |
 
 ## Convergence summary
-- support/reference/test surfaces were synchronized to the strengthened `v8.5.15` inline contract without changing the public three-step runtime architecture
-- subordinate files now explicitly support the `Current-date Internet Trend Grounding Lock`, its stability lock, its anti-patterns, and the new round-1 / round-2 internet-assisted minimum floor
-- subordinate recovery/evidence/test surfaces now cover `BLOCKEDSTATE: current-date-trend-not-grounded` and the matching current-date trend-grounding branch
-- subordinate self-evolution support now covers live public trend, architecture, implementation, benchmark, and maintainer evidence when allowed and materially relevant
-- the new anti-ritual boundary is explicit: after the mandatory floor is satisfied, repeated broad web-search is no longer implied for purely local bug, test, contract, or consistency work
+- rounds 1-2 accepted two narrow current-date seams: first, fresh live internet evidence later in the run now overrides stale earlier-round external findings when the artifact is materially unchanged; second, that evidence-refresh rule now explicitly excludes stale session residue or unsupported consultant restatement from counting as refreshed external evidence
+- the live line now includes a non-weakenable Baseline Visibility Fail-Closed Lock: fresh, replacement, and recovery consultant sessions have no excerpt rights until visible baseline repaste is proven in that same session, and invalid visibility rounds must not be counted
+- support/reference/test surfaces were synchronized to the strengthened `v8.5.21` inline contract without changing the public three-step runtime architecture
+- subordinate files now explicitly support the `Current-date Internet Trend Grounding Lock`, its stability lock, its anti-patterns, the round-1 / round-2 internet-assisted minimum floor, the evidence-refresh rule, and the guardrail that ties it only to genuinely fresh live external evidence visible in the current round
+- subordinate recovery/evidence/test surfaces now cover `BLOCKED_STATE: current-date-trend-not-grounded`, the matching current-date trend-grounding branch, the evidence-refresh rule with its guardrail, the recovery-key canonicalization, and the orchestrator late-answer minimum wait-floor rule
+- subordinate self-evolution support still covers live public trend, architecture, implementation, benchmark, and maintainer evidence when allowed and materially relevant
 - targeted sync validation passed for the updated support surfaces

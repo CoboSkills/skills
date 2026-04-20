@@ -6,9 +6,10 @@
 |---|---|
 | artifact not pasted | ask once, request inline artifact, no path-only review |
 | artifact represented only by paths, filenames, `FILE:` labels without body text, shell snippets, literal placeholders like `$(cat ...)`, hidden-local assertions, or chopped fragments that do not cover the exact claim under review | treat as `artifact not pasted`; repaste the actual text inline before continuing |
+| fresh/recovery/replacement consultant session is using excerpts without proven visible baseline repaste in that same session | mark the round invalid, do not count it toward any quota or convergence claim, and repaste the real baseline artifact before continuing |
 | second request still no artifact | switch to `analysis-only` and stop patch loop |
 | self opinion is vague | tighten `SELF_POSITION` before asking the consultant |
-| consultant slow after successful submit | if the prompt was successfully submitted and no explicit failure signal appears, keep waiting; do not narrow, downgrade, or declare the round weak only because a long prompt is thinking slowly |
+| consultant slow after successful submit | if the prompt was successfully submitted and no explicit failure signal appears, keep waiting in the same session; do not narrow, downgrade, or declare the round weak only because a long prompt is thinking slowly. Minimum wait floor is 60s for ordinary prompts and 120s for long/heavy prompts before lateness alone may contribute to degradation handling, and one longer same-session wait/poll should be preferred before recovery. |
 | consultant weak | retry once with the narrowing template |
 | consultant weak again | switch to `analysis-only` or stop as blocked |
 | consultant critique too generic because artifact payload was too thin | resend with a larger artifact payload before judging consultant quality |
@@ -20,20 +21,23 @@
 | continuation missing | mark `CONTINUATION_SIGNAL: missing`, default `continue` |
 | session polluted or context-degraded | first try to resume the intended persistent same-topic chat; if it is unusable because it is broken, polluted, or the consultant is clearly degrading under context load, open a recovery chat, paste latest accepted artifact, add `RESUME_SNIPPET`, and rebuild from the latest `STATE_SNAPSHOT` |
 | consultant/orchestrator launch path keeps triggering approval cards or repeated authorization prompts for otherwise allowed work | do not claim safeguards can be disabled globally; switch once to a launch path that keeps the same safety boundary but avoids the prompt-triggering transport, preferably direct stdin or file redirection when supported, then resume the same round and log the transport change honestly |
-| current-date-optimized, trend-aware, state-of-the-art, latest-practice-aligned, or materially improved against current external practice is being claimed without live inspection of relevant public internet evidence even though an allowed internet-capable consultant/orchestrator is available and the task materially benefits from that check | set `VALIDATIONSTATUS: blocked`, emit `BLOCKEDSTATE: current-date-trend-not-grounded`, inspect the missing live public evidence when allowed, or narrow the claim explicitly to `offline-only-provisional-not-verified-against-current-public-trends` |
+| current-date-optimized, trend-aware, state-of-the-art, latest-practice-aligned, or materially improved against current external practice is being claimed without live inspection of relevant public internet evidence even though an allowed internet-capable consultant/orchestrator is available and the task materially benefits from that check | set `VALIDATION_STATUS: blocked`, emit `BLOCKED_STATE: current-date-trend-not-grounded`, inspect the missing live public evidence when allowed, or narrow the claim explicitly to `offline-only-provisional-not-verified-against-current-public-trends` |
 | an in-scope current-date-sensitive task enters consultant-bearing review without satisfying the mandatory round-1 / round-2 internet-assisted minimum floor even though an allowed internet-capable consultant/orchestrator is available | keep current-date-strength claims blocked until round 1 names the strongest seam from live external evidence against the real artifact and round 2 challenges that finding against local truth boundaries and constraints, or narrow the claim explicitly to offline-only/provisional |
+| genuinely fresh live internet evidence visible in the current round materially contradicts an earlier-round external finding while the artifact under review is still materially the same | treat the fresh live check as evidence refresh rather than unlawful research drift, prefer the refreshed live finding for current-date synthesis, and if the conflict matters record that the earlier external finding became stale; do not apply this branch to stale session residue or unsupported consultant restatement |
 | accepted fix not patched | patch before next review |
 | validation failed | block packaging and publishing, retain the failed diff, and revert to the last passed artifact |
 
 ## Current-date trend grounding blocked state
 If strong current-date optimization, latest-practice, state-of-the-art, trend-aware, or materially-improved-against-current-external-practice claims are being made for a skill, code artifact, workflow, tool, runtime component, memory system, orchestrator, or program without live public internet inspection even though an allowed internet-capable consultant/orchestrator is available and the task materially benefits from that check:
-- set `VALIDATIONSTATUS: blocked`
-- emit `BLOCKEDSTATE: current-date-trend-not-grounded`
+- set `VALIDATION_STATUS: blocked`
+- emit `BLOCKED_STATE: current-date-trend-not-grounded`
 - inspect the missing live public evidence when allowed
 - preserve all already-binding local-only, privacy, hardware, runtime, budget, latency, safety, and user-defined constraints while translating that evidence into the strongest compatible solution
 - if live inspection is unavailable, disallowed, too weak, or too indirect, narrow the claim explicitly to `offline-only-provisional-not-verified-against-current-public-trends`
 - do not import cloud-first, hosted, or external-API designs into a local-only artifact merely because that trend is fashionable
 - if the task is in-scope current-date-sensitive work, do not exit the blocked state until the round-1 / round-2 internet-assisted minimum floor is satisfied or the claim is honestly narrowed
+- if genuinely fresh live internet evidence visible in the current round later contradicts an older external finding while the artifact is still materially the same, treat that newer live check as evidence refresh for current-date synthesis rather than as forbidden research drift
+- do not treat stale session residue, weak-model repetition, or unsupported consultant restatement as evidence refresh when no refreshed external evidence is actually visible in the current round
 - the minimum floor means: round 1 names the strongest seam from live external evidence against the real artifact; round 2 challenges that finding against local truth boundaries, runtime limits, weak-model safety, and operator constraints
 
 ## Shallow consultant response
@@ -47,6 +51,9 @@ If a long consultant prompt was successfully submitted and the consultant is sti
 - do not treat slow thinking by itself as a weak response
 - do not narrow the prompt only because the wait feels long
 - do not start recovery unless an explicit failure signal appears or continuity is clearly broken
+- minimum wait floor is 60s for ordinary prompts and 120s for long/heavy prompts before lateness alone may contribute to degradation handling
+- after that floor, prefer one longer same-session wait/poll before any recovery move
+- a late-but-valid answer counts as normal round completion, not as evidence that the earlier round was weak or failed
 - prefer patient waiting over premature prompt shortening when the original long prompt is materially needed for accurate review
 
 ## Weak self position
@@ -67,6 +74,7 @@ If the consultant reacted to a path, summary, filename, `FILE:` label without bo
 Clarification:
 - if the missing issue lives in a section that was never pasted, do not blame the consultant first
 - if the missing issue was visible only in the other consultant's chat, repaste it here before judging consultant quality
+- in a fresh, replacement, or recovery consultant session, repaste the real baseline artifact before excerpt narrowing; without that, the round is invalid and must not be counted
 - repaste the relevant artifact text before judging consultant quality
 
 ## Missing continuation signal

@@ -3,9 +3,15 @@
   "slug": "alibabacloud-das-agent",
   "displayName": "Alibabacloud Das Agent",
   "latest": {
-    "version": "0.0.1",
-    "publishedAt": 1775023262486,
-    "commit": "https://github.com/openclaw/skills/commit/1fd21f739868cad1991c2ef08901e8e650f63e44"
+    "version": "0.0.2",
+    "publishedAt": 1776421746595,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "0.0.1",
+      "publishedAt": 1775023262486,
+      "commit": "https://github.com/openclaw/skills/commit/1fd21f739868cad1991c2ef08901e8e650f63e44"
+    }
+  ]
 }

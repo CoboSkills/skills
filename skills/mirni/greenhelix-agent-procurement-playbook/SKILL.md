@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-procurement-playbook
-version: "1.2.0"
+version: "1.3.1"
 description: "The Agent Procurement Playbook. Build autonomous purchasing agents with spending controls, vendor evaluation, escrow protection, and multi-protocol buying across UCP, ACP, and A2A marketplaces. Includes detailed Python code examples with full API integration."
 license: MIT
 compatibility: [openclaw]
@@ -12,12 +12,21 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY, WALLET_ADDRESS, STRIPE_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+        - WALLET_ADDRESS
+        - STRIPE_API_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # The Agent Procurement Playbook
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
@@ -27,7 +36,7 @@ credentials: [GREENHELIX_API_KEY, WALLET_ADDRESS, STRIPE_API_KEY]
 
 Your AI agent just found the perfect data enrichment service. It costs $0.003 per record, the vendor has a 97% accuracy rating, and the API response time is under 200ms. The agent wants to buy 500,000 records. That is $1,500 committed in under a second, with no human in the loop, no purchase order, no procurement review. Should the agent be allowed to spend that money? If yes, under what constraints? If no, what happens to the time-sensitive workflow waiting on that data?
 This is the central tension of autonomous procurement: agents that can buy things are dramatically more capable than agents that cannot, but agents that spend without governance are a financial liability. A February 2026 survey by Gartner found that 86% of organizations plan to deploy autonomous AI agents at scale by end of 2026. McKinsey's March 2026 analysis of early adopters showed that autonomous procurement workflows -- where agents discover, evaluate, negotiate, and purchase services without human intervention -- deliver 15-30% efficiency gains over human-mediated purchasing. But 41% of those same organizations reported at least one incident of uncontrolled agent spending in their first quarter of deployment.
-The solution is not to prevent agents from spending. It is to build the procurement infrastructure that makes autonomous spending safe, auditable, and reversible. This playbook shows you how. Every chapter contains working Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single `POST /v1/execute` endpoint. By the end, you will have a complete autonomous procurement system: spending policy engine, multi-protocol vendor discovery, trust-scored vendor evaluation, escrow-protected purchasing, automated dispute resolution, cost reconciliation, and EU AI Act-compliant audit trails.
+The solution is not to prevent agents from spending. It is to build the procurement infrastructure that makes autonomous spending safe, auditable, and reversible. This playbook shows you how. Every chapter contains working Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single the REST API (`POST /v1/{tool}`) endpoint. By the end, you will have a complete autonomous procurement system: spending policy engine, multi-protocol vendor discovery, trust-scored vendor evaluation, escrow-protected purchasing, automated dispute resolution, cost reconciliation, and EU AI Act-compliant audit trails.
 
 ## What You'll Learn
 - Chapter 1: The Autonomous Buyer Architecture
@@ -49,9 +58,13 @@ Your AI agent just found the perfect data enrichment service. It costs $0.003 pe
 
 This is the central tension of autonomous procurement: agents that can buy things are dramatically more capable than agents that cannot, but agents that spend without governance are a financial liability. A February 2026 survey by Gartner found that 86% of organizations plan to deploy autonomous AI agents at scale by end of 2026. McKinsey's March 2026 analysis of early adopters showed that autonomous procurement workflows -- where agents discover, evaluate, negotiate, and purchase services without human intervention -- deliver 15-30% efficiency gains over human-mediated purchasing. But 41% of those same organizations reported at least one incident of uncontrolled agent spending in their first quarter of deployment.
 
-The solution is not to prevent agents from spending. It is to build the procurement infrastructure that makes autonomous spending safe, auditable, and reversible. This playbook shows you how. Every chapter contains working Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single `POST /v1/execute` endpoint. By the end, you will have a complete autonomous procurement system: spending policy engine, multi-protocol vendor discovery, trust-scored vendor evaluation, escrow-protected purchasing, automated dispute resolution, cost reconciliation, and EU AI Act-compliant audit trails.
+The solution is not to prevent agents from spending. It is to build the procurement infrastructure that makes autonomous spending safe, auditable, and reversible. This playbook shows you how. Every chapter contains working Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single the REST API (`POST /v1/{tool}`) endpoint. By the end, you will have a complete autonomous procurement system: spending policy engine, multi-protocol vendor discovery, trust-scored vendor evaluation, escrow-protected purchasing, automated dispute resolution, cost reconciliation, and EU AI Act-compliant audit trails.
 
 ---
+
+
+> **Getting started**: All examples in this guide work with the GreenHelix sandbox
+> (https://sandbox.greenhelix.net) which provides 500 free credits — no API key required.
 
 ## Table of Contents
 
@@ -130,7 +143,7 @@ The autonomous buyer architecture has four core components:
 |  GATEWAY                      |     |                               |
 |                               |     |  - Ledger recording           |
 |  128 tools via POST           |     |  - Cost attribution           |
-|  /v1/execute                  |     |  - Budget vs. actual          |
+|  the REST API                  |     |  - Budget vs. actual          |
 |                               |     |  - Anomaly detection          |
 +-------------------------------+     +-------------------------------+
 ```
@@ -156,7 +169,7 @@ headers = {"Authorization": f"Bearer {os.environ['GREENHELIX_API_KEY']}"}
 def execute_tool(tool: str, input_data: dict) -> dict:
     """Execute a GreenHelix tool via the unified endpoint."""
     response = requests.post(
-        f"{API_BASE}/execute",
+        f"{API_BASE}/v1",
         json={"tool": tool, "input": input_data},
         headers=headers,
     )

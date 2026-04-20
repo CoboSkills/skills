@@ -3,11 +3,16 @@
   "slug": "mathematical-audit-skills",
   "displayName": "mathematical audit skills",
   "latest": {
-    "version": "3.6.0",
-    "publishedAt": 1776042695872,
-    "commit": "https://github.com/openclaw/skills/commit/baf293064a95ef1ab12d75cdb8e8b80e250ee94e"
+    "version": "3.6.1",
+    "publishedAt": 1776220745539,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.6.0",
+      "publishedAt": 1776042695872,
+      "commit": "https://github.com/openclaw/skills/commit/baf293064a95ef1ab12d75cdb8e8b80e250ee94e"
+    },
     {
       "version": "3.5.5",
       "publishedAt": 1775999145722,

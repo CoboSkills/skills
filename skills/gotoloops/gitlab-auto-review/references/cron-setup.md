@@ -22,7 +22,7 @@ openclaw cron add `
    e. For each issue, write JSON to a temp file first, then post inline comment via --file: node {baseDir}/scripts/gitlab-api.js post-comment --file /tmp/comment-N.json <project_id> <mr_iid>
       IMPORTANT: Never pass JSON directly on the command line! Always use the write tool to create a file, then pass it via --file.
    f. Post summary note: node {baseDir}/scripts/gitlab-api.js post-note <project_id> <mr_iid '<markdown>'
-   g. Record the MR in {baseDir}/mr-reviewed.json
+   g. ⚠️ CRITICAL: Immediately after posting the summary note for this MR, use the read tool to read {baseDir}/mr-reviewed.json, append this MR's record, then use the write tool to write the full file back. You MUST write back after EACH MR — never batch writes after reviewing all MRs. If the file doesn't exist, create it as an empty JSON object first.
 4. Process all unreviewed MRs in this run. If no new MRs, reply NO_REPLY.
 5. Do not ask for permission — execute directly."
 ```

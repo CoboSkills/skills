@@ -79,6 +79,6 @@ node {baseDir}/scripts/gitlab-api.js post-note <project_id> <mr_iid> '<text>' # 
 |---------|-----|
 | MRs not reviewed | `openclaw cron list` — is worker enabled? |
 | API errors | `node {baseDir}/scripts/gitlab-api.js get-version` |
-| Duplicate reviews | Check `{baseDir}/mr-reviewed.json` exists and is writable |
+| Duplicate reviews | Check `{baseDir}/mr-reviewed.json` exists and is writable; ensure cron prompt has explicit "never re-review" rule at highest priority |
 | Garbled comments | Use `--file` mode for `post-comment` (Windows PowerShell encoding) |
 | Wrong line numbers | `new_line` must be the line number in the NEW version of the file |

@@ -38,7 +38,19 @@ if (!GITLAB_URL || !GITLAB_TOKEN) {
   process.exit(1);
 }
 
+const crypto = require("crypto");
 const headers = { "PRIVATE-TOKEN": GITLAB_TOKEN, "Content-Type": "application/json" };
+
+/**
+ * Generate GitLab line_code: first 32 chars of SHA256(file_path) + "_" + old_line + "_" + new_line
+ */
+function generateLineCode(filePath, oldLine, newLine) {
+  const hash = crypto.createHash("md5").update(filePath).digest("hex");
+  // GitLab format: md5(filepath)_old_line_new_line (all parts present, use 0 for absent)
+  const ol = oldLine != null ? oldLine : 0;
+  const nl = newLine != null ? newLine : 0;
+  return `${hash}_${ol}_${nl}`;
+}
 
 async function request(method, apiPath, body) {
   const url = `${GITLAB_URL}/api/v4${apiPath}`;
@@ -65,7 +77,7 @@ async function listMRs(args) {
     ? args[args.indexOf("--project") + 1]
     : null;
 
-  let apiPath = "/merge_requests?state=opened&order_by=created_at&sort=asc&per_page=100";
+  let apiPath = "/merge_requests?state=opened&scope=all&order_by=created_at&sort=asc&per_page=100";
   if (projectFilter) {
     apiPath = `/projects/${encodeURIComponent(projectFilter)}/merge_requests?state=opened&order_by=created_at&sort=asc&per_page=100`;
   }
@@ -134,16 +146,22 @@ let commentCount = 0;
 
 async function postComment(projectId, mrIid, jsonPayload) {
   const payload = JSON.parse(jsonPayload);
+  const pos = payload.position || {};
+  const position = {
+    base_sha: pos.base_sha,
+    start_sha: pos.start_sha,
+    head_sha: pos.head_sha,
+    position_type: "text",
+    old_path: pos.old_path || pos.new_path,
+    new_path: pos.new_path,
+  };
+  if (pos.new_line != null) position.new_line = pos.new_line;
+  if (pos.old_line != null) position.old_line = pos.old_line;
+  // Add line_code for GitLab compatibility (required on some versions)
+  position.line_code = generateLineCode(position.new_path, pos.old_line, pos.new_line);
   const body = {
     body: payload.body,
-    position: {
-      base_sha: payload.position.base_sha,
-      start_sha: payload.position.start_sha,
-      head_sha: payload.position.head_sha,
-      position_type: "text",
-      new_path: payload.position.new_path,
-      new_line: payload.position.new_line,
-    },
+    position,
   };
 
   const result = await request("POST",

@@ -1,7 +1,7 @@
 ---
 name: upkuajing-map-merchants-search
 description: Official skill for upkuajing (跨境魔方). Search merchants on map (地图获客). Find merchants by region or nearby location, get merchant details including name, address, phone, industry, and more. Includes geographic data APIs (country, province, city lists) to support location-based search.
-metadata: {"version":"1.0.1","homepage":"https://www.upkuajing.com","clawdbot":{"emoji":"📍","requires":{"bins":["python"],"env":["UPKUAJING_API_KEY"]},"primaryEnv":"UPKUAJING_API_KEY"}}
+metadata: {"version":"1.0.2","homepage":"https://www.upkuajing.com","clawdbot":{"emoji":"📍","requires":{"bins":["python"],"env":["UPKUAJING_API_KEY"]},"primaryEnv":"UPKUAJING_API_KEY"}}
 ---
 
 # UpKuaJing Map Merchants Search
@@ -23,6 +23,8 @@ This skill provides access to UpKuaJing's map merchant database through:
 
 Script directory: `scripts/*.py`
 Run example: `python scripts/*.py`
+
+**Important**: Always use direct script invocation like `python scripts/merchants_search.py`. **Do NOT use** shell compound commands like `cd scripts && python merchants_search.py`.
 
 ## Two Main APIs
 
@@ -210,3 +212,13 @@ Billed by **number of calls**, each call returns up to 100 records:
 - **Do not** guess parameter names, get accurate parameter names and formats from documentation
 - **Prohibit outputting technical parameter format**: Do not display code-style parameters in responses, convert to natural language
 - **Do not estimate or guess per-call fees** — use `python scripts/auth.py --price_info` to get accurate pricing information
+
+## Related Skills
+
+Other UpKuaJing skills you might find useful:
+
+- upkuajing-global-company-people-search — Global company and people search
+- upkuajing-customs-trade-company-search — Search customs trade companies
+- upkuajing-email-tool — Send emails and manage email tasks
+- upkuajing-sms-tool — Send SMS and manage SMS tasks
+- upkuajing-contact-info-validity-check — Check contact info validity

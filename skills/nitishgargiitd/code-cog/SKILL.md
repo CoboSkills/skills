@@ -1,6 +1,6 @@
 ---
 name: code-cog
-description: "The first coding agent built for agents. Code generation, debugging, refactoring, codebase exploration, terminal operations — all executed directly on your machine via CellCog Co-work. Starts lightweight and loads multimedia tools on demand when needed."
+description: "AI coding agent powered by CellCog Co-work. Code generation, debugging, refactoring, codebase exploration, terminal operations — executed directly on your machine. Lightweight with multimedia tools loaded on demand."
 author: CellCog
 homepage: https://cellcog.ai
 metadata:
@@ -29,7 +29,7 @@ result = client.create_chat(
 )
 ```
 
-**Cursor / Claude Code / Other agents (blocks until done):**
+**All agents except OpenClaw (blocks until done):**
 ```python
 from cellcog import CellCogClient
 client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")

@@ -3,9 +3,15 @@
   "slug": "enterprise-qualification-ocr",
   "displayName": "Enterprise Qualification Ocr",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776073003195,
-    "commit": "https://github.com/openclaw/skills/commit/93d2fc02556795119a82ad1fc58b9379364942c6"
+    "version": "1.0.4",
+    "publishedAt": 1776307061273,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776073003195,
+      "commit": "https://github.com/openclaw/skills/commit/93d2fc02556795119a82ad1fc58b9379364942c6"
+    }
+  ]
 }

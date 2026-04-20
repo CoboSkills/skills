@@ -7,6 +7,13 @@ description: "Live OmniFocus access via native Omni Automation — tasks, projec
 
 **IMPORTANT:** OmniFocus data is live. When asked anything about tasks, projects, inbox, flagged items, due dates, or reviews — RUN A COMMAND. Do not answer from memory, do not say you cannot access OmniFocus, do not ask clarifying questions. Just run the appropriate command below and return the result.
 
+## How to invoke
+
+Call `of` directly with the **Bash tool**. Do **not** wrap in AppleScript `do shell script "..."` and do **not** route through `mcp__Control_your_Mac__osascript` — the script handles the AppleScript → Omni Automation bridge internally.
+
+- **Local Claude Code (macOS)**: the sandbox blocks inter-process AppleScript. Pass `dangerouslyDisableSandbox: true` on every Bash call. An error like `-600 "Application isn't running"` is a sandbox symptom, not a real OmniFocus state.
+- **Cowork / remote / other environments**: just call Bash. If the host has no access to a running OmniFocus, commands will fail with a real connection error — report that to the user rather than retrying with AppleScript wrappers.
+
 | User asks about… | Command to run |
 |------------------|----------------|
 | summary / overview / stats | `.claude/skills/omnifocus4/scripts/of summary` |

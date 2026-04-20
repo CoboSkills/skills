@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-supply-chain-orchestration
-version: "1.2.0"
+version: "1.3.1"
 description: "Agentic Supply Chain Orchestration. Build multi-agent supplier networks that self-heal: supplier discovery, real-time SLA monitoring, disruption detection with automated rerouting, demand aggregation, and cross-border compliance. Includes detailed Python code examples for every pattern."
 license: MIT
 compatibility: [openclaw]
@@ -12,12 +12,19 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # Agentic Supply Chain Orchestration
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `GREENHELIX_API_KEY`: API authentication for GreenHelix gateway (read/write access to purchased API tools only)
@@ -50,9 +57,13 @@ But the gap between vision and execution is enormous. A 2025 Gartner survey foun
 
 You need a multi-agent supply chain. And you need the orchestration infrastructure to prevent that multi-agent system from becoming a liability. One documented case saw a 400x cost overrun when a poorly orchestrated procurement loop went recursive -- each agent spawning sub-agents to find alternatives, each sub-agent spawning its own searches, until the API bill exceeded the value of the goods being procured.
 
-This guide builds the orchestration layer. Every chapter contains working Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single `POST /v1/execute` endpoint. By the end, you will have a complete supply chain orchestration system: multi-tier supplier mapping, real-time SLA monitoring, automated disruption rerouting, demand signal aggregation, cross-border compliance checks, and agent-to-agent coordination with escrow-protected transactions.
+This guide builds the orchestration layer. Every chapter contains working Python code against the GreenHelix A2A Commerce Gateway -- 128 tools accessible at `https://api.greenhelix.net/v1` via a single the REST API (`POST /v1/{tool}`) endpoint. By the end, you will have a complete supply chain orchestration system: multi-tier supplier mapping, real-time SLA monitoring, automated disruption rerouting, demand signal aggregation, cross-border compliance checks, and agent-to-agent coordination with escrow-protected transactions.
 
 ---
+
+
+> **Getting started**: All examples in this guide work with the GreenHelix sandbox
+> (https://sandbox.greenhelix.net) which provides 500 free credits — no API key required.
 
 ## Table of Contents
 
@@ -143,7 +154,7 @@ session.headers["Authorization"] = f"Bearer {api_key}"
 
 def execute(tool: str, input_data: dict) -> dict:
     """Execute a GreenHelix tool and return the result."""
-    resp = session.post(f"{base_url}/execute", json={
+    resp = session.post(f"{base_url}/v1", json={
         "tool": tool,
         "input": input_data
     })
@@ -2403,5 +2414,5 @@ By following this guide, you will have built:
 
 **A 30-Day Implementation Sprint** -- A week-by-week plan with daily tasks, validation checklists, and a production architecture reference. You start with a single orchestration agent on Day 1 and have a full multi-agent supply chain network by Day 30.
 
-All code examples use the GreenHelix A2A Commerce Gateway at `https://api.greenhelix.net/v1`, with the standard `POST /v1/execute` pattern. Every tool call is production-ready -- copy the code, set your API key, and deploy.
+All code examples use the GreenHelix A2A Commerce Gateway at `https://api.greenhelix.net/v1`, with the standard the REST API (`POST /v1/{tool}`) pattern. Every tool call is production-ready -- copy the code, set your API key, and deploy.
 

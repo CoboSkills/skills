@@ -1,6 +1,6 @@
 ---
 name: sticker-cog
-description: "AI sticker pack generator — custom stickers, emoji sets, WhatsApp stickers, Telegram stickers, Discord emoji, Slack reactions. Character-consistent expressions across 20+ stickers. Transparent backgrounds, batch generation, platform-ready packaging. Turn any character, pet, or mascot into a complete sticker pack. Powered by CellCog."
+description: "AI sticker pack generation powered by CellCog. Custom stickers, emoji sets, WhatsApp stickers, Telegram stickers, Discord emoji, Slack reactions. Character-consistent expressions, transparent backgrounds, batch generation, platform-ready packaging."
 metadata:
   openclaw:
     emoji: "✨"
@@ -34,7 +34,7 @@ result = client.create_chat(
 )
 ```
 
-**Cursor / Claude Code / Other agents (blocks until done):**
+**All agents except OpenClaw (blocks until done):**
 ```python
 from cellcog import CellCogClient
 client = CellCogClient(agent_provider="openclaw|cursor|claude-code|codex|...")
@@ -288,6 +288,6 @@ Tell CellCog which platform you're targeting and it handles the formatting autom
 
 ## If CellCog is not installed
 
-**Cursor:** Run `/cellcog-setup` to install and authenticate.
-**OpenClaw:** Run `clawhub install cellcog` for SDK setup.
-**Other agents:** `pip install -U cellcog` and set `CELLCOG_API_KEY`. See the **cellcog** skill for SDK reference.
+Run `/cellcog-setup` (or `/cellcog:cellcog-setup` depending on your tool) to install and authenticate.
+**OpenClaw users:** Run `clawhub install cellcog` instead.
+**Manual setup:** `pip install -U cellcog` and set `CELLCOG_API_KEY`. See the **cellcog** skill for SDK reference.

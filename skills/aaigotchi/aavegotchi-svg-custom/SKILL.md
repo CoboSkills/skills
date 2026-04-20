@@ -1,6 +1,5 @@
 ---
 name: aavegotchi-svg-custom
-version: 1.1.0
 description: Render OG Aavegotchi SVG and PNG images from Base for custom hypothetical loadouts or existing token IDs. Use when the user wants classic onchain SVG-style gotchis rather than 3D renders.
 metadata:
   {"openclaw":{"always":true}}
@@ -25,16 +24,17 @@ Do not wait for the user to explicitly say `aavegotchi-svg-custom`.
 - supports custom hypothetical loadouts and token-id renders
 - writes PNGs by default alongside the SVGs for Telegram/chat delivery
 - applies the centralized side-view exception table for wearable layering
-- supports on-demand background modes: common by default, transparent, or any fixed rarity-tier color
+- keeps the background logic simple and deterministic: `common` by default, `transparent` on request, or any fixed rarity-tier color when explicitly requested
 - returns front, left, right, and back outputs plus a manifest JSON
 - supports friendlier presets, collateral aliases, and wearable-name lookup
 
 ## Constraints
 
 - this skill is for OG SVG/classic gotchis on Base, not 3D renders
-- requires `node` plus one raster tool for PNG output (`qlmanage`, `rsvg-convert`, `magick`, `convert`, or `inkscape`)
+- requires `node` and `npm install` in the skill root so the bundled `@resvg/resvg-js` rasterizer is available; `qlmanage`, `rsvg-convert`, `magick`, `convert`, or `inkscape` are only optional fallbacks
 - token renders depend on Base RPC availability
 - custom render requests must be executed through the shell wrapper, not described hypothetically
+- no environment variables are required for normal operation; `AAVEGOTCHI_RPC_URL` is optional if you want to override the default Base RPC
 
 ## Routing Notes
 

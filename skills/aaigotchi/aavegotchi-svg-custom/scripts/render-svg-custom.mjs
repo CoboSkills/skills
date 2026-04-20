@@ -314,16 +314,8 @@ function loadRequest(args) {
   }
   if (args['haunt-id']) request.haunt_id = Number(args['haunt-id']);
   if (args.collateral) request.collateral = args.collateral;
-  const backgroundArg = args['background-mode'] ?? args.background ?? args.bg;
-  
-  // Default to 'rarity' mode (uses gotchi's actual rarity for bg)
-  const requestedMode = backgroundArg || 'rarity';
-  if (requestedMode && requestedMode !== 'rarity') {
-    request.background_mode = String(requestedMode).trim().toLowerCase();
-  } else {
-    // Default to 'rarity' - will use gotchi's actual tier
-    request.background_mode = 'rarity';
-  }
+  const backgroundArg = args['background-mode'] ?? args.background;
+  if (backgroundArg) request.background_mode = String(backgroundArg).trim().toLowerCase();
   if (args.slug) request.output.slug = args.slug;
   if (args['output-dir']) request.output.dir = path.resolve(args['output-dir']);
 
@@ -346,7 +338,8 @@ function loadRequest(args) {
     head: 'head',
     'hand-left': 'hand_left',
     'hand-right': 'hand_right',
-    pet: 'pet'
+    pet: 'pet',
+    bg: 'bg'
   };
   for (const [flag, key] of Object.entries(wearableFlags)) {
     if (args[flag] != null) request.wearables[key] = args[flag];
@@ -614,24 +607,16 @@ function resolveBackground(requestedMode, rarity) {
       colorHex: null,
     };
   }
-  
-  // Auto/rarity mode: use gotchi's actual rarity tier
-  let requestedTierKey;
-  if (normalizedMode === 'rarity' || normalizedMode === 'auto') {
-    // Map rarity level to tier key - use rarity.tier from response
-    const rarityTier = String(rarity?.tier || rarity?.rarityLevel || 'common').toLowerCase();
-    requestedTierKey = rarityTier;
-  } else if (normalizedMode.startsWith('rarity-')) {
-    requestedTierKey = normalizedMode.slice('rarity-'.length);
-  } else {
-    requestedTierKey = normalizedMode;
-  }
-  
+  const requestedTierKey = (normalizedMode === 'rarity' || normalizedMode === 'auto')
+    ? 'common'
+    : normalizedMode.startsWith('rarity-')
+    ? normalizedMode.slice('rarity-'.length)
+    : normalizedMode;
   if (RARITY_TIER_KEYS.has(requestedTierKey)) {
     const tier = RARITY_TIERS.find((entry) => entry.key === requestedTierKey);
     return {
       requestedMode: normalizedMode,
-      appliedMode: normalizedMode === 'auto' || normalizedMode === 'rarity' ? 'auto' : 'override',
+      appliedMode: 'override',
       tier: tier.key,
       label: tier.label,
       colorName: tier.colorName,

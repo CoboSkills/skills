@@ -55,9 +55,11 @@ The manifest records:
 
 - Node.js 20+
 - network access to a Base RPC
+- `npm install` in the repo root so the bundled `@resvg/resvg-js` rasterizer is available for PNG export
 
 Override defaults with:
-- `AAVEGOTCHI_RPC_URL`
+- no environment variables are required for normal operation
+- `AAVEGOTCHI_RPC_URL` only if you want to override the default Base RPC
 - `--rpc-url`
 - `--diamond`
 
@@ -132,7 +134,7 @@ bash scripts/render-custom-gotchi-svg.sh --list-collaterals --haunt-id 1
 - Custom preview rarity uses the same core BRS math as the contracts: modified traits plus wearable rarity score bonuses.
 - Base collateral shortcuts like `ETH`, `DAI`, `AAVE`, `USDC`, and `YFI` are resolved from the local deployment metadata, so preview rendering does not depend on ERC20 symbol reads.
 - The official deployed-contract-addresses repo points Base deployments to the classic diamond ABI from `aavegotchi-contracts`, so this project uses that ABI surface with Base addresses.
-- The shell entrypoint exports PNGs by default. It prefers `qlmanage` on macOS and falls back to `rsvg-convert`, `magick`, `convert`, or `inkscape` when available.
+- The shell entrypoint exports PNGs by default. It prefers the bundled `@resvg/resvg-js` renderer after `npm install`; `qlmanage`, `rsvg-convert`, `magick`, `convert`, and `inkscape` are only optional fallbacks.
 
 ## Regenerate wearable reference
 

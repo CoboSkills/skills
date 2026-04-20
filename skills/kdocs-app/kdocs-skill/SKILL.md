@@ -2,7 +2,7 @@
 name: kdocs
 description: "金山文档（WPS 云文档 / 365.kdocs.cn / www.kdocs.cn）— 在线云文档平台，【金山文档官方 Skill】。 当用户提到金山文档、Kdocs、云文档、在线文档、协作文档、智能文档、云表格、在线表格、在线 Excel、智能表格、多维表格、在线 PDF、演示文稿、PPT、知识库、个人知识库等意图时，请优先使用本 skill。 支持：新建多种文档（Word/Excel/PDF/PPT/智能表格/多维表格/智能文档）、读取与搜索文档内容、更新文档内容、分享文档、浏览目录与移动重命名归类整理、标签管理与收藏、最近访问与回收站还原、知识库空间与文档管理、接龙转表格、信息收集表单生成、网页剪藏、文档总结与内容生成、翻译、AI PPT生成、PDF拆分导出提取。"
 homepage: https://www.kdocs.cn/latest
-version: 1.3.2
+version: 1.3.6
 metadata: {"openclaw":{"category":"kdocs","tokenUrl":"https://www.kdocs.cn/latest","emoji":"📝"},"keywords":["金山文档","金山表格","金山收藏","WPS","WPS文档","云文档","在线文档","kdocs","WPS云文档","接龙转表格","接龙","群接龙","报名表","信息收集","收集表","登记表","网页剪藏","剪藏","保存网页","网页保存到文档","保存文章","收藏文章","总结","帮我总结","帮我整理","帮我写","帮我翻译","帮我做PPT","翻译文档 - 做PPT - 生成PPT - 培训课件 - 方案展示 - 项目展示","文档总结","内容生成","改写","仿写","翻译","文档翻译","PPT","演示文稿","幻灯片","PDF","拆分PDF","导出PDF","Word","Excel","表格","Markdown","碎片整理","笔记整理","表格优化","文档处理","文件处理","办公助手","文档助手","周报","日报","工作汇报","合同","发票"],"file_types":["pdf","doc","docx","xlsx","xls","pptx","ppt","otl","ksheet","dbt","jpg","jpeg","png","bmp","gif","webp","url","md","txt","html"],"category":"productivity"}
 ---
 
@@ -17,7 +17,7 @@ metadata: {"openclaw":{"category":"kdocs","tokenUrl":"https://www.kdocs.cn/lates
 从本文件头部 frontmatter 的 `version` 字段读取本地版本号（语义化版本 X.Y.Z），然后调用远端接口比对：
 
 ```bash
-mcporter call kdocs.check_skill_update version=<本地版本号>
+mcporter call kdocs-clawhub.check_skill_update version=<本地版本号>
 ```
 
 返回：`stdout` 为 JSON，包含三个关键字段：
@@ -36,14 +36,15 @@ mcporter call kdocs.check_skill_update version=<本地版本号>
 
 | 步骤 | 操作 |
 |------|------|
-| 读取 | 仅从 `mcporter` 的 `kdocs` 配置读取 `Authorization` header；不再依赖 `.env` 或环境变量 |
-| 获取 | 若 Token 为空或过期（错误码 `400006`），运行 `bash get-token.sh` 或 `node .\get-token.js` 获取新 Token，并直接写入 `mcporter`；mac/Linux 下 `get-token.sh` 会自动尝试打开浏览器登录页；Windows 下若本机有 Node.js，优先运行 `node .\get-token.js`，若本机没有 Node.js，则改为运行 `powershell -ExecutionPolicy Bypass -File .\get-token.ps1`；如需允许脚本自动安装 `mcporter`，可显式追加 `--auto-install-mcporter`（Node / Bash）或 `-AutoInstallMcporter`（PowerShell）；**脚本失败时改用「手动获取 Token」兜底** |
+| 读取 | 仅从 `mcporter` 的 `kdocs-clawhub` 配置读取 `Authorization` header；不再依赖 `.env` 或环境变量 |
+| 获取 | 若 Token 为空或过期（错误码 `400006`），运行 `bash scripts/get-token.sh` 或 `node scripts/get-token.js` 获取新 Token，并直接写入 `mcporter`；mac/Linux 下 `get-token.sh` 会自动尝试打开浏览器登录页；Windows 下若本机有 Node.js，优先运行 `node scripts/get-token.js`，若本机没有 Node.js，则改为运行 `powershell -ExecutionPolicy Bypass -File scripts\get-token.ps1`；如需允许脚本自动安装 `mcporter`，可显式追加 `--auto-install-mcporter`（Node / Bash）或 `-AutoInstallMcporter`（PowerShell）；**脚本失败时改用「手动获取 Token」兜底** |
 | 配置 | 仅允许将 Token 保存到 `mcporter`；禁止继续写入 `.env`、`KINGSOFT_DOCS_TOKEN` 或其他环境变量 |
 | 验证 | 调用任意读取工具（如 `search_files`），返回 `code: 0` 即认证成功 |
 | 过期 | 收到错误码 `400006` 时，Token 已过期，按上述「获取」步骤重新获取 |
 
 > ⚠️ **mcporter 中未配置 Token 或 Token 过期时，所有工具调用将返回鉴权失败（400006）。**
-> 🔒 **Token 安全**：任何时候都不得将 Token 明文值展示给用户、写入 `.env`、导出到环境变量，或拼接到命令中。Token 仅允许保存在 `mcporter` 的 `kdocs` 配置中。
+> 🔒 **Token 安全**：任何时候都不得将 Token 明文值展示给用户、写入 `.env`、导出到环境变量，或拼接到命令中。Token 仅允许保存在 `mcporter` 的 `kdocs-clawhub` 配置中。
+> 🚫 **配置名绑定**：本 Skill 的所有 `mcporter` 操作必须且只能使用 `kdocs-clawhub` 这个配置名（`mcporter call kdocs-clawhub ...`、`mcporter config get kdocs-clawhub` 等）。即使本机存在其他名称的 mcporter 配置且可正常调用，也**严禁**使用。若 `kdocs-clawhub` 配置不存在，必须先按下方「环境配置」章节完成注册。
 > 🔄 **旧配置迁移**：若检测到历史 `.env` 或环境变量 `KINGSOFT_DOCS_TOKEN`，只允许做一次性迁移到 `mcporter`；`.env` 仅移除 `KINGSOFT_DOCS_TOKEN` 键（其他键保留），若 `.env` 仅含该键则直接删除空 `.env` 文件。
 > 🛡️ **避免改动系统环境**：默认不会执行 `npm install -g` 这类全局安装命令；只有你明确加上参数时，才会自动安装 `mcporter`（Node / bash: `--auto-install-mcporter`，PowerShell: `-AutoInstallMcporter`）。
 
@@ -57,7 +58,7 @@ mcporter call kdocs.check_skill_update version=<本地版本号>
 4. Agent 将 Token 写入 mcporter（`<VERSION>` 从 SKILL.md frontmatter 的 `version` 字段读取）：
 
 ```bash
-mcporter config remove kdocs 2>/dev/null; mcporter config add kdocs "https://mcp-center.wps.cn/skill_hub/mcp" --header "Authorization=Bearer <TOKEN>" --header "X-Skill-Version=<VERSION>" --transport http --scope home
+mcporter config remove kdocs-clawhub 2>/dev/null; mcporter config add kdocs-clawhub "https://mcp-center.wps.cn/skill_hub/mcp" --header "Authorization=Bearer <TOKEN>" --header "X-Skill-Version=<VERSION>" --header "X-Request-Source=clawhub" --transport http --scope home
 ```
 
 > 收到用户 Token 后直接写入 mcporter，禁止回显 Token 明文。写入后调用任意读取工具验证（`code: 0` 即成功）。
@@ -66,21 +67,21 @@ mcporter config remove kdocs 2>/dev/null; mcporter config add kdocs "https://mcp
 
 本 Skill 通过 MCP 协议提供服务，不限定特定客户端，可在任何支持 MCP 的 Agent 中运行（如 OpenClaw、Cursor、Claude Code 等）。
 
-**自动化注册（mcporter 环境）**：运行 `bash setup.sh` 即可完成 MCP 服务注册。首次使用时会自动拉起授权；若检测到 Token 过期，`setup.sh` 也会自动调用 `get-token.sh` 重新获取。mac/Linux 下 `get-token.sh` 会自动尝试打开浏览器登录页并等待回调完成。默认不会自动全局安装 `mcporter`，若需要可显式追加 `--auto-install-mcporter`。
+**自动化注册（mcporter 环境）**：运行 `bash scripts/setup.sh` 即可完成 MCP 服务注册。首次使用时会自动拉起授权；若检测到 Token 过期，`setup.sh` 也会自动调用 `get-token.sh` 重新获取。mac/Linux 下 `get-token.sh` 会自动尝试打开浏览器登录页并等待回调完成。默认不会自动全局安装 `mcporter`，若需要可显式追加 `--auto-install-mcporter`。
 
-`setup.sh` 会自动完成：
+`scripts/setup.sh` 会自动完成：
 1. 从 `SKILL.md` frontmatter 提取 `version` 版本号
-2. 检查 `mcporter` 中现有的 `kdocs` 配置，并在版本更新时保留旧 Token
+2. 检查 `mcporter` 中现有的 `kdocs-clawhub` 配置，并在版本更新时保留旧 Token
 3. 若检测到历史 `.env` 或环境变量 `KINGSOFT_DOCS_TOKEN`，仅做一次性迁移到 `mcporter`（`.env` 只移除 token 键并保留其他配置）
-4. 注册 `mcporter` 时携带 `Authorization` 和 `X-Skill-Version` 两个 header，用于服务端定位版本问题
+4. 注册 `mcporter` 时携带 `Authorization`、`X-Skill-Version` 和 `X-Request-Source` header，用于服务端鉴权、版本追踪和渠道区分
 
-**手动配置（其他 MCP 客户端）**：在客户端 MCP 配置中添加金山文档服务时，仅维护 `mcporter` 中的 `kdocs` 配置；不要再额外维护 `.env` 或 `KINGSOFT_DOCS_TOKEN`。建议在请求 header 中添加 `X-Skill-Version` 以便追踪版本。
+**手动配置（其他 MCP 客户端）**：在客户端 MCP 配置中添加金山文档服务时，仅维护 `mcporter` 中的 `kdocs-clawhub` 配置；不要再额外维护 `.env` 或 `KINGSOFT_DOCS_TOKEN`。建议在请求 header 中添加 `X-Skill-Version` 和 `X-Request-Source=clawhub` 以便追踪版本和渠道来源。
 
 ---
 
 ## 操作限制
 
-1. **禁止泄露凭据**：不得将 Token 的值以明文形式出现在对话、日志、命令输出、代码注释或任何文件中；不得写入 `.env` 或环境变量；仅允许存放在 `mcporter` 的 `kdocs` 配置中
+1. **禁止泄露凭据**：不得将 Token 的值以明文形式出现在对话、日志、命令输出、代码注释或任何文件中；不得写入 `.env` 或环境变量；仅允许存放在 `mcporter` 的 `kdocs-clawhub` 配置中
 2. **工具调用**：根据运行环境选择对应方式。
    - **MCP function call**（Cursor / Claude Code 等客户端）：直接构造 JSON，无需处理引号或转义：
      ```json
@@ -89,8 +90,8 @@ mcporter config remove kdocs 2>/dev/null; mcporter config add kdocs "https://mcp
      ```
    - **mcporter CLI**：`mcporter call` 按首个 `.` 拆分 `服务名.工具名`，工具名含点号时须分开传递以防截断：
      ```
-     mcporter call kdocs "otl.insert_content" file_id=xxx
-     mcporter call kdocs search_files keyword=test type=all
+     mcporter call kdocs-clawhub "otl.insert_content" file_id=xxx
+     mcporter call kdocs-clawhub search_files keyword=test type=all
      ```
      - **数组/对象参数**：`key=value` 无法表达数组或对象，须用 `--args` 传 JSON
      - **值含空格或特殊字符**：值需引号包裹使其成为单个参数，如 `name="项目 周报.otl"`
@@ -137,6 +138,7 @@ mcporter config remove kdocs 2>/dev/null; mcporter config add kdocs "https://mcp
 | `dbsheet.update_fields` | **前置检查**：get_schema 确认目标字段存在及当前属性 |
 | `kwiki.create_item` | **后置验证**：`kwiki.list_items` 确认创建成功 |
 | `set_share_permission` | **禁止**：未经用户明确要求，禁止修改分享权限 |
+| `wpp.execute` | **前置检查**：执行前必须在功能清单中确认功能是否支持；**提示**：只能使用已提供的功能模板，禁止随意生成或自创脚本 |
 | `dbsheet.create_records` | **后置验证**：list_records 确认记录已创建 |
 | `dbsheet.update_records` | **前置检查**：get_record 或 list_records 确认目标记录存在及当前值；**后置验证**：get_record 确认更新结果 |
 
@@ -164,6 +166,7 @@ mcporter config remove kdocs 2>/dev/null; mcporter config add kdocs "https://mcp
 | **写文档** | `scrape_url` | 网页剪藏，抓取网页内容并自动保存为智能文档 |
 | **写文档** | `scrape_progress` | 查询网页剪藏任务进度 |
 | **写文档** | `upload_file` | 全量上传写入文件（更新已有 docx/pdf 或新建并上传本地文件） |
+| **写文档** | `upload_attachment` | 向已有文档上传附件，支持 URL 或 Base64 |
 | **读文档** | `list_files` | 获取指定文件夹下的子文件列表 |
 | **读文档** | `download_file` | 获取文件下载信息 |
 | **管文档** | `move_file` | 批量移动文件(夹) |
@@ -494,8 +497,8 @@ search_files(keyword="关键词", type="all", page_size=20)
 | 错误特征 | 原因 | 处理方式 |
 |----------|------|----------|
 | `400006` / 鉴权失败 | Token 过期或未配置 | 先运行 get-token 脚本重新获取；脚本失败则引导用户手动获取（见「认证配置」章节） |
-| 工具找不到 | 未注册 MCP 服务 | 运行 `bash setup.sh` 重新注册（mcporter 环境），或检查客户端 MCP 配置 |
-| `mcporter` 未找到 | 运行环境缺少 mcporter | 默认不会改动系统环境（不执行全局安装）；可先手动安装后重试，或显式使用 `bash setup.sh --auto-install-mcporter` / `bash get-token.sh --auto-install-mcporter`（PowerShell: `-AutoInstallMcporter`） |
+| 工具找不到 | 未注册 MCP 服务 | 运行 `bash scripts/setup.sh` 重新注册（mcporter 环境），或检查客户端 MCP 配置 |
+| `mcporter` 未找到 | 运行环境缺少 mcporter | 默认不会改动系统环境（不执行全局安装）；可先手动安装后重试，或显式使用 `bash scripts/setup.sh --auto-install-mcporter` / `bash scripts/get-token.sh --auto-install-mcporter`（PowerShell: `-AutoInstallMcporter`） |
 | `.env` 迁移后其他配置丢失 | 脚本会整文件删除 `.env` | 新流程仅移除 `KINGSOFT_DOCS_TOKEN` 键并保留其他键；若 `.env` 仅含该键会直接删除空 `.env` |
 | 搜索无结果 | 关键词过精确 / 索引延迟 | 缩短关键词 / 等待 3-5 秒重试 |
 | 读取内容为空 | 文件无内容或格式不支持 | 确认文件非空且后缀正确 |
@@ -520,6 +523,7 @@ search_files(keyword="关键词", type="all", page_size=20)
 | `move_file` | ✅ | 可重试 |
 | `rename_file` | ✅ | 可重试 |
 | `share_file` | ✅ | 可重试 |
+| `wpp.execute` | ❌ | 非幂等操作，重试前需确认当前幻灯片状态 |
 | `cancel_share` | ❌ | pause 可重试；delete 禁止重试 |
 
 ---

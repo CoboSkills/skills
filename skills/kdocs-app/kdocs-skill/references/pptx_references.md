@@ -10,7 +10,7 @@
 
 ### 演示文稿工具概述
 
-**在线演示（WPP）** 提供空白页插入、主题字体/配色设置、导出图片或 PDF 等能力，通过本文 **`wpp.*`** 工具描述；
+**在线演示（WPP）** 提供幻灯片操作（添加/删除/复制）、形状插入、主题字体/配色设置、导出图片或 PDF 等能力，通过本文 **`wpp.*`** 工具描述；
 
 ### 使用场景
 
@@ -19,6 +19,20 @@
 | 工作汇报 | 季度/年度演示材料 |
 | 培训课件 | 结构化幻灯片内容 |
 | 对外宣讲 | 导出 PDF / 图片 |
+
+### 原子操作能力（wpp.execute）
+
+`wpp.execute` 提供演示文稿的 JSAPI 原子操作能力，通过 `command` 参数区分不同操作：
+
+| 操作类别 | 可用命令 |
+|---------|---------|
+| 幻灯片操作 | `addLayoutSlide`、`deleteSlide`、`copyPasteSlide`、`getSlidesCount` |
+| 插入形状 | `addRectangle`、`addOval`、`addTriangle`、`addRoundedRectangle` |
+
+**使用要求**：
+- 只能使用已定义的命令，禁止自创脚本
+- 执行前需在功能清单中确认命令是否支持
+- 详细模板和参数见 [wpp_execute/execute.md](wpp_execute/execute.md)
 
 ---
 
@@ -487,6 +501,147 @@
 
 ---
 
+## 四、演示文稿操作
+
+### 8. wpp.execute
+
+#### 功能说明
+
+在在线演示文稿中执行 JSAPI，提供对演示文稿操作的**原子能力**，如：
+- 幻灯片操作（添加版式页、删除、复制粘贴、获取数量）
+- 插入形状（矩形、圆形、三角形、圆角矩形等）
+
+详细功能清单和使用场景请参考 [wpp_execute/execute.md](wpp_execute/execute.md)。
+
+### 使用原则（重要）
+
+**何时使用**：
+- ✅ **优先选择**：需要对演示文稿进行幻灯片增删、形状插入等操作时
+- ✅ 需要使用已定义的原子能力时
+
+**使用要求**：
+1. **严格遵循工作流**：必须按照 [wpp_execute/execute.md](wpp_execute/execute.md) 中的 **"使用工作流"** 步骤执行
+2. **使用已有模板**：只能使用已提供的功能模板，禁止随意生成或自创脚本
+3. **功能检查优先**：执行前必须在功能清单中确认功能是否支持，不支持的功能应明确告知用户
+4. **统一 try/catch**：所有脚本执行时必须用 try/catch 包裹，返回统一的 `{ok, message, data}` 结构
+
+
+#### 调用示例
+
+添加指定版式幻灯片到第2页：
+
+```json
+{
+  "file_id": "file_xxx",
+  "command": "addLayoutSlide",
+  "param": {
+    "slideIndex": 2,
+    "layout": 2
+  }
+}
+```
+
+删除第3张幻灯片：
+
+```json
+{
+  "file_id": "file_xxx",
+  "command": "deleteSlide",
+  "param": {
+    "slideIndex": 3
+  }
+}
+```
+
+复制第1张幻灯片到第3页位置：
+
+```json
+{
+  "file_id": "file_xxx",
+  "command": "copyPasteSlide",
+  "param": {
+    "slideIndex": 1,
+    "pasteIndex": 3
+  }
+}
+```
+
+获取幻灯片数量：
+
+```json
+{
+  "file_id": "file_xxx",
+  "command": "getSlidesCount",
+  "param": {}
+}
+```
+
+在第1张幻灯片插入矩形：
+
+```json
+{
+  "file_id": "file_xxx",
+  "command": "addRectangle",
+  "param": {
+    "slideIndex": 1,
+    "left": 100,
+    "top": 100,
+    "width": 200,
+    "height": 200
+  }
+}
+```
+
+
+#### 参数说明
+
+- `file_id` (string, 必填): 演示文稿 file_id
+- `command` (string, 必填): 命令名称，用于标识要执行的操作类型。可选值：
+- `addLayoutSlide`：添加指定版式幻灯片
+- `deleteSlide`：删除幻灯片
+- `copyPasteSlide`：复制粘贴幻灯片
+- `getSlidesCount`：获取幻灯片数量
+- `addRectangle`：插入矩形
+- `addOval`：插入圆形
+- `addTriangle`：插入三角形
+- `addRoundedRectangle`：插入圆角矩形
+
+- `param` (object, 可选): 命令参数对象，不同 command 对应不同字段。具体参数见各命令的详情文档
+
+#### 返回值说明
+
+```json
+成功：
+```json
+{"ok": true, "message": "success", "data": null}
+```
+
+失败：
+```json
+{"ok": false, "message": "Slides.Item: index out of range", "data": null}
+```
+
+获取幻灯片数量：
+```json
+{"ok": true, "message": "success", "data": 5}
+```
+
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `ok` | boolean | 操作是否成功 |
+| `message` | string | 成功为 `success`，失败为错误信息 |
+| `data` | any | 返回数据，因命令而异 |
+
+
+#### 操作约束
+
+- **前置检查**：执行前必须在功能清单中确认功能是否支持
+- **提示**：只能使用已提供的功能模板，禁止随意生成或自创脚本
+- **幂等**：否 — 非幂等操作，重试前需确认当前幻灯片状态
+---
+
 
 ## 工具速查表
 
@@ -499,6 +654,7 @@
 | 5 | `wpp.set_color_slide` | 主题（字体与配色） | 单页更换配色 | `file_id`, `slide_idx`, `theme_color_mode`, `color_scheme_id` |
 | 6 | `wpp.export_image` | 下载与导出 | 导出为图片 | `link_id`, `format` |
 | 7 | `wpp.export_pdf` | 下载与导出 | 异步导出 PDF | `file_id`, `format` |
+| 8 | `wpp.execute` | 演示文稿操作 | 透传执行演示文稿 JSAPI | `file_id`, `command` |
 
 ## 常用工作流
 

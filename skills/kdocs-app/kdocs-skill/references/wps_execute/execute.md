@@ -1,186 +1,80 @@
-# WPS文字基础能力
+# WPS 文字原子能力参考
 
-提供对文档操作的原子能力，通过执行JSAPI来操作文档。
+`wps.core_execute` 通过 `command` 参数选择原子操作，`param` 传递命令专属参数。
 
+## 模块总览
 
-## 功能清单
+| # | 模块 | 能力范围 | 状态 | 参考文档 |
+|---|------|---------|------|---------|
+| 1 | 文档内容 | 段落/区间读写、查找替换 | ✅ 已上线 | [content.md](references/content.md) |
+| 2 | 段落格式 | 对齐、缩进、行间距 | ✅ 已上线 | [paragraph-format.md](references/paragraph-format.md) |
+| 3 | 字符格式 | 字体样式、高亮色 | ✅ 已上线 | [character-format.md](references/character-format.md) |
+| 4 | 样式 | 获取/设置/创建/删除/修改样式 | 🔜 规划中 | — |
+| 5 | 表格 | 插入/删除/填充/设置属性/转换 | 🔜 规划中 | — |
+| 6 | 图片 | 嵌入式/浮动图片增删改查 | 🔜 规划中 | — |
+| 7 | 书签 | 获取/操作书签 | 🔜 规划中 | — |
+| 8 | 目录 | 获取/删除/操作目录 | 🔜 规划中 | — |
+| 9 | 页眉页脚 | 获取/设置/插入/删除 | 🔜 规划中 | — |
+| 10 | 评论/批注 | 获取/添加/修改/删除评论 | 🔜 规划中 | — |
+| 11 | 脚注和尾注 | 获取/插入/修改/删除 | 🔜 规划中 | — |
+| 12 | 内容控件 | 获取/设置/插入/删除控件 | 🔜 规划中 | — |
+| 13 | 超链接 | 获取/插入/修改/删除超链接 | 🔜 规划中 | — |
+| 14 | 列表/编号 | 获取/设置/删除列表 | 🔜 规划中 | — |
+| 15 | 节/页面设置 | 获取/插入分节符/设置页面属性/删除节 | 🔜 规划中 | — |
+| 16 | 形状 | 获取/插入/设置/操作形状 | 🔜 规划中 | — |
+| 17 | 修订/审阅 | 开关/获取/操作修订 | 🔜 规划中 | — |
+| 18 | 域 | 获取/插入/更新/删除/操作域 | 🔜 规划中 | — |
+| 19 | 水印 | 插入/删除水印 | 🔜 规划中 | — |
 
-下表列出了当前支持的所有功能。点击详情文档链接查看完整的脚本模板和参数说明。
-
-### 文档内容操作
-
-| 功能分类 | 功能描述 | 详情文档 | 状态 |
-|---------|---------|---------|------|
-| 读取全文 | 读取整个文档的文本内容。<br/>**使用场景**：查询文档中是否包含特定内容、对文档进行总结分析、提取关键信息、内容检索等需要获取完整文档内容的场景 | [read-content.md](references/read-content.md) | ✅ |
-| 读取段落 | 读取指定第N个段落的内容 | [read-content.md](references/read-content.md) | ✅ |
-| 读取区间 | 读取指定起始和结束位置的内容 | [read-content.md](references/read-content.md) | ✅ |
-| 读取段落个数 | 获取文档中段落的总数 | [read-content.md](references/read-content.md) | ✅ |
-| 修改段落 | 修改指定段落的文本内容 | [modify-content.md](references/modify-content.md) | ✅ |
-| 修改区间 | 修改指定区间的文本内容 | [modify-content.md](references/modify-content.md) | ✅ |
-
-### 段落格式设置
-
-| 功能分类 | 功能描述 | 详情文档 | 状态 |
-|---------|---------|---------|------|
-| 段落对齐 | 设置段落对齐方式（左/中/右/两端） | [paragraph-format.md](references/paragraph-format.md) | ✅ |
-| 区间对齐 | 设置指定区间的段落对齐方式 | [paragraph-format.md](references/paragraph-format.md) | ✅ |
-| 段落缩进 | 设置段落缩进（首行/悬挂） | [paragraph-format.md](references/paragraph-format.md) | 🔜 |
-| 行间距 | 设置段落行间距 | [paragraph-format.md](references/paragraph-format.md) | 🔜 |
-
-### 字符格式设置
-
-| 功能分类 | 功能描述 | 详情文档 | 状态 |
-|---------|---------|---------|------|
-| 字体名称 | 设置字体名称（宋体/黑体等） | [character-format.md](references/character-format.md) | ✅ |
-| 字体大小 | 设置字号大小 | [character-format.md](references/character-format.md) | ✅ |
-| 字体颜色 | 设置字体颜色 | [character-format.md](references/character-format.md) | ✅ |
-| 字体样式 | 设置加粗、倾斜、下划线 | [character-format.md](references/character-format.md) | ✅ |
-| 文字高亮 | 设置文字背景高亮色 | [character-format.md](references/character-format.md) | ✅ |
-
-### 查找/替换内容功能
-
-| 功能分类 | 功能描述 | 详情文档 | 状态 |
-|---------|---------|---------|------|
-| 查找内容 | 查找指定文本内容并返回位置 | [find-replace.md](references/find-replace.md) | ✅ |
-| 替换内容 | 查找并替换文档中的文本 | [find-replace.md](references/find-replace.md) | ✅ |
+共享枚举值：[enums.md](references/enums.md)
 
 ---
 
-## 使用工作流
+## 命令路由表
 
-当用户请求操作WPS文档时，按以下步骤处理：
+### 模块一：文档内容
 
-### 步骤1: 分析用户需求
+| 用户意图 | command | 主要参数 |
+|---------|---------|---------|
+| 读取全文 | `getFullContent` | — |
+| 读取指定段落 | `getParagraphContent` | n |
+| 读取指定区间 | `getRangeContent` | begin, end |
+| 获取段落总数 | `getParagraphsCount` | — |
+| 修改段落内容 | `modifyParagraphContent` | n, str |
+| 修改区间内容 | `modifyRangeContent` | begin, end, str |
+| 查找文本 | `findContent` | findText, isAll |
+| 替换文本 | `replaceContent` | findText, replaceText, isAll |
 
-**识别操作数量**：判断用户是单一操作还是组合操作
+### 模块二：段落格式
 
-- **单一操作**：如"读取第1段"、"设置居中"
-- **组合操作**：如"修改第1段为xxx并设置右对齐"、"将第2段加粗并设置为红色"
+| 用户意图 | command | 主要参数 |
+|---------|---------|---------|
+| 修改段落对齐 | `modifyParagraphAlignment` | n, algMode |
+| 修改区间对齐 | `modifyRangeAlignment` | begin, end, algMode |
+| 修改段落左缩进 | `modifyParagraphLeftIndent` | n, indent, unit |
+| 修改段落右缩进 | `modifyParagraphRightIndent` | n, indent, unit |
+| 修改段落首行缩进 | `modifyParagraphFirstLineIndent` | n, indent, unit |
+| 修改区间左缩进 | `modifyRangeLeftIndent` | begin, end, indent, unit |
+| 修改区间右缩进 | `modifyRangeRightIndent` | begin, end, indent, unit |
+| 修改区间首行缩进 | `modifyRangeFirstLineIndent` | begin, end, indent, unit |
+| 修改段落行间距 | `modifyParagraphLineSpacing` | n, spacingRule, spacingValue |
+| 修改区间行间距 | `modifyRangeLineSpacing` | begin, end, spacingRule, spacingValue |
 
-**识别涉及的功能**：
-- 读取操作：读取、获取、查看
-- 修改操作：修改、改为、设置内容
-- 查找/替换操作：查找、替换
-- 格式操作：对齐、字体、颜色、加粗、倾斜、高亮
+### 模块三：字符格式
 
-### 步骤2: 检查功能支持
-
-**重要**：在功能清单中验证所需功能是否已定义。
-
-**检查方法**：
-1. 将用户需求拆解为具体的操作（如：修改内容、设置对齐、设置字体）
-2. 在[功能清单](#功能清单)表格中逐一查找每个操作
-3. 如果所有操作都在清单中 → 继续步骤3
-4. 如果任何操作不在清单中 → **立即返回不支持**
-
-**不支持时的返回示例**：
-```
-抱歉，当前不支持"设置段落缩进"功能。
-```
-
-### 步骤3: 查找原子操作模板
-
-在功能清单表格中找到所需的功能：
-- 单一操作：找到对应的一个功能
-- 组合操作：找到多个相关功能的模板
-
-### 步骤4: 读取详情文档
-
-根据功能清单中的"详情文档"链接，读取对应的md文件获取：
-- 完整的JavaScript脚本模板
-- 参数说明和类型
-- 使用示例
-
-### 步骤5: 组合脚本（如需要）
-
-**组合原则**：参考 [combined-operations.md](references/combined-operations.md)
-
-**单一操作**：
-- 直接使用单个脚本模板
-- 填充参数（替换`${变量名}`占位符）
-
-**组合操作**：
-- 只使用已读取的原子操作模板进行组合
-- 共享变量（如Range对象），避免重复获取
-- 按逻辑顺序组合（先修改内容，再设置格式）
-- 示例：
-
-```javascript
-// ✅ 正确：基于原子操作模板组合
-// 原子操作1：修改段落（来自modify-content.md）
-// 原子操作2：设置对齐（来自paragraph-format.md）
-var paragraph = ActiveDocument.Paragraphs.Item(1);
-var r = paragraph.Range;
-var range = ActiveDocument.Range(r.Start, r.End - 1);
-range.Text = "标题";  // 原子操作1的核心代码（Range操作）
-paragraph.Alignment = wdAlignParagraphCenter;  // 原子操作2的核心代码（Paragraph操作）
-
-// ❌ 错误：使用未定义的操作
-// 不要自创任何不在功能清单中的操作
-```
-
-### 步骤6: 返回结果
-
-提供完整的调用示例给用户，包括：
-- `file_id`：在线文字文件 ID
-- `jsStr`：构建好的 JavaScript 脚本
-
-**调用格式示例**：
-```json
-{
-  "file_id": "file_xxx",
-  "jsStr": "ActiveDocument.Paragraphs.Item(1).Alignment = wdAlignParagraphCenter;"
-}
-```
+| 用户意图 | command | 主要参数 |
+|---------|---------|---------|
+| 修改段落字符样式 | `modifyParagraphFontStyle` | n, key, value |
+| 修改区间字符样式 | `modifyRangeFontStyle` | begin, end, key, value |
+| 修改段落高亮色 | `modifyParagraphHighlight` | n, highColor |
+| 修改区间高亮色 | `modifyRangeHighlight` | begin, end, highColor |
 
 ---
 
-## 快速参考
+## 通用约定
 
-### 重要说明
-- **功能检查**: 使用前必须先在功能清单中确认功能是否支持，不支持的功能应明确告知用户
-- **段落索引**: 从1开始计数
-- **字符位置**: 从0开始计数
-- **枚举常量**: 使用WPS预定义常量（如`wdRed`、`wdAlignParagraphCenter`）
-- **返回格式**: `{ok: boolean, message: string, data: any}`
-- **组合操作**: 可以在一个脚本中组合多个操作，共享对象提高效率，但只能使用已定义的原子操作
-
-### 组合操作示例
-
-**修改内容+设置对齐**：
-```javascript
-var paragraph = ActiveDocument.Paragraphs.Item(1);
-var r = paragraph.Range;
-var range = ActiveDocument.Range(r.Start, r.End - 1);
-range.Text = "标题";
-paragraph.Alignment = wdAlignParagraphCenter;
-```
-
-**设置完整样式**：
-```javascript
-var paragraph = ActiveDocument.Paragraphs.Item(1);
-var range = paragraph.Range;
-range.Font.Name = "黑体";
-range.Font.Size = 18;
-range.Font.ColorIndex = wdRed;
-range.Font.Bold = true;
-paragraph.Alignment = wdAlignParagraphCenter;
-```
-
-更多组合场景请参考 [combined-operations.md](references/combined-operations.md)
-
-### 常用枚举值
-
-完整的枚举值列表请参考 [enums.md](references/enums.md)
-
-**对齐方式快速参考**:
-- `wdAlignParagraphLeft` (0) - 左对齐
-- `wdAlignParagraphCenter` (1) - 居中
-- `wdAlignParagraphRight` (2) - 右对齐
-- `wdAlignParagraphJustify` (3) - 两端对齐
-
-**颜色快速参考**:
-- `wdBlack` - 黑色
-- `wdRed` - 红色
-- `wdBlue` - 蓝色
-- `wdGreen` - 绿色
+- **段落索引** `n`：从 1 开始，超出范围自动限制到最后一段
+- **区间参数** `begin`/`end`：字符位置，从 0 开始
+- **返回格式**：`{ok: bool, message: string, data: any}`
+- 建议先修改内容再设置格式
+- 模糊命令以及找不到原子命令时 **禁止操作** 直接返回不支持该功能

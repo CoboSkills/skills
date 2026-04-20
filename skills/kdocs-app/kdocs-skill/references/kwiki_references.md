@@ -41,20 +41,7 @@
 
 如果用户只给了知识库名称，通常先用 `kwiki.list_knowledge_views` 搜，再把返回的 `drive_id` / `group_id` / `kuid` 传给后续工具。
 
-### ID 体系混用警告
-
-> ⚠️ `kwiki.*` 工具与通用接口（`upload_file`、`read_file_content`、`list_files`、`rename_file`、`download_file`、`move_file` 等）使用不同的 ID 体系。
->
-> **`kwiki.list_items` 返回的 `file_id` 是知识库内部 ID**，不是云盘系统级 `file_id`，**禁止**直接用于 `rename_file`、`read_file_content`、`download_file`、`move_file` 等；须通过 `search_files`（建议 `drive_ids` 限定为知识库 `drive_id`）获取正确的 `file_id`（及一致的 `drive_id`）后再调用上述接口。
->
-> | 接口类型 | 使用的 ID | 获取方式 |
-> |----------|----------|---------|
-> | `kwiki.*` 工具 | `kuid`（及列表里的内部 `file_id`） | `kwiki.list_items` 返回 |
-> | 通用接口（`upload_file` / `list_files` / `read_file_content` / `rename_file` / `download_file` /`move_file` 等） | 系统级 `file_id` | `search_files` 返回 |
->
-> **禁止跨体系直接传递**：用 `kwiki.list_items` 的 `file_id` 调用通用接口会导致操作失败或文件出现在错误位置。需要系统级 `file_id` 时，务必通过 `search_files` 获取。
->
-> **可安全混用的场景**：`drive_id` 在两套体系中通用，无需区分来源。`link_id`（来自 `kwiki.list_items` 或 `search_files`）可直接用于 `get_file_link`。
+> **注意**： `kuid` 仅用于 kwiki 专属操作（`delete_item`/`move_items`/`import_cloud_doc` 等）。
 
 ---
 
@@ -348,7 +335,7 @@
 
 #### 功能说明
 
-列出知识库根目录或某个文件夹下的内容，返回文件和文件夹混合列表。返回的 file_id 是知识库内部 ID，不能用于通用接口。
+列出知识库根目录或某个文件夹下的内容，返回文件和文件夹混合列表。
 
 #### 调用示例
 
@@ -424,7 +411,7 @@
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `kuid` | string | 知识库内唯一标识，**kwiki 操作（delete_item/move_items/import_cloud_doc）均使用此 ID** |
-| `file_id` | string | 云文档系统 file_id，仅通用接口（list_files/get_file_info 等）使用 |
+| `file_id` | string | 云文档系统 file_id |
 | `title` | string | 文件/文件夹名称（不含扩展名） |
 | `doc_type` | string | 类型：`o`=智能文档, `w`=Word, `p`=PPT, `s`=Excel, `i`=图片, `v`=视频, `folder`=文件夹 |
 | `link_id` | string | 分享链接标识，可通过 `get_file_link(link_id=...)` 获取在线链接 |
@@ -432,8 +419,7 @@
 | `size` | integer | 文件大小（字节） |
 
 > ⚠️ **注意**：`kwiki.list_items` 不返回 `mtime`（修改时间）。如需按修改时间筛选，
-> 使用 `list_files(drive_id=知识库drive_id, parent_id=..., order_by="mtime")`，
-> 再通过 `title` 交叉匹配到 `kuid`。
+> 使用 `list_files(drive_id=知识库drive_id, parent_id=file_id, order_by="mtime")` 获取 `mtime` 信息。
 
 > 浏览知识库根目录或进入某个文件夹后继续查看下一级内容
 > 为后续移动、删除、下载收集 `kuid`
@@ -638,8 +624,7 @@
 **流程**：
 1. `kwiki.get_knowledge_view` 或 `kwiki.list_knowledge_views` 获取目标知识库的 `drive_id`
 2. 如需放入子文件夹：
-   - `kwiki.list_items` 定位目标文件夹，获取其 `kuid`（用于 kwiki 操作）
-   - **⚠️ parent_id 警告**：`kwiki.list_items` 返回的 `file_id` 是知识库内部 ID，**不能**直接用于 `upload_file` 等通用接口。必须额外调用 `search_files(keyword="文件夹名", type="file_name", drive_ids=[知识库drive_id])` 获取系统级 `file_id` 作为 `upload_file` 的 `parent_id`
+   - `kwiki.list_items` 定位目标文件夹，获取其 `kuid`（用于 kwiki 操作）和 `file_id`（用于通用接口的 `parent_id`）
    - 放入根目录则 `parent_id="0"`
 3. 按文件类型选择上传方式：
 
@@ -657,27 +642,24 @@
 
 ### 重命名知识库内的文件或文件夹
 
-`kwiki.list_items` 返回的 `file_id` 不能用于 `rename_file`（规则见上文「ID 体系混用警告」）。使用通用接口 `rename_file` 重命名知识库内的文件或文件夹：
+使用通用接口 `rename_file` 重命名知识库内的文件或文件夹：
 
-1. `kwiki.get_knowledge_view(name="知识库名")` 获取知识库的 `drive_id`
-2. `search_files(keyword="目标文件名", type="file_name", drive_ids=[知识库drive_id])` 在知识库范围内搜索，获取 `file_id` 和 `drive_id`
-3. `rename_file(drive_id=搜索结果drive_id, file_id=搜索结果file_id, dst_name="新名称")`
+1. `kwiki.get_knowledge_view(name="知识库名")` 获取知识库的 `drive_id` 和 `kuid`
+2. `kwiki.list_items(kuid=知识库kuid)` 定位目标文件，获取 `file_id` 和 `drive_id`
+3. `rename_file(drive_id=drive_id, file_id=file_id, dst_name="新名称")`
    - 文件须带后缀（如 `"新报告.docx"`）
    - 文件夹不带后缀（如 `"项目资料"`）
 
 ### 下载知识库文件到本地
 
-> **核心规则：`kwiki.list_items` 返回的 `file_id` 是知识库内部 ID，不能直接用于 `read_file_content`、`download_file` 等通用接口。必须通过 `search_files` 搜索获取正确的 `file_id`，再传入通用接口。**
-
 **流程**：
 
-1. `search_files(keyword="文件名", type="all", drive_ids=[知识库drive_id])` 搜索目标文件，获取正确的 `file_id` 和 `link_id`
+1. `kwiki.list_items(kuid=目标目录kuid)` 定位目标文件，获取 `file_id`、`link_id`、`drive_id`
 2. 根据文件类型选择下载方式：
 
 **普通文件（docx/pptx/pdf/图片等）**：
-1. `kwiki.list_items` 拿到 `link_id`
-2. 使用 `wps_export` 等导出工具获取带签名的下载 URL
-3. `curl.exe -L -o "文件名" "签名URL"` 下载
+1. 使用 `wps_export` 等导出工具获取带签名的下载 URL（`link_id` 来自 `kwiki.list_items`）
+2. `curl.exe -L -o "文件名" "签名URL"` 下载
 
 **智能文档（doc_type="o"）**：`wps_export` 不支持直接导出，无特殊情况，默认转换成Markdown格式：
 - **Markdown** → `read_file_content(drive_id, file_id, format="markdown")`（异步，需轮询 task_id），将返回的 markdown 内容保存为 `.md` 文件
@@ -714,14 +696,14 @@
 4. **返回结果**：按匹配度排序，展示文件名、所在库/路径、修改时间、直达链接；结果过多时提示用户按文件类型或时间范围二次筛选
 5. **展示结果并询问用户** → 展示文件信息 + **主动询问是否下载到本地或打开查看（提供在线链接）用户选择下载时的后续操作**：
 
-- 通过 search_files 搜索获取正确的 file_id（注意：kwiki.list_items 返回的 file_id 是知识库内部 ID，不能直接用于 read_file_content 等通用接口）
+- `search_files` 返回的 `file_id` 可直接用于 `read_file_content` 等通用接口
 - 根据文件类型选择下载方式，详见「下载知识库文件到本地」流程
 
 ### 整理分类知识库
 
 **触发示例**：「帮我整理一下 XX 知识库」「把 XX 库里的文件按类型分类」
 
-> ⚠️ **场景识别**：当用户明确提到「知识库」「库」「资料库」等关键词时，必须使用 `kwiki.*` 系列接口完成整理/分类，禁止混用通用文件管理接口（`list_files`）。二者使用不同的 ID 体系，混用会导致知识库内部元数据（索引、搜索等）不一致。
+> ⚠️ **场景识别**：当用户明确提到「知识库」「库」「资料库」等关键词时，优先使用 `kwiki.*` 系列接口完成整理/分类，确保知识库内部元数据（索引、搜索等）一致。
 
 **流程**：
 
@@ -734,10 +716,10 @@
 
 **触发示例**：「清理 XX 库里 1 个月未修改的文件」「删掉 XX 库里的空文件夹」「把 XX 库里过期的资料清理一下」
 
-**流程**（避免 ID 体系混用）：
+**流程**：
 
-1. `kwiki.list_items(kuid=空间kuid)` 递归遍历全库，获取每个文件/文件夹的 `kuid`、`title`、`doc_type`、`ctime`
-2. **如需按修改时间筛选**：用 `list_files(drive_id=知识库drive_id, parent_id=..., order_by="mtime")` 获取 `mtime`，再通过 `title` 与 `kwiki.list_items` 的结果交叉匹配，得到目标文件的 `kuid`
+1. `kwiki.list_items(kuid=空间kuid)` 递归遍历全库，获取每个文件/文件夹的 `kuid`、`file_id`、`title`、`doc_type`、`ctime`
+2. **如需按修改时间筛选**：用 `list_files(drive_id=知识库drive_id, parent_id=父目录file_id, order_by="mtime")` 获取 `mtime`，通过 `file_id` 匹配到 `kuid`
 3. **向用户展示待删除清单并确认**
 4. `kwiki.delete_item(kuid=xxx)` 逐个删除（进入回收站，7 天内可 `restore_deleted_file` 恢复）
 5. 空文件夹可同样通过 `kwiki.delete_item` 删除
@@ -756,7 +738,7 @@
 | 注意 | 说明 |
 |------|------|
 | upload_file 必填参数 | `drive_id` 和 `parent_id` 必须显式传递 |
-| ID 体系 | `scrape_file_id`/`create_file` 返回的 id 是系统级 ID，用于 `get_file_link`、`upload_file`；需要 kwiki 内部 kuid 需通过 `kwiki.list_items` 获取；`move_file` 所需 id 须通过 `search_files` 获取正确的 `file_id`（及一致的 `drive_id`）后再调用，不可直接使用知识库体系 id |
+| ID 体系 | kwiki 内部 kuid 需通过 `kwiki.list_items` 获取 |
 
 ## 错误速查表
 

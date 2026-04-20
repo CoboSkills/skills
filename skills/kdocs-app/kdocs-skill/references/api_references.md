@@ -310,9 +310,85 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 - **幂等**：是 — 可重试，以最后一次为准
 ---
 
+### 5. upload_attachment
+
+#### 功能说明
+
+向已有文档上传附件，支持传远程 URL 或本地二进制内容（Base64）。
+返回 `object_id`，可用于文档内附件或图片引用。
+
+支持两种上传方式：
+- 远程 URL：传 `url`
+- 本地二进制：传 `content_base64`
+
+
+#### 调用示例
+
+通过 URL 上传附件：
+
+```json
+{
+  "file_id": "string",
+  "filename": "头像.png",
+  "url": "https://img.qwps.cn/example.png",
+  "source_type": "url",
+  "source": "processon"
+}
+```
+
+通过 Base64 上传本地附件：
+
+```json
+{
+  "file_id": "string",
+  "filename": "附件.pdf",
+  "content_base64": "JVBERi0xLjQK...",
+  "content_type": "application/pdf"
+}
+```
+
+
+#### 参数说明
+
+- `file_id` (string, 必填): 已有文档文件 ID
+- `filename` (string, 必填): 附件名
+- `url` (string, 可选): 条件必填。远程附件 URL，与 content_base64 二选一
+- `content_base64` (string, 可选): 条件必填。本地附件内容的 Base64 编码，与 url 二选一
+- `content_type` (string, 可选): 可选。附件 MIME 类型；content_base64 模式下不传则默认 application/octet-stream
+- `source_type` (string, 可选): 可选。上传内容类型
+- `source` (string, 可选): 可选。来源标记，如 processon
+
+#### 返回值说明
+
+```json
+{
+  "result": "ok",
+  "object_id": "1234567890",
+  "extra_info": {
+    "width": 600,
+    "height": 400
+  },
+  "old_content_type": "image/jpeg",
+  "new_content_type": "image/jpeg"
+}
+
+```
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `result` | string | ok 表示成功 |
+| `object_id` | string | 附件上传后的对象 ID |
+| `extra_info.width` | integer | 图片宽度（像素，仅图片类型返回） |
+| `extra_info.height` | integer | 图片高度（像素，仅图片类型返回） |
+| `old_content_type` | string | 原始内容类型 |
+| `new_content_type` | string | 转换后内容类型 |
+
+> url 与 content_base64 必须二选一
+---
+
 ## 二、读文档
 
-### 5. list_files
+### 6. list_files
 
 #### 功能说明
 
@@ -400,7 +476,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 6. download_file
+### 7. download_file
 
 #### 功能说明
 
@@ -457,7 +533,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ## 三、管文档
 
-### 7. move_file
+### 8. move_file
 
 #### 功能说明
 
@@ -513,7 +589,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 - **幂等**：是
 ---
 
-### 8. rename_file
+### 9. rename_file
 
 #### 功能说明
 
@@ -545,7 +621,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 - **幂等**：是
 ---
 
-### 9. share_file
+### 10. share_file
 
 #### 功能说明
 
@@ -640,7 +716,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 - **幂等**：是
 ---
 
-### 10. set_share_permission
+### 11. set_share_permission
 
 #### 功能说明
 
@@ -692,7 +768,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 - **禁止**：未经用户明确要求，禁止修改分享权限
 ---
 
-### 11. cancel_share
+### 12. cancel_share
 
 #### 功能说明
 
@@ -738,7 +814,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 - **幂等**：否 — pause 可重试；delete 禁止重试
 ---
 
-### 12. get_share_info
+### 13. get_share_info
 
 #### 功能说明
 
@@ -810,7 +886,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 13. get_file_info
+### 14. get_file_info
 
 #### 功能说明
 
@@ -930,7 +1006,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 14. list_labels
+### 15. list_labels
 
 #### 功能说明
 
@@ -1008,7 +1084,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 15. create_label
+### 16. create_label
 
 #### 功能说明
 
@@ -1070,7 +1146,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 16. get_label_meta
+### 17. get_label_meta
 
 #### 功能说明
 
@@ -1127,7 +1203,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 17. get_label_objects
+### 18. get_label_objects
 
 #### 功能说明
 
@@ -1196,7 +1272,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 18. batch_add_label_objects
+### 19. batch_add_label_objects
 
 #### 功能说明
 
@@ -1243,7 +1319,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 19. batch_remove_label_objects
+### 20. batch_remove_label_objects
 
 #### 功能说明
 
@@ -1286,7 +1362,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 20. batch_update_label_objects
+### 21. batch_update_label_objects
 
 #### 功能说明
 
@@ -1331,7 +1407,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 21. batch_update_labels
+### 22. batch_update_labels
 
 #### 功能说明
 
@@ -1378,7 +1454,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 22. list_star_items
+### 23. list_star_items
 
 #### 功能说明
 
@@ -1438,7 +1514,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 23. batch_create_star_items
+### 24. batch_create_star_items
 
 #### 功能说明
 
@@ -1482,7 +1558,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 24. batch_delete_star_items
+### 25. batch_delete_star_items
 
 #### 功能说明
 
@@ -1523,7 +1599,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 25. list_latest_items
+### 26. list_latest_items
 
 #### 功能说明
 
@@ -1580,7 +1656,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 26. copy_file
+### 27. copy_file
 
 #### 功能说明
 
@@ -1634,7 +1710,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 27. check_file_name
+### 28. check_file_name
 
 #### 功能说明
 
@@ -1680,7 +1756,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 28. list_deleted_files
+### 29. list_deleted_files
 
 #### 功能说明
 
@@ -1737,7 +1813,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ---
 
-### 29. restore_deleted_file
+### 30. restore_deleted_file
 
 #### 功能说明
 
@@ -1772,7 +1848,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 
 ## 四、用文档
 
-### 30. read_file_content
+### 31. read_file_content
 
 #### 功能说明
 
@@ -1851,7 +1927,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 > 不支持 .csv 格式，禁止对 CSV 文件调用本工具
 ---
 
-### 31. search_files
+### 32. search_files
 
 #### 功能说明
 
@@ -1983,7 +2059,7 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 > 新建文件后搜索可能无法立即命中，需等待索引更新
 ---
 
-### 32. get_file_link
+### 33. get_file_link
 
 #### 功能说明
 
@@ -2085,32 +2161,33 @@ Markdown 覆盖（先转为 docx/pdf 再上传）：
 | 2  | `scrape_url` | 写文档 | 网页剪藏，抓取网页内容并自动保存为智能文档 | `url` |
 | 3  | `scrape_progress` | 写文档 | 查询网页剪藏任务进度 | `job_id` |
 | 4  | `upload_file` | 写文档 | 全量上传写入文件（更新已有 docx/pdf 或新建并上传本地文件） | `drive_id`, `parent_id`, `content_base64` |
-| 5  | `list_files` | 读文档 | 获取指定文件夹下的子文件列表 | `drive_id`, `parent_id`, `page_size` |
-| 6  | `download_file` | 读文档 | 获取文件下载信息 | `drive_id`, `file_id` |
-| 7  | `move_file` | 管文档 | 批量移动文件(夹) | `drive_id`, `file_ids`, `dst_drive_id`, `dst_parent_id` |
-| 8  | `rename_file` | 管文档 | 重命名文件（夹） | `drive_id`, `file_id`, `dst_name` |
-| 9  | `share_file` | 管文档 | 开启文件分享 | `drive_id`, `file_id`, `scope` |
-| 10  | `set_share_permission` | 管文档 | 修改分享链接属性 | `link_id` |
-| 11  | `cancel_share` | 管文档 | 取消文件分享 | `drive_id`, `file_id` |
-| 12  | `get_share_info` | 管文档 | 获取分享链接信息 | `link_id` |
-| 13  | `get_file_info` | 管文档 | 获取文件（夹）详细信息 | `file_id` |
-| 14  | `list_labels` | 管文档 | 分页获取云盘自定义标签列表（可按归属者、标签类型筛选） | `page_size` |
-| 15  | `create_label` | 管文档 | 创建自定义标签 | `allotee_type`, `name` |
-| 16  | `get_label_meta` | 管文档 | 获取单个标签详情（含系统标签固定 ID） | `label_id` |
-| 17  | `get_label_objects` | 管文档 | 获取某标签下的对象列表（文件/云盘等） | `label_id`, `object_type`, `page_size` |
-| 18  | `batch_add_label_objects` | 管文档 | 批量为多个文档对象添加同一标签（打标签） | `label_id`, `objects` |
-| 19  | `batch_remove_label_objects` | 管文档 | 批量取消标签 | `label_id`, `objects` |
-| 20  | `batch_update_label_objects` | 管文档 | 批量更新标签下对象排序或属性 | `label_id`, `objects` |
-| 21  | `batch_update_labels` | 管文档 | 批量修改自定义标签名称或属性 | `labels` |
-| 22  | `list_star_items` | 管文档 | 获取收藏（星标）列表 | `page_size` |
-| 23  | `batch_create_star_items` | 管文档 | 批量添加收藏 | `objects` |
-| 24  | `batch_delete_star_items` | 管文档 | 批量移除收藏 | `objects` |
-| 25  | `list_latest_items` | 管文档 | 获取最近访问文档列表 | `page_size` |
-| 26  | `copy_file` | 管文档 | 复制文件到指定目录（可跨盘） | `drive_id`, `file_id`, `dst_drive_id`, `dst_parent_id` |
-| 27  | `check_file_name` | 管文档 | 检查目录下文件名是否已存在 | `drive_id`, `parent_id`, `name` |
-| 28  | `list_deleted_files` | 管文档 | 获取回收站文件列表 | `page_size` |
-| 29  | `restore_deleted_file` | 管文档 | 将回收站文件还原到原位置 | `file_id` |
-| 30  | `read_file_content` | 用文档 | 文档内容抽取为 Markdown/纯文本 | `drive_id`, `file_id` |
-| 31  | `search_files` | 用文档 | 文件（夹）搜索 | `type`, `page_size` |
-| 32  | `get_file_link` | 用文档 | 获取文件的云文档在线访问链接 | `file_id` |
+| 5  | `upload_attachment` | 写文档 | 向已有文档上传附件，支持 URL 或 Base64 | `file_id`, `filename` |
+| 6  | `list_files` | 读文档 | 获取指定文件夹下的子文件列表 | `drive_id`, `parent_id`, `page_size` |
+| 7  | `download_file` | 读文档 | 获取文件下载信息 | `drive_id`, `file_id` |
+| 8  | `move_file` | 管文档 | 批量移动文件(夹) | `drive_id`, `file_ids`, `dst_drive_id`, `dst_parent_id` |
+| 9  | `rename_file` | 管文档 | 重命名文件（夹） | `drive_id`, `file_id`, `dst_name` |
+| 10  | `share_file` | 管文档 | 开启文件分享 | `drive_id`, `file_id`, `scope` |
+| 11  | `set_share_permission` | 管文档 | 修改分享链接属性 | `link_id` |
+| 12  | `cancel_share` | 管文档 | 取消文件分享 | `drive_id`, `file_id` |
+| 13  | `get_share_info` | 管文档 | 获取分享链接信息 | `link_id` |
+| 14  | `get_file_info` | 管文档 | 获取文件（夹）详细信息 | `file_id` |
+| 15  | `list_labels` | 管文档 | 分页获取云盘自定义标签列表（可按归属者、标签类型筛选） | `page_size` |
+| 16  | `create_label` | 管文档 | 创建自定义标签 | `allotee_type`, `name` |
+| 17  | `get_label_meta` | 管文档 | 获取单个标签详情（含系统标签固定 ID） | `label_id` |
+| 18  | `get_label_objects` | 管文档 | 获取某标签下的对象列表（文件/云盘等） | `label_id`, `object_type`, `page_size` |
+| 19  | `batch_add_label_objects` | 管文档 | 批量为多个文档对象添加同一标签（打标签） | `label_id`, `objects` |
+| 20  | `batch_remove_label_objects` | 管文档 | 批量取消标签 | `label_id`, `objects` |
+| 21  | `batch_update_label_objects` | 管文档 | 批量更新标签下对象排序或属性 | `label_id`, `objects` |
+| 22  | `batch_update_labels` | 管文档 | 批量修改自定义标签名称或属性 | `labels` |
+| 23  | `list_star_items` | 管文档 | 获取收藏（星标）列表 | `page_size` |
+| 24  | `batch_create_star_items` | 管文档 | 批量添加收藏 | `objects` |
+| 25  | `batch_delete_star_items` | 管文档 | 批量移除收藏 | `objects` |
+| 26  | `list_latest_items` | 管文档 | 获取最近访问文档列表 | `page_size` |
+| 27  | `copy_file` | 管文档 | 复制文件到指定目录（可跨盘） | `drive_id`, `file_id`, `dst_drive_id`, `dst_parent_id` |
+| 28  | `check_file_name` | 管文档 | 检查目录下文件名是否已存在 | `drive_id`, `parent_id`, `name` |
+| 29  | `list_deleted_files` | 管文档 | 获取回收站文件列表 | `page_size` |
+| 30  | `restore_deleted_file` | 管文档 | 将回收站文件还原到原位置 | `file_id` |
+| 31  | `read_file_content` | 用文档 | 文档内容抽取为 Markdown/纯文本 | `drive_id`, `file_id` |
+| 32  | `search_files` | 用文档 | 文件（夹）搜索 | `type`, `page_size` |
+| 33  | `get_file_link` | 用文档 | 获取文件的云文档在线访问链接 | `file_id` |
 

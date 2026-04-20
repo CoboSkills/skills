@@ -15,20 +15,18 @@
 | 工具 | 服务 | 用途 |
 |------|------|------|
 | `kwiki.list_items` | kwiki | 遍历知识库内容 |
-| `search_files` | drive | 获取系统级 file_id 用于读取 |
-| `read_file_content` | drive | 批量读取文档内容 |
+| `read_file_content` | drive | 批量读取文档内容（file_id 来自 kwiki.list_items） |
 | `kwiki.create_item` | kwiki | 创建整理后的新文档 |
 | `otl.insert_content` | otl | 写入整理后的内容 |
 
 ## 执行流程
 
 **流程**：
-1. `kwiki.list_items` 遍历知识库获取文件列表
-2. `search_files(drive_ids=[知识库drive_id])` 获取系统级 `file_id`
-3. `read_file_content` 批量读取内容
-4. AI 分析内容结构，生成整理/重组方案
-5. `kwiki.create_item(doc_type="o")` 创建新智能文档
-6. `otl.insert_content` 写入整理后的结构化内容
+1. `kwiki.list_items` 遍历知识库获取文件列表（含 `file_id`、`drive_id`）
+2. `read_file_content` 批量读取内容（直接使用 `list_items` 返回的 `file_id`）
+3. AI 分析内容结构，生成整理/重组方案
+4. `kwiki.create_item(doc_type="o")` 创建新智能文档
+5. `otl.insert_content` 写入整理后的结构化内容
 
 **按时间筛选归档**（如"一年前的文档移入归档知识库"）：
 1. `kwiki.list_items` 遍历知识库，收集所有条目的 `kuid` 和 `ctime`

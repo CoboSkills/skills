@@ -12,14 +12,16 @@ PowerShell 中用 `--%` 停止解析，双引号用 `\"` 转义：
 
 示例
 ```powershell
-mcporter call kdocs read-file-content --% {\"drive_id\":\"xxxxx\",\"file_id\":\"xxxx\",\"format\":\"markdown\",\"include_elements\":[\"all\"],\"mode\":\"async\"}
+mcporter call kdocs-clawhub otl.block_query --args '{\"file_id\":\"cqTNWO4EMAn9\",\"params\":{\"blockIds\":[\"doc\"]}}'
 ```
 #### 方式二：临时文件（推荐，适合大参数）
-先生成参数的临时json文件，再通过文件传递给命令：
+先写入 `temp.json`，再读取并转义后传给 `--args`：
 
 示例
 ```powershell
-mcporter call kdocs --% otl block-insert @temp.json
+$json = Get-Content -Raw -Encoding UTF8 .\temp.json
+$jsonEscaped = $json -replace '"', '\"'
+mcporter call kdocs-clawhub otl.block_insert --args "$jsonEscaped"
 ```
 
 ## 通用说明
@@ -85,7 +87,7 @@ mcporter call kdocs --% otl block-insert @temp.json
 > **⚠️ mcporter CLI 调用注意**：`include_elements` 是**数组**，`key=value` 语法无法可靠传递数组。请用 `--args` 传递数组参数，其余参数可用 `key=value`。**`--args` 的 JSON 必须用单引号 `'...'` 包裹，内部双引号用 `\"` 转义**：
 >
 > ```shell
-> mcporter call kdocs read_file_content drive_id=<DRIVE_ID> file_id=<FILE_ID> format=markdown --args '{\"include_elements\":[\"all\"]}'
+> mcporter call kdocs-clawhub read_file_content drive_id=<DRIVE_ID> file_id=<FILE_ID> format=markdown --args '{\"include_elements\":[\"all\"]}'
 > ```
 >
 > **禁止**省略外层单引号——不加单引号会导致 shell 解析错误。
@@ -107,7 +109,7 @@ mcporter call kdocs --% otl block-insert @temp.json
 > **mcporter CLI 轮询命令**（替换 `<TASK_ID>` 为步骤 1 返回值；**单引号必须保留**）：
 >
 > ```shell
-> mcporter call kdocs read_file_content drive_id=<DRIVE_ID> file_id=<FILE_ID> format=markdown --args '{\"include_elements\":[\"all\"]}' task_id=<TASK_ID>
+> mcporter call kdocs-clawhub read_file_content drive_id=<DRIVE_ID> file_id=<FILE_ID> format=markdown --args '{\"include_elements\":[\"all\"]}' task_id=<TASK_ID>
 > ```
 
 > ⚠️ **`include_elements` 必须是数组** `["all"]`，不是字符串 `"all"`。传错类型会导致服务端仅返回段落文本。

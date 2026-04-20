@@ -41,26 +41,26 @@ aippt.doc_create_session → aippt.doc_outline_options → aippt.doc_outline →
 
 ### 注意事项
 
-- 通过 `mcporter` 调用本流程中的步骤时，请为每一步单独设置超时时间为 **3000 秒**
+- 通过 `mcporter` 或 `kdocs-cli` 调用本流程中的步骤时，请为每一步单独设置超时时间为 **1800000 毫秒**
 - `aippt.theme_deep_research` 的完整研究内容主要通过流式通知产生，最终 tool result 只保留摘要
 - `aippt.theme_outline` 返回的 `outline` 结构可能因上游模板而变化，传给 `aippt.theme_generate_html_pptx` 时应优先使用其中正式的 `outlines` 数组
 - `aippt.doc_outline` 返回的 `markdown_outline` 可能包含重复内容（大纲出现两次），建议从 `assistant_messages` 中提取最长的含 `{.topic}` 和 `{.end}` 的消息作为清洁版大纲
 - `aippt.doc_outline` 的 `resume_info` 必须是**数组**，格式为 `[{type:"follow_up", id:<interrupt_id>, data:{items:[...]}}]`
 - **文档链路同样需要本地格式转换**：将 `03_outline.md` + `04_beautify.json` 合并为 `{topic, outlines[]}` 后再传入 `aippt.doc_generate_ppt`
 - `aippt.doc_generate_ppt` 接收 `{topic, outlines[]}` 格式，与 `aippt.theme_generate_html_pptx` 底层接口一致
-- 生成速度约每页 20-30 秒，11 页以上的 PPT 生成可能耗时 4-8 分钟，请确保超时设置足够（建议 3000 秒）
+- 生成速度约每页 60 秒，20 页以上的 PPT 生成可能耗时 20-30 分钟
 - `aippt.theme_generate_html_pptx` 返回的下载链接通常带时效性，建议尽快消费
 - `deep_research` 的 `references`、`outline` 结果、Markdown 大纲、格式转换后的 `outlines` 等内容可能很长，**必须先写入本地文件**，后续步骤再读取文件内容，避免命令行参数超过长度限制
 
-### 短参数直接调用
+### mcporter短参数直接调用
 
 当参数 JSON 较短（< 2000 字符）时可直接命令行调用：
 
 ```bash
-mcporter call kdocs aippt.theme_questions --args '{"input":"长颈鹿科普PPT"}' --output json --timeout 3000000
+mcporter call kdocs-clawhub aippt.theme_questions --args '{"input":"长颈鹿科普PPT"}' --output json --timeout 1800000
 ```
 
-### 长参数脚本调用
+### mcporter长参数脚本调用
 
 当参数 JSON 超过 2000 字符，或包含 `references`、`outlines`、`content_base64` 等长字段时，**必须使用脚本方式调用**。
 
@@ -81,10 +81,10 @@ const os = require('os');
 const toolName = process.argv[2];
 const argsFile = process.argv[3];
 const outputFile = process.argv[4] || '';
-const timeoutMs = parseInt(process.argv[5] || '300000', 10);
+const timeoutMs = parseInt(process.argv[5] || '1800000', 10);
 const serverName = process.argv[6] || 'kdocs';
 const STDOUT_LIMIT = 8000;
-const TIMEOUT_BUFFER = 3000000;
+const TIMEOUT_BUFFER = 1800000;
 
 if (!toolName || !argsFile) {
   console.error('用法: node _call_mcp.js <toolName> <argsFile> [outputFile] [timeoutMs] [serverName]');
@@ -167,13 +167,13 @@ process.exit(result.status || 0);
 
 ```bash
 # 调用 aippt.theme_outline（参数含长 references）
-node $AIPPT_WORK_DIR/_call_mcp.js aippt.theme_outline $AIPPT_WORK_DIR/03_outline_args.json $AIPPT_WORK_DIR/03_outline.json 3000000
+node $AIPPT_WORK_DIR/_call_mcp.js aippt.theme_outline $AIPPT_WORK_DIR/03_outline_args.json $AIPPT_WORK_DIR/03_outline.json 1800000
 
 # 调用 aippt.theme_generate_html_pptx（参数含长 outlines）
-node $AIPPT_WORK_DIR/_call_mcp.js aippt.theme_generate_html_pptx $AIPPT_WORK_DIR/04_config.json $AIPPT_WORK_DIR/05_ppt_result.json 2000000
+node $AIPPT_WORK_DIR/_call_mcp.js aippt.theme_generate_html_pptx $AIPPT_WORK_DIR/04_config.json $AIPPT_WORK_DIR/05_ppt_result.json 1800000
 
 # 调用 aippt.doc_outline（参数含长 resume_info）
-node $AIPPT_WORK_DIR/_call_mcp.js aippt.doc_outline $AIPPT_WORK_DIR/03_doc_outline_args.json $AIPPT_WORK_DIR/03_outline.md 3000000
+node $AIPPT_WORK_DIR/_call_mcp.js aippt.doc_outline $AIPPT_WORK_DIR/03_doc_outline_args.json $AIPPT_WORK_DIR/03_outline.md 1800000
 ```
 
 #### 关键设计要点
@@ -184,7 +184,7 @@ node $AIPPT_WORK_DIR/_call_mcp.js aippt.doc_outline $AIPPT_WORK_DIR/03_doc_outli
 | `spawnSync` + `process.execPath` | 直接运行 `cli.js`，避免 PATH 查找失败 |
 | 自动探测 mcporter 路径 | 按优先级搜索：环境变量 → Node 同级 → nvm → npm root -g → 默认路径 |
 | `maxBuffer: 50MB` | 防止大输出被截断 |
-| 超时缓冲 +30 秒 | mcporter 内部超时与外层进程超时之间留有余量 |
+| 超时缓冲 +30 分钟 | mcporter 内部超时与外层进程超时之间留有余量 |
 | stdout 截断 8000 字符 | 避免终端刷屏，完整内容写入输出文件 |
 | 过滤 ExperimentalWarning | 清除 Node.js 实验性功能噪声日志 |
 | 兜底 PATH 调用 | cli.js 未找到时，退化为通过 `mcporter` 命令名调用 |
@@ -289,7 +289,7 @@ async function main() {
   const mcporter = await findMcporterModule();
 
   const result = await mcporter.callOnce({
-    server: 'kdocs',
+    server: 'kdocs-clawhub',
     toolName: 'upload_file',
     args: args
   });
@@ -309,19 +309,19 @@ main().catch(e => { console.error('[ERROR]', e.message); process.exit(1); });
 
 ### 各调用方式适用范围
 
-| 工具 / 步骤 | `mcporter call` 命令行 | `_call_mcp.js` 脚本 | `callOnce()` 编程 API |
-| --- | --- | --- | --- |
-| `aippt.theme_questions` | 可以（参数短） | 可以 | 可以 |
-| `aippt.theme_deep_research` | 可以（参数短） | 可以 | 可以 |
-| `aippt.theme_outline` | **不推荐**（`references` 可能很长） | **推荐** | 可以 |
-| `aippt.theme_generate_html_pptx` | **不推荐**（`outlines` 可能很长） | **推荐** | 可以 |
-| `aippt.doc_create_session` | 可以（参数短） | 可以 | 可以 |
-| `aippt.doc_outline_options` | 可以（参数短） | 可以 | 可以 |
-| `aippt.doc_outline` | **不推荐**（`resume_info` 可能较长） | **推荐** | 可以 |
-| `aippt.doc_beautify` | **不推荐**（`outline` 可能很长） | **推荐** | 可以 |
-| `aippt.doc_generate_ppt` | **不推荐**（`outline`+`beautify` 很长） | **推荐** | 可以 |
-| `upload_file`（含 `content_base64`） | **不可用**（超出 OS 命令行限制） | **不可用**（`spawnSync` 同样超限） | **必须使用** |
-| `get_file_link` / `search_files` 等 | 可以（参数短） | 可以 | 可以 |
+| 工具 / 步骤 | `kdocs-cli … @file` | `mcporter call` 命令行 | `_call_mcp.js` 脚本 | `callOnce()` 编程 API |
+| --- | --- | --- | --- | --- |
+| `aippt.theme_questions` | 可以（参数短，也可不用 `@file`） | 可以（参数短） | 可以 | 可以 |
+| `aippt.theme_deep_research` | 可以（参数短，也可不用 `@file`） | 可以（参数短） | 可以 | 可以 |
+| `aippt.theme_outline` | **推荐**（`@file` 绕过长度限制） | **不推荐**（`references` 可能很长） | **推荐** | 可以 |
+| `aippt.theme_generate_html_pptx` | **推荐**（`@file` 绕过长度限制） | **不推荐**（`outlines` 可能很长） | **推荐** | 可以 |
+| `aippt.doc_create_session` | 可以（参数短，也可不用 `@file`） | 可以（参数短） | 可以 | 可以 |
+| `aippt.doc_outline_options` | 可以（参数短，也可不用 `@file`） | 可以（参数短） | 可以 | 可以 |
+| `aippt.doc_outline` | **推荐**（`@file` 绕过长度限制） | **不推荐**（`resume_info` 可能较长） | **推荐** | 可以 |
+| `aippt.doc_beautify` | **推荐**（`@file` 绕过长度限制） | **不推荐**（`outline` 可能很长） | **推荐** | 可以 |
+| `aippt.doc_generate_ppt` | **推荐**（`@file` 绕过长度限制） | **不推荐**（`outline`+`beautify` 很长） | **推荐** | 可以 |
+| `upload_file`（含 `content_base64`） | **推荐**（`@file` 从磁盘读取，绕过 OS 限制） | **不可用**（超出 OS 命令行限制） | **不可用**（`spawnSync` 同样超限） | **mcporter必须使用** |
+| `get_file_link` / `search_files` 等 | 可以（参数短，也可不用 `@file`） | 可以（参数短） | 可以 | 可以 |
 
 ---
 
@@ -653,7 +653,7 @@ with open(file_path, 'w', encoding='utf-8') as f:
 **适用于**：已经拿到稳定的大纲结构，希望进一步生成可下载的演示文稿结果。
 
 - 服务端固定使用 `json2ppt-banana` 场景
-- `outlines` 只做“非空对象数组”校验，推荐直接传入上游生成的标准大纲数组
+- `outlines` 每项须包含 `title`、`content_description`、`design_style`、`page_type` 四个必填字段；推荐传入本地格式转换后的标准 outlines
 - 返回值同时包含逐页结果和合并后的完整 PPTX 链接
 
 
@@ -663,19 +663,25 @@ with open(file_path, 'w', encoding='utf-8') as f:
 
 ```json
 {
-  "topic": "长颈鹿主题演示",
+  "topic": "长颈鹿：自然奇迹与文化象征",
   "outlines": [
     {
-      "title": "封面",
-      "type": "cover"
+      "title": "长颈鹿：自然奇迹与文化象征",
+      "content_description": "封面页展示主题标题，副标题说明这是一份探索长颈鹿生物学特征、进化奥秘与文化内涵的科普报告。",
+      "design_style": "--- 本页版式 ---\n画面铺满全屏，标题居中偏上布局，副标题紧随其下，整体呈现简洁大气的博物馆档案风格",
+      "page_type": "pt_title"
     },
     {
-      "title": "长颈鹿的生活习性",
-      "type": "content"
+      "title": "目录",
+      "content_description": "展示本次报告的递进式认知结构：从生物构造基础到进化理论，再到文化历史关联。",
+      "design_style": "--- 本页版式 ---\n画面铺满全屏，标题位于上方居中，内容以纵向分布的四级目录列表呈现",
+      "page_type": "pt_contents"
     },
     {
       "title": "探索永无止境",
-      "type": "ending"
+      "content_description": "结束页总结长颈鹿从生物进化奇迹到文化符号的多重价值。",
+      "design_style": "--- 本页版式 ---\n画面铺满全屏，居中布局，主标题位于视觉中心",
+      "page_type": "pt_end"
     }
   ]
 }
@@ -685,7 +691,11 @@ with open(file_path, 'w', encoding='utf-8') as f:
 #### 参数说明
 
 - `topic` (string, 必填): 演示文稿标题
-- `outlines` (array[object], 必填): PPT 大纲数组，建议直接传入标准 outlines 结果。每项为 object，至少需为非空对象。
+- `outlines` (array[object], 必填): PPT 大纲数组。每项为 object，须同时包含以下四个必填字段：
+- `title`（string）：该页标题
+- `content_description`（string）：该页正文与内容要点描述
+- `design_style`（string）：该页版式与视觉风格描述
+- `page_type`（string）：页面类型，如 `pt_title` / `pt_contents` / `pt_section_title` / `pt_text` / `pt_end`
 
 
 #### 返回值说明
@@ -860,8 +870,48 @@ with open(file_path, 'w', encoding='utf-8') as f:
 {
   "session_id": "9dbea4d8-b9f7-419c-a4ad-208d4515b8d5",
   "checkpoint_id": "419e8c77-5442-459e-87eb-2637ba53e132",
-  "input": "[与 `aippt.doc_outline_options` 保持一致的输入数组]",
-  "resume_info": "[根据 questions 和 interrupt_id 整理得到的 follow_up 数组]"
+  "input": [
+    {
+      "type": "text",
+      "content": "生成PPT"
+    },
+    {
+      "type": "file_id",
+      "content": "100239253236"
+    }
+  ],
+  "resume_info": [
+    {
+      "type": "follow_up",
+      "id": "45caf5dc-2dd4-48a7-9ba3-8ba2edc67cdd",
+      "data": {
+        "items": [
+          {
+            "type": "choice",
+            "field": "制作目标",
+            "label": "制作目标",
+            "options": [
+              "内部技术培训宣讲"
+            ]
+          },
+          {
+            "type": "choice",
+            "field": "目标受众",
+            "label": "目标受众",
+            "options": [
+              "技术团队成员"
+            ]
+          },
+          {
+            "type": "text",
+            "field": "补充说明",
+            "label": "补充说明",
+            "text_input": "重点突出架构设计和性能优化部分"
+          }
+        ]
+      }
+    }
+  ]
 }
 ```
 
@@ -871,7 +921,15 @@ with open(file_path, 'w', encoding='utf-8') as f:
 - `session_id` (string, 必填): AI 会话 ID
 - `checkpoint_id` (string, 必填): 检查点 ID，来自 `aippt.doc_outline_options`
 - `input` (array[object], 必填): 与获取大纲选项时一致的输入内容数组
-- `resume_info` (array[object], 必填): 恢复信息数组，通常包含 `follow_up` 类型对象及用户选择结果。
+- `resume_info` (array[object], 必填): 恢复信息数组，固定包含一个 `follow_up` 对象。结构如下：
+  - `type` (string): 固定为 `"follow_up"`
+  - `id` (string): 来自 `aippt.doc_outline_options` 返回的 `interrupt_id`
+  - `data.items` (array[object]): 与 `doc_outline_options` 返回的 `questions` 保持相同结构，每项包含：
+    - `type` (string): 题型，与 questions 中一致（`"choice"` 或 `"text"`）
+    - `field` (string): 字段标识，与 questions 中一致
+    - `label` (string): 字段名称，与 questions 中一致
+    - `options` (array[string]): 选择题时填入用户选中的选项（可多选）
+    - `text_input` (string): 文本题时填入用户输入的文本
 
 
 #### 返回值说明

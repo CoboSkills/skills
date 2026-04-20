@@ -6,7 +6,9 @@ import re
 import shutil
 import subprocess
 import sys
+from html import unescape
 from datetime import date, datetime, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Callable, Optional, Tuple
 
@@ -20,6 +22,7 @@ DEFAULT_RSSHUB_BASES: tuple[str, ...] = (
     "https://rsshub.liumingye.cn",
     "https://rsshub.pseudoyu.com",
 )
+DEFAULT_NMC_WEATHER_DAILY_URL = "https://www.nmc.cn/publish/forecast/ABJ/beijing.html"
 
 # 简报加权池基准权重 + BRIEF_FALLBACK_WEIGHT 应合计为 1.0（见 `build_keepalive_brief` 内 assert）
 BRIEF_FALLBACK_WEIGHT = 0.10
@@ -34,6 +37,7 @@ BRIEF_TAG_KEYS: tuple[str, ...] = (
     "rfi-cn",
     "xinhua-whxw",
     "36kr-feed",
+    "nmc-weather-daily",
 )
 
 
@@ -54,24 +58,39 @@ def trim_message(msg: str) -> str:
     return s.strip()
 
 
-def resolve_openclaw_bin(environ: Optional[dict[str, str]] = None) -> Optional[str]:
-    """解析 openclaw 可执行路径。传入 environ 时用于模拟 launchd/cron 下的 PATH（如 --doctor）。"""
+def has_custom_agent_command(environ: Optional[dict[str, str]] = None) -> bool:
     env = environ if environ is not None else os.environ
-    for key in ("OPENCLAW_BIN", "OPENCLAW"):
+    return bool((env.get("KEEPALIVE_AGENT_COMMAND", "") or "").strip())
+
+
+def has_custom_send_command(environ: Optional[dict[str, str]] = None) -> bool:
+    env = environ if environ is not None else os.environ
+    return bool((env.get("KEEPALIVE_SEND_COMMAND", "") or "").strip())
+
+
+def resolve_openclaw_bin(environ: Optional[dict[str, str]] = None) -> Optional[str]:
+    """解析 CLI 可执行路径。默认 openclaw，可通过 KEEPALIVE_CLI_BIN 指向 hermes。"""
+    env = environ if environ is not None else os.environ
+    for key in ("KEEPALIVE_CLI_BIN", "OPENCLAW_BIN", "OPENCLAW"):
         cand = env.get(key)
         if cand and os.path.isfile(cand) and os.access(cand, os.X_OK):
             return cand
     path_var = env.get("PATH") or ""
-    in_path = shutil.which("openclaw", path=path_var)
-    if in_path:
-        return in_path
+    for name in ("openclaw", "hermes"):
+        in_path = shutil.which(name, path=path_var)
+        if in_path:
+            return in_path
     home = str(Path.home())
     nvm_dir = env.get("NVM_DIR") or str(Path(home) / ".nvm")
     candidates = [
         str(Path(home) / ".local/bin/openclaw"),
+        str(Path(home) / ".local/bin/hermes"),
         str(Path(home) / "bin/openclaw"),
+        str(Path(home) / "bin/hermes"),
         "/opt/homebrew/bin/openclaw",
+        "/opt/homebrew/bin/hermes",
         "/usr/local/bin/openclaw",
+        "/usr/local/bin/hermes",
     ]
     node_ver = ""
     try:
@@ -91,6 +110,87 @@ def resolve_openclaw_bin(environ: Optional[dict[str, str]] = None) -> Optional[s
         if os.path.isfile(cand) and os.access(cand, os.X_OK):
             return cand
     return None
+
+
+def run_shell_command(
+    command: str,
+    timeout_sec: int,
+    cwd: Optional[Path] = None,
+    extra_env: Optional[dict[str, str]] = None,
+) -> tuple[int, str]:
+    env = os.environ.copy()
+    if extra_env:
+        env.update(extra_env)
+    return run_cmd(["/bin/sh", "-lc", command], timeout_sec=timeout_sec, cwd=cwd, env=env)
+
+
+def run_agent_command(
+    openclaw_bin: str,
+    agent_id: str,
+    prompt: str,
+    timeout_sec: int,
+) -> tuple[int, str]:
+    custom = os.getenv("KEEPALIVE_AGENT_COMMAND", "").strip()
+    if custom:
+        return run_shell_command(
+            custom,
+            timeout_sec=timeout_sec,
+            cwd=None,
+            extra_env={
+                "KEEPALIVE_PROMPT": prompt,
+                "KEEPALIVE_AGENT_ID": agent_id,
+                "KEEPALIVE_CLI_BIN": openclaw_bin or "",
+            },
+        )
+    if not openclaw_bin:
+        return 127, "openclaw/hermes binary not found"
+    return run_cmd(
+        [
+            openclaw_bin,
+            "agent",
+            "--agent",
+            agent_id,
+            "--thinking",
+            "minimal",
+            "--message",
+            prompt,
+        ],
+        timeout_sec=timeout_sec,
+        cwd=None,
+        env={k: v for k, v in os.environ.items() if k not in ["SKILL_DIR", "OPENCLAW_HOME", "OPENCLAW_CONFIG"]},
+    )
+
+
+def run_send_command(
+    openclaw_bin: str,
+    message: str,
+    channel: str,
+    target: str,
+    cwd: Path,
+    timeout_sec: int,
+) -> tuple[int, str]:
+    custom = os.getenv("KEEPALIVE_SEND_COMMAND", "").strip()
+    if custom:
+        custom_cwd = cwd if cwd.is_dir() else None
+        return run_shell_command(
+            custom,
+            timeout_sec=timeout_sec,
+            cwd=custom_cwd,
+            extra_env={
+                "KEEPALIVE_MESSAGE": message,
+                "KEEPALIVE_CHANNEL": channel,
+                "KEEPALIVE_TARGET": target,
+                "KEEPALIVE_CLI_BIN": openclaw_bin or "",
+            },
+        )
+    if not openclaw_bin:
+        return 127, "openclaw/hermes binary not found"
+    args = [openclaw_bin, "message", "send", "--message", message]
+    if channel:
+        args += ["--channel", channel]
+    if target:
+        args += ["--target", target]
+    return run_cmd(args, timeout_sec=timeout_sec, cwd=cwd)
 
 
 def resolve_openclaw_config() -> Optional[Path]:
@@ -148,6 +248,46 @@ def write_local_config(skill_dir: Path, data: dict[str, Any]) -> None:
     cfg_file = skill_dir / "config.json"
     cfg_file.parent.mkdir(parents=True, exist_ok=True)
     cfg_file.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def resolve_weather_city(skill_dir: Path) -> str:
+    """解析天气城市：环境变量 > 本地 config.json > 默认北京。"""
+    env_city = (os.getenv("KEEPALIVE_WEATHER_CITY", "") or "").strip()
+    if env_city:
+        return env_city
+    local_cfg = read_local_config(skill_dir) if skill_dir.is_dir() else {}
+    city = str(local_cfg.get("weatherCity", "")).strip()
+    if city:
+        return city
+    script_dir = Path(__file__).parent.resolve()
+    if script_dir != skill_dir:
+        local_cfg2 = read_local_config(script_dir)
+        city2 = str(local_cfg2.get("weatherCity", "")).strip()
+        if city2:
+            return city2
+    return "北京"
+
+
+def weather_append_enabled() -> bool:
+    v = os.getenv("KEEPALIVE_APPEND_WEATHER", "1").strip().lower()
+    return v not in ("0", "off", "false", "no")
+
+
+def weather_strict_realtime_enabled() -> bool:
+    """默认严格模式：温度仅信任 /rest/weather 实时接口。"""
+    v = os.getenv("KEEPALIVE_WEATHER_STRICT_REALTIME", "1").strip().lower()
+    return v not in ("0", "off", "false", "no")
+
+
+def normalize_city_name(city: str) -> str:
+    s = (city or "").strip()
+    if not s:
+        return ""
+    for suf in ("特别行政区", "自治州", "地区", "盟", "市", "区", "县"):
+        if s.endswith(suf) and len(s) > len(suf):
+            s = s[: -len(suf)]
+            break
+    return s
 
 
 def get_default_channel_target(cfg: dict[str, Any]) -> tuple[str, str]:
@@ -302,26 +442,29 @@ def interactive_setup(skill_dir: Path, cfg: dict[str, Any]) -> int:
         picked = channels[int(choice) - 1]
     local_cfg = read_local_config(skill_dir)
     old_target = str(local_cfg.get("defaultTarget", "")).strip()
-    old_city = str(local_cfg.get("weatherCity", "")).strip()
-
     target_prompt = "请输入目标 target（例如 user:ou_xxx 或 group:chat_id；留空=当前会话）"
     if old_target:
         target_prompt += f" [默认 {old_target}]"
     target = input(target_prompt + ": ").strip() or old_target
-    city_prompt = "请输入天气城市（首次安装必填，例如 北京）"
-    if old_city:
-        city_prompt += f" [默认 {old_city}]"
-    city = input(city_prompt + ": ").strip() or old_city or "北京"
-    if not city:
-        eprint("天气城市不能为空。")
-        return 1
-    write_local_config(
-        skill_dir,
+    old_city = str(local_cfg.get("weatherCity", "")).strip() or "北京"
+    city = input(f"请输入天气城市（用于天气提取，如 北京/上海） [默认 {old_city}]: ").strip() or old_city
+    if normalize_city_name(city) != "北京":
+        print(
+            "提示：当前输入不是北京。请先打开 "
+            "https://www.nmc.cn/publish/forecast/ABJ/beijing.html 选择你想要的城市，"
+            "然后让用户的 LLM 记住该城市名称。"
+        )
+    merged_cfg = dict(local_cfg)
+    merged_cfg.update(
         {
             "defaultChannel": picked,
             "defaultTarget": target,
             "weatherCity": city,
-        },
+        }
+    )
+    write_local_config(
+        skill_dir,
+        merged_cfg,
     )
     print(f"已保存配置：{skill_dir / 'config.json'}")
     return 0
@@ -479,88 +622,6 @@ def fetch_rsshub_route(
     return ""
 
 
-def resolve_weather_city(skill_dir: Path) -> str:
-    env_city = (os.getenv("KEEPALIVE_WEATHER_CITY") or "").strip()
-    if env_city:
-        return env_city
-    cfg = read_local_config(skill_dir)
-    city = str(cfg.get("weatherCity", "")).strip()
-    if city:
-        return city
-    script_cfg = read_local_config(Path(__file__).resolve().parent)
-    city2 = str(script_cfg.get("weatherCity", "")).strip()
-    if city2:
-        return city2
-    return "北京"
-
-
-def fetch_weather_bundle(city: str, locale: str) -> tuple[str, str]:
-    """一次 HTTP 请求拉取天气：返回 (现象词, 单行摘要)。失败为 ("", "")。"""
-    import urllib.parse
-    import urllib.request
-
-    c = (city or "").strip()
-    if not c:
-        return "", ""
-    base = (
-        "https://autodev.openspeech.cn/csp/api/v2.1/weather"
-        "?openId=aiuicus&clientType=android&sign=android&city="
-    )
-    url = base + urllib.parse.quote(c)
-    try:
-        req = urllib.request.Request(
-            url,
-            headers={
-                "User-Agent": (
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                    "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
-                )
-            },
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        if not isinstance(data, dict) or int(data.get("code", -1)) != 0:
-            return "", ""
-        arr = ((data.get("data") or {}).get("list") or [])
-        if not isinstance(arr, list) or not arr:
-            return "", ""
-        cur = arr[0] if isinstance(arr[0], dict) else {}
-        cond = str(cur.get("weather") or "").strip()
-        cc = str(cur.get("city") or c).strip()
-        weather = cond
-        temp = cur.get("temp")
-        low = cur.get("low")
-        high = cur.get("high")
-        wind = str(cur.get("wind") or "").strip()
-        aq = str(cur.get("airQuality") or "").strip()
-        pm25 = cur.get("pm25")
-        if locale == "en":
-            line = (
-                f"Weather: {cc} {weather}, {temp}C ({low}-{high}C), "
-                f"{wind}, air {aq}, PM2.5 {pm25}."
-            )
-        else:
-            line = (
-                f"天气：{cc} {weather}，{temp}°C（{low}~{high}°C），"
-                f"{wind}，空气{aq}，PM2.5 {pm25}。"
-            )
-        return cond, line
-    except Exception:
-        return "", ""
-
-
-def fetch_weather_summary(city: str, locale: str) -> str:
-    """通过 autodev weather API 获取单行天气摘要。失败返回空字符串。"""
-    _, s = fetch_weather_bundle(city, locale)
-    return s
-
-
-def fetch_weather_condition_text(city: str) -> str:
-    """仅返回天气现象词（如雨夹雪），失败返回空。用于简报权重微调。"""
-    c, _ = fetch_weather_bundle(city, "zh")
-    return c
-
-
 def fetch_bilibili_hot_search(count: int = 5) -> str:
     """获取 B 站热搜（官方 API）。
     
@@ -598,6 +659,246 @@ def fetch_bilibili_hot_search(count: int = 5) -> str:
         return "\n".join(out) if out else ""
     except Exception:
         return ""
+
+
+def _extract_nmc_daily_weather_points(text: str, count: int) -> list[str]:
+    """从中央气象台「每日天气提示」页面提炼关键句。"""
+    if not text:
+        return []
+    cleaned = unescape(text)
+    cleaned = re.sub(r"<script[\s\S]*?</script>", " ", cleaned, flags=re.I)
+    cleaned = re.sub(r"<style[\s\S]*?</style>", " ", cleaned, flags=re.I)
+    cleaned = re.sub(r"<[^>]+>", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
+    fragments = re.split(r"[。！？]", cleaned)
+    keywords = (
+        "大风",
+        "沙尘",
+        "降温",
+        "大雾",
+        "降雨",
+        "暴雨",
+        "强对流",
+        "雨雪",
+        "预警",
+        "气温",
+    )
+    reject_keywords = (
+        "热门城市",
+        "天气实况",
+        "天气预报",
+        "台风海洋",
+        "全球预报",
+        "环境气象",
+        "农业气象",
+        "数值预报",
+        "当前位置",
+        "字号",
+        "打印",
+        "首页",
+    )
+    out: list[str] = []
+    for frag in fragments:
+        s = (frag or "").strip(" ：:，,；;。")
+        if len(s) < 12:
+            continue
+        if any(k in s for k in reject_keywords):
+            continue
+        if not any(k in s for k in keywords):
+            continue
+        if len(s) > 110:
+            s = s[:110].rstrip("，,；; ") + "…"
+        if s in out:
+            continue
+        out.append(s)
+        if len(out) >= count:
+            break
+    return out
+
+
+def _extract_nmc_city_snapshot(text: str, city: str) -> str:
+    """在页面文本中提取指定城市实况片段，如：北京 18.3℃ 西南风 微风。"""
+    if not text or not city:
+        return ""
+    cleaned = unescape(text)
+    cleaned = re.sub(r"<script[\s\S]*?</script>", " ", cleaned, flags=re.I)
+    cleaned = re.sub(r"<style[\s\S]*?</style>", " ", cleaned, flags=re.I)
+    cleaned = re.sub(r"<[^>]+>", " ", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    pattern = re.compile(
+        rf"({re.escape(city)}\s+-?\d+(?:\.\d+)?℃\s+[^\s]{{1,10}}\s+[^\s]{{1,10}})",
+        re.I,
+    )
+    m = pattern.search(cleaned)
+    return (m.group(1) if m else "").strip()
+
+
+def _extract_nmc_publish_time(text: str) -> str:
+    """提取页面中的天气提示发布时间，如 2026-04-20 08时。"""
+    if not text:
+        return ""
+    m = re.search(
+        r"\*\*(\d{4})\*\*\s*年\s*\*\*(\d{2})\*\*\s*月\s*\*\*(\d{2})\*\*\s*日\s*\*\*(\d{2})\*\*\s*时",
+        text,
+    )
+    if not m:
+        m = re.search(r"(\d{4})\s*年\s*(\d{2})\s*月\s*(\d{2})\s*日\s*(\d{2})\s*时", text)
+    if not m:
+        return ""
+    return f"{m.group(1)}-{m.group(2)}-{m.group(3)} {m.group(4)}时"
+
+
+def _fetch_json_url(url: str, timeout: int = 12) -> Any:
+    import urllib.request
+
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Safari/537.36"
+            ),
+            "Accept": "application/json",
+            "Cache-Control": "no-cache, no-store, max-age=0",
+            "Pragma": "no-cache",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8", errors="ignore"))
+
+
+@lru_cache(maxsize=256)
+def _resolve_nmc_station_code(city: str, base: str) -> str:
+    """通过 NMC 省市接口解析城市对应站点 code。"""
+    city_name = normalize_city_name(city)
+    if not city_name:
+        return ""
+    try:
+        all_provinces = _fetch_json_url(f"{base}/rest/province/all")
+    except Exception:
+        return ""
+    if not isinstance(all_provinces, list):
+        return ""
+    for p in all_provinces:
+        pcode = str((p or {}).get("code") or "").strip()
+        if not pcode:
+            continue
+        try:
+            cities = _fetch_json_url(f"{base}/rest/province/{pcode}")
+        except Exception:
+            continue
+        if not isinstance(cities, list):
+            continue
+        for c in cities:
+            cname = str((c or {}).get("city") or "").strip()
+            if cname == city_name or normalize_city_name(cname) == city_name:
+                return str((c or {}).get("code") or "").strip()
+    return ""
+
+
+def _nmc_base_url() -> str:
+    """从天气 URL 推导 API 基础域名，保证数据源一致。"""
+    import urllib.parse
+
+    raw = os.getenv("KEEPALIVE_NMC_WEATHER_URL", "").strip() or DEFAULT_NMC_WEATHER_DAILY_URL
+    try:
+        u = urllib.parse.urlsplit(raw)
+        if u.scheme and u.netloc:
+            return f"{u.scheme}://{u.netloc}"
+    except Exception:
+        pass
+    return "https://www.nmc.cn"
+
+
+def _fetch_nmc_realtime_city_weather(city: str) -> tuple[str, str]:
+    """读取 NMC 实时接口，返回 (天气行主体, 发布时间)。"""
+    city_name = normalize_city_name(city)
+    if not city_name:
+        return "", ""
+    base = _nmc_base_url()
+    code = _resolve_nmc_station_code(city_name, base)
+    if not code:
+        return "", ""
+    ts = int(datetime.now().timestamp())
+    try:
+        payload = _fetch_json_url(f"{base}/rest/weather?stationid={code}&_ts={ts}")
+    except Exception:
+        return "", ""
+    data = payload.get("data") if isinstance(payload, dict) else None
+    if not isinstance(data, dict):
+        return "", ""
+    real = data.get("real")
+    if not isinstance(real, dict):
+        return "", ""
+    station = real.get("station") if isinstance(real.get("station"), dict) else {}
+    weather = real.get("weather") if isinstance(real.get("weather"), dict) else {}
+    wind = real.get("wind") if isinstance(real.get("wind"), dict) else {}
+    c = str(station.get("city") or city_name).strip() or city_name
+    temp = weather.get("temperature")
+    temp_s = "-" if temp in (None, "9999", 9999) else f"{temp}℃"
+    wd = str(wind.get("direct") or "-").strip()
+    ws = str(wind.get("power") or "-").strip()
+    line = f"天气：{c} {temp_s} {wd} {ws}"
+    publish_time = str(real.get("publish_time") or "").strip()
+    return line, publish_time
+
+
+def fetch_nmc_weather_daily(city: str, count: int = 1, with_links: bool = False) -> str:
+    """抓取中央气象台每日天气提示并按城市提取单行天气信息。"""
+    import urllib.request
+
+    url = os.getenv("KEEPALIVE_NMC_WEATHER_URL", "").strip() or DEFAULT_NMC_WEATHER_DAILY_URL
+    ts = int(datetime.now().timestamp())
+    fetch_url = f"{url}{'&' if '?' in url else '?'}_ts={ts}"
+    try:
+        req = urllib.request.Request(
+            fetch_url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Safari/537.36"
+                ),
+                "Cache-Control": "no-cache, no-store, max-age=0",
+                "Pragma": "no-cache",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            html_text = resp.read().decode("utf-8", errors="ignore")
+    except Exception:
+        return ""
+
+    city_name = normalize_city_name(city) or "北京"
+    realtime_line, realtime_publish = _fetch_nmc_realtime_city_weather(city_name)
+    if weather_strict_realtime_enabled() and not realtime_line:
+        return ""
+    publish_time = _extract_nmc_publish_time(html_text)
+    city_snapshot = _extract_nmc_city_snapshot(html_text, city_name)
+    points = _extract_nmc_daily_weather_points(html_text, max(1, min(count, 5)))
+    if not realtime_line and not points and not city_snapshot:
+        return ""
+    out: list[str] = []
+    if realtime_line:
+        out.append(realtime_line)
+    elif city_snapshot:
+        out.append(f"天气：{city_snapshot}")
+    else:
+        out.append(f"天气：{city_name}（页面未命中该城市实况，以下为全国天气提示）")
+    if points:
+        # 让同一天不同时段可读到不同提醒，避免“永远同一句”的观感。
+        pick_idx = (datetime.now().day + datetime.now().hour) % len(points)
+        picked = points[pick_idx].strip()
+        if len(picked) > 48:
+            picked = picked[:48].rstrip("，,；; ") + "…"
+        out[0] = f"{out[0]}｜提示：{picked}"
+    if realtime_publish:
+        out[0] = f"{out[0]}｜发布时间：{realtime_publish}"
+    elif publish_time:
+        out[0] = f"{out[0]}｜发布时间：{publish_time}"
+    first_line = out[0]
+    if with_links:
+        return f"{first_line} [{url}]"
+    return first_line
 
 
 def pick_rotating_theme() -> int:
@@ -784,15 +1085,6 @@ def _brief_rotation_enabled() -> bool:
     )
 
 
-def _brief_weather_bias_enabled() -> bool:
-    return os.getenv("KEEPALIVE_BRIEF_WEATHER_BIAS", "1").strip().lower() not in (
-        "0",
-        "off",
-        "false",
-        "no",
-    )
-
-
 def _brief_holiday_boost_enabled() -> bool:
     return os.getenv("KEEPALIVE_BRIEF_HOLIDAY_BOOST", "1").strip().lower() not in (
         "0",
@@ -844,6 +1136,7 @@ def _brief_time_weight_multipliers(bucket: str) -> dict[str, float]:
         for t in ("zhihu-daily", "infzm-recommends"):
             m[t] = 1.5
         m["xinhua-whxw"] = 1.1
+        m["nmc-weather-daily"] = 1.25
         m["36kr-feed"] = 1.0
         for t in ("bilibili-weekly", "sspai-feed", "guokr-scientific"):
             m[t] = 0.35
@@ -856,6 +1149,7 @@ def _brief_time_weight_multipliers(bucket: str) -> dict[str, float]:
             "rfi-cn",
         ):
             m[t] = 2.0
+        m["nmc-weather-daily"] = 2.2
         m["guokr-scientific"] = 1.45
         m["36kr-feed"] = 1.55
         m["bilibili-weekly"] = 0.45
@@ -871,6 +1165,7 @@ def _brief_time_weight_multipliers(bucket: str) -> dict[str, float]:
         ):
             m[t] = 2.0
         m["xinhua-whxw"] = 1.55
+        m["nmc-weather-daily"] = 1.8
         m["rfi-cn"] = 1.0
         m["idaily-today"] = 0.9
     else:
@@ -881,26 +1176,9 @@ def _brief_time_weight_multipliers(bucket: str) -> dict[str, float]:
         m["guokr-scientific"] = 1.45
         m["36kr-feed"] = 1.45
         m["xinhua-whxw"] = 1.1
+        m["nmc-weather-daily"] = 1.15
         for t in ("idaily-today", "rfi-cn"):
             m[t] = 0.65
-    return m
-
-
-def _brief_weather_multipliers(weather_text: str) -> dict[str, float]:
-    """雨雪天略提高国内、压低环球视野（本地天气影响）。"""
-    m = {t: 1.0 for t in BRIEF_TAG_KEYS}
-    if not _brief_weather_bias_enabled() or not weather_text:
-        return m
-    w = weather_text.lower()
-    bad = ("雨", "雪", "雹", "雷阵", "阵雪", "雨雪", "雨夹")
-    if not any(x in weather_text for x in bad) and not any(
-        x in w for x in ("rain", "snow", "sleet", "storm", "drizzle", "hail")
-    ):
-        return m
-    m["rfi-cn"] *= 1.12
-    for t in ("zhihu-daily", "infzm-recommends", "xinhua-whxw", "guokr-scientific", "36kr-feed"):
-        m[t] *= 1.12
-    m["idaily-today"] *= 0.62
     return m
 
 
@@ -925,6 +1203,7 @@ def _brief_holiday_multipliers(d: date) -> dict[str, float]:
         m[t] *= 1.35
     for t in ("sspai-feed", "36kr-feed"):
         m[t] *= 1.12
+    m["nmc-weather-daily"] *= 0.95
     return m
 
 
@@ -959,17 +1238,27 @@ def _brief_rotation_multipliers(bucket: str) -> dict[str, float]:
     else:
         slot = pick_rotating_theme()
         if slot == 1:
-            for t in ("idaily-today", "zhihu-daily", "infzm-recommends", "xinhua-whxw", "36kr-feed"):
+            for t in (
+                "idaily-today",
+                "zhihu-daily",
+                "infzm-recommends",
+                "xinhua-whxw",
+                "36kr-feed",
+                "nmc-weather-daily",
+            ):
                 m[t] *= 1.38
         elif slot == 2:
             for t in ("idaily-today", "rfi-cn"):
                 m[t] *= 1.32
+            m["nmc-weather-daily"] *= 1.18
         elif slot == 3:
             for t in ("sspai-feed", "zhihu-daily", "infzm-recommends", "guokr-scientific", "36kr-feed"):
                 m[t] *= 1.38
+            m["nmc-weather-daily"] *= 0.92
         else:
             for t in ("bilibili-weekly", "idaily-today", "36kr-feed"):
                 m[t] *= 1.38
+            m["nmc-weather-daily"] *= 1.12
     return m
 
 
@@ -989,11 +1278,23 @@ def _hot_fallback_step_order(
     """兜底链路与 `_brief_time_bucket` 对齐：晚间偏 B 站/虎嗅，凌晨/早晨偏国际视野/虎嗅等。"""
     prefer: tuple[str, ...]
     if time_bucket == "evening":
-        prefer = ("bilibili-weekly", "infzm-recommends", "guokr-scientific", "36kr-feed", "huxiu-rss")
+        prefer = (
+            "bilibili-weekly",
+            "infzm-recommends",
+            "guokr-scientific",
+            "36kr-feed",
+            "huxiu-rss",
+        )
     elif time_bucket == "night":
         prefer = ("idaily-today", "rfi-cn", "huxiu-rss")
     elif time_bucket == "morning":
-        prefer = ("xinhua-whxw", "infzm-recommends", "rfi-cn", "36kr-feed", "huxiu-rss")
+        prefer = (
+            "xinhua-whxw",
+            "infzm-recommends",
+            "rfi-cn",
+            "36kr-feed",
+            "huxiu-rss",
+        )
     elif time_bucket == "day":
         prefer = (
             "bilibili-weekly",
@@ -1028,6 +1329,7 @@ def run_theme_hot_fallback(
     used: set[str],
     rng: Any,
     time_bucket: str = "",
+    weather_city: str = "",
 ) -> tuple[str, str]:
     """热点兜底：多轮随机打乱顺序重试；跳过当日已用过的源；均失败再无视跳过重试。
 
@@ -1178,7 +1480,11 @@ def run_theme(theme: int, with_links: bool = False) -> str:
         h = fetch_rss_titles("https://rss.huxiu.com/", 5, with_links=with_links)
         return f"🛰️ 科技动态（虎嗅）\n{h}" if h else "🛰️ 科技动态暂时抓取较少。"
     raw, _ = run_theme_hot_fallback(
-        with_links, set(), __import__("random").Random(), time_bucket=""
+        with_links,
+        set(),
+        __import__("random").Random(),
+        time_bucket="",
+        weather_city=(os.getenv("KEEPALIVE_WEATHER_CITY", "") or "北京"),
     )
     return raw
 
@@ -1194,7 +1500,6 @@ def _brief_take_lines(raw: str, max_n: int = 5) -> Optional[list[str]]:
 def build_keepalive_brief(
     with_links: bool = False,
     skill_dir: Optional[Path] = None,
-    weather_condition: Optional[str] = None,
 ) -> tuple[str, str]:
     """组装 RSS 原始行；成稿规则见 `prompts/rewrite-main.md`。
 
@@ -1203,6 +1508,8 @@ def build_keepalive_brief(
     import random
 
     rng = random.Random()
+    resolved_skill_dir = skill_dir if skill_dir is not None else Path(__file__).parent.resolve()
+    weather_city = resolve_weather_city(resolved_skill_dir)
     today = datetime.now().strftime("%Y-%m-%d")
     daily_once = _brief_daily_once_enabled()
     used: set[str] = set()
@@ -1212,16 +1519,10 @@ def build_keepalive_brief(
         if d != today:
             used = set()
 
-    sd = skill_dir if skill_dir is not None else Path(__file__).resolve().parent
     bucket = _brief_time_bucket()
-    if weather_condition is not None:
-        wtxt = weather_condition
-    else:
-        wtxt = fetch_weather_condition_text(resolve_weather_city(sd))
     merged = _brief_merge_mult(
         _brief_time_weight_multipliers(bucket),
         _brief_rotation_multipliers(bucket),
-        _brief_weather_multipliers(wtxt),
         _brief_holiday_multipliers(date.today()),
     )
     fin: dict[str, float] = {}
@@ -1299,9 +1600,15 @@ def build_keepalive_brief(
 
     chaos_p = _brief_chaos_probability()
     if chaos_p > 0 and rng.random() < chaos_p:
-        chaos_eligible = [t for t in BRIEF_TAG_KEYS if (not daily_once or t not in used)]
+        chaos_eligible = [
+            t
+            for t in BRIEF_TAG_KEYS
+            if t != "nmc-weather-daily" and (not daily_once or t not in used)
+        ]
         rng.shuffle(chaos_eligible)
         for tag in chaos_eligible:
+            if tag not in fetch_by_tag:
+                continue
             raw_try = fetch_by_tag[tag]()
             picked = _brief_take_lines(raw_try)
             if picked:
@@ -1312,7 +1619,7 @@ def build_keepalive_brief(
         (t, w * fin.get(t, 1.0), f) for t, w, f in base_weighted
     ]
 
-    eligible = [(t, w, f) for t, w, f in weighted if not daily_once or t not in used]
+    eligible = [(t, w, f) for t, w, f in weighted if w > 0 and (not daily_once or t not in used)]
     w_sum = sum(w for _, w, _ in eligible)
     if eligible and w_sum > 0:
         total = w_sum + BRIEF_FALLBACK_WEIGHT
@@ -1338,14 +1645,18 @@ def build_keepalive_brief(
                         return mark_and_return("\n".join(picked), tag)
 
     raw, sub_tag = run_theme_hot_fallback(
-        with_links, used if daily_once else set(), rng, time_bucket=bucket
+        with_links,
+        used if daily_once else set(),
+        rng,
+        time_bucket=bucket,
+        weather_city=weather_city,
     )
     lines = [re.sub(r"^\d+\.\s*", "", x.strip()) for x in raw.splitlines() if x.strip()]
     # 丢弃源标题行（如“📺 B站每周必看（RSSHub）”），仅保留真实条目
     lines = [
         x
         for x in lines
-        if not re.match(r"^[📰🛰️🔥📺]\s*\S+", x)
+        if not re.match(r"^[📰🛰️🔥📺🌤️]\s*\S+", x)
         or re.search(r"\[https?://[^\]]+\]|\(https?://[^)]+\)", x)
     ]
     lines = [x for x in lines if not re.search(r"编排说明|优先级|policy|priority", x, re.I)]
@@ -1415,6 +1726,7 @@ def theme_section_label(locale: str, theme_tag: str) -> str:
             "rfi-cn": "RFI Chinese",
             "xinhua-whxw": "Xinhua (news.cn)",
             "36kr-feed": "36Kr",
+            "nmc-weather-daily": "NMC daily weather",
             "brief-chaos": "Surprise picks",
             "hots-multi": "Hot picks",
             "hots-single": "Hot picks",
@@ -1431,6 +1743,7 @@ def theme_section_label(locale: str, theme_tag: str) -> str:
         "rfi-cn": "法广中文网",
         "xinhua-whxw": "新华社新闻",
         "36kr-feed": "36氪",
+        "nmc-weather-daily": "天气提示",
         "brief-chaos": "随机盲盒",
         "hots-multi": "热点快览",
         "hots-single": "热点快览",
@@ -1460,26 +1773,6 @@ def parse_greeting_topic_line(locale: str, line: str) -> Optional[Tuple[str, str
     if m:
         return m.group(1).strip(), m.group(2).strip()
     return None
-
-
-def move_weather_to_end(text: str) -> str:
-    """将「天气：」/「Weather:」段落移到正文末尾。"""
-    msg = (text or "").strip()
-    if not msg:
-        return text
-    parts = [p for p in re.split(r"\n\n+", msg) if p.strip()]
-    if len(parts) < 2:
-        return text
-    weather_idx = [
-        i
-        for i, p in enumerate(parts)
-        if re.match(r"^(天气：|Weather:)", p.strip(), re.I)
-    ]
-    if not weather_idx:
-        return text
-    weather_blocks = [parts[i] for i in weather_idx]
-    rest = [parts[i] for i in range(len(parts)) if i not in weather_idx]
-    return "\n\n".join(rest + weather_blocks)
 
 
 def insert_wellness_after_greeting(message: str, hint: str, locale: str) -> str:
@@ -1542,6 +1835,23 @@ def _clickable_title(line: str) -> str:
     return s
 
 
+def _is_weather_item_line(line: str) -> bool:
+    s = (line or "").strip().lower()
+    if not s:
+        return False
+    if "nmc.cn/publish/weatherperday" in s:
+        return True
+    if s.startswith("天气：") or s.startswith("weather:"):
+        return True
+    return "每日天气提示" in s or "weather daily" in s
+
+
+def _weather_last_sort_items(items: list[str]) -> list[str]:
+    normal = [x for x in items if not _is_weather_item_line(x)]
+    weather = [x for x in items if _is_weather_item_line(x)]
+    return normal + weather if weather else items
+
+
 def normalize_clickable_ordered_items(text: str) -> str:
     """将有序列表中的 `标题 [URL]` 规范化为可点击的 `[标题](URL)`。"""
     lines = (text or "").splitlines()
@@ -1558,6 +1868,22 @@ def normalize_clickable_ordered_items(text: str) -> str:
     return "\n".join(out)
 
 
+def move_weather_ordered_items_to_end(text: str) -> str:
+    """将有序列表中的天气条目挪到列表末尾，并重排编号。"""
+    lines = (text or "").splitlines()
+    indexed: list[tuple[int, str]] = []
+    for idx, line in enumerate(lines):
+        m = re.match(r"^\s*\d+\.\s+(.+)$", line.strip())
+        if m:
+            indexed.append((idx, m.group(1).strip()))
+    if len(indexed) <= 1:
+        return text
+    reordered = _weather_last_sort_items([x[1] for x in indexed])
+    for n, (idx, _) in enumerate(indexed, 1):
+        lines[idx] = f"{n}. {reordered[n - 1]}"
+    return "\n".join(lines)
+
+
 def format_smart_report_fallback(locale: str, hour: int, brief: str, theme_tag: str) -> str:
     """agent 不可用时的固定版式兜底，逻辑以提示词为准，此处仅保证结构一致。"""
     title = REPORT_TITLE_MD
@@ -1567,11 +1893,7 @@ def format_smart_report_fallback(locale: str, hour: int, brief: str, theme_tag: 
     if not b:
         b = "No usable items this round." if locale == "en" else "本轮暂无可用条目。"
     parts = [p.strip() for p in b.splitlines() if p.strip()]
-    weather = ""
-    if parts and re.match(r"^(天气：|Weather:)", parts[0], re.I):
-        weather = parts[0]
-        parts = parts[1:]
-    items = [_clickable_title(p) for p in parts]
+    items = _weather_last_sort_items([_clickable_title(p) for p in parts])
     intro = greeting_with_topic_line(locale, greet, label)
     if len(items) > 1:
         body_main = "\n".join(f"{i + 1}. {p}" for i, p in enumerate(items))
@@ -1579,16 +1901,13 @@ def format_smart_report_fallback(locale: str, hour: int, brief: str, theme_tag: 
         body_main = items[0]
     else:
         body_main = ""
-    if weather and body_main:
-        body = f"{body_main}\n\n{weather}"
-    else:
-        body = body_main or weather or b
+    body = body_main or b
     return f"{title}\n\n{intro}\n\n{body}"
 
 
 FALLBACK_REWRITE_PROMPT = """你是定时推送编辑。按「保活简报 keepalive」版式只输出最终正文，不要代码围栏。
 
-版式：第一行「**保活简报 keepalive**」；空一行；第二段**单独一行**：zh 为「时段问候｜ 以下是{{THEME_HINT}}」（「以下是」与栏目名之间无空格，与「{{THEME_HINT}}」示例一致）；en 为「时段问候 — Below: {{THEME_HINT}}」。再空一行接有序列表（`1. [标题](URL)`）；**列表中 [标题] 须与素材原标题逐字一致（各类信息源均不得改写）**。天气行（若有）在列表之后、全文最后。作息关怀由脚本插入，**不要**写在正文里。禁止「听说」「刚看到」等口语起句。locale={{LOCALE}}。
+版式：第一行「**保活简报 keepalive**」；空一行；第二段**单独一行**：zh 为「时段问候｜ 以下是{{THEME_HINT}}」（「以下是」与栏目名之间无空格，与「{{THEME_HINT}}」示例一致）；en 为「时段问候 — Below: {{THEME_HINT}}」。再空一行接有序列表（`1. [标题](URL)`）；**列表中 [标题] 须与素材原标题逐字一致（各类信息源均不得改写）**。若包含天气条目（如天气提示/天气：/Weather:），必须放到列表最后，且天气行应优先采用初始化城市「{{WEATHER_CITY}}」对应信息。作息关怀由脚本插入，**不要**写在正文里。禁止「听说」「刚看到」等口语起句。locale={{LOCALE}}。
 
 风格：{{STYLE_GUIDE}}
 
@@ -1720,20 +2039,11 @@ def generate_wellness_hint(
         },
     )
 
-    code, out = run_cmd(
-        [
-            openclaw_bin,
-            "agent",
-            "--agent",
-            agent_id,
-            "--thinking",
-            "minimal",
-            "--message",
-            prompt,
-        ],
+    code, out = run_agent_command(
+        openclaw_bin=openclaw_bin,
+        agent_id=agent_id,
+        prompt=prompt,
         timeout_sec=20,
-        cwd=None,
-        env={k: v for k, v in os.environ.items() if k not in ["SKILL_DIR", "OPENCLAW_HOME", "OPENCLAW_CONFIG"]},
     )
     if code == 0:
         line = out.strip().splitlines()[0].strip() if out.strip() else ""
@@ -1809,20 +2119,11 @@ def generate_status_footer_line(
             "AGENT_NAME": agent_name or "（未注入，请仍用 IDENTITY.md 的 NAME）",
         },
     )
-    code, out = run_cmd(
-        [
-            openclaw_bin,
-            "agent",
-            "--agent",
-            agent_id,
-            "--thinking",
-            "minimal",
-            "--message",
-            prompt,
-        ],
+    code, out = run_agent_command(
+        openclaw_bin=openclaw_bin,
+        agent_id=agent_id,
+        prompt=prompt,
         timeout_sec=20,
-        cwd=None,
-        env={k: v for k, v in os.environ.items() if k not in ["SKILL_DIR", "OPENCLAW_HOME", "OPENCLAW_CONFIG"]},
     )
     if code == 0:
         line = out.strip().splitlines()[0].strip() if out.strip() else ""
@@ -1887,13 +2188,12 @@ def appendix_wellness_hint(
 def generate_message(
     openclaw_bin: str, locale: str, skill_dir: Path, agent_id: str
 ) -> tuple[str, str]:
+    brief, theme_tag = build_keepalive_brief(with_links=True, skill_dir=skill_dir)
     weather_city = resolve_weather_city(skill_dir)
-    wcond, weather_line = fetch_weather_bundle(weather_city, locale)
-    brief, theme_tag = build_keepalive_brief(
-        with_links=True, skill_dir=skill_dir, weather_condition=wcond
-    )
-    if weather_line:
-        brief = f"{weather_line}\n{brief}"
+    if weather_append_enabled():
+        weather_line = fetch_nmc_weather_daily(weather_city, 1, with_links=True)
+        if weather_line.strip():
+            brief = f"{brief}\n{weather_line}"
     now = datetime.now()
     style = os.getenv("KEEPALIVE_STYLE_GUIDE", "").strip() or "（无）"
     tpl = load_prompt_file(skill_dir, "rewrite-main.md")
@@ -1909,26 +2209,15 @@ def generate_message(
             "LOCAL_TIME": now.strftime("%Y-%m-%d %H:%M:%S"),
             "STYLE_GUIDE": style,
             "THEME_HINT": theme_section_label(locale, theme_tag),
+            "WEATHER_CITY": weather_city,
         },
     )
 
-    agent_env = {
-        k: v for k, v in os.environ.items() if k not in ["SKILL_DIR", "OPENCLAW_HOME", "OPENCLAW_CONFIG"]
-    }
-    code, out = run_cmd(
-        [
-            openclaw_bin,
-            "agent",
-            "--agent",
-            agent_id,
-            "--thinking",
-            "minimal",
-            "--message",
-            prompt,
-        ],
+    code, out = run_agent_command(
+        openclaw_bin=openclaw_bin,
+        agent_id=agent_id,
+        prompt=prompt,
         timeout_sec=45,
-        cwd=None,
-        env=agent_env,
     )
     if code == 0 and (out or "").strip():
         text = strip_code_fence(out.strip())
@@ -1943,8 +2232,9 @@ def generate_message(
 
 
 def _finalize_report_text(text: str) -> str:
-    """规范化链接、天气置底。问候与栏目行间距由 main 在插入作息附录后统一收紧。"""
-    t = normalize_clickable_ordered_items(move_weather_to_end(text))
+    """规范化链接。问候与栏目行间距由 main 在插入作息附录后统一收紧。"""
+    t = normalize_clickable_ordered_items(text)
+    t = move_weather_ordered_items_to_end(t)
     return trim_message(t)
 
 
@@ -2042,16 +2332,21 @@ def run_doctor() -> int:
 
     oc_sim = resolve_openclaw_bin(sim_env)
     if oc_sim:
-        print(f"✅ openclaw：{oc_sim}")
+        print(f"✅ CLI 可执行文件：{oc_sim}")
     else:
-        print("❌ 无法在模拟环境下解析 openclaw；请设置 OPENCLAW_BIN 或修正 PATH")
-        bad += 1
+        if has_custom_agent_command(sim_env) and has_custom_send_command(sim_env):
+            print("ℹ️  未解析到 openclaw/hermes，但已配置 KEEPALIVE_AGENT_COMMAND + KEEPALIVE_SEND_COMMAND")
+        else:
+            print("❌ 无法在模拟环境下解析 openclaw/hermes；请设置 KEEPALIVE_CLI_BIN 或修正 PATH")
+            bad += 1
 
     if not cfg_path:
-        print("\n❌ 未找到 openclaw.json（设置 OPENCLAW_CONFIG 或 ~/.openclaw/openclaw.json）")
-        return 2
+        print("\n⚠️  未找到 openclaw.json（设置 OPENCLAW_CONFIG 或 ~/.openclaw/openclaw.json）")
+        print("   若使用 Hermes 或自定义发送命令，可忽略此项。")
+        cfg = {}
+    else:
+        cfg = read_json(cfg_path)
 
-    cfg = read_json(cfg_path)
     channel, target = resolve_effective_channel_target(cfg, skill_dir)
     print(f"\n📋 渠道（解析结果）：{channel or '(CLI 默认路由)'}")
     print(f"📋 target：{target or '(未设置)'}")
@@ -2060,12 +2355,15 @@ def run_doctor() -> int:
     for b in rb:
         print(f"   - {b}")
 
-    ok_ch, msg_ch = validate_channel(cfg, channel)
-    if ok_ch:
-        print("✅ 渠道在 openclaw.json 中存在且已启用")
-    else:
-        print(f"❌ {msg_ch}")
-        bad += 1
+    if cfg_path:
+        ok_ch, msg_ch = validate_channel(cfg, channel)
+        if ok_ch:
+            print("✅ 渠道在 openclaw.json 中存在且已启用")
+        else:
+            print(f"❌ {msg_ch}")
+            bad += 1
+    elif channel:
+        print("ℹ️  当前 channel 来自环境变量/local config（未校验 openclaw.json）")
 
     if oc_sim:
         if channel:
@@ -2111,13 +2409,9 @@ def main() -> int:
     if "--install-cron" in sys.argv:
         return print_scheduler_prompt(openclaw_home, skill_dir, "cron")
 
-    if not cfg_path:
-        eprint("ERROR: openclaw.json not found.")
-        eprint("Fix: set OPENCLAW_CONFIG or run from the correct project directory.")
-        return 2
-
     os.environ["OPENCLAW_HOME"] = str(openclaw_home)
-    os.environ["OPENCLAW_CONFIG"] = str(cfg_path)
+    if cfg_path:
+        os.environ["OPENCLAW_CONFIG"] = str(cfg_path)
     os.environ.setdefault("SKILL_DIR", str(skill_dir))
 
     log_file = Path(os.getenv("LOG_FILE", str(openclaw_home / "logs" / "smart-keepalive.log")))
@@ -2129,16 +2423,20 @@ def main() -> int:
         if err:
             eprint(msg)
 
-    openclaw_bin = resolve_openclaw_bin()
-    if not openclaw_bin:
-        log("ERROR: openclaw binary not found. Set OPENCLAW_BIN=/absolute/path/to/openclaw", True)
+    openclaw_bin = resolve_openclaw_bin() or ""
+    if not openclaw_bin and (not has_custom_agent_command() or not has_custom_send_command()):
+        log(
+            "ERROR: CLI binary not found. Set KEEPALIVE_CLI_BIN (or OPENCLAW_BIN) "
+            "or configure both KEEPALIVE_AGENT_COMMAND and KEEPALIVE_SEND_COMMAND.",
+            True,
+        )
         return 127
 
-    cfg = read_json(cfg_path)
+    cfg = read_json(cfg_path) if cfg_path else {}
     channel, target = resolve_effective_channel_target(cfg, skill_dir)
 
-    ok, reason = validate_channel(cfg, channel)
-    if not ok:
+    ok, reason = validate_channel(cfg, channel) if cfg_path else (True, "")
+    if not ok and not has_custom_send_command():
         log(f"❌ 发送失败：channel '{channel}' 不可用", True)
         log("可能原因：", True)
         log("1) openclaw.json 中没有该 channel", True)
@@ -2150,6 +2448,8 @@ def main() -> int:
         log("3) 或取消 KEEPALIVE_CHANNEL，让 CLI 自动路由", True)
         log(reason, True)
         return 4
+    if cfg_path is None:
+        log("ℹ️  未找到 openclaw.json：将仅使用环境变量/local config 解析 channel/target")
     if not target:
         log("ℹ️  未指定 target，将发送到当前会话", True)
 
@@ -2187,14 +2487,14 @@ def main() -> int:
         if key in os.environ:
             saved_env[key] = os.environ.pop(key)
     
-    args = [openclaw_bin, "message", "send", "--message", message]
-    # channel 显式配置时，即使未设置 target 也允许仅带 --channel 发送
-    if channel:
-        args += ["--channel", channel]
-    if target:
-        args += ["--target", target]
-
-    code, out = run_cmd(args, timeout_sec=35, cwd=openclaw_home)
+    code, out = run_send_command(
+        openclaw_bin=openclaw_bin,
+        message=message,
+        channel=channel,
+        target=target,
+        cwd=openclaw_home,
+        timeout_sec=35,
+    )
     
     # 恢复环境变量
     for key, value in saved_env.items():
@@ -2207,7 +2507,7 @@ def main() -> int:
         return 0
 
     log(f"发送失败 channel={channel} code={code}", True)
-    if "Unknown channel" in out:
+    if "Unknown channel" in out and not has_custom_send_command():
         log(
             "提示：Unknown channel 可能是 CLI 帮助未列出该 channel（但实际支持）。将重试发送。",
             True,
@@ -2218,13 +2518,14 @@ def main() -> int:
             if key in os.environ:
                 saved_env2[key] = os.environ.pop(key)
         
-        # 重试时仍然带上 channel 和 target（因为多 channel 配置时必须指定）
-        retry = [openclaw_bin, "message", "send", "--message", message]
-        if channel:
-            retry += ["--channel", channel]
-        if target:
-            retry += ["--target", target]
-        rcode, rout = run_cmd(retry, timeout_sec=35, cwd=openclaw_home)
+        rcode, rout = run_send_command(
+            openclaw_bin=openclaw_bin,
+            message=message,
+            channel=channel,
+            target=target,
+            cwd=openclaw_home,
+            timeout_sec=35,
+        )
         
         # 恢复环境变量
         for key, value in saved_env2.items():

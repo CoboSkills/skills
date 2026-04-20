@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-negotiation-strategies
-version: "1.2.0"
+version: "1.3.1"
 description: "Agent Negotiation Strategies: Game Theory, Auctions, and Dynamic Pricing for AI Agent Commerce. Translates auction theory, BATNA calculation, concession strategies, coalition formation, and trust-based pricing from academic research into working Python code with full API integration. Covers English/Dutch/sealed-bid/Vickrey auctions, multi-round negotiation with Boulware and Zeuthen strategies, dynamic pricing, Shapley value coalition division, and anti-manipulation detection."
 license: MIT
 compatibility: [openclaw]
@@ -17,12 +17,13 @@ credentials: none
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code, require credentials, or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 
 
 Every day, autonomous AI agents leave money on the table. They accept the first price offered. They bid their true valuation in auctions where shading would save thousands. They concede linearly in multi-round negotiations when an exponential strategy would extract 15-30% more surplus. They ignore their counterparty's reputation when setting prices, treating a first-time anonymous agent the same as a verified partner with 500 successful transactions. The academic literature -- ANAC competition results, game-theoretic LLM research from NeurIPS 2025, auction theory going back to Vickrey 1961 -- contains precise answers to these problems. But the findings are locked in papers that assume familiarity with Nash equilibria, Bayesian updating, and mechanism design. Enterprise negotiation platforms like Pactum charge six-figure SaaS fees to apply these ideas. This guide bridges that gap. It translates auction theory, BATNA calculation, concession strategies, coalition formation, and trust-based pricing into working Python code against the GreenHelix A2A Commerce Gateway. By the end, your agents will negotiate like they read the literature -- because the code does it for them.
-1. [Why Agents Need Negotiation Strategy](#chapter-1-why-agents-need-negotiation-strategy)
-2. [BATNA and Reservation Prices](#chapter-2-batna-and-reservation-prices)
+> **Getting started**: All examples in this guide work with the GreenHelix sandbox
+> (https://sandbox.greenhelix.net) which provides 500 free credits — no API key required.
 
 ## What You'll Learn
 - Chapter 1: Why Agents Need Negotiation Strategy
@@ -42,6 +43,10 @@ Every day, autonomous AI agents leave money on the table. They accept the first 
 Every day, autonomous AI agents leave money on the table. They accept the first price offered. They bid their true valuation in auctions where shading would save thousands. They concede linearly in multi-round negotiations when an exponential strategy would extract 15-30% more surplus. They ignore their counterparty's reputation when setting prices, treating a first-time anonymous agent the same as a verified partner with 500 successful transactions. The academic literature -- ANAC competition results, game-theoretic LLM research from NeurIPS 2025, auction theory going back to Vickrey 1961 -- contains precise answers to these problems. But the findings are locked in papers that assume familiarity with Nash equilibria, Bayesian updating, and mechanism design. Enterprise negotiation platforms like Pactum charge six-figure SaaS fees to apply these ideas. This guide bridges that gap. It translates auction theory, BATNA calculation, concession strategies, coalition formation, and trust-based pricing into working Python code against the GreenHelix A2A Commerce Gateway. By the end, your agents will negotiate like they read the literature -- because the code does it for them.
 
 ---
+
+
+> **Getting started**: All examples in this guide work with the GreenHelix sandbox
+> (https://sandbox.greenhelix.net) which provides 500 free credits — no API key required.
 
 ## Table of Contents
 
@@ -88,7 +93,7 @@ This guide provides eight negotiation capabilities for your agents, each backed 
 - **Trust-adjusted pricing** that uses reputation data to manage counterparty risk
 - **Production patterns** for timeouts, logging, and anti-manipulation
 
-Every code example calls the GreenHelix A2A Commerce Gateway via `POST /v1/execute`. Every strategy is something you can deploy this week.
+Every code example calls the GreenHelix A2A Commerce Gateway via the REST API (`POST /v1/{tool}`). Every strategy is something you can deploy this week.
 
 ---
 
@@ -143,7 +148,7 @@ class NegotiationAgent:
     def _execute(self, tool: str, input_data: dict) -> dict:
         """Execute a tool on the GreenHelix gateway."""
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
         )
         resp.raise_for_status()
@@ -337,7 +342,7 @@ class AuctionAgent:
 
     def _execute(self, tool: str, input_data: dict) -> dict:
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
         )
         resp.raise_for_status()
@@ -577,7 +582,7 @@ class MultiRoundNegotiator:
 
     def _execute(self, tool: str, input_data: dict) -> dict:
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
         )
         resp.raise_for_status()
@@ -816,7 +821,7 @@ class DynamicPricer:
 
     def _execute(self, tool: str, input_data: dict) -> dict:
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
         )
         resp.raise_for_status()
@@ -1103,7 +1108,7 @@ class CoalitionManager:
 
     def _execute(self, tool: str, input_data: dict) -> dict:
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
         )
         resp.raise_for_status()
@@ -1345,7 +1350,7 @@ class TrustNegotiator:
 
     def _execute(self, tool: str, input_data: dict) -> dict:
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
         )
         resp.raise_for_status()
@@ -1608,7 +1613,7 @@ class ProductionNegotiator:
 
     def _execute(self, tool: str, input_data: dict) -> dict:
         resp = self.session.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
             timeout=self.round_timeout,
         )
@@ -1861,7 +1866,7 @@ The agents that follow this sequence will systematically capture more surplus th
 
 ## Appendix: GreenHelix API Reference for Negotiation
 
-All tools are called via `POST /v1/execute` with the body `{"tool": "tool_name", "input": {...}}`. Authentication uses `Bearer <api_key>` in the `Authorization` header.
+All tools are called via the REST API (`POST /v1/{tool}`) with the body `{"tool": "tool_name", "input": {...}}`. Authentication uses `Bearer <api_key>` in the `Authorization` header.
 
 | Tool | Purpose in Negotiation |
 |---|---|

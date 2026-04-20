@@ -1,6 +1,6 @@
 {
   "name": "indextts-voice",
-  "version": "1.2.3",
+  "version": "1.3.0",
   "description": "IndexTTS 语音克隆和合成技能 - 创建声音模型、文本转语音、参考音频管理（需要企业会员）",
   "author": "OpenClaw Community",
   "license": "MIT",
@@ -72,6 +72,11 @@
   },
   "screenshots": [],
   "changelog": {
+    "1.3.0": [
+      "🔧 修复元数据不一致问题：明确标注 INDEX_API_SIGN 为必需环境变量",
+      "🗑️ 移除飞书集成相关内容（FEISHU-INTEGRATION.md 已删除）",
+      "📝 简化文档，专注于核心 IndexTTS API 功能"
+    ],
     "1.2.3": [
       "修复 API 服务器地址：openapi.indextts.cn → openapi.lipvoice.cn",
       "更新所有文档和配置中的 API 基础 URL"

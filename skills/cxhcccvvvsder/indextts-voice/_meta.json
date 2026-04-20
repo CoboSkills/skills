@@ -1,13 +1,18 @@
 {
   "owner": "cxhcccvvvsder",
   "slug": "indextts-voice",
-  "displayName": "IndexTTS 语音克隆",
+  "displayName": "Indextts Voice",
   "latest": {
-    "version": "1.2.3",
-    "publishedAt": 1775794402698,
-    "commit": "https://github.com/openclaw/skills/commit/48e7f8fe7907210e70660789770f0c923c8b2e72"
+    "version": "1.3.0",
+    "publishedAt": 1776656532235,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.2.3",
+      "publishedAt": 1775794402698,
+      "commit": "https://github.com/openclaw/skills/commit/48e7f8fe7907210e70660789770f0c923c8b2e72"
+    },
     {
       "version": "1.2.1",
       "publishedAt": 1775202985846,

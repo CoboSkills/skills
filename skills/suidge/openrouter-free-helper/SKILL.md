@@ -326,6 +326,19 @@ openclaw cron edit
 
 ## 📝 更新日志
 
+### v1.0.9 (2026-04-16)
+- 调整发现顺序：API 优先，bb-browser 作为 fallback（更稳定，主路径不依赖 Chrome）
+
+### v1.0.8 (2026-04-16)
+- 摘要输出现在包含具体的模型名称和到期详情（不再只说数量）
+- 收紧 cron prompt，禁止 async exec completion 后输出任何消息（不只是禁止重复摘要）
+- 给 cron 命令加 `--verbose` 让模型能看到详细信息并整合到最终摘要
+
+### v1.0.7 (2026-04-15)
+- 为已配置但未带 `:free` 后缀的 `openrouter/*` 模型增加轻量页面探测，补抓“实际免费但未显式标 free”的模型
+- 收紧 cron prompt，强制 `--no-notify` 并避免 async exec completion 后重复转述
+- 保持检测策略轻量，不引入完整 pricing 系统复杂度
+
 ### v1.0.5 (2026-04-14)
 - 新增 `--no-notify` 模式，供 cron 场景避免脚本内直接发通知
 - 收紧 cron-task 规则，禁止中间态与“已推送”类措辞

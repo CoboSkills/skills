@@ -16,7 +16,7 @@ import sys
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 try:
     from zoneinfo import ZoneInfo
@@ -112,26 +112,34 @@ def safe_load_json(path: Path) -> dict:
         return {}
 
 
-def get_configured_free_models() -> List[str]:
-    """Extract configured free models from openclaw.json"""
+def get_configured_models() -> Tuple[List[str], List[str]]:
+    """Extract configured free models and configured openrouter non-:free candidates from openclaw.json"""
     config = load_config()
     openclaw_config_path = Path(config.get("openclaw_config", str(OPENCLAW_CONFIG)))
     
     if not openclaw_config_path.exists():
         print(f"ERROR: OpenClaw config not found: {openclaw_config_path}", file=sys.stderr)
-        return []
+        return [], []
     
     data = safe_load_json(openclaw_config_path)
     if not data:
-        return []
+        return [], []
     
     free_models = []
+    openrouter_candidates = []
+
+    def collect_model_id(model_id: Optional[str]):
+        if not model_id:
+            return
+        if model_id.endswith(":free"):
+            free_models.append(model_id)
+        elif model_id.startswith("openrouter/"):
+            openrouter_candidates.append(model_id)
     
     # Check agents.defaults.models
     models_section = data.get("agents", {}).get("defaults", {}).get("models", {})
     for model_id in models_section.keys():
-        if model_id.endswith(":free"):
-            free_models.append(model_id)
+        collect_model_id(model_id)
     
     # Check agents.list[].model (for each agent)
     agents = data.get("agents", {}).get("list", [])
@@ -139,15 +147,34 @@ def get_configured_free_models() -> List[str]:
         model_config = agent.get("model", {})
         primary = model_config.get("primary")
         fallbacks = model_config.get("fallbacks", [])
-        
-        if primary and primary.endswith(":free"):
-            free_models.append(primary)
+        collect_model_id(primary)
         for fb in fallbacks:
-            if fb.endswith(":free"):
-                free_models.append(fb)
+            collect_model_id(fb)
     
-    # Deduplicate while preserving stable order
-    return sorted(set(free_models))
+    return sorted(set(free_models)), sorted(set(openrouter_candidates))
+
+
+def page_looks_free(model_id: str, verbose: bool = False) -> bool:
+    """Lightweight heuristic: treat configured openrouter model as free if its model page clearly signals Free/$0."""
+    url = MODEL_URL_TEMPLATE.format(model_id=model_id)
+    html = fetch_page(url, verbose)
+    if not html:
+        return False
+
+    text = re.sub(r"\s+", " ", html).lower()
+    markers = [
+        '>free<',
+        '$0',
+        'free to use',
+        '0 credits',
+        'input: $0',
+        'output: $0',
+        'free model'
+    ]
+    matched = any(marker in text for marker in markers)
+    if verbose and matched:
+        print(f"  ✓ Page probe marked as free: {model_id}")
+    return matched
 
 
 def check_expiration_notice(model_id: str, verbose: bool = False) -> Optional[Dict]:
@@ -278,7 +305,7 @@ def ensure_chrome_debug_mode(verbose: bool = False) -> bool:
 def discover_new_models(verbose: bool = False) -> List[str]:
     """
     Discover new free models from OpenRouter.
-    Auto-starts Chrome debug mode if needed, falls back to API.
+    API-first, with bb-browser as fallback.
     Returns list of new model IDs.
     """
     if verbose:
@@ -286,7 +313,33 @@ def discover_new_models(verbose: bool = False) -> List[str]:
     
     models = []
     
-    # Try bb-browser adapter first (requires Chrome in debug mode)
+    # First: OpenRouter API (fast, stable, no Chrome dependency)
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            "https://openrouter.ai/api/frontend/models",
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            data = json.loads(resp.read())
+            if isinstance(data, dict) and "data" in data:
+                api_models = []
+                for m in data["data"]:
+                    endpoint = m.get("endpoint") or {}
+                    if endpoint.get("is_free") and m.get("slug"):
+                        api_models.append(m.get("slug", ""))
+                api_models = sorted(set(api_models))
+                if verbose:
+                    print(f"  ✓ API: Found {len(api_models)} free models")
+                return api_models
+    except Exception as e:
+        if verbose:
+            print(f"  ⚠ API failed: {e}")
+    
+    # Fallback: bb-browser adapter (requires Chrome debug mode)
+    if verbose:
+        print(f"  Trying bb-browser fallback...")
+    
     if ensure_chrome_debug_mode(verbose):
         try:
             result = subprocess.run(
@@ -313,32 +366,6 @@ def discover_new_models(verbose: bool = False) -> List[str]:
         except Exception as e:
             if verbose:
                 print(f"  ⚠ bb-browser error: {e}")
-    
-    # Fallback: use OpenRouter internal API directly
-    if verbose:
-        print(f"  Trying API fallback...")
-    
-    try:
-        import urllib.request
-        req = urllib.request.Request(
-            "https://openrouter.ai/api/frontend/models",
-            headers={"User-Agent": "Mozilla/5.0"}
-        )
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read())
-            if isinstance(data, dict) and "data" in data:
-                api_models = []
-                for m in data["data"]:
-                    endpoint = m.get("endpoint") or {}
-                    if endpoint.get("is_free") and m.get("slug"):
-                        api_models.append(m.get("slug", ""))
-                api_models = sorted(set(api_models))
-                if verbose:
-                    print(f"  ✓ API: Found {len(api_models)} free models")
-                return api_models
-    except Exception as e:
-        if verbose:
-            print(f"  ⚠ API fallback failed: {e}")
     
     if verbose:
         print(f"  ⚠ All discovery methods failed")
@@ -496,13 +523,22 @@ def should_send_expiration_alert(current_expiring: List[Dict], previous_expiring
 
 
 def summarize_check_result(expiring: List[Dict], new_models: List[str], fetch_errors: List[Dict]) -> str:
-    """Return a short plain-text summary for cron delivery."""
+    """Return a short plain-text summary for cron delivery with specific model details."""
     parts = []
 
     if new_models:
-        parts.append(f"发现 {len(new_models)} 个新免费模型")
+        model_list = ", ".join(new_models[:5])
+        if len(new_models) > 5:
+            model_list += f" 等{len(new_models)}个"
+        parts.append(f"发现 {len(new_models)} 个新免费模型: {model_list}")
     if expiring:
-        parts.append(f"有 {len(expiring)} 个模型带到期提示")
+        exp_list = []
+        for item in expiring[:3]:
+            model = item.get("model", "Unknown")
+            date = item.get("going_away_date", "Unknown")
+            days = item.get("days_left", 0)
+            exp_list.append(f"{model}将于{date}到期(剩{days}天)")
+        parts.append(f"有 {len(expiring)} 个模型即将到期: " + ", ".join(exp_list))
     if fetch_errors:
         parts.append(f"{len(fetch_errors)} 个模型到期页抓取失败")
 
@@ -531,13 +567,24 @@ def main():
         print(f"Last check: {last_check or 'Never'}")
         print(f"Known models: {len(known_models)}")
     
-    # Get configured free models
-    configured_models = set(get_configured_free_models())
+    # Get configured free models + configured openrouter non-:free candidates
+    configured_free_models, configured_openrouter_candidates = get_configured_models()
+    configured_models = set(configured_free_models)
+
+    lightweight_detected = []
+    for model_id in configured_openrouter_candidates:
+        if page_looks_free(model_id, verbose):
+            configured_models.add(model_id)
+            lightweight_detected.append(model_id)
     
     if verbose:
         print(f"Configured free models: {len(configured_models)}")
         for m in configured_models:
             print(f"  - {m}")
+        if lightweight_detected:
+            print(f"Lightweight free detection matched: {len(lightweight_detected)}")
+            for m in lightweight_detected:
+                print(f"  - {m}")
     
     # Check expiration notices
     expiring = []

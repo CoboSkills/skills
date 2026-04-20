@@ -335,6 +335,19 @@ The local Python script no longer pretends to call OpenClaw tools via subprocess
 
 ## 📝 更新日志 | Changelog
 
+### v1.0.9 (2026-04-16)
+- 🔄 Switch discovery order: API-first, bb-browser fallback (more stable, no Chrome dependency for primary path)
+
+### v1.0.8 (2026-04-16)
+- 🔔 Improve summary output to include specific model names and expiration details
+- 🔕 Harder cron prompt to forbid any output after async exec completion (not just duplicate summary)
+- 📋 Add `--verbose` to cron command so agent can see detailed discovery info
+
+### v1.0.7 (2026-04-15)
+- 🧭 Add lightweight free-page probing for configured `openrouter/*` models that do not use the `:free` suffix
+- 🔕 Harden cron prompt to force `--no-notify` and discourage duplicate relay after async exec completion
+- 🩹 Keep the detection strategy intentionally lightweight, avoiding full pricing-system complexity
+
 ### v1.0.5 (2026-04-14)
 - 🔕 Add `--no-notify` mode so cron runs do not send direct Feishu notifications from the script
 - 🧹 Update cron instructions to require a single final summary only, with no intermediate delivery wording

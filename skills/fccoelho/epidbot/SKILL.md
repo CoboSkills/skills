@@ -1,7 +1,7 @@
 ---
 name: epidbot
 description: Interact with EpidBot - AI-powered assistant for Brazilian public health data (DATASUS/SINAN)
-version: 1.1.1
+version: 1.1.2
 metadata:
   openclaw:
     requires:
@@ -77,6 +77,8 @@ curl -H "X-API-Key: $EPIDBOT_API_KEY" \
 
 Chat messages are processed asynchronously. Submit a message to get a job_id, then poll for the result.
 
+> **Important:** EpidBot queries may invoke data downloads, SQL execution, and LLM reasoning. Responses typically take **30 seconds to 3 minutes**, and complex queries involving large datasets can take up to **5 minutes**. Use exponential backoff when polling (start at 3s, double each interval up to 30s, max total wait 5 minutes).
+
 ```bash
 # Step 1: Submit the message (returns immediately with job_id)
 JOB=$(curl -s -X POST "$EPIDBOT_BASE_URL/api/v1/chat" \
@@ -86,8 +88,11 @@ JOB=$(curl -s -X POST "$EPIDBOT_BASE_URL/api/v1/chat" \
 
 JOB_ID=$(echo $JOB | jq -r '.job_id')
 
-# Step 2: Poll for result (every 3 seconds)
-while true; do
+# Step 2: Poll for result with exponential backoff
+INTERVAL=3
+MAX_WAIT=300  # 5 minutes
+ELAPSED=0
+while [ "$ELAPSED" -lt "$MAX_WAIT" ]; do
   RESULT=$(curl -s "$EPIDBOT_BASE_URL/api/v1/chat/$JOB_ID" \
     -H "X-API-Key: $EPIDBOT_API_KEY")
   STATUS=$(echo $RESULT | jq -r '.status')
@@ -95,7 +100,12 @@ while true; do
     echo $RESULT | jq .
     break
   fi
-  sleep 3
+  sleep $INTERVAL
+  ELAPSED=$((ELAPSED + INTERVAL))
+  INTERVAL=$((INTERVAL * 2))
+  if [ "$INTERVAL" -gt 30 ]; then
+    INTERVAL=30
+  fi
 done
 ```
 
@@ -134,7 +144,7 @@ Submit a chat message for async processing. Returns a job_id immediately. LLM re
 
 Poll for the status and result of a chat job. Endpoint: `GET /api/v1/chat/{job_id}`
 
-Recommended polling interval: 2-5 seconds.
+Recommended polling: exponential backoff starting at 3s, doubling up to 30s, max total wait 5 minutes. Responses may take 30s–3min for simple queries, up to 5min for complex data analysis.
 
 **Poll Response -- still processing:**
 ```json
@@ -345,8 +355,9 @@ All endpoints may return errors:
 ### Pattern 1: Async Chat (Submit + Poll) -- Recommended
 
 ```
-Agent: POST /chat -> get job_id -> poll GET /chat/{job_id} every 3s -> return result
-Best for: All queries. Avoids timeout issues since LLM responses take 5-120s.
+Agent: POST /chat -> get job_id -> poll GET /chat/{job_id} with exponential backoff (3s, 6s, 12s, 24s, 30s, 30s...) -> return result
+Best for: All queries. Responses take 30s–5min depending on complexity.
+IMPORTANT: Always poll with exponential backoff up to 5 minutes total. Do not give up early.
 ```
 
 ### Pattern 2: Streaming Chat (WebSocket)
@@ -426,6 +437,7 @@ Health check: `curl https://api.epidbot.kwar-ai.com.br/api/v1/health`
 ## Limitations
 
 - **Job expiry**: Chat jobs expire after 1 hour
+- **Response time**: Simple queries take 30s–3min; complex data analysis can take up to 5 minutes. Always poll with exponential backoff.
 - **File sizes**: Large data exports may be limited by memory constraints
 - **Sandbox execution**: Python/SQL code execution happens in an isolated sandbox with resource limits
 

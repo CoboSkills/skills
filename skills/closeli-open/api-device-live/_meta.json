@@ -3,9 +3,15 @@
   "slug": "api-device-live",
   "displayName": "Closeli Open Device Live Query",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775814608005,
-    "commit": "https://github.com/openclaw/skills/commit/470b427939ef6f7e92c9ef3c589e3c099268aee9"
+    "version": "1.0.2",
+    "publishedAt": 1776352245707,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775814608005,
+      "commit": "https://github.com/openclaw/skills/commit/470b427939ef6f7e92c9ef3c589e3c099268aee9"
+    }
+  ]
 }

@@ -1,11 +1,17 @@
 {
   "owner": "sky-lv",
   "slug": "skylv-docker-helper",
-  "displayName": "Docker Helper",
+  "displayName": "Skylv Docker Helper",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775873373357,
-    "commit": "https://github.com/openclaw/skills/commit/f8534c9f05fe3b62de17f2601d15239df80ff8ac"
+    "version": "1.0.3",
+    "publishedAt": 1776648337447,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775873373357,
+      "commit": "https://github.com/openclaw/skills/commit/f8534c9f05fe3b62de17f2601d15239df80ff8ac"
+    }
+  ]
 }

@@ -1,6 +1,6 @@
 ---
 name: greenhelix-bundle-ops-production
-version: "1.3.0"
+version: "1.3.1"
 description: "Ship and operate AI agent systems in production. Covers fleet management, production hardening, distributed observability, QA/chaos testing, and incident response. 5 guides, $225 value."
 license: MIT
 compatibility: [openclaw]
@@ -12,6 +12,12 @@ tags: [bundle, agentops, production, observability, testing, incident-response, 
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # Ops & Production Bundle: 5-Guide Collection for Running Agent Systems at Scale
 

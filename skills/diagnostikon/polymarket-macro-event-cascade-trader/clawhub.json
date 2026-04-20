@@ -100,10 +100,11 @@
       "default": 0.08,
       "range": [
         0.01,
-        0.30
+        0.3
       ],
       "step": 0.01,
       "label": "Min cascade lag to trade"
     }
-  ]
+  ],
+  "version": "0.0.2"
 }

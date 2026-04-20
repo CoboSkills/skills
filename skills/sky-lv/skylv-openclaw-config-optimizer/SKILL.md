@@ -1,11 +1,13 @@
 ---
 name: openclaw-config-optimizer
 slug: skylv-openclaw-config-optimizer
-version: 1.0.0
+version: 1.0.2
 description: "OpenClaw Configuration Optimizer. Analyze and optimize OpenClaw config files for better performance and security. Triggers: optimize config, OpenClaw settings, config review, performance tuning, security hardening."
 author: SKY-lv
 license: MIT
 tags: [openclaw, config, optimization, security, performance]
+keywords: openclaw, skill, automation, ai-agent
+triggers: openclaw config optimizer
 ---
 
 # OpenClaw Config Optimizer — OpenClaw 配置优化助手
@@ -179,3 +181,9 @@ A: 通常可提升 30-50% 的响应速度，具体取决于当前配置和使用
 - 自动：检测配置、优化、性能、安全相关关键词
 - 手动：/config-optimize, /openclaw-config, /optimize
 - 短语：优化配置、配置审查、性能调优、安全加固
+
+## Usage
+
+1. Install the skill
+2. Configure as needed
+3. Run with OpenClaw

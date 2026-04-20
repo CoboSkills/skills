@@ -1,11 +1,17 @@
 {
   "owner": "sky-lv",
   "slug": "skylv-openclaw-config-optimizer",
-  "displayName": "Openclaw Config Optimizer",
+  "displayName": "Skylv Openclaw Config Optimizer",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775879062077,
-    "commit": "https://github.com/openclaw/skills/commit/809cad84844bcb5e66ae79cf6a4ae99df32041db"
+    "version": "1.0.3",
+    "publishedAt": 1776648361575,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775879062077,
+      "commit": "https://github.com/openclaw/skills/commit/809cad84844bcb5e66ae79cf6a4ae99df32041db"
+    }
+  ]
 }

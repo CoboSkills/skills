@@ -3,9 +3,15 @@
   "slug": "justoneapi-douyin",
   "displayName": "Douyin (TikTok China) API",
   "latest": {
-    "version": "1.0.7",
-    "publishedAt": 1775375311160,
-    "commit": "https://github.com/openclaw/skills/commit/ee7802bc9a07e815425eaf266323960d00481c35"
+    "version": "1.0.9",
+    "publishedAt": 1776239957986,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.7",
+      "publishedAt": 1775375311160,
+      "commit": "https://github.com/openclaw/skills/commit/ee7802bc9a07e815425eaf266323960d00481c35"
+    }
+  ]
 }

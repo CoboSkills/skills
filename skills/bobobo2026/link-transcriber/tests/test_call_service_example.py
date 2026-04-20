@@ -9,7 +9,7 @@ class CallServiceExampleTests(unittest.TestCase):
         self.assertEqual(infer_platform("http://xhslink.com/o/abc123"), "xiaohongshu")
 
     def test_in_progress_statuses_match_service_workflow(self):
-        self.assertTrue({"PENDING", "PARSING", "DOWNLOADING", "TRANSCRIBING"}.issubset(IN_PROGRESS_STATUSES))
+        self.assertEqual({"queued", "running"}, IN_PROGRESS_STATUSES)
 
     def test_cookie_failure_is_reframed_as_server_side_issue(self):
         payload = {"msg": "success", "data": {"error_message": "小红书 Cookie 缺失，请先配置有效 Cookie"}}

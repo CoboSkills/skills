@@ -6,12 +6,12 @@ import os
 import sys
 from urllib import error, request
 
-DEFAULT_API_BASE_URL = "https://linktranscriber.store/linktranscriber-api"
+DEFAULT_API_BASE_URL = "https://linktranscriber.store"
 
 
 def main() -> int:
     base_url = os.getenv("LINK_SKILL_API_BASE_URL", DEFAULT_API_BASE_URL).strip().rstrip("/")
-    url = f"{base_url}/api/sys_check"
+    url = f"{base_url}/health"
     req = request.Request(url, headers={"Accept": "application/json"}, method="GET")
     try:
         with request.urlopen(req, timeout=15) as resp:

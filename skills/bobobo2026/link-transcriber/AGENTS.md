@@ -7,10 +7,10 @@ This repository is the public distribution repo for the `link-transcriber` skill
 Current purpose:
 
 - distribute a Codex-compatible public skill
-- support Douyin and Xiaohongshu link summarization
+- support Douyin and Xiaohongshu link understanding and execution planning
 - call the live `linkTranscriber` API
-- rely on server-side saved platform cookies when needed
-- return only the final summary text to the end user
+- rely on the publisher-operated hosted service for required platform access
+- return a concise summary, a todo list, and a recommended reminder time to the end user
 
 This repo is intentionally small and should stay focused on the skill distribution surface only.
 
@@ -18,9 +18,9 @@ This repo is intentionally small and should stay focused on the skill distributi
 
 - For current product behavior, use this repo's `SKILL.md` as the stable contract.
 - Do not use `web/skill/` as the current source of truth; it is legacy migration reference only.
-- Default to `https://linktranscriber.store/linktranscriber-api` for public use.
-- If the hosted service reports missing platform cookies, treat it as a server-side configuration issue rather than asking the end user for cookies by default.
-- Poll until a true final state arrives. In-progress states are broader than `PENDING` and include `PARSING`, `DOWNLOADING`, `TRANSCRIBING`, `SUMMARIZING`, `FORMATTING`, and `SAVING`.
+- Default to `https://linktranscriber.store` for public use.
+- If the hosted service reports missing platform configuration, treat it as a server-side issue rather than asking the end user for credentials by default.
+- Poll until a true final state arrives. For the stable public contract, in-progress states are `queued` and `running`.
 
 ## Current Status
 
@@ -32,32 +32,25 @@ What is already done:
   - infer platform from URL
   - create transcription task
   - poll transcription task
-  - call summaries API
-  - print only final summary text
+  - print final `summary_markdown` as the base material used by the skill layer
 - `scripts/check_service_health.py` is the preferred hosted-service health check path for this repo
 - API base URL is intentionally configurable:
-  - default public origin: `https://linktranscriber.store/linktranscriber-api`
+  - default public origin: `https://linktranscriber.store`
   - set `LINK_SKILL_API_BASE_URL` only when an override is required
   - avoid raw IPs and plain HTTP in public copy
-- Xiaohongshu and Douyin cookies are expected to be managed on the hosted service side for production use
+- Required platform access is expected to be managed on the hosted service side for production use
 - real API smoke has already succeeded against Xiaohongshu
-- public GitHub repo has already been created and pushed:
-  - `https://github.com/bobobo2026/link-transcriber-skill`
-
 ClawHub status:
 
 - CLI login is valid
 - publish succeeded on `2026-04-01`
 - canonical slug should match the skill name for new installs
 - published version:
-  - `0.1.6`
+  - keep in sync with the latest ClawHub release
 - published slug:
   - `link-transcriber`
 - published page:
   - `https://clawhub.ai/bobobo2026/link-transcriber`
-- legacy published slug:
-  - `link-transcriber-skill-public`
-
 ## Source Of Truth
 
 Behavior source of truth:
@@ -97,40 +90,37 @@ Not supported in this repo’s current public skill positioning:
 End-user behavior:
 
 1. user provides a link
-2. skill relies on server-side saved platform cookies when needed
+2. skill relies on the publisher-operated hosted service for required platform access
 3. skill infers platform when possible
 4. skill creates transcription task
 5. skill polls until transcription finishes
-6. skill calls summaries API
-7. skill returns only `summary_markdown`
+6. public result returns `summary_markdown`
+7. skill turns `summary_markdown` into:
+   - a concise summary
+   - a todo list
+   - a recommended reminder time
+8. if the user confirms a reminder time, OpenClaw creates a main-session cron reminder
 
 ## Live API Details
 
 Public API base URL:
 
-- default: `https://linktranscriber.store/linktranscriber-api`
+- default: `https://linktranscriber.store`
 - override with `LINK_SKILL_API_BASE_URL` when needed
 
 Health check:
 
-- `GET /api/sys_check`
+- `GET /health`
 
-Transcription create:
+Public transcription create:
 
-- `POST /api/service/transcriptions`
+- `POST /public/transcriptions`
 
-Transcription lookup:
+Public transcription lookup:
 
-- `GET /api/service/transcriptions/{task_id}`
+- `GET /public/transcriptions/{task_id}`
 
-Summary generation:
-
-- `POST /api/service/summaries`
-
-Default summary settings:
-
-- `provider_id=deepseek`
-- `model_name=deepseek-chat`
+Internal `api/service/*` endpoints may still exist upstream, but they are no longer the public skill contract.
 
 ## Validation Commands
 
@@ -163,7 +153,7 @@ python3 /Users/yibo/Documents/company/IdeaProjects/KnowledgeOS/skill/scripts/cal
 Optional API base override:
 
 ```bash
-LINK_SKILL_API_BASE_URL=https://linktranscriber.store/linktranscriber-api \
+LINK_SKILL_API_BASE_URL=https://linktranscriber.store \
 python3 /Users/yibo/Documents/company/IdeaProjects/KnowledgeOS/skill/scripts/call_service_example.py \
   'https://xhslink.com/o/23s4jTem6em'
 ```
@@ -173,20 +163,11 @@ python3 /Users/yibo/Documents/company/IdeaProjects/KnowledgeOS/skill/scripts/cal
 Immediate:
 
 - verify one real Douyin smoke path in addition to Xiaohongshu
-
-Short-term:
-
-- add one concrete “natural language user examples” section to `README.md`
-- verify Codex installation from the public GitHub repo on a clean machine or clean Codex profile
-
-Optional:
-
-- add a lightweight changelog section in `README.md`
-- add a second smoke example for explicit platform selection
+- verify fresh ClawHub installs match the current package contents
 
 ## Constraints
 
 - Keep this repo focused on public skill distribution only
 - Do not pull backend implementation, deployment docs, or unrelated project history into this repo
-- Do not reintroduce unrelated workflow positioning into public skill copy
+- Do not turn this repo into a standalone reminder backend
 - Prefer updating `SKILL.md`, `agents/openai.yaml`, `README.md`, and `CLAWHUB.md` together so public descriptions stay aligned

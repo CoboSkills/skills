@@ -7,18 +7,14 @@ import sys
 import time
 from urllib import error, parse, request
 
-DEFAULT_API_BASE_URL = "https://linktranscriber.store/linktranscriber-api"
+DEFAULT_API_BASE_URL = "https://linktranscriber.store"
 IN_PROGRESS_STATUSES = {
-    "PENDING",
-    "PARSING",
-    "DOWNLOADING",
-    "TRANSCRIBING",
-    "SUMMARIZING",
-    "FORMATTING",
-    "SAVING",
+    "queued",
+    "running",
 }
 DEFAULT_POLL_MAX_ATTEMPTS = 60
 DEFAULT_POLL_INTERVAL_SECONDS = 1.0
+FULL_RESULT_FLAG = "--json"
 
 
 def infer_platform(url: str) -> str | None:
@@ -76,20 +72,24 @@ def format_failure(payload: dict | None) -> str:
 
 
 def main() -> int:
-    if len(sys.argv) not in {2, 3}:
-        print("Usage: call_service_example.py <url> [platform]", file=sys.stderr)
+    raw_args = sys.argv[1:]
+    output_full_result = False
+    if FULL_RESULT_FLAG in raw_args:
+        raw_args = [arg for arg in raw_args if arg != FULL_RESULT_FLAG]
+        output_full_result = True
+
+    if len(raw_args) not in {1, 2}:
+        print("Usage: call_service_example.py <url> [platform] [--json]", file=sys.stderr)
         return 1
 
     base_url = os.getenv("LINK_SKILL_API_BASE_URL", DEFAULT_API_BASE_URL).strip().rstrip("/")
-    provider_id = os.getenv("LINK_SKILL_SUMMARY_PROVIDER_ID", "deepseek").strip() or "deepseek"
-    model_name = os.getenv("LINK_SKILL_SUMMARY_MODEL_NAME", "deepseek-chat").strip() or "deepseek-chat"
     poll_max_attempts = int(os.getenv("LINK_SKILL_POLL_MAX_ATTEMPTS", str(DEFAULT_POLL_MAX_ATTEMPTS)))
     poll_interval_seconds = float(
         os.getenv("LINK_SKILL_POLL_INTERVAL_SECONDS", str(DEFAULT_POLL_INTERVAL_SECONDS))
     )
 
-    url = sys.argv[1]
-    platform = sys.argv[2] if len(sys.argv) == 3 else None
+    url = raw_args[0]
+    platform = raw_args[1] if len(raw_args) == 2 else None
     platform = platform or infer_platform(url)
     if not platform:
         print("Platform could not be inferred. Pass platform explicitly: douyin or xiaohongshu.", file=sys.stderr)
@@ -97,43 +97,40 @@ def main() -> int:
 
     create_payload = {
         "url": url,
-        "platform": platform,
     }
-    create_result = http_json("POST", f"{base_url}/api/service/transcriptions", payload=create_payload)
-    task_id = (((create_result.get("data") or {}).get("task_id")) if isinstance(create_result, dict) else None)
+    create_result = http_json("POST", f"{base_url}/public/transcriptions", payload=create_payload)
+    task_id = create_result.get("task_id") if isinstance(create_result, dict) else None
     if not task_id:
         print(format_failure(create_result), file=sys.stderr)
         return 1
 
     final_result = create_result
     for _ in range(poll_max_attempts):
-        polled = http_json("GET", f"{base_url}/api/service/transcriptions/{parse.quote(str(task_id))}")
+        polled = http_json("GET", f"{base_url}/public/transcriptions/{parse.quote(str(task_id))}")
         final_result = polled
-        status = (((polled.get("data") or {}).get("status")) if isinstance(polled, dict) else None) or ""
+        status = (polled.get("status") if isinstance(polled, dict) else None) or ""
         if status not in IN_PROGRESS_STATUSES:
             break
         time.sleep(poll_interval_seconds)
 
-    final_status = (((final_result.get("data") or {}).get("status")) if isinstance(final_result, dict) else None) or ""
+    final_status = (final_result.get("status") if isinstance(final_result, dict) else None) or ""
     if final_status in IN_PROGRESS_STATUSES:
         print(f"转写任务仍在处理中: {task_id} ({final_status})", file=sys.stderr)
         return 1
-    if final_status != "SUCCESS":
+    if final_status != "completed":
         print(format_failure(final_result), file=sys.stderr)
         return 1
 
-    summary_payload = {
-        "transcription_task_id": str(task_id),
-        "provider_id": provider_id,
-        "model_name": model_name,
-    }
-    summary_result = http_json("POST", f"{base_url}/api/service/summaries", payload=summary_payload)
-    summary_markdown = (((summary_result.get("data") or {}).get("summary_markdown")) if isinstance(summary_result, dict) else None)
+    if output_full_result:
+        print(json.dumps(final_result, ensure_ascii=False, indent=2))
+        return 0
+
+    summary_markdown = final_result.get("summary_markdown") if isinstance(final_result, dict) else None
     if summary_markdown:
         print(summary_markdown)
         return 0
 
-    print(format_failure(summary_result), file=sys.stderr)
+    print(format_failure(final_result), file=sys.stderr)
     return 1
 
 

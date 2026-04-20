@@ -1,6 +1,6 @@
 ---
 name: greenhelix-agent-pricing-monetization
-version: "1.2.0"
+version: "1.3.1"
 description: "The Agent Pricing & Monetization Playbook. Ship your agent's pricing strategy: usage metering, outcome billing, marketplace listing, and A2A payment wiring. Includes detailed Python code examples with full API integration."
 license: MIT
 compatibility: [openclaw]
@@ -12,12 +12,19 @@ content_type: markdown
 executable: false
 install: none
 credentials: [STRIPE_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - STRIPE_API_KEY
+    primaryEnv: STRIPE_API_KEY
 ---
 # The Agent Pricing & Monetization Playbook
 
 > **Notice**: This is an educational guide with illustrative code examples.
 > It does not execute code or install dependencies.
-> Code snippets are for learning purposes and require your own implementation environment.
+> All examples use the GreenHelix sandbox (https://sandbox.greenhelix.net) which
+> provides 500 free credits — no API key required to get started.
 >
 > **Referenced credentials** (you supply these in your own environment):
 > - `STRIPE_API_KEY`: Stripe API key for card payment processing (scoped to payment intents only)
@@ -105,13 +112,13 @@ Answer these four questions to choose your model:
 
 ### The GreenHelix Pricing Client
 
-Every code example in this guide calls the GreenHelix A2A Commerce Gateway via `POST /v1/execute` with a JSON body of `{"tool": "tool_name", "input": {...}}`. Authentication is via Bearer token. Define the core client once and reference it throughout.
+Every code example in this guide calls the GreenHelix A2A Commerce Gateway via the REST API (`POST /v1/{tool}`) with a JSON body of `{"tool": "tool_name", "input": {...}}`. Authentication is via Bearer token. Define the core client once and reference it throughout.
 
 ```python
 import requests
 from typing import Any
 
-GATEWAY_URL = "https://api.greenhelix.net/v1"
+GATEWAY_URL = os.environ.get("GREENHELIX_API_URL", "https://sandbox.greenhelix.net")
 
 class GreenHelixClient:
     """Client for the GreenHelix A2A Commerce Gateway."""
@@ -127,7 +134,7 @@ class GreenHelixClient:
     def execute(self, tool: str, input_data: dict[str, Any]) -> dict:
         """Execute a tool on the gateway."""
         response = requests.post(
-            f"{self.base_url}/execute",
+            f"{self.base_url}/v1",
             json={"tool": tool, "input": input_data},
             headers=self.headers,
             timeout=30,

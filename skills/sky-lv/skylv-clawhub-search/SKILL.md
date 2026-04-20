@@ -1,11 +1,13 @@
 ---
 name: clawhub-search
 slug: skylv-clawhub-search
-version: 1.0.0
+version: 1.0.2
 description: "ClawHub Skill Discovery and Search. Find, browse, and install OpenClaw Skills from ClawHub marketplace. Triggers: search skills, find skills, clawhub, install skill, browse skills."
 author: SKY-lv
 license: MIT
 tags: [clawhub, search, discovery, openclaw, marketplace]
+keywords: openclaw, skill, automation, ai-agent
+triggers: clawhub search
 ---
 
 # ClawHub Search — ClawHub 技能发现助手
@@ -190,3 +192,9 @@ A: 使用 `npx clawhub@latest remove {skill-name}` 命令。
 - 自动：检测技能搜索、安装相关关键词
 - 手动：/clawhub, /search-skills, /install, /skills
 - 短语：找技能、装技能、有什么技能、推荐技能
+
+## Usage
+
+1. Install the skill
+2. Configure as needed
+3. Run with OpenClaw

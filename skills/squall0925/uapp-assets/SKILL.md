@@ -1,7 +1,9 @@
+---
 name: uapp-assets
-version: 1.0.0
-summary: 友盟应用资产查询 skill，帮助用户快速了解"我在友盟有哪些应用"。支持查询 App 数量、App 列表、小程序列表。
+version: 1.1.0
+description: "友盟应用资产查询 skill。当用户想知道自己在友盟有哪些应用、应用数量、小程序列表时使用。触发词：应用列表、我的应用、小程序列表、应用数量、有哪些应用、应用资产。"
 entry: scripts/assets.py
+---
 
 ## When to Use
 
@@ -18,6 +20,14 @@ entry: scripts/assets.py
 - 查询留存数据（应使用 uapp-retention）
 - 查询事件数据（应使用 uapp-event）
 - 查询 APM 性能数据（应使用 uapp-apm）
+
+## 边界条件与异常处理
+
+| 情形 | 处理方式 |
+|------|----------|
+| 应用数量很多（>100个） | 告知总数和当前页，提示「输入 下一页 查看后续数据」 |
+| 想找某个具体应用 | 先用 `--list-apps` 或 `--list-minis` 列出，再结合其他 skill 查询该应用数据 |
+| 用 `--platform` 过滤但无结果 | 提示「未找到该平台应用，支持的过滤值：android/iphone/mini/mini_bytedance 等」 |
 
 ## 典型问法与 CLI 映射
 

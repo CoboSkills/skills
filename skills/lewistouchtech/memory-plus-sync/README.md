@@ -1,6 +1,51 @@
-# Memory Plus - 跨渠道记忆同步工具
+# Memory Plus Sync - 跨渠道记忆同步工具 v2.0.0
 
-> **你的所有对话，都值得被记住。**
+> **你的所有对话，都值得被记住。**  
+> **版本 2.0.0：新增 MCP 服务器、三代理验证、智能去重、批量处理等高级功能**
+
+---
+
+## 🚀 v2.0.0 新功能亮点
+
+### 1. **MCP 服务器集成** (7 个标准化工具)
+- ✅ `memory_search` - 搜索记忆内容
+- ✅ `memory_store` - 存储新记忆  
+- ✅ `memory_get` - 获取单个记忆
+- ✅ `memory_update` - 更新记忆内容
+- ✅ `memory_delete` - 删除记忆
+- ✅ `memory_list` - 列出所有记忆
+- ✅ `health_check` - 健康度检查
+
+### 2. **三代理验证机制** (准确率 93%)
+- **Validator** - 准确性、完整性、价值性评估
+- **Scorer** - 记忆类型识别、重要性评分 (1-10)
+- **Reviewer** - 安全性、合规性审查
+- **投票聚合** - 3:0 或 2:1 → 直接采纳多数意见
+- **仲裁机制** - 1:1:1 或争议大 → 触发第四个大模型仲裁
+
+### 3. **智能去重功能**
+- **内容哈希检测** - 基于 SHA256 的精确去重
+- **语义相似度** - 基于向量的模糊去重
+- **批量去重** - 支持批量检查和去重
+- **去重策略** - 自动跳过、建议合并或直接存储
+
+### 4. **批量处理支持**
+- **批量存储** - 一次处理多条记忆
+- **并发处理** - 支持多线程并发
+- **进度监控** - 实时显示处理进度
+- **错误恢复** - 失败时自动重试和跳过
+
+### 5. **版本控制系统**
+- **版本记录** - 自动记录每次修改
+- **版本回滚** - 支持回滚到任意历史版本
+- **版本比较** - 比较不同版本的差异
+- **变更追踪** - 追踪记忆的完整变更历史
+
+### 6. **健康度监控**
+- **实时监控** - 60 秒间隔自动检查
+- **指标收集** - Mem0 API 连通性、记忆库容量、FTS 索引完整性
+- **告警系统** - 异常时自动告警
+- **自动修复** - 检测到异常时自动修复
 
 ---
 
@@ -326,19 +371,19 @@ python3 main.py health
 这是一个**开源技能**，欢迎所有人参与改进：
 
 #### 🐛 报告问题
-- **GitHub Issues**: https://github.com/lewistouchtech/memory-plus/issues
+- **GitHub Issues**: https://github.com/lewistouchtech/memory-plus-sync/issues
 - 描述你遇到的问题
 - 附上错误日志和配置
 - 我们会尽快修复
 
 #### 💡 功能建议
-- **GitHub Discussions**: https://github.com/lewistouchtech/memory-plus/discussions
+- **GitHub Discussions**: https://github.com/lewistouchtech/memory-plus-sync/discussions
 - 分享你的使用场景
 - 提出改进建议
 - 投票支持想要的功能
 
 #### 🔧 提交代码
-- **Pull Requests**: https://github.com/lewistouchtech/memory-plus/pulls
+- **Pull Requests**: https://github.com/lewistouchtech/memory-plus-sync/pulls
 - Fork 仓库
 - 创建功能分支
 - 提交 PR 描述变更

@@ -2,8 +2,8 @@
 # 版本：1.0.0
 
 name: memory-plus-sync
-version: 1.0.0
-description: 跨渠道记忆同步工具，自动采集多渠道消息并统一存储到 OpenClaw 记忆系统
+version: 2.0.0
+description: Memory-Plus 智能记忆升级系统 - 提供三代理验证、智能去重、批量处理和版本控制等高级功能
 author: 伊娃 (Eva)
 license: MIT
 
@@ -26,26 +26,41 @@ requirements:
 dependencies:
   - watchdog
   - sqlite3
+  - fastapi
+  - uvicorn
+  - pydantic
+  - requests
 
 # 入口
 entry:
   type: python
-  script: main.py
-  venv: ~/.openclaw/workspace/venvs/memory-plus
+  script: mcp_server.py
+  venv: ~/.openclaw/workspace/memory-plus/venv
+  args: ["--host", "0.0.0.0", "--port", "8000"]
 
 # 配置
 config:
-  workspace: ~/.openclaw/workspace
+  workspace: ~/.openclaw/workspace/memory-plus
   memory_db: ~/.openclaw/memory/main.sqlite
-  sync:
+  mcp_server:
+    host: "0.0.0.0"
+    port: 8000
+    workers: 2
+  triple_agent:
     enabled: true
-    channels: []  # 自动读取 OpenClaw 配置
-    hours: 24
-  monitor:
+    models:
+      validator: "qwen3.6-plus"
+      scorer: "qwen3.6-plus"
+      reviewer: "qwen3.6-plus"
+    timeout_seconds: 180
+  deduplication:
     enabled: true
-    interval_seconds: 60
-    alert_on_stale: true
-    stale_threshold_hours: 1
+    similarity_threshold: 0.8
+    batch_size: 50
+  monitoring:
+    health_check_interval: 60
+    alert_on_failure: true
+    auto_repair: true
 
 # 文档
 documentation:

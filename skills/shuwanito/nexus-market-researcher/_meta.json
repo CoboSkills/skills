@@ -3,9 +3,15 @@
   "slug": "nexus-market-researcher",
   "displayName": "nexus-market-researcher",
   "latest": {
-    "version": "2.1.0",
-    "publishedAt": 1775128409635,
-    "commit": "https://github.com/openclaw/skills/commit/d92244caec56cb580b13aa430a1c9a703cba5b00"
+    "version": "2.1.1",
+    "publishedAt": 1776620047457,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.1.0",
+      "publishedAt": 1775128409635,
+      "commit": "https://github.com/openclaw/skills/commit/d92244caec56cb580b13aa430a1c9a703cba5b00"
+    }
+  ]
 }

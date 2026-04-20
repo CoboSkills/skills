@@ -1,16 +1,16 @@
 ---
 name: nexus-market-researcher
-description: Strategic market intelligence with competitive analysis, market sizing,
-  and opportunity identification.
-version: '2.1.0'
+description: "Strategic market research agent. Conducts competitive analysis, market sizing, pricing intelligence, and identifies business opportunities across EdTech, corporate, healthcare, legal, and HR verticals."
+license: proprietary
+compatibility: "Python 3.11+, NEXUS AI Corp ecosystem"
 metadata:
-  openclaw:
-    emoji: 📊
-    homepage: https://github.com/Shuwanito/SkillsMP/tree/main/.claude/skills/nexus-market-researcher
-    os:
-    - macos
-    - linux
-    - windows
+  department: strategy
+  agents: ["cso", "strategy-partnerships"]
+  price_per_execution: "$1.50"
+  ecosystem: "NEXUS AI Corp"
+  version: "1.0.0"
+  publishable: true
+allowed-tools: web-search web-fetch filesystem
 ---
 
 # Nexus Market Researcher

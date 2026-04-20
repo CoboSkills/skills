@@ -1,7 +1,7 @@
 ---
 name: baoyu-post-to-x-enhanced
 description: "Posts content and articles to X (Twitter). Custom fork with image upload fix: DOM.setFileInputFiles first, path leak cleanup, post-publish verification. Use when user asks to 'post to X', 'tweet', 'publish to Twitter', or 'share on X'."
-version: 2.0.0
+version: 3.0.0
 metadata:
   openclaw:
     homepage: https://github.com/JimLiu/baoyu-skills#baoyu-post-to-x

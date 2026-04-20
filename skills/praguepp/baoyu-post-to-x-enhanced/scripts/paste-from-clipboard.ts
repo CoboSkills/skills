@@ -202,6 +202,13 @@ async function main(): Promise<void> {
     }
   }
 
+  // On macOS, "Google" and "Google Chrome" are not valid app names; "Chrome" is.
+  if (!targetApp && process.platform === 'darwin') {
+    targetApp = 'Chrome';
+  }
+  if (targetApp === 'Google' || targetApp === 'Google Chrome') {
+    targetApp = 'Chrome';
+  }
   if (targetApp) {
     console.log(`[paste] Target app: ${targetApp}`);
   }

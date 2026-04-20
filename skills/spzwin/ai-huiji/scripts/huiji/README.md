@@ -23,6 +23,7 @@ export XG_USER_TOKEN="<your-access-token>"
 | `split-record-list.py` | 全量查询分片转写原文 | `split-record-list.py <meetingChatId>` |
 | `split-record-list-v2.py` | 增量查询分片转写原文 | `split-record-list-v2.py <meetingChatId> [lastStartTime]` |
 | `check-second-stt-v2.py` | 查询改写原文状态 | `check-second-stt-v2.py <meetingChatId>` |
+| `get-chat-from-share-id.py` | 按 shareId 获取分享原文 | `get-chat-from-share-id.py <shareId>` |
 
 ## 通用参数
 
@@ -63,4 +64,8 @@ python3 split-record-list-v2.py abc123 120034
 
 # 检查改写原文状态
 python3 check-second-stt-v2.py abc123
+
+# 通过 shareId 获取分享原文（推荐）
+python3 get-chat-from-share-id.py f12505e3-3ecb-47f1-87e4-277b2b1a243e
+python3 get-chat-from-share-id.py --body '{"shareId":"f12505e3-3ecb-47f1-87e4-277b2b1a243e"}'
 ```

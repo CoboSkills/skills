@@ -62,3 +62,14 @@
   ```bash
   python3 scripts/huiji/chat-list-by-page.py --body '{"pageNum":0,"pageSize":10,"nameBlur":"周会"}'
   ```
+
+## 场景六：解析分享链接并获取原文
+
+- **触发**："帮我看下这个慧记分享链接"、"这个分享里说了什么"
+- **接口**：getChatFromShareId
+- **说明**：短链/长链解析在 Skill 层执行，脚本仅接收 `shareId`
+- **示例**：
+  ```bash
+  python3 scripts/huiji/get-chat-from-share-id.py f12505e3-3ecb-47f1-87e4-277b2b1a243e
+  python3 scripts/huiji/get-chat-from-share-id.py --body '{"shareId":"f12505e3-3ecb-47f1-87e4-277b2b1a243e"}'
+  ```

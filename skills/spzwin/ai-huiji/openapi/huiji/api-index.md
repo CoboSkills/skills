@@ -11,3 +11,4 @@
 | 3 | splitRecordList | POST | /ai-huiji/meetingChat/splitRecordList | [split-record-list.md](split-record-list.md) | [split-record-list.py](../../scripts/huiji/split-record-list.py) |
 | 4 | splitRecordListV2 | POST | /ai-huiji/meetingChat/splitRecordListV2 | [split-record-list-v2.md](split-record-list-v2.md) | [split-record-list-v2.py](../../scripts/huiji/split-record-list-v2.py) |
 | 5 | checkSecondSttV2 | POST | /ai-huiji/meetingChat/checkSecondSttV2 | [check-second-stt-v2.md](check-second-stt-v2.md) | [check-second-stt-v2.py](../../scripts/huiji/check-second-stt-v2.py) |
+| 6 | getChatFromShareId | POST | /ai-huiji/meetingChat/getChatFromShareId | [get-chat-from-share-id.md](get-chat-from-share-id.md) | [get-chat-from-share-id.py](../../scripts/huiji/get-chat-from-share-id.py) |

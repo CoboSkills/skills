@@ -34,6 +34,7 @@ import sys
 import os
 import json
 import time
+import argparse
 from datetime import datetime, timezone, timedelta
 import requests
 import warnings
@@ -42,9 +43,24 @@ import warnings
 warnings.filterwarnings("ignore", category=requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
 
+def setup_utf8_stdio():
+    """Best-effort UTF-8 stdio for Windows console display."""
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        if stream and hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+
+setup_utf8_stdio()
+
+
 API_URL = "https://sg-al-ai-voice-assistant.mediportal.com.cn/api/open-api/ai-huiji/meetingChat/chatListByPage"
 MAX_RETRIES = 3
 RETRY_DELAY = 1
+DEFAULT_SORT_KEY = "createTime"
 
 TZ = timezone(timedelta(hours=8))  # Asia/Shanghai
 
@@ -109,7 +125,7 @@ def call_api(body: dict) -> dict:
                 timeout=60,
             )
             response.raise_for_status()
-            return response.json()
+            return json.loads(response.content.decode("utf-8"))
         except Exception as e:
             last_err = e
             if attempt < MAX_RETRIES - 1:
@@ -159,35 +175,34 @@ def format_human(result: dict) -> str:
 
 
 def main():
-    human = "--human" in sys.argv
-    # 解析 --state 参数
-    state_filter = None
-    args_clean = []
-    skip_next = False
-    for i, a in enumerate(sys.argv[1:]):
-        if skip_next:
-            skip_next = False
-            continue
-        if a == "--state" and i + 2 < len(sys.argv) - 1:
-            state_filter = int(sys.argv[i + 2])
-            skip_next = True
-            continue
-        if a != "--human":
-            args_clean.append(a)
+    parser = argparse.ArgumentParser(
+        prog="chat-list-by-page.py",
+        description="分页查询当前用户的慧记列表（归属维度）",
+    )
+    parser.add_argument("--human", action="store_true", help="时间戳自动转换为可读格式")
+    parser.add_argument(
+        "--state",
+        type=int,
+        choices=[0, 1, 2, 3],
+        help="按 combineState 过滤 (0=进行中 1=处理中 2=已完成 3=失败)",
+    )
+    parser.add_argument("--body", type=str, help="完整 JSON body 字符串")
+    parser.add_argument("pageNum", type=int, nargs="?", help="页码，从 0 开始")
+    parser.add_argument("pageSize", type=int, nargs="?", help="每页条数")
 
-    if len(args_clean) >= 2 and args_clean[0] == "--body":
-        if len(args_clean) < 2:
-            print("用法: chat-list-by-page.py [--human] [--state <0|1|2|3>] --body '<json>'", file=sys.stderr)
-            sys.exit(1)
-        body = json.loads(args_clean[1])
-    elif len(args_clean) >= 2:
-        body = {"pageNum": int(args_clean[0]), "pageSize": int(args_clean[1])}
+    args = parser.parse_args()
+    human = args.human
+    state_filter = args.state
+
+    if args.body is not None:
+        body = json.loads(args.body)
+    elif args.pageNum is not None and args.pageSize is not None:
+        body = {"pageNum": args.pageNum, "pageSize": args.pageSize}
     else:
-        print("用法: chat-list-by-page.py [--human] [--state <0|1|2|3>] [--body '<json>'] [pageNum pageSize]", file=sys.stderr)
-        print("  pageNum 从 0 开始", file=sys.stderr)
-        print("  --human: 时间戳自动转换为可读格式", file=sys.stderr)
-        print("  --state: 按 combineState 过滤 (0=进行中 1=处理中 2=已完成 3=失败)", file=sys.stderr)
-        sys.exit(1)
+        parser.error("请提供 --body 或 pageNum pageSize")
+
+    # 默认按 createTime 排序；若用户在 --body 中显式传入 sortKey，则保持用户值
+    body.setdefault("sortKey", DEFAULT_SORT_KEY)
 
     result = call_api(body)
 

@@ -33,6 +33,20 @@ import warnings
 # 禁用 InsecureRequestWarning (因为 verify=False)
 warnings.filterwarnings("ignore", category=requests.packages.urllib3.exceptions.InsecureRequestWarning)
 
+
+def setup_utf8_stdio():
+    """Best-effort UTF-8 stdio for Windows console display."""
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        if stream and hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+
+setup_utf8_stdio()
+
 TZ = timezone(timedelta(hours=8))
 
 
@@ -79,7 +93,7 @@ def call_api(url: str, body: dict) -> dict:
                 timeout=60,
             )
             response.raise_for_status()
-            return response.json()
+            return json.loads(response.content.decode("utf-8"))
         except Exception as e:
             last_err = e
             if attempt < MAX_RETRIES - 1:

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Luci-upload — upload a video to memories.ai with time and location metadata.
+"""Luci-upload — upload a video or image to memories.ai with time and location metadata.
 
 Usage:
     python run.py --file /path/to/video.mp4
+    python run.py --file /path/to/photo.png --datetime "2025-09-01 00:00:00" --timezone Asia/Shanghai --location "Shunde, China"
     python run.py --file /path/to/video.mp4 --time 1769097600000 --lon 120.59 --lat 31.3
-    python run.py --file /path/to/video.mp4 --location "Suzhou, China" --datetime "2025-06-22 14:00:00" --timezone Asia/Shanghai
-    python run.py --probe /path/to/video.mp4   # just show extracted metadata, don't upload
+    python run.py --probe /path/to/file   # just show extracted metadata, don't upload
 """
 
 import argparse
@@ -21,7 +21,6 @@ import uuid
 import re
 
 API_HOST = "https://mavi-backend.memories.ai"
-
 UPLOAD_PATH = "/serve/luci/api/manual/upload"
 USERINFO_API = API_HOST + "/serve/api/userinfo"
 
@@ -55,7 +54,11 @@ def get_api_key():
 # ---------------------------------------------------------------------------
 
 def probe_video(filepath):
-    """Extract creation time and GPS from video metadata using ffprobe."""
+    """Extract creation time and GPS from media metadata using ffprobe.
+
+    Works for video and (sometimes) JPEG/HEIC images with embedded EXIF.
+    Returns empty values for formats without metadata (e.g. PNG screenshots).
+    """
     info = {"creation_time": None, "latitude": None, "longitude": None}
     try:
         result = subprocess.run(
@@ -181,7 +184,7 @@ def parse_ffprobe_time(creation_time_str):
 # ---------------------------------------------------------------------------
 
 def multipart_upload(filepath, start_time_ms, longitude, latitude, api_key):
-    """Upload video via multipart/form-data POST."""
+    """Upload media file via multipart/form-data POST."""
     boundary = uuid.uuid4().hex
     filename = os.path.basename(filepath)
 
@@ -228,8 +231,8 @@ def multipart_upload(filepath, start_time_ms, longitude, latitude, api_key):
 # ---------------------------------------------------------------------------
 
 def main():
-    parser = argparse.ArgumentParser(description="Upload video to memories.ai")
-    parser.add_argument("--file", "-f", required=True, help="Path to video file")
+    parser = argparse.ArgumentParser(description="Upload video or image to memories.ai")
+    parser.add_argument("--file", "-f", required=True, help="Path to video or image file")
     parser.add_argument("--probe", action="store_true", help="Only show extracted metadata, don't upload")
     # Explicit overrides
     parser.add_argument("--time", default=None, help="Start time as epoch ms (e.g. 1769097600000)")
@@ -245,8 +248,8 @@ def main():
         print(f"Error: file not found: {filepath}", file=sys.stderr)
         sys.exit(1)
 
-    # Step 1: Probe video metadata
-    print(f"Probing video: {filepath}")
+    # Step 1: Probe file metadata
+    print(f"Probing file: {filepath}")
     meta = probe_video(filepath)
     print(f"  creation_time: {meta['creation_time'] or 'not found'}")
     print(f"  latitude: {meta['latitude'] or 'not found'}")
@@ -264,11 +267,11 @@ def main():
     elif meta["creation_time"]:
         start_time_ms = parse_ffprobe_time(meta["creation_time"])
         if start_time_ms:
-            print(f"  → using video creation time: {start_time_ms} ms")
+            print(f"  → using embedded creation time: {start_time_ms} ms")
 
     if start_time_ms is None:
-        print("Error: could not determine video capture time.", file=sys.stderr)
-        print("Please provide --time (epoch ms), --datetime, or a video with creation_time metadata.", file=sys.stderr)
+        print("Error: could not determine capture time.", file=sys.stderr)
+        print("Please provide --time (epoch ms), --datetime, or a file with creation_time metadata.", file=sys.stderr)
         sys.exit(1)
 
     # Step 3: Resolve location
@@ -280,11 +283,11 @@ def main():
                 print(f"  → geocoded '{args.location}' to lat={lat}, lon={lon}")
         elif meta["latitude"] is not None and meta["longitude"] is not None:
             lat, lon = meta["latitude"], meta["longitude"]
-            print(f"  → using video GPS: lat={lat}, lon={lon}")
+            print(f"  → using embedded GPS: lat={lat}, lon={lon}")
 
     if lat is None or lon is None:
-        print("Error: could not determine video location.", file=sys.stderr)
-        print("Please provide --lat/--lon, --location, or a video with GPS metadata.", file=sys.stderr)
+        print("Error: could not determine location.", file=sys.stderr)
+        print("Please provide --lat/--lon, --location, or a file with GPS metadata.", file=sys.stderr)
         sys.exit(1)
 
     # Step 4: Upload

@@ -3,11 +3,16 @@
   "slug": "compound-eng-tailwind-css",
   "displayName": "tailwind-css",
   "latest": {
-    "version": "2.55.1",
-    "publishedAt": 1776004268124,
-    "commit": "https://github.com/openclaw/skills/commit/98e53faa344e04e03144053e526fa6c36055ec54"
+    "version": "2.56.1",
+    "publishedAt": 1776519051786,
+    "commit": null
   },
   "history": [
+    {
+      "version": "2.55.1",
+      "publishedAt": 1776004268124,
+      "commit": "https://github.com/openclaw/skills/commit/98e53faa344e04e03144053e526fa6c36055ec54"
+    },
     {
       "version": "2.53.0",
       "publishedAt": 1775523338145,

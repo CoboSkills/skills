@@ -1,20 +1,20 @@
 # Tech Trend Radar
 
-`tech-trend-radar` is a Codex/OpenClaw skill for generating technology and market trend reports from fresh industry signals. It focuses on source quality, AI model reranking, GitHub momentum, business impact, and clear next actions.
+`tech-trend-radar` 是一个 Codex/OpenClaw skill，用于根据最新行业信号生成技术与市场趋势报告。它重点关注来源质量、AI 模型排名变化、GitHub 热度、公司策略变化、商业影响和可执行建议。
 
-## Capabilities
+## 能力范围
 
-- Tracks `1w`, `1m`, and `3m` windows to separate short-term spikes from durable trends.
-- Monitors AI model reranking from LMArena/Text Arena, Artificial Analysis, LiveBench, SWE-bench, and OpenRouter.
-- Requires a full current Top 10 model table for monthly and quarterly reports.
-- Tracks OpenAI, Anthropic, Alibaba Qwen/通义千问, Zhipu GLM/智谱, Google, Microsoft/GitHub, Meta, xAI, and other AI lab strategy changes.
-- Captures GitHub Trending momentum, including stars, forks, releases, issue velocity, and contributor activity.
-- Covers AI/ML, agent platform ecosystem updates, developer tools, SaaS, cloud infrastructure, security, startups, funding, and regulation.
-- Produces structured reports with executive summaries, top signals, company strategy watch, action items, category deep dives, sources, and watchlists.
+- 跟踪 `1w`、`1m`、`3m` 三个窗口，用来区分短期热点和持续趋势。
+- 监控 LMArena/Text Arena、Artificial Analysis、LiveBench、SWE-bench、OpenRouter 等模型榜单。
+- 月报和季报必须包含当前 Top 10 模型排名表。
+- 跟踪 OpenAI、Anthropic、Alibaba Qwen/通义千问、Zhipu GLM/智谱、Google Gemini/Gemma、Microsoft/GitHub、Meta、xAI 等 AI 公司策略变化。
+- 捕捉 GitHub Trending 热度，包括 stars、forks、release、issue 活跃度和贡献者变化。
+- 覆盖 AI/ML、Agent Platform Ecosystem、开发者工具、SaaS、云基础设施、安全、创业公司、融资和监管。
+- 生成包含执行摘要、Top Signals、Company Strategy Watch、行动项、分类深挖、来源和观察清单的结构化报告。
 
-## Usage Examples
+## 使用示例
 
-Use prompts like:
+可以用类似下面的提示触发：
 
 ```text
 Write this week's AI trend report
@@ -25,35 +25,35 @@ Summarize GitHub Trending for AI agents this month
 What changed in SaaS and AI this week?
 ```
 
-## Research Sources
+## 研究来源
 
-Prioritize primary and high-signal sources:
+优先使用一手、高信号来源：
 
-- Official company blogs, release notes, changelogs, pricing pages
-- Anthropic news, Claude docs, Claude Code docs, API changelog, enterprise admin docs
-- GitHub releases, GitHub Trending, repository activity, RFCs
-- Model leaderboards and evals: LMArena/Text Arena, Artificial Analysis, LiveBench, SWE-bench, OpenRouter
-- Company strategy sources: OpenAI, Anthropic, Alibaba/Tongyi Qianwen/Qwen, Zhipu AI/GLM, Google, Microsoft/GitHub, Meta, xAI, Mistral, DeepSeek official news and docs
-- Funding announcements, acquisitions, earnings calls, regulatory filings
-- Trusted industry media and community signals when they support stronger evidence
+- 官方博客、release notes、changelog、价格页
+- Anthropic news、Claude docs、Claude Code docs、API changelog、企业管理文档
+- GitHub releases、GitHub Trending、仓库活跃度、RFC
+- 模型榜单与评测：LMArena/Text Arena、Artificial Analysis、LiveBench、SWE-bench、OpenRouter
+- 公司策略来源：OpenAI、Anthropic、Alibaba/Tongyi Qianwen/Qwen、Zhipu AI/GLM、Google Gemini/Gemma、Microsoft/GitHub、Meta、xAI、Mistral、DeepSeek 官方新闻和文档
+- 融资公告、并购、财报电话会、监管文件
+- 可信行业媒体和社区信号；社区信号只作为辅助证据
 
-## Report Quality Rules
+## 报告质量规则
 
-- Refresh latest sources every run, even when the topic appeared in an earlier report.
-- Monthly and quarterly reports must include a full Top 10 model ranking table.
-- Monthly reports must include OpenAI, Anthropic, Alibaba Qwen, and Zhipu AI strategy updates or explicitly state no major new public move was found.
-- Model ranking sections should check domestic models such as Qwen/通义千问, GLM/智谱, DeepSeek, Kimi, ERNIE/文心, Hunyuan/混元, and Doubao/豆包 when relevant.
-- Each major signal should include facts, dates, evidence links, core change since the last report, and recommended action.
+- 每次生成都要刷新最新来源，即使同一主题之前已经报告过。
+- 月报和季报必须包含完整 Top 10 模型排名表。
+- 月报必须包含 OpenAI、Anthropic、Alibaba Qwen、Zhipu AI 的策略更新；如果没有重大公开变化，也要明确写出已检查且未发现重大新动向。
+- 模型排名部分需要在相关时检查 open-weight 和国内模型，例如 Gemma、Llama、Qwen/通义千问、GLM/智谱、DeepSeek、Kimi、ERNIE/文心、Hunyuan/混元、Doubao/豆包。
+- 每个重要信号应包含事实、日期、证据链接、相比上一期的核心变化和建议动作。
 
-## Report Output
+## 报告输出
 
-Default report path:
+默认报告路径：
 
 ```text
 memory/research/tech-trend-radar-YYYY-WXX.md
 ```
 
-Scoped report examples:
+指定范围的报告示例：
 
 ```text
 memory/research/tech-trend-radar-ai-agents-YYYY-WXX.md
@@ -61,7 +61,7 @@ memory/research/tech-trend-radar-ai-agents-1m-YYYY-MM.md
 memory/research/tech-trend-radar-ai-agents-3m-YYYY-QN.md
 ```
 
-## Skill Files
+## Skill 文件
 
 ```text
 tech-trend-radar/
@@ -69,11 +69,11 @@ tech-trend-radar/
 └── SKILL.md
 ```
 
-`SKILL.md` contains the executable skill instructions, including the research workflow, report template, event payload, and keyword configuration.
+`SKILL.md` 包含实际的 skill 指令，包括研究流程、报告模板、事件 payload 和关键词配置。
 
-## Maintenance
+## 维护
 
-Keep the `SKILL.md` frontmatter valid and concise:
+保持 `SKILL.md` frontmatter 简洁有效：
 
 ```yaml
 ---
@@ -83,7 +83,7 @@ author: Chad Liu
 ---
 ```
 
-Before committing, review the skill docs:
+提交前检查文档：
 
 ```bash
 sed -n '1,80p' tech-trend-radar/SKILL.md

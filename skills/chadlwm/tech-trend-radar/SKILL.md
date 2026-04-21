@@ -124,7 +124,7 @@ Track strategic changes from major AI companies every run, especially OpenAI, An
 
 For each company strategy item, capture:
 
-- **Company**: OpenAI, Anthropic, Alibaba/Tongyi Qianwen/Qwen, Zhipu AI/GLM, Google, Microsoft/GitHub, Meta, xAI, Mistral, DeepSeek, Moonshot AI, Baidu, Tencent, ByteDance, or other
+- **Company**: OpenAI, Anthropic, Alibaba/Tongyi Qianwen/Qwen, Zhipu AI/GLM, Google Gemini/Gemma, Microsoft/GitHub, Meta, xAI, Mistral, DeepSeek, Moonshot AI, Baidu, Tencent, ByteDance, or other
 - **Latest move**: product launch, model release, pricing, partnership, safety policy, enterprise push, developer platform shift, acquisition, hiring, or regulation response
 - **Strategic direction**: models, agents, consumer apps, enterprise, coding, infrastructure, safety, open source, or distribution
 - **Evidence**: official source first; add credible analysis or market data when useful
@@ -143,6 +143,7 @@ Track AI model ranking movement as a dedicated signal. Always state which leader
 | LiveBench | Dynamic benchmark performance | Reasoning, coding, math, and contamination-resistant evals |
 | SWE-bench | Real-world coding tasks | Coding agent and software engineering capability |
 | OpenRouter Rankings | Real API usage | Developer adoption and production demand |
+| Open-weight model leaderboards | Open model performance | Gemma, Llama, Qwen, Mistral, DeepSeek, GLM comparison |
 | Chinese model leaderboards | Domestic model performance | Qwen, GLM, DeepSeek, Kimi, ERNIE, Hunyuan, Doubao comparison |
 
 For each reranking item, capture:
@@ -174,12 +175,12 @@ For each notable repository, capture:
 
 ### AI/ML
 
-- Models: OpenAI, Anthropic, Google Gemini, Meta Llama, Mistral, xAI, DeepSeek, Alibaba Qwen/通义千问, Zhipu GLM/智谱, Kimi/Moonshot, Baidu ERNIE/文心, Tencent Hunyuan/混元, ByteDance Doubao/豆包
+- Models: OpenAI, Anthropic, Google Gemini, Google Gemma, Meta Llama, Mistral, xAI, DeepSeek, Alibaba Qwen/通义千问, Zhipu GLM/智谱, Kimi/Moonshot, Baidu ERNIE/文心, Tencent Hunyuan/混元, ByteDance Doubao/豆包
 - Agent frameworks: LangChain, LangGraph, AutoGen, CrewAI, OpenAI Agents SDK
 - Capabilities: multimodal AI, coding agents, RAG, long context, reasoning, evaluation
 - Claude agents: managed agents, agent teams, Claude Code, MCP, tool use, computer use, enterprise controls
 - Business signals: AI startup funding, enterprise adoption, AI pricing, AI regulation
-- Company strategy: OpenAI, Anthropic, Alibaba/Tongyi Qianwen/Qwen, Zhipu AI/GLM, Google, Microsoft/GitHub, Meta, xAI, Mistral, DeepSeek, Moonshot AI, Baidu, Tencent, ByteDance
+- Company strategy: OpenAI, Anthropic, Alibaba/Tongyi Qianwen/Qwen, Zhipu AI/GLM, Google Gemini/Gemma, Microsoft/GitHub, Meta, xAI, Mistral, DeepSeek, Moonshot AI, Baidu, Tencent, ByteDance
 - Benchmarks and reranking: LMArena/Text Arena, Artificial Analysis, LiveBench, SWE-bench, OpenRouter, model cards, eval reports
 
 ### Developer Tools
@@ -210,7 +211,7 @@ For each notable repository, capture:
 
 ### Agent Platform Ecosystem
 
-- Anthropic/Claude, OpenAI/Codex, Alibaba Qwen/通义千问, Zhipu GLM/智谱, Google/Gemini, Microsoft/GitHub Copilot, MCP ecosystem, managed agents, agent teams, community showcases, OpenClaw, HarnessClaw
+- Anthropic/Claude, OpenAI/Codex, Alibaba Qwen/通义千问, Zhipu GLM/智谱, Google/Gemini/Gemma, Microsoft/GitHub Copilot, MCP ecosystem, managed agents, agent teams, community showcases, OpenClaw, HarnessClaw
 
 ## Scoring Criteria
 
@@ -297,7 +298,7 @@ Use this structure for readable output:
 | Anthropic | ... | agents / coding / enterprise / safety | 1m | Updated | ... |
 | Alibaba Qwen | ... | models / open source / cloud API / enterprise | 1m | Updated | ... |
 | Zhipu AI | ... | GLM models / agents / enterprise / domestic ecosystem | 1m | Updated | ... |
-| Google | ... | models / ecosystem / distribution | 1m | Watch | ... |
+| Google Gemini/Gemma | ... | flagship models / open-weight models / ecosystem / distribution | 1m | Watch | ... |
 | Microsoft/GitHub | ... | developer tools / enterprise | 1m | Watch | ... |
 
 ## Action Items
@@ -516,14 +517,14 @@ Example:
 
 ```json
 {
-  "AI/ML": ["OpenAI", "Claude", "Gemini", "Llama", "Qwen", "通义千问", "GLM", "智谱", "DeepSeek", "Kimi", "文心", "混元", "豆包", "AI agents", "SWE-bench", "model reranking", "Claude managed agents", "Claude agent teams"],
-  "Company Strategy": ["OpenAI strategy", "Anthropic strategy", "Alibaba Qwen strategy", "阿里千问趋势", "通义千问", "Zhipu AI strategy", "智谱趋势", "GLM", "Google AI strategy", "Microsoft AI strategy", "Meta AI strategy", "xAI strategy", "DeepSeek strategy", "Moonshot AI strategy", "Baidu ERNIE strategy", "Tencent Hunyuan strategy", "ByteDance Doubao strategy", "AI pricing", "enterprise AI", "consumer AI apps", "agent platform strategy"],
+  "AI/ML": ["OpenAI", "Claude", "Gemini", "Gemma", "Google Gemma", "Llama", "Qwen", "通义千问", "GLM", "智谱", "DeepSeek", "Kimi", "文心", "混元", "豆包", "AI agents", "SWE-bench", "model reranking", "Claude managed agents", "Claude agent teams"],
+  "Company Strategy": ["OpenAI strategy", "Anthropic strategy", "Alibaba Qwen strategy", "阿里千问趋势", "通义千问", "Zhipu AI strategy", "智谱趋势", "GLM", "Google Gemini strategy", "Google Gemma strategy", "Gemma open model", "Microsoft AI strategy", "Meta AI strategy", "xAI strategy", "DeepSeek strategy", "Moonshot AI strategy", "Baidu ERNIE strategy", "Tencent Hunyuan strategy", "ByteDance Doubao strategy", "AI pricing", "enterprise AI", "consumer AI apps", "agent platform strategy"],
   "Claude Agents": ["Claude managed agents", "Claude agent teams", "Claude Code", "Anthropic agents", "MCP", "tool use", "computer use", "agent orchestration", "enterprise controls", "connectors"],
-  "Model Reranking": ["LMArena", "Text Arena", "Artificial Analysis", "LiveBench", "SWE-bench", "OpenRouter rankings", "Chinese model leaderboard", "Qwen ranking", "GLM ranking", "DeepSeek ranking", "Kimi ranking", "top 10 AI models"],
+  "Model Reranking": ["LMArena", "Text Arena", "Artificial Analysis", "LiveBench", "SWE-bench", "OpenRouter rankings", "open-weight model leaderboard", "Gemma ranking", "Llama ranking", "Chinese model leaderboard", "Qwen ranking", "GLM ranking", "DeepSeek ranking", "Kimi ranking", "top 10 AI models"],
   "Developer Tools": ["Codex", "GitHub Copilot", "Cursor", "Claude Code", "Vercel", "LangGraph", "GitHub Trending"],
   "GitHub Trending": ["AI", "LLM", "agent", "RAG", "MCP", "devtools", "security", "TypeScript", "Python", "Rust", "Go"],
   "SaaS": ["Notion AI", "Linear", "Slack AI"],
-  "Agent Platform Ecosystem": ["Anthropic", "Claude API", "Claude managed agents", "Claude agent teams", "Claude Code", "OpenAI", "Codex", "OpenAI Agents SDK", "Alibaba Qwen", "通义千问", "Zhipu GLM", "智谱", "Google Gemini", "Gemini agents", "GitHub Copilot", "Copilot coding agent", "MCP", "OpenClaw", "HarnessClaw"],
+  "Agent Platform Ecosystem": ["Anthropic", "Claude API", "Claude managed agents", "Claude agent teams", "Claude Code", "OpenAI", "Codex", "OpenAI Agents SDK", "Alibaba Qwen", "通义千问", "Zhipu GLM", "智谱", "Google Gemini", "Google Gemma", "Gemma", "Gemini agents", "GitHub Copilot", "Copilot coding agent", "MCP", "OpenClaw", "HarnessClaw"],
   "windows": ["1w", "1m", "3m"]
 }
 ```

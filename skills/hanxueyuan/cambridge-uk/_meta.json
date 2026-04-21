@@ -3,9 +3,15 @@
   "slug": "cambridge-uk",
   "displayName": "Cambridge Uk",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775983252634,
-    "commit": "https://github.com/openclaw/skills/commit/18ee634a795d7ae13d4e9aafae89e7d88e620aea"
+    "version": "1.0.5",
+    "publishedAt": 1776238024214,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775983252634,
+      "commit": "https://github.com/openclaw/skills/commit/18ee634a795d7ae13d4e9aafae89e7d88e620aea"
+    }
+  ]
 }

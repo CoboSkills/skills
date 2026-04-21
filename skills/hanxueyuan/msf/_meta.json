@@ -3,9 +3,15 @@
   "slug": "msf",
   "displayName": "Msf",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775974336715,
-    "commit": "https://github.com/openclaw/skills/commit/f78b8ae0ca20dad8483c5ee176d73484be600c54"
+    "version": "1.0.1",
+    "publishedAt": 1776295462809,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775974336715,
+      "commit": "https://github.com/openclaw/skills/commit/f78b8ae0ca20dad8483c5ee176d73484be600c54"
+    }
+  ]
 }

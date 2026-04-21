@@ -20,12 +20,35 @@ metadata:
 
 | 能力 | 说明 |
 |------|------|
-| AI 封面生成 | 一键生成科技感封面图，保存到 `assets/cover.jpg` |
-| 内容创作 | 爆款标题 + 金字塔结构 + 去AI味写作 |
+| AI 封面生成 | 一键生成封面图，保存到 `assets/cover.jpg` |
+| 内容创作 | **推荐使用 khazix-writer skill**（卡兹克风格，含完整四层自检体系） |
 | 一键发布 | Markdown → 微信公众号草稿箱，支持多主题+代码高亮 |
 | 搜狗验证 | 自动用搜狗微信搜索验证文章收录状态 |
 | 数据追踪 | 追踪多篇文章收录状态、查询次数 |
 | 选题建议 | 基于已发布内容给出下一篇文章方向和候选标题 |
+
+## 整合 khazix-writer
+
+**khazix-writer**（卡兹克风格写作skill）是内容创作的核心引擎，**wechat-workflow** 负责发布和分发。
+
+**完整工作流：**
+```
+用户给选题/素材
+    ↓
+khazix-writer 生成文章（四层自检通过）
+    ↓
+添加 frontmatter（title + cover）
+    ↓
+wechat-workflow 发布到草稿箱
+    ↓
+搜狗验证收录
+    ↓
+monitor.py 追踪数据
+```
+
+**khazix-writer 安装：** `git clone https://github.com/KKKKhazix/khazix-skills` 到 skills 目录
+
+**触发词：** 写文章、写稿子、帮我写、续写、扩写、公众号文章、长文、出稿、按我的风格写
 
 ## 依赖声明
 
@@ -94,7 +117,7 @@ export WECHAT_APP_SECRET=your_app_secret
 
 - **爆款方法论.md** — 标题创作五种类型 + 结构原则
 - **写作技巧.md** — 四大内容结构 + 开头结尾写法
-- **去AI味指南.md** — 十条去AI痕迹规则
+- **去AI味指南.md** — 卡兹克风格核心规则 + 四层自检体系（推荐优先使用 khazix-writer skill）
 
 ## 脚本说明
 
@@ -171,3 +194,22 @@ wechat-workflow/
     ├── 写作技巧.md
     └── 去AI味指南.md
 ```
+
+## 技能整合说明
+
+### 已废弃
+~~wechat-publisher~~ — 功能已合并到 wechat-workflow，安装了请卸载。
+
+### 公众号内容全家桶
+```
+khazix-writer（写作风格 + 四层自检）
+    ↓
+wechat-workflow（封面 + 发布 + 验证 + 追踪）
+```
+
+### 其他公众号技能定位
+- **xiawei**：飞书文档 → 公众号，可与 wechat-workflow 共存
+- **gongzhonghaoxieshou**：传播学驱动多平台（公众号/小红书/知乎）
+- **khazix-writer**：卡兹克风格深度长文
+
+两个公众号写作技能定位不同，可按需选用。

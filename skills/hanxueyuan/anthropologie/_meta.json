@@ -3,9 +3,15 @@
   "slug": "anthropologie",
   "displayName": "Anthropologie",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776230278097,
-    "commit": "https://github.com/openclaw/skills/commit/14aaba72bb94e37d3b552ba8f5234565c7190db1"
+    "version": "1.0.3",
+    "publishedAt": 1776232820838,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776230278097,
+      "commit": "https://github.com/openclaw/skills/commit/14aaba72bb94e37d3b552ba8f5234565c7190db1"
+    }
+  ]
 }

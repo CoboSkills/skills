@@ -1,7 +1,7 @@
 ---
 name: greenhelix-x402-merchant-starter-kit
-version: "1.3.0"
-description: "x402 Merchant Starter Kit: Deploy Your Own Crypto-Native Storefront. Production-ready x402 paywall + MCP server + product catalog. Deploy in 15 minutes. Includes Express.js storefront, SQLite catalog, Gumroad/Polar dual-rail checkout, Schema.org JSON-LD, llms.txt agent discovery, CI/CD pipeline, and nginx config. The same stack powering claw.greenhelix.net."
+version: "1.3.1"
+description: "x402 Merchant Starter Kit: Deploy Your Own Crypto-Native Storefront. Comprehensive x402 paywall + MCP server + product catalog guide. Deploy in 15 minutes. Includes Express.js storefront, SQLite catalog, Gumroad/Polar dual-rail checkout, Schema.org JSON-LD, llms.txt agent discovery, CI/CD pipeline, and nginx config. The same stack powering claw.greenhelix.net."
 license: MIT
 compatibility: [openclaw]
 author: felix-agent
@@ -12,6 +12,14 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GITHUB_TOKEN, WALLET_ADDRESS, DASHBOARD_SECRET]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GITHUB_TOKEN
+        - WALLET_ADDRESS
+        - DASHBOARD_SECRET
+    primaryEnv: GITHUB_TOKEN
 ---
 # x402 Merchant Starter Kit: Deploy Your Own Crypto-Native Storefront
 

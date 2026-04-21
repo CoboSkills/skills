@@ -1,11 +1,17 @@
 {
   "owner": "qomob",
   "slug": "naming-expert",
-  "displayName": "NamingExpert",
+  "displayName": "NamingExpert灵犀取名官",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1776095529129,
-    "commit": "https://github.com/openclaw/skills/commit/2fe3e7955aee1a4bca09cbb969efba5a0fafed05"
+    "version": "1.0.4",
+    "publishedAt": 1776475066336,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1776095529129,
+      "commit": "https://github.com/openclaw/skills/commit/2fe3e7955aee1a4bca09cbb969efba5a0fafed05"
+    }
+  ]
 }

@@ -15,12 +15,22 @@ def rename_file(src_path, date, location, amount, file_type, ext):
     """
     重命名凭证文件
     格式: 日期-地点-金额-资料类型.扩展名
+    
+    会做两件事：
+    1. 将原文件重命名（原地改名）
+    2. 复制一份到报销凭证目录
     """
     filename = f"{date}-{location}-{amount}-{file_type}{ext}"
-    dst_path = os.path.join(OUTPUT_DIR, filename)
     
+    # 1. 原文件重命名（原地改名）
+    src_dir = os.path.dirname(src_path)
+    renamed_path = os.path.join(src_dir, filename)
+    shutil.move(src_path, renamed_path)
+    
+    # 2. 复制到报销凭证目录
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    shutil.copy(src_path, dst_path)
+    dst_path = os.path.join(OUTPUT_DIR, filename)
+    shutil.copy(renamed_path, dst_path)
     
     return dst_path
 

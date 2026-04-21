@@ -1,11 +1,13 @@
 ---
 name: cross-platform-bot-builder
 slug: skylv-cross-platform-bot-builder
-version: 1.0.0
-description: "跨平台 Bot 生成器。一键生成 Telegram/微信/抖音/Discord Bot，统一 API，多平台部署。Triggers: bot builder, telegram bot, wechat bot, discord bot, multi-platform bot."
+version: 1.0.2
+description: Cross-platform Bot generator. One-command Telegram/WeChat/Discord Bot creation with unified API and multi-platform deployment. Triggers: telegram bot, discord bot, wechat bot, bot builder.
 author: SKY-lv
 license: MIT
 tags: [bot, telegram, wechat, discord, cross-platform, automation]
+keywords: openclaw, skill, automation, ai-agent
+triggers: cross platform bot builder
 ---
 
 # Cross-Platform Bot Builder — 跨平台 Bot 生成器
@@ -413,3 +415,9 @@ def analyze_bot_performance(bot_id: str, time_range: str = "24h") -> dict:
 - 自动：检测 bot、telegram、wechat、discord、cross-platform 相关关键词
 - 手动：/bot-builder, /create-bot, /multi-platform-bot
 - 短语：创建 Bot、Telegram Bot、微信 Bot、跨平台 Bot
+
+## Usage
+
+1. Install the skill
+2. Configure as needed
+3. Run with OpenClaw

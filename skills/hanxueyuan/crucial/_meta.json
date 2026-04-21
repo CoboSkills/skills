@@ -3,9 +3,15 @@
   "slug": "crucial",
   "displayName": "Crucial",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776208602232,
-    "commit": "https://github.com/openclaw/skills/commit/28c69903edad8f3dd43823826a100db5e3e14fa6"
+    "version": "1.0.6",
+    "publishedAt": 1776238463373,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776208602232,
+      "commit": "https://github.com/openclaw/skills/commit/28c69903edad8f3dd43823826a100db5e3e14fa6"
+    }
+  ]
 }

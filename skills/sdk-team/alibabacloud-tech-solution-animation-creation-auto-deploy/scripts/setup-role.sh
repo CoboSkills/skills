@@ -10,20 +10,20 @@ TRUST_POLICY='{"Statement":[{"Action":"sts:AssumeRole","Effect":"Allow","Princip
 
 # Auto-fetch MY_UID
 if [ -z "${MY_UID:-}" ]; then
-  MY_UID=$(aliyun sts GetCallerIdentity --user-agent AlibabaCloud-Agent-Skills 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['AccountId'])")
+  MY_UID=$(aliyun sts get-caller-identity --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['AccountId'])")
 fi
 export MY_UID
 echo "UID: $MY_UID"
 
 # Check if role exists; create if not
-ROLE_POLICY=$(aliyun ram GetRole --RoleName "$ROLE_NAME" --user-agent AlibabaCloud-Agent-Skills 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['Role']['AssumeRolePolicyDocument'])" 2>/dev/null || echo "")
+ROLE_POLICY=$(aliyun ram get-role --role-name "$ROLE_NAME" --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['Role']['AssumeRolePolicyDocument'])" 2>/dev/null || echo "")
 if [ -z "$ROLE_POLICY" ]; then
   echo "Role $ROLE_NAME not found, creating..."
-  aliyun ram CreateRole --RoleName "$ROLE_NAME" --AssumeRolePolicyDocument "$TRUST_POLICY" --Description "Role for Devs and FC services" --user-agent AlibabaCloud-Agent-Skills
+  aliyun ram create-role --role-name "$ROLE_NAME" --assume-role-policy-document "$TRUST_POLICY" --description "Role for Devs and FC services" --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
   echo "Role created."
 elif echo "$ROLE_POLICY" | grep -q "fc.aliyuncs.com"; then
   echo "Role trust policy already includes fc.aliyuncs.com, skipping update"
 else
   echo "Updating role trust policy to include fc.aliyuncs.com..."
-  aliyun ram UpdateRole --RoleName "$ROLE_NAME" --NewAssumeRolePolicyDocument "$TRUST_POLICY" --user-agent AlibabaCloud-Agent-Skills
+  aliyun ram update-role --role-name "$ROLE_NAME" --new-assume-role-policy-document "$TRUST_POLICY" --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 fi

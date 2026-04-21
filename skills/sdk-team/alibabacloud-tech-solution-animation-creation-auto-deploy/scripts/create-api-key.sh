@@ -8,18 +8,15 @@ set -euo pipefail
 DESCRIPTION="AI Animation Story Creation App"
 
 # Get workspace list
-WORKSPACE_RESULT=$(aliyun maas list-workspaces --user-agent AlibabaCloud-Agent-Skills 2>/dev/null)
+WORKSPACE_RESULT=$(aliyun modelstudio list-workspaces --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy 2>/dev/null)
 WORKSPACE_COUNT=$(echo "$WORKSPACE_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('totalCount', 0))")
 
 # If no workspace exists, create one automatically
 if [ "$WORKSPACE_COUNT" = "0" ]; then
   echo "No Bailian workspace found, creating one..."
-  CREATE_WS_RESULT=$(aliyun MaaS POST /maas/workspaces \
-    --endpoint maas.cn-beijing.aliyuncs.com \
-    --body '{"workspaceName":"default","description":"Default workspace"}' \
-    --force \
-    --version 2026-03-18 \
-    --user-agent AlibabaCloud-Agent-Skills 2>&1)
+  CREATE_WS_RESULT=$(aliyun modelstudio create-workspace \
+    --workspace-name "default" \
+    --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy 2>&1)
   WORKSPACE_ID=$(echo "$CREATE_WS_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['workspace']['workspaceId'])")
   echo "Workspace created: $WORKSPACE_ID"
 else
@@ -28,10 +25,10 @@ else
 fi
 
 # Create API Key
-CREATE_RESULT=$(aliyun maas create-api-key \
+CREATE_RESULT=$(aliyun modelstudio create-api-key \
   --workspace-id "$WORKSPACE_ID" \
   --description "$DESCRIPTION" \
-  --user-agent AlibabaCloud-Agent-Skills 2>&1)
+  --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy 2>&1)
 
 # Extract API Key value and ID
 API_KEY=$(echo "$CREATE_RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin)['apiKey']['apiKeyValue'])")

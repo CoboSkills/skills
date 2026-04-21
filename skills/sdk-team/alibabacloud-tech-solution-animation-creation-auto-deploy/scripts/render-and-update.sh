@@ -19,7 +19,7 @@ done
 
 # Auto-fetch MY_UID
 if [ -z "${MY_UID:-}" ]; then
-  MY_UID=$(aliyun sts GetCallerIdentity --user-agent AlibabaCloud-Agent-Skills 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['AccountId'])")
+  MY_UID=$(aliyun sts get-caller-identity --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin)['AccountId'])")
   export MY_UID
 fi
 
@@ -30,7 +30,7 @@ RENDER_OUTPUT=$(aliyun devs render-services-by-template \
   --template-name "$TEMPLATE_NAME" \
   --project-name "$PROJECT_NAME" \
   --variable-values "{\"shared\":{\"namespace\":\"$PROJECT_NAME\",\"region\":\"$REGION\",\"ossBucket\":\"$BUCKET_NAME\",\"bailian_api_key\":\"$API_KEY\",\"fc_role_arn\":\"$ROLE_ARN\"}}" \
-  --user-agent AlibabaCloud-Agent-Skills 2>&1)
+  --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy 2>&1)
 
 # Filter custom-domain from render result and build UpdateEnvironment body
 UPDATE_BODY=$(echo "$RENDER_OUTPUT" | python3 -c "
@@ -46,4 +46,4 @@ aliyun devs update-environment \
   --project-name "$PROJECT_NAME" \
   --name "$ENV_NAME" \
   --body "$UPDATE_BODY" \
-  --user-agent AlibabaCloud-Agent-Skills
+  --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy

@@ -11,8 +11,8 @@
 
 #### ✅ CORRECT
 ```bash
-aliyun oss mb oss://my-animation-bucket --region cn-hangzhou --ua AlibabaCloud-Agent-Skills
-aliyun oss stat oss://my-animation-bucket --ua AlibabaCloud-Agent-Skills
+aliyun oss mb oss://my-animation-bucket --region cn-hangzhou --ua AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
+aliyun oss stat oss://my-animation-bucket --ua AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 ```
 
 #### ❌ INCORRECT
@@ -26,19 +26,19 @@ ossutil mb oss://my-bucket
 #### ✅ CORRECT
 ```bash
 # Create project (with template config, parameter names confirmed)
-aliyun devs create-project --body '{"name":"my-project","spec":{"templateConfig":{"templateName":"animation-creation","parameters":{"region":"cn-hangzhou","bailian_api_key":"sk-xxx","ossBucket":"my-bucket"}}}}' --user-agent AlibabaCloud-Agent-Skills
+aliyun devs create-project --body '{"name":"my-project","spec":{"templateConfig":{"templateName":"animation-creation","parameters":{"region":"cn-hangzhou","bailian_api_key":"sk-xxx","ossBucket":"my-bucket"}}}}' --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 
 # Render template (must pass namespace, otherwise functionName starts with "-" causing deployment failure)
-aliyun devs render-services-by-template --template-name animation-creation --project-name my-project --variable-values '{"shared":{"namespace":"my-project"}}' --user-agent AlibabaCloud-Agent-Skills
+aliyun devs render-services-by-template --template-name animation-creation --project-name my-project --variable-values '{"shared":{"namespace":"my-project"}}' --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 
 # Update environment (must use --body; --spec cannot correctly handle deeply nested JSON; must include roleArn; only comfyui and web services)
-aliyun devs update-environment --project-name my-project --name production --body '{"name":"production","spec":{"roleArn":"acs:ram::123456:role/aliyundevscustomrole","stagedConfigs":{"services":{"comfyui":{...},"web":{...}}}}}' --user-agent AlibabaCloud-Agent-Skills
+aliyun devs update-environment --project-name my-project --name production --body '{"name":"production","spec":{"roleArn":"acs:ram::123456:role/aliyundevscustomrole","stagedConfigs":{"services":{"comfyui":{...},"web":{...}}}}}' --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 
 # Trigger deployment
-aliyun devs deploy-environment --project-name my-project --name production --user-agent AlibabaCloud-Agent-Skills
+aliyun devs deploy-environment --project-name my-project --name production --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 
 # Query environment details
-aliyun devs get-environment --project-name my-project --name production --user-agent AlibabaCloud-Agent-Skills
+aliyun devs get-environment --project-name my-project --name production --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 ```
 
 #### ❌ INCORRECT
@@ -76,17 +76,17 @@ aliyun devs render-services-by-template --template-name animation-creation --pro
 #### ✅ CORRECT
 ```bash
 # Get domain verification token (use --data-urlencode)
-curl -s --connect-timeout 10 --max-time 30 -A AlibabaCloud-Agent-Skills -X POST "https://domain.devsapp.net/token" \
+curl -s --connect-timeout 10 --max-time 30 -A AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy -X POST "https://domain.devsapp.net/token" \
   --data-urlencode "type=fc" --data-urlencode "user=<UID>" \
   --data-urlencode "region=cn-hangzhou" --data-urlencode "service=fcv3" \
   --data-urlencode "function=<ProjectName>-web"
 
 # Helper function uses FC 2.0 API (fc-open)
-aliyun fc-open CreateService --body '{"serviceName":"serverless-devs-check"}' --region cn-hangzhou --user-agent AlibabaCloud-Agent-Skills
-aliyun fc-open CreateFunction --serviceName serverless-devs-check --body '<JSON>' --region cn-hangzhou --user-agent AlibabaCloud-Agent-Skills
+aliyun fc-open create-service --body '{"serviceName":"serverless-devs-check"}' --region cn-hangzhou --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
+aliyun fc-open create-function --service-name serverless-devs-check --body '<JSON>' --region cn-hangzhou --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 
 # Create FC custom domain
-aliyun fc CreateCustomDomain --body '{"domainName":"<DOMAIN>","protocol":"HTTP","routeConfig":{"routes":[...]}}' --region cn-hangzhou --user-agent AlibabaCloud-Agent-Skills
+aliyun fc create-custom-domain --body '{"domainName":"<DOMAIN>","protocol":"HTTP","routeConfig":{"routes":[...]}}' --region cn-hangzhou --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 ```
 
 #### ❌ INCORRECT
@@ -95,7 +95,7 @@ aliyun fc CreateCustomDomain --body '{"domainName":"<DOMAIN>","protocol":"HTTP",
 # https://<func>.cn-hangzhou.fcapp.run is NOT a valid application URL
 
 # Wrong: using FC 3.0 API for helper function (function name with $ not supported)
-aliyun fc CreateFunction --functionName "serverless-devs-check$domain<TOKEN>" ...
+aliyun fc create-function --function-name "serverless-devs-check$domain<TOKEN>" ...
 
 # Wrong: using -F instead of --data-urlencode for curl (causes "failed to change user ID" error)
 curl -X POST "https://domain.devsapp.net/token" -F "user=<UID>" ...
@@ -112,7 +112,7 @@ curl -X POST "https://domain.devsapp.net/token" -F "user=<UID>" ...
 2. Confirmed template parameter names: `region` (fixed `cn-hangzhou`), `bailian_api_key`, `ossBucket`
 3. FC application is deployed via Devs API, **not** `aliyun fc create-function`
 4. Template name is `animation-creation`
-5. DashScope API Key — auto-created via `aliyun maas create-api-key` (requires `list-workspaces` first to get workspace-id)
+5. DashScope API Key — auto-created via `aliyun modelstudio create-api-key` (requires `list-workspaces` first to get workspace-id)
 6. OSS Bucket creation uses `aliyun oss mb`
 7. `UpdateEnvironment` must include `roleArn` (format: `acs:ram::<UID>:role/aliyundevscustomrole`)
 8. `UpdateEnvironment` services **must NOT include `custom-domain`** (only `comfyui` and `web`)
@@ -125,4 +125,4 @@ curl -X POST "https://domain.devsapp.net/token" -F "user=<UID>" ...
 15. Helper function must use FC 2.0 API (`aliyun fc-open`) — FC 3.0 does not support `$` in function names
 16. Domain format: `<ProjectName>-web.fcv3.<UID>.cn-hangzhou.fc.devsapp.net`
 17. Access URL is the custom domain `http://<DOMAIN>/` (HTTP protocol)
-18. All `aliyun` CLI commands must include User-Agent: OSS commands use `--ua AlibabaCloud-Agent-Skills`, all others use `--user-agent AlibabaCloud-Agent-Skills`
+18. All `aliyun` CLI commands must include User-Agent: OSS commands use `--ua AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy`, all others use `--user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy`

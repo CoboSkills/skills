@@ -18,7 +18,7 @@ for i in $(seq 1 $MAX_RETRIES); do
   RESULT=$(aliyun devs deploy-environment \
     --project-name "$PROJECT_NAME" \
     --name "$ENV_NAME" \
-    --user-agent AlibabaCloud-Agent-Skills 2>&1) && RC=0 || RC=$?
+    --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy 2>&1) && RC=0 || RC=$?
 
   # Check success (return code 0 and output contains valid JSON / no error)
   if [ $RC -eq 0 ]; then

@@ -20,13 +20,25 @@ Automatically deploy the Alibaba Cloud "Build AI Animation Story Creation App" s
 > | Dependency | Min Version | Check Command | Purpose |
 > |-----------|-------------|---------------|---------|
 > | `bash` | 4.0+ | `bash --version` | Script runtime |
-> | `aliyun` CLI | >= 3.3.1 | `aliyun version` | Alibaba Cloud resource operations |
+> | `aliyun` CLI | >= 3.3.7 | `aliyun version` | Alibaba Cloud resource operations (3.3.7+ required for `ai-mode` subcommand) |
 > | `python3` | 3.6+ | `python3 --version` | JSON parsing |
 > | `curl` | any | `curl --version` | HTTP API calls |
 >
 > If Aliyun CLI is not installed or version too low,
 > see `references/cli-installation-guide.md` for installation instructions.
 > Then [MUST] run `aliyun configure set --auto-plugin-install true` to enable automatic plugin installation.
+
+---
+
+## CLI Initialization (MUST run before Core Workflow)
+
+Enable AI-Mode, set the dedicated User-Agent, and update plugins so all subsequent CLI calls are tagged correctly and run on the latest plugin versions:
+
+```bash
+aliyun configure ai-mode enable
+aliyun configure ai-mode set-user-agent --user-agent "AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy"
+aliyun plugin update
+```
 
 ---
 
@@ -82,7 +94,7 @@ bash scripts/attach-policies.sh
 |-----------|----------|-------------|-------|
 | `RegionId` | Yes | Deployment region (FC and OSS in the same region) | **Fixed `cn-hangzhou`** |
 | `BUCKET_NAME` | Yes | OSS Bucket name | Auto-generated `animation-story-<6 random lowercase letters>` |
-| `API_KEY` | Yes | Bailian (DashScope) API Key | Auto-created via `aliyun maas create-api-key` |
+| `API_KEY` | Yes | Bailian (DashScope) API Key | Auto-created via `aliyun modelstudio create-api-key` |
 | `PROJECT_NAME` | Yes | Devs project name | Auto-generated `animation-creation-<6 random lowercase letters>` |
 
 **Before starting the Core Workflow, set the following variables in the shell (all subsequent commands reference them directly):**
@@ -100,7 +112,7 @@ echo "BUCKET_NAME=$BUCKET_NAME, PROJECT_NAME=$PROJECT_NAME"
 
 ### Step 1: Create Bailian API Key (CLI)
 
-Automatically obtain the workspace and create an API Key via `aliyun maas` CLI:
+Automatically obtain the workspace and create an API Key via `aliyun modelstudio` CLI:
 
 ```bash
 source scripts/create-api-key.sh
@@ -115,19 +127,19 @@ source scripts/create-api-key.sh
 First enable OSS service (returns `ORDER.OPEND` if already enabled — can be ignored):
 
 ```bash
-aliyun OssAdmin OpenOssService --endpoint oss-admin.aliyuncs.com --force --user-agent AlibabaCloud-Agent-Skills 2>&1 || true
+aliyun ossadmin open-oss-service --endpoint oss-admin.aliyuncs.com --force --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy 2>&1 || true
 ```
 
 Create Bucket:
 
 ```bash
-aliyun oss mb "oss://$BUCKET_NAME" --region cn-hangzhou --ua AlibabaCloud-Agent-Skills
+aliyun oss mb "oss://$BUCKET_NAME" --region cn-hangzhou --ua AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 ```
 
 Verify:
 
 ```bash
-aliyun oss stat "oss://$BUCKET_NAME" --ua AlibabaCloud-Agent-Skills
+aliyun oss stat "oss://$BUCKET_NAME" --ua AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 ```
 
 ### Step 3: Create Devs Project (CLI)
@@ -149,7 +161,7 @@ aliyun devs create-project --body "{
       }
     }
   }
-}" --user-agent AlibabaCloud-Agent-Skills
+}" --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 ```
 
 > **Template parameter notes (confirmed — do not modify):**
@@ -234,17 +246,27 @@ To clean up deployed resources, delete in the following order (requires `PROJECT
 
 ```bash
 # 1. Delete FC custom domain
-aliyun fc DeleteCustomDomain --domainName "${PROJECT_NAME}-web.fcv3.${MY_UID}.cn-hangzhou.fc.devsapp.net" --region cn-hangzhou --user-agent AlibabaCloud-Agent-Skills
+aliyun fc delete-custom-domain --domain-name "${PROJECT_NAME}-web.fcv3.${MY_UID}.cn-hangzhou.fc.devsapp.net" --region cn-hangzhou --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 
 # 2. Delete Devs project (also deletes associated FC functions; --force true skips environment resource check)
-aliyun devs delete-project --name "$PROJECT_NAME" --force true --user-agent AlibabaCloud-Agent-Skills
+aliyun devs delete-project --name "$PROJECT_NAME" --force true --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 
 # 3. Delete OSS Bucket (recursively delete all objects first, then delete the Bucket)
-aliyun oss rm "oss://$BUCKET_NAME" -r -f --region cn-hangzhou --ua AlibabaCloud-Agent-Skills
-aliyun oss rm "oss://$BUCKET_NAME" -b -f --region cn-hangzhou --ua AlibabaCloud-Agent-Skills
+aliyun oss rm "oss://$BUCKET_NAME" -r -f --region cn-hangzhou --ua AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
+aliyun oss rm "oss://$BUCKET_NAME" -b -f --region cn-hangzhou --ua AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
 
 # 4. Delete Bailian API Key (API_KEY_ID is output during create-api-key.sh execution)
-aliyun maas delete-api-key --api-key-id "$API_KEY_ID" --user-agent AlibabaCloud-Agent-Skills
+aliyun modelstudio delete-api-key --api-key-id "$API_KEY_ID" --user-agent AlibabaCloud-Agent-Skills/alibabacloud-tech-solution-animation-creation-auto-deploy
+```
+
+---
+
+## Workflow Teardown
+
+After the workflow completes (or after Cleanup), disable AI-Mode:
+
+```bash
+aliyun configure ai-mode disable
 ```
 
 ---
@@ -255,7 +277,7 @@ See `references/related-commands.md` for full CLI command reference.
 
 > **Key limitation:** First-time activation of FC has no CLI/API support — users must activate it manually in the console.
 >
-> **Auto-activated:** OSS service via `aliyun OssAdmin OpenOssService` (built into Step 2). Bailian workspace via `POST /maas/workspaces` (built into Step 1).
+> **Auto-activated:** OSS service via `aliyun ossadmin open-oss-service` (built into Step 2). Bailian workspace via `aliyun modelstudio create-workspace` (built into Step 1).
 
 ---
 

@@ -3,9 +3,15 @@
   "slug": "agntdata-linkedin",
   "displayName": "LinkedIn API",
   "latest": {
-    "version": "1.0.11",
-    "publishedAt": 1776188211390,
-    "commit": "https://github.com/openclaw/skills/commit/11c3d7b67064a9bc8913fdeb34abe52f9bc027d9"
+    "version": "1.0.13",
+    "publishedAt": 1776382834216,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.11",
+      "publishedAt": 1776188211390,
+      "commit": "https://github.com/openclaw/skills/commit/11c3d7b67064a9bc8913fdeb34abe52f9bc027d9"
+    }
+  ]
 }

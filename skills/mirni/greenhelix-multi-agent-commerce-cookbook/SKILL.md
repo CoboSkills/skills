@@ -1,6 +1,6 @@
 ---
 name: greenhelix-multi-agent-commerce-cookbook
-version: "1.3.0"
+version: "1.3.1"
 description: "The Multi-Agent Commerce Cookbook: Orchestrating Agent Teams That Discover, Negotiate, Pay, and Verify Each Other. Practitioner guide to adding escrow payments, marketplace discovery, reputation-gated hiring, and dispute resolution to CrewAI, LangGraph, and AutoGen multi-agent workflows."
 license: MIT
 compatibility: [openclaw]
@@ -12,6 +12,14 @@ content_type: markdown
 executable: false
 install: none
 credentials: [GREENHELIX_API_KEY, AGENT_SIGNING_KEY, STRIPE_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GREENHELIX_API_KEY
+        - AGENT_SIGNING_KEY
+        - STRIPE_API_KEY
+    primaryEnv: GREENHELIX_API_KEY
 ---
 # The Multi-Agent Commerce Cookbook: Orchestrating Agent Teams That Discover, Negotiate, Pay, and Verify Each Other
 

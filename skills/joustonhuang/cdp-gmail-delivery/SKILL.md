@@ -1,26 +1,25 @@
 ---
 name: cdp-gmail-delivery
-description: "Send files reliably from an operator-controlled Chrome debug session using Gmail CDP automation with Google Drive share-link fallback. Use when direct channel file delivery fails and the user asks for email delivery. Workflow: restart local debug Chrome, have the operator sign in if needed, connect to 127.0.0.1:9222, validate To/Subject/attachment, send, verify in Sent, and if attachment is blocked switch to Google Drive share link as the default delivery method."
+description: "Send Gmail messages from an operator-controlled Chrome debug session using Gmail CDP automation. Use when the user asks to send email from the local machine, with or without an attachment. Default assumption: Chrome CDP is already installed and available. If the CDP endpoint is unavailable, ask the human operator to help restart the debug Chrome session, then send, and verify in Sent by unique subject."
 metadata: {"openclaw":{"requires":{"bins":["node","npm"]}}}
 ---
 
 # Gmail CDP Delivery
 
-Use this workflow when a user asks to deliver a file by Gmail and normal chat delivery fails.
+Use this workflow when a user asks to send email by Gmail from the local machine, with or without an attachment.
 
-Default policy: for skill bundles or executable-looking archives, prefer Google Drive share links over direct attachments.
-
-UI baseline for this workflow: Google Drive web UI in English (`New` -> `File upload`).
+Current limitation: this skill supports plain-text Gmail body content plus attachments. It does not reliably support sending raw HTML as inline Gmail body content.
 
 ## Required Inputs
 
 - Recipient email
-- File path
+- Optional file path or paths
 - Optional body text
 
 ## Environment Assumptions
 
-- Chrome debug launcher exists in your repo/workspace:
+- Chrome with remote debugging support is already installed and expected to be available
+- Chrome debug launcher exists in your repo/workspace when restart help is needed:
   - `scripts/restart_debug_chrome.sh`
 - Chrome DevTools endpoint is `http://127.0.0.1:9222`
 - Node and npm are available
@@ -28,19 +27,31 @@ UI baseline for this workflow: Google Drive web UI in English (`New` -> `File up
 
 ## Preflight Checklist
 
-- Confirm target file exists and is readable
+- If attaching a file, confirm target file exists and is readable
+- If attaching files for a personal Gmail account, keep total size at or under 25 MB
+- Reject obviously blocked Gmail attachment classes before send:
+  - executable/script-heavy file types like `.exe`, `.dll`, `.js`, `.jar`, `.bat`, `.cmd`, `.msi`, `.iso`, and similar blocked extensions
+  - blocked files inside archives, including compressed forms or nested archives
+  - password-protected archives
+  - documents with malicious macros
 - Confirm recipient email is explicit
 - Confirm CDP endpoint responds (`http://127.0.0.1:9222/json/version`)
 - Confirm user login state in visible debug Chrome session
 
+If a requested attachment appears blocked or too large for Gmail, stop and ask the human operator for another delivery path. Do not keep retrying the same blocked upload.
+
+If the user wants an HTML newsletter or raw HTML email body, treat inline HTML body delivery as unsupported for this skill under the current Gmail compose + CDP model. Use plain-text summary/body plus an `.html` attachment instead, or use a future Gmail API / MIME-based workflow.
+
+For detectable cases, `scripts/send_via_cdp.js` should fail before opening Gmail and print a limitation result instead of pretending the upload might work.
+
 ## Workflow
 
-1. Restart the visible debug Chrome session:
-   - Run `scripts/restart_debug_chrome.sh` from repo/workspace root
-2. If Gmail is not already authenticated in that visible Chrome window, ask the Human operator to sign in manually. So AI Agent will never know what is the login secrets(password / MFA)
-3. Send mail over CDP with `scripts/send_via_cdp.js`.
-4. Verify send in Sent folder by a unique subject.
-5. If Gmail blocks attachment for security reasons, switch immediately to Drive-link delivery (default fallback) using Drive UI path `New` -> `File upload`.
+1. Assume Chrome CDP is already available and try the send flow first.
+2. If the CDP endpoint is unavailable, run `scripts/restart_debug_chrome.sh` from repo/workspace root.
+3. If CDP is still unavailable after restart, ask the human operator to help restore the visible debug Chrome session.
+4. If Gmail is not already authenticated in that visible Chrome window, ask the operator to sign in manually.
+5. Send mail over CDP with `scripts/send_via_cdp.js`.
+6. Verify send in Sent folder by a unique subject.
 
 ## Non-negotiable Validation
 
@@ -48,9 +59,35 @@ Before clicking Send, validate all of the following in the live compose draft:
 
 - To field contains intended recipient
 - Subject is non-empty and unique
-- Attachment count is exactly 1 and filename matches requested file
+- If attaching files, the compose draft shows all requested filenames before send
 
 If any check fails, stop and repair draft fields before send.
+
+## Gmail Attachment Constraints
+
+- Personal Gmail sending limit: 25 MB total attachment size
+- Google Workspace accounts may use admin-defined limits instead
+- Gmail blocks many risky attachment types, including executable and script-like formats such as:
+  - `.ade`, `.adp`, `.apk`, `.appx`, `.appxbundle`, `.bat`, `.cab`, `.chm`, `.cmd`, `.com`, `.cpl`, `.diagcab`, `.diagcfg`, `.diagpkg`, `.dll`, `.dmg`, `.ex`, `.ex_`, `.exe`, `.hta`, `.img`, `.ins`, `.iso`, `.isp`, `.jar`, `.jnlp`, `.js`, `.jse`, `.lib`, `.lnk`, `.mde`, `.mjs`, `.msc`, `.msi`, `.msix`, `.msixbundle`, `.msp`, `.mst`, `.nsh`, `.pif`, `.ps1`, `.scr`, `.sct`, `.shb`, `.sys`, `.vb`, `.vbe`, `.vbs`, `.vhd`, `.vxd`, `.wsc`, `.wsf`, `.wsh`, `.xll`
+- Gmail can also block:
+  - compressed forms of blocked files
+  - blocked files found inside archives like `.zip` or `.tgz`
+  - password-protected archives
+  - documents with malicious macros
+
+Use these constraints as preflight filters. If the file is likely to be blocked, do not claim it can be mailed successfully.
+
+## HTML Email Limitation
+
+- Do not promise raw HTML body delivery through Gmail compose DOM automation
+- Gmail compose currently behaves like a plain-text/body-editor automation target for this skill, not a reliable raw HTML injection target
+- Treat HTML email as a limitation of this skill, not a temporary success path
+- Current supported workaround:
+  - put a plain-text summary or intro in the email body
+  - attach the full `.html` file
+- Future upgrade path for true inline HTML email:
+  - Gmail API
+  - raw MIME message assembly
 
 ## Install (one-time)
 
@@ -72,7 +109,25 @@ This keeps the runtime local to the skill instead of using an ad hoc `/tmp` path
 ```bash
 node skills/cdp-gmail-delivery/scripts/send_via_cdp.js \
   --to "recipient@example.com" \
+  --body "Optional message"
+```
+
+With attachment:
+
+```bash
+node skills/cdp-gmail-delivery/scripts/send_via_cdp.js \
+  --to "recipient@example.com" \
   --file "/absolute/path/to/file.txt" \
+  --body "Optional message"
+```
+
+With multiple attachments:
+
+```bash
+node skills/cdp-gmail-delivery/scripts/send_via_cdp.js \
+  --to "recipient@example.com" \
+  --file "/absolute/path/to/file-a.txt" \
+  --file "/absolute/path/to/file-b.txt" \
   --body "Optional message"
 ```
 
@@ -83,16 +138,20 @@ The script prints:
 - `EMAIL_SENT_OK`
 - `SUBJECT=<unique-subject>`
 - `TO=<recipient>`
-- `FILE_NAME=<basename-only>`
+- `FILE_NAME=<basename-only>` for each attached file
 
 Report success only after these outputs and Sent verification succeed. Do not expose absolute local filesystem paths in success messages.
 
-If recipient reports blocked attachment, do not claim delivered content. Immediately switch to Drive link delivery and report the new share link.
+When local preflight detects a Gmail attachment limitation, the script should print:
+
+- `LIMITATION_GMAIL_ATTACHMENT`
+- `REASON=<limitation-type>`
+- `DETAILS=<detected-context>` when available
+- `ACTION=...` telling the human operator this is a limitation of Gmail attachment sending for this skill
 
 ## When to read extra references
 
 - If send flow fails or behaves unexpectedly: read `references/troubleshooting.md`
-- If attachments are blocked: read `references/drive-fallback.md`
 - If you need incident evidence/context: read `references/receipts.md`
 
 ## References
@@ -104,10 +163,8 @@ If recipient reports blocked attachment, do not claim delivered content. Immedia
   - Script references: `chrome_for_openclaw.sh`, `scripts/restart_debug_chrome.sh`
 - Historical script context:
   - `scripts/xrdp_chrome_debug_setup.sh`
-  - Git repo context: `https://github.com/joustonhuang/unifai`
+- Git repo context: `https://github.com/joustonhuang/unifai`
 - Incident receipts:
   - `references/receipts.md`
 - Troubleshooting:
   - `references/troubleshooting.md`
-- Drive fallback:
-  - `references/drive-fallback.md`

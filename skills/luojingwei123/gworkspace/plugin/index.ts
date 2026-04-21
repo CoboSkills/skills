@@ -1,4 +1,4 @@
-// G.workspace OpenClaw Plugin v3.1.4
+// G.workspace OpenClaw Plugin v3.2.0
 // All Discord slash commands proxied to G.workspace REST API (localhost:3080)
 // Single bot, no conflict — G.workspace runs web-only.
 // v3.0.1: return { text } objects instead of plain strings
@@ -7,6 +7,8 @@
 // v3.1.2: fix package.json extension path (./src/index.ts → ./index.ts)
 // v3.1.3: ws_create adds force option; prompt user when workspace exists
 // v3.1.4: dedupe guard (prevent multi-register); friendlier create prompt
+// v3.2.0: replace force:yes with interactive confirm button; register Discord interactive handler
+// v3.2.1: restore options arrays for Discord slash command parameter registration
 
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
@@ -51,42 +53,93 @@ function formatSize(bytes: number): string {
 
 const ok = (text: string) => ({ text });
 
-let _registered = false;
-
 export default definePluginEntry({
   id: "gworkspace",
   name: "G.workspace",
   description: "Shared file space — slash commands via REST API",
 
   register(api) {
-    if (_registered) return;
-    _registered = true;
 
     const logger = (api as any).logger;
 
-    // ── /ws_create [name] [force] ──
+    // ── /ws_create [name] ──
     api.registerCommand({
       name: "ws_create",
       description: "🗂️ 创建群共享文件空间",
       options: [
         { name: "name", description: "空间名称（不填则用服务器名）", type: "string", required: false },
-        { name: "force", description: "已有空间时强制创建新空间（yes/no）", type: "string", required: false },
       ],
+      acceptsArgs: true,
       handler: async (ctx) => {
         const guildId = extractGuildId(ctx);
         if (!guildId) return ok("❌ 无法获取服务器ID，请在Discord群内使用此命令");
-        const name = ctx.args?.name || undefined;
-        const forceArg = (ctx.args?.force || "").toLowerCase();
-        const force = forceArg === "yes" || forceArg === "true" || forceArg === "1";
+        const args: any = ctx.args;
+        const name = (typeof args === "object" ? args?.name : undefined) || undefined;
         try {
-          const data = await gwFetch("POST", `/api/guild/${guildId}/create`, { name, force });
-          if (data.existed && !force) {
-            return ok(`ℹ️ 本群已有空间：**${data.name}**\n📁 文件: ${data.stats.fileCount} · 👥 成员: ${data.stats.memberCount}\n🔗 ${GW_BASE}/w/${data.workspace_id}\n\n如需创建新空间，请重新输入：\n\`/ws_create force:yes name:新空间名\``);
+          const data = await gwFetch("POST", `/api/guild/${guildId}/create`, { name });
+          if (data.existed) {
+            // Interactive buttons for confirmation (works on Discord, Telegram, Slack)
+            const confirmValue = name ? `confirm_create:${name}` : "confirm_create";
+            return {
+              text: `ℹ️ 本群已有空间：**${data.name}**\n📁 文件: ${data.stats.fileCount} · 👥 成员: ${data.stats.memberCount}\n🔗 ${GW_BASE}/w/${data.workspace_id}\n\n是否继续创建新空间？`,
+              interactive: {
+                blocks: [
+                  {
+                    type: "buttons" as const,
+                    buttons: [
+                      { label: "✅ 继续创建", value: confirmValue, style: "primary" as const },
+                      { label: "❌ 取消", value: "cancel_create", style: "secondary" as const },
+                    ],
+                  },
+                ],
+              },
+            };
           }
           return ok(`🗂️ 空间创建成功！\n\n📛 名称: **${data.name}**\n📁 默认文件夹: 📦产品 · ⚙️技术 · 🎨设计\n🔗 Web: ${GW_BASE}/w/${data.workspace_id}`);
         } catch (e: any) {
           return ok("❌ 创建失败: " + e.message);
         }
+      },
+    });
+
+    // ── Discord Interactive Handler (button clicks) ──
+    api.registerInteractiveHandler({
+      channel: "discord",
+      namespace: "gworkspace",
+      handler: async (ctx) => {
+        const payload = ctx.interaction.payload;
+        const guildId = ctx.guildId;
+
+        // ── Confirm create ──
+        if (payload.startsWith("confirm_create")) {
+          if (!guildId) {
+            await ctx.respond.reply({ text: "❌ 无法获取服务器ID", ephemeral: true });
+            return { handled: true };
+          }
+          const name = payload.includes(":") ? payload.split(":").slice(1).join(":") : undefined;
+          try {
+            await ctx.respond.acknowledge();
+            const data = await gwFetch("POST", `/api/guild/${guildId}/create`, { name, force: true });
+            await ctx.respond.clearComponents({
+              text: `🗂️ 新空间创建成功！\n\n📛 名称: **${data.name}**\n📁 默认文件夹: 📦产品 · ⚙️技术 · 🎨设计\n🔗 Web: ${GW_BASE}/w/${data.workspace_id}`,
+            });
+          } catch (e: any) {
+            await ctx.respond.clearComponents({
+              text: "❌ 创建失败: " + e.message,
+            });
+          }
+          return { handled: true };
+        }
+
+        // ── Cancel create ──
+        if (payload === "cancel_create") {
+          await ctx.respond.clearComponents({
+            text: "❌ 已取消创建新空间",
+          });
+          return { handled: true };
+        }
+
+        return { handled: false };
       },
     });
 
@@ -112,13 +165,15 @@ export default definePluginEntry({
       name: "ws_files",
       description: "📋 查看空间文件列表",
       options: [{ name: "folder", description: "文件夹筛选", type: "string", required: false }],
+      acceptsArgs: true,
       handler: async (ctx) => {
         const guildId = extractGuildId(ctx);
         if (!guildId) return ok("❌ 无法获取服务器ID");
         try {
           const data = await gwFetch("GET", `/api/guild/${guildId}`);
           const wsId = data.workspace_id;
-          const folder = ctx.args?.folder;
+          const args: any = ctx.args;
+          const folder = typeof args === "object" ? args?.folder : (typeof args === "string" ? args.trim() || undefined : undefined);
           const q = folder ? `?folder=${encodeURIComponent(folder)}` : "";
           const filesData = await gwFetch("GET", `/w/${wsId}/api/files${q}`);
           const files = filesData.files;
@@ -139,16 +194,19 @@ export default definePluginEntry({
       name: "ws_file",
       description: "📄 查看文件详情",
       options: [{ name: "filename", description: "文件名（输入关键词搜索）", type: "string", required: true }],
+      acceptsArgs: true,
       handler: async (ctx) => {
         const guildId = extractGuildId(ctx);
         if (!guildId) return ok("❌ 无法获取服务器ID");
         try {
           const data = await gwFetch("GET", `/api/guild/${guildId}`);
-          const file = data.files?.find((f: any) => f.filename === ctx.args?.filename);
+          const args: any = ctx.args;
+          const filename = typeof args === "object" ? args?.filename : (typeof args === "string" ? args.trim() : "");
+          const file = data.files?.find((f: any) => f.filename === filename);
           if (!file) {
-            const keyword = (ctx.args?.filename || "").toLowerCase();
+            const keyword = (filename || "").toLowerCase();
             const matches = data.files?.filter((f: any) => f.filename.toLowerCase().includes(keyword)) || [];
-            if (matches.length === 0) return ok(`❌ 找不到文件: ${ctx.args?.filename}\n\n💡 使用 /ws_files 查看所有文件`);
+            if (matches.length === 0) return ok(`❌ 找不到文件: ${filename}\n\n💡 使用 /ws_files 查看所有文件`);
             if (matches.length === 1) {
               const f = matches[0];
               return ok(`📄 **${f.filename}**\n📝 ${f.summary || "无摘要"}\n📁 ${f.folder || "根目录"} · v${f.current_version}\n🔗 ${GW_BASE}/w/${data.workspace_id}/preview/${f.id}`);
@@ -167,19 +225,22 @@ export default definePluginEntry({
       name: "ws_search",
       description: "🔍 搜索文件",
       options: [{ name: "keyword", description: "搜索关键词", type: "string", required: true }],
+      acceptsArgs: true,
       handler: async (ctx) => {
         const guildId = extractGuildId(ctx);
         if (!guildId) return ok("❌ 无法获取服务器ID");
         try {
           const data = await gwFetch("GET", `/api/guild/${guildId}`);
           const wsId = data.workspace_id;
-          const q = encodeURIComponent(ctx.args?.keyword || "");
+          const args: any = ctx.args;
+          const keyword = typeof args === "object" ? args?.keyword : (typeof args === "string" ? args.trim() : "");
+          const q = encodeURIComponent(keyword || "");
           const result = await gwFetch("GET", `/w/${wsId}/api/search?q=${q}`);
-          if (!result.results || result.results.length === 0) return ok(`🔍 未找到匹配「${ctx.args?.keyword}」的文件`);
+          if (!result.results || result.results.length === 0) return ok(`🔍 未找到匹配「${keyword}」的文件`);
           const list = result.results.slice(0, 10).map((f: any) =>
             `📄 **${f.filename}** [${f.folder_name || "根目录"}] v${f.current_version}${f.snippet ? `\n   ...${f.snippet}...` : ""}`
           ).join("\n");
-          return ok(`🔍 搜索「${ctx.args?.keyword}」— ${result.results.length}个结果\n\n${list}`);
+          return ok(`🔍 搜索「${keyword}」— ${result.results.length}个结果\n\n${list}`);
         } catch (e: any) {
           return ok("❌ " + e.message);
         }
@@ -191,21 +252,24 @@ export default definePluginEntry({
       name: "ws_delete",
       description: "🗑️ 删除文件（移入回收站）",
       options: [{ name: "filename", description: "选择要删除的文件", type: "string", required: true }],
+      acceptsArgs: true,
       handler: async (ctx) => {
         const guildId = extractGuildId(ctx);
         if (!guildId) return ok("❌ 无法获取服务器ID");
         try {
           const data = await gwFetch("GET", `/api/guild/${guildId}`);
           const wsId = data.workspace_id;
-          const keyword = (ctx.args?.filename || "").toLowerCase();
-          const file = data.files?.find((f: any) => f.filename === ctx.args?.filename)
+          const args: any = ctx.args;
+          const filename = typeof args === "object" ? args?.filename : (typeof args === "string" ? args.trim() : "");
+          const keyword = (filename || "").toLowerCase();
+          const file = data.files?.find((f: any) => f.filename === filename)
             || data.files?.find((f: any) => f.filename.toLowerCase().includes(keyword));
           if (!file) {
             if (data.files && data.files.length > 0) {
               const list = data.files.map((f: any, i: number) => `${i + 1}. 📄 **${f.filename}** [${f.folder || "根目录"}]`).join("\n");
-              return ok(`❌ 找不到「${ctx.args?.filename}」\n\n📋 当前文件列表:\n${list}\n\n请输入完整文件名重试`);
+              return ok(`❌ 找不到「${filename}」\n\n📋 当前文件列表:\n${list}\n\n请输入完整文件名重试`);
             }
-            return ok(`❌ 找不到文件: ${ctx.args?.filename}`);
+            return ok(`❌ 找不到文件: ${filename}`);
           }
           await gwFetch("DELETE", `/w/${wsId}/api/files/${file.id}`);
           return ok(`🗑️ **${file.filename}** 已移入回收站\n30天内可使用 \`/ws_trash\` 恢复`);
@@ -220,16 +284,19 @@ export default definePluginEntry({
       name: "ws_versions",
       description: "📜 查看文件版本历史",
       options: [{ name: "filename", description: "选择文件", type: "string", required: true }],
+      acceptsArgs: true,
       handler: async (ctx) => {
         const guildId = extractGuildId(ctx);
         if (!guildId) return ok("❌ 无法获取服务器ID");
         try {
           const data = await gwFetch("GET", `/api/guild/${guildId}`);
           const wsId = data.workspace_id;
-          const keyword = (ctx.args?.filename || "").toLowerCase();
-          const file = data.files?.find((f: any) => f.filename === ctx.args?.filename)
+          const args: any = ctx.args;
+          const filename = typeof args === "object" ? args?.filename : (typeof args === "string" ? args.trim() : "");
+          const keyword = (filename || "").toLowerCase();
+          const file = data.files?.find((f: any) => f.filename === filename)
             || data.files?.find((f: any) => f.filename.toLowerCase().includes(keyword));
-          if (!file) return ok(`❌ 找不到文件: ${ctx.args?.filename}`);
+          if (!file) return ok(`❌ 找不到文件: ${filename}`);
           const result = await gwFetch("GET", `/w/${wsId}/api/files/${file.id}/versions`);
           if (!result.versions || result.versions.length === 0) return ok(`📜 **${file.filename}** — 无版本记录`);
           const list = result.versions.map((v: any) =>
@@ -247,15 +314,18 @@ export default definePluginEntry({
       name: "ws_ref",
       description: "🔗 生成文件引用链接",
       options: [{ name: "filename", description: "选择文件", type: "string", required: true }],
+      acceptsArgs: true,
       handler: async (ctx) => {
         const guildId = extractGuildId(ctx);
         if (!guildId) return ok("❌ 无法获取服务器ID");
         try {
           const data = await gwFetch("GET", `/api/guild/${guildId}`);
-          const keyword = (ctx.args?.filename || "").toLowerCase();
-          const file = data.files?.find((f: any) => f.filename === ctx.args?.filename)
+          const args: any = ctx.args;
+          const filename = typeof args === "object" ? args?.filename : (typeof args === "string" ? args.trim() : "");
+          const keyword = (filename || "").toLowerCase();
+          const file = data.files?.find((f: any) => f.filename === filename)
             || data.files?.find((f: any) => f.filename.toLowerCase().includes(keyword));
-          if (!file) return ok(`❌ 找不到文件: ${ctx.args?.filename}`);
+          if (!file) return ok(`❌ 找不到文件: ${filename}`);
           const refLink = `workspace://${data.workspace_id}/${file.filename}`;
           return ok(`🔗 **${file.filename}**\n\`\`\`\n${refLink}\n\`\`\`\n💡 复制链接发到群聊中，AI 可以通过链接定位文件内容\n🌐 ${GW_BASE}/w/${data.workspace_id}/preview/${file.id}`);
         } catch (e: any) {
@@ -288,13 +358,16 @@ export default definePluginEntry({
         { name: "action", description: "操作: list(查看) / restore(恢复) / empty(清空)", type: "string", required: false },
         { name: "filename", description: "恢复的文件名", type: "string", required: false },
       ],
+      acceptsArgs: true,
       handler: async (ctx) => {
         const guildId = extractGuildId(ctx);
         if (!guildId) return ok("❌ 无法获取服务器ID");
         try {
           const data = await gwFetch("GET", `/api/guild/${guildId}`);
           const wsId = data.workspace_id;
-          const action = ctx.args?.action || "list";
+          const args: any = ctx.args;
+          const action = (typeof args === "object" ? args?.action : (typeof args === "string" ? args.trim().split(/\s+/)[0] : "")) || "list";
+          const filename = typeof args === "object" ? args?.filename : undefined;
 
           if (action === "list" || !action) {
             const result = await gwFetch("GET", `/w/${wsId}/api/trash`);
@@ -307,7 +380,6 @@ export default definePluginEntry({
           }
 
           if (action === "restore") {
-            const filename = ctx.args?.filename;
             if (!filename) return ok("❌ 请指定文件名: /ws_trash action:restore filename:文件名");
             const result = await gwFetch("GET", `/w/${wsId}/api/trash`);
             const file = result.files?.find((f: any) => f.filename === filename);
@@ -454,6 +526,6 @@ export default definePluginEntry({
       },
     });
 
-    logger?.info?.("[gworkspace] ✅ Plugin v3.1.4 registered (12 commands + 5 tools)");
+    logger?.info?.("[gworkspace] ✅ Plugin v3.2.1 registered (12 commands + 5 tools + Discord interactive handler)");
   },
 });

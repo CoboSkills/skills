@@ -81,7 +81,7 @@ cp -r plugin/ ~/.openclaw/extensions/gworkspace/
 
 | 命令 | 说明 |
 |------|------|
-| `/ws_create [name]` | 创建群共享文件空间 |
+| `/ws_create [name]` | 创建群共享文件空间（已有空间时弹出确认按钮） |
 | `/ws_info` | 查看空间信息和统计 |
 | `/ws_files [folder]` | 查看文件列表 |
 | `/ws_file <filename>` | 查看文件详情 |

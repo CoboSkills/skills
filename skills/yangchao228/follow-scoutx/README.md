@@ -26,6 +26,7 @@
 
 - 信息源：ScoutX 定制优质媒体源、一手信息源，或两者都看
 - 一手信息源类型：X 平台、播客，或两者都看
+- 推送条数：混合源默认一手信息源和 ScoutX 优质自媒体各占一半，也可以分别设置上限
 - 每日或每周推送
 - 中文、英文或双语
 - 在聊天中显示，或推送到指定渠道
@@ -110,6 +111,7 @@ agent 应该只问你这些问题：
 - `切到一手信息源`
 - `只看 X 平台`
 - `切回 ScoutX 定制优质媒体源`
+- `一手信息源最多 6 条，ScoutX 优质自媒体最多 4 条`
 - `把摘要写得更短一点`
 - `多关注编程工具`
 - `显示我当前的设置`
@@ -160,6 +162,7 @@ skill 会把用户偏好保存在本地：
 - `X 平台` 与 `播客` 作为一手信息源，由中心 feed 提供原始帖子和转写文本
 - `Follow ScoutX` 负责按时拉取用户选择的信息源、筛选和整理
 - `OpenClaw` 负责定时触发，并把结果通过明确配置的 channel/target 发回当前聊天或飞书
+- 如果同时订阅一手信息源和 ScoutX 优质自媒体，OpenClaw recurring delivery 会拆成两次推送，避免两类内容混在同一条消息里
 
 它不是：
 
@@ -167,6 +170,43 @@ skill 会把用户偏好保存在本地：
 - skill 自己维护一套独立内容库存
 
 OpenClaw 场景下，`follow_scoutx.py deliver` 只负责把 digest 输出到 stdout；真正的飞书发送由 OpenClaw cron 的 `--announce --channel feishu --to <target>` 完成。不要把飞书定时任务配置成 `delivery.mode=session` + `sessionTarget=isolated`，因为 isolated session 没有可继承的当前聊天通道。
+
+为了让定时任务稳定，安装前先 dry run：
+
+```bash
+python3 scripts/follow_scoutx.py install-openclaw-cron
+```
+
+确认输出里的 `delivery_diagnostics.stable` 为 `true` 后，再执行：
+
+```bash
+python3 scripts/follow_scoutx.py install-openclaw-cron --apply
+```
+
+如果诊断显示投递目标解析成 `channel=last`，默认不会直接安装。默认稳定方案是先保存明确的飞书投递目标，例如：
+
+```bash
+python3 scripts/follow_scoutx.py configure \
+  --delivery-channel feishu \
+  --delivery-target "ou_xxx"
+```
+
+如果目标是当前聊天，而不是飞书 open_id / chat_id，不要依赖 `channel=last`。使用 OpenClaw 的主会话 system event 路径：
+
+```bash
+python3 scripts/follow_scoutx.py install-openclaw-cron --main-session-system-event
+python3 scripts/follow_scoutx.py install-openclaw-cron --main-session-system-event --apply
+```
+
+只有在内部测试并确认当前 OpenClaw 安装能稳定路由 `last` 时，才使用 `install-openclaw-cron --apply --allow-channel-last`。
+
+如果需要替换已有定时任务，OpenClaw cron 不按 name 更新。可以用：
+
+```bash
+python3 scripts/follow_scoutx.py install-openclaw-cron --replace-existing --apply
+```
+
+它会先执行 `openclaw cron list --json`，按生成的 job name 找到 id，再用 `openclaw cron rm <id>` 删除后重新安装。也可以手动执行这两步。
 
 ## 当前仓库结构
 

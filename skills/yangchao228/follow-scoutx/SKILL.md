@@ -43,6 +43,7 @@ The end user should only configure:
 - content interests
 - source selection: ScoutX curated media, first-party sources, or both
 - first-party source selection: X, podcasts, or both
+- per-message item limits for first-party and ScoutX curated media
 - digest style
 
 The end user should not configure:
@@ -108,6 +109,7 @@ Ask only for the user-facing preferences:
 - what time
 - whether to use ScoutX curated media, first-party sources, or both
 - if using first-party sources, whether to include X, podcasts, or both
+- optional separate item caps for first-party and ScoutX curated media
 - what topics or companies to follow
 - preferred language
 - summary style
@@ -143,6 +145,7 @@ python3 scripts/follow_scoutx.py configure \
   --topics "AI Agent,编程工具" \
   --keywords-include "OpenAI,Anthropic,Cursor" \
   --max-items 8 \
+  --max-scoutx-items 8 \
   --length short
 ```
 
@@ -155,7 +158,10 @@ python3 scripts/follow_scoutx.py configure \
   --source-types "scoutx,x,podcast" \
   --delivery-channel feishu \
   --delivery-target "ou_xxx" \
-  --topics "AI Agent,模型发布"
+  --topics "AI Agent,模型发布" \
+  --max-items 10 \
+  --max-first-party-items 6 \
+  --max-scoutx-items 4
 ```
 
 First-party only example:
@@ -190,8 +196,8 @@ Use only when the current installation needs a specific feed endpoint, such as a
 
 ```bash
 python3 scripts/follow_scoutx.py configure-service \
-  --feed-url "http://192.144.134.94:9100/v1/public/feed" \
-  --meta-url "http://192.144.134.94:9100/v1/public/meta"
+  --feed-url "https://input.reai.group/v1/public/feed" \
+  --meta-url "https://input.reai.group/v1/public/meta"
 ```
 
 This writes the endpoint override into:
@@ -247,6 +253,8 @@ Important behavior:
 - X and podcast first-party content are also read from centrally prepared public feeds
 - Follow ScoutX does not maintain a separate message cache
 - every preview or delivery run fetches fresh data from the configured selected public feeds before filtering and formatting it
+- if both first-party sources and ScoutX curated media are selected, recurring OpenClaw delivery should create two message jobs: one for `--message-group first_party` and one for `--message-group scoutx`
+- by default, `max_items` is split across message groups; use `--max-first-party-items` and `--max-scoutx-items` when the user wants separate caps
 
 ### 5.3 Show the recommended OpenClaw cron command
 
@@ -269,15 +277,18 @@ If the installation still relies on a temporary public IP, first run `configure-
 Once setup is confirmed, you can create the OpenClaw cron job directly:
 
 ```bash
+python3 scripts/follow_scoutx.py install-openclaw-cron
 python3 scripts/follow_scoutx.py install-openclaw-cron --apply
+python3 scripts/follow_scoutx.py install-openclaw-cron --replace-existing --apply
 ```
 
-Without `--apply`, the command returns a dry-run JSON payload for inspection.
+Without `--apply`, the command returns a dry-run JSON payload for inspection. Check `delivery_diagnostics.stable` before applying. The default stable path requires an explicit Feishu target. If the user wants current-chat delivery, use `--main-session-system-event` so OpenClaw routes through the main session instead of relying on `--channel last`.
 
 Use this after:
 
 1. `configure-service` is correct for the current installation
 2. the user's schedule and preferences are already saved with `configure`
+3. delivery is saved with an explicit Feishu channel and target, such as `--delivery-channel feishu --delivery-target ou_xxx`, unless the user explicitly chooses the main-session system event path for current-chat delivery
 
 ### 6. Recurring delivery in OpenClaw
 
@@ -288,18 +299,15 @@ For OpenClaw, `delivery.method=stdout` is a local skill preference: it means `fo
 
 Do not use `delivery.mode=session` with `--session isolated` for Feishu delivery. Isolated sessions do not have a previous chat channel to inherit, and this can fail with "Channel is required".
 
-Target shape for the current chat:
+Stable target shape for the current chat:
 
 ```bash
 openclaw cron add \
   --name "follow-scoutx-daily" \
   --cron "0 9 * * *" \
-  --session isolated \
   --agent main \
-  --message "Run `python3 scripts/follow_scoutx.py deliver`, then return the command output verbatim as your final answer. Do not rewrite, summarize, or reformat it." \
-  --announce \
-  --channel last \
-  --best-effort-deliver \
+  --session main \
+  --system-event "Run `python3 scripts/follow_scoutx.py deliver`, then return the command output verbatim as your final answer. Do not rewrite, summarize, or reformat it." \
   --exact \
   --timeout-seconds 120
 ```
@@ -312,7 +320,7 @@ openclaw cron add \
   --cron "0 9 * * *" \
   --session isolated \
   --agent main \
-  --message "Run `FOLLOW_SCOUTX_FEED_URL=http://192.144.134.94:9100/v1/public/feed python3 /root/work/follow-scoutx/scripts/follow_scoutx.py deliver`, then return the command output verbatim as your final answer. Do not rewrite, summarize, or reformat it." \
+  --message "Run `FOLLOW_SCOUTX_FEED_URL=https://input.reai.group/v1/public/feed python3 /root/work/follow-scoutx/scripts/follow_scoutx.py deliver`, then return the command output verbatim as your final answer. Do not rewrite, summarize, or reformat it." \
   --announce \
   --channel feishu \
   --to "ou_xxx" \
@@ -323,8 +331,12 @@ openclaw cron add \
 
 Important:
 
-- prefer exact channel delivery for OpenClaw cron jobs; use `--channel last` only when the current chat context is known to be available
+- default recurring delivery should require an explicit Feishu target
+- for current-chat delivery, use `install-openclaw-cron --main-session-system-event --apply` so OpenClaw sends a system event to the main session instead of hard-coding a target
+- `install-openclaw-cron --apply` refuses `channel=last` by default; use `--allow-channel-last` only for internal compatibility testing after manually verifying this OpenClaw installation can reliably route `last`
 - for Feishu, always pass `--channel feishu --to <target>` with a raw `ou_...` user open_id or `oc_...` group chat_id
+- when both message groups are selected, `show-openclaw-cron` and `install-openclaw-cron` should output/create two cron jobs so first-party sources and ScoutX curated media are pushed separately
+- OpenClaw cron has no name-based update; if replacing a previously installed job, use `install-openclaw-cron --replace-existing --apply`, which lists jobs with `openclaw cron list --json` and removes matching generated names by id before creating the replacement
 - use `deliver` as the default recurring delivery path
 - use `prepare-digest` only when you explicitly need prompt-controlled LLM remixing and have confirmed the platform path does not re-parse or rewrite the result
 - keep inbox/file output only as fallback or debugging
@@ -340,8 +352,11 @@ When the user enters `/follow-scoutx` or asks to enable the Follow ScoutX skill,
 4. If this OpenClaw installation needs a fixed feed endpoint, apply it with `configure-service`
 5. Offer a preview
 6. Ask whether the user wants recurring delivery in the current chat
-7. If yes, create the cron job with `install-openclaw-cron --apply`
-8. Confirm that future results will be delivered back to the current chat channel
+7. If yes, run `install-openclaw-cron` first and inspect `delivery_diagnostics`
+8. If the user wants Feishu delivery, save an explicit target and create the cron job with `install-openclaw-cron --apply`
+9. If the user wants current-chat delivery, create the cron job with `install-openclaw-cron --main-session-system-event --apply`
+10. If an existing job needs replacement, use `install-openclaw-cron --replace-existing --apply`, or manually use `openclaw cron list --json` to find the matching job id and `openclaw cron rm <id>` before adding the replacement
+11. Confirm that future results will be delivered through the configured route
 
 Recommended setup questions:
 
@@ -380,6 +395,8 @@ If the user asks to change tone or style in a durable way:
 - When the user says `只看一手信息源`, update `--source-mode first_party`.
 - When the user says `只看 X 平台`, update `--source-types x`.
 - When the user says `切回 ScoutX 优质媒体源`, update `--source-mode scoutx`.
+- When the user says `一手信息源最多 N 条`, update `--max-first-party-items N`.
+- When the user says `ScoutX 优质自媒体最多 N 条`, update `--max-scoutx-items N`.
 - When the user says `focus more on builders shipping products`, add that preference to the local prompt file instead of inventing backend settings.
 - Treat backend endpoint details as implementation details hidden behind the skill.
 - In OpenClaw, prefer native cron/channel delivery over asking the user to copy shell cron lines.

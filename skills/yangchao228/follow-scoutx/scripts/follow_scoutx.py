@@ -18,7 +18,7 @@ import urllib.parse
 import urllib.request
 
 
-DEFAULT_FEED_URL = "http://192.144.134.94:9100/v1/public/feed"
+DEFAULT_FEED_URL = "https://input.reai.group/v1/public/feed"
 DEFAULT_X_FEED_URL = "https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-x.json"
 DEFAULT_PODCAST_FEED_URL = "https://raw.githubusercontent.com/zarazhangrui/follow-builders/main/feed-podcasts.json"
 DEFAULT_TIMEOUT_SECONDS = 20
@@ -57,6 +57,20 @@ SOURCE_TYPE_ALIASES = {
     "podcast": "podcast",
     "podcasts": "podcast",
     "播客": "podcast",
+}
+MESSAGE_GROUPS = {
+    "first_party": ("x", "podcast"),
+    "scoutx": ("scoutx",),
+}
+MESSAGE_GROUP_ORDER = ("first_party", "scoutx")
+MESSAGE_GROUP_CHOICES = ("all", "first_party", "scoutx")
+MESSAGE_GROUP_LIMIT_KEYS = {
+    "first_party": "max_first_party_items",
+    "scoutx": "max_scoutx_items",
+}
+MESSAGE_GROUP_NAME_SUFFIXES = {
+    "first_party": "first-party",
+    "scoutx": "scoutx",
 }
 STYLE_TO_SUMMARY_BUDGET = {
     "short": 700,
@@ -203,6 +217,8 @@ def default_profile() -> dict[str, Any]:
             "keywords_exclude": [],
             "preferred_sources": [],
             "max_items": 8,
+            "max_first_party_items": None,
+            "max_scoutx_items": None,
         },
         "style": {
             "length": "short",
@@ -344,6 +360,66 @@ def profile_source_types(profile: dict[str, Any]) -> list[str]:
     return source_types_for_mode(str(preferences.get("source_mode") or "scoutx"))
 
 
+def selected_message_group_ids(profile: dict[str, Any], message_group: str | None = "all") -> list[str]:
+    selected_sources = set(profile_source_types(profile))
+    group_ids = [
+        group_id
+        for group_id in MESSAGE_GROUP_ORDER
+        if any(source_type in selected_sources for source_type in MESSAGE_GROUPS[group_id])
+    ]
+    if message_group and message_group != "all":
+        return [group_id for group_id in group_ids if group_id == message_group]
+    return group_ids
+
+
+def source_types_for_message_group(profile: dict[str, Any], message_group: str | None = "all") -> list[str]:
+    selected_sources = profile_source_types(profile)
+    if not message_group or message_group == "all":
+        return selected_sources
+    allowed_sources = set(MESSAGE_GROUPS.get(message_group, ()))
+    return [source_type for source_type in selected_sources if source_type in allowed_sources]
+
+
+def group_limit_key(group_id: str) -> str:
+    return MESSAGE_GROUP_LIMIT_KEYS[group_id]
+
+
+def configured_group_limits(profile: dict[str, Any]) -> dict[str, int]:
+    preferences = profile.get("preferences") or {}
+    group_ids = selected_message_group_ids(profile, "all")
+    if not group_ids:
+        return {}
+
+    total_limit = max(0, int(preferences.get("max_items", 8) or 0))
+    base_limit = total_limit // len(group_ids)
+    remainder = total_limit % len(group_ids)
+    limits = {
+        group_id: base_limit + (1 if index < remainder else 0)
+        for index, group_id in enumerate(group_ids)
+    }
+
+    for group_id in group_ids:
+        key = group_limit_key(group_id)
+        explicit_limit = preferences.get(key)
+        if explicit_limit is not None:
+            limits[group_id] = max(0, int(explicit_limit))
+    return limits
+
+
+def message_group_label(group_id: str, language: str) -> str:
+    if group_id == "first_party":
+        if language == "en":
+            return "First-party Sources (X / Podcasts)"
+        if language == "bilingual":
+            return "First-party Sources / 一手信息源（X 平台 / 播客）"
+        return "一手信息源（X 平台 / 播客）"
+    if language == "en":
+        return "ScoutX Curated Media"
+    if language == "bilingual":
+        return "ScoutX Curated Media / ScoutX 优质自媒体信息源"
+    return "ScoutX 优质自媒体信息源"
+
+
 def update_profile_from_args(profile: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
     if args.frequency:
         profile["schedule"]["frequency"] = args.frequency
@@ -382,6 +458,10 @@ def update_profile_from_args(profile: dict[str, Any], args: argparse.Namespace) 
         profile["preferences"]["preferred_sources"] = split_csv(args.preferred_sources) or []
     if args.max_items is not None:
         profile["preferences"]["max_items"] = args.max_items
+    if arg_value(args, "max_first_party_items") is not None:
+        profile["preferences"]["max_first_party_items"] = args.max_first_party_items
+    if arg_value(args, "max_scoutx_items") is not None:
+        profile["preferences"]["max_scoutx_items"] = args.max_scoutx_items
 
     if args.delivery_channel:
         profile["delivery"]["channel"] = args.delivery_channel
@@ -748,9 +828,13 @@ def arg_value(args: argparse.Namespace, name: str) -> Any:
 
 
 def fetch_selected_feed_payload(profile: dict[str, Any], args: argparse.Namespace) -> dict[str, Any]:
-    source_types = profile_source_types(profile)
+    message_group = arg_value(args, "message_group") or "all"
+    source_types = source_types_for_message_group(profile, message_group)
     feeds: dict[str, Any] = {}
     errors: list[str] = []
+
+    if not source_types:
+        raise SystemExit(f"No sources are selected for message group: {message_group}.")
 
     for source_type in source_types:
         feed_url = arg_value(args, "feed_url") if source_type == "scoutx" else arg_value(args, f"{source_type}_feed_url")
@@ -804,7 +888,7 @@ def limit_items_by_source(items: list[dict[str, Any]], source_types: list[str], 
     return selected
 
 
-def build_preview_items(profile: dict[str, Any], feed_payload: dict[str, Any]) -> list[dict[str, Any]]:
+def normalize_feed_payload_items(profile: dict[str, Any], feed_payload: dict[str, Any]) -> list[dict[str, Any]]:
     normalized: list[dict[str, Any]] = []
     if "feeds" in feed_payload:
         for source_type in feed_payload.get("source_types") or profile_source_types(profile):
@@ -817,9 +901,55 @@ def build_preview_items(profile: dict[str, Any], feed_payload: dict[str, Any]) -
             normalized.extend(normalize_items_for_source("podcast", feed_payload))
         if "items" in feed_payload and "scoutx" in source_types:
             normalized.extend(normalize_items_for_source("scoutx", feed_payload))
+    return normalized
+
+
+def build_digest_groups(
+    profile: dict[str, Any],
+    feed_payload: dict[str, Any],
+    *,
+    message_group: str | None = "all",
+) -> list[dict[str, Any]]:
+    normalized = normalize_feed_payload_items(profile, feed_payload)
     matched = [item for item in normalized if item_matches_profile(item, profile)]
-    limit = int(profile["preferences"].get("max_items", 8) or 8)
-    return limit_items_by_source(matched, profile_source_types(profile), limit)
+    limits = configured_group_limits(profile)
+    groups: list[dict[str, Any]] = []
+
+    for group_id in selected_message_group_ids(profile, message_group):
+        group_source_types = [
+            source_type
+            for source_type in MESSAGE_GROUPS[group_id]
+            if source_type in profile_source_types(profile)
+        ]
+        group_limit = limits.get(group_id, 0)
+        group_items = [
+            item
+            for item in matched
+            if item.get("source_type") in group_source_types
+        ]
+        groups.append(
+            {
+                "group_id": group_id,
+                "label": message_group_label(group_id, profile["preferences"].get("language", "zh-CN")),
+                "source_types": group_source_types,
+                "limit": group_limit,
+                "items": limit_items_by_source(group_items, group_source_types, group_limit) if group_limit > 0 else [],
+            }
+        )
+    return groups
+
+
+def flatten_digest_groups(groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [item for group in groups for item in group.get("items", [])]
+
+
+def build_preview_items(
+    profile: dict[str, Any],
+    feed_payload: dict[str, Any],
+    *,
+    message_group: str | None = "all",
+) -> list[dict[str, Any]]:
+    return flatten_digest_groups(build_digest_groups(profile, feed_payload, message_group=message_group))
 
 
 def digest_copy(language: str) -> dict[str, str]:
@@ -854,12 +984,21 @@ def digest_copy(language: str) -> dict[str, str]:
     }
 
 
-def render_digest(profile: dict[str, Any], items: list[dict[str, Any]], generated_at: str) -> str:
+def render_digest(
+    profile: dict[str, Any],
+    items: list[dict[str, Any]],
+    generated_at: str,
+    *,
+    group_id: str | None = None,
+) -> str:
     language = profile["preferences"].get("language", "zh-CN")
     copy = digest_copy(language)
+    title = copy["title"]
+    if group_id:
+        title = f"{title}｜{message_group_label(group_id, language)}"
     per_item_budget = summary_char_budget(profile)
     lines = [
-        copy["title"],
+        title,
         "",
         f"{copy['generated_at']}: {generated_at}",
         f"{copy['items']}: {len(items)}",
@@ -884,14 +1023,38 @@ def render_digest(profile: dict[str, Any], items: list[dict[str, Any]], generate
     return "\n".join(lines).strip() + "\n"
 
 
+def render_digest_groups(profile: dict[str, Any], groups: list[dict[str, Any]], generated_at: str) -> str:
+    rendered = [
+        render_digest(profile, group.get("items", []), generated_at, group_id=str(group.get("group_id") or ""))
+        for group in groups
+    ]
+    return "\n---\n\n".join(part.strip() for part in rendered if part.strip()) + "\n"
+
+
 def build_prepare_digest_payload(
     profile: dict[str, Any],
     feed_payload: dict[str, Any],
-    items: list[dict[str, Any]],
+    groups: list[dict[str, Any]],
 ) -> dict[str, Any]:
     generated_at = str(feed_payload.get("generated_at") or utcnow_iso())
     per_item_budget = summary_char_budget(profile)
     per_item_timeout = item_timeout_seconds(profile)
+    items = flatten_digest_groups(groups)
+
+    def payload_item(item: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "content_id": item["content_id"],
+            "source_type": item.get("source_type", "scoutx"),
+            "source_label": item.get("source_label", SOURCE_TYPE_LABELS["scoutx"]),
+            "title": item["title"],
+            "summary_text": compress_item_summary(item, char_budget=per_item_budget),
+            "canonical_url": item["url"],
+            "published_at": item["published_at"],
+            "sources": item["sources"],
+            "tags": item["tags"],
+            "metadata": item.get("metadata", {}),
+        }
+
     return {
         "status": "ok",
         "generated_at": generated_at,
@@ -907,10 +1070,21 @@ def build_prepare_digest_payload(
                 "keywords_exclude": profile["preferences"].get("keywords_exclude", []),
                 "preferred_sources": profile["preferences"].get("preferred_sources", []),
                 "max_items": profile["preferences"].get("max_items", 8),
+                "max_first_party_items": profile["preferences"].get("max_first_party_items"),
+                "max_scoutx_items": profile["preferences"].get("max_scoutx_items"),
             },
         },
         "stats": {
             "item_count": len(items),
+            "message_count": len(groups),
+            "group_counts": {
+                str(group.get("group_id")): len(group.get("items", []))
+                for group in groups
+            },
+            "group_limits": {
+                str(group.get("group_id")): group.get("limit", 0)
+                for group in groups
+            },
             "source_counts": {
                 source_type: len([item for item in items if item.get("source_type") == source_type])
                 for source_type in SOURCE_TYPES
@@ -945,6 +1119,8 @@ def build_prepare_digest_payload(
             ],
             "rules": [
                 "Use only the selected items in this payload.",
+                "If groups contains more than one group, produce one separate digest message per group.",
+                "The first_party group covers X posts and podcasts; the scoutx group covers ScoutX curated media.",
                 "Do not invent facts beyond title, summary_text, source, published_at, and canonical_url.",
                 "Respect item.source_type: scoutx is the curated ScoutX media feed, x is first-party X posts, and podcast is first-party podcast transcript content.",
                 "Process items one by one, not all at once.",
@@ -957,21 +1133,18 @@ def build_prepare_digest_payload(
                 "Respect config.language and the prompt texts in prompts.",
             ],
         },
-        "items": [
+        "groups": [
             {
-                "content_id": item["content_id"],
-                "source_type": item.get("source_type", "scoutx"),
-                "source_label": item.get("source_label", SOURCE_TYPE_LABELS["scoutx"]),
-                "title": item["title"],
-                "summary_text": compress_item_summary(item, char_budget=per_item_budget),
-                "canonical_url": item["url"],
-                "published_at": item["published_at"],
-                "sources": item["sources"],
-                "tags": item["tags"],
-                "metadata": item.get("metadata", {}),
+                "group_id": group.get("group_id"),
+                "label": group.get("label"),
+                "source_types": group.get("source_types", []),
+                "limit": group.get("limit", 0),
+                "item_count": len(group.get("items", [])),
+                "items": [payload_item(item) for item in group.get("items", [])],
             }
-            for item in items
+            for group in groups
         ],
+        "items": [payload_item(item) for item in items],
         "prompts": load_prompt_texts(),
         "errors": feed_payload.get("errors") or [],
     }
@@ -1029,7 +1202,9 @@ def command_configure_service(args: argparse.Namespace) -> int:
 def command_preview(args: argparse.Namespace) -> int:
     profile = load_profile()
     feed_payload = fetch_selected_feed_payload(profile, args)
-    items = build_preview_items(profile, feed_payload)
+    message_group = arg_value(args, "message_group") or "all"
+    groups = build_digest_groups(profile, feed_payload, message_group=message_group)
+    items = flatten_digest_groups(groups)
     generated_at = str(feed_payload.get("generated_at") or utcnow_iso())
 
     state = load_state()
@@ -1042,13 +1217,14 @@ def command_preview(args: argparse.Namespace) -> int:
         payload = {
             "generated_at": generated_at,
             "profile": profile,
+            "groups": groups,
             "items": items,
         }
         json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
         return 0
 
-    sys.stdout.write(render_digest(profile, items, generated_at))
+    sys.stdout.write(render_digest_groups(profile, groups, generated_at))
     return 0
 
 
@@ -1060,6 +1236,7 @@ def command_deliver(args: argparse.Namespace) -> int:
         x_feed_file=arg_value(args, "x_feed_file"),
         podcast_feed_url=arg_value(args, "podcast_feed_url"),
         podcast_feed_file=arg_value(args, "podcast_feed_file"),
+        message_group=arg_value(args, "message_group") or "all",
         json=False,
     )
     return command_preview(preview_args)
@@ -1068,7 +1245,9 @@ def command_deliver(args: argparse.Namespace) -> int:
 def command_prepare_digest(args: argparse.Namespace) -> int:
     profile = load_profile()
     feed_payload = fetch_selected_feed_payload(profile, args)
-    items = build_preview_items(profile, feed_payload)
+    message_group = arg_value(args, "message_group") or "all"
+    groups = build_digest_groups(profile, feed_payload, message_group=message_group)
+    items = flatten_digest_groups(groups)
 
     state = load_state()
     state["last_preview_at"] = utcnow_iso()
@@ -1076,7 +1255,7 @@ def command_prepare_digest(args: argparse.Namespace) -> int:
     state["last_digest_item_ids"] = [item["content_id"] for item in items if item["content_id"]]
     save_state(state)
 
-    payload = build_prepare_digest_payload(profile, feed_payload, items)
+    payload = build_prepare_digest_payload(profile, feed_payload, groups)
     json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
     return 0
@@ -1109,6 +1288,7 @@ def build_selected_feed_urls(
     feed_url: str | None = None,
     x_feed_url: str | None = None,
     podcast_feed_url: str | None = None,
+    message_group: str | None = "all",
 ) -> dict[str, str]:
     explicit_urls = {
         "scoutx": feed_url,
@@ -1116,7 +1296,7 @@ def build_selected_feed_urls(
         "podcast": podcast_feed_url,
     }
     feed_urls: dict[str, str] = {}
-    for source_type in profile_source_types(profile):
+    for source_type in source_types_for_message_group(profile, message_group):
         env_value = os.getenv(SOURCE_TYPE_ENV_VARS[source_type])
         resolved = explicit_urls[source_type] or env_value or service_feed_url(service_config, source_type)
         feed_urls[source_type] = ensure_real_feed_url(resolved)
@@ -1141,15 +1321,43 @@ def build_openclaw_cron_command(
     channel: str | None,
     to: str | None,
     timeout_seconds: int,
+    message_group: str = "all",
+    main_session_system_event: bool = False,
 ) -> str:
     cron_expr = build_openclaw_cron_expression(profile)
-    resolved_channel, resolved_to = resolve_openclaw_delivery(profile, channel=channel, to=to)
     env_prefix = feed_env_prefix(feed_urls)
-    message = (
-        f"Run `{env_prefix} python3 {script_path} deliver`, "
+    deliver_parts = ["python3", script_path, "deliver"]
+    if message_group != "all":
+        deliver_parts.extend(["--message-group", message_group])
+    deliver_command = " ".join(shlex.quote(part) for part in deliver_parts)
+    run_command = f"{env_prefix} {deliver_command}".strip()
+    payload = (
+        f"Run `{run_command}`, "
         "then return the command output verbatim as your final answer. "
         "Do not rewrite, summarize, or reformat it."
     )
+    if main_session_system_event:
+        parts = [
+            "openclaw",
+            "cron",
+            "add",
+            "--name",
+            name,
+            "--cron",
+            cron_expr,
+            "--agent",
+            agent,
+            "--session",
+            "main",
+            "--system-event",
+            payload,
+            "--exact",
+            "--timeout-seconds",
+            str(timeout_seconds),
+        ]
+        return " ".join(shlex.quote(part) for part in parts)
+
+    resolved_channel, resolved_to = resolve_openclaw_delivery(profile, channel=channel, to=to)
     parts = [
         "openclaw",
         "cron",
@@ -1163,7 +1371,7 @@ def build_openclaw_cron_command(
         "--session",
         session,
         "--message",
-        message,
+        payload,
         "--announce",
         "--channel",
         resolved_channel,
@@ -1185,15 +1393,42 @@ def build_openclaw_cron_args(
     channel: str | None,
     to: str | None,
     timeout_seconds: int,
+    message_group: str = "all",
+    main_session_system_event: bool = False,
 ) -> list[str]:
     cron_expr = build_openclaw_cron_expression(profile)
-    resolved_channel, resolved_to = resolve_openclaw_delivery(profile, channel=channel, to=to)
     env_prefix = feed_env_prefix(feed_urls)
-    message = (
-        f"Run `{env_prefix} python3 {script_path} deliver`, "
+    deliver_parts = ["python3", script_path, "deliver"]
+    if message_group != "all":
+        deliver_parts.extend(["--message-group", message_group])
+    deliver_command = " ".join(shlex.quote(part) for part in deliver_parts)
+    run_command = f"{env_prefix} {deliver_command}".strip()
+    payload = (
+        f"Run `{run_command}`, "
         "then return the command output verbatim as your final answer. "
         "Do not rewrite, summarize, or reformat it."
     )
+    if main_session_system_event:
+        return [
+            "openclaw",
+            "cron",
+            "add",
+            "--name",
+            name,
+            "--cron",
+            cron_expr,
+            "--agent",
+            agent,
+            "--session",
+            "main",
+            "--system-event",
+            payload,
+            "--exact",
+            "--timeout-seconds",
+            str(timeout_seconds),
+        ]
+
+    resolved_channel, resolved_to = resolve_openclaw_delivery(profile, channel=channel, to=to)
     args = [
         "openclaw",
         "cron",
@@ -1207,7 +1442,7 @@ def build_openclaw_cron_args(
         "--session",
         session,
         "--message",
-        message,
+        payload,
         "--announce",
         "--channel",
         resolved_channel,
@@ -1223,6 +1458,89 @@ def build_openclaw_cron_args(
         ]
     )
     return args
+
+
+def openclaw_message_groups_for_profile(profile: dict[str, Any]) -> list[str]:
+    group_ids = selected_message_group_ids(profile, "all")
+    if len(group_ids) <= 1:
+        return ["all"]
+    return group_ids
+
+
+def openclaw_job_name(base_name: str, message_group: str, *, split: bool) -> str:
+    if not split or message_group == "all":
+        return base_name
+    suffix = MESSAGE_GROUP_NAME_SUFFIXES[message_group]
+    return f"{base_name}-{suffix}"
+
+
+def build_openclaw_job_specs(
+    profile: dict[str, Any],
+    service_config: dict[str, Any],
+    *,
+    feed_url: str | None,
+    x_feed_url: str | None,
+    podcast_feed_url: str | None,
+    script_path: str,
+    name: str,
+    agent: str,
+    session: str,
+    channel: str | None,
+    to: str | None,
+    timeout_seconds: int,
+    main_session_system_event: bool = False,
+) -> list[dict[str, Any]]:
+    message_groups = openclaw_message_groups_for_profile(profile)
+    split = len(message_groups) > 1
+    jobs: list[dict[str, Any]] = []
+    for message_group in message_groups:
+        job_name = openclaw_job_name(name, message_group, split=split)
+        feed_urls = build_selected_feed_urls(
+            profile,
+            service_config,
+            feed_url=feed_url,
+            x_feed_url=x_feed_url,
+            podcast_feed_url=podcast_feed_url,
+            message_group=message_group,
+        )
+        command = build_openclaw_cron_command(
+            profile,
+            feed_urls=feed_urls,
+            script_path=script_path,
+            name=job_name,
+            agent=agent,
+            session=session,
+            channel=channel,
+            to=to,
+            timeout_seconds=timeout_seconds,
+            message_group=message_group,
+            main_session_system_event=main_session_system_event,
+        )
+        jobs.append(
+            {
+                "name": job_name,
+                "message_group": message_group,
+                "label": message_group_label(message_group, profile["preferences"].get("language", "zh-CN"))
+                if message_group != "all"
+                else None,
+                "feed_urls": feed_urls,
+                "command": command,
+                "args": build_openclaw_cron_args(
+                    profile,
+                    feed_urls=feed_urls,
+                    script_path=script_path,
+                    name=job_name,
+                    agent=agent,
+                    session=session,
+                    channel=channel,
+                    to=to,
+                    timeout_seconds=timeout_seconds,
+                    message_group=message_group,
+                    main_session_system_event=main_session_system_event,
+                ),
+            }
+        )
+    return jobs
 
 
 def resolve_openclaw_delivery(
@@ -1248,20 +1566,147 @@ def resolve_openclaw_delivery(
     return raw_channel, raw_to or None
 
 
+def openclaw_delivery_diagnostics(
+    profile: dict[str, Any],
+    *,
+    channel: str | None = None,
+    to: str | None = None,
+    session: str = "isolated",
+    main_session_system_event: bool = False,
+) -> dict[str, Any]:
+    if main_session_system_event:
+        return {
+            "stable": True,
+            "delivery_mode": "main_session_system_event",
+            "channel": None,
+            "to": None,
+            "session": "main",
+            "warnings": [],
+            "recommended_action": "",
+        }
+
+    resolved_channel, resolved_to = resolve_openclaw_delivery(profile, channel=channel, to=to)
+    warnings: list[str] = []
+
+    if resolved_channel == "last":
+        warnings.append(
+            "OpenClaw channel resolves to 'last'. Scheduled jobs can lose the previous chat context; "
+            "prefer saving an explicit channel and target before installing the cron job."
+        )
+        if session == "isolated":
+            warnings.append(
+                "The job also uses an isolated session, so it cannot rely on inherited chat context. "
+                "Use --channel feishu --to <ou_xxx|oc_xxx> for Feishu, or pass --allow-channel-last "
+                "only when you have verified OpenClaw can route 'last' for this installation."
+            )
+
+    return {
+        "stable": not warnings,
+        "delivery_mode": "announce",
+        "channel": resolved_channel,
+        "to": resolved_to,
+        "session": session,
+        "warnings": warnings,
+        "recommended_action": ""
+        if not warnings
+        else "Configure an explicit delivery channel/target, then rerun install-openclaw-cron.",
+    }
+
+
+def require_stable_openclaw_delivery(diagnostics: dict[str, Any], *, allow_channel_last: bool) -> None:
+    if diagnostics.get("stable") or allow_channel_last:
+        return
+    warning_text = "\n".join(f"- {warning}" for warning in diagnostics.get("warnings", []))
+    raise SystemExit(
+        "Refusing to install an unstable OpenClaw cron delivery configuration.\n"
+        f"{warning_text}\n"
+        "Save an explicit delivery target, for example:\n"
+        "  python3 scripts/follow_scoutx.py configure --delivery-channel feishu --delivery-target ou_xxx\n"
+        "For current-chat delivery, use --main-session-system-event. "
+        "Or rerun install-openclaw-cron with --allow-channel-last after you verify this OpenClaw installation "
+        "can reliably route channel=last."
+    )
+
+
+def iter_json_objects(payload: Any) -> list[dict[str, Any]]:
+    objects: list[dict[str, Any]] = []
+    if isinstance(payload, dict):
+        objects.append(payload)
+        for value in payload.values():
+            objects.extend(iter_json_objects(value))
+    elif isinstance(payload, list):
+        for value in payload:
+            objects.extend(iter_json_objects(value))
+    return objects
+
+
+def openclaw_job_identity(job: dict[str, Any]) -> tuple[str, str]:
+    job_id = str(job.get("id") or job.get("jobId") or job.get("job_id") or "").strip()
+    job_name = str(job.get("name") or job.get("jobName") or job.get("job_name") or "").strip()
+    return job_id, job_name
+
+
+def find_openclaw_jobs_by_name(names: set[str]) -> list[dict[str, str]]:
+    completed = subprocess.run(
+        ["openclaw", "cron", "list", "--json"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if completed.returncode != 0:
+        raise SystemExit(
+            "Failed to list existing OpenClaw cron jobs before replacement.\n"
+            f"stdout: {completed.stdout.strip()}\n"
+            f"stderr: {completed.stderr.strip()}"
+        )
+
+    try:
+        payload = json.loads(completed.stdout)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"OpenClaw cron list returned invalid JSON: {completed.stdout}") from exc
+
+    matches: list[dict[str, str]] = []
+    seen_ids: set[str] = set()
+    for job in iter_json_objects(payload):
+        job_id, job_name = openclaw_job_identity(job)
+        if not job_id or not job_name or job_name not in names or job_id in seen_ids:
+            continue
+        seen_ids.add(job_id)
+        matches.append({"id": job_id, "name": job_name})
+    return matches
+
+
+def remove_openclaw_job(job_id: str) -> dict[str, Any]:
+    completed = subprocess.run(
+        ["openclaw", "cron", "rm", job_id],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return {
+        "id": job_id,
+        "returncode": completed.returncode,
+        "stdout": completed.stdout,
+        "stderr": completed.stderr,
+    }
+
+
 def command_show_openclaw_cron(args: argparse.Namespace) -> int:
     profile = load_profile()
     service_config = load_service_config()
-    feed_urls = build_selected_feed_urls(
+    diagnostics = openclaw_delivery_diagnostics(
+        profile,
+        channel=args.channel,
+        to=args.to,
+        session=args.session,
+        main_session_system_event=args.main_session_system_event,
+    )
+    jobs = build_openclaw_job_specs(
         profile,
         service_config,
         feed_url=args.feed_url,
         x_feed_url=arg_value(args, "x_feed_url"),
         podcast_feed_url=arg_value(args, "podcast_feed_url"),
-    )
-
-    command = build_openclaw_cron_command(
-        profile,
-        feed_urls=feed_urls,
         script_path=args.script_path,
         name=args.name,
         agent=args.agent,
@@ -1269,43 +1714,62 @@ def command_show_openclaw_cron(args: argparse.Namespace) -> int:
         channel=args.channel,
         to=args.to,
         timeout_seconds=args.timeout_seconds,
+        main_session_system_event=args.main_session_system_event,
     )
     if args.json:
-        channel, to = resolve_openclaw_delivery(profile, channel=args.channel, to=args.to)
+        channel, to = (None, None) if args.main_session_system_event else resolve_openclaw_delivery(profile, channel=args.channel, to=args.to)
         payload = {
             "name": args.name,
             "cron": build_openclaw_cron_expression(profile),
             "agent": args.agent,
-            "session": args.session,
+            "session": "main" if args.main_session_system_event else args.session,
             "channel": channel,
             "to": to,
-            "feed_urls": feed_urls,
+            "mode": "split" if len(jobs) > 1 else "single",
             "script_path": args.script_path,
             "timeout_seconds": args.timeout_seconds,
-            "command": command,
+            "delivery_diagnostics": diagnostics,
+            "jobs": [
+                {
+                    "name": job["name"],
+                    "message_group": job["message_group"],
+                    "label": job["label"],
+                    "feed_urls": job["feed_urls"],
+                    "command": job["command"],
+                }
+                for job in jobs
+            ],
         }
+        if len(jobs) == 1:
+            payload["feed_urls"] = jobs[0]["feed_urls"]
+            payload["command"] = jobs[0]["command"]
         json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
         return 0
 
-    sys.stdout.write(command + "\n")
+    for job in jobs:
+        sys.stdout.write(job["command"] + "\n")
+    for warning in diagnostics.get("warnings", []):
+        sys.stderr.write(f"Warning: {warning}\n")
     return 0
 
 
 def command_install_openclaw_cron(args: argparse.Namespace) -> int:
     profile = load_profile()
     service_config = load_service_config()
-    feed_urls = build_selected_feed_urls(
+    diagnostics = openclaw_delivery_diagnostics(
+        profile,
+        channel=args.channel,
+        to=args.to,
+        session=args.session,
+        main_session_system_event=args.main_session_system_event,
+    )
+    jobs = build_openclaw_job_specs(
         profile,
         service_config,
         feed_url=args.feed_url,
         x_feed_url=arg_value(args, "x_feed_url"),
         podcast_feed_url=arg_value(args, "podcast_feed_url"),
-    )
-
-    cron_args = build_openclaw_cron_args(
-        profile,
-        feed_urls=feed_urls,
         script_path=args.script_path,
         name=args.name,
         agent=args.agent,
@@ -1313,53 +1777,86 @@ def command_install_openclaw_cron(args: argparse.Namespace) -> int:
         channel=args.channel,
         to=args.to,
         timeout_seconds=args.timeout_seconds,
+        main_session_system_event=args.main_session_system_event,
     )
 
     if not args.apply:
         payload = {
             "mode": "dry_run",
-            "command": build_openclaw_cron_command(
-                profile,
-                feed_urls=feed_urls,
-                script_path=args.script_path,
-                name=args.name,
-                agent=args.agent,
-                session=args.session,
-                channel=args.channel,
-                to=args.to,
-                timeout_seconds=args.timeout_seconds,
-            ),
+            "delivery_mode": "split" if len(jobs) > 1 else "single",
+            "apply_blocked": not diagnostics["stable"] and not args.allow_channel_last,
+            "replace_existing": args.replace_existing,
+            "delivery_diagnostics": diagnostics,
+            "commands": [job["command"] for job in jobs],
+            "jobs": [
+                {
+                    "name": job["name"],
+                    "message_group": job["message_group"],
+                    "label": job["label"],
+                    "feed_urls": job["feed_urls"],
+                    "command": job["command"],
+                }
+                for job in jobs
+            ],
         }
+        if len(jobs) == 1:
+            payload["command"] = jobs[0]["command"]
         json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
         sys.stdout.write("\n")
         return 0
 
-    completed = subprocess.run(
-        cron_args,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    require_stable_openclaw_delivery(diagnostics, allow_channel_last=args.allow_channel_last)
+
+    removed_jobs: list[dict[str, Any]] = []
+    if args.replace_existing:
+        existing_jobs = find_openclaw_jobs_by_name({str(job["name"]) for job in jobs})
+        for existing_job in existing_jobs:
+            removed_jobs.append(remove_openclaw_job(existing_job["id"]))
+        failed_removals = [result for result in removed_jobs if result["returncode"] != 0]
+        if failed_removals:
+            payload = {
+                "mode": "apply",
+                "replace_existing": True,
+                "removed_jobs": removed_jobs,
+                "error": "Failed to remove one or more existing OpenClaw cron jobs.",
+            }
+            json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
+            sys.stdout.write("\n")
+            return 1
+
+    results = []
+    for job in jobs:
+        completed = subprocess.run(
+            job["args"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        results.append(
+            {
+                "name": job["name"],
+                "message_group": job["message_group"],
+                "command": job["command"],
+                "returncode": completed.returncode,
+                "stdout": completed.stdout,
+                "stderr": completed.stderr,
+            }
+        )
     payload = {
         "mode": "apply",
-        "command": build_openclaw_cron_command(
-            profile,
-            feed_urls=feed_urls,
-            script_path=args.script_path,
-            name=args.name,
-            agent=args.agent,
-            session=args.session,
-            channel=args.channel,
-            to=args.to,
-            timeout_seconds=args.timeout_seconds,
-        ),
-        "returncode": completed.returncode,
-        "stdout": completed.stdout,
-        "stderr": completed.stderr,
+        "delivery_mode": "split" if len(jobs) > 1 else "single",
+        "replace_existing": args.replace_existing,
+        "removed_jobs": removed_jobs,
+        "results": results,
     }
+    if len(results) == 1:
+        payload["command"] = results[0]["command"]
+        payload["returncode"] = results[0]["returncode"]
+        payload["stdout"] = results[0]["stdout"]
+        payload["stderr"] = results[0]["stderr"]
     json.dump(payload, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
-    return 0 if completed.returncode == 0 else 1
+    return 0 if all(result["returncode"] == 0 for result in results) else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -1389,6 +1886,16 @@ def build_parser() -> argparse.ArgumentParser:
     configure_parser.add_argument("--keywords-exclude")
     configure_parser.add_argument("--preferred-sources")
     configure_parser.add_argument("--max-items", type=int)
+    configure_parser.add_argument(
+        "--max-first-party-items",
+        type=int,
+        help="Maximum items for the first-party message group (X + podcast)",
+    )
+    configure_parser.add_argument(
+        "--max-scoutx-items",
+        type=int,
+        help="Maximum items for the ScoutX curated media message group",
+    )
     configure_parser.add_argument("--length", choices=["short", "medium", "long"])
     configure_parser.add_argument("--tone")
     configure_parser.set_defaults(handler=command_configure)
@@ -1421,6 +1928,7 @@ def build_parser() -> argparse.ArgumentParser:
     preview_parser.add_argument("--x-feed-file")
     preview_parser.add_argument("--podcast-feed-url")
     preview_parser.add_argument("--podcast-feed-file")
+    preview_parser.add_argument("--message-group", choices=MESSAGE_GROUP_CHOICES, default="all")
     preview_parser.add_argument("--json", action="store_true")
     preview_parser.set_defaults(handler=command_preview)
 
@@ -1434,6 +1942,7 @@ def build_parser() -> argparse.ArgumentParser:
     deliver_parser.add_argument("--x-feed-file")
     deliver_parser.add_argument("--podcast-feed-url")
     deliver_parser.add_argument("--podcast-feed-file")
+    deliver_parser.add_argument("--message-group", choices=MESSAGE_GROUP_CHOICES, default="all")
     deliver_parser.set_defaults(handler=command_deliver)
 
     prepare_digest_parser = subparsers.add_parser(
@@ -1446,6 +1955,7 @@ def build_parser() -> argparse.ArgumentParser:
     prepare_digest_parser.add_argument("--x-feed-file")
     prepare_digest_parser.add_argument("--podcast-feed-url")
     prepare_digest_parser.add_argument("--podcast-feed-file")
+    prepare_digest_parser.add_argument("--message-group", choices=MESSAGE_GROUP_CHOICES, default="all")
     prepare_digest_parser.set_defaults(handler=command_prepare_digest)
 
     openclaw_cron_parser = subparsers.add_parser(
@@ -1465,6 +1975,11 @@ def build_parser() -> argparse.ArgumentParser:
     openclaw_cron_parser.add_argument("--channel")
     openclaw_cron_parser.add_argument("--to")
     openclaw_cron_parser.add_argument("--timeout-seconds", type=int, default=120)
+    openclaw_cron_parser.add_argument(
+        "--main-session-system-event",
+        action="store_true",
+        help="Use OpenClaw main-session system events for stable current-chat delivery instead of announce/channel delivery.",
+    )
     openclaw_cron_parser.add_argument("--json", action="store_true")
     openclaw_cron_parser.set_defaults(handler=command_show_openclaw_cron)
 
@@ -1485,6 +2000,21 @@ def build_parser() -> argparse.ArgumentParser:
     install_openclaw_cron_parser.add_argument("--channel")
     install_openclaw_cron_parser.add_argument("--to")
     install_openclaw_cron_parser.add_argument("--timeout-seconds", type=int, default=120)
+    install_openclaw_cron_parser.add_argument(
+        "--main-session-system-event",
+        action="store_true",
+        help="Use OpenClaw main-session system events for stable current-chat delivery instead of announce/channel delivery.",
+    )
+    install_openclaw_cron_parser.add_argument(
+        "--allow-channel-last",
+        action="store_true",
+        help="Allow installing a cron job that delivers to channel=last. Use only after verifying OpenClaw can route it reliably.",
+    )
+    install_openclaw_cron_parser.add_argument(
+        "--replace-existing",
+        action="store_true",
+        help="Before applying, remove existing OpenClaw cron jobs with the same generated names by listing jobs and deleting by id.",
+    )
     install_openclaw_cron_parser.add_argument("--apply", action="store_true")
     install_openclaw_cron_parser.set_defaults(handler=command_install_openclaw_cron)
 

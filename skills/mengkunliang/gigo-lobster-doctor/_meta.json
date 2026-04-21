@@ -3,9 +3,15 @@
   "slug": "gigo-lobster-doctor",
   "displayName": "GIGO · Lobster Doctor",
   "latest": {
-    "version": "1.2.3",
-    "publishedAt": 1776170861167,
-    "commit": "https://github.com/openclaw/skills/commit/56e575cc03b437fad8f6daf6cc6d7c174425c1a7"
+    "version": "1.2.4",
+    "publishedAt": 1776261655536,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.2.3",
+      "publishedAt": 1776170861167,
+      "commit": "https://github.com/openclaw/skills/commit/56e575cc03b437fad8f6daf6cc6d7c174425c1a7"
+    }
+  ]
 }

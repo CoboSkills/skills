@@ -1,5 +1,6 @@
 ---
 name: openclaw-create-agent
+version: 1.2.0
 description: 在 OpenClaw 中创建一个新的 Agent 智能体，包括 workspace 目录结构、记忆系统文件、openclaw.json 配置修改、飞书 channel 与 binding 设置。适用于新增 AI 分身、多角色管理等场景。
 ---
 
@@ -40,9 +41,39 @@ description: 在 OpenClaw 中创建一个新的 Agent 智能体，包括 workspa
 ├── memory/                # 每日记忆文件（`YYYY-MM-DD.md`）
 ├── diary/                 # 私密日记（碎片、观察、未请求的思考）
 ├── saves/                 # 游戏/项目存档（如适用）
+├── output/                # 任务/项目输出文件（详见 AGENTS.md 规范）
 └── .openclaw/
     └── workspace-state.json   # 状态标记
 ```
+
+### Output 文件夹规范（重要）
+
+**核心原则：所有任务/项目的输出文件必须结构化存放在 `output/` 目录下。**
+
+```
+output/
+├── task-001-description/     # 任务子目录
+│   ├── README.md            # 任务说明和上下文
+│   ├── files...             # 任务相关文件
+│   └── result/              # 最终输出
+├── project-name/            # 项目子目录
+│   ├── src/                 # 源代码
+│   ├── assets/              # 资源文件
+│   └── docs/                # 文档
+└── ...
+```
+
+**执行规则：**
+1. **每个新任务/项目** → 在 `output/` 下创建一个子目录
+2. **子目录命名** → 使用 `task-序号-简短描述` 或 `项目名称` 格式
+3. **默认创建** → 执行文件操作前，先创建 `output/` 目录（如不存在）
+4. **文件归属** → 所有生成的文件、下载的内容、脚本输出都放入对应子目录
+
+**为什么重要：**
+- 避免工作区根目录混乱
+- 任务可追踪、可回溯
+- 便于清理和归档
+- 支持多任务并行
 
 ### 必备文件清单（最小可运行集）
 
@@ -71,9 +102,11 @@ description: 在 OpenClaw 中创建一个新的 Agent 智能体，包括 workspa
   "name": "<your-agent-name>",
   "workspace": "/root/.openclaw/workspace/agents/<your-agent-id>",
   "agentDir": "/root/.openclaw/agents/<your-agent-id>",
-  "model": "<your-model-name>",
   "memorySearch": {
     "enabled": true
+  },
+  "subagents": {
+    "allowAgents": ["*"]
   }
 }
 ```
@@ -81,15 +114,28 @@ description: 在 OpenClaw 中创建一个新的 Agent 智能体，包括 workspa
 > **占位符说明**：
 > - `<your-agent-id>`: Agent 的唯一标识，如 `writer`, `assistant`, `novelist`
 > - `<your-agent-name>`: 显示名称（可选，默认等于 id）
-> - `<your-model-name>`: 模型名称，如 `kimi-coding/k2p5`, `gpt-4` 等
 
 **字段说明**：
 - `id`: Agent 的唯一标识符，全系统唯一，不能与其他 agent 重复
 - `name`: 显示名称（可选），在日志和回复中显示
 - `workspace`: **灵魂工作区路径**，系统会从这里读取人格文件（`IDENTITY.md`, `SOUL.md` 等）
 - `agentDir`: **运行时路径**，系统会自动创建 `sessions/` 和 `models.json`
-- `model`: 该 Agent 使用的默认模型，决定其推理能力和风格
 - `memorySearch.enabled`: 是否开启向量记忆检索，建议开启
+- `subagents.allowAgents`: 允许该 agent spawn 的其他 agent 列表，`["*"]` 表示允许 spawn 任何 agent
+
+> **关于模型配置**：模型不在 agent 级别单独配置，而是通过全局 `agents.defaults.model` 统一设置，所有 agent 继承默认模型。如需为特定 agent 指定不同模型，可在 `openclaw.json` 的 `agents.defaults.models` 中定义别名引用。
+
+### 关于 `subagents.allowAgents`
+
+`subagents.allowAgents` 配置控制该 agent 能否通过 `sessions_spawn` 启动其他 agent，以及在 `agents_list` 中能看到哪些 agent。
+
+| 配置值 | 含义 | `agents_list` 效果 |
+|--------|------|-------------------|
+| `["*"]` | 允许 spawn 任何 agent | `allowAny: true`，显示所有 agents |
+| `["player", "writer"]` | 白名单模式 | 只显示指定的 agents |
+| `[]` 或未配置 | 只能 spawn 自己 | 只返回自己 |
+
+**建议**：对于需要多 agent 协作的场景，设置为 `["*"]` 以启用完整的 agent 发现能力。
 
 ### 第 2 步：配置飞书 Channel 账号
 
@@ -185,15 +231,17 @@ description: 在 OpenClaw 中创建一个新的 Agent 智能体，包括 workspa
 ### Step 1: 创建目录
 
 ```bash
-mkdir -p /root/.openclaw/workspace/agents/writer/{memory,diary,.openclaw}
+mkdir -p /root/.openclaw/workspace/agents/writer/{memory,diary,output,.openclaw}
 ```
+
+> **注意**：`output/` 目录用于存放所有任务/项目的输出文件，遵循 AGENTS.md 中的 Output 文件夹规范。
 
 ### Step 2: 写入人格文件
 
 创建以下文件（内容根据人设定制）：
 - `IDENTITY.md` — 名字、气质、signature line、emoji
 - `SOUL.md` — 核心性格、说话方式、品味与厌恶
-- `AGENTS.md` — 工作规范、记忆规则、心跳行为
+- `AGENTS.md` — 工作规范、记忆规则、心跳行为、**Output 文件夹规范**
 - `MEMORY.md` — 长期记忆起始页（职责、变更记录）
 - `USER.md` — 用户档案模板
 - `TOOLS.md` — 环境备忘模板
@@ -220,12 +268,13 @@ EOF
   "name": "writer",
   "workspace": "/root/.openclaw/workspace/agents/writer",
   "agentDir": "/root/.openclaw/agents/writer",
-  "model": "kimi-coding/k2p5",
   "memorySearch": {
     "enabled": true
   }
 }
 ```
+
+> **注意**：模型不在 agent 级别配置，而是继承全局默认模型或通过 `agents.defaults.model` 统一设置。
 
 **② 配置飞书 channel**（添加到 `channels.feishu.accounts`）：
 
@@ -303,14 +352,21 @@ feishu[writer-feishu]: received message from ...
 ```json
 {
   "agents": {
+    "defaults": {
+      "model": {
+        "primary": "kimi-coding/k2p5"
+      }
+    },
     "list": [
       {
         "id": "writer",
         "name": "writer",
         "workspace": "/root/.openclaw/workspace/agents/writer",
         "agentDir": "/root/.openclaw/agents/writer",
-        "model": "kimi-coding/k2p5",
-        "memorySearch": { "enabled": true }
+        "memorySearch": { "enabled": true },
+        "subagents": {
+          "allowAgents": ["*"]
+        }
       }
     ]
   },
@@ -340,6 +396,10 @@ feishu[writer-feishu]: received message from ...
   }
 }
 ```
+
+> **注意**：
+> - 模型配置在 `agents.defaults.model` 中统一设置，所有 agent 继承此默认模型
+> - `subagents.allowAgents: ["*"]` 启用完整的 agent 发现和多 agent 协作能力
 
 **关键对应关系图解**：
 

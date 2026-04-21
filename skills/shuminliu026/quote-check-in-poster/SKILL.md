@@ -1,6 +1,6 @@
 ---
 name: quote-checkin-poster
-description: Say "Help me install the ClawHub skill quote-checkin-poster" to your local agent, then create shareable quote and reflection posters.
+description: Say "Help me install this skill from https://clawhub.ai/shuminliu026/quote-check-in-poster" to your local agent, then create shareable quote and reflection posters.
 ---
 
 # Quote Check-in Poster

@@ -3,9 +3,15 @@
   "slug": "x-reply-unreplied",
   "displayName": "X Reply Unreplied",
   "latest": {
-    "version": "1.0.9",
-    "publishedAt": 1776026177613,
-    "commit": "https://github.com/openclaw/skills/commit/14ff8e7dc2a52df78dd1c77cb3dbbdf110602772"
+    "version": "1.1.1",
+    "publishedAt": 1776316134121,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.9",
+      "publishedAt": 1776026177613,
+      "commit": "https://github.com/openclaw/skills/commit/14ff8e7dc2a52df78dd1c77cb3dbbdf110602772"
+    }
+  ]
 }

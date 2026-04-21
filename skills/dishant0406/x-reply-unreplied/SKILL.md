@@ -25,7 +25,7 @@ If the user did not specify a count limit, process up to 5 suitable reply opport
 
 ## Workflow
 
-1. Open X using the openclaw managed chrome and go to notifications or the requested inbox surface.
+1. Run `openclaw browser start` to open the openclaw managed browser. CRITICAL NON-NEGOTIABLE: always use this command. Never open a browser any other way. Then navigate to X and go to notifications or the requested inbox surface.
 2. CRITICAL NON-NEGOTIABLE: once on the notifications surface, never refresh or reload the page for any reason for the entire run. Navigate between threads and back using clicks and the back button only.
 3. Review candidates one by one.
    - Ignore obvious spam, rage bait, bot replies, or posts that do not need a response.

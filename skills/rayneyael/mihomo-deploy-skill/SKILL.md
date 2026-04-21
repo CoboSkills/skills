@@ -7,7 +7,6 @@ description: Deploy mihomo proxy kernel + Metacubexd web UI on a Linux server (n
 
 Deploy mihomo (Clash.Meta kernel) + Metacubexd web UI on a Linux server.
 ✔ Supports:
-
 - dynamically get latest version of mihomo
 - systemd --user (preferred)
 - no sudo required (except optional linger)
@@ -221,7 +220,7 @@ Replace `<controller-port>` and `<mixed-port>` with the actual values. After rec
 ```bash
 # === Mihomo Proxy ===
 export MY_PROXY_ADDR="127.0.0.1:<mixed-port>"
-export MY_NO_PROXY='localhost,127.0.0.1,::1,mirrors.tuna.tsinghua.edu.cn,pypi.tuna.tsinghua.edu.cn,hf-mirror.com,*.hf-mirror.com,*.tuna.tsinghua.edu.cn,repo.anaconda.com,*.anaconda.com,conda.anaconda.org,huggingface.co,*.huggingface.co'
+export MY_NO_PROXY='localhost,127.0.0.1,::1,mirrors.tuna.tsinghua.edu.cn,pypi.tuna.tsinghua.edu.cn,hf-mirror.com,*.hf-mirror.com,*.tuna.tsinghua.edu.cn,repo.anaconda.com,*.anaconda.com,conda.anaconda.org'
 
 alias proxy_on="
     export http_proxy=\"http://\$MY_PROXY_ADDR\";

@@ -1,0 +1,11 @@
+{
+  "owner": "yinguobing",
+  "slug": "qweather-skill",
+  "displayName": "和风天气",
+  "latest": {
+    "version": "0.4.0",
+    "publishedAt": 1776696996709,
+    "commit": null
+  },
+  "history": []
+}

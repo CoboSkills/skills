@@ -2,10 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
+import ipaddress
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 
@@ -14,9 +18,24 @@ REPORT_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 ALLOWED_DELIVERY_CHANNELS = {"email", "conversation", "thread", "webhook", "folder"}
 ALLOWED_TRIGGER_TYPES = {"hourly", "daily", "weekly", "monthly"}
 ALLOWED_WEEK_DAYS = {"MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"}
+AUTOMATION_SESSION_TARGETS = {"isolated", "main", "current"}
 TIME_RE = re.compile(r"^(?:[01]\d|2[0-3]):[0-5]\d$")
-DATA_DEFINITION_SIGNAL_KEYS = {
+SHA256_RE = re.compile(r"^[a-f0-9]{64}$")
+EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+ENVIRONMENT_FINGERPRINT_RE = re.compile(r"^skills:[a-z0-9._-]+(?:,[a-z0-9._-]+)*$")
+DAY_LABELS = {
+    "MON": "Monday",
+    "TUE": "Tuesday",
+    "WED": "Wednesday",
+    "THU": "Thursday",
+    "FRI": "Friday",
+    "SAT": "Saturday",
+    "SUN": "Sunday",
+}
+DATA_SOURCE_SIGNAL_KEYS = {
+    "apiRequestRef",
     "datasetRef",
+    "fileRef",
     "jobRef",
     "pipelineRef",
     "query",
@@ -24,30 +43,15 @@ DATA_DEFINITION_SIGNAL_KEYS = {
     "sourceRef",
     "storedProcedure",
 }
-RENDERING_DEFINITION_SIGNAL_KEYS = {
-    "chart",
-    "charts",
-    "layout",
-    "rendererConfig",
-    "sections",
-    "sheets",
-    "template",
-    "workbook",
-}
-KNOWN_BACKEND_SKILLS = {
-    "mssql": {"mssql"},
-}
-KNOWN_DELIVERY_SKILLS = {
-    "email": {"imap-smtp-mail"},
-}
-KNOWN_OUTPUT_RENDERERS = {
-    "pdf": {"pdf-report"},
-    "excel": {"excel-export"},
-    "xlsx": {"excel-export"},
-    "image": {"chart-mpl"},
-    "png": {"chart-mpl"},
-    "svg": {"chart-mpl"},
-}
+LOCKED_SUBTREE_KEYS = (
+    "schedule",
+    "delivery",
+    "output",
+    "dataSources",
+    "uiDefinition",
+    "executionPrompt",
+    "runtimeGuards",
+)
 
 
 def load_json(path: Path) -> object:
@@ -61,16 +65,6 @@ def load_json(path: Path) -> object:
 
 def is_non_empty_string(value: object) -> bool:
     return isinstance(value, str) and bool(value.strip())
-
-
-def has_value(value: object) -> bool:
-    if value is None:
-        return False
-    if isinstance(value, str):
-        return bool(value.strip())
-    if isinstance(value, (list, tuple, set, dict)):
-        return bool(value)
-    return True
 
 
 def add_error(errors: list[str], message: str) -> None:
@@ -87,7 +81,7 @@ def validate_required_string(
     if not is_non_empty_string(value):
         add_error(errors, f"{path}.{key} must be a non-empty string")
         return None
-    return value.strip()
+    return str(value).strip()
 
 
 def validate_required_object(
@@ -114,45 +108,6 @@ def validate_non_empty_object(
         add_error(errors, f"{path}.{key} must be a non-empty object")
         return None
     return value
-
-
-def infer_skill_from_backend(backend: str | None) -> str | None:
-    mapping = {
-        "mssql": "mssql",
-    }
-    if not backend:
-        return None
-    return mapping.get(backend.strip().lower())
-
-
-def infer_skill_from_rendering(kind: str | None, output_type: str | None) -> str | None:
-    kind_mapping = {
-        "pdf-report": "pdf-report",
-        "excel-export": "excel-export",
-        "chart-mpl": "chart-mpl",
-    }
-    output_mapping = {
-        "pdf": "pdf-report",
-        "excel": "excel-export",
-        "xlsx": "excel-export",
-        "image": "chart-mpl",
-        "png": "chart-mpl",
-        "svg": "chart-mpl",
-    }
-    if kind and kind.strip().lower() in kind_mapping:
-        return kind_mapping[kind.strip().lower()]
-    if output_type:
-        return output_mapping.get(output_type.strip().lower())
-    return None
-
-
-def infer_skill_from_delivery(channel: str | None) -> str | None:
-    mapping = {
-        "email": "imap-smtp-mail",
-    }
-    if not channel:
-        return None
-    return mapping.get(channel.strip().lower())
 
 
 def collect_list_of_strings(value: object) -> list[str]:
@@ -193,6 +148,43 @@ def validate_timezone_name(value: object, path: str, errors: list[str]) -> str |
     return normalized
 
 
+def validate_iso_datetime(value: object, path: str, errors: list[str]) -> str | None:
+    if not is_non_empty_string(value):
+        add_error(errors, f"{path} must be a non-empty ISO-8601 datetime string")
+        return None
+    normalized = str(value).strip()
+    try:
+        datetime.fromisoformat(normalized.replace("Z", "+00:00"))
+    except ValueError:
+        add_error(errors, f"{path} must be a valid ISO-8601 datetime string")
+        return None
+    return normalized
+
+
+def validate_required_int(
+    obj: dict[str, object],
+    key: str,
+    errors: list[str],
+    path: str,
+) -> int | None:
+    value = obj.get(key)
+    if not is_int_like(value):
+        add_error(errors, f"{path}.{key} must be an integer")
+        return None
+    return int(value)
+
+
+def validate_sha256_string(value: object, path: str, errors: list[str]) -> str | None:
+    if not is_non_empty_string(value):
+        add_error(errors, f"{path} must be a non-empty SHA-256 hex string")
+        return None
+    normalized = str(value).strip().lower()
+    if not SHA256_RE.match(normalized):
+        add_error(errors, f"{path} must be a 64-character lowercase SHA-256 hex string")
+        return None
+    return normalized
+
+
 def validate_non_empty_day_list(value: object, path: str, errors: list[str]) -> list[str]:
     if not isinstance(value, list) or not value:
         add_error(errors, f"{path} must be a non-empty list of weekday codes")
@@ -219,6 +211,45 @@ def validate_non_empty_day_list(value: object, path: str, errors: list[str]) -> 
     return normalized
 
 
+def render_schedule_summary(trigger: dict[str, object]) -> str | None:
+    trigger_type = trigger.get("type")
+    if not isinstance(trigger_type, str):
+        return None
+
+    normalized_type = trigger_type.strip().lower()
+    if normalized_type == "hourly":
+        interval_hours = trigger.get("intervalHours", 1)
+        minute = trigger.get("minute", 0)
+        if not is_int_like(interval_hours) or not is_int_like(minute):
+            return None
+        if interval_hours == 1:
+            return f"Every hour at minute {int(minute):02d}"
+        return f"Every {int(interval_hours)} hours at minute {int(minute):02d}"
+
+    if normalized_type == "daily":
+        time_value = trigger.get("time")
+        if isinstance(time_value, str):
+            return f"Every day at {time_value.strip()}"
+        return None
+
+    if normalized_type == "weekly":
+        days = trigger.get("days")
+        time_value = trigger.get("time")
+        if isinstance(days, list) and isinstance(time_value, str):
+            labels = [DAY_LABELS.get(str(day).strip().upper(), str(day)) for day in days]
+            return f"Every {', '.join(labels)} at {time_value.strip()}"
+        return None
+
+    if normalized_type == "monthly":
+        day_of_month = trigger.get("dayOfMonth")
+        time_value = trigger.get("time")
+        if isinstance(day_of_month, int) and isinstance(time_value, str):
+            return f"Day {day_of_month} of every month at {time_value.strip()}"
+        return None
+
+    return None
+
+
 def validate_trigger(trigger: dict[str, object], errors: list[str]) -> None:
     trigger_type = validate_required_string(
         trigger, "type", errors, "definition.schedule.trigger"
@@ -242,8 +273,8 @@ def validate_trigger(trigger: dict[str, object], errors: list[str]) -> None:
                 errors,
                 "definition.schedule.trigger.intervalHours must be an integer >= 1 for hourly schedules",
             )
-        minute = trigger.get("minute")
-        if minute is not None and (not is_int_like(minute) or int(minute) < 0 or int(minute) > 59):
+        minute = trigger.get("minute", 0)
+        if not is_int_like(minute) or int(minute) < 0 or int(minute) > 59:
             add_error(
                 errors,
                 "definition.schedule.trigger.minute must be an integer between 0 and 59 for hourly schedules",
@@ -285,72 +316,135 @@ def validate_trigger(trigger: dict[str, object], errors: list[str]) -> None:
         )
         return
 
-def validate_data_definition(value: object, errors: list[str]) -> dict[str, object] | None:
-    if not isinstance(value, dict):
-        add_error(errors, "definition.data.definition must be an object")
-        return None
-    if not value:
-        add_error(errors, "definition.data.definition must be a non-empty object")
-        return None
 
-    actionable = False
-    for key in DATA_DEFINITION_SIGNAL_KEYS:
-        candidate = value.get(key)
-        if is_non_empty_string(candidate):
-            actionable = True
-            break
-
-    if not actionable:
-        add_error(
-            errors,
-            "definition.data.definition must contain at least one deterministic data key with a non-empty value: "
-            + ", ".join(sorted(DATA_DEFINITION_SIGNAL_KEYS)),
-        )
+def validate_email_address(
+    value: object,
+    path: str,
+    errors: list[str],
+    allowed_domains: set[str] | None = None,
+) -> str | None:
+    if not is_non_empty_string(value):
+        add_error(errors, f"{path} must be a non-empty email address")
         return None
-    return value
+    normalized = str(value).strip()
+    if not EMAIL_RE.match(normalized):
+        add_error(errors, f"{path} must be a syntactically valid email address")
+        return None
+    domain = normalized.rsplit("@", 1)[1].lower()
+    if allowed_domains is not None and domain not in allowed_domains:
+        add_error(errors, f"{path} domain {domain} is not in delivery.policy.allowedDomains")
+        return None
+    return normalized
 
 
-def validate_rendering_definition(value: object, errors: list[str]) -> dict[str, object] | None:
-    if not isinstance(value, dict):
-        add_error(errors, "definition.rendering.definition must be an object")
-        return None
-    if not value:
-        add_error(errors, "definition.rendering.definition must be a non-empty object")
+def validate_webhook_url(value: object, path: str, errors: list[str]) -> str | None:
+    if not is_non_empty_string(value):
+        add_error(errors, f"{path} must be a non-empty HTTPS URL")
         return None
 
-    checks = (
-        is_non_empty_string(value.get("template")),
-        isinstance(value.get("sections"), list) and bool(value.get("sections")),
-        isinstance(value.get("sheets"), list) and bool(value.get("sheets")),
-        isinstance(value.get("charts"), list) and bool(value.get("charts")),
-        isinstance(value.get("workbook"), dict) and bool(value.get("workbook")),
-        isinstance(value.get("chart"), dict) and bool(value.get("chart")),
-        isinstance(value.get("layout"), dict) and bool(value.get("layout")),
-        isinstance(value.get("rendererConfig"), dict) and bool(value.get("rendererConfig")),
-    )
-    if not any(checks):
-        add_error(
-            errors,
-            "definition.rendering.definition must contain deterministic rendering keys with non-empty values: "
-            + ", ".join(sorted(RENDERING_DEFINITION_SIGNAL_KEYS)),
-        )
+    normalized = str(value).strip()
+    parsed = urlparse(normalized)
+    if parsed.scheme.lower() != "https":
+        add_error(errors, f"{path} must use HTTPS")
         return None
-    return value
+    if not parsed.hostname:
+        add_error(errors, f"{path} must include a hostname")
+        return None
+
+    host = parsed.hostname.lower()
+    if host in {"localhost"} or host.endswith(".local"):
+        add_error(errors, f"{path} must not target localhost or .local hosts")
+        return None
+
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return normalized
+
+    if any((ip.is_private, ip.is_loopback, ip.is_link_local, ip.is_reserved, ip.is_multicast)):
+        add_error(errors, f"{path} must not target private, loopback, link-local, reserved, or multicast IPs")
+        return None
+    return normalized
+
+
+def validate_folder_path(value: object, path: str, errors: list[str]) -> str | None:
+    if not is_non_empty_string(value):
+        add_error(errors, f"{path} must be a non-empty folder path")
+        return None
+    normalized = str(value).strip()
+    parts = [part for part in re.split(r"[\\/]+", normalized) if part]
+    if ".." in parts:
+        add_error(errors, f"{path} must not contain parent-directory traversal")
+        return None
+    return normalized
 
 
 def validate_delivery_target(
+    delivery: dict[str, object],
     target: dict[str, object],
     channel: str,
     errors: list[str],
 ) -> None:
+    policy = delivery.get("policy")
+    allowed_domains: set[str] | None = None
+    if policy is not None:
+        if not isinstance(policy, dict):
+            add_error(errors, "definition.delivery.policy must be an object when present")
+        else:
+            if "allowedDomains" in policy:
+                domains = collect_list_of_strings(policy.get("allowedDomains"))
+                if not domains:
+                    add_error(errors, "definition.delivery.policy.allowedDomains must be a non-empty array when present")
+                else:
+                    allowed_domains = {domain.lower() for domain in domains}
+
     if channel == "email":
-        to_list = collect_list_of_strings(target.get("to"))
+        to_value = target.get("to")
+        cc_value = target.get("cc")
+        bcc_value = target.get("bcc")
         contact = target.get("contact")
-        if not to_list and not is_non_empty_string(contact):
+        if to_value is not None:
+            if not isinstance(to_value, list) or not to_value:
+                add_error(errors, "definition.delivery.target.to must be a non-empty array when present")
+            else:
+                for index, item in enumerate(to_value):
+                    validate_email_address(
+                        item,
+                        f"definition.delivery.target.to[{index}]",
+                        errors,
+                        allowed_domains,
+                    )
+        if cc_value is not None:
+            if not isinstance(cc_value, list):
+                add_error(errors, "definition.delivery.target.cc must be an array when present")
+            else:
+                for index, item in enumerate(cc_value):
+                    validate_email_address(
+                        item,
+                        f"definition.delivery.target.cc[{index}]",
+                        errors,
+                        allowed_domains,
+                    )
+        if bcc_value is not None:
+            add_error(errors, "definition.delivery.target.bcc is not allowed in this package")
+        if contact is not None:
+            validate_email_address(
+                contact,
+                "definition.delivery.target.contact",
+                errors,
+                allowed_domains,
+            )
+        if to_value is None and contact is None:
             add_error(
                 errors,
                 "definition.delivery.target must contain to[] or contact for email delivery",
             )
+
+        definition = delivery.get("definition")
+        if not isinstance(definition, dict):
+            add_error(errors, "definition.delivery.definition must be an object for email delivery")
+        else:
+            validate_required_string(definition, "subject", errors, "definition.delivery.definition")
         return
 
     if channel in {"conversation", "thread"}:
@@ -362,31 +456,406 @@ def validate_delivery_target(
                 errors,
                 "definition.delivery.target must contain conversationId or threadId for conversation delivery",
             )
+        definition = delivery.get("definition")
+        if not isinstance(definition, dict):
+            add_error(errors, "definition.delivery.definition must be an object for conversation delivery")
+        else:
+            validate_required_string(definition, "messageTemplate", errors, "definition.delivery.definition")
         return
 
     if channel == "webhook":
-        if not (
-            is_non_empty_string(target.get("endpointAlias"))
-            or is_non_empty_string(target.get("url"))
-        ):
+        endpoint_alias = target.get("endpointAlias")
+        url_value = target.get("url")
+        if endpoint_alias is None and url_value is None:
             add_error(
                 errors,
                 "definition.delivery.target must contain endpointAlias or url for webhook delivery",
             )
+            return
+        if endpoint_alias is not None and not is_non_empty_string(endpoint_alias):
+            add_error(
+                errors,
+                "definition.delivery.target.endpointAlias must be a non-empty string when present",
+            )
+        if url_value is not None:
+            validate_webhook_url(url_value, "definition.delivery.target.url", errors)
         return
 
     if channel == "folder":
-        if not is_non_empty_string(target.get("path")):
+        validate_folder_path(target.get("path"), "definition.delivery.target.path", errors)
+
+
+def resolve_reference_path(reference: str, input_path: Path) -> Path:
+    candidate = Path(reference)
+    if candidate.is_absolute():
+        return candidate
+
+    cwd_candidate = Path.cwd() / candidate
+    if cwd_candidate.exists():
+        return cwd_candidate.resolve()
+    return (input_path.parent / candidate).resolve()
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def validate_data_source_definition(
+    value: object,
+    data_source: dict[str, object],
+    input_path: Path,
+    errors: list[str],
+    path: str,
+) -> None:
+    if not isinstance(value, dict):
+        add_error(errors, f"{path} must be an object")
+        return
+    if not value:
+        add_error(errors, f"{path} must be a non-empty object")
+        return
+
+    actionable = False
+    for key in DATA_SOURCE_SIGNAL_KEYS:
+        candidate = value.get(key)
+        if is_non_empty_string(candidate):
+            actionable = True
+            break
+
+    if not actionable:
+        add_error(
+            errors,
+            f"{path} must contain at least one deterministic data key with a non-empty value: "
+            + ", ".join(sorted(DATA_SOURCE_SIGNAL_KEYS)),
+        )
+        return
+
+    parameters = value.get("parameters")
+    if parameters is not None and not isinstance(parameters, dict):
+        add_error(errors, f"{path}.parameters must be an object when present")
+
+    query_file = value.get("queryFile")
+    if query_file is not None:
+        if not is_non_empty_string(query_file):
+            add_error(errors, f"{path}.queryFile must be a non-empty string when present")
+            return
+        query_file_hash = validate_sha256_string(
+            data_source.get("queryFileSha256"),
+            f"{path.rsplit('.', 1)[0]}.queryFileSha256",
+            errors,
+        )
+        resolved_path = resolve_reference_path(str(query_file).strip(), input_path)
+        if not resolved_path.exists() or not resolved_path.is_file():
+            add_error(errors, f"{path}.queryFile must point to an existing file: {resolved_path}")
+            return
+        if query_file_hash is not None:
+            actual_hash = sha256_file(resolved_path)
+            if actual_hash != query_file_hash:
+                add_error(
+                    errors,
+                    f"{path.rsplit('.', 1)[0]}.queryFileSha256 does not match the contents of {resolved_path}",
+                )
+
+
+def validate_data_sources(value: object, input_path: Path, errors: list[str]) -> list[str]:
+    if not isinstance(value, list) or not value:
+        add_error(errors, "definition.dataSources must be a non-empty array")
+        return []
+
+    ids: list[str] = []
+    seen: set[str] = set()
+    for index, item in enumerate(value):
+        path = f"definition.dataSources[{index}]"
+        if not isinstance(item, dict):
+            add_error(errors, f"{path} must be an object")
+            continue
+
+        data_source_id = validate_required_string(item, "id", errors, path)
+        if data_source_id and not REPORT_ID_RE.match(data_source_id):
             add_error(
                 errors,
-                "definition.delivery.target must contain path for folder delivery",
+                f"{path}.id must contain only lowercase letters, digits, hyphens, or underscores",
             )
+        if data_source_id:
+            if data_source_id in seen:
+                add_error(errors, f"{path}.id duplicates data source id {data_source_id}")
+            seen.add(data_source_id)
+            ids.append(data_source_id)
+
+        validate_required_string(item, "backend", errors, path)
+        validate_required_string(item, "purpose", errors, path)
+        validate_data_source_definition(item.get("definition"), item, input_path, errors, f"{path}.definition")
+    return ids
+
+
+def validate_component(component: object, path: str, errors: list[str]) -> None:
+    if not isinstance(component, dict):
+        add_error(errors, f"{path} must be an object")
         return
+
+    validate_required_string(component, "kind", errors, path)
+    title = component.get("title")
+    instructions = component.get("instructions")
+    if not is_non_empty_string(title) and not is_non_empty_string(instructions):
+        add_error(
+            errors,
+            f"{path} must contain title or instructions to explain the component intent",
+        )
+
+
+def validate_ui_definition(value: object, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        add_error(errors, "definition.uiDefinition must be an object")
+        return
+    if not value:
+        add_error(errors, "definition.uiDefinition must be a non-empty object")
+        return
+
+    validate_required_string(value, "summary", errors, "definition.uiDefinition")
+
+    has_must_include = bool(collect_list_of_strings(value.get("mustInclude")))
+    has_constraints = bool(collect_list_of_strings(value.get("constraints")))
+    components = value.get("components")
+    has_components = isinstance(components, list) and bool(components)
+
+    if not any((has_must_include, has_constraints, has_components)):
+        add_error(
+            errors,
+            "definition.uiDefinition must contain at least one of mustInclude[], constraints[], or components[]",
+        )
+
+    if components is not None:
+        if not isinstance(components, list) or not components:
+            add_error(errors, "definition.uiDefinition.components must be a non-empty array")
+        else:
+            for index, component in enumerate(components):
+                validate_component(
+                    component,
+                    f"definition.uiDefinition.components[{index}]",
+                    errors,
+                )
+
+    dynamic_layout = value.get("dynamicLayout")
+    if dynamic_layout is not None and not isinstance(dynamic_layout, bool):
+        add_error(errors, "definition.uiDefinition.dynamicLayout must be a boolean when present")
+
+
+def validate_runtime_guards(value: object, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        add_error(errors, "definition.runtimeGuards must be an object")
+        return
+
+    required_exact_values = {
+        "treatDataAsUntrusted": True,
+        "allowDataDrivenToolCalls": False,
+        "allowDataDrivenRecipients": False,
+        "enforceApprovedDeliveryTarget": True,
+    }
+    for key, expected_value in required_exact_values.items():
+        actual_value = value.get(key)
+        if actual_value is not expected_value:
+            add_error(errors, f"definition.runtimeGuards.{key} must be {json.dumps(expected_value)}")
+
+
+def validate_environment_fingerprint(value: str, errors: list[str]) -> None:
+    if not ENVIRONMENT_FINGERPRINT_RE.match(value):
+        add_error(
+            errors,
+            "definition.verification.environmentFingerprint must use the canonical skills:<name>[,<name>...] format",
+        )
+        return
+
+    items = value.removeprefix("skills:").split(",")
+    if len(items) != len(set(items)):
+        add_error(
+            errors,
+            "definition.verification.environmentFingerprint must not contain duplicate skill names",
+        )
+    if items != sorted(items):
+        add_error(
+            errors,
+            "definition.verification.environmentFingerprint must list skill names in ascending lexicographic order",
+        )
+
+
+def validate_preview(value: object, input_path: Path, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        add_error(errors, "definition.preview must be an object when present")
+        return
+    artifact_ref = validate_required_string(value, "artifactRef", errors, "definition.preview")
+    if artifact_ref is not None:
+        resolved_path = resolve_reference_path(artifact_ref, input_path)
+        if not resolved_path.exists() or not resolved_path.is_file():
+            add_error(
+                errors,
+                f"definition.preview.artifactRef must point to an existing file: {resolved_path}",
+            )
+
+
+def validate_approval(value: object, expected_hash: str | None, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        add_error(errors, "definition.approval must be an object when present")
+        return
+
+    validate_iso_datetime(value.get("approvedAt"), "definition.approval.approvedAt", errors)
+    approved_by = validate_required_object(value, "approvedBy", errors, "definition.approval")
+    if approved_by is not None:
+        if not (
+            is_non_empty_string(approved_by.get("id"))
+            or is_non_empty_string(approved_by.get("displayName"))
+        ):
+            add_error(errors, "definition.approval.approvedBy must contain id or displayName")
+
+    approved_hash = validate_sha256_string(
+        value.get("approvedSubtreeSha256"),
+        "definition.approval.approvedSubtreeSha256",
+        errors,
+    )
+    if approved_hash is not None and expected_hash is not None and approved_hash != expected_hash:
+        add_error(
+            errors,
+            "definition.approval.approvedSubtreeSha256 must match definition.integrity.lockedSubtreeSha256",
+        )
+
+
+def canonical_json_bytes(value: object) -> bytes:
+    return json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def build_locked_subtree(payload: dict[str, object]) -> dict[str, object]:
+    return {key: payload.get(key) for key in LOCKED_SUBTREE_KEYS}
+
+
+def compute_locked_subtree_sha256(payload: dict[str, object]) -> str:
+    return hashlib.sha256(canonical_json_bytes(build_locked_subtree(payload))).hexdigest()
+
+
+def validate_integrity(payload: dict[str, object], errors: list[str]) -> None:
+    integrity = validate_required_object(payload, "integrity", errors, "definition")
+    if integrity is None:
+        return
+
+    expected_hash = validate_sha256_string(
+        integrity.get("lockedSubtreeSha256"),
+        "definition.integrity.lockedSubtreeSha256",
+        errors,
+    )
+    if expected_hash is None:
+        return
+
+    actual_hash = compute_locked_subtree_sha256(payload)
+    if actual_hash != expected_hash:
+        add_error(errors, "definition.integrity.lockedSubtreeSha256 does not match the current locked subtree")
+
+
+def validate_automation(value: object, errors: list[str]) -> None:
+    if not isinstance(value, dict):
+        add_error(errors, "definition.automation must be an object when present")
+        return
+
+    platform = validate_required_string(value, "platform", errors, "definition.automation")
+    kind = validate_required_string(value, "kind", errors, "definition.automation")
+    validate_required_string(value, "jobId", errors, "definition.automation")
+
+    if platform and platform.lower() != "openclaw":
+        add_error(errors, "definition.automation.platform must be openclaw when present")
+    if kind and kind.lower() != "cron":
+        add_error(errors, "definition.automation.kind must be cron when present")
+
+    session_target = value.get("sessionTarget")
+    if session_target is not None:
+        if not is_non_empty_string(session_target):
+            add_error(
+                errors,
+                "definition.automation.sessionTarget must be a non-empty string when present",
+            )
+        else:
+            normalized = str(session_target).strip()
+            if normalized not in AUTOMATION_SESSION_TARGETS and not normalized.startswith("session:"):
+                add_error(
+                    errors,
+                    "definition.automation.sessionTarget must be isolated, main, current, or session:<id>",
+                )
+
+
+def validate_verification(
+    value: object,
+    automation: dict[str, object] | None,
+    expected_hash: str | None,
+    errors: list[str],
+) -> None:
+    if not isinstance(value, dict):
+        add_error(errors, "definition.verification must be an object when present")
+        return
+
+    validate_iso_datetime(
+        value.get("activationCheckAt"),
+        "definition.verification.activationCheckAt",
+        errors,
+    )
+    mode = validate_required_string(
+        value,
+        "activationCheckMode",
+        errors,
+        "definition.verification",
+    )
+    fingerprint = validate_required_string(
+        value,
+        "environmentFingerprint",
+        errors,
+        "definition.verification",
+    )
+    if fingerprint is not None:
+        validate_environment_fingerprint(fingerprint, errors)
+    verified_hash = validate_sha256_string(
+        value.get("verifiedSubtreeSha256"),
+        "definition.verification.verifiedSubtreeSha256",
+        errors,
+    )
+    if verified_hash is not None and expected_hash is not None and verified_hash != expected_hash:
+        add_error(
+            errors,
+            "definition.verification.verifiedSubtreeSha256 must match definition.integrity.lockedSubtreeSha256",
+        )
+    if automation is not None and mode is not None:
+        session_target = automation.get("sessionTarget")
+        if is_non_empty_string(session_target) and str(session_target).strip() != mode:
+            add_error(
+                errors,
+                "definition.verification.activationCheckMode must match definition.automation.sessionTarget",
+            )
+
+
+def validate_lifecycle_invariants(payload: dict[str, object], errors: list[str]) -> None:
+    if payload.get("approval") is not None and payload.get("integrity") is None:
+        add_error(errors, "definition.approval requires definition.integrity")
+    if payload.get("verification") is not None and payload.get("integrity") is None:
+        add_error(errors, "definition.verification requires definition.integrity")
+
+    status = payload.get("status")
+    if not isinstance(status, str):
+        return
+
+    if status not in {"enabled", "paused"}:
+        return
+
+    if payload.get("preview") is None:
+        add_error(errors, f"definition.{status} reports must include preview metadata")
+    if payload.get("approval") is None:
+        add_error(errors, f"definition.{status} reports must include approval metadata")
+    if payload.get("integrity") is None:
+        add_error(errors, f"definition.{status} reports must include integrity metadata")
+    if payload.get("automation") is None:
+        add_error(errors, f"definition.{status} reports must include automation metadata")
+    if payload.get("verification") is None:
+        add_error(errors, f"definition.{status} reports must include verification metadata")
 
 
 def validate_definition(payload: object, input_path: Path) -> tuple[bool, dict[str, object]]:
     errors: list[str] = []
-    inferred_skills: set[str] = set()
 
     if not isinstance(payload, dict):
         return False, {
@@ -394,6 +863,10 @@ def validate_definition(payload: object, input_path: Path) -> tuple[bool, dict[s
             "input": str(input_path),
             "errors": ["Top-level JSON value must be an object"],
         }
+
+    schema_version = validate_required_int(payload, "schemaVersion", errors, "definition")
+    if schema_version is not None and schema_version != 1:
+        add_error(errors, "definition.schemaVersion must be 1 in this package")
 
     report_id = validate_required_string(payload, "reportId", errors, "definition")
     if report_id and not REPORT_ID_RE.match(report_id):
@@ -407,9 +880,10 @@ def validate_definition(payload: object, input_path: Path) -> tuple[bool, dict[s
 
     owner = validate_required_object(payload, "owner", errors, "definition")
     if owner is not None:
-        owner_id = owner.get("id")
-        owner_name = owner.get("displayName")
-        if not is_non_empty_string(owner_id) and not is_non_empty_string(owner_name):
+        if not (
+            is_non_empty_string(owner.get("id"))
+            or is_non_empty_string(owner.get("displayName"))
+        ):
             add_error(errors, "definition.owner must contain id or displayName")
 
     status = validate_required_string(payload, "status", errors, "definition")
@@ -423,14 +897,24 @@ def validate_definition(payload: object, input_path: Path) -> tuple[bool, dict[s
     schedule_summary = None
     if schedule is not None:
         validate_timezone_name(schedule.get("timezone"), "definition.schedule.timezone", errors)
-        schedule_summary = validate_required_string(schedule, "summary", errors, "definition.schedule")
+        schedule_summary = validate_required_string(
+            schedule,
+            "summary",
+            errors,
+            "definition.schedule",
+        )
         trigger = validate_non_empty_object(schedule, "trigger", errors, "definition.schedule")
         if trigger is not None:
             validate_trigger(trigger, errors)
+            expected_summary = render_schedule_summary(trigger)
+            if expected_summary is not None and schedule_summary is not None and schedule_summary != expected_summary:
+                add_error(
+                    errors,
+                    "definition.schedule.summary must match the canonical summary derived from definition.schedule.trigger",
+                )
 
     delivery = validate_required_object(payload, "delivery", errors, "definition")
     delivery_channel = None
-    delivery_skill_name = None
     if delivery is not None:
         delivery_channel = validate_required_string(
             delivery, "channel", errors, "definition.delivery"
@@ -445,117 +929,63 @@ def validate_definition(payload: object, input_path: Path) -> tuple[bool, dict[s
                     + ", ".join(sorted(ALLOWED_DELIVERY_CHANNELS)),
                 )
             else:
-                validate_delivery_target(target, normalized_channel, errors)
-
-        delivery_skill = delivery.get("executionSkill")
-        if is_non_empty_string(delivery_skill):
-            delivery_skill_name = str(delivery_skill).strip()
-            inferred_skills.add(delivery_skill_name)
-        else:
-            delivery_skill_name = infer_skill_from_delivery(delivery_channel)
-            if delivery_skill_name:
-                inferred_skills.add(delivery_skill_name)
-
-        if delivery_channel:
-            allowed_delivery_skills = KNOWN_DELIVERY_SKILLS.get(delivery_channel.lower())
-            if (
-                allowed_delivery_skills
-                and delivery_skill_name
-                and delivery_skill_name.lower() not in allowed_delivery_skills
-            ):
-                add_error(
-                    errors,
-                    "definition.delivery.executionSkill must be compatible with definition.delivery.channel",
-                )
+                validate_delivery_target(delivery, target, normalized_channel, errors)
 
     output = validate_required_object(payload, "output", errors, "definition")
     output_type = None
     if output is not None:
         output_type = validate_required_string(output, "type", errors, "definition.output")
+        filename_template = output.get("filenameTemplate")
+        if filename_template is not None and not is_non_empty_string(filename_template):
+            add_error(
+                errors,
+                "definition.output.filenameTemplate must be a non-empty string when present",
+            )
 
-    data = validate_required_object(payload, "data", errors, "definition")
-    backend = None
-    data_skill_name = None
-    if data is not None:
-        backend = validate_required_string(data, "backend", errors, "definition.data")
-        validate_data_definition(data.get("definition"), errors)
+    data_source_ids = validate_data_sources(payload.get("dataSources"), input_path, errors)
+    validate_ui_definition(payload.get("uiDefinition"), errors)
+    validate_required_string(payload, "executionPrompt", errors, "definition")
+    validate_runtime_guards(payload.get("runtimeGuards"), errors)
 
-        data_skill = data.get("executionSkill")
-        if is_non_empty_string(data_skill):
-            data_skill_name = str(data_skill).strip()
-            inferred_skills.add(data_skill_name)
-        else:
-            data_skill_name = infer_skill_from_backend(backend)
-            if data_skill_name:
-                inferred_skills.add(data_skill_name)
+    integrity_hash: str | None = None
+    integrity = payload.get("integrity")
+    if isinstance(integrity, dict):
+        candidate_hash = integrity.get("lockedSubtreeSha256")
+        if is_non_empty_string(candidate_hash):
+            normalized_hash = str(candidate_hash).strip().lower()
+            if SHA256_RE.match(normalized_hash):
+                integrity_hash = normalized_hash
 
-        if backend:
-            allowed_backend_skills = KNOWN_BACKEND_SKILLS.get(backend.lower())
-            if allowed_backend_skills and data_skill_name and data_skill_name not in allowed_backend_skills:
-                add_error(
-                    errors,
-                    "definition.data.executionSkill must be compatible with definition.data.backend",
-                )
+    preview = payload.get("preview")
+    if preview is not None:
+        validate_preview(preview, input_path, errors)
 
-    rendering = validate_required_object(payload, "rendering", errors, "definition")
-    rendering_kind = None
-    rendering_skill_name = None
-    if rendering is not None:
-        rendering_kind = validate_required_string(
-            rendering, "kind", errors, "definition.rendering"
+    approval = payload.get("approval")
+    if approval is not None:
+        validate_approval(approval, integrity_hash, errors)
+
+    automation = payload.get("automation")
+    if automation is not None:
+        validate_automation(automation, errors)
+
+    verification = payload.get("verification")
+    if verification is not None:
+        validate_verification(
+            verification,
+            automation if isinstance(automation, dict) else None,
+            integrity_hash,
+            errors,
         )
-        validate_rendering_definition(rendering.get("definition"), errors)
 
-        rendering_skill = rendering.get("executionSkill")
-        if is_non_empty_string(rendering_skill):
-            rendering_skill_name = str(rendering_skill).strip()
-            inferred_skills.add(rendering_skill_name)
-        else:
-            rendering_skill_name = infer_skill_from_rendering(rendering_kind, output_type)
-            if rendering_skill_name:
-                inferred_skills.add(rendering_skill_name)
+    if payload.get("integrity") is not None:
+        validate_integrity(payload, errors)
 
-    normalized_output_type = output_type.lower() if output_type else None
-    normalized_rendering_kind = rendering_kind.lower() if rendering_kind else None
-    if normalized_output_type:
-        allowed_renderers = KNOWN_OUTPUT_RENDERERS.get(normalized_output_type)
-        if allowed_renderers:
-            if normalized_rendering_kind and normalized_rendering_kind not in allowed_renderers:
-                add_error(
-                    errors,
-                    "definition.rendering.kind must be compatible with definition.output.type",
-                )
-            if rendering_skill_name and rendering_skill_name.lower() not in allowed_renderers:
-                add_error(
-                    errors,
-                    "definition.rendering.executionSkill must be compatible with definition.output.type",
-                )
-
-    post_processing = payload.get("postProcessing")
-    if isinstance(post_processing, dict):
-        charts = post_processing.get("charts")
-        if isinstance(charts, list):
-            for index, chart in enumerate(charts):
-                if not isinstance(chart, dict):
-                    add_error(
-                        errors,
-                        f"definition.postProcessing.charts[{index}] must be an object",
-                    )
-                    continue
-                chart_skill = chart.get("executionSkill")
-                if is_non_empty_string(chart_skill):
-                    inferred_skills.add(str(chart_skill).strip())
-                else:
-                    inferred_skills.add("chart-mpl")
-                if not is_non_empty_string(chart.get("kind")):
-                    add_error(
-                        errors,
-                        f"definition.postProcessing.charts[{index}].kind must be a non-empty string",
-                    )
+    validate_lifecycle_invariants(payload, errors)
 
     result = {
         "valid": not errors,
         "input": str(input_path),
+        "schemaVersion": schema_version,
         "reportId": report_id,
         "name": name,
         "purpose": purpose,
@@ -563,7 +993,7 @@ def validate_definition(payload: object, input_path: Path) -> tuple[bool, dict[s
         "scheduleSummary": schedule_summary,
         "deliveryChannel": delivery_channel,
         "outputType": output_type,
-        "requiredSkills": sorted(inferred_skills),
+        "dataSourceIds": data_source_ids,
         "errors": errors,
     }
     return not errors, result
@@ -571,7 +1001,7 @@ def validate_definition(payload: object, input_path: Path) -> tuple[bool, dict[s
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Validate a saved scheduled-report definition."
+        description="Validate a saved recurring-report definition."
     )
     parser.add_argument(
         "--input",

@@ -7,6 +7,16 @@ description: "LESecure Cloud Skills — encrypt or decrypt data using the LESecu
 
 Encrypt and decrypt **plain text data only** through the LESecure REST API. The API supports layered security "locks" that can be combined for defense-in-depth protection.
 
+## Project Links
+
+| Resource | URL |
+|---|---|
+| Source code & documentation | <https://github.com/SPAlgorithm/LE> |
+| API endpoint | `https://api.lesecure.ai/exec` |
+| Local/on-prem alternative | LESecureLocal skill (no data leaves your machine) |
+
+If you cannot verify the LESecure service or its privacy practices, use the **LESecureLocal** skill instead — it runs entirely on your device with no network calls.
+
 ## Requirements (MANDATORY)
 
 Before running any command in this skill, confirm the following are available. If any is missing, tell the user and stop — do not invent values or fall back silently.
@@ -14,7 +24,7 @@ Before running any command in this skill, confirm the following are available. I
 | Requirement | Purpose | How to check |
 |---|---|---|
 | `curl` on `PATH` | Make the HTTPS request to the LESecure API | `command -v curl` |
-| `python3` on `PATH` | Compute time-lock windows (`-l`, `-r`) in EST/EDT cross-platform | `command -v python3` |
+| `python3` ≥ 3.9 on `PATH` | Compute time-lock windows (`-l`, `-r`) in EST/EDT cross-platform. Requires `zoneinfo` module (built-in from Python 3.9+). | `python3 -c "from zoneinfo import ZoneInfo; print('ok')"` |
 | `LESECURE_API_KEY` env var | Bearer token for the API. Must be set in the shell that runs `curl`; the skill never places it on the command line and never writes it to disk. | `[ -n "$LESECURE_API_KEY" ]` |
 
 No other credentials are read. The skill does **not** open files, browsers, or any OS keychain.
@@ -24,6 +34,17 @@ No other credentials are read. The skill does **not** open files, browsers, or a
 - **LESecure Cloud is for PlainText ONLY.** Never use the cloud API for files or folders.
 - **If the user wants to encrypt/decrypt files or folders**, always redirect to **LESecureLocal** (the desktop tool). Inform the user: "File/folder encryption is only supported via LESecure Local (desktop). Let me use that instead."
 - **If the user wants to encrypt/decrypt plain text**, ask them: "Would you like to use **LESecure Cloud** (API) or **LESecure Local** (desktop)?" and proceed accordingly.
+
+## Data Transmission Notice (MANDATORY)
+
+This skill sends data to a **third-party remote endpoint** over the network. Users must understand what is transmitted before proceeding.
+
+- **Where:** All requests go to `https://api.lesecure.ai/exec` over TLS (HTTPS). See [source & docs](https://github.com/SPAlgorithm/LE) for the service's privacy practices.
+- **What is sent:** The plaintext data to encrypt (or the ciphertext to decrypt), plus any lock values (PINs, passwords, phone numbers, time-window dates), and the API bearer token.
+- **What is NOT sent:** No local files, no OS credentials, no browser data, no environment variables other than the bearer token.
+- **Caution:** Do not send highly sensitive personal data (SSNs, financial account numbers, medical records) unless you have verified the service's data handling and privacy policies.
+- **On first use in a session**, inform the user: "This will send your data to api.lesecure.ai (a third-party service) over HTTPS for encryption/decryption. Review the project at https://github.com/SPAlgorithm/LE if you haven't already." Proceed only after acknowledgment.
+- **Recommendation:** Test with non-sensitive sample data first before encrypting real secrets.
 
 ## API Basics
 
@@ -51,7 +72,12 @@ read -rs -p 'LESECURE_API_KEY: ' LESECURE_API_KEY && echo
 export LESECURE_API_KEY
 ```
 
-To persist across shells, add `export LESECURE_API_KEY='…'` to `~/.zshrc` / `~/.bashrc`, or use a secret manager that exports into the shell.
+To persist across shells (in order of preference):
+1. **Secret manager** (recommended): use `1Password CLI`, `aws ssm`, `doppler`, or similar to inject the key at shell startup.
+2. **Shell profile**: add `export LESECURE_API_KEY='…'` to `~/.zshrc` / `~/.bashrc` (ensure the file is chmod 600).
+3. **Dotenv file**: store in a `.env` file excluded from version control and source it.
+
+**If the user ever pastes the key into chat**, remind them: "Your API key was exposed in chat history. Rotate it immediately at your LESecure dashboard."
 
 ## Date & Time Rules (MANDATORY)
 
@@ -108,45 +134,62 @@ Use `-d` followed by the encrypted data to decrypt. The same locks used during e
 
 Always include `--PlainText` for readable output.
 
+## Sensitive Data Handling (MANDATORY)
+
+The request body contains sensitive data (plaintext, PINs, passwords). The same protection applied to the API key applies to ALL sensitive values:
+
+- **Never pass the JSON body via `-d '...'` on the command line.** The `-d` argument is visible in `ps` and shell history, which would expose plaintext data, PINs, and passwords.
+- **Always pipe the body via stdin using `-d @-`.** This keeps all sensitive values out of the process argument list.
+- Use a heredoc (`<<'EOF'`) to build the JSON body and pipe it into `curl`.
+
 ## Building the curl Command
 
-Construct the args array by mapping user requirements to flags. Order within the array doesn't matter, but group related flags and their values together for readability. Every example below references `$LESECURE_API_KEY` — the shell expands it so the literal key never appears on the command line.
+Construct the args array by mapping user requirements to flags. Order within the array doesn't matter, but group related flags and their values together for readability.
+
+**All examples use `-d @-` (read body from stdin) so that neither the API key, plaintext data, PINs, nor passwords appear on the command line, in shell history, or in `ps` output.**
 
 **Encrypt with pin lock only:**
 ```bash
-curl -s https://api.lesecure.ai/exec \
+cat <<'EOF' | curl -s https://api.lesecure.ai/exec \
   -H "Authorization: Bearer $LESECURE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"args":["-e","<DATA>","-1","<PIN>","--PlainText"]}'
+  -d @-
+{"args":["-e","<DATA>","-1","<PIN>","--PlainText"]}
+EOF
 ```
 
 **Encrypt with all locks:**
 ```bash
-curl -s https://api.lesecure.ai/exec \
+cat <<'EOF' | curl -s https://api.lesecure.ai/exec \
   -H "Authorization: Bearer $LESECURE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"args":["-e","<DATA>","-w","<PASSWORD>","-1","<PIN>","-2","<PHONE>","-l","<START_DATE>","-r","<END_DATE>","--PlainText"]}'
+  -d @-
+{"args":["-e","<DATA>","-w","<PASSWORD>","-1","<PIN>","-2","<PHONE>","-l","<START_DATE>","-r","<END_DATE>","--PlainText"]}
+EOF
 ```
 
 **Decrypt:**
 ```bash
-curl -s https://api.lesecure.ai/exec \
+cat <<'EOF' | curl -s https://api.lesecure.ai/exec \
   -H "Authorization: Bearer $LESECURE_API_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"args":["-d","<ENCRYPTED_DATA>","-1","<PIN>","--PlainText"]}'
+  -d @-
+{"args":["-d","<ENCRYPTED_DATA>","-1","<PIN>","--PlainText"]}
+EOF
 ```
 
 ## Workflow
 
 1. **Preflight the requirements** from the Requirements section above. Specifically, confirm `$LESECURE_API_KEY` is set. If it is not set, show the user the one-time setup block and stop — do not proceed, do not ask the user to paste the key into chat.
-2. **Gather non-secret inputs from the user:**
+2. **Data-transmission disclosure (first use only).** On the first encrypt/decrypt in a session, inform the user: "This will send your data to api.lesecure.ai over HTTPS for encryption/decryption." Proceed only after acknowledgment.
+3. **Gather non-secret inputs from the user:**
    - The data to encrypt or decrypt
    - Which locks to apply (pin, password, MFA, time window) and their values
    - Always include `--PlainText`
    (Do NOT ask for the API key — it comes from the environment.)
-3. **Build the args array** with the appropriate flags and values.
-4. **Execute the curl command** via Bash and return the result to the user.
-5. **If decrypting**, remind the user they need the same lock values that were used during encryption.
+4. **Build the args array** with the appropriate flags and values.
+5. **Execute the curl command** via Bash using the `cat <<'EOF' | curl ... -d @-` pattern. Never use inline `-d '...'`. This keeps all sensitive data (plaintext, PINs, passwords) out of `ps` output and shell history.
+6. **If decrypting**, remind the user they need the same lock values that were used during encryption.
 
 ## Important Notes
 

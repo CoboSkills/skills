@@ -3,9 +3,15 @@
   "slug": "canon-cn",
   "displayName": "Canon Cn",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776130381014,
-    "commit": "https://github.com/openclaw/skills/commit/b6091abe529569774b69e952b5c084da10517abb"
+    "version": "1.0.6",
+    "publishedAt": 1776238031040,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776130381014,
+      "commit": "https://github.com/openclaw/skills/commit/b6091abe529569774b69e952b5c084da10517abb"
+    }
+  ]
 }

@@ -1,0 +1,11 @@
+{
+  "owner": "maikimolto",
+  "slug": "proxmox-backup-server-manager",
+  "displayName": "Proxmox Backup Server Manager",
+  "latest": {
+    "version": "1.6.0",
+    "publishedAt": 1776345368387,
+    "commit": null
+  },
+  "history": []
+}

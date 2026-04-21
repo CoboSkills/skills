@@ -1,0 +1,11 @@
+{
+  "owner": "cntesters",
+  "slug": "jira-analysis-skill",
+  "displayName": "Jira BUG Analysis Assistant[Jira-BUG分析助手]",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776418167540,
+    "commit": null
+  },
+  "history": []
+}

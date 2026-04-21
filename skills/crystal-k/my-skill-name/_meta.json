@@ -1,0 +1,11 @@
+{
+  "owner": "crystal-k",
+  "slug": "my-skill-name",
+  "displayName": "my-skill-name",
+  "latest": {
+    "version": "2.0.0",
+    "publishedAt": 1776413932101,
+    "commit": null
+  },
+  "history": []
+}

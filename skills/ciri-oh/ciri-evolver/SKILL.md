@@ -3,9 +3,9 @@ name: evolver
 description: "Skill self-evolution engine for OpenClaw agents. Based on GEP (Genome Evolution Protocol), scans workspace memory/ logs to detect error signals, matches Gene templates to generate evolution suggestions. Supports 4 strategies (balanced/innovate/harden/repair-only), Loop daemon, Review mode, Lifecycle management. 技能自进化引擎."
 ---
 
-# Evolver - 技能自进化引擎 v3.0.4
+# Evolver - 技能自进化引擎 v3.0.6
 
-> **Version**: 3.0.4
+> **Version**: 3.0.6
 > **License**: GNU General Public License v3.0 (GPL-3.0)
 > **Copyright**: 2026
 
@@ -18,6 +18,32 @@ description: "Skill self-evolution engine for OpenClaw agents. Based on GEP (Gen
 
 2. **Independent OpenClaw Implementation**
    Core code (`bin/evolve.js`) is independently developed for OpenClaw.
+
+---
+
+## ⚠️ Security Notes | 安全说明
+
+**Memory Directory Scanning**
+This skill scans `.md` files in the `memory/` directory to detect error signals.
+
+**Do NOT store sensitive information in `memory/` directory**, including:
+- API keys, tokens, passwords
+- Private conversations or personal data
+- Financial or health information
+- Any credentials or secrets
+
+**Protected Files**
+To exclude specific files from scanning, add this line at the top of any `.md` file:
+
+```markdown
+<!-- evolver-ignore -->
+```
+
+Files starting with `# evolver-ignore` or containing `<!-- evolver-ignore -->` will be skipped.
+
+**No External Network Calls**
+This skill generates a text-based GEP prompt only. It does NOT make any external API calls,
+send data to external services, or transmit credentials over the network.
 
 Full license text: see [LICENSE](LICENSE).
 
@@ -97,10 +123,75 @@ node skills/evolver/bin/evolve.js stop
 | `evolve.js --loop` | **Continuous daemon mode** (setInterval, no child process) |
 | `evolve.js --review` | Review mode (pause + human confirm) |
 | `evolve.js --strategy=<name>` | Set evolution strategy |
-| `evolve.js start` | Start daemon in background (nohup) |
+| `evolve.js start` | Start daemon (use fork/cron to background) |
 | `evolve.js stop` | Graceful stop (SIGTERM) |
 | `evolve.js status` | Show running state |
 | `evolve.js check` | Health check + auto-restart if stagnant |
+
+### Background Running Guide | 后台运行指南
+
+`--loop` 使用 setInterval 单进程守护，不会调用 shell 或创建子进程，
+因此需要用户自行选择以下方式将进程持久化：
+
+#### 方式一：child_process.fork()（独立进程保护）
+
+**作用**：通过 Node.js fork 创建独立子进程，OpenClaw 崩溃或重启后进程依然存活。
+
+```javascript
+// 创建一个 launcher.js:
+const { fork } = require('child_process');
+const child = fork('./bin/evolve.js', ['--loop'], {
+  detached: true,
+  stdio: 'ignore',
+});
+child.unref();
+// 进程在后台独立运行
+```
+
+或直接终端运行：
+```bash
+node -e "const{fork}=require('child_process');const c=fork('./bin/evolve.js',['--loop'],{detached:true,stdio:'ignore'});c.unref();"
+```
+
+#### 方式二：OpenClaw Cron 定时任务
+
+**作用**：由 OpenClaw 管理定时触发，每次跑完单次扫描就结束，
+不占后台进程资源。OpenClaw 关闭时任务自动停止。
+
+在 OpenClaw 面板或 `openclaw.json` 中配置：
+
+```json
+{
+  "cron": {
+    "evolver": {
+      "command": "node /path/to/evolve.js",
+      "schedule": "0 */4 * * *",
+      "enabled": true,
+      "description": "Evolver skill evolution scan every 4 hours"
+    }
+  }
+}
+```
+
+或者在终端直接添加 crontab：
+
+```bash
+crontab -e
+# 添加：0 */4 * * * node /path/to/evolve.js >> /var/log/evolver.log 2>&1
+
+# 查看日志
+tail -f /var/log/evolver.log
+```
+
+#### 两种方式对比
+
+| | child_process.fork | OpenClaw Cron |
+|---|---|---|
+| OpenClaw 崩溃后 | 进程继续跑 ✅ | 任务停止 |
+| 日志完整性 | 持续写入 ✅ | 每次单独记录 |
+| 资源占用 | 持续占用内存 | 跑完释放 ✅ |
+| 管理方式 | 手动 kill | OpenClaw 控制 ✅ |
+| 配置复杂度 | 需写 JS | 中等 |
 
 ### Strategies | 策略
 
@@ -132,7 +223,7 @@ skills/evolver/
 ## Example Output | 示例输出
 
 ```
-Evolver - Skill Self-Evolution Engine v3.0.4
+Evolver - Skill Self-Evolution Engine v3.0.6
 
    Strategy: balanced
    Mode: SINGLE
@@ -186,22 +277,22 @@ A: Edit `assets/GENES.md` to add new gene templates.
 ## Architecture | 架构说明
 
 ### Daemon Loop Mode
-`--loop` uses Node.js `setInterval` in a single process — **no child process spawning**.
-This avoids T1140 (Inline Python code execution) false positives in sandbox scans.
+`--loop` uses Node.js `setInterval` in a single process — **no child_process.spawn, no exec, no fork**.
+This avoids T1140 (Inline Python code execution) and shell command execution false positives.
 
-The `start` command uses `nohup` to background the process, which is distinct from
-`child_process.spawn` and typically does not trigger MITRE ATT&CK sandbox heuristics.
+Use `child_process.fork` or OpenClaw cron to persist the process externally.
 
 ### Process Lifecycle
 ```
-node evolve.js --loop     → foreground daemon (setInterval, process stays attached)
-node evolve.js start      → background daemon (nohup + &, process detaches)
-node evolve.js stop       → SIGTERM graceful shutdown
+node evolve.js --loop     → foreground daemon (setInterval, blocks terminal)
+node evolve.js start      → foreground daemon (user backgrounds with fork/cron)
+node evolve.js stop       → SIGTERM graceful shutdown (via PID file)
 node evolve.js check      → health check + restart if stagnant (>8h no run)
 ```
 
 ## Changelog | 版本历史
 
+- **v3.0.6**: Added `<!-- evolver-ignore -->` file protection. Added Security Notes section in SKILL.md. GENES.md rewritten to remove external API references (pure code-level fixes only).
 - **v3.0.4**: Reset CAPSULES.md to empty. Cleared Evolution ID in Example Output.
 - **v3.0.3**: Removed runtime data from published package (evolver-state.json, evolver.pid, EVOLUTION_EVENTS.md). Reset to clean initial state.
 - **v3.0.2**: Replaced `child_process.spawn` daemon with `setInterval` + `nohup`. Eliminates T1140 sandbox false positive. `--loop` is now single-process. Fixed nohup PID capture bug.

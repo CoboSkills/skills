@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Evolver - Skill Self-Evolution Engine v3.0.4
+ * Evolver - Skill Self-Evolution Engine v3.0.6
  *
  * GEP (Genome Evolution Protocol) implementation for OpenClaw agents.
  * Scans workspace memory/ logs to detect error signals,
@@ -11,14 +11,15 @@
  *   node evolve.js --loop         # Continuous daemon mode (setInterval, no child process)
  *   node evolve.js --review       # Pause before applying, wait for confirm
  *   node evolve.js status         # Show running state
- *   node evolve.js start          # Start daemon in background (nohup)
+ *   node evolve.js start         # Start daemon (use fork/cron to background)
  *   node evolve.js stop           # Graceful stop
  *   node evolve.js check          # Health check + auto-restart if stagnant
  */
 
 const fs = require('fs');
 const path = require('path');
-const { exec, spawn } = require('child_process');
+// Note: This module intentionally does NOT use child_process for spawning.
+// Daemon mode uses setInterval only (no sub-process). Use fork/cron externally for background.
 
 // ──────────────────────────────────────────────
 // Paths
@@ -58,13 +59,36 @@ const ERROR_PATTERNS = [
   }).filter(Boolean)
 }));
 
+function isFileProtected(filePath) {
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    // Skip files with evolver-ignore marker
+    if (content.startsWith('# evolver-ignore') ||
+        content.includes('<!-- evolver-ignore -->')) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 function detectSignals(memoryDir) {
   if (!fs.existsSync(memoryDir)) return [];
   const signals = [];
   const files = fs.readdirSync(memoryDir).filter(f => f.endsWith('.md'));
+  let skipped = 0;
   
   for (const file of files) {
-    const content = fs.readFileSync(path.join(memoryDir, file), 'utf-8').toLowerCase();
+    const filePath = path.join(memoryDir, file);
+    
+    // Skip protected files
+    if (isFileProtected(filePath)) {
+      skipped++;
+      continue;
+    }
+    
+    const content = fs.readFileSync(filePath, 'utf-8').toLowerCase();
     
     for (const pattern of ERROR_PATTERNS) {
       const found = pattern.regexes.some(regex => {
@@ -77,6 +101,9 @@ function detectSignals(memoryDir) {
     }
   }
   
+  if (skipped > 0) {
+    console.log(`   ⏭️  Skipped ${skipped} protected file(s)`);
+  }
   return signals;
 }
 
@@ -378,38 +405,14 @@ function isRunning() {
   }
 }
 
-function lifecycleStart(background = false) {
+function lifecycleStart() {
   if (isRunning()) {
     console.log('⚠️  Evolver is already running. Use `evolve.js status` to check.');
     return;
   }
-  
-  if (background) {
-    // Use nohup to avoid T1140 (Inline Python code execution) false positive
-    // nohup spawns without shell metacharacter parsing that triggers sandbox heuristics
-    // Capture PID in same shell context to avoid $! timing issues
-    const selfPid = process.pid;
-    const scriptPath = process.argv[1];
-    const cmd = `nohup node "${scriptPath}" --loop > /dev/null 2>&1 & echo $!`;
-    exec(cmd, (err, stdout) => {
-      if (err) {
-        console.log(`❌ Failed to start: ${err.message}`);
-        return;
-      }
-      const bgPid = parseInt(stdout.trim());
-      if (isNaN(bgPid)) {
-        // Fallback: try to find our own child process
-        console.log(`⚠️  Could not capture PID from nohup, daemon may be running`);
-        return;
-      }
-      fs.writeFileSync(PID_FILE, bgPid.toString());
-      setState({ status: 'running', pid: bgPid, lastRun: null, loops: 0 });
-      console.log(`🚀 Evolver started in background (PID: ${bgPid})`);
-    });
-  } else {
-    writePid();
-    runLoop();
-  }
+  writePid();
+  console.log('🚀 Evolver starting in loop mode. Use fork/cron to background.');
+  runLoop();
 }
 
 function lifecycleStop() {
@@ -684,15 +687,15 @@ Reduce context memory pressure:
 **Signals**: ModelFallback
 
 ### Strategy
-Fix model routing issues:
+Fix model routing in code:
 
-1. **Verify**: Check API key validity and model availability
-2. **Route**: Implement proper model selection logic
-3. **Fallback**: Document expected fallback chain
-4. **Monitor**: Log model selection decisions
+1. **Detect**: Identify when model returns unexpected response format
+2. **Route**: Implement model selection logic with health checks
+3. **Fallback**: Document expected fallback chain in code
+4. **Monitor**: Log model selection decisions locally
 
 ### Validation
-- Verify model list loads correctly
+- Verify model list loads correctly from config
 - Check fallback chain works as expected
 `;
   
@@ -711,7 +714,7 @@ async function main() {
   // Handle lifecycle commands
   switch (command) {
     case 'start':
-      lifecycleStart(true);
+      lifecycleStart();
       return;
     case 'stop':
       lifecycleStop();
@@ -731,7 +734,7 @@ async function main() {
   const strategy = args.find(a => a.startsWith('--strategy='))?.split('=')[1] || 
                    process.env.EVOLVE_STRATEGY || 'balanced';
   
-  console.log('\n🧬 Evolver - Skill Self-Evolution Engine v3.0.4\n');
+  console.log('\n🧬 Evolver - Skill Self-Evolution Engine v3.0.6\n');
   console.log(`   Strategy: ${strategy}`);
   console.log(`   Mode: ${isLoop ? 'LOOP' : isReview ? 'REVIEW' : 'SINGLE'}`);
   console.log(`   Dry-run: ${dryRun}`);

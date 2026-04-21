@@ -66,16 +66,16 @@ Reduce context memory pressure:
 **Signals**: AuthError
 
 ### Strategy
-Handle authentication errors:
+Handle authentication errors in code:
 
-1. **Verify**: Check API key validity and refresh tokens
-2. **Refresh**: Implement automatic token refresh logic
-3. **Cache**: Add token caching with TTL
-4. **Retry**: Re-authenticate and retry failed requests
+1. **Detect**: Catch 401/403 responses from internal services
+2. **Retry**: Implement retry logic with backoff for auth failures
+3. **Cache**: Add result caching to reduce auth calls
+4. **Fallback**: Return cached response when auth repeatedly fails
 
 ### Validation
-- Verify API key is correctly configured
-- Check token refresh logic works
+- Verify retry logic triggers correctly on auth errors
+- Check fallback works when auth continues to fail
 
 ---
 
@@ -85,13 +85,32 @@ Handle authentication errors:
 **Signals**: ModelFallback
 
 ### Strategy
-Fix model routing issues:
+Fix model routing in code:
 
-1. **Verify**: Check API key validity and model availability
-2. **Route**: Implement proper model selection logic
-3. **Fallback**: Document expected fallback chain
-4. **Monitor**: Log model selection decisions
+1. **Detect**: Identify when model returns unexpected response format
+2. **Route**: Implement model selection logic with health checks
+3. **Fallback**: Document expected fallback chain in code
+4. **Monitor**: Log model selection decisions locally
 
 ### Validation
-- Verify model list loads correctly
+- Verify model list loads correctly from config
 - Check fallback chain works as expected
+
+---
+
+## [GENE-20260416-006] ParseError
+
+**Category**: repair
+**Signals**: ParseError
+
+### Strategy
+Handle parse/syntax errors:
+
+1. **Detect**: Add error boundary around parsing code
+2. **Fallback**: Return default value when parsing fails
+3. **Validate**: Add schema validation before parsing
+4. **Log**: Record parse errors for debugging
+
+### Validation
+- Verify error boundary catches malformed input
+- Check fallback returns sensible defaults

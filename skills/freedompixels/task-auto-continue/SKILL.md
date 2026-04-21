@@ -1,62 +1,43 @@
 ---
-name: auto-continue
+name: task-auto-continue
 description: |
   任务自动续接技能。检测未完成的任务并提醒 Agent 继续推进。
-  通过读取 in_progress.md 和扫描 skills 目录判断任务状态。
   Keywords: 继续, 没完成, 还没做完, 继续做, 继续推进.
-metadata: {"openclaw": {"emoji": "▶️"}}
 ---
 
-# Auto-Continue — 任务自动续接
+# 任务自动续接
 
-检测未完成任务，提醒继续推进。
+检测未完成的任务，提醒 Agent 继续推进，避免任务中断。
 
-## 触发条件
+## 核心能力
 
-当检测到 `memory/in_progress.md` 中存在未完成的任务时，提醒 Agent 继续执行下一步。
+1. **任务检测** — 读取 in_progress.md 查找未完成任务
+2. **进度判断** — 分析任务状态（进行中/待决策/已完成）
+3. **优先排序** — 按优先级排列待办事项
+4. **自动提醒** — 在 Agent 启动时自动检查并提醒
 
 ## 使用方式
 
-```bash
-# 检查任务状态
-python3 scripts/check_progress.py --check
+Agent 启动时自动检查 in_progress.md，发现未完成任务则提醒：
+
+```
+检查 in_progress.md 中的任务状态
+如果有待决策任务 → 提醒继续
+如果有进行中任务 → 继续推进
 ```
 
-## 判断逻辑
+## 任务状态标记
 
-1. 读取 `memory/in_progress.md` 查看当前任务状态
-2. 扫描 skills 目录检查完整性（SKILL.md + 脚本是否齐全）
-3. 报告未完成项，建议下一步
+| 标记 | 含义 |
+|------|------|
+| 🔴 | 紧急，需立即处理 |
+| 🟡 | 进行中 |
+| 🟢 | 可自主推进 |
+| ✅ | 已完成 |
+| ⏳ | 等待中 |
 
-## 安全边界
+## 注意事项
 
-本技能仅**检测和提醒**，不自动执行以下操作：
-- 不自动提交 git
-- 不自动上传/发布
-- 不自动删除文件
-- 不读取系统凭据或密钥
-
-需要执行以上操作时，由 Agent 自行判断是否需要用户确认。
-
-## 任务状态文件格式
-
-在 `memory/in_progress.md` 中记录：
-
-```markdown
-# 进行中的任务
-## 当前任务
-- 任务：开发 XXX Skill
-- 状态：脚本编写中
-- 下一步：测试脚本
-## 待办队列
-1. [ ] 任务1
-2. [ ] 任务2
-```
-
-## 检测脚本
-
-`scripts/check_progress.py` 会扫描：
-- skills 目录中缺少脚本或 SKILL.md 的目录
-- in_progress.md 中标记为"进行中"的任务
-
-输出未完成项列表，供 Agent 参考。
+- 仅读取 workspace 下的 in_progress.md
+- 不修改任何文件，仅提供状态报告
+- 配合 AGENTS.md 中的「任务没完不能停」规则使用

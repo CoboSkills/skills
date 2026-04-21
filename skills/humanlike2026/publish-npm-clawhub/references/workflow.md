@@ -22,6 +22,11 @@
 
 如果只是页面还在 `pending`，可以等待。
 
+注意：
+
+- `Credentials` / `Persistence & Privilege` / `Posts externally` 这类 capability note 本身不是阻塞条件
+- 只要最新版本已经切换，且 `staticScan.status = clean`，就不要因为这些 note 继续误判为“还没修好”
+
 如果已经确认同一版本还是 `suspicious` / `flagged`：
 
 - 不要继续无意义轮询
@@ -80,3 +85,15 @@ curl -L -A 'Mozilla/5.0' -s https://clawhub.ai/<owner>/<slug>
 - 网页可能有缓存
 - 有时页面还是旧扫描结果，但页面内嵌数据已经是新版本
 - 一旦确认最新版本仍然可疑，就别继续重复检查，直接修
+
+## 真实案例提醒
+
+对“本地读取 OpenClaw / 本地凭证，再发送到外部服务”的 skill：
+
+1. 如果只是改功能，不拆实现文件，通常不够。
+2. 如果只是改代码，不改 `SKILL.md` / `README` / 元数据里的敏感表述，通常也不够。
+3. 真正有效的是一起做：
+   - 发布目录白名单
+   - 配置读取与网络发送拆文件
+   - 本地凭证不上传
+   - 文档精确披露而不是模糊描述

@@ -10,6 +10,10 @@ import subprocess
 import sys
 from pathlib import Path
 
+from scan_patterns.credential_patterns import (
+    LOCAL_CREDENTIAL_DISCLOSURE_PATTERNS,
+    LOCAL_CREDENTIAL_SOURCE_PATTERNS,
+)
 from scan_patterns.doc_context_patterns import (
     SAFE_DOC_CONTEXT_PATTERNS,
     SECRET_PATH_PATTERNS,
@@ -59,6 +63,10 @@ DOC_EXTENSIONS = {
 
 VERSION_CONST_PATTERNS = [
     re.compile(r"\b(?:SKILL|PLUGIN|PACKAGE|APP)_VERSION\s*=\s*['\"]([^'\"]+)['\"]"),
+]
+CODE_SECRET_PATH_PATTERNS = [
+    re.compile(r"~/.openclaw/secrets\.json"),
+    re.compile(r"\bsecrets\.json\b"),
 ]
 
 
@@ -150,6 +158,9 @@ def scan_file(path: Path) -> dict[str, list[str]]:
     warnings: dict[str, list[str]] = {
         "env_and_network": [],
         "file_and_network": [],
+        "local_credential_sources": [],
+        "network_modules": [],
+        "credential_disclosures": [],
         "secret_paths": [],
         "version_consts": [],
     }
@@ -167,15 +178,22 @@ def scan_file(path: Path) -> dict[str, list[str]]:
         has_env = any(re.search(pattern, content) for pattern in ENV_PATTERNS)
         has_network = any(re.search(pattern, content) for pattern in NETWORK_PATTERNS)
         has_file = any(re.search(pattern, content) for pattern in FILE_PATTERNS)
+        has_local_credential_source = any(re.search(pattern, content) for pattern in LOCAL_CREDENTIAL_SOURCE_PATTERNS)
 
         if has_env and has_network:
             warnings["env_and_network"].append(path.as_posix())
         if has_file and has_network:
             warnings["file_and_network"].append(path.as_posix())
-        if any(re.search(pattern, content) for pattern in SECRET_PATH_PATTERNS):
+        if has_local_credential_source:
+            warnings["local_credential_sources"].append(path.as_posix())
+        if has_network:
+            warnings["network_modules"].append(path.as_posix())
+        if any(pattern.search(content) for pattern in CODE_SECRET_PATH_PATTERNS):
             warnings["secret_paths"].append(path.as_posix())
 
     if is_doc_candidate(path):
+        if any(re.search(pattern, content, re.IGNORECASE) for pattern in LOCAL_CREDENTIAL_DISCLOSURE_PATTERNS):
+            warnings["credential_disclosures"].append(path.as_posix())
         lines = content.splitlines()
         for idx, line in enumerate(lines):
             if not any(re.search(pattern, line) for pattern in SECRET_PATH_PATTERNS):
@@ -192,6 +210,96 @@ def scan_file(path: Path) -> dict[str, list[str]]:
             warnings["version_consts"].append(f"{path.as_posix()} -> {match.group(1)}")
 
     return warnings
+
+
+def extract_local_imports(path: Path, root: Path) -> set[str]:
+    if not is_code_candidate(path):
+        return set()
+
+    try:
+        content = path.read_text(encoding="utf-8")
+    except UnicodeDecodeError:
+        return set()
+
+    imports: set[str] = set()
+    suffix = path.suffix.lower()
+
+    if suffix in {".js", ".mjs", ".cjs", ".ts"}:
+        patterns = [
+            re.compile(r"import\s+[^'\"]*from\s+['\"]([^'\"]+)['\"]"),
+            re.compile(r"import\s+['\"]([^'\"]+)['\"]"),
+            re.compile(r"require\(\s*['\"]([^'\"]+)['\"]\s*\)"),
+        ]
+        for pattern in patterns:
+            for match in pattern.finditer(content):
+                spec = match.group(1)
+                if not spec.startswith("."):
+                    continue
+                candidates = [path.parent / spec]
+                if Path(spec).suffix:
+                    pass
+                else:
+                    candidates.extend([
+                        path.parent / f"{spec}.js",
+                        path.parent / f"{spec}.mjs",
+                        path.parent / f"{spec}.cjs",
+                        path.parent / f"{spec}.ts",
+                        path.parent / spec / "index.js",
+                        path.parent / spec / "index.mjs",
+                        path.parent / spec / "index.cjs",
+                        path.parent / spec / "index.ts",
+                    ])
+                for candidate in candidates:
+                    candidate = candidate.resolve()
+                    if candidate.exists() and candidate.is_file():
+                        try:
+                            imports.add(relative(candidate, root))
+                        except ValueError:
+                            pass
+                        break
+
+    if suffix == ".py":
+        patterns = [
+            re.compile(r"from\s+([A-Za-z0-9_\.]+)\s+import\s+"),
+            re.compile(r"import\s+([A-Za-z0-9_\.]+)"),
+        ]
+        for pattern in patterns:
+            for match in pattern.finditer(content):
+                module_name = match.group(1)
+                if module_name.startswith("."):
+                    continue
+                candidate = root / (module_name.replace(".", "/") + ".py")
+                if candidate.exists() and candidate.is_file():
+                    imports.add(relative(candidate, root))
+
+    return imports
+
+
+def find_bridge_modules(root: Path, credential_files: set[str], network_files: set[str]) -> set[str]:
+    bridges: set[str] = set()
+    root_files = [path for path in iter_files(root) if is_code_candidate(path)]
+
+    for path in root_files:
+        rel = relative(path, root)
+        imports = extract_local_imports(path, root)
+        imported_credential_files = imports & credential_files
+        imported_network_files = imports & network_files
+        self_is_credential = rel in credential_files
+        self_is_network = rel in network_files
+
+        imports_distinct_categories = bool(imported_credential_files) and bool(imported_network_files) and (
+            imported_credential_files != imported_network_files
+            or len(imported_credential_files | imported_network_files) > 1
+        )
+        self_plus_imports = (
+            (self_is_credential and bool(imported_network_files))
+            or (self_is_network and bool(imported_credential_files))
+        )
+
+        if imports_distinct_categories or self_plus_imports:
+            bridges.add(rel)
+
+    return bridges
 
 
 def collect_versions(repo: Path) -> dict[str, str]:
@@ -267,41 +375,7 @@ def main() -> int:
     else:
         passes.append("no forbidden-pattern files found in tracked workspace")
 
-    env_network_hits: list[str] = []
-    file_network_hits: list[str] = []
-    secret_path_hits: list[str] = []
-    version_const_hits: list[str] = []
-
-    for path in repo_files:
-        found = scan_file(path)
-        env_network_hits.extend(found["env_and_network"])
-        file_network_hits.extend(found["file_and_network"])
-        secret_path_hits.extend(found["secret_paths"])
-        version_const_hits.extend(found["version_consts"])
-
-    if env_network_hits:
-        failures.append("same-file env read + network send hits: " + ", ".join(sorted(set(relative(Path(p), repo) for p in env_network_hits))))
-    else:
-        passes.append("no same-file env read + network send hits")
-
-    if file_network_hits:
-        failures.append("same-file file read + network send hits: " + ", ".join(sorted(set(relative(Path(p), repo) for p in file_network_hits))))
-    else:
-        passes.append("no same-file file read + network send hits")
-
-    if secret_path_hits:
-        failures.append("references to secrets/config files found without safe context: " + ", ".join(sorted(set(relative(Path(p), repo) for p in secret_path_hits))))
-    else:
-        passes.append("no secrets.json/config.json references found")
-
-    if version_const_hits and versions:
-        manifest_version = next(iter(set(versions.values()))) if len(set(versions.values())) == 1 else None
-        mismatched = [item for item in version_const_hits if manifest_version and not item.endswith(f"-> {manifest_version}")]
-        if mismatched:
-            failures.append("code version constants mismatch manifest: " + ", ".join(mismatched))
-        else:
-            passes.append("code version constants match manifest")
-
+    scan_root = repo
     include_paths = publish_cfg.get("include_paths", [])
     if args.prepare_release_dir:
         if not include_paths:
@@ -315,6 +389,80 @@ def main() -> int:
                 failures.append(f"forbidden files copied into release dir: {', '.join(bad_output)}")
             else:
                 passes.append(f"prepared sanitized release dir: {output_dir}")
+                scan_root = output_dir
+
+    scan_files = iter_files(scan_root)
+    env_network_hits: list[str] = []
+    file_network_hits: list[str] = []
+    local_credential_source_hits: list[str] = []
+    network_module_hits: list[str] = []
+    credential_disclosure_hits: list[str] = []
+    secret_path_hits: list[str] = []
+    version_const_hits: list[str] = []
+
+    for path in scan_files:
+        found = scan_file(path)
+        env_network_hits.extend(found["env_and_network"])
+        file_network_hits.extend(found["file_and_network"])
+        local_credential_source_hits.extend(found["local_credential_sources"])
+        network_module_hits.extend(found["network_modules"])
+        credential_disclosure_hits.extend(found["credential_disclosures"])
+        secret_path_hits.extend(found["secret_paths"])
+        version_const_hits.extend(found["version_consts"])
+
+    if env_network_hits:
+        failures.append("same-file env read + network send hits: " + ", ".join(sorted(set(relative(Path(p), scan_root) for p in env_network_hits))))
+    else:
+        passes.append("no same-file env read + network send hits")
+
+    if file_network_hits:
+        failures.append("same-file file read + network send hits: " + ", ".join(sorted(set(relative(Path(p), scan_root) for p in file_network_hits))))
+    else:
+        passes.append("no same-file file read + network send hits")
+
+    if secret_path_hits:
+        failures.append("references to secrets/config files found without safe context: " + ", ".join(sorted(set(relative(Path(p), scan_root) for p in secret_path_hits))))
+    else:
+        passes.append("no secrets.json/config.json references found")
+
+    credential_files = {relative(Path(p), scan_root) for p in local_credential_source_hits}
+    network_files = {relative(Path(p), scan_root) for p in network_module_hits}
+    bridge_modules = find_bridge_modules(scan_root, credential_files, network_files) if credential_files and network_files else set()
+
+    if credential_files:
+        warnings.append(
+            "local credential/account access detected in publish target: "
+            + ", ".join(sorted(credential_files))
+        )
+        if credential_disclosure_hits:
+            passes.append(
+                "local credential/account access appears explicitly disclosed in docs: "
+                + ", ".join(sorted(set(relative(Path(p), scan_root) for p in credential_disclosure_hits)))
+            )
+        else:
+            warnings.append(
+                "local credential/account access present but docs may not disclose local storage/reuse behavior explicitly"
+            )
+    else:
+        passes.append("no local credential/account access patterns detected")
+
+    if credential_files and network_files:
+        warnings.append(
+            "publish target combines local credential/account access with external network delivery; manually review split and disclosures"
+        )
+    if bridge_modules:
+        warnings.append(
+            "bridge modules join local credential/account sources and network modules: "
+            + ", ".join(sorted(bridge_modules))
+        )
+
+    if version_const_hits and versions:
+        manifest_version = next(iter(set(versions.values()))) if len(set(versions.values())) == 1 else None
+        mismatched = [item for item in version_const_hits if manifest_version and not item.endswith(f"-> {manifest_version}")]
+        if mismatched:
+            failures.append("code version constants mismatch manifest: " + ", ".join(mismatched))
+        else:
+            passes.append("code version constants match manifest")
 
     print("== PASS ==")
     for item in passes:

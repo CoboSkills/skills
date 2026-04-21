@@ -2,7 +2,7 @@
   "name": "publish-npm-clawhub",
   "displayName": "Publish npm + ClawHub",
   "description": "Guarded workflow for publishing skills/plugins to npm and ClawHub, with suspicious-scan review and local-only account config.",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "homepage": "https://gitlab.ttyuyin.com/personalization_group/publish_npm_clawhub_skill",
   "author": {
     "name": "jianghaibo",
@@ -27,6 +27,7 @@
   },
   "notes": [
     "Real publish accounts must stay in config/publish.accounts.local.json and never be committed.",
-    "Prefer preparing a temporary release directory instead of publishing the repository root."
+    "Prefer preparing a temporary release directory instead of publishing the repository root.",
+    "Capability notes like Credentials/Persistence are not the same as suspicious verdicts; verify staticScan.status on the latest version."
   ]
 }

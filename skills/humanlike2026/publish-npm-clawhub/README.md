@@ -60,12 +60,25 @@ python3 scripts/release_guard.py . \
 - ClawHub 发布前固定执行：`logout -> login -> whoami`
 - ClawHub UI 可能滞后，复核要同时看 CLI / 页面 HTML
 - 如果最新版本已经确认仍是 `suspicious` / `flagged`，下一步必须修复并重发，不能只重复检查
+- 如果页面只剩 `Credentials` / `Persistence & Privilege` 这类 capability note，不要直接等同于 `suspicious`
 - 容易触发 `suspicious` 的模式：
   - 同一个文件里同时有环境变量读取和网络发送
   - 同一个文件里同时有本地文件读取和网络发送
   - 代码或文档提到 `~/.openclaw/secrets.json` / 私有 `config.json`
+  - 只改功能逻辑，没有改“本地读取 + 外部发送”的实现结构
 - 常见修复：
   - 把 `env` 读取和网络 client 拆到不同文件
+  - 把 local credential store / credential resolver / api client / sender main flow 拆开
   - 显式声明只读取白名单环境变量
   - 前置写清楚联网和传输内容
   - 发布前用白名单文件生成临时目录，排除 `.npmrc`、`.env`、`*.tgz`、本地配置
+
+## follow-builders-sidecar 案例结论
+
+这次真实经验说明了三件事：
+
+1. 反复出现可疑标签，往往不是因为功能“不合法”，而是因为扫描命中的结构还在。
+2. 只改代码不够，文档里的敏感路径、权限说明、凭证表述也会影响审核判断。
+3. 最终是否修好，要看最新版本的页面内嵌扫描结果：
+   - `staticScan.status = clean`
+   - `summary = "No suspicious patterns detected."`

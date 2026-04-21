@@ -1,11 +1,17 @@
 {
   "owner": "veeicwgy",
   "slug": "ip-publisher",
-  "displayName": "IP Publisher（个人IP内容自动化）",
+  "displayName": "IP Publisher | Xiaohongshu WeChat Zhihu",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776223964469,
-    "commit": "https://github.com/openclaw/skills/commit/4bea1acac7937c7f96507b4d245dbc597703c251"
+    "version": "1.0.6",
+    "publishedAt": 1776672358561,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776223964469,
+      "commit": "https://github.com/openclaw/skills/commit/4bea1acac7937c7f96507b4d245dbc597703c251"
+    }
+  ]
 }

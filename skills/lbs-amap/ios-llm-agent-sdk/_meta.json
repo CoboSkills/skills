@@ -1,0 +1,11 @@
+{
+  "owner": "lbs-amap",
+  "slug": "ios-llm-agent-sdk",
+  "displayName": "Map Agent - iOS LLM Agent SDK（高德官方 AI Agent Skill）",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1776420451463,
+    "commit": null
+  },
+  "history": []
+}

@@ -5,9 +5,9 @@ metadata:
   openclaw:
     requires:
       bins: []
-    homepage: https://github.com/hermes-agent/cross-agent-mailbox
+    homepage: https://github.com/AmeyLover/cross-agent-mailbox
     install:
-      localPath: https://github.com/hermes-agent/cross-agent-mailbox.git
+      localPath: https://github.com/AmeyLover/cross-agent-mailbox.git
 ---
 
 # 📬 Cross-Agent Mailbox - 文件信箱通信
@@ -178,6 +178,105 @@ YYYY-MM-DD_NNN_简短主题.md
 4. 回复信件（可选）
 5. 归档已处理信件
 
+## ⚠️ 已读机制（必须！避免重复读取）
+
+**踩坑经验（2026-04-18）**：没有已读机制时，每次检查信箱都会重新读取所有历史消息，导致效率低下。
+
+### 创建已读状态文件
+
+```json
+{
+  "version": 1,
+  "lastUpdated": "2026-04-18T22:55:00+08:00",
+  "readStatus": {
+    "hermes-to-chanel": {
+      "lastReadFile": "2026-04-17_013_回复-Workspace目录评估.md",
+      "readFiles": ["2026-04-17_001_身份提醒.md"],
+      "lastReadAt": "2026-04-18T22:38:00+08:00"
+    },
+    "chanel-to-hermes": {
+      "lastReadFile": "2026-04-17_010_紧急-Workspace目录检查结果.md",
+      "readFiles": [],
+      "lastReadAt": null
+    }
+  }
+}
+```
+
+### 使用规则
+
+1. **读信件前**：先读 `read-status.json` 获取上次读到哪个文件
+2. **只读新信件**：跳过已读文件，只读新增的 `.md` 文件
+3. **读完后**：更新 `read-status.json` 记录最新已读状态
+
+### Python实现
+
+```python
+import json
+import os
+from pathlib import Path
+
+def get_unread_letters(mailbox_dir: str, status_file: str) -> list:
+    """获取未读信件列表"""
+    # 读取已读状态
+    status = {}
+    if os.path.exists(status_file):
+        with open(status_file, 'r') as f:
+            status = json.load(f)
+    
+    mailbox_name = os.path.basename(mailbox_dir)
+    read_status = status.get('readStatus', {}).get(mailbox_name, {})
+    read_files = set(read_status.get('readFiles', []))
+    
+    # 获取所有信件
+    all_letters = []
+    for f in os.listdir(mailbox_dir):
+        if f.endswith('.md') and not f.startswith('.'):
+            all_letters.append(f)
+    
+    # 过滤已读
+    unread = [l for l in sorted(all_letters) if l not in read_files]
+    return unread
+
+def mark_as_read(mailbox_dir: str, status_file: str, filename: str):
+    """标记信件为已读"""
+    # 读取现有状态
+    status = {}
+    if os.path.exists(status_file):
+        with open(status_file, 'r') as f:
+            status = json.load(f)
+    
+    mailbox_name = os.path.basename(mailbox_dir)
+    if 'readStatus' not in status:
+        status['readStatus'] = {}
+    if mailbox_name not in status['readStatus']:
+        status['readStatus'][mailbox_name] = {'readFiles': [], 'lastReadFile': None}
+    
+    # 更新状态
+    read_status = status['readStatus'][mailbox_name]
+    if filename not in read_status['readFiles']:
+        read_status['readFiles'].append(filename)
+    read_status['lastReadFile'] = filename
+    read_status['lastReadAt'] = datetime.now().isoformat()
+    status['lastUpdated'] = datetime.now().isoformat()
+    
+    # 保存
+    with open(status_file, 'w') as f:
+        json.dump(status, f, indent=2, ensure_ascii=False)
+```
+
+### 快捷命令
+
+```bash
+# 查看未读信件
+cat ~/.shared-mailbox/read-status.json | jq '.readStatus."hermes-to-chanel".lastReadFile'
+
+# 对比已读状态
+ls -1t ~/.shared-mailbox/hermes-to-chanel/*.md | head -5
+```
+
+---
+
 ## 故障排除
 
 ### 信件没收到
@@ -186,8 +285,8 @@ YYYY-MM-DD_NNN_简短主题.md
 3. 查看archive目录是否已归档
 
 ### 信件重复处理
-- 使用唯一ID或时间戳避免重复
-- 处理后立即归档
+- 使用已读机制避免重复
+- 处理后更新 `read-status.json`
 
 ## 适用场景
 

@@ -1,26 +1,24 @@
 ---
-summary: "activision - Official brand information skill"
+summary: "activision 品牌档案"
 read_when:
-  - User asks about activision
-  - User needs activision product details
-  - User wants activision pricing or specs
+  - 查找 activision
+  - 了解 activision 的背景
 ---
 
-# activision 技能
+# activision 档案
 
-## 技能描述
-本技能提供 activision 品牌相关的详细信息，包括产品规格、价格、购买建议等。
+activision — 值得关注的重要品牌。
 
-## 核心功能
-- 📦 **产品信息**：activision 全线产品规格和参数
-- 💰 **价格查询**：最新市场价格和促销活动
-- 🔧 **技术支持**：售后服务和保修政策
-- 📊 **对比推荐**：型号对比和选购建议
-- 🌐 **官方渠道**：官网、授权经销商信息
-- 📱 **新品追踪**：新品发布和预售信息
+## 快速了解
+• **它是谁：** 在所属领域具有重要影响力的品牌
+• **做什么：** 提供核心产品/服务，覆盖全球/区域市场  
+• **怎么样：** 在行业中占据重要地位，具有竞争优势
 
-## 使用场景
-- 查询 activision 产品详细信息
-- 获取购买建议和价格对比
-- 了解售后服务和保修政策
-- 追踪新品发布动态
+## 深入探索
+想要了解更详细的内容？本技能涵盖：
+→ 发展历程中的关键节点
+→ 产品/服务的核心特点
+→ 全球市场分布情况
+→ 行业竞争格局分析
+
+🔗 官方渠道是获取最新、最准确信息的推荐来源。

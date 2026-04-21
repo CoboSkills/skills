@@ -1,6 +1,5 @@
 ---
 name: goodwallet
-version: 1.5.5
 description: >
   Crypto wallet for sending, swapping, trading perps, betting on Polymarket,
   earning DeFi yield, and signing across EVM, Solana, Bitcoin, Doge, and XRP.
@@ -58,6 +57,11 @@ metadata:
 # Goodwallet
 
 Crypto wallet CLI. Run `goodwallet --help` for the latest commands, flags, chains, and usage.
+
+## Setup
+
+This skill assumes the `goodwallet` CLI is installed globally and available in PATH. If not, install it via npm:
+Do NOT use `npx`. Always use the globally installed binary.
 
 ## Update
 

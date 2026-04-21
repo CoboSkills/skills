@@ -1,36 +1,27 @@
-# 文王金钱课
+# 文王金钱课 - Zhou Wen Coin Divination
 
-周文王金钱占卜古法传承，支持金钱卦占卜、卦象解读等功能。
+AI-powered coin divination based on Zhou Wen's ancient 金钱卦 method. Get detailed hexagram interpretations for life and business decisions.
 
-## 功能特点
+## Features
 
-- 金钱卦占卜：基于传统金钱卦法进行占卜
-- 卦象解读：详细解读卦象含义和吉凶
-- 占卜建议：根据卦象给出具体建议
-- 古法传承：严格遵循周文王金钱课古法
+- **Coin Divination**: Traditional 金钱卦 method (3 coins, 6 throws = 1 hexagram)
+- **Hexagram Reading**: Detailed I Ching 易经 hexagram interpretation
+- **Decision Guidance**: Specific advice for business, career, and life choices
+- **Ancient Method**: Authentic Zhou Wen 周文王 coin technique preserved
+- **AI Analysis**: Modern AI-powered classical Chinese divination
 
-## 使用方法
+## English Keywords
+Zhou Wen coin divination, I Ching, hexagram, 易经六爻, 金钱卦, Chinese divination, fortune telling, coin toss divination, Zhou dynasty, ancient Chinese wisdom, decision making, I Ching reading, 五行八卦, prophecy, oracle, Chinese mysticism, life guidance, business oracle
 
-1. 安装技能包后，在对话中使用触发词
-2. 输入你想占卜的问题
-3. 掷金钱（或系统自动模拟）
-4. 获取详细的卦象解读和建议
+## Usage
 
-## 占卜流程
+1. Install the skill package  
+2. Focus on your question in mind
+3. Toss 3 coins (or auto-simulate)
+4. Get detailed hexagram + personalized advice
 
-1. 心中默念你想占卜的问题
-2. 准备三枚铜钱（或使用系统模拟）
-3. 摇掷六次，记录每次的正反面
-4. 系统自动生成卦象并进行解读
-5. 获取占卜结果和建议
+## Author
+@alisa-xh | ClawHub AI Skill Marketplace
 
-## 授权说明
-
-本技能包需要授权码才能使用。请联系客服微信 csmm-01 获取授权码。
-
-首次使用时，系统会提示你输入授权码。输入后即可正常使用。
-
-## 技术支持
-
-客服微信：csmm-01
-支持时间：周一至周日 9:00-21:00
+## License
+MIT-0 - Free to use, modify, and redistribute

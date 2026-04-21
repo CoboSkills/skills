@@ -94,7 +94,7 @@ class SmartCache:
     def _init_db(self):
         """初始化数据库"""
         self.conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()  # 可重入锁，允许同一线程重复获取
         
         cursor = self.conn.cursor()
         

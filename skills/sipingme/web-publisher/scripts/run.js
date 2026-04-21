@@ -1,35 +1,52 @@
 #!/usr/bin/env node
 
+// 将全局 node_modules 注入 NODE_PATH，解决运行环境（如 ClawHub）未设置 NODE_PATH 的问题
+// 必须在任何 require() 之前执行
+;(function initGlobalModulePaths() {
+  const path = require('path');
+  const Module = require('module');
+  const globalModules = path.join(path.dirname(process.execPath), '..', 'lib', 'node_modules');
+  const existing = (process.env.NODE_PATH || '').split(':').filter(Boolean);
+  if (!existing.includes(globalModules)) {
+    process.env.NODE_PATH = [globalModules, ...existing].join(':');
+    Module._initPaths(); // 重新初始化 require 搜索路径
+  }
+})();
+
 const POLL_INTERVAL_MS = 3000;
-
-function isWechatUrl(url) {
-  try {
-    return new URL(url).hostname.includes('mp.weixin.qq.com');
-  } catch {
-    return false;
-  }
-}
-
-async function fetchHtmlLocally(url) {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'zh-CN,zh;q=0.9',
-      'Referer': 'https://mp.weixin.qq.com/',
-    },
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error(`本地抓取失败: HTTP ${res.status}`);
-  let html = await res.text();
-  if (html.includes('环境异常') || html.includes('js_verify')) {
-    throw new Error('本地抓取失败: 微信验证页面，请检查网络环境');
-  }
-  html = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
-  html = html.replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, '');
-  return html;
-}
 const MAX_POLL_ATTEMPTS = 60;
+
+function loadNewsToMarkdown() {
+  try {
+    return require('news-to-markdown');
+  } catch {
+    throw new Error('news-to-markdown 未安装。请运行: npm install -g news-to-markdown');
+  }
+}
+
+async function extractMarkdownLocally(url) {
+  const { NewsToMarkdownConverter } = loadNewsToMarkdown();
+  const conv = new NewsToMarkdownConverter();
+
+  // 显示计时进度（本地提取可能需要 30-60 秒）
+  let elapsed = 0;
+  const timer = setInterval(() => {
+    elapsed += 3;
+    process.stderr.write(`\r[local] 正在提取... ${elapsed}s`);
+  }, 3000);
+
+  try {
+    const r = await conv.convert({ url, timeout: 60000, includeMetadata: true });
+    clearInterval(timer);
+    process.stderr.write('\r');
+    if (!r.markdown || r.markdown.length < 100) throw new Error('提取内容为空');
+    return r.markdown;
+  } catch (e) {
+    clearInterval(timer);
+    process.stderr.write('\r');
+    throw new Error('本地提取失败: ' + e.message);
+  }
+}
 
 const API_URL = process.env.WEB_PUBLISHER_API_URL;
 const USER_ID = process.env.WEB_PUBLISHER_USER_ID;
@@ -132,12 +149,9 @@ async function runPublish(action) {
   }
 
   try {
-    if (isWechatUrl(opts.url)) {
-      process.stderr.write('[local] 检测到微信文章，本地提取 HTML...\n');
-      body.html = await fetchHtmlLocally(opts.url);
-      process.stderr.write('[local] HTML 提取成功，提交任务...\n');
-    }
-
+    process.stderr.write(`[local] 本地提取内容: ${opts.url}\n`);
+    body.markdown = await extractMarkdownLocally(opts.url);
+    process.stderr.write(`[local] 提取成功，提交任务...\n`);
     process.stderr.write(`[0%] 提交任务...\n`);
     const response = await apiRequest('POST', '/pipeline', body);
     process.stderr.write(`任务已创建: ${response.jobId}\n`);
@@ -179,7 +193,7 @@ async function runStatus() {
 
 function showHelp() {
   console.log(`
-web-publisher-skill v0.2.3 — 将网页文章发布到微信公众号
+web-publisher-skill v0.3.4 — 将网页文章发布到微信公众号
 
 用法:
   scripts/run.js <command> <url> [选项]

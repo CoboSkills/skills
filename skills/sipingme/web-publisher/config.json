@@ -1,6 +1,6 @@
 {
   "name": "web-publisher",
-  "version": "0.2.3",
+  "version": "0.3.4",
   "requiredEnvVars": [
     "WEB_PUBLISHER_API_URL",
     "WEB_PUBLISHER_USER_ID",
@@ -15,7 +15,7 @@
   },
   "skill": {
     "name": "web-publisher",
-    "version": "0.2.3",
+    "version": "0.3.4",
     "enabled": true,
     "autoInvoke": false
   },
@@ -59,7 +59,7 @@
   "dependencies": {
     "npm": [],
     "binaries": [],
-    "note": "No local dependencies. This skill calls a remote API."
+    "note": "Optional: npm install -g news-to-markdown for local extraction of Zhihu articles blocked on server."
   },
   "permissions": {
     "filesystem": {

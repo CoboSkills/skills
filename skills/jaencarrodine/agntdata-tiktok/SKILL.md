@@ -1,7 +1,7 @@
 ---
 name: agntdata-tiktok
 description: "TikTok API integration with a single agntdata API key (Bearer token). Read video details, creator profiles, and search results. Use this skill when users want TikTok creator or short-form video data. For other social data platforms, use the agnt-data skill (https://clawhub.ai/agntdata/agnt-data)."
-version: 1.0.11
+version: 1.0.13
 metadata:
   openclaw:
     requires:
@@ -11,7 +11,7 @@ metadata:
         - curl
     primaryEnv: AGNTDATA_API_KEY
     emoji: "🎵"
-    homepage: https://agnt.mintlify.app/api-reference/tiktok/
+    homepage: https://agnt.mintlify.app/apis/social/tiktok
 ---
 
 # TikTok API
@@ -361,6 +361,6 @@ Available platforms: LinkedIn, YouTube, TikTok, X, Instagram, Reddit, Facebook. 
 
 ## Links
 
-- [Documentation](https://agntdata.dev/docs)
-- [API Reference](https://agnt.mintlify.app/api-reference/tiktok/)
+- [Documentation](https://agnt.mintlify.app)
+- [API Reference](https://agnt.mintlify.app/apis/social/tiktok)
 - [ClawHub skill](https://clawhub.ai/agntdata/agntdata-tiktok)

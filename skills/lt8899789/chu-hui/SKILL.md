@@ -1,5 +1,5 @@
 ---
-version: 1.0.5
+version: 1.0.10
 ---
 
 # 除秽·调优魄 (Chu Hui - Optimizer)

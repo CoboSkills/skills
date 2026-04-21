@@ -1,0 +1,11 @@
+{
+  "owner": "aqara",
+  "slug": "aqara-open-api-local",
+  "displayName": "Aqara OpenAPI Local",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1776423791142,
+    "commit": null
+  },
+  "history": []
+}

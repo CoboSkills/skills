@@ -1,11 +1,17 @@
 {
   "owner": "freedompixels",
   "slug": "cn-pomodoro-timer",
-  "displayName": "Cn Pomodoro Timer",
+  "displayName": "番茄钟计时器",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1776261220456,
-    "commit": "https://github.com/openclaw/skills/commit/8ab71bff807faf02a46ae235465c0682b9966158"
+    "version": "1.1.0",
+    "publishedAt": 1776642854478,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1776261220456,
+      "commit": "https://github.com/openclaw/skills/commit/8ab71bff807faf02a46ae235465c0682b9966158"
+    }
+  ]
 }

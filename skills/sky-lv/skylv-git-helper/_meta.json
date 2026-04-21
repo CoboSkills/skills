@@ -1,11 +1,17 @@
 {
   "owner": "sky-lv",
   "slug": "skylv-git-helper",
-  "displayName": "Git Helper",
+  "displayName": "Skylv Git Helper",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775887082660,
-    "commit": "https://github.com/openclaw/skills/commit/032ccd67884ccded34adbaac22d0f40c40ab0224"
+    "version": "1.0.3",
+    "publishedAt": 1776648345120,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775887082660,
+      "commit": "https://github.com/openclaw/skills/commit/032ccd67884ccded34adbaac22d0f40c40ab0224"
+    }
+  ]
 }

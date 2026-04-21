@@ -1,11 +1,13 @@
 ---
 name: "git-helper"
 slug: skylv-git-helper
-version: 1.0.0
+version: 1.0.2
 description: "Git Operations Assistant. Handle Git operations, resolve conflicts, manage branches. Triggers: Git, commit, merge, branch, pull request, conflict."
 author: SKY-lv
 license: MIT-0
 tags: [git, openclaw, agent]
+keywords: git, version-control, conflict-resolution
+triggers: git helper
 ---
 
 # Git Helper — Git操作助手
@@ -51,3 +53,9 @@ git reset --soft HEAD~1
 - 合并冲突
 - 分支管理
 - 回退版本
+
+## Usage
+
+1. Install the skill
+2. Configure as needed
+3. Run with OpenClaw

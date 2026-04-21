@@ -23,8 +23,8 @@ import re
 from pathlib import Path
 from typing import Any
 
-from _common import maybe_emit_schema, ok
-from research_state import load_state, save_state, normalize_title
+from _common import maybe_emit_schema, ok, with_idempotency
+from research_state import apply_dedupe, load_state, normalize_title
 
 
 def first_author_key(p: dict[str, Any]) -> str:
@@ -88,6 +88,9 @@ def main() -> None:
     )
     p.add_argument("--dry-run", action="store_true",
                    help="Print clusters without modifying state")
+    p.add_argument("--idempotency-key",
+                   help="Retry-safe key. Retried calls with the same key "
+                        "return the original result without re-mutating state.")
     p.add_argument("--schema", action="store_true",
                    help="Print this command's parameter schema as JSON and exit")
     maybe_emit_schema(p, "dedupe_papers")
@@ -112,9 +115,12 @@ def main() -> None:
         })
         return
 
-    # Build new papers dict from merged clusters
+    # Build new papers dict from merged clusters and a {old_id: new_id} remap
+    # so we can rewrite ID-bearing collections (selected_ids, themes, tensions)
+    # in the same save — leaving them unrewritten would orphan references.
     from research_state import make_paper_id
     new_papers: dict[str, dict[str, Any]] = {}
+    id_remap: dict[str, str] = {}
     merged_count = 0
     for cluster in clusters.values():
         merged = merge(cluster) if len(cluster) > 1 else cluster[0]
@@ -122,19 +128,31 @@ def main() -> None:
             merged_count += 1
         new_id = make_paper_id(merged)
         merged["id"] = new_id
+        for member in cluster:
+            old_id = member.get("id")
+            if old_id and old_id != new_id:
+                id_remap[old_id] = new_id
         # If two clusters collapse to the same id (rare), prefer the more populated
         if new_id in new_papers:
             new_papers[new_id] = merge([new_papers[new_id], merged])
         else:
             new_papers[new_id] = merged
 
-    state["papers"] = new_papers
-    save_state(path, state)
-    ok({
+    # The swap-and-rewrite of papers/selected_ids/themes/tensions runs under
+    # the state lock inside apply_dedupe so a concurrent reader never sees
+    # state["papers"] without the matching remap.
+    response = {
         "before": len(papers),
         "after": len(new_papers),
         "merged_clusters": merged_count,
-    })
+        "ids_remapped": len(id_remap),
+    }
+
+    def compute() -> dict[str, Any]:
+        apply_dedupe(path, new_papers, id_remap)
+        return response
+
+    with_idempotency(args, compute)
 
 
 if __name__ == "__main__":

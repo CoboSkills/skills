@@ -1,11 +1,11 @@
 ---
 name: scholar-deep-research
-description: Use when the user asks for a literature review, academic deep dive, research report, state-of-the-art survey, topic scoping, comparative analysis of methods/papers, grant background, or any request that needs multi-source scholarly evidence with citations. Also trigger proactively when a user question clearly requires academic grounding (e.g. "what's known about X", "compare approach A vs B in the literature", "summarize the field of Y"). Runs a 7-phase, script-driven research workflow across OpenAlex, arXiv, Crossref, and PubMed, with deduplication, transparent ranking, citation chasing, self-critique, and structured report output with verifiable citations.
+description: Use when the user asks for a literature review, academic deep dive, research report, state-of-the-art survey, topic scoping, comparative analysis of methods/papers, grant background, or any request that needs multi-source scholarly evidence with citations. Also trigger proactively when a user question clearly requires academic grounding (e.g. "what's known about X", "compare approach A vs B in the literature", "summarize the field of Y"). Runs an 8-phase (Phase 0..7), script-driven research workflow across OpenAlex, arXiv, Crossref, and PubMed, with deduplication, transparent ranking, citation chasing, self-critique, and structured report output with verifiable citations.
 license: MIT
 homepage: https://github.com/Agents365-ai/scholar-deep-research
 compatibility: Requires Python 3.9+ with httpx and pypdf (see requirements.txt). Works offline-first (no MCP required) but enriches with Semantic Scholar / Brave MCP tools when available.
 platforms: [macos, linux, windows]
-metadata: {"openclaw":{"requires":{"bins":["python3"]},"emoji":"🔬"},"hermes":{"tags":["research","literature-review","academic","papers","citations","survey"],"category":"research"},"pimo":{"tags":["research","literature-review","academic"],"category":"research"},"author":"Agents365-ai","version":"0.2.0"}
+metadata: {"openclaw":{"requires":{"bins":["python3"]},"emoji":"🔬"},"hermes":{"tags":["research","literature-review","academic","papers","citations","survey"],"category":"research"},"pimo":{"tags":["research","literature-review","academic"],"category":"research"},"author":"Agents365-ai","version":"0.5.0"}
 ---
 
 # Scholar Deep Research
@@ -33,7 +33,7 @@ End-to-end academic research workflow that turns a question into a cited, struct
 5. **Saturation, not exhaustion, is the stop signal.** A phase ends when a new round of search adds <20% novel papers AND no new paper has >100 citations.
 6. **Self-critique is a phase, not a checkbox.** Phase 6 reads the draft with adversarial intent. Its output goes into the report appendix.
 
-## The 7-phase workflow
+## The 8-phase workflow (Phase 0..7)
 
 ```
 Phase 0: Scope       → decompose question, pick archetype, init state
@@ -50,23 +50,19 @@ Each phase writes to `research_state.json` before advancing. If the user pauses 
 
 ### Phase 0 — Scope
 
-**Step 0 — Check for skill updates.** Before anything else, run:
+**Step 0 — Check for skill updates (silent, once per day).** Before anything else, run:
 
 ```bash
 python scripts/check_update.py
 ```
 
-The script never fails the workflow — it always exits 0 and returns an envelope whose `data.action` field tells you what happened. Route on `action` as follows:
+The script self-throttles to one real check per 24 hours (via a `.last_update_check` timestamp in the skill root); running it every session is cheap. It always exits 0 and never fails the workflow — route on `data.action` only when you need to tell the user something:
 
-- `up_to_date` → continue silently. Do not mention it to the user.
-- `updated` → tell the user in **one line**: `[Skill updated: <from> → <to> (<commits_behind> commits). Continuing with new version.]`. If the envelope also has `requirements_changed: true`, append: ` Python deps changed — run` `` `pip install -r requirements.txt` `` `before next use.`
-- `update_available` → only appears with `--dry-run`; surface it the same way as `updated` but with "available, not applied."
-- `skipped_dirty` → tell the user in one line: `[Skill update skipped — you have local changes in <dirty_count> file(s). Review with` `` `cd <skill_root> && git status` `` `.]` so they know their work is safe but they are running a stale version.
-- `skipped_disabled` → continue silently. The user set `SCHOLAR_SKIP_UPDATE_CHECK=1` on purpose to pin a version.
-- `not_a_git_repo` → continue silently. The skill was installed via ClawHub / SkillsMP / a tarball; its package manager owns updates.
-- `check_failed` → continue silently. Research takes priority over update checks; the user can always re-run `check_update.py` later.
+- **`updated`** → one line: `[Skill updated: <from> → <to> (<commits_behind> commits). Continuing with new version.]`. If `requirements_changed: true`, append: `Python deps changed — run` `` `pip install -r requirements.txt` `` `before next use.`
+- **`skipped_dirty`** → one line: `[Skill update skipped — you have local changes in <dirty_count> file(s). Review with` `` `cd <skill_root> && git status` `` `.]` so the user knows they're running a stale version on purpose.
+- Everything else (`up_to_date`, `skipped_throttled`, `skipped_disabled`, `not_a_git_repo`, `check_failed`) → continue silently. Don't mention to the user.
 
-Then proceed with the remaining Phase 0 steps below. **Never block the workflow on a failed update check.**
+Escape hatches: `SCHOLAR_SKIP_UPDATE_CHECK=1` pins the version permanently; `python scripts/check_update.py --force` bypasses the 24h throttle for an immediate check.
 
 Before searching anything, decompose the question.
 
@@ -85,11 +81,11 @@ Before searching anything, decompose the question.
 4. **Draft keyword clusters** — 3-5 Boolean clusters covering synonyms, acronyms, and variant spellings. Include a "negative" cluster (terms to exclude).
 5. **Initialize state:**
    ```bash
-   python scripts/research_state.py init \
+   python scripts/research_state.py --state research_state.json init \
      --question "<restated question>" \
-     --archetype literature_review \
-     --output research_state.json
+     --archetype literature_review
    ```
+   (`--state` is top-level and applies to every subcommand; `init` itself takes `--question`, `--archetype`, and optional `--force`.)
 
 When in doubt about archetype, ask the user. The choice shapes everything downstream.
 
@@ -357,17 +353,24 @@ See `scripts/research_state.py --help` for the full schema.
 
 ## Completion gates
 
-Each phase has a gate. Do not advance until the gate passes.
+Each phase transition has a gate (G1..G7). Advance ONLY via:
 
-| Phase | Gate |
-|-------|------|
-| 0 → 1 | Question restated, archetype chosen, ≥3 keyword clusters, state initialized |
-| 1 → 2 | Saturation hit on primary source AND ≥3 sources consulted |
-| 2 → 3 | Top-N selected with score components recorded |
-| 3 → 4 | ≥80% of top-N have `depth: full` (rest explicitly marked `shallow`) |
-| 4 → 5 | Citation graph expanded ≥1 depth on top 5 seeds |
-| 5 → 6 | ≥3 themes defined, ≥1 tension documented (or explicit "no tensions found") |
-| 6 → 7 | Self-critique appendix written, all unanchored claims resolved |
+```bash
+python scripts/research_state.py --state <path> advance          # advance by 1
+python scripts/research_state.py --state <path> advance --check-only   # preview only
+```
+
+The gate predicates are enforced in `scripts/_gates.py`. Direct `set --field phase` is rejected — the `phase` field is no longer settable. If the gate fails, the envelope lists the failing checks by name so you know exactly what's missing.
+
+| Target | Gate (enforced) |
+|--------|-----------------|
+| G1 (→ 1) | Question set, archetype valid, state initialized. *`≥3 keyword clusters` is host-checked.* |
+| G2 (→ 2) | `overall_saturated == true` across all queried sources AND ≥3 distinct sources in `state.queries`. |
+| G3 (→ 3) | `state.ranking` recorded; `selected_ids` non-empty; every selected paper has `score_components`. |
+| G4 (→ 4) | All selected papers have `depth ∈ {full, shallow}` AND ≥80% are `depth=full`. |
+| G5 (→ 5) | ≥1 query with `source=openalex_citation_chase` and `hits > 0`. |
+| G6 (→ 6) | `len(themes) ≥ 3` AND (`len(tensions) ≥ 1` OR a critique finding mentioning "no tensions"). |
+| G7 (→ 7) | `state.self_critique.appendix` non-empty; `len(resolved) ≥ len(findings)`. |
 
 ## Enrichment with MCP tools
 

@@ -23,14 +23,14 @@ import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 try:
     from zoneinfo import ZoneInfo
 except Exception:  # pragma: no cover
     ZoneInfo = None  # type: ignore
 
-from strava_token import get_access_token
+from strava_oauth_login import get_access_token
 
 API_BASE = "https://www.strava.com/api/v3"
 
@@ -112,6 +112,31 @@ def fetch_activities(
     return out
 
 
+def activity_type(a: Dict[str, Any]) -> str:
+    t = a.get("type")
+    if isinstance(t, str) and t:
+        return t.lower()
+    return "workout"
+
+
+def to_minutes(seconds: Any) -> Optional[int]:
+    try:
+        if seconds is None:
+            return None
+        return int(round(float(seconds) / 60.0))
+    except Exception:
+        return None
+
+
+def to_km(meters: Any) -> Optional[float]:
+    try:
+        if meters is None:
+            return None
+        return float(meters) / 1000.0
+    except Exception:
+        return None
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", required=True, help="today|yesterday|YYYY-MM-DD")
@@ -121,6 +146,7 @@ def main() -> None:
     ap.add_argument("--max-pages", type=int, default=10)
     args = ap.parse_args()
 
+    # Get the absolute date/timezone
     day = resolve_date(args.date, args.tz)
     after, before = day_range_epoch_utc(day, args.tz)
 
@@ -128,7 +154,7 @@ def main() -> None:
     client_secret = must_env("STRAVA_CLIENT_SECRET")
 
     access_token = get_access_token(client_id=client_id, client_secret=client_secret)
-    acts = fetch_activities(
+    activities = fetch_activities(
         access_token=access_token,
         after=after,
         before=before,
@@ -136,25 +162,37 @@ def main() -> None:
         max_pages=args.max_pages,
     )
 
-    for act in acts:
-        url = API_BASE + "/activities/" + str(act["id"])
+    # Retrieve full details and compile into workouts dict
+    workouts: List[Dict[str, Any]] = []
+    for activity in activities:
+        url = API_BASE + "/activities/" + str(activity["id"])
         full_details = http_get_json(url, access_token)
-        act["calories"] = (
+        activity["calories"] = (
             full_details["calories"] if "calories" in full_details else None
         )
+        workouts.append(
+            {
+                "start": activity.get("start_date"),
+                "end": None,
+                "type": activity_type(activity),
+                "duration_minutes": to_minutes(activity.get("elapsed_time")),
+                "distance_km": to_km(activity.get("distance")),
+                "calories_kcal": activity.get("calories", full_details["calories"]),
+                "avg_hr_bpm": activity.get("average_heartrate"),
+                "max_hr_bpm": activity.get("max_heartrate"),
+            }
+        )
 
+    # Normalize and remove unneeded fields
     bundle = {
-        "requested_date": day,
-        "requested_tz": args.tz,
+        "date": day,
         "range_utc_epoch": {"after": after, "before": before},
-        "fetched_at": datetime.utcnow().isoformat() + "Z",
-        "api_base": API_BASE,
-        "activities": acts,
+        "activities": workouts,
     }
 
-    with open(args.out, "w", encoding="utf-8") as f:
-        json.dump(bundle, f, indent=2, sort_keys=True)
-        f.write("\n")
+    with open(args.out, "w", encoding="utf-8") as file:
+        json.dump(bundle, file, indent=2, sort_keys=True)
+        file.write("\n")
 
 
 if __name__ == "__main__":

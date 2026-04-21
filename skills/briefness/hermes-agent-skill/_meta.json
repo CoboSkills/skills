@@ -1,0 +1,11 @@
+{
+  "owner": "briefness",
+  "slug": "hermes-agent-skill",
+  "displayName": "hermes agent skill",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1776414171747,
+    "commit": null
+  },
+  "history": []
+}

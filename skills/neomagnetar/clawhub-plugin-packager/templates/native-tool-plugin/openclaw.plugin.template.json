@@ -1,7 +1,7 @@
 {
-  "id": "{{plugin_id}}",
-  "name": "{{title}}",
-  "description": "{{description}}",
+  "id": "{{PLUGIN_ID}}",
+  "name": "{{DISPLAY_NAME}}",
+  "description": "{{SUMMARY}}",
   "configSchema": {
     "type": "object",
     "properties": {},

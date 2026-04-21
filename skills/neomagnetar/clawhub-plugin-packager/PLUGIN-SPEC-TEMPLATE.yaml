@@ -1,33 +1,42 @@
-title: Example Plugin
-package_name: example-plugin
-plugin_id: example-plugin
-plugin_type: tool # tool | provider | channel | mixed
-language: typescript # typescript | javascript
-version: 1.0.0
-description: One-line summary of what the plugin does.
-
-behavior:
-  primary_job: Describe the main runtime capability.
-  tools:
-    - name: example_tool
-      description: One-line tool description
-      side_effects: false
-      optional: false
-
-config:
-  required: []
-  optional: []
-
-external_dependencies:
-  npm_packages: []
-  env_vars: []
-  binaries: []
-
-publish:
-  include_ci_workflow: false
-  include_bundled_skill: false
-  bundled_skill_slug: ""
-
-notes:
-  - Add API/auth details here if relevant.
-  - Add repo/source preferences here if relevant.
+plugin_job:
+  mode: native-tool-plugin  # native-tool-plugin | native-provider-plugin | native-channel-plugin | plugin-audit-only | repair-existing-plugin
+  identity:
+    name: example-plugin
+    display_name: Example Plugin
+    plugin_id: example-plugin
+    folder_name: example-plugin
+  summary:
+    purpose: >-
+      One-paragraph description of what the plugin should do.
+    target_runtime_role: >-
+      Tool, provider, channel, or other explicit runtime role.
+  behavior:
+    public_surface:
+      - Describe the primary exposed behavior.
+    constraints:
+      - Safety, scope, or runtime constraints.
+    side_effects:
+      - File writes, network access, external APIs, or none.
+  configuration:
+    env_vars:
+      - EXAMPLE_API_KEY
+    config_fields:
+      - name: exampleSetting
+        type: string
+        required: false
+        description: Example config field.
+  inputs_available:
+    existing_files:
+      - package.json fragment
+      - manifest draft
+      - README notes
+    notes:
+      - Any rough notes or pasted requirements.
+  output_preferences:
+    language: typescript
+    module_system: esm
+    include_tests: false
+    include_env_example: true
+  delivery:
+    produce_plugin_zip: true
+    produce_separate_critique_file: true

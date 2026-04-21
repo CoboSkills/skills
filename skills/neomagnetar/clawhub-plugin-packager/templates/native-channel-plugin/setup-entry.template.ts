@@ -1,3 +1,5 @@
-export function setup() {
-  // Add first-run onboarding or setup helpers here if needed.
+export function setupChannelEntry() {
+  return {
+    status: "configure-me"
+  };
 }

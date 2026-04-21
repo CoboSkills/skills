@@ -1,38 +1,32 @@
-title: Weather Pulse
-package_name: weather-pulse
-plugin_id: weather-pulse
-plugin_type: tool
-language: typescript
-version: 1.0.0
-description: Query a weather API and expose a compact forecast tool for agents.
-
-behavior:
-  primary_job: Fetch current and next-day forecast summaries for a configured location.
-  tools:
-    - name: get_forecast
-      description: Return a short weather summary
-      side_effects: false
-      optional: false
-
-config:
-  required:
-    - WEATHER_API_KEY
-  optional:
-    - DEFAULT_LOCATION
-
-external_dependencies:
-  npm_packages:
-    - zod
-  env_vars:
-    - WEATHER_API_KEY
-    - DEFAULT_LOCATION
-  binaries: []
-
-publish:
-  include_ci_workflow: true
-  include_bundled_skill: false
-  bundled_skill_slug: ""
-
-notes:
-  - Default to a read-only tool plugin.
-  - Mention rate limits and required env vars in README.
+plugin_job:
+  mode: native-tool-plugin
+  identity:
+    name: weather-brief-plugin
+    display_name: Weather Brief Plugin
+    plugin_id: weather-brief-plugin
+    folder_name: weather-brief-plugin
+  summary:
+    purpose: >-
+      Register one tool that accepts a location string and returns a short structured weather brief.
+    target_runtime_role: Tool plugin.
+  behavior:
+    public_surface:
+      - weather_brief(location)
+    constraints:
+      - Return concise text only.
+      - No persistent writes.
+    side_effects:
+      - Network call to weather provider.
+  configuration:
+    env_vars:
+      - WEATHER_API_KEY
+    config_fields:
+      - name: baseUrl
+        type: string
+        required: false
+        description: Optional override for the weather API base URL.
+  output_preferences:
+    language: typescript
+    module_system: esm
+    include_tests: false
+    include_env_example: true

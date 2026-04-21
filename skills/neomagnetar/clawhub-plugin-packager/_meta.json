@@ -3,9 +3,15 @@
   "slug": "clawhub-plugin-packager",
   "displayName": "ClawHub Plugin Packager",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776283013790,
-    "commit": "https://github.com/openclaw/skills/commit/336ffbe8d73695e59cb9bea567898c439cdcf692"
+    "version": "1.0.2",
+    "publishedAt": 1776354472025,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776283013790,
+      "commit": "https://github.com/openclaw/skills/commit/336ffbe8d73695e59cb9bea567898c439cdcf692"
+    }
+  ]
 }

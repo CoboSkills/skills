@@ -1,20 +1,27 @@
 # Portability Notes
 
-This package is authored as a ClawHub / OpenClaw skill first, but the operating logic also ports well to:
+This skill package is authored for ClawHub/OpenClaw packaging flow first.
 
-- a custom GPT instruction pack
-- a Claude project / system prompt
-- a local agent prompt pack
+## Porting to other systems
 
-## Keep these invariants if you port it
+### ChatGPT custom GPT / instruction use
+- Use the operating rules from `SKILL.md`.
+- Preserve the mode-selection rules.
+- Preserve the exact output contract: plugin zip separate from critique file.
+- Keep the default fallback to minimal native tool plugin generation.
 
-- The main product is the plugin package zip.
-- The critique file is separate from the plugin zip.
-- Missing information is inferred whenever safe.
-- The default target is a native OpenClaw plugin, not a bundle.
-- The default fallback is a minimal TypeScript tool plugin.
-- The generated plugin package should be publishable first, conversational never.
+### Claude or other markdown-based skill systems
+- Reduce frontmatter to only the fields that platform accepts.
+- Keep the body instructions focused on plugin-mode selection, minimum publishable contract, and separate critique output.
+- If the platform does not support multi-file skills, collapse the essential rules into one markdown file and treat `templates/` and `examples/` as reference material outside the upload.
 
-## Porting caution
+## Important boundary
 
-If you port this skill to a non-ClawHub surface, keep the plugin-generation contract intact even if that surface does not understand ClawHub metadata directly.
+Portability changes should adapt **container format**, not the core logic.
+
+The core logic to preserve is:
+- explicit plugin modes
+- bounded inference
+- minimum publishable contract
+- separate critique file
+- conservative default to native tool plugin

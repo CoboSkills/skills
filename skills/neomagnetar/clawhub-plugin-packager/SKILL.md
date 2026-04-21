@@ -1,7 +1,7 @@
 ---
 name: clawhub-plugin-packager
-description: "Turn rough, partial, or missing plugin requirements into one publish-ready native OpenClaw/ClawHub plugin package zip plus one separate plain-text critique file using inference-first packaging."
-version: "1.0.0"
+description: "Generate, repair, or audit publish-ready native OpenClaw/ClawHub plugin packages from rough, partial, or inconsistent requirements while keeping the plugin zip separate from a critique file."
+version: "1.1.0"
 user-invocable: true
 disable-model-invocation: true
 metadata:
@@ -12,325 +12,416 @@ metadata:
 
 # ClawHub Plugin Packager
 
-Use this skill when the user wants to create, repair, review, rename, repackage, or republish a **native OpenClaw / ClawHub plugin package**.
+Use this skill when the user wants to create, repair, review, rename, or repackage a **native OpenClaw / ClawHub plugin package**.
 
-## Product promise
+This skill is **plugin-native by design**. It is not a generic skill packager with plugin wording layered on top.
 
-This skill makes the **plugin package first**.
+## Core promise
 
-Then it makes the **separate critique file** for the generated plugin job.
+This skill produces a **plugin package first** and a **separate critique file second**.
 
-The plugin package is the main product.  
-The critique file is the support layer.
+The plugin package is the main deliverable.  
+The critique file is the review/support layer.
+
+The critique file must remain **outside** the plugin zip unless the user explicitly asks otherwise.
 
 ## Unified identity rule
 
-By default this skill keeps one aligned identity across plugin surfaces unless the user explicitly requests a split:
+Unless the user explicitly requests a split identity, keep one aligned identity across plugin surfaces:
 
+- folder name
 - package name
 - plugin id
-- publish name
-- folder name
+- publish/display name when inferable
 - README title
-- GitHub repo name when inferable
+- repository name when inferable
 
 Prefer one clean identity over clever naming splits.
 
-## Core job
+## Exact job
 
-This skill turns user input, existing plugin files, repo notes, or partial specs into a **publish-ready native OpenClaw plugin package**.
+This skill turns rough notes, existing plugin files, code fragments, README text, manifest fragments, or partial specs into a **publish-ready native OpenClaw plugin package**.
 
 It is designed to:
 
 - inspect what is present
+- classify the plugin type
 - infer what is missing when reasonable
 - repair inconsistencies
-- build the package anyway when a safe best-effort package is possible
+- generate a coherent plugin package anyway when safe best effort is possible
 - self-audit the result
-- return exactly one plugin package zip plus one separate plain-text critique file
+- return exactly one plugin package zip plus one separate critique file
 
 ## Operating stance
 
-This skill is designed for **low-friction handoff**.
+Use a **low-friction handoff** style.
 
 When the user provides material:
 
 - inspect what is there
 - infer what is missing when reasonable
-- choose the best safe course based on current knowledge
 - avoid unnecessary clarification loops
-- return a concrete plugin package plus critique
+- proceed with the narrowest valid plugin type
+- keep the output concrete and publish-oriented
 
 Prefer **statements** over **questions**.
 
 If something is missing but inferable:
 
 - infer it
-- note the inference
+- note the inference in the critique file
 - keep moving
 
 If something is risky, ambiguous, or likely to affect publishability:
 
-- still produce the package when a safe best-effort package is possible
-- highlight the issue clearly in the critique file
-- mark it for human review
+- still produce the package when safe best effort is possible
+- keep the runtime surface minimal
+- mark the issue clearly in the critique file
 
-Do not stop at “more info needed” when a reasonable plugin package can still be built.
+Do not stop at “more info needed” when a conservative, publishable package can still be built.
 
-## Exact output contract
+## Supported modes
 
-Always produce exactly **two user-facing deliverables** for the plugin-generation job.
+### 1. `native-tool-plugin`
+Default mode.
 
-### A. Plugin package zip
+Use when the request is incomplete, generic, or simply asks for “a plugin” without a more specific runtime role.
 
-A zip-ready native OpenClaw plugin folder containing **only** files that directly belong to the plugin as a release artifact.
+This mode should output a minimal native tool plugin in **TypeScript + ESM** unless the user clearly asks for another language/runtime shape.
 
-This bundle must include the files required for the chosen plugin type.  
-For a standard native code plugin, that usually means:
+### 2. `native-provider-plugin`
+Use when the plugin is meant to add or wrap a provider surface such as model, speech, or service-provider behavior.
+
+This mode must reason about:
+
+- provider identity
+- credentials or environment variables
+- provider config schema
+- provider-facing README guidance
+
+### 3. `native-channel-plugin`
+Use when the plugin adds a channel, transport, ingress, or egress surface.
+
+This mode must reason about:
+
+- channel identity
+- setup/activation entry behavior
+- connection/config schema
+- README setup steps
+
+### 4. `plugin-audit-only`
+Use when the user wants review, validation, or packaging advice without generation.
+
+This mode should produce a detailed review record and publishability assessment.  
+Do not generate the final plugin zip unless the user explicitly asks to override audit-only behavior.
+
+### 5. `repair-existing-plugin`
+Use when the user provides an existing plugin folder, zip, manifest, `package.json`, entrypoint, or draft package and wants it repaired into publishable form.
+
+Preserve user-authored intent wherever possible, but normalize what is required for coherence and publishability.
+
+## Required mode selection behavior
+
+Choose a mode using this priority order:
+
+1. explicit user instruction
+2. existing artifact structure
+3. runtime role implied by requested behavior
+4. fallback to `native-tool-plugin`
+
+If ambiguity remains, do **not** block.
+
+Infer the most conservative valid mode and continue.
+
+That conservative fallback is always `native-tool-plugin`.
+
+## Default strategy
+
+Unless the request clearly specifies otherwise:
+
+1. prefer a **native OpenClaw plugin**, not a bundle
+2. prefer **`native-tool-plugin`** when the runtime role is underspecified
+3. prefer **TypeScript + ESM** unless the user clearly asks for JavaScript
+4. keep the first pass **minimal, publishable, and easy to extend**
+5. mark side-effectful tools as optional when a narrower safe default exists
+6. emit an empty-but-valid config schema when no config is needed
+
+## Minimum publishable contract
+
+Every non-audit generation run must produce a plugin package that includes, at minimum:
 
 - `package.json`
 - `openclaw.plugin.json`
-- runtime entrypoint such as `index.ts` or `index.js`
+- a coherent runtime entry file
 - `README.md`
 
-Add other files only when they genuinely belong to the plugin, such as:
+Add additional files only when the selected mode genuinely requires them, such as:
 
 - `tsconfig.json`
 - `src/`
-- `schemas/`
-- `assets/`
-- `.github/workflows/package-publish.yml`
-- bundled skill folders declared by the plugin manifest
+- setup entry files for channel plugins
+- bundled skill folders declared by the manifest
+- helper schema files
+
+### Required manifest behavior
+
+Always emit a valid plugin manifest with:
+
+- a coherent plugin id
+- a valid `configSchema`
+
+If no real configuration is needed, emit an empty or minimal schema instead of omitting it.
+
+### Required package metadata behavior
+
+Always include the compatibility/build metadata required for native plugin publication.
+
+### Required README behavior
+
+The README must state:
+
+- what the plugin does
+- what plugin class it is
+- what files matter
+- how configuration works
+- what environment variables or credentials are expected, if any
+- what assumptions were made when the input was incomplete
+
+## Exact output contract
+
+Always produce exactly **two user-facing deliverables** for plugin-generation jobs.
+
+### A. Plugin package zip
+
+A zip-ready native OpenClaw plugin folder containing **only** files that directly belong to the plugin release artifact.
 
 Do **not** include inside the plugin zip:
 
 - critique notes
-- inference notes
+- inference logs
 - packaging commentary
-- discussion transcripts
-- release review records
-- job-specific handoff notes
+- review records
+- handoff discussion notes
 
-The plugin zip should look like it was created for the plugin itself, not for the conversation that created it.
+The plugin zip should look like it was created for the plugin itself, not for the chat session that created it.
 
-### B. Separate plain-text critique file
+### B. Separate critique file
 
-A separate critique file in plain text.
+A separate plain-text critique file outside the plugin zip.
 
-Preferred format:
+Preferred extension:
 
 - `.txt`
 
-This critique file should say:
+This file must document:
 
-- what inputs were provided
-- what information was missing
-- what assumptions were made
-- what was added
-- what was edited
-- what was removed
-- what was inferred
-- what still deserves human review
-- whether the package appears publish-ready
-- the final publish/install handoff details
-
-The critique file must remain **outside** the plugin zip unless the user explicitly asks to embed it.
+- inputs provided
+- mode selected and why
+- assumptions and inferences
+- repaired inconsistencies
+- simplifications/downgrades made to preserve publishability
+- remaining risks or follow-up points
+- publishability assessment
 
 ## This skill's own release boundary
 
-This skill package is its own standalone ClawHub skill release artifact.
+This skill package is itself a standalone ClawHub skill release artifact.
 
-The “separate critique file” rule applies to **future plugin-generation jobs performed by this skill**, not to the distribution of this skill itself.
+The “plugin zip + separate critique file” rule applies to **future plugin-generation jobs performed by this skill**, not to the distribution of this skill package itself.
 
 Do not generate a sidecar critique file for this skill unless the user explicitly asks for a review of the skill package.
 
-## Default plugin strategy
+## Intake contract
 
-Unless the user clearly specifies otherwise:
+Accept any of the following as valid input:
 
-1. Prefer a **native OpenClaw plugin**, not a bundle.
-2. Prefer a **tool plugin** when the plugin type is underspecified.
-3. Use **TypeScript + ESM** unless the user clearly asks for JavaScript.
-4. Keep the first output minimal, publishable, and easy to extend.
-5. Mark dangerous or side-effectful tools as optional when a narrower safe default exists.
-6. Generate empty-but-valid config schema when no config is needed.
+- plain-language description
+- rough notes
+- pasted code
+- existing plugin folder contents
+- manifest fragments
+- `package.json` fragments
+- README or docs text
+- issue text or repo notes
+- mixed-format partial specifications
 
-## Plugin type selection
+Classify source material internally as:
 
-Pick the narrowest sufficient native plugin type.
+- preserved input
+- repaired input
+- inferred input
+- ignored input
 
-### 1. Tool plugin
-Use when the package should expose one or more agent tools.
-
-Typical outputs:
-
-- `package.json`
-- `openclaw.plugin.json`
-- `index.ts`
-- `tsconfig.json`
-- `README.md`
-
-### 2. Provider plugin
-Use when the package should add a model provider, speech provider, or similar runtime provider surface.
-
-Typical outputs:
-
-- `package.json`
-- `openclaw.plugin.json`
-- `index.ts`
-- provider registration code
-- `README.md`
-
-### 3. Channel plugin
-Use when the package should add a channel or message transport surface.
-
-Typical outputs:
-
-- `package.json`
-- `openclaw.plugin.json`
-- `index.ts`
-- `setup-entry.ts`
-- channel registration/setup code
-- `README.md`
-
-### 4. Mixed plugin
-Use when the user explicitly needs a combined capability surface.  
-Keep the code and manifest structure explicit and easy to audit.
-
-## Packaging workflow
-
-### Step 1 — Inspect
-Look at all provided material:
-
-- text prompts
-- existing plugin files
-- `package.json`
-- `openclaw.plugin.json`
-- code entrypoints
-- repo notes
-- intended name
-- intended id
-- intended tool/provider/channel behavior
-- docs about APIs or auth
-- prior plugin artifacts if relevant
-
-### Step 2 — Determine completeness
-Check whether the package has enough information for:
-
-- package name
-- plugin id
-- plugin type
-- version
-- description
-- runtime entrypoint
-- config requirements
-- external API/auth expectations
-- publish metadata
-- compatibility metadata
-- README handoff
-- file set
-
-### Step 3 — Infer or repair
-If something is missing or inconsistent:
-
-- choose the best safe default
-- align naming surfaces
-- repair parser-risky JSON or YAML
-- generate missing files
-- normalize compatibility/build metadata
-- preserve intended behavior whenever possible
-
-### Step 4 — Build the package
-Create the final plugin folder and final file contents.
-
-### Step 5 — Self-audit
-Run a second-pass review using `REVIEW-CHECKLIST.txt`.
-
-### Step 6 — Deliver
-Deliver exactly two user-facing artifacts:
-
-- the final plugin package zip
-- the separate critique file built from `REVIEW-RECORD-TEMPLATE.txt`
-
-Then provide a short summary telling the user:
-
-- here is the plugin package
-- here is the critique file
-- here is what was inferred
-- here is what was fixed
-- here is what may still deserve review
-
-## Native plugin rules
-
-When generating a native OpenClaw plugin package, ensure the package includes:
-
-- a valid `openclaw.plugin.json`
-- an inline `configSchema`, even if empty
-- explicit compatibility/build metadata in `package.json`
-- a real runtime entrypoint
-- a README that explains install, enable, config, and publish flow
-
-If the user asks for bundled skills inside the plugin, place them inside a declared skill directory and reference them from the plugin manifest.
+Reflect those classifications in the critique file.
 
 ## Inference rules
 
-When the user does not specify a value, infer in this order:
+Be inference-forward, but bounded.
 
-### Name and id
-- derive a lowercase URL-safe package name from the requested title
-- use the same base string for plugin id unless a stronger existing id is present
+### Prefer to infer
 
-### Version
-- default to `1.0.0` for first publishable output
-- if repairing an existing package, preserve the provided version unless there is a strong reason to change it
+- plugin id
+- display/publish name
+- folder name
+- description
+- plugin class
+- default folder layout
+- minimum config schema
+- entrypoint name
+- README structure
+- environment variable placeholders
+- conservative tool/provider/channel behavior
 
-### Plugin type
-- default to native **tool plugin**
+### Do not invent recklessly
 
-### Language
-- default to **TypeScript**
-- fall back to JavaScript only when the user asks or when a JS-only package is clearly better
+Avoid fabricating highly specific runtime features that the request does not justify.
 
-### Config
-- default to an empty object schema when no config is required
+When uncertain, prefer:
 
-### Docs
-- always include a usable `README.md`
+1. publishability
+2. minimal runtime coherence
+3. safety and reviewability
+4. feature richness
 
-## Output style for generated plugin package
+When a detail is genuinely unknown, choose the narrowest valid implementation and record the assumption.
 
-The generated plugin package should be:
+## Build rules by mode
 
-- publishable first
-- minimal but real
-- extendable
-- readable by a human maintainer
-- explicit about inferred assumptions
-- free of critique material inside the zip
+### `native-tool-plugin`
 
-## Support files included in this skill package
+Generate the smallest useful native plugin.
 
-These files are part of this skill itself and may be used as references during packaging:
+Default target:
 
-- `PLUGIN-SPEC-TEMPLATE.yaml`
-- `REVIEW-CHECKLIST.txt`
-- `REVIEW-RECORD-TEMPLATE.txt`
-- `PORTABILITY.md`
-- `examples/`
-- `templates/`
+- TypeScript
+- ESM
+- one runtime entrypoint
+- one minimal coherent tool registration
+- optional-tool classification when side effects are likely
 
-## Invocation
+If the request does not clearly demand multiple tools, generate **one core tool only**.
 
-Preferred invocation:
+### `native-provider-plugin`
 
-- `/skill clawhub-plugin-packager`
+Generate a provider-oriented package that clearly expresses:
 
-Direct alias:
+- provider purpose
+- credentials/env placeholders
+- provider config fields
+- how the provider is expected to be used
 
-- `/clawhub-plugin-packager`
+If provider details are missing, use placeholder-safe env variables and explain them in the README and critique file.
 
-If the direct alias does not trigger on a given surface, prefer `/skill clawhub-plugin-packager`.
+### `native-channel-plugin`
 
-## Visibility rule
+Generate the runtime shape appropriate for channel plugins, including setup/activation entry behavior when needed.
 
-Do not bury final deliverables in an internal-only path without clearly surfacing them.
+If lifecycle details are unclear, simplify toward a minimal coherent structure rather than inventing elaborate transport logic.
+
+### `repair-existing-plugin`
+
+Preserve user-authored material wherever possible, but normalize as needed:
+
+- file naming
+- folder structure
+- manifest shape
+- package metadata
+- README format
+- entrypoint naming
+- config schema completeness
+- plugin id consistency
+
+Document all material changes in the critique file.
+
+### `plugin-audit-only`
+
+Produce a detailed critique and publishability assessment.
+
+Do not build the final zip unless explicitly asked.
+
+## Runtime contract layer
+
+Every generated plugin must explicitly answer:
+
+- what kind of plugin this is
+- what runtime role it serves
+- what entrypoint is used
+- what config exists
+- what public behavior is exposed
+
+Do not leave these as implied.
+
+## Secret handling and safety
+
+Never include live credentials, secrets, or production tokens.
+
+When secrets may be needed:
+
+- use placeholders
+- prefer documented environment-variable names
+- include `.env.example`-style guidance only when it materially helps the plugin package
+- record all inferred secret/env surfaces in the critique file
+
+## Review and self-audit rules
+
+Before final delivery, run an internal review pass against the generated result.
+
+Check:
+
+- plugin class coherence
+- manifest presence and completeness
+- config schema presence
+- package metadata presence
+- folder layout coherence
+- README completeness
+- separation between plugin zip and critique file
+- obvious secret leakage
+- unnecessary speculative complexity
+
+Determine one of these outcomes:
+
+- `publish-ready`
+- `publishable with cautions`
+- `needs human review before publish`
+
+Include that assessment in the critique file.
+
+## Critique file contract
+
+The critique file must include these sections:
+
+1. Output Summary  
+2. Mode Selected  
+3. Inputs Used  
+4. Assumptions  
+5. Repairs  
+6. Simplifications  
+7. Risks / Follow-Up Points  
+8. Publishability Assessment
+
+Do not turn this into generic commentary.  
+It exists to improve the second run without contaminating the plugin zip.
+
+## Packaging rules
+
+- Keep the plugin package folder clean and release-oriented.
+- Prefer a single top-level plugin folder inside the zip when platform packaging conventions benefit from that structure.
+- Keep the critique output separate.
+- Do not include workspace junk, screenshots, logs, or unrelated helper notes.
+
+## Non-goals
+
+Do **not** treat these as always required for v1.1 plugin generation:
+
+- inter-plugin protocol design
+- migration frameworks
+- elaborate persistence systems
+- full compatibility matrices
+- admin dashboards
+- speculative always-on runtime architecture
+
+Those belong in later passes or only when explicitly requested.
+
+## Final behavior rule
+
+When in doubt, generate the **smallest publishable native plugin package** that honestly reflects the request, and document all inferences in the separate critique file.

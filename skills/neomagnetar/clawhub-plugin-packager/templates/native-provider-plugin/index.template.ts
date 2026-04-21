@@ -1,6 +1,12 @@
-import { definePluginEntry } from "@openclaw/plugin-sdk";
+import { definePluginEntry } from "openclaw/plugin-sdk";
 
-export default definePluginEntry((api) => {
-  // Register provider surfaces here.
-  // Replace this stub with the concrete provider implementation.
+export default definePluginEntry(({ api, config }) => {
+  api.registerProvider({
+    id: "{{PROVIDER_ID}}",
+    description: "{{PROVIDER_DESCRIPTION}}"
+  });
+
+  return {
+    name: "{{PLUGIN_ID}}"
+  };
 });

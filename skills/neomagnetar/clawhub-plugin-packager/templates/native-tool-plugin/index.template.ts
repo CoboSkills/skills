@@ -1,21 +1,26 @@
-import { definePluginEntry } from "@openclaw/plugin-sdk";
-import { z } from "zod";
+import { definePluginEntry } from "openclaw/plugin-sdk";
 
-export default definePluginEntry((api) => {
+export default definePluginEntry(({ api, config }) => {
   api.registerTool({
-    name: "{{tool_name}}",
-    description: "{{tool_description}}",
-    inputSchema: z.object({}),
-    async execute() {
+    id: "{{TOOL_ID}}",
+    description: "{{TOOL_DESCRIPTION}}",
+    optional: {{OPTIONAL_FLAG}},
+    inputSchema: {
+      type: "object",
+      properties: {
+        input: { type: "string", description: "Primary text input." }
+      },
+      required: ["input"],
+      additionalProperties: false
+    },
+    async run({ input }) {
       return {
-        ok: true,
-        content: [
-          {
-            type: "text",
-            text: "{{tool_success_text}}"
-          }
-        ]
+        content: `{{DISPLAY_NAME}} received: ${input}`
       };
     }
   });
+
+  return {
+    name: "{{PLUGIN_ID}}"
+  };
 });

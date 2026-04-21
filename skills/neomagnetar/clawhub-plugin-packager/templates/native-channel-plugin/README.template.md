@@ -1,34 +1,11 @@
-# {{title}}
+# {{DISPLAY_NAME}}
 
-{{description}}
+`{{PLUGIN_ID}}` is a native OpenClaw channel plugin.
 
-## Install
+## What it does
 
-```bash
-openclaw plugins install .
-```
+{{SUMMARY}}
 
-## Enable
+## Channel setup
 
-```bash
-openclaw plugins enable {{plugin_id}}
-```
-
-## Build
-
-```bash
-npm install
-npm run build
-```
-
-## Publish dry run
-
-```bash
-clawhub package publish . --dry-run
-```
-
-## Publish
-
-```bash
-clawhub package publish .
-```
+Describe setup/activation steps, connection config, and safe secret handling here.

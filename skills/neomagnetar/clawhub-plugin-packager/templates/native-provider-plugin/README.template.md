@@ -1,34 +1,15 @@
-# {{title}}
+# {{DISPLAY_NAME}}
 
-{{description}}
+`{{PLUGIN_ID}}` is a native OpenClaw provider plugin.
 
-## Install
+## What it does
 
-```bash
-openclaw plugins install .
-```
+{{SUMMARY}}
 
-## Enable
+## Credentials
 
-```bash
-openclaw plugins enable {{plugin_id}}
-```
+Document required environment variables and safe placeholder guidance here.
 
-## Build
+## Configuration
 
-```bash
-npm install
-npm run build
-```
-
-## Publish dry run
-
-```bash
-clawhub package publish . --dry-run
-```
-
-## Publish
-
-```bash
-clawhub package publish .
-```
+List provider config fields, defaults, and validation notes here.

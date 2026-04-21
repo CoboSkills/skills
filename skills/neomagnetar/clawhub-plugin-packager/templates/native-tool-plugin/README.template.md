@@ -1,34 +1,19 @@
-# {{title}}
+# {{DISPLAY_NAME}}
 
-{{description}}
+`{{PLUGIN_ID}}` is a native OpenClaw tool plugin.
 
-## Install
+## What it does
 
-```bash
-openclaw plugins install .
-```
+{{SUMMARY}}
 
-## Enable
+## Runtime role
 
-```bash
-openclaw plugins enable {{plugin_id}}
-```
+This plugin registers a tool surface for agent use.
 
-## Build
+## Configuration
 
-```bash
-npm install
-npm run build
-```
+Document config fields and environment variables here.
 
-## Publish dry run
+## Notes
 
-```bash
-clawhub package publish . --dry-run
-```
-
-## Publish
-
-```bash
-clawhub package publish .
-```
+Replace placeholders with implementation-specific details before publish.

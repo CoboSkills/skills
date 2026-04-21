@@ -1,112 +1,57 @@
-# clawhub-plugin-packager
+# ClawHub Plugin Packager
 
-A ClawHub / OpenClaw skill for turning rough plugin ideas, partial code, or broken package material into one publish-ready native plugin package zip plus one separate plain-text critique file.
+`clawhub-plugin-packager` is a ClawHub skill for generating, repairing, and auditing **native OpenClaw / ClawHub plugin packages**.
 
-## Display Name
-ClawHub Plugin Packager
-
-## Goal
-Take any combination of:
-
-- a user description
-- existing plugin files
-- partial package metadata
-- draft naming
-- tool/provider/channel behavior notes
-- API/auth requirements
-- publishing notes
-
-and turn it into exactly two user-facing outputs for the plugin-generation job:
-
-1. a publish-ready plugin package zip
-2. a separate plain-text critique file
-
-## Core philosophy
-
-This skill is built for low-friction handoff.
-
-The user should be able to hand over draft material and receive:
-
-- a completed plugin package zip
-- a separate critique file
-- a clear summary of what was inferred, fixed, changed, or flagged
-
-The package is the main product.  
-The critique file is the support layer.
-
-## Unified identity
-
-By default this package keeps one identity everywhere:
-
-- Display name: `ClawHub Plugin Packager`
-- Slug: `clawhub-plugin-packager`
-- Runtime name: `clawhub-plugin-packager`
-- Folder name: `clawhub-plugin-packager`
-- Skill key: `clawhub-plugin-packager`
-
-## Invocation
-
-Recommended invocation:
-
-- `/skill clawhub-plugin-packager`
-
-Direct skill alias:
-
-- `/clawhub-plugin-packager`
+Version `1.1.0` sharpens the package around explicit **plugin modes** rather than treating plugins as a light extension of skill-packaging logic.
 
 ## What it does
 
-This skill:
+The skill accepts rough notes, partial requirements, existing plugin code, mixed drafts, or incomplete manifests and turns them into:
 
-- audits what is already present
-- identifies what is missing
-- fills gaps using safe defaults when needed
-- repairs naming and manifest issues
-- selects the narrowest sufficient native plugin type
-- builds the final plugin folder
-- performs a second-pass self-review
-- produces one pure plugin package zip
-- produces one separate plain-text critique file
+1. a **publish-ready native plugin package zip**
+2. a **separate plain-text critique file** outside the plugin zip
 
-## Default plugin target
+The critique file records assumptions, repairs, simplifications, and review points for a stronger second pass.
 
-Unless the user specifies otherwise, this skill generates a **native TypeScript tool plugin** with:
+## Supported modes
 
-- `package.json`
-- `openclaw.plugin.json`
-- `index.ts`
-- `README.md`
-- `tsconfig.json`
+- `native-tool-plugin` — default fallback mode
+- `native-provider-plugin`
+- `native-channel-plugin`
+- `plugin-audit-only`
+- `repair-existing-plugin`
 
-## Release boundary
+## v1.1 improvements
 
-This skill zip is the full release artifact for the skill itself.
+- Adds explicit plugin-mode selection rules.
+- Tightens the minimum publishable contract.
+- Strengthens critique-file structure.
+- Improves repair behavior for existing plugin drafts.
+- Keeps the default output conservative: minimal native tool plugin in TypeScript + ESM unless the request clearly indicates a different runtime role.
 
-The separate critique-file rule applies to downstream plugin-generation jobs, not to the packaging of this skill release.
+## Core delivery rule
 
-## Included support files in this skill package
+For plugin-generation jobs, the skill must keep:
 
-These are part of the skill and can be kept in the published skill bundle:
+- the **plugin package zip**
+- the **critique file**
 
-- `PLUGIN-SPEC-TEMPLATE.yaml`
-- `REVIEW-CHECKLIST.txt`
-- `REVIEW-RECORD-TEMPLATE.txt`
-- `PORTABILITY.md`
-- `examples/`
-- `templates/`
+as two separate outputs.
 
-## Publish fields
+The critique file must not be embedded inside the generated plugin zip unless the user explicitly asks for that.
 
-- Slug: `clawhub-plugin-packager`
-- Runtime name: `clawhub-plugin-packager`
-- Skill key: `clawhub-plugin-packager`
-- Version: `1.0.0`
-- Suggested tags: `latest, clawhub, openclaw, plugin, packaging, codegen`
+## Included support files
 
-## Maintainer notes
+- `SKILL.md` — operating instructions for the skill
+- `PLUGIN-SPEC-TEMPLATE.yaml` — structured intake template
+- `REVIEW-CHECKLIST.txt` — pre-delivery review checklist
+- `REVIEW-RECORD-TEMPLATE.txt` — critique output template
+- `PORTABILITY.md` — notes for adapting the skill outside ClawHub
+- `examples/` — example specs for tool/provider/channel plugin jobs
+- `templates/` — starter reference templates for common native plugin types
 
-- Keep the generated plugin zip free of critique material.
-- Keep critique outside the plugin zip by default.
-- Prefer native plugins over bundles unless the user explicitly requests a bundle.
-- Prefer minimal publishable output over speculative overbuilding.
-- Preserve inference-first behavior.
+## Notes
+
+This skill package is the **skill release artifact itself**.
+
+The “plugin zip + separate critique file” rule applies to the plugin jobs generated **by** the skill, not to the distribution of the skill package.

@@ -2,6 +2,7 @@
 name: youtube-creator-ops
 description: Public OpenClaw skill for publishing a YouTube Short through a logged-in browser profile and generating a reusable run report.
 homepage: https://github.com/zack-dev-cm/youtube-creator-ops
+license: MIT-0
 user-invocable: true
 metadata: {"openclaw":{"homepage":"https://github.com/zack-dev-cm/youtube-creator-ops","skillKey":"youtube-creator-ops","requires":{"anyBins":["python3","python"]}}}
 ---

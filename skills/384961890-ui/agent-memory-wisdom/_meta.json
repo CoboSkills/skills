@@ -3,9 +3,15 @@
   "slug": "agent-memory-wisdom",
   "displayName": "brain 大脑",
   "latest": {
-    "version": "1.1.1",
-    "publishedAt": 1776155363362,
-    "commit": "https://github.com/openclaw/skills/commit/60c33911e0acef2cb664ddd82be680083d6e8807"
+    "version": "1.1.5",
+    "publishedAt": 1776594730147,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.1.1",
+      "publishedAt": 1776155363362,
+      "commit": "https://github.com/openclaw/skills/commit/60c33911e0acef2cb664ddd82be680083d6e8807"
+    }
+  ]
 }

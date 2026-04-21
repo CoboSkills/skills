@@ -1,6 +1,6 @@
 ---
 name: chat-summary-image
-description: Say "Help me install the ClawHub skill chat-summary-image" to your local agent, then turn conversations into polished visual summary cards.
+description: Say "Help me install this skill from https://clawhub.ai/shuminliu026/chat-summary-card" to your local agent, then turn conversations into polished visual summary cards.
 ---
 
 # Chat Summary Image

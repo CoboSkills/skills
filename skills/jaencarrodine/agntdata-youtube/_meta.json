@@ -3,9 +3,15 @@
   "slug": "agntdata-youtube",
   "displayName": "YouTube API",
   "latest": {
-    "version": "1.0.11",
-    "publishedAt": 1776188224836,
-    "commit": "https://github.com/openclaw/skills/commit/55f64564850fc257b35aedaa2fe0821ecdd3e707"
+    "version": "1.0.13",
+    "publishedAt": 1776382837841,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.11",
+      "publishedAt": 1776188224836,
+      "commit": "https://github.com/openclaw/skills/commit/55f64564850fc257b35aedaa2fe0821ecdd3e707"
+    }
+  ]
 }

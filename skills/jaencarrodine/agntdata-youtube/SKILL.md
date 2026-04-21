@@ -1,7 +1,7 @@
 ---
 name: agntdata-youtube
 description: "YouTube API integration with a single agntdata API key (Bearer token). Read channels, videos, comments, subtitles, and trending data. Use this skill when users want YouTube video or channel intelligence. For other social data platforms, use the agnt-data skill (https://clawhub.ai/agntdata/agnt-data)."
-version: 1.0.11
+version: 1.0.13
 metadata:
   openclaw:
     requires:
@@ -11,7 +11,7 @@ metadata:
         - curl
     primaryEnv: AGNTDATA_API_KEY
     emoji: "▶️"
-    homepage: https://agnt.mintlify.app/api-reference/youtube/
+    homepage: https://agnt.mintlify.app/apis/social/youtube
 ---
 
 # YouTube API
@@ -596,6 +596,42 @@ The following JSON defines all available tools with their parameters. Each tool 
         "video_id"
       ]
     }
+  },
+  {
+    "name": "agntdata_youtube_Get_Channel_Email_By_URL",
+    "description": "Get Channel Email by URL",
+    "method": "POST",
+    "path": "/channel/email",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Full YouTube channel URL (e.g. https://www.youtube.com/@theAIsearch)."
+        }
+      },
+      "required": [
+        "url"
+      ]
+    }
+  },
+  {
+    "name": "agntdata_youtube_Get_Channel_Email_By_Id",
+    "description": "Get Channel Email by Channel ID",
+    "method": "GET",
+    "path": "/channel/{channel_id}/email",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "channel_id": {
+          "type": "string",
+          "description": "channel_id"
+        }
+      },
+      "required": [
+        "channel_id"
+      ]
+    }
   }
 ]
 ```
@@ -627,6 +663,6 @@ Available platforms: LinkedIn, YouTube, TikTok, X, Instagram, Reddit, Facebook. 
 
 ## Links
 
-- [Documentation](https://agntdata.dev/docs)
-- [API Reference](https://agnt.mintlify.app/api-reference/youtube/)
+- [Documentation](https://agnt.mintlify.app)
+- [API Reference](https://agnt.mintlify.app/apis/social/youtube)
 - [ClawHub skill](https://clawhub.ai/agntdata/agntdata-youtube)

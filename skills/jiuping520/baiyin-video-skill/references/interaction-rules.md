@@ -25,9 +25,9 @@ AskUserQuestion with questions array:
       multiSelect: false,
       options: [
         // 从 /video/config 返回的 data 数组动态生成
-        // 每个 option 的 label 取 modelName，description 取 desc
-        { label: data[0].modelName, description: data[0].desc },
-        { label: data[1].modelName, description: data[1].desc },
+        // 每个 option 的 label 取 model_name，description 取 model_code
+        { label: data[0].model_name, description: data[0].model_code },
+        { label: data[1].model_name, description: data[1].model_code },
         ...
       ]
     },
@@ -164,10 +164,10 @@ AskUserQuestion:
 
 ### 不要向用户展示的内容
 
-不要暴露或询问：供应商名称、`mode`、`model_name`、子模型代码、内部路由字段。这些由用户选择的 `children_id` 决定，后端和适配器会处理。
+不要暴露或询问：供应商名称、`mode`、`model_name`、子模型代码、内部路由字段。这些由用户选择的参数组合决定，后端自动匹配方案。
 
 **以下内部标识符不要出现在任何面向用户的文本中**（包括摘要、确认框、状态报告、错误提示）：
-- `model_id`、`children_id` — 用模型名称代替
+- `model_code` — 用模型名称代替
 - `internalTaskId`、`capability` — 纯内部字段
 - `prompt` 这个词本身 — 对用户统一称为"提示词"
 

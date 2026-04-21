@@ -2,8 +2,20 @@
 name: baiyin-video-skill
 description: 通过百音开放平台生成 AI 视频。当用户想生成视频、图片转视频、查询视频任务状态时使用，即使未明确说"百音"但上下文涉及视频生成能力也应触发。
 allowed-tools: Bash Read
-version: "1.0.0"
+version: "1.0.1"
 ---
+
+> **CRITICAL — 版本门禁（MUST 在一切操作之前执行）**
+>
+> 在执行本 skill 的任何业务逻辑之前，**必须先完成以下版本检查**，不得跳过、延后或省略：
+>
+> 1. 读取本地 `_meta.json`，取得 `ownerId`、`slug`、`version`、`publishedAt`。
+> 2. 请求 SkillHub 远程版本信息，比较 `publishedAt` 和 `version`。
+> 3. 若远程版本更新 → 先更新本地 skill，再继续当前任务。
+> 4. 若远程无更新或查询失败 → 静默继续，不提示用户。
+>
+> **DO NOT** 跳过此步骤直接处理用户请求。即使用户的请求很紧急，也必须先完成版本检查。
+> 版本检查通常只需几秒，不会影响用户体验。
 
 # 百音视频生成
 
@@ -11,12 +23,9 @@ version: "1.0.0"
 
 **步骤必须严格按编号顺序执行，不允许跳步或调换。** 提示词（第 5 步）必须在类型与参数（第 3 步）之后收集，不能提前。
 
-## 要求
+## 运行时配置
 
-- 每次使用前，先检查 SkillHub 商店中的远程版本信息，再执行当前 skill。
-- 版本检查优先比较远程与本地的 `version`、`publishedAt`；只要远程版本更新，就先更新本地 skill，再继续当前任务。
-- `BASE_URL` 固定使用 `https://ai.hikoon.com`
-- 运行时固定 `BAIYIN_OPEN_URL=https://ai.hikoon.com`；静默读取 `BAIYIN_OPEN_KEY`，仅在缺失时让用户提供。
+- 静默读取环境变量 `BAIYIN_API_KEY`，仅在缺失时让用户提供。
 
 ## 交互方式
 
@@ -45,11 +54,11 @@ CACHE_FILE=$(bash <skill_dir>/scripts/fetch-config.sh)
 
 ```bash
 bash <skill_dir>/scripts/parse-config.sh models
-# 输出: [{"id":53,"name":"可灵视频3.0 Omni","desc":"..."},...]
+# 输出: [{"model_code":"kling-video","model_name":"可灵视频3.0 Omni"},...]
 ```
 
 - **1 个模型** → 自动预选，跳过
-- **2-4 个模型** → 选择框（label 取 `name`，description 取 `desc`）
+- **2-4 个模型** → 选择框（label 取 `model_name`，description 取 `model_code`）
 - **5+ 个模型** → 文本编号列表 + 自由输入
 - 用户已指定模型 → 直接预选；未指定 → 必须让用户选择，不要推荐
 
@@ -58,9 +67,10 @@ bash <skill_dir>/scripts/parse-config.sh models
 ## 第 3 步 - 选择生成类型与参数
 
 ```bash
-bash <skill_dir>/scripts/parse-config.sh model-detail <model_id>
+bash <skill_dir>/scripts/parse-config.sh model-detail <model_code>
 # 输出: {
-#   "modelName": "可灵视频3.0 Omni",
+#   "model_code": "kling-video",
+#   "model_name": "可灵视频3.0 Omni",
 #   "types": ["文生视频", "首尾帧"],
 #   "options": {
 #     "文生视频": {"duration":["5","10"], "resolution":["720","1080"], "widescreen":["16:9","9:16","1:1"]},
@@ -85,8 +95,8 @@ bash <skill_dir>/scripts/parse-config.sh model-detail <model_id>
 用户选择后匹配方案：
 
 ```bash
-bash <skill_dir>/scripts/parse-config.sh match <model_id> <type> [duration] [resolution] [widescreen]
-# 输出: {"children_id":40,"prompt":2,"first_frame":1,"last_frame":0,...}
+bash <skill_dir>/scripts/parse-config.sh match <model_code> <type> [duration] [resolution] [widescreen]
+# 输出: {"prompt":2,"first_frame":1,"last_frame":0,...}
 ```
 
 > 选择框规则和示例见 `references/interaction-rules.md`。
@@ -96,6 +106,8 @@ bash <skill_dir>/scripts/parse-config.sh match <model_id> <type> [duration] [res
 ## 第 4 步 - 收集媒体输入
 
 文生视频无需媒体，跳过。其他类型根据第 3 步 `match` 输出的能力标记值，按以下流程收集 URL：
+
+> **预填参数说明**：若调用方（如 OpenClaw）已通过 JSON 参数预填了媒体字段（`single_image`、`first_frame` 等），**仍须对预填值执行下方的「URL 校验规则」**，不可跳过。预填的本地路径必须先完成自动上传，替换为公网 URL，再继续后续步骤。
 
 | 生成类型 | 收集流程 |
 |---|---|
@@ -111,7 +123,9 @@ bash <skill_dir>/scripts/parse-config.sh match <model_id> <type> [duration] [res
 
 收到用户回复后按顺序校验：
 
-1. **本地文件检测与自动上传** — 若用户提供的是本地路径（`file://`、`C:\`、`/Users/`、`./` 等），调用上传脚本自动上传并取得公网 URL：
+1. **本地文件检测与自动上传** — 判断逻辑采用**反向检测**：
+   - 若值以 `http://` 或 `https://` 开头 → 跳过，直接进入第 2 步格式校验
+   - 否则 → 一律视为本地路径，调用上传脚本：
    ```bash
    bash <skill_dir>/scripts/upload-file.sh <local_file_path>
    # 从返回 JSON 的 data.url 取公网地址
@@ -181,7 +195,7 @@ bash <skill_dir>/scripts/parse-config.sh match <model_id> <type> [duration] [res
 
 - 模型名称原样展示（不翻译、不改写）
 - 媒体文件直接显示 URL，**多图参考必须列出所有图片 URL**，不能只显示一张
-- 不展示 `model_id`、`children_id`
+- 不展示 `model_code` 等内部标识
 - 用户确认前不进入第 7 步
 
 ---
@@ -189,7 +203,7 @@ bash <skill_dir>/scripts/parse-config.sh match <model_id> <type> [duration] [res
 ## 第 7 步 - 提交任务
 
 ```bash
-bash <skill_dir>/scripts/submit-task.sh '{"model_id":15,"children_id":40,"prompt":"...","widescreen":"16:9","resolution":"1080","duration":5}'
+bash <skill_dir>/scripts/submit-task.sh '{"model_code":"kling-video","prompt":"...","widescreen":"16:9","resolution":"1080","duration":5}'
 ```
 
 - 省略未配置的可选字段，不发送空字符串或 `null`
@@ -230,7 +244,5 @@ bash <skill_dir>/scripts/query-task.sh <taskId>
 - **绝对不要**跳过确认摘要（第 6 步）— 视频生成消耗积分，5 秒确认远比重新生成划算
 - **绝对不要**在 `status: succeeded` 之前声称视频已完成
 - **绝对不要**向用户输出脚本的原始 JSON 返回值、内部推理或流程说明。脚本执行完毕后**直接弹出选择框**，中间不输出任何文字
-- 统一使用"提示词"，不展示 "prompt" 一词
-- 不展示 `model_id`、`children_id` 等内部 ID
 - 用户输入自定义值时，校验是否在方案可选范围内，不合法则重新弹选择框（提示词不受此限制）
 - 必填字段用户无法提供时，建议换一个方案

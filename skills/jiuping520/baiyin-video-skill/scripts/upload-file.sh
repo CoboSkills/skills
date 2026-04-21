@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 上传本地文件到百音开放平台，返回公网 URL
 # 用法: bash upload-file.sh <local_file_path>
-# 环境变量: BAIYIN_OPEN_URL, BAIYIN_OPEN_KEY
+# 环境变量: BAIYIN_API_KEY
 
 set -euo pipefail
 
@@ -23,10 +23,10 @@ if [[ ! -f "$FILE_PATH" ]]; then
 fi
 
 response=$(curl -s --connect-timeout 10 --max-time 120 \
-  -H "Authorization: Bearer ${BAIYIN_OPEN_KEY}" \
+  -H "Authorization: Bearer ${BAIYIN_API_KEY}" \
   -F "file=@${FILE_PATH}" \
   -w "\n%{http_code}" \
-  "${BAIYIN_OPEN_URL}/api/open/v1/file/upload")
+  "${BASE_URL}/api/open/v1/file/upload")
 
 http_code=$(echo "$response" | tail -1)
 body=$(echo "$response" | sed '$d')

@@ -13,9 +13,9 @@
 
 | HTTP 状态 | 错误码 / 现象 | 含义 | 处理方式 |
 |---|---|---|---|
-| `401` | `INVALID_API_KEY` | `BAIYIN_OPEN_KEY` 无效、被禁用或用户状态异常 | 停止流程，提示用户检查 `BAIYIN_OPEN_KEY` 环境变量 |
-| `400` | class-validator 校验失败 | `model_id` / `children_id` 不是整数，或字段类型错误 | 检查是否漏掉类型转换，重新构造请求体 |
-| `404` | `TASK_NOT_FOUND` | 查询任务时 `taskId` 不存在或不属于当前用户 | 确认 `taskId` 是否来自同一个 `BAIYIN_OPEN_KEY` 的提交 |
+| `401` | `INVALID_API_KEY` | `BAIYIN_API_KEY` 无效、被禁用或用户状态异常 | 停止流程，提示用户检查 `BAIYIN_API_KEY` 环境变量 |
+| `400` | class-validator 校验失败 | `model_code` 缺失、媒体 URL 不合法，或参数组合不匹配 | 检查字段类型和参数组合，重新构造请求体 |
+| `404` | `TASK_NOT_FOUND` | 查询任务时 `taskId` 不存在或不属于当前用户 | 确认 `taskId` 是否来自同一个 `BAIYIN_API_KEY` 的提交 |
 | 其它 5xx | 后端内部错误 | 内部任务创建失败、模型下游异常 | 告知用户后端错误，建议稍后重试或换一个方案 |
 | 任务 `status: failed` | `data.error` 非空 | 模型侧生成失败（内容违规、图片下载失败等） | 把 `data.error` 原文呈现给用户，并根据错误类型建议调整参数后重试 |
 

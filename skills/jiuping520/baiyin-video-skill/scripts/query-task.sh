@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 查询视频任务状态
 # 用法: bash query-task.sh <taskId>
-# 环境变量: BAIYIN_OPEN_URL, BAIYIN_OPEN_KEY
+# 环境变量: BAIYIN_API_KEY
 
 set -euo pipefail
 
@@ -18,7 +18,7 @@ fi
 TASK_ID="$1"
 
 response=$(curl_auth -w "\n%{http_code}" \
-  "${BAIYIN_OPEN_URL}/api/open/v1/tasks/${TASK_ID}")
+  "${BASE_URL}/api/open/v1/tasks/${TASK_ID}")
 
 http_code=$(echo "$response" | tail -1)
 body=$(echo "$response" | sed '$d')

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 提交视频生成任务（失败最多重试 3 次，指数退避，4xx 不重试）
 # 用法: bash submit-task.sh '<json_body>'
-# 环境变量: BAIYIN_OPEN_URL, BAIYIN_OPEN_KEY
+# 环境变量: BAIYIN_API_KEY
 
 set -euo pipefail
 
@@ -20,7 +20,7 @@ while (( attempt < MAX_RETRIES )); do
   response=$(curl_auth -w "\n%{http_code}" \
     -X POST \
     -d "$BODY" \
-    "${BAIYIN_OPEN_URL}/api/open/v1/video/generate")
+    "${BASE_URL}/api/open/v1/video/generate")
 
   http_code=$(echo "$response" | tail -1)
   body=$(echo "$response" | sed '$d')

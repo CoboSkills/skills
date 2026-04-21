@@ -2,7 +2,7 @@
 # 获取视频配置（带缓存）
 # 用法: bash fetch-config.sh
 # 输出: 缓存文件路径
-# 环境变量: BAIYIN_OPEN_URL, BAIYIN_OPEN_KEY
+# 环境变量: BAIYIN_API_KEY
 # 可选: BAIYIN_CACHE_FILE（自定义缓存路径）, BAIYIN_SKIP_CACHE=1（强制刷新）
 
 set -euo pipefail
@@ -34,7 +34,7 @@ fi
 
 if $need_fetch; then
   http_code=$(curl_auth -w "%{http_code}" -o "$CACHE_FILE" \
-    "${BAIYIN_OPEN_URL}/api/open/v1/video/config")
+    "${BASE_URL}/api/open/v1/video/config")
 
   if [[ "$http_code" != "200" ]]; then
     rm -f "$CACHE_FILE"

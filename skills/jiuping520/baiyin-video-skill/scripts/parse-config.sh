@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # 解析视频配置 JSON（多运行时自动检测: node → python3 → jq）
 # 用法:
-#   bash parse-config.sh models                              → 输出模型列表
-#   bash parse-config.sh model-detail <model_id>             → 输出生成类型 + 各类型参数选项（合并）
-#   bash parse-config.sh match <model_id> <type> [dur] [res] [ws] → 匹配 children_id
+#   bash parse-config.sh models                                    → 输出模型列表
+#   bash parse-config.sh model-detail <model_code>                 → 输出生成类型 + 各类型参数选项（合并）
+#   bash parse-config.sh match <model_code> <type> [dur] [res] [ws] → 匹配方案，返回能力标记
 
 set -euo pipefail
 
@@ -70,9 +70,9 @@ function getOptions(children, type) {
 }
 
 if (cmd === 'models') {
-  console.log(JSON.stringify(data.map(m => ({id:m.id, name:m.modelName, desc:m.desc}))));
+  console.log(JSON.stringify(data.map(m => ({model_code:m.model_code, model_name:m.model_name}))));
 } else if (cmd === 'model-detail') {
-  const model = data.find(m => m.id === Number(args[0]));
+  const model = data.find(m => m.model_code === args[0]);
   if (!model) { console.error('ERROR: model not found'); process.exit(1); }
   const types = {};
   model.children.forEach(c => {
@@ -87,9 +87,9 @@ if (cmd === 'models') {
   const typeList = Object.keys(types);
   const optionsPerType = {};
   typeList.forEach(t => { optionsPerType[t] = getOptions(model.children, t); });
-  console.log(JSON.stringify({modelName:model.modelName, types:typeList, options:optionsPerType}));
+  console.log(JSON.stringify({model_code:model.model_code, model_name:model.model_name, types:typeList, options:optionsPerType}));
 } else if (cmd === 'match') {
-  const model = data.find(m => m.id === Number(args[0]));
+  const model = data.find(m => m.model_code === args[0]);
   if (!model) { console.error('ERROR: model not found'); process.exit(1); }
   const plans = filterByType(model.children, args[1]);
   const matched = plans.find(c => {
@@ -99,7 +99,7 @@ if (cmd === 'models') {
     return durOk && resOk && wsOk;
   });
   if (!matched) { console.error('ERROR: no matching plan'); process.exit(1); }
-  console.log(JSON.stringify({children_id:matched.children_id,prompt:matched.prompt,first_frame:matched.first_frame,last_frame:matched.last_frame,single_image:matched.single_image,multi_image:matched.multi_image,audio:matched.audio,video:matched.video}));
+  console.log(JSON.stringify({prompt:matched.prompt,first_frame:matched.first_frame,last_frame:matched.last_frame,single_image:matched.single_image,multi_image:matched.multi_image,audio:matched.audio,video:matched.video}));
 }
 "
 }
@@ -140,9 +140,9 @@ def get_options(children, t):
     return {'duration':list(d),'resolution':list(r),'widescreen':list(w)}
 
 if cmd == 'models':
-    print(json.dumps([{'id':m['id'],'name':m['modelName'],'desc':m['desc']} for m in data], ensure_ascii=False))
+    print(json.dumps([{'model_code':m['model_code'],'model_name':m['model_name']} for m in data], ensure_ascii=False))
 elif cmd == 'model-detail':
-    model = next((m for m in data if m['id'] == int(args[0])), None)
+    model = next((m for m in data if m['model_code'] == args[0]), None)
     if not model: print('ERROR: model not found', file=sys.stderr); sys.exit(1)
     types = set()
     for c in model['children']:
@@ -155,9 +155,9 @@ elif cmd == 'model-detail':
         if c.get('video',0) >= 1: types.add('视频参考')
     type_list = list(types)
     options_per_type = {t: get_options(model['children'], t) for t in type_list}
-    print(json.dumps({'modelName':model['modelName'],'types':type_list,'options':options_per_type}, ensure_ascii=False))
+    print(json.dumps({'model_code':model['model_code'],'model_name':model['model_name'],'types':type_list,'options':options_per_type}, ensure_ascii=False))
 elif cmd == 'match':
-    model = next((m for m in data if m['id'] == int(args[0])), None)
+    model = next((m for m in data if m['model_code'] == args[0]), None)
     if not model: print('ERROR: model not found', file=sys.stderr); sys.exit(1)
     plans = filter_by_type(model['children'], args[1])
     dur,res,ws = (args[2] if len(args)>2 else None), (args[3] if len(args)>3 else None), (args[4] if len(args)>4 else None)
@@ -166,7 +166,7 @@ elif cmd == 'match':
         res_ok = not res or str(res) in [str(v) for v in c.get('resolution',[])]
         ws_ok  = not ws  or str(ws)  in [str(v) for v in c.get('widescreen',[])]
         if dur_ok and res_ok and ws_ok:
-            print(json.dumps({k:c.get(k) for k in ['children_id','prompt','first_frame','last_frame','single_image','multi_image','audio','video']}))
+            print(json.dumps({k:c.get(k) for k in ['prompt','first_frame','last_frame','single_image','multi_image','audio','video']}))
             sys.exit(0)
     print('ERROR: no matching plan', file=sys.stderr); sys.exit(1)
 "
@@ -190,14 +190,14 @@ run_jq() {
 
   case "$COMMAND" in
     models)
-      jq -c '[.data[] | {id:.id, name:.modelName, desc:.desc}]' "$CACHE_FILE"
+      jq -c '[.data[] | {model_code:.model_code, model_name:.model_name}]' "$CACHE_FILE"
       ;;
     model-detail)
-      local mid="$1"
-      jq -c --argjson mid "$mid" "$JQ_TYPE_FILTER"'
-        .data[] | select(.id == $mid) |
+      local mkey="$1"
+      jq -c --arg mkey "$mkey" "$JQ_TYPE_FILTER"'
+        .data[] | select(.model_code == $mkey) |
         . as $m |
-        { modelName: .modelName,
+        { model_code: .model_code, model_name: .model_name,
           types: [.children[] |
             (if .prompt >= 1 then "文生视频" else empty end),
             (if (.single_image // 0) >= 1 then "图生视频" else empty end),
@@ -226,9 +226,9 @@ run_jq() {
           ) }' "$CACHE_FILE"
       ;;
     match)
-      local mid="$1" type="$2" dur="${3:-}" res="${4:-}" ws="${5:-}"
-      jq -c --argjson mid "$mid" --arg type "$type" --arg dur "$dur" --arg res "$res" --arg ws "$ws" "$JQ_TYPE_FILTER"'
-        .data[] | select(.id == $mid) | .children |
+      local mkey="$1" type="$2" dur="${3:-}" res="${4:-}" ws="${5:-}"
+      jq -c --arg mkey "$mkey" --arg type "$type" --arg dur "$dur" --arg res "$res" --arg ws "$ws" "$JQ_TYPE_FILTER"'
+        .data[] | select(.model_code == $mkey) | .children |
         map(select(type_filter($type))) |
         map(select(
           ($dur == "" or ([.duration[]?] | index($dur) != null)) and
@@ -236,7 +236,7 @@ run_jq() {
           ($ws  == "" or ([.widescreen[]?] | index($ws) != null))
         )) |
         first // error("no matching plan") |
-        {children_id, prompt, first_frame, last_frame, single_image, multi_image, audio, video}' "$CACHE_FILE"
+        {prompt, first_frame, last_frame, single_image, multi_image, audio, video}' "$CACHE_FILE"
       ;;
     *)
       echo "Usage: bash parse-config.sh <models|model-detail|match> [args...]" >&2

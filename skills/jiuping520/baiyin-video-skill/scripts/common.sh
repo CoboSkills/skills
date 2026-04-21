@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 # 公共函数：缓存路径、环境变量校验、curl 认证头
 
+# 固定 BASE_URL，不从环境变量读取
+BASE_URL="https://ai.hikoon.com"
+
 # 缓存文件路径（可通过 BAIYIN_CACHE_FILE 覆盖）
 get_cache_file() {
   if [[ -n "${BAIYIN_CACHE_FILE:-}" ]]; then
@@ -14,9 +17,8 @@ get_cache_file() {
 
 # 校验必需的环境变量
 check_env() {
-  export BAIYIN_OPEN_URL="${BAIYIN_OPEN_URL:-https://ai.hikoon.com}"
-  if [[ -z "${BAIYIN_OPEN_KEY:-}" ]]; then
-    echo "ERROR: 环境变量 BAIYIN_OPEN_KEY 未设置" >&2
+  if [[ -z "${BAIYIN_API_KEY:-}" ]]; then
+    echo "ERROR: 环境变量 BAIYIN_API_KEY 未设置" >&2
     exit 1
   fi
 }
@@ -24,7 +26,7 @@ check_env() {
 # 带认证的 curl（附加超时）
 curl_auth() {
   curl -s --connect-timeout 10 --max-time 30 \
-    -H "Authorization: Bearer ${BAIYIN_OPEN_KEY}" \
+    -H "Authorization: Bearer ${BAIYIN_API_KEY}" \
     -H "Content-Type: application/json" \
     "$@"
 }

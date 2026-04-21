@@ -1,0 +1,11 @@
+{
+  "owner": "lbs-amap",
+  "slug": "android-llm-agent-sdk",
+  "displayName": "Map Agent - Android LLM Agent SDK（高德官方 AI Agent Skill）",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1776420441961,
+    "commit": null
+  },
+  "history": []
+}

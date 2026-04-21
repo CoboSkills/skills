@@ -1,11 +1,17 @@
 {
   "owner": "jayshna",
   "slug": "sms-rpg",
-  "displayName": "SMS RPG",
+  "displayName": "Sms Rpg",
   "latest": {
-    "version": "1.2.2",
-    "publishedAt": 1776179786157,
-    "commit": "https://github.com/openclaw/skills/commit/ab004f2a179ce37b3692b66332615ac45ad3e6db"
+    "version": "2.0.0",
+    "publishedAt": 1776670129302,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.2.2",
+      "publishedAt": 1776179786157,
+      "commit": "https://github.com/openclaw/skills/commit/ab004f2a179ce37b3692b66332615ac45ad3e6db"
+    }
+  ]
 }

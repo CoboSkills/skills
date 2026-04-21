@@ -24,10 +24,13 @@ function appendAudit(event) {
   fs.appendFileSync(AUDIT_LOG_PATH, line, 'utf8');
 }
 
-function sha1File(filePath) {
-  const crypto = require('crypto');
+function fileDigest(filePath) {
   const data = fs.readFileSync(filePath);
-  return crypto.createHash('sha1').update(data).digest('hex');
+  let h = 2166136261;
+  for (let i = 0; i < data.length; i++) {
+    h = Math.imul(h ^ data[i], 16777619) >>> 0;
+  }
+  return h.toString(16).padStart(8, '0');
 }
 
 // Image normalization (resizing) is intentionally omitted from this package.
@@ -37,9 +40,31 @@ function normalizeImageInPlace(_filePath, _maxDimension = 1200) {
   return { changed: false };
 }
 
-function persistImagePath(imagePath, preferredStem = 'label') {
+function resolveImagePath(imagePath) {
   if (!imagePath) return null;
   const resolved = path.resolve(imagePath);
+
+  // If the path exists, use it as-is
+  if (fs.existsSync(resolved)) return resolved;
+
+  // Handle migration from old workspace paths to skill directory.
+  // Old path format: /Users/simon/.openclaw/workspace/data/wine/labels/filename
+  // New path format: /Users/simon/.openclaw/workspace/skills/wine-archive/data/wine/labels/filename
+  if (resolved.includes('/.openclaw/workspace/data/wine/labels/')) {
+    const filename = path.basename(resolved);
+    const newPath = path.join(LABELS_DIR, filename);
+    if (fs.existsSync(newPath)) {
+      return newPath;
+    }
+  }
+
+  // Path doesn't exist; return it as-is (caller will handle missing file)
+  return resolved;
+}
+
+function persistImagePath(imagePath, preferredStem = 'label') {
+  if (!imagePath) return null;
+  const resolved = resolveImagePath(imagePath);
   if (!fs.existsSync(resolved)) return resolved;
 
   ensureDataDirs();
@@ -51,7 +76,7 @@ function persistImagePath(imagePath, preferredStem = 'label') {
     .replace(/[^a-zA-Z0-9_-]+/g, '-')
     .replace(/^-+|-+$/g, '')
     .toLowerCase() || 'label';
-  const digest = sha1File(resolved).slice(0, 12);
+  const digest = fileDigest(resolved);
   const target = path.join(LABELS_DIR, `${safeStem}-${digest}${ext.toLowerCase()}`);
 
   if (!fs.existsSync(target)) {
@@ -123,6 +148,7 @@ function openDb() {
   `);
 
   migrateLegacyWineEntries(db);
+  migrateImagePaths(db);
   return db;
 }
 
@@ -201,6 +227,48 @@ function migrateLegacyWineEntries(db) {
 
   tx();
   appendAudit({ action: 'migrate-legacy-wine-entries', count: legacyRows.length });
+}
+
+function migrateImagePaths(db) {
+  // Migrate old workspace paths to skill-relative paths after skill installation.
+  // Old: /Users/simon/.openclaw/workspace/data/wine/labels/filename
+  // New: /Users/simon/.openclaw/workspace/skills/wine-archive/data/wine/labels/filename
+  const oldPathPattern = '/.openclaw/workspace/data/wine/labels/';
+  const newPathPattern = '/.openclaw/workspace/skills/wine-archive/data/wine/labels/';
+
+  // Also handle wines table
+  const winesWithOldPaths = db.prepare(
+    `SELECT id, default_source_image_path FROM wines WHERE default_source_image_path LIKE ?`
+  ).all(`%${oldPathPattern}%`);
+
+  if (winesWithOldPaths.length > 0) {
+    const updateWine = db.prepare(`UPDATE wines SET default_source_image_path = ? WHERE id = ?`);
+    const tx = db.transaction(() => {
+      for (const wine of winesWithOldPaths) {
+        const newPath = wine.default_source_image_path.replace(oldPathPattern, newPathPattern);
+        updateWine.run(newPath, wine.id);
+      }
+    });
+    tx();
+    appendAudit({ action: 'migrate-image-paths-wines', count: winesWithOldPaths.length });
+  }
+
+  // Migrate wine_instances table
+  const instancesWithOldPaths = db.prepare(
+    `SELECT id, source_image_path FROM wine_instances WHERE source_image_path LIKE ?`
+  ).all(`%${oldPathPattern}%`);
+
+  if (instancesWithOldPaths.length > 0) {
+    const updateInstance = db.prepare(`UPDATE wine_instances SET source_image_path = ? WHERE id = ?`);
+    const tx = db.transaction(() => {
+      for (const instance of instancesWithOldPaths) {
+        const newPath = instance.source_image_path.replace(oldPathPattern, newPathPattern);
+        updateInstance.run(newPath, instance.id);
+      }
+    });
+    tx();
+    appendAudit({ action: 'migrate-image-paths-instances', count: instancesWithOldPaths.length });
+  }
 }
 
 function normalizeEntry(entry = {}) {

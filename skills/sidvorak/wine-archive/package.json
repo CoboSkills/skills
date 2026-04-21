@@ -1,6 +1,6 @@
 {
   "name": "wine-archive",
-  "version": "0.1.0",
+  "version": "0.1.8",
   "description": "Personal wine archive — tasting history, label storage, and natural-language recall via Claude / OpenClaw",
   "type": "commonjs",
   "scripts": {

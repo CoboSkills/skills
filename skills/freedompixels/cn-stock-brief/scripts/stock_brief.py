@@ -22,8 +22,6 @@ def fetch_json(url, retries=2):
         except (ssl.SSLError, urllib.error.URLError) as e:
             if attempt < retries and "SSL" in str(e):
                 ctx = ssl.create_default_context()
-                ctx.check_hostname = False
-                ctx.verify_mode = ssl.CERT_NONE
                 try:
                     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
                     with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:

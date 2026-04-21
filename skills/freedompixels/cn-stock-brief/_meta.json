@@ -3,9 +3,15 @@
   "slug": "cn-stock-brief",
   "displayName": "A股每日简报",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1776206977593,
-    "commit": "https://github.com/openclaw/skills/commit/5c463b3c8954a521152d56489223ebe1c227d121"
+    "version": "1.2.0",
+    "publishedAt": 1776442945931,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1776206977593,
+      "commit": "https://github.com/openclaw/skills/commit/5c463b3c8954a521152d56489223ebe1c227d121"
+    }
+  ]
 }

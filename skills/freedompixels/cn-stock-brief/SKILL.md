@@ -57,7 +57,6 @@ python3 ~/.qclaw/skills/cn-stock-brief/scripts/stock_brief.py --sectors
 
 - ⚠️ 数据仅供参考，不构成投资建议
 - 交易日才有实时数据，非交易日显示上一交易日数据
-- SSL降级机制：优先验证证书，失败后自动降级
 
 ## 示例输出
 

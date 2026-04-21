@@ -1,0 +1,11 @@
+{
+  "owner": "taleintervenor",
+  "slug": "sjtu-slurm-skill",
+  "displayName": "Sjtu Hpc",
+  "latest": {
+    "version": "0.2.1",
+    "publishedAt": 1776737860437,
+    "commit": null
+  },
+  "history": []
+}

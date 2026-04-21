@@ -3,9 +3,15 @@
   "slug": "toronto-ca",
   "displayName": "Toronto Ca",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775986908086,
-    "commit": "https://github.com/openclaw/skills/commit/708c287b9dfdffdb7fed2981b3334c75c07f6ba5"
+    "version": "1.0.1",
+    "publishedAt": 1776295654502,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775986908086,
+      "commit": "https://github.com/openclaw/skills/commit/708c287b9dfdffdb7fed2981b3334c75c07f6ba5"
+    }
+  ]
 }

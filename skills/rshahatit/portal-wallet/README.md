@@ -1,6 +1,6 @@
 # Portal OpenClaw Skill
 
-An [OpenClaw](https://clawhub.ai) skill that gives AI agents access to [Portal](https://www.portalhq.io)'s MPC-secured crypto wallets. Agents can check balances, send tokens, sign transactions, swap tokens, and view NFTs across Ethereum, Solana, Bitcoin, Polygon, Base, Arbitrum, and Optimism.
+An [OpenClaw](https://clawhub.ai) skill that gives AI agents access to [Portal](https://www.portalhq.io)'s MPC-secured crypto wallets. Agents can check balances, send tokens, sign transactions, and swap tokens across Monad, Ethereum, Solana, Bitcoin, Polygon, Base, Arbitrum, and Optimism.
 
 Private keys are never reconstructed — every signature is a two-party MPC operation between the agent's share and Portal's enclave.
 

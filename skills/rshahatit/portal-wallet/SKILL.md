@@ -1,7 +1,7 @@
 ---
 name: portal-wallet
-description: "MPC-secured crypto wallet via Portal. Use when users ask to check balances, send tokens, sign transactions, swap tokens, or view NFTs. Supports Ethereum, Solana, Bitcoin, Polygon, Base, and more. Private keys are never exposed — signing uses MPC threshold cryptography."
-version: "1.0.0"
+description: "MPC-secured crypto wallet via Portal. Use when users ask to check balances, send tokens, sign transactions, or swap tokens. Supports Monad, Ethereum, Solana, Bitcoin, Polygon, Base, and more. Private keys are never exposed — signing uses MPC threshold cryptography."
+version: "1.1.0"
 metadata:
   openclaw:
     emoji: "shield"
@@ -52,24 +52,17 @@ curl -s 'https://api.portalhq.io/api/v3/clients/me' \
 ### Get Balances
 
 ```bash
-curl -s 'https://api.portalhq.io/api/v3/clients/me/chains/eip155:1/assets' \
+curl -s 'https://api.portalhq.io/api/v3/clients/me/chains/eip155:143/assets' \
   -H "Authorization: Bearer $PORTAL_CLIENT_API_KEY" | jq .
 ```
 
 Replace `eip155:1` with the desired chain ID (see Supported Chains below).
 
-### Get NFTs
-
-```bash
-curl -s 'https://api.portalhq.io/api/v3/clients/me/chains/eip155:1/assets/nfts' \
-  -H "Authorization: Bearer $PORTAL_CLIENT_API_KEY" | jq .
-```
-
 ### Get Transaction History
 
 For EVM chains:
 ```bash
-curl -s 'https://api.portalhq.io/api/v3/clients/me/transactions?chainId=eip155:1' \
+curl -s 'https://api.portalhq.io/api/v3/clients/me/transactions?chainId=eip155:143' \
   -H "Authorization: Bearer $PORTAL_CLIENT_API_KEY" | jq .
 ```
 
@@ -89,15 +82,13 @@ The simplest way to send crypto. Portal handles transaction building and broadca
 
 ### Send Native Tokens (ETH, SOL, BTC, etc.)
 
-EVM chains:
+EVM chains (example uses Monad — swap `monad` / `143` for any other EVM chain from the Supported Chains table):
 ```bash
 jq -n \
   --arg share "$PORTAL_SECP256K1_SHARE" \
-  --arg chain "<chain-name>" \
   --arg to "<recipient-address>" \
   --arg amount "<amount>" \
-  --arg rpcUrl "https://api.portalhq.io/rpc/v1/eip155/<chain-id-number>" \
-  '{share: $share, chain: $chain, to: $to, token: "NATIVE", amount: $amount, rpcUrl: $rpcUrl}' \
+  '{share: $share, chain: "monad", to: $to, token: "NATIVE", amount: $amount, rpcUrl: "https://api.portalhq.io/rpc/v1/eip155/143"}' \
 | curl -s -X POST 'https://mpc-client.portalhq.io/v1/assets/send' \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $PORTAL_CLIENT_API_KEY" \
@@ -139,7 +130,7 @@ jq -n \
   --arg to "<recipient-address>" \
   --arg token "USDC" \
   --arg amount "10" \
-  '{share: $share, chain: "ethereum", to: $to, token: $token, amount: $amount, rpcUrl: "https://api.portalhq.io/rpc/v1/eip155/1"}' \
+  '{share: $share, chain: "monad", to: $to, token: $token, amount: $amount, rpcUrl: "https://api.portalhq.io/rpc/v1/eip155/143"}' \
 | curl -s -X POST 'https://mpc-client.portalhq.io/v1/assets/send' \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $PORTAL_CLIENT_API_KEY" \
@@ -164,9 +155,7 @@ TX_PARAMS=$(jq -cn \
 jq -n \
   --arg share "$PORTAL_SECP256K1_SHARE" \
   --arg params "$TX_PARAMS" \
-  --arg rpcUrl "https://api.portalhq.io/rpc/v1/eip155/<chain-id-number>" \
-  --arg chainId "eip155:<chain-id-number>" \
-  '{share: $share, method: "eth_sendTransaction", params: $params, rpcUrl: $rpcUrl, chainId: $chainId}' \
+  '{share: $share, method: "eth_sendTransaction", params: $params, rpcUrl: "https://api.portalhq.io/rpc/v1/eip155/143", chainId: "eip155:143"}' \
 | curl -s -X POST 'https://mpc-client.portalhq.io/v1/sign' \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $PORTAL_CLIENT_API_KEY" \
@@ -179,8 +168,7 @@ jq -n \
 jq -n \
   --arg share "$PORTAL_SECP256K1_SHARE" \
   --arg params "<hex-encoded-message>" \
-  --arg chainId "eip155:<chain-id-number>" \
-  '{share: $share, method: "personal_sign", params: $params, chainId: $chainId}' \
+  '{share: $share, method: "personal_sign", params: $params, chainId: "eip155:143"}' \
 | curl -s -X POST 'https://mpc-client.portalhq.io/v1/sign' \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $PORTAL_CLIENT_API_KEY" \
@@ -193,8 +181,7 @@ jq -n \
 jq -n \
   --arg share "$PORTAL_SECP256K1_SHARE" \
   --arg params "<stringified-typed-data-json>" \
-  --arg chainId "eip155:<chain-id-number>" \
-  '{share: $share, method: "eth_signTypedData_v4", params: $params, chainId: $chainId}' \
+  '{share: $share, method: "eth_signTypedData_v4", params: $params, chainId: "eip155:143"}' \
 | curl -s -X POST 'https://mpc-client.portalhq.io/v1/sign' \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $PORTAL_CLIENT_API_KEY" \
@@ -268,8 +255,7 @@ jq -n \
   --arg to "<recipient>" \
   --arg value "<wei-hex>" \
   --arg data "<calldata>" \
-  --arg chainId "eip155:<chain-id-number>" \
-  '{to: $to, value: $value, data: $data, chainId: $chainId}' \
+  '{to: $to, value: $value, data: $data, chainId: "eip155:143"}' \
 | curl -s -X POST 'https://api.portalhq.io/api/v3/clients/me/evaluate-transaction' \
   -H "Authorization: Bearer $PORTAL_CLIENT_API_KEY" \
   -H 'Content-Type: application/json' \
@@ -281,6 +267,8 @@ jq -n \
 ### EVM Chains (use SECP256K1 share)
 | Chain | chain param | Chain ID | RPC path |
 |-------|-----------|----------|----------|
+| Monad | monad | eip155:143 | eip155/143 |
+| Monad Testnet | monad-testnet | eip155:10143 | eip155/10143 |
 | Ethereum | ethereum | eip155:1 | eip155/1 |
 | Sepolia | sepolia | eip155:11155111 | eip155/11155111 |
 | Polygon | polygon | eip155:137 | eip155/137 |
@@ -316,7 +304,7 @@ Example with gas sponsorship explicitly disabled:
 jq -n \
   --arg share "$PORTAL_SECP256K1_SHARE" \
   --arg to "<recipient>" \
-  '{share: $share, chain: "ethereum", to: $to, token: "USDC", amount: "10", rpcUrl: "https://api.portalhq.io/rpc/v1/eip155/1", sponsorGas: false}' \
+  '{share: $share, chain: "monad", to: $to, token: "USDC", amount: "10", rpcUrl: "https://api.portalhq.io/rpc/v1/eip155/143", sponsorGas: false}' \
 | curl -s -X POST 'https://mpc-client.portalhq.io/v1/assets/send' \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $PORTAL_CLIENT_API_KEY" \

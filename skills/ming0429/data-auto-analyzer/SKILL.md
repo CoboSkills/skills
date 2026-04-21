@@ -1,81 +1,129 @@
 ---
 name: data-auto-analyzer
-description: 通用数据自动分析 Skill。当用户上传 Excel（.xlsx/.xls）或 CSV 文件，或提到想分析数据、看报表、生成可视化报告、查看数据趋势时，必须使用此 Skill。自动识别所有列类型（日期、维度、数值指标），汇总全部指标，检测异常，生成包含交互式 ECharts 图表和可分页表格的 HTML 分析报告。适用于任何结构化表格数据：广告投放报表（巨量引擎、腾讯广告、Meta Ads、Google Ads 等）、销售数据、财务报表、运营指标、用户行为数据、电商订单、库存统计等。即使用户只是说"帮我看看这个表格""分析一下这个数据""这个 Excel 有什么规律"，也应触发此 Skill。
+description: 数据自动分析 + 广告投放优化一体化 Skill。当用户上传 Excel/CSV 文件，或提到以下任一场景时必须触发：①通用数据分析（看报表、数据趋势、可视化）；②账户诊断（哪些计划效果差、哪些要暂停、投放诊断、账户体检）；③A/B 测试分析（两组数据对比、哪个版本好、是否显著、置信度）；④日报生成（投放日报、每日汇报、钉钉/飞书周报、对比昨日）。适用于信息流广告优化师、运营、数据分析师。支持巨量引擎、腾讯广告、Meta Ads、Google Ads、快手等平台导出数据，也支持销售、财务、运营等任何结构化表格。即使用户只说"分析一下""看看报表""哪些计划要调整""这俩哪个好""生成日报"，也应触发此 Skill。
 metadata:
   homepage: https://clawhub.ai/ming0429/data-auto-analyzer
-  version: 2.0.0
+  version: 3.0.0
   author: guojiaming
-  tags: [data-analysis, analytics, excel, csv, 数据分析, 可视化, echarts, html, 报表分析, 趋势分析]
+  tags: [data-analysis, advertising, ab-test, daily-report, 数据分析, 广告优化, 账户诊断, AB测试, 日报生成]
   clawdbot:
     emoji: 📊
     requires:
       bins: [python3]
-      pip: [pandas, openpyxl, xlrd, jinja2]
+      pip: [pandas, openpyxl, xlrd, jinja2, scipy]
       env: []
 ---
 
 # 数据自动分析 Skill
 
-分析用户上传的 Excel/CSV 数据文件，自动识别所有列，汇总指标，检测异常，生成**交互式 HTML 分析报告**（含可分页表格 + ECharts 图表），输出优化建议。适用于广告报表、销售数据、财务数据、运营指标等任何结构化表格。
+一体化数据分析与广告优化工具集，包含 **4 个模式**，根据用户意图选择对应模式执行。
 
-## Setup
+## 环境准备（所有模式通用）
 
-无需任何配置，开箱即用。支持 `.xlsx` / `.xls` / `.csv`，兼容 UTF-8 / GBK 编码。
-
-## Usage
-
-用户上传文件后，将分析脚本复制到工作目录并执行。**不要用 `-c` 内联方式运行**。
-
-正确执行方式：
 ```bash
-# 第一步：安装依赖
-pip install pandas openpyxl xlrd jinja2 --break-system-packages -q
-
-# 第二步：复制脚本到工作目录
-cp /mnt/skills/user/data-auto-analyzer/scripts/analyze.py /home/claude/analyze.py
-
-# 第三步：执行分析，生成 HTML 报告
-python3 /home/claude/analyze.py --file /path/to/report.xlsx --out /mnt/user-data/outputs/data_report.html
+python3 -m venv /home/claude/.venv && source /home/claude/.venv/bin/activate
+pip install pandas openpyxl xlrd jinja2 scipy -q
 ```
 
-## 分析脚本说明
+## 模式选择决策树
 
-脚本位于 `scripts/analyze.py`，执行后自动完成以下步骤：
+```
+用户上传了 Excel/CSV？
+├── 是
+│   ├── 提到"诊断/体检/哪些要暂停/计划效果差" → 模式 B：账户诊断
+│   ├── 提到"日报/汇报/对比昨日" → 模式 D：日报生成
+│   ├── 提到"A/B 测试/显著性/哪个版本好" → 模式 C：A/B 测试
+│   └── 其他（看报表/分析数据/趋势） → 模式 A：通用分析
+└── 否
+    └── 用户直接描述两组数据（手工输入） → 模式 C：A/B 测试
+```
 
-1. **读取文件** — 自动识别 xlsx/xls/csv，自动尝试 utf-8/gbk 编码
-2. **识别列类型** — 自动区分日期列、维度列（文字）、指标列（数值），不预设列名
-3. **汇总指标** — 所有数值列的合计、均值、最大值、最小值
-4. **分组分析** — 按每个维度列分组汇总，自动排序
-5. **异常检测** — 均值 ±2 倍标准差自动标记异常行
-6. **生成交互式 HTML 报告** — 单个 HTML 文件，内嵌 ECharts，包含：
-   - 数据概览卡片（总行数、列数、日期范围等）
-   - 核心指标汇总卡片
-   - 异常检测结果
-   - 优化建议
-   - 可分页、可排序的数据表格（每页 20 行）
-   - ECharts 交互图表：指标总量柱状图、趋势折线图、维度占比饼图、维度对比横向柱状图、相关性热力图
-7. **输出建议** — 基于数据给出具体优化方向
+**不确定时优先询问用户，不要猜。**
 
-## 输出
+---
 
-单个 HTML 文件，浏览器直接打开即可查看，包含完整分析报告和交互图表。
+## 模式 A：通用数据分析
+
+**用途**：任意 Excel/CSV 都能用，自动识别列类型，生成交互式 HTML 报告。
+
+```bash
+python3 scripts/analyze.py --file <输入文件> --out /mnt/user-data/outputs/data_report.html
+```
+
+**输出**：包含数据概览、指标汇总、异常检测、可分页表格、5 个 ECharts 图表的 HTML。
+
+---
+
+## 模式 B：广告账户诊断器
+
+**用途**：分析广告投放报表，给每条计划打红/黄/绿预警，输出处置建议（暂停/降价/提价/观察）。
+
+```bash
+python3 scripts/diagnose.py --file <投放报表.xlsx> --out /mnt/user-data/outputs/diagnose_report.html
+```
+
+**诊断规则摘要**（完整说明见 `references/diagnose_rules.md`）：
+- 🔴 红色（立即处理）：消耗 > 均值 2 倍但转化为 0、CPA > 均值 3 倍、CTR < 均值 0.3 倍
+- 🟡 黄色（需优化）：CPA > 均值 1.5 倍、转化率 < 均值 0.5 倍
+- 🟢 绿色（健康）：指标正常或优于均值
+
+脚本自动识别常见列名（消耗/花费/cost、转化/conversion、点击/click、展示/impression 等），识别失败时提示用户手动指定。
+
+---
+
+## 模式 C：A/B 测试结果分析
+
+**用途**：判断两组数据差异是否显著，给出置信度和结论。
+
+两种场景：
+- **比例型**（CTR、转化率）→ Z 检验
+- **均值型**（CPC、CPA、ROI）→ T 检验
+
+**执行方式 1：手工输入数据**
+```bash
+python3 scripts/ab_test.py --inline \
+  --a-success 120 --a-total 2400 \
+  --b-success 150 --b-total 2500 \
+  --out /mnt/user-data/outputs/ab_result.html
+```
+
+**执行方式 2：从文件**
+```bash
+python3 scripts/ab_test.py --file <数据.xlsx> \
+  --group-col <分组列名> --metric-col <指标列名> \
+  --metric-type <rate|mean> \
+  --out /mnt/user-data/outputs/ab_result.html
+```
+
+详细用法和场景示例见 `references/ab_test_guide.md`。
+
+---
+
+## 模式 D：每日投放日报生成器
+
+**用途**：上传投放报表，生成结构化日报。输出钉钉/飞书可直接粘贴的纯文本版 + HTML 精美版。
+
+```bash
+# 单日报表
+python3 scripts/daily_report.py --today <今日.xlsx> --out-dir /mnt/user-data/outputs/
+
+# 带昨日对比（推荐）
+python3 scripts/daily_report.py --today <今日.xlsx> --yesterday <昨日.xlsx> --out-dir /mnt/user-data/outputs/
+```
+
+**输出两个文件**：
+- `daily_report.txt` — 纯文本，直接复制到钉钉/飞书/微信
+- `daily_report.html` — 精美 HTML 版，适合邮件附件或存档
+
+**日报结构**：核心指标卡片 + 环比涨跌 + TOP 3 最好/最差计划 + 异常提醒 + 明日建议。
+
+详见 `references/daily_report_format.md`。
+
+---
 
 ## Notes
 
-- 必须保存为 `.py` 文件执行，不支持 `python3 -c` 内联模式
-- 完全动态识别列名，表头是什么分析什么，一列不漏
-- 数据不外传，完全本地处理
-- 编码自动识别，兼容国内广告平台导出文件
-- 生成的 HTML 报告内嵌所有依赖（ECharts CDN），无需额外安装
-
-## Examples
-
-分析 Excel 报表：
-```bash
-python3 analyze.py --file ~/Downloads/report.xlsx --out /mnt/user-data/outputs/data_report.html
-```
-
-分析 CSV 数据：
-```bash
-python3 analyze.py --file ~/Downloads/data.csv --out /mnt/user-data/outputs/data_report.html
-```
+- 分析过程完全本地执行，不上传任何数据；生成的 HTML 报告在浏览器打开时会从 CDN (cdnjs.cloudflare.com) 加载 ECharts
+- 所有脚本必须保存为 `.py` 文件执行，不支持 `python3 -c` 内联
+- 列名完全动态识别，不预设字段名
+- 编码自动识别，兼容 UTF-8 / GBK / GB2312

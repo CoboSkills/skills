@@ -1,6 +1,6 @@
 ---
 name: greenhelix-signal-verification-network
-version: "1.3.0"
+version: "1.3.1"
 description: "Signal Verification Network: Cryptographic Proof for Trading Signals. Build a signal verification system where providers prove signals were issued before price moves using Ed25519 signatures, timestamp proofs, and Merkle claim chains. Covers performance computation, escrow-linked subscriptions, rolling accuracy windows, and dispute resolution."
 license: MIT
 compatibility: [openclaw]
@@ -12,6 +12,12 @@ content_type: markdown
 executable: false
 install: none
 credentials: [AGENT_SIGNING_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - AGENT_SIGNING_KEY
+    primaryEnv: AGENT_SIGNING_KEY
 ---
 # Signal Verification Network: Cryptographic Proof for Trading Signals
 

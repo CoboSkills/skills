@@ -1367,6 +1367,47 @@ def format_output(data: Dict, json_output: bool = False) -> str:
 # 主程序
 # ============================================================================
 
+def is_wechat_url(text: str) -> bool:
+    """检测是否为微信公众号链接"""
+    return 'mp.weixin.qq.com' in text and ('/s' in text or '/s?' in text)
+
+
+def fetch_wechat_url(url: str, json_output: bool = False) -> str:
+    """直接获取微信公众号文章内容"""
+    print(f"📱 直接解析微信链接: {url}")
+    
+    fetcher = WechatFetcher()
+    article = fetcher.fetch_article(url)
+    
+    if not article:
+        return "❌ 获取失败，可能链接已失效或被限制访问"
+    
+    if json_output:
+        result = asdict(article)
+        result['word_count'] = len(article.content)
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    
+    # 文本格式
+    lines = []
+    lines.append(f"\n{'='*70}")
+    lines.append(f"📱 微信公众号文章")
+    lines.append(f"{'='*70}")
+    lines.append(f"标题: {article.title}")
+    lines.append(f"公众号: {article.author}")
+    if article.publish_time:
+        lines.append(f"发布时间: {article.publish_time}")
+    lines.append(f"字数: {len(article.content)}")
+    lines.append(f"链接: {article.url}")
+    lines.append(f"\n{'-'*70}")
+    lines.append(f"正文内容:")
+    lines.append(f"{'-'*70}")
+    lines.append(article.content)
+    lines.append(f"\n{'='*70}")
+    lines.append(f"✅ 获取完成")
+    
+    return '\n'.join(lines)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='深度内容搜索工具 - 整合微信公众号和知乎内容抓取',
@@ -1405,10 +1446,13 @@ def main():
   
   # 指定公众号
   python3 deep_search.py "OpenClaw教程" --source wechat --account "软件小技"
+  
+  # 直接解析微信链接（自动检测）
+  python3 deep_search.py "https://mp.weixin.qq.com/s/xxx"
 """
     )
     
-    parser.add_argument('keyword', help='搜索关键词')
+    parser.add_argument('keyword', help='搜索关键词或微信链接')
     parser.add_argument('-s', '--source', 
                         choices=['wechat', 'zhihu', 'douban', 'toutiao', 'baijiahao', 'weibo', 'bilibili', 'all'], 
                         default='all', 
@@ -1421,6 +1465,19 @@ def main():
     
     args = parser.parse_args()
     
+    # 检测是否为微信链接
+    if is_wechat_url(args.keyword):
+        output = fetch_wechat_url(args.keyword, json_output=args.json)
+        
+        if args.output:
+            with open(args.output, 'w', encoding='utf-8') as f:
+                f.write(output)
+            print(f"\n✅ 已保存到: {args.output}")
+        else:
+            print(output)
+        return
+    
+    # 正常搜索流程
     print(f"🔍 深度搜索: {args.keyword}")
     print(f"   来源: {args.source} | 每平台条数: {args.limit}")
     

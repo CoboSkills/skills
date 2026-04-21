@@ -1,6 +1,6 @@
 ---
 name: deep-content-search
-description: 深度内容搜索工具 - 整合微信公众号、知乎、豆瓣、今日头条、百家号、微博、B站专栏等多平台内容抓取。支持获取微信公众号完整正文、知乎日报完整正文、豆瓣电影信息。默认每平台3条结果，可指定条数。当用户需要深度搜索、获取文章内容时使用此技能。
+description: 深度内容搜索工具 - 整合微信公众号、知乎、豆瓣、今日头条、百家号、微博、B站专栏等多平台内容抓取。支持获取微信公众号完整正文、知乎日报完整正文、豆瓣电影信息。支持直接解析微信链接获取全文。默认每平台3条结果，可指定条数。当用户需要深度搜索、获取文章内容或解析微信链接时使用此技能。
 metadata:
   {
     "openclaw":
@@ -58,6 +58,9 @@ python3 scripts/deep_search.py "大模型" --source toutiao
 python3 scripts/deep_search.py "AI" --source baijiahao
 python3 scripts/deep_search.py "OpenClaw" --source weibo
 python3 scripts/deep_search.py "教程" --source bilibili
+
+# 直接解析微信链接（自动检测）
+python3 scripts/deep_search.py "https://mp.weixin.qq.com/s?__biz=xxx&mid=xxx"
 
 # JSON输出
 python3 scripts/deep_search.py "OpenClaw" --json
@@ -176,6 +179,78 @@ python3 scripts/deep_search.py "教程" --source wechat --account "软件小技"
 
 ---
 
+## 微信链接直接解析 🔗
+
+### 功能说明
+
+支持直接输入微信公众号文章链接，获取完整标题和正文：
+
+```bash
+# 直接解析微信链接
+python3 scripts/deep_search.py "https://mp.weixin.qq.com/s?__biz=xxx&mid=xxx"
+
+# JSON格式输出
+python3 scripts/deep_search.py "https://mp.weixin.qq.com/s?__biz=xxx" --json
+
+# 保存到文件
+python3 scripts/deep_search.py "https://mp.weixin.qq.com/s?__biz=xxx" -o article.txt
+```
+
+### 输出格式
+
+**文本格式：**
+```
+======================================================================
+📱 微信公众号文章
+======================================================================
+标题: 文章标题
+公众号: 公众号名称
+发布时间: 2026-04-14
+字数: 5000
+链接: https://mp.weixin.qq.com/s?...
+
+----------------------------------------------------------------------
+正文内容:
+----------------------------------------------------------------------
+[完整正文内容]
+
+======================================================================
+✅ 获取完成
+```
+
+**JSON格式：**
+```json
+{
+  "platform": "wechat",
+  "title": "文章标题",
+  "author": "公众号名称",
+  "content": "完整正文...",
+  "url": "https://mp.weixin.qq.com/s?...",
+  "publish_time": "2026-04-14",
+  "word_count": 5000
+}
+```
+
+### 技术原理
+
+```
+检测微信链接 → 直接请求HTML → BeautifulSoup解析 → 提取标题/公众号/正文
+```
+
+解析目标元素：
+- `#activity-name` → 标题
+- `#js_name` → 公众号名称
+- `#publish_time` → 发布时间
+- `#js_content` → 正文内容
+
+### 注意事项
+
+- 链接必须是有效的微信文章链接（`mp.weixin.qq.com/s?...`）
+- 部分文章可能因访问限制无法获取
+- 获取的内容仅包含纯文本，图片和格式需另行处理
+
+---
+
 ## 内容完整性说明
 
 ### ✅ 可获取完整正文的平台
@@ -183,6 +258,7 @@ python3 scripts/deep_search.py "教程" --source wechat --account "软件小技"
 | 平台 | 字数 | 技术原理 |
 |------|------|----------|
 | 微信公众号 | 5000-10000字 | 搜狗微信搜索 → 提取真实微信链接 → 获取完整HTML正文 |
+| **微信链接直接解析** | 5000-10000字 | 直接请求微信链接 → 解析HTML获取标题+正文 |
 | 知乎日报 | 5000-10000字 | 知乎日报公开API（news-at.zhihu.com）直接返回完整正文 |
 | 豆瓣电影 | 电影信息 | 豆瓣电影API（movie.douban.com）返回标题+评分+链接 |
 

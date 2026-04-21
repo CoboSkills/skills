@@ -1,6 +1,6 @@
 ---
 name: greenhelix-protocol-wars-comparison
-version: "1.3.0"
+version: "1.3.1"
 description: "The Protocol Wars: Agent Commerce Protocol Comparison — x402, ACP, MCP, A2A and Beyond. Comprehensive comparison of 8+ competing agent commerce protocols (x402, ACP, AP2, MPP, TAP, UCP, MCP, A2A). Feature matrix, latency/cost benchmarks, migration paths, multi-protocol gateway pattern, and future-proofing strategies."
 license: MIT
 compatibility: [openclaw]
@@ -12,6 +12,14 @@ content_type: markdown
 executable: false
 install: none
 credentials: [WALLET_ADDRESS, AGENT_SIGNING_KEY, STRIPE_API_KEY]
+metadata:
+  openclaw:
+    requires:
+      env:
+        - WALLET_ADDRESS
+        - AGENT_SIGNING_KEY
+        - STRIPE_API_KEY
+    primaryEnv: WALLET_ADDRESS
 ---
 # The Protocol Wars: Agent Commerce Protocol Comparison — x402, ACP, MCP, A2A and Beyond
 

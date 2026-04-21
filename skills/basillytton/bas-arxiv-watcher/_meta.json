@@ -1,0 +1,11 @@
+{
+  "owner": "basillytton",
+  "slug": "bas-arxiv-watcher",
+  "displayName": "Arxiv Watcher",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776394142086,
+    "commit": null
+  },
+  "history": []
+}

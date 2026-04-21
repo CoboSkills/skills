@@ -25,8 +25,11 @@ SCHEDULE_HOUR = 9
 SCHEDULE_MINUTE = 0
 
 DEFAULT_LIST_BASENAME = "join_targets.txt"
-DELAY_BETWEEN_JOINS_SEC = 3.0
-MAX_JOINS_PER_RUN = 40
+MIN_DELAY_BETWEEN_JOINS_SEC = 30 * 60
+DELAY_BETWEEN_JOINS_SEC = float(os.environ.get("TG_JOIN_DELAY_SEC", str(MIN_DELAY_BETWEEN_JOINS_SEC)))
+MAX_JOINS_PER_RUN = int(os.environ.get("TG_MAX_JOINS_PER_RUN", "20"))
+MAX_ALLOWED_JOINS_PER_RUN = 20
+REQUIRE_PERSISTENT_JOIN_ENV = "TG_ENABLE_PERSISTENT_JOIN"
 
 
 def _seconds_until_next_schedule(hour=SCHEDULE_HOUR, minute=SCHEDULE_MINUTE) -> int:
@@ -192,7 +195,35 @@ async def run_join_round(client: TelegramClient, cfg: Config) -> dict[str, int]:
     return stats
 
 
+def _validate_join_limits() -> tuple[bool, str]:
+    if DELAY_BETWEEN_JOINS_SEC < MIN_DELAY_BETWEEN_JOINS_SEC:
+        return (
+            False,
+            f"❌ 已拒绝启动：TG_JOIN_DELAY_SEC 不能小于 {MIN_DELAY_BETWEEN_JOINS_SEC} 秒（30分钟）。",
+        )
+    if MAX_JOINS_PER_RUN > MAX_ALLOWED_JOINS_PER_RUN:
+        return (
+            False,
+            f"❌ 已拒绝启动：TG_MAX_JOINS_PER_RUN 不能大于 {MAX_ALLOWED_JOINS_PER_RUN}。",
+        )
+    if MAX_JOINS_PER_RUN <= 0:
+        return False, "❌ 已拒绝启动：TG_MAX_JOINS_PER_RUN 必须大于 0。"
+    return True, ""
+
+
 async def run_join_daemon(once: bool = False) -> None:
+    ok, reason = _validate_join_limits()
+    if not ok:
+        print(reason)
+        return
+
+    if not once and os.environ.get(REQUIRE_PERSISTENT_JOIN_ENV, "").strip().lower() != "true":
+        print(
+            "⚠️ 出于风控考虑，join 长驻模式默认关闭。"
+            f"如需开启，请显式设置 {REQUIRE_PERSISTENT_JOIN_ENV}=true 后重试。"
+        )
+        return
+
     cfg = load_config()
     client = build_client(cfg)
     await client.start()

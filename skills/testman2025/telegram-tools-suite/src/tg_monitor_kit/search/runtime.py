@@ -18,20 +18,11 @@ from telethon.tl.functions.contacts import SearchRequest
 from telethon.tl.types import Channel
 from openpyxl import Workbook
 
-from tg_monitor_kit.client import build_client
 from tg_monitor_kit.config import Config, load_config
 
 NOTIFY_TARGET = "me"
 
-DEFAULT_FIXED_KEYWORDS = [
-    "facebook ads",
-    "google ads",
-    "tiktok ads",
-    "facebook+ads",
-    "google+ads",
-    "tiktok+ads",
-    "出海+ads",
-]
+DEFAULT_FIXED_KEYWORDS = []
 
 DEFAULT_SEARCH_LIMIT = 40
 DEFAULT_ACTIVITY_SAMPLE = 200
@@ -423,12 +414,24 @@ async def run_search_daemon():
     _ensure_root(cfg)
     _load_search_settings(cfg)
 
-    original_session = cfg.session_file
-    temp_session = f"{original_session.rsplit('.', 1)[0]}_search_{uuid.uuid4().hex[:8]}.session"
+    original_session_base = cfg.session_file_base
+    original_session = f"{original_session_base}.session"
+    if not os.path.exists(original_session):
+        print(
+            f"❌ 未找到会话文件：{original_session}。\n"
+            "   请先执行登录（tg-monitor auth + tg-monitor login）后再运行 search。"
+        )
+        return
+    temp_session_base = f"{original_session_base}_search_{uuid.uuid4().hex[:8]}"
+    temp_session = f"{temp_session_base}.session"
     shutil.copy2(original_session, temp_session)
-    cfg.session_file = temp_session
 
-    client = build_client(cfg)
+    client = TelegramClient(
+        temp_session_base,
+        cfg.api_id,
+        cfg.api_hash,
+        proxy=cfg.proxy,
+    )
     await client.start()
     print("已连接 Telegram，进入每日定时搜索模式。")
     try:

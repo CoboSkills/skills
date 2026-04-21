@@ -11,7 +11,7 @@ Quick Start | 快速入口: Install with `pip install -e .`; CLI help `python -m
    - `pip install -e .` (Recommended, execute in project root directory) | `pip install -e .`（推荐，在项目根目录执行）
    - Or `pip install -r requirements.txt` then add `src` to `PYTHONPATH` (Not recommended) | 或 `pip install -r requirements.txt` 后把 `src` 加入 `PYTHONPATH`（不推荐）
 2. Copy `.env.example` to `.env`, fill in `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`; fill in `TELEGRAM_PHONE` as needed (for login). | 复制 `.env.example` 为 `.env`，填写 `TELEGRAM_API_ID`、`TELEGRAM_API_HASH`；按需填写 `TELEGRAM_PHONE`（登录用）。
-3. Session file: `tg_monitor_session.session` is generated in the project root directory by default (the name is determined by `TELEGRAM_SESSION_NAME`). **Do not** delete the in-use `.session` file that conflicts with the "Session File Description" below. | 会话文件：默认在项目根目录生成 `tg_monitor_session.session`（名称由 `TELEGRAM_SESSION_NAME` 决定）。**勿**与下文「会话文件说明」相冲突地删除正在使用的 `.session`。
+3. Session file: by default generated under `userdata/` in project root (name determined by `TELEGRAM_SESSION_NAME`). **Do not** delete the in-use `.session` file. | 会话文件：默认在项目根目录 `userdata/` 下生成（名称由 `TELEGRAM_SESSION_NAME` 决定）。**勿**删除正在使用的 `.session` 文件。
 
 ## First Run (Step by Step) | 首次运行步骤（必看）
 1. Install | 安装：
@@ -46,7 +46,7 @@ Execute in the project root directory (if `pip install -e .` is installed, you c
 |--------|--------|------|
 | `monitor` | Whitelist group keyword monitoring, hit notification, 18:00 daily Excel summary | 白名单群关键词监控、命中推送、每日 18:00 Excel 汇总 |
 | `search` | Keyword-based supergroup search, scheduled daily, export to configured directory | 关键词搜超级群、按配置定时、导出到可配置目录 |
-| `join` | Batch join groups from list file, repeat scheduled according to Beijing time (see next section); `--once` runs only one round | 从清单文件批量加群、按北京时间定时重复（见下节）；`--once` 只跑一轮 |
+| `join` | Batch join groups from list file; default is one-shot only. Persistent mode requires `TG_ENABLE_PERSISTENT_JOIN=true` | 从清单文件批量加群；默认仅单轮执行。长驻模式需设置 `TG_ENABLE_PERSISTENT_JOIN=true` |
 | `groups` | List joined groups/channels | 列出已加入群/频道 |
 | `members --group "group name"` | Group member list | 群成员列表 |
 | `history --group "group name" [--limit N]` | Recent messages | 最近消息 |
@@ -84,7 +84,7 @@ tg-monitor monitor
 
 ## Keyword Monitoring (monitor) — Feature Summary | 关键词监控（monitor）— 功能摘要
 - Listen to whitelist groups from `config/target_groups.txt` (or env `TG_TARGET_GROUPS_FILE`); monitor will not start when the list is empty. | 监听白名单群来自 `config/target_groups.txt`（或环境变量 `TG_TARGET_GROUPS_FILE`）；名单为空时监控不会启动。
-- Keyword rules combine built-in `KEYWORD_RULES` with custom words from `config/keywords.txt` (or env `TG_KEYWORDS_FILE`); `SPAM_SKIP_PATTERNS` filters some spam templates. | 关键词规则由内置 `KEYWORD_RULES` 与 `config/keywords.txt`（或环境变量 `TG_KEYWORDS_FILE`）合并构成；`SPAM_SKIP_PATTERNS` 过滤部分垃圾模板。
+- Keyword rules are loaded from `config/monitor_regex_rules.json` (or env `TG_MONITOR_REGEX_RULES_FILE`), and plain keywords are loaded from `config/keywords.txt` (or env `TG_KEYWORDS_FILE`); `SPAM_SKIP_PATTERNS` filters some spam templates. | 正则规则从 `config/monitor_regex_rules.json`（或环境变量 `TG_MONITOR_REGEX_RULES_FILE`）读取，普通关键词从 `config/keywords.txt`（或环境变量 `TG_KEYWORDS_FILE`）读取；`SPAM_SKIP_PATTERNS` 过滤部分垃圾模板。
 - Print to console after hit, and push to `NOTIFY_TARGET` (default `me`). | 命中后控制台打印，并向 `NOTIFY_TARGET`（默认 `me`）推送。
 - Export `daily_excel_summary/YYYY-MM-DD_监控汇总.xlsx` at 18:00 Beijing time daily (relative to **project root**). | 每日北京时间 18:00 导出 `daily_excel_summary/YYYY-MM-DD_监控汇总.xlsx`（相对**项目根**）。
 
@@ -114,6 +114,16 @@ tg-monitor monitor
 
 ## Batch Group Joining (join) — Feature Summary | 批量加群（join）— 功能摘要
 - Place the list file **`join_targets.txt`** in the project root (or specify the absolute path or path relative to the project root through the environment variable **`TG_JOIN_LIST_FILE`**), one target per line: public group `@username` / `username`, `https://t.me/username`, `https://t.me/+invitation hash`, `https://t.me/joinchat/...`, etc. Empty lines and lines starting with `#` are ignored; duplicate targets are deduplicated. | 在项目根放置清单文件 **`join_targets.txt`**（或通过环境变量 **`TG_JOIN_LIST_FILE`** 指定绝对路径或相对项目根的路径），每行一个目标：公开群 `@username` / `username`、`https://t.me/username`、`https://t.me/+邀请哈希`、`https://t.me/joinchat/...` 等。空行与 `#` 开头行忽略；同一目标会去重。
-- Behavior and parameters are configured in `src/tg_monitor_kit/join/runtime.py`: `SCHEDULE_HOUR` / `SCHEDULE_MINUTE` (default 09:00 Beijing time), `RUN_ON_STARTUP`, `DELAY_BETWEEN_JOINS_SEC`, `MAX_JOINS_PER_RUN`. | 行为与参数在 `src/tg_monitor_kit/join/runtime.py` 中配置：`SCHEDULE_HOUR` / `SCHEDULE_MINUTE`（默认北京时间 09:00）、`RUN_ON_STARTUP`、`DELAY_BETWEEN_JOINS_SEC`、`MAX_JOINS_PER_RUN`。
+- Persistent mode is disabled by default. Set `TG_ENABLE_PERSISTENT_JOIN=true` to enable scheduled looping. | 长驻模式默认关闭。需显式设置 `TG_ENABLE_PERSISTENT_JOIN=true` 才会按计划循环执行。
+- Hard limits: join interval must be >= 30 minutes, and joins per round must be <= 20; startup is rejected when violated. | 硬限制：加群间隔必须 >= 30 分钟，且每轮加群数 <= 20；超限会拒绝启动。
 - After each round, push success/already in group/failure statistics to favorites (`NOTIFY_TARGET = me`). It will automatically wait and retry when encountering `FloodWait`. | 每轮结束后向收藏夹（`NOTIFY_TARGET = me`）推送成功/已在群/失败统计。遇 `FloodWait` 会自动等待后重试。
 - **Risk Control**: Batch joining groups may trigger Telegram rate limiting or violate terms of service, please control the list content and frequency by yourself; invalid invitation links, requiring administrator review, full group capacity, etc. will be recorded as failures. | **风控**：批量加群
+
+## High-Risk Safeguards | 高风险能力保护
+- `join` 默认仅允许单轮模式（`--once`）；长驻模式需设置 `TG_ENABLE_PERSISTENT_JOIN=true`。 | `join` is one-shot by default; persistent mode requires `TG_ENABLE_PERSISTENT_JOIN=true`.
+- `scheduled_send.py` 需要先设置 `TG_RISK_ACK=I_UNDERSTAND`，否则拒绝发送。 | `scheduled_send.py` requires `TG_RISK_ACK=I_UNDERSTAND` before sending.
+- `scheduled_send.py` 发送间隔必须 >= 30 分钟，且单次最多 20 个任务。 | `scheduled_send.py` enforces >=30 minutes interval and max 20 tasks.
+
+## Stop Long-Running Tasks | 如何停止长驻任务
+- 前台运行：按 `Ctrl+C`。 | Foreground run: press `Ctrl+C`.
+- 后台运行：结束对应 Python 进程。 | Background run: terminate the corresponding Python process.

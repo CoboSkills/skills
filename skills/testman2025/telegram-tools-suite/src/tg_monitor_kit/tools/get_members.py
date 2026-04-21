@@ -7,6 +7,14 @@ from tg_monitor_kit.client import build_client
 from tg_monitor_kit.config import load_config
 
 
+def _mask_phone(phone: str | None) -> str:
+    if not phone:
+        return "无公开手机号"
+    if len(phone) <= 4:
+        return "*" * len(phone)
+    return f"{phone[:2]}***{phone[-2:]}"
+
+
 async def run(target_group: str) -> None:
     cfg = load_config()
     client: TelegramClient = build_client(cfg)
@@ -29,7 +37,7 @@ async def run(target_group: str) -> None:
             last_name = participant.last_name or ""
             full_name = f"{first_name} {last_name}".strip()
             username = f"@{participant.username}" if participant.username else "无用户名"
-            phone = participant.phone if participant.phone else "无公开手机号"
+            phone = _mask_phone(participant.phone)
             is_bot = "🤖 机器人" if participant.bot else "👤 普通用户"
             members.append(f"ID: {user_id} | 昵称: {full_name} | {username} | 手机号: {phone} | 类型: {is_bot}")
     print(f"群成员总数：{len(members)}人\n")

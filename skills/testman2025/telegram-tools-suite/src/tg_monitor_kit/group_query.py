@@ -3,19 +3,25 @@ import os
 from .client import build_client
 from .config import load_config, Config
 
-CACHE_FILE = os.path.join(os.path.dirname(__file__), "../../my_telegram_groups.json")
+
+def _cache_file(cfg: Config) -> str:
+    """Store cache under userdata to avoid accidental repo-root commits."""
+    return os.path.join(cfg.project_root, "userdata", "my_telegram_groups.json")
 
 def get_all_joined_groups(refresh: bool = False) -> list:
     """
     获取当前登录用户所有已加入的群和频道
     :param refresh: 是否强制刷新缓存，默认False优先读本地缓存
     """
-    # 优先读缓存
-    if not refresh and os.path.exists(CACHE_FILE):
-        with open(CACHE_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    
     cfg = load_config()
+    cache_file = _cache_file(cfg)
+    os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+
+    # 优先读缓存
+    if not refresh and os.path.exists(cache_file):
+        with open(cache_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+
     client = build_client(cfg)
     
     groups = []
@@ -32,7 +38,7 @@ def get_all_joined_groups(refresh: bool = False) -> list:
                 })
     
     # 保存到缓存
-    with open(CACHE_FILE, "w", encoding="utf-8") as f:
+    with open(cache_file, "w", encoding="utf-8") as f:
         json.dump(groups, f, ensure_ascii=False, indent=2)
     
     return groups
@@ -48,4 +54,6 @@ def print_group_list(groups: list = None):
         username = f"(@{group['username']})" if group['username'] else "(私有群)"
         print(f"{idx:3d}. {group['name']:<40} {username:<20} ID: {group['id']} | 类型: {group['type']}")
     print("-" * 80)
-    print(f"💾 群列表已缓存到 {os.path.abspath(CACHE_FILE)}")
+    cfg = load_config()
+    cache_file = _cache_file(cfg)
+    print(f"💾 群列表已缓存到 {os.path.abspath(cache_file)}")

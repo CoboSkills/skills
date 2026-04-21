@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import re
 import sqlite3
@@ -16,34 +17,8 @@ from tg_monitor_kit.client import build_client
 from tg_monitor_kit.config import find_project_root, load_config
 
 DEFAULT_TARGET_GROUP_NAMES = []
-_PLATFORM_AD = (
-    r'(?:\b(?:facebook|google|tiktok|meta)\s+ads\b|\badvertisement\b|'
-    r'(?:谷歌|Google|脸书|Facebook|Meta|TikTok|抖音)\s*广告)'
-)
-KEYWORD_RULES = [
-    ('vcc', re.compile(r'\bvcc\b', re.I)),
-    ('虚拟卡', re.compile(r'虚拟卡|虚拟\s*信用卡')),
-    ('绑卡', re.compile(r'绑卡|绑\s*卡')),
-    ('开卡', re.compile(r'(?<![不没])(?:开卡|开\s*卡)')),
-    ('绑定', re.compile(r'(?<!不)绑定')),
-    ('bin', re.compile(r'\bbin\b', re.I)),
-    (
-        '绑定/绑卡+广告平台',
-        re.compile(rf'(?is)(?=.*(?:绑定|绑\s*卡))(?=.*{_PLATFORM_AD})'),
-    ),
-    (
-        '开卡+广告平台',
-        re.compile(rf'(?is)(?=.*(?<![不没])(?:开卡|开\s*卡))(?=.*{_PLATFORM_AD})'),
-    ),
-    (
-        'vcc+广告平台',
-        re.compile(rf'(?is)(?=.*\bvcc\b)(?=.*{_PLATFORM_AD})'),
-    ),
-    (
-        '虚拟卡+广告平台',
-        re.compile(rf'(?is)(?=.*(?:虚拟卡|虚拟\s*信用卡))(?=.*{_PLATFORM_AD})'),
-    ),
-]
+DEFAULT_KEYWORD_RULES = []
+DEFAULT_PLATFORM_AD = ''
 
 
 def _read_non_comment_lines(path: Path):
@@ -77,18 +52,50 @@ def _build_runtime_settings():
         keyword_file = Path(keyword_file_raw).expanduser()
         if not keyword_file.is_absolute():
             keyword_file = project_root / keyword_file
+    # 加载内置正则规则配置
+    regex_rule_file_raw = os.environ.get('TG_MONITOR_REGEX_RULES_FILE', '').strip()
+    if not regex_rule_file_raw:
+        regex_rule_file = project_root / 'config' / 'monitor_regex_rules.json'
+    else:
+        regex_rule_file = Path(regex_rule_file_raw).expanduser()
+        if not regex_rule_file.is_absolute():
+            regex_rule_file = project_root / regex_rule_file
+
+    builtin_rules = []
+    platform_ad = DEFAULT_PLATFORM_AD
+    if regex_rule_file.is_file():
+        try:
+            with open(regex_rule_file, 'r', encoding='utf-8') as f:
+                rule_config = json.load(f)
+                platform_ad = rule_config.get('_PLATFORM_AD', DEFAULT_PLATFORM_AD)
+                for rule_item in rule_config.get('rules', []):
+                    if len(rule_item) >= 2:
+                        name, pattern = rule_item[0], rule_item[1]
+                        flags = 0
+                        if len(rule_item) >=3:
+                            flag_str = rule_item[2].lower()
+                            if 'i' in flag_str:
+                                flags |= re.I
+                            if 's' in flag_str:
+                                flags |= re.S
+                        # 替换pattern里的{_PLATFORM_AD}变量
+                        pattern = pattern.format(_PLATFORM_AD=platform_ad)
+                        builtin_rules.append((name, re.compile(pattern, flags)))
+        except Exception as e:
+            print(f"加载正则规则配置文件失败: {e}, 使用默认空规则")
+
     dynamic_keywords = _read_non_comment_lines(keyword_file)
     dynamic_rules = [
         (kw, re.compile(re.escape(kw), re.I))
         for kw in dynamic_keywords
     ]
-    keyword_rules = list(KEYWORD_RULES) + dynamic_rules
+    keyword_rules = builtin_rules + dynamic_rules
     normalized_target_groups = {name.replace('\ufe0f', '').strip() for name in target_group_names}
     return target_group_names, keyword_rules, normalized_target_groups
 
 
 TARGET_GROUP_NAMES = list(DEFAULT_TARGET_GROUP_NAMES)
-RUNTIME_KEYWORD_RULES = list(KEYWORD_RULES)
+RUNTIME_KEYWORD_RULES = list(DEFAULT_KEYWORD_RULES)
 NORMALIZED_TARGET_GROUPS = {name.replace('\ufe0f', '').strip() for name in TARGET_GROUP_NAMES}
 
 

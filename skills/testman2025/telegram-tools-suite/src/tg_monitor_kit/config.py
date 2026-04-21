@@ -50,7 +50,9 @@ class Config:
     @property
     def session_file_base(self) -> str:
         """Path prefix for Telethon session (no .session suffix)."""
-        return str(self.project_root / self.session_name)
+        session_dir = self.project_root / "userdata"
+        session_dir.mkdir(parents=True, exist_ok=True)
+        return str(session_dir / self.session_name)
 
     def web_output_dir(self) -> Path:
         return get_web_output_dir()

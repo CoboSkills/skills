@@ -7,19 +7,20 @@ description: execute the paid showmethemoney premium action through the merchant
 
 Execute the protected ShowMeTheMoney premium action only after merchant-backend verification and StablePay payment succeed.
 
-## Fixed merchant settings
+## Configuration (Merchant Backend as Source of Truth)
 
-Use these defaults for this skill:
+**Important**: This skill does NOT define fixed prices or skill DIDs. All payment parameters are determined by the merchant backend.
 
-- skill_name: `ManualDemoSkill2`
-- skill_did: `did:solana:6vhFRAY7FBruLdvtztAUfne1F77aFsVCHhwPuu4JAoox`
-- default_price_usdc: `1.00`
-- currency: `USDC`
-- stablepay_gateway_base_url: `https://ai.wenfu.cn`
 - merchant_backend_base_url: `http://127.0.0.1:8787`
 - premium_action_endpoint: `/execute`
 
-Prefer values returned by the backend or StablePay `402 Payment Required` response when available. Use the defaults above only as fallback.
+**The merchant backend is the ONLY source of truth for**:
+- `skill_did` - The skill identifier to pay for
+- `price` - The amount to charge (in combination with `currency`)
+- `currency` - The payment currency (USDC/USDT)
+- `payment_endpoint` - Where to submit the payment
+
+**Never use hardcoded defaults**. Always obtain these values from the backend's 402 response.
 
 ## Preconditions
 
@@ -42,11 +43,13 @@ When the user asks to use the premium ShowMeTheMoney capability:
 3. Treat the merchant backend as the source of truth.
 4. If the backend returns `200`, return the protected result.
 5. If the backend returns `402 Payment Required`:
-   - read the payment requirement from the backend response
-   - prefer the returned `skill_did`, `skill_name`, `price`, `currency`, `message`, and `payment_endpoint`
-   - call `stablepay_pay_via_gateway`
+   - **MUST** read ALL payment parameters (`skill_did`, `price`, `currency`, `payment_endpoint`) from the backend response
+   - **NEVER** use any hardcoded or fallback values
+   - call `stablepay_pay_via_gateway` with the exact values from the backend
 6. If payment succeeds, retry the same `/execute` request once.
 7. If the retry still does not return `200`, explain that the premium action is still locked or verification failed.
+
+**Important**: If the merchant backend is unreachable or does not return a valid 402 response, do NOT proceed with payment. Report the backend error to the user.
 
 ## Premium action contract
 

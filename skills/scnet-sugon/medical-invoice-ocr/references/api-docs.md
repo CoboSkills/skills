@@ -32,7 +32,6 @@
                     "cutIndex": 0,
                     "coordinate": [],
                     "classifyCode": "MEDICAL_INVOICE",
-                    "confidence": 0.995,
                     "elements": {
                       "title": "内蒙古自治区医疗门诊收费票据(电子)",
                       "invoiceCode": "11223344",

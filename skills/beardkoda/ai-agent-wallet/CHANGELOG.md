@@ -2,23 +2,50 @@
 
 All notable changes to `agent-wallet-skills` are documented here.
 
+## [v1.2.4] - 2026-04-14
+
+### Security
+- Enforced double-confirmation for mainnet sends in `scripts/send.js`:
+  - requires `--confirm=true`
+  - requires `--confirmMainnet=true` when chain is recognized as mainnet
+- Improved native amount validation with explicit parse failure handling.
+- Aligned skill frontmatter with implementation by setting `security.reads_env_secrets: true` for `WALLET_SECRET_KEY`.
+
+## [v1.2.3] - 2026-04-14
+
+### Added
+- Added dual transfer support to `scripts/send.js`:
+  - native coin sends via `sendTransaction`
+  - ERC-20 token sends via `transfer` when `--tokenAddress` is provided
+- Added token metadata controls for send flow: optional `--decimals` and `--symbol`.
+
+### Changed
+- Updated `SKILL.md` routing and send workflow documentation for native + token transfer modes.
+
+## [v1.2.2] - 2026-04-14
+
+### Added
+- Added a new message-signing executable:
+  - `node scripts/sign-messages.js --message="hello from wallet"`
+- Expanded skill routing and workflow documentation to include the `sign` action and usage guidance.
+
 ## [v1.1.3] - 2026-04-13
 
 ### Changed
 - Hardened local-wallet examples to align with file-based config and reduce security scanner false positives:
-  - replaced remaining `process.env` usage in `send` and `balance` examples with `wallet/config.json` + `wallet/siger.json` reads
+  - replaced remaining `process.env` usage in `send` and `balance` examples with `wallet/config.json` + `wallet/signer.json` reads
   - updated generate examples to persist encrypted signer fields (`encryptedSeedPhrase` / `encryptedPrivateKey`) instead of raw secret fields
 - Clarified runtime requirement for secure helper functions (`encryptSecret` / `decryptSecret`) backed by a key manager or OS keychain.
 
 ### Security
 - Removed mixed env/file secret patterns from examples that can trigger suspicious-pattern scans.
-- Explicitly reinforced no-plaintext signer secret storage in `wallet/siger.json`.
+- Explicitly reinforced no-plaintext signer secret storage in `wallet/signer.json`.
 
 ## [v1.1.2] - 2026-04-13
 
 ### Changed
 - Switched local wallet source-of-truth files from workspace paths to wallet paths:
-  - signer details now come from `wallet/siger.json`
+  - signer details now come from `wallet/signer.json`
   - network defaults now come from `wallet/config.json`
 - Updated `generate`, `send`, `balance`, and local router docs to require file-based config/wallet flows instead of env-based signer/RPC usage.
 - Added explicit default-network precheck before any wallet action (`generate`, `balance`, `send`):

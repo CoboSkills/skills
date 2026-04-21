@@ -1,7 +1,7 @@
 ---
 name: agent-wallet
-version: 1.2.1
-description: Single-source wallet skill for generate, import, get-balance, and send flows using local wallet files plus executable Node scripts. Use when the user asks for wallet creation, recovery, balance checks, or transaction sending.
+version: 1.2.4
+description: Single-source wallet skill for generate, import, get-balance, sign, and send flows using local wallet files plus executable Node scripts. Use when the user asks for wallet creation, recovery, balance checks, message signing, or transaction sending.
 dependencies:
   - viem
 runtime:
@@ -11,7 +11,7 @@ required_env:
 optional_env:
   []
 security:
-  reads_env_secrets: false
+  reads_env_secrets: true
   writes_secrets: true
   requires_confirmation:
     - before overwriting existing wallet/signer.json
@@ -43,18 +43,22 @@ Run these scripts from `agent-wallet-skills` for each action:
 - `generate-wallet`: `node scripts/generate-wallet.js --method=<private-key|seed-phrase> [--overwrite=true]`
 - `import-wallet`: `node scripts/import-wallet.js --seedPhrase="<words>" [--overwrite=true]` or `--privateKey=0x...`
 - `get-balance`: `node scripts/get-balance.js --address=0x... [--tokenAddress=0x...] [--decimals=18] [--symbol=TOKEN]`
-- `send`: `node scripts/send.js --to=0x... --amount=<native-amount> --confirm=true`
+- `sign-messages`: `node scripts/sign-messages.js --message="hello from wallet"`
+- `send` (native): `node scripts/send.js --to=0x... --amount=<native-amount> --confirm=true [--confirmMainnet=true]`
+- `send` (token): `node scripts/send.js --to=0x... --amount=<token-amount> --tokenAddress=0x... [--decimals=18] [--symbol=TOKEN] --confirm=true [--confirmMainnet=true]`
 
 Notes:
 - Wallet material is stored in `wallet/signer.json` as encrypted fields only.
 - Default network is loaded from `wallet/config.json` with shape `[{ rpc_url, chain_id, current }]`.
 - `send.js` requires explicit `--confirm=true`.
+- Mainnet broadcasts require an additional `--confirmMainnet=true`.
 
 ## Routing Logic
 
 1. Identify user intent:
    - create/recover/import wallet -> `generate-wallet` or `import-wallet`
    - check native/token balance -> `get-balance`
+   - sign arbitrary payload/message -> `sign-messages`
    - transfer/broadcast transaction -> `send`
 2. Precheck `wallet/config.json` for read/write chain operations (`get-balance`, `send`, and any network-aware generation flow):
    - require array format `[{ rpc_url, chain_id, current }]`
@@ -65,7 +69,9 @@ Notes:
    - `generate-wallet` -> `node scripts/generate-wallet.js --method=<private-key|seed-phrase>`
    - `import-wallet` -> `node scripts/import-wallet.js --seedPhrase="<words>"` or `--privateKey=0x...`
    - `get-balance` -> `node scripts/get-balance.js --address=0x... [--tokenAddress=0x...]`
-   - `send` -> `node scripts/send.js --to=0x... --amount=<native-amount> --confirm=true`
+   - `sign-messages` -> `node scripts/sign-messages.js --message="hello from wallet"`
+   - `send` (native) -> `node scripts/send.js --to=0x... --amount=<native-amount> --confirm=true [--confirmMainnet=true]`
+   - `send` (token) -> `node scripts/send.js --to=0x... --amount=<token-amount> --tokenAddress=0x... [--decimals=18] [--symbol=TOKEN] --confirm=true [--confirmMainnet=true]`
 4. If `wallet/signer.json` already exists and user asks to regenerate/import over it, require explicit confirmation first.
 5. If intent is unclear, ask one focused question:
    - "Do you want to generate/import a wallet, check balance, or send a transaction?"
@@ -116,17 +122,32 @@ Rules:
 
 Inputs:
 - `--to` recipient (required)
-- `--amount` native amount (required)
+- `--amount` amount to transfer (required)
+- `--tokenAddress` (optional for ERC-20 mode)
+- optional `--decimals` and `--symbol` (token mode only)
 - `--confirm=true` (required to broadcast)
+- `--confirmMainnet=true` (required on mainnet chain IDs)
 
 Rules:
 - Load signer from `wallet/signer.json` (`seed_phrase` or `private_key`).
 - Decrypt signer material with `WALLET_SECRET_KEY` before deriving account.
 - Require valid current network in `wallet/config.json`.
-- Validate recipient address and positive amount.
-- Precheck sender balance before send.
-- Require explicit broadcast confirmation; require double confirmation for mainnet.
-- Return tx hash on success.
+- Validate recipient address, `tokenAddress` (when provided), and positive amount.
+- Native mode: precheck native balance and send via value transfer.
+- Token mode: resolve token decimals/symbol, precheck `balanceOf`, then call ERC-20 `transfer`.
+- Require explicit broadcast confirmation; require double confirmation for mainnet (`--confirmMainnet=true`).
+- Return tx hash on success, and include transfer mode (`native` or `token`).
+
+## Sign Workflow
+
+Inputs:
+- `--message` (required)
+
+Rules:
+- Load signer from `wallet/signer.json` (`seed_phrase` or `private_key`).
+- Decrypt signer material with `WALLET_SECRET_KEY` before deriving account.
+- Require non-empty message content.
+- Return deterministic signature and signer address; do not broadcast or require chain config.
 
 ## Shared Safety Rules
 
@@ -158,7 +179,7 @@ Before finishing:
 
 Return this structure across all actions:
 
-- `action`: `generate` | `import` | `balance` | `send`
+- `action`: `generate` | `import` | `balance` | `sign` | `send`
 - `chain`: chain id/name used, or `none` for offline-only generation/import
 - `address`: active wallet or queried address
 - `txHash`: transaction hash when available, else `null`

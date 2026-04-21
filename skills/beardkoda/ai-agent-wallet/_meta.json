@@ -3,9 +3,15 @@
   "slug": "ai-agent-wallet",
   "displayName": "Agent-Wallet",
   "latest": {
-    "version": "1.2.1",
-    "publishedAt": 1776128677901,
-    "commit": "https://github.com/openclaw/skills/commit/e9f38b27c7d843ab18156bc878fb078242cb3178"
+    "version": "1.2.4",
+    "publishedAt": 1776205644974,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.2.1",
+      "publishedAt": 1776128677901,
+      "commit": "https://github.com/openclaw/skills/commit/e9f38b27c7d843ab18156bc878fb078242cb3178"
+    }
+  ]
 }

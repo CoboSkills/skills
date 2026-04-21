@@ -32,7 +32,7 @@ If the user did not provide a topic, ask for one.
    - If the `twitter-humanizer` skill is available, use it to turn the notes into 2 or 3 short candidate tweets in the user's voice.
    - Pick one final tweet. Do not copy wording from source posts.
    - If the topic is time-sensitive, make sure the draft names the right product, company, or date.
-3. Open X only after the draft is ready using the openclaw managed chrome.
+3. Run `openclaw browser start` to open the openclaw managed browser only after the draft is ready. CRITICAL NON-NEGOTIABLE: always use this command. Never open a browser any other way. Then navigate to X.
 4. Do a brief context pass on X.
    - Land on the home feed and select the **For You** tab.
    - CRITICAL NON-NEGOTIABLE: always use the For You tab. Never use Following or any other tab.

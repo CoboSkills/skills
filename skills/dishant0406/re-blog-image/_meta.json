@@ -3,9 +3,15 @@
   "slug": "re-blog-image",
   "displayName": "Re Blog Image",
   "latest": {
-    "version": "1.0.9",
-    "publishedAt": 1776026192472,
-    "commit": "https://github.com/openclaw/skills/commit/6291a1b75f5fb531f2171ddbaa8c7e5117cbef2b"
+    "version": "1.1.1",
+    "publishedAt": 1776316151739,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.9",
+      "publishedAt": 1776026192472,
+      "commit": "https://github.com/openclaw/skills/commit/6291a1b75f5fb531f2171ddbaa8c7e5117cbef2b"
+    }
+  ]
 }

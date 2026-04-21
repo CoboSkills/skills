@@ -33,7 +33,8 @@ Prepare a Chrome extension repo for release with less metadata drift:
 2. Scan tracked files for obvious publish leaks.
    - `python3 {baseDir}/scripts/scan_publish_surface.py --root <repo> --json-out <json> --markdown-out <md>`
 3. Generate launch metadata.
-   - `python3 {baseDir}/scripts/generate_launch_manifest.py --repo-root <repo> --owner <github-owner> --out <json>`
+   - `python3 {baseDir}/scripts/generate_launch_manifest.py --repo-root <repo> --owner <github-owner> --public-site-base <https://public-site.example/> --out <json>`
+   - If you already export `CWS_PUBLIC_SITE_BASE`, you can omit `--public-site-base` and the script will reuse that public reviewer-facing base.
 4. Render publish commands.
    - `python3 {baseDir}/scripts/render_publish_commands.py --manifest <json> --out <md>`
 
@@ -42,6 +43,7 @@ Prepare a Chrome extension repo for release with less metadata drift:
 - Operate on the repo path the user named, not on arbitrary sibling directories.
 - Do not publish when the leak scan has unresolved findings.
 - Keep GitHub topics and ClawHub tags explicit in the generated manifest.
+- Use a dedicated public site base for support, privacy-policy, and reviewer-instructions links when the extension has one.
 - Do not assume generated artifacts should be committed.
 
 ## Bundled Scripts

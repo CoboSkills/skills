@@ -1,11 +1,17 @@
 {
   "owner": "vccv2rndrv-cyber",
   "slug": "fortune-daily",
-  "displayName": "运势日报",
+  "displayName": "Fortune Daily",
   "latest": {
-    "version": "2.0.1",
-    "publishedAt": 1776051342735,
-    "commit": "https://github.com/openclaw/skills/commit/8894b683c05b904c16d2551c6fdf0f4b69cbbdf3"
+    "version": "1.0.1",
+    "publishedAt": 1776611286996,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.1",
+      "publishedAt": 1776051342735,
+      "commit": "https://github.com/openclaw/skills/commit/8894b683c05b904c16d2551c6fdf0f4b69cbbdf3"
+    }
+  ]
 }

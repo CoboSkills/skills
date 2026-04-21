@@ -61,11 +61,11 @@ def _urlopen(url, timeout=10):
         ctx = ssl.create_default_context()
         return urllib.request.urlopen(url, timeout=timeout, context=ctx)
     except (ssl.SSLError, ssl.SSLCertVerificationError):
-        ctx = ssl._create_unverified_context()
+        ctx = ssl.create_default_context()
         return urllib.request.urlopen(url, timeout=timeout, context=ctx)
     except urllib.error.URLError as e:
         if "SSL" in str(e.reason) or "certificate" in str(e.reason).lower():
-            ctx = ssl._create_unverified_context()
+            ctx = ssl.create_default_context()
             return urllib.request.urlopen(url, timeout=timeout, context=ctx)
         raise
 

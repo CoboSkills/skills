@@ -3,9 +3,15 @@
   "slug": "unclecheng-ai-animation",
   "displayName": "Generate HTML animation from content",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1775993304157,
-    "commit": "https://github.com/openclaw/skills/commit/b81ae063bf0f0b6c01f29189fad81535b279d374"
+    "version": "1.0.2",
+    "publishedAt": 1776253751528,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1775993304157,
+      "commit": "https://github.com/openclaw/skills/commit/b81ae063bf0f0b6c01f29189fad81535b279d374"
+    }
+  ]
 }

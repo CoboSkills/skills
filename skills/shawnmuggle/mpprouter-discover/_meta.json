@@ -3,9 +3,15 @@
   "slug": "mpprouter-discover",
   "displayName": "MPP Router — Service Discovery",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776182805854,
-    "commit": "https://github.com/openclaw/skills/commit/0cd9a34d74a9f375f21c776c11d0c9b55e9de6ea"
+    "version": "1.0.2",
+    "publishedAt": 1776225132496,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776182805854,
+      "commit": "https://github.com/openclaw/skills/commit/0cd9a34d74a9f375f21c776c11d0c9b55e9de6ea"
+    }
+  ]
 }

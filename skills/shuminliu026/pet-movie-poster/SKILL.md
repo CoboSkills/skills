@@ -1,6 +1,6 @@
 ---
 name: pet-movie-poster
-description: Say "Help me install the ClawHub skill pet-movie-poster" to your local agent, then turn pet photos into cinematic character posters.
+description: Say "Help me install this skill from https://clawhub.ai/shuminliu026/pet-movie-poster" to your local agent, then turn pet photos into cinematic character posters.
 ---
 
 # Pet Movie Poster

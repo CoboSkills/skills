@@ -3,9 +3,15 @@
   "slug": "compound-eng-rust-systems",
   "displayName": "rust-systems",
   "latest": {
-    "version": "2.56.0",
-    "publishedAt": 1776170450532,
-    "commit": "https://github.com/openclaw/skills/commit/162aa9799e81e41b6b49bf5785b6f226cb95cfef"
+    "version": "2.56.1",
+    "publishedAt": 1776519041927,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.56.0",
+      "publishedAt": 1776170450532,
+      "commit": "https://github.com/openclaw/skills/commit/162aa9799e81e41b6b49bf5785b6f226cb95cfef"
+    }
+  ]
 }

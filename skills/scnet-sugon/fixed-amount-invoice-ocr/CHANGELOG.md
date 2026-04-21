@@ -13,3 +13,22 @@
 
 ### 优化
 - update channelTag
+
+## [1.0.2] - 2025-04-15
+
+### 优化
+- update ClawHub 的安全扫描
+
+## [1.0.3] - 2025-04-16
+
+### 优化
+- update ClawHub 的安全扫描V1
+
+## [1.0.4] - 2025-04-16
+
+### 修复
+- 修正 skill.yaml 中的 homepage 为可验证地址
+- 替换 README 为简洁版本，移除内部 GitLab 链接
+- 删除 SKILL.md 中误导性的身份证/通用OCR示例
+- 增加隐私安全警告
+- 保留 API 返回的 confidence 字段

@@ -8,8 +8,12 @@ import urllib.request
 import urllib.parse
 import json
 import sys
+import io
 import argparse
 from datetime import datetime
+
+sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # ============================================================
 # 天气代码 -> 中文描述
@@ -57,7 +61,7 @@ AQI_LEVELS = [
     (51, 100, '良', '🙂'),
     (101, 150, '轻度污染', '😐'),
     (151, 200, '中度污染', '😷'),
-    (201, 300, '重污染', '😱'),
+    (201, 300, '重度污染', '😱'),
     (301, 999, '严重污染', '💀'),
 ]
 
@@ -552,47 +556,74 @@ def parse_location(location):
     return None, None, None
 
 
-def fetch_weather(location):
-    """从wttr.in获取天气数据"""
-    encoded = urllib.parse.quote(location)
-    url = f'https://wttr.in/{encoded}?format=j1'
+def fetch_weather(location, tomorrow=False):
+    """从wttr.in获取天气数据。tomorrow=True 时返回明日预报。"""
+    url = f'https://wttr.in/{urllib.parse.quote(location)}?format=j1'
 
     req = urllib.request.Request(url, headers={
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     })
 
-    with urllib.request.urlopen(req, timeout=15) as resp:
-        data = json.loads(resp.read().decode('utf-8'))
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
+    except Exception as e:
+        return {'_error': f'天气数据获取失败: {e}'}
 
-    current = data['current_condition'][0]
     nearest = data.get('nearest_area', [{}])
     area_name = nearest[0].get('areaName', [{}])[0].get('value', location) if nearest else location
     region = nearest[0].get('region', [{}])[0].get('value', '') if nearest else ''
 
-    cc = {
-        'temp': int(current['temp_C']),
-        'feels_like': int(current['FeelsLikeC']),
-        'humidity': int(current['humidity']),
-        'wind_speed': int(current['windspeedKmph']),
-        'wind_dir': current['winddir16Point'],
-        'pressure': int(current['pressure']),
-        'uv': int(current['uvIndex']),
-        'visibility': int(current['visibility']),
-        'weather_code': current['weatherCode'],
-        'weather_desc': WEATHER_CODE_MAP.get(current['weatherCode'], current['weatherDesc'][0]['value']),
-        'observation_time': current['observation_time'],
-        'area_name': area_name,
-        'region': region,
-    }
+    if tomorrow:
+        forecast = data.get('weather', [])
+        if not forecast or len(forecast) < 2:
+            return {'_error': '明日预报数据不可用'}
+        day = forecast[1]
+        hourly = day.get('hourly', [{}])
+        noon = hourly[len(hourly) // 2] if hourly else {}
+        weather_code = str(noon.get('weatherCode', '116'))
+        cc = {
+            'temp': int(noon.get('tempC', day.get('maxtempC', 0))),
+            'temp_max': int(day.get('maxtempC', 0)),
+            'temp_min': int(day.get('mintempC', 0)),
+            'feels_like': int(noon.get('FeelsLikeC', 0)),
+            'humidity': int(noon.get('humidity', 0)),
+            'wind_speed': int(noon.get('windspeedKmph', 0)),
+            'wind_dir': noon.get('winddir16Point', ''),
+            'pressure': int(noon.get('pressure', 0)),
+            'uv': int(noon.get('uvIndex', 0)),
+            'visibility': int(noon.get('visibility', 0)),
+            'weather_code': weather_code,
+            'weather_desc': WEATHER_CODE_MAP.get(weather_code, weather_code),
+            'area_name': area_name,
+            'region': region,
+        }
+    else:
+        current = data['current_condition'][0]
+        weather_code = current['weatherCode']
+        cc = {
+            'temp': int(current['temp_C']),
+            'feels_like': int(current['FeelsLikeC']),
+            'humidity': int(current['humidity']),
+            'wind_speed': int(current['windspeedKmph']),
+            'wind_dir': current['winddir16Point'],
+            'pressure': int(current['pressure']),
+            'uv': int(current['uvIndex']),
+            'visibility': int(current['visibility']),
+            'weather_code': weather_code,
+            'weather_desc': WEATHER_CODE_MAP.get(weather_code, current['weatherDesc'][0]['value']),
+            'area_name': area_name,
+            'region': region,
+        }
     return cc
 
 
 def fetch_aqi_by_coords(lat, lon):
-    """用坐标从Open-Meteo获取AQI"""
+    """用坐标从Open-Meteo获取AQI（US AQI标准）"""
     url = (f'https://air-quality-api.open-meteo.com/v1/air-quality'
            f'?latitude={lat}&longitude={lon}'
            f'&hourly=us_aqi,pm2_5,pm10'
-           f'&timezone=Asia%2FShanghai')
+           f'&timezone=Asia%2FShanghai&forecast_days=1')
 
     req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
 
@@ -605,15 +636,21 @@ def fetch_aqi_by_coords(lat, lon):
         try:
             idx = hourly['time'].index(now_hour)
         except ValueError:
-            idx = 0
+            idx = -1
 
-        aqi = {
-            'us_aqi': hourly['us_aqi'][idx],
-            'pm25': hourly['pm2_5'][idx],
-            'pm10': hourly['pm10'][idx],
-            'level': get_aqi_level(hourly['us_aqi'][idx]),
+        aqi_val = hourly['us_aqi'][idx]
+        pm25 = hourly['pm2_5'][idx]
+        pm10 = hourly['pm10'][idx]
+
+        if aqi_val is None:
+            return None
+
+        return {
+            'us_aqi': aqi_val,
+            'pm25': pm25,
+            'pm10': pm10,
+            'level': get_aqi_level(aqi_val),
         }
-        return aqi
     except Exception:
         return None
 
@@ -621,28 +658,40 @@ def fetch_aqi_by_coords(lat, lon):
 def format_weather(location, weather, aqi=None, tomorrow=False):
     """格式化天气输出"""
     temp = weather['temp']
-    feels = weather['feels_like']
     humidity = weather['humidity']
     wind = weather['wind_speed']
     uv = weather['uv']
+    pressure = weather.get('pressure', 0)
+    visibility = weather.get('visibility', 0)
     desc = weather['weather_desc']
     clothing = get_clothing_advice(temp)
     area = weather.get('area_name', location)
 
     if aqi:
         aqi_str = f' | 空气质量: {aqi["level"]}'
-        aqi_detail = f'\n  PM2.5: {aqi["pm25"]:.1f} | PM10: {aqi["pm10"]:.1f}'
+        pm25_str = f'{aqi["pm25"]:.1f}' if aqi["pm25"] is not None else 'N/A'
+        pm10_str = f'{aqi["pm10"]:.1f}' if aqi["pm10"] is not None else 'N/A'
+        aqi_detail = f'\n  PM2.5: {pm25_str} | PM10: {pm10_str}'
     else:
         aqi_str = ''
         aqi_detail = ''
 
     if tomorrow:
-        result = f'明天 {area} {desc} {temp}°C\n'
+        temp_max = weather.get('temp_max', temp)
+        temp_min = weather.get('temp_min', temp)
+        result = f'明天 {area} {desc}\n'
+        result += f'🌡️ {temp_min}°C ~ {temp_max}°C | 👔 穿衣: {clothing}\n'
     else:
+        feels = weather['feels_like']
         result = f'{area} {desc} {temp}°C (体感{feels}°C)\n'
+        result += f'👔 穿衣: {clothing}\n'
 
-    result += f'💧 湿度: {humidity}% | 💨 风速: {wind}km/h | ☀️ 紫外: {uv}级\n'
-    result += f'👔 穿衣: {clothing}{aqi_str}{aqi_detail}'
+    result += f'💧 湿度: {humidity}% | 💨 风: {wind}km/h | ☀️ UV: {uv}级'
+    if pressure:
+        result += f' | 🔽 气压: {pressure}hPa'
+    if visibility:
+        result += f' | 👁 能见度: {visibility}km'
+    result += f'{aqi_str}{aqi_detail}'
     return result
 
 
@@ -653,7 +702,6 @@ def main():
     parser.add_argument('--tomorrow', action='store_true', help='明日天气')
     args = parser.parse_args()
 
-    # 解析位置
     name, lat, lon = parse_location(args.location)
     if lat is None:
         print(f'未知位置: {args.location}，仅支持以下主要城市和区县:')
@@ -662,7 +710,11 @@ def main():
 
     print(f'🔍 查询 {name} ({lat:.2f}, {lon:.2f}) ...')
 
-    weather = fetch_weather(args.location)
+    weather = fetch_weather(name, tomorrow=args.tomorrow)
+    if weather.get('_error'):
+        print(weather['_error'])
+        return
+
     aqi = fetch_aqi_by_coords(lat, lon) if args.aqi else None
 
     output = format_weather(name, weather, aqi, args.tomorrow)

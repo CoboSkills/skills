@@ -1,18 +1,25 @@
 ---
 name: weather-cn
-description: Get China weather and air quality (AQI) in Chinese. Uses wttr.in for weather + Open-Meteo for AQI. Supports Chinese city names (北京、上海、杭州). No API key needed.
+description: "国内天气+空气质量查询。支持城市和区县级，中文输出。数据源: wttr.in + Open-Meteo。无需 API Key。"
+user-invocable: true
+argument-hint: "<城市名> [--aqi] [--tomorrow]"
+metadata:
+  openclaw:
+    requires:
+      bins: ["python"]
+    os: ["win32", "darwin", "linux"]
 ---
 
 # Weather CN — 国内天气 + 空气质量
 
-纯中文输出，国内用户友好。
+纯中文输出，国内用户友好。天气数据来源 wttr.in，空气质量来源 Open-Meteo（US AQI 标准）。
 
 ## 支持地区
 
 ### 城市级别
 `北京`、`上海`、`杭州`、`深圳`、`广州`、`成都`、`武汉`、`西安`、`南京`、`重庆`、`天津`、`苏州`、`郑州`、`长沙`、`沈阳`、`青岛`、`大连`、`哈尔滨`、`长春`、`石家庄`、`福州`、`厦门`、`南昌`、`济南`、`太原`、`合肥`、`昆明`、`贵阳`、`南宁`、`海口`、`拉萨`、`兰州`、`银川`、`西宁`、`乌鲁木齐`、`呼和浩特`、`雄安新区`、`东阳`、`义乌`、`永康`、`金华`
 
-### 区县级别（精确到区）
+### 区县级别（定位支持，天气以城市数据为准）
 ```
 北京: 朝阳、海淀、东城、西城、丰台、石景山、通州、顺义、大兴、昌平、房山...
 上海: 浦东、黄浦、徐汇、静安、普陀、虹口、杨浦、闵行、宝山、嘉定、松江...
@@ -59,18 +66,23 @@ python3 scripts/weather_cn.py 广州天河 --tomorrow --aqi
 ```python
 import sys
 sys.path.insert(0, 'skills/weather-cn/scripts')
-from weather_cn import get_weather
+from weather_cn import fetch_weather, fetch_aqi_by_coords, format_weather
 
 # 仅天气
-result = get_weather('上海')
-print(result['desc'])  # "☀️ 晴 18°C 体感16°C"
+weather = fetch_weather('上海')
+print(format_weather('上海', weather))
 
 # 天气+AQI
-result = get_weather('上海', aqi=True)
-print(result['desc'])  # "☀️ 晴 18°C | 空气质量: 良 (AQI 52)"
+weather = fetch_weather('上海')
+aqi = fetch_aqi_by_coords(31.2304, 121.4737)
+print(format_weather('上海', weather, aqi))
+
+# 明日预报
+weather = fetch_weather('上海', tomorrow=True)
+print(format_weather('上海', weather, tomorrow=True))
 ```
 
-## AQI等级参考
+## AQI等级参考（US AQI标准）
 
 | AQI | 等级 | 建议 |
 |-----|------|------|
@@ -78,10 +90,10 @@ print(result['desc'])  # "☀️ 晴 18°C | 空气质量: 良 (AQI 52)"
 | 51-100 | 良 | 空气质量可接受 |
 | 101-150 | 轻度污染 | 敏感人群减少户外 |
 | 151-200 | 中度污染 | 减少户外活动 |
-| 201-300 | 重污染 | 避免外出 |
+| 201-300 | 重度污染 | 避免外出 |
 | 300+ | 严重污染 | 停止户外活动 |
 
-**注：** AQI数据来源为 Open-Meteo（欧洲CAMS模型），数据更新可能有数小时延迟。
+**注：** AQI数据来源为 Open-Meteo（欧洲CAMS模型，US AQI标准），数据更新可能有数小时延迟。US AQI 100 对应中国 AQI 约150，同数值下 US AQI 标准更严格。
 
 ## 天气代码映射
 

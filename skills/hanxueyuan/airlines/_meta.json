@@ -3,9 +3,15 @@
   "slug": "airlines",
   "displayName": "Airlines",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776230260571,
-    "commit": "https://github.com/openclaw/skills/commit/0a29b074ce33e74859dbc70c17ededa7b8da4a2c"
+    "version": "1.0.3",
+    "publishedAt": 1776232805627,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776230260571,
+      "commit": "https://github.com/openclaw/skills/commit/0a29b074ce33e74859dbc70c17ededa7b8da4a2c"
+    }
+  ]
 }

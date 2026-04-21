@@ -1,5 +1,5 @@
 ---
-version: 1.0.5
+version: 1.0.10
 ---
 
 # 伏矢·路径魄 (Fu Shi - Path Planner)

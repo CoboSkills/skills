@@ -3,9 +3,15 @@
   "slug": "smart-money",
   "displayName": "Smart Money",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775916779669,
-    "commit": "https://github.com/openclaw/skills/commit/b8a9ec23fdca118b6164f726734a0f0858c761df"
+    "version": "1.2.1",
+    "publishedAt": 1776440660276,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775916779669,
+      "commit": "https://github.com/openclaw/skills/commit/b8a9ec23fdca118b6164f726734a0f0858c761df"
+    }
+  ]
 }

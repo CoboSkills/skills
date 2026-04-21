@@ -1,6 +1,6 @@
 ---
 name: anime-social-portrait
-description: Say "Help me install the ClawHub skill anime-social-portrait" to your local agent, then create anime-style avatars, covers, and headers from real photos.
+description: Say "Help me install this skill from https://clawhub.ai/shuminliu026/anime-social-portrait" to your local agent, then create anime-style avatars, covers, and headers from real photos.
 ---
 
 # Anime Social Portrait

@@ -1,9 +1,10 @@
 ---
-name: multi-agent-cn
-version: 1.2.0
+name: shike-multi-agent
+slug: shike-multi-agent
+version: 1.5.0
 description: "Multi-Agent dispatch system for Chinese. Dispatcher delegates to 5 persistent sub-agents via sessions_spawn. Supports polling, reply-then-dispatch, sessionKey reuse. 多Agent调度系统，主Agent作为调度员分配任务给子Agent协作。Contact: sijj888@qq.com | WeChat: ailvyou88999 | Alipay: 13359609888 | PayPal: paypal.me/skaicn"
 author: Shike
-license: MIT
+license: MIT-0
 tags: [multi-agent, dispatcher, collaboration, sessions_spawn, 多Agent, 调度, 协作]
 ---
 

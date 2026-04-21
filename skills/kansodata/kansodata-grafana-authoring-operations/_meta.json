@@ -1,0 +1,11 @@
+{
+  "owner": "kansodata",
+  "slug": "kansodata-grafana-authoring-operations",
+  "displayName": "Kansodata Grafana Authoring Operations",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776360051706,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "ooxtcoo",
+  "slug": "fully-local-tuya-light-control-skill-lsc-connect-app-devices",
+  "displayName": "Local Tuya Light Control",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776370381409,
+    "commit": null
+  },
+  "history": []
+}

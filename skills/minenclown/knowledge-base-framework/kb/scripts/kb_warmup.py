@@ -1,25 +1,26 @@
 #!/usr/bin/env python3
 """
-KB Warmup – Lädt ChromaDB Model vorab
+KB Warmup – Preloads ChromaDB model
 
-Laufzeit: Beim Server-Start (via systemd oder OpenClaw init)
-Zweck: Erste Query nicht 8s langsam
+Runtime: At server start (via systemd or OpenClaw init)
+Purpose: First query should not be 8s slow
 """
 
 import sys
-sys.path.insert(0, str(Path.home() / ".openclaw" / "kb" / "library"))
+from pathlib import Path
+sys.path.insert(0, str(Path.home() / ".openclaw" / "kb"))
 
-from knowledge_base.chroma_integration import ChromaIntegration
+from kb.library.knowledge_base.chroma_integration import ChromaIntegration
 
 def warmup():
     print("Warming up ChromaDB model...")
     chroma = ChromaIntegration()
     
-    # Model vorab laden
+    # Preload model
     _ = chroma.model
     print("Model loaded")
     
-    # Collection-Reference holen (initialisiert ChromaDB intern)
+    # Get collection reference (initializes ChromaDB internally)
     _ = chroma.sections_collection
     print("ChromaDB Collection ready")
     

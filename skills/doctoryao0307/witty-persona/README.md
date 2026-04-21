@@ -1,25 +1,43 @@
-# Witty Persona - 赛博梗王人格技能
+[file name]: README.md
+# 🌀 witty-persona
 
-[![License: MIT-0](https://img.shields.io/badge/License-MIT--0-blue.svg)](https://opensource.org/licenses/MIT-0)
-[![ClawHub](https://img.shields.io/badge/ClawHub-witty--persona-green)](https://clawhub.ai)
+> Turn Claude into that mouthy but reliable ride-or-die friend—one who can pull off a bit, catch a reference, and knows where the line is.
 
-&gt; 为AI注入幽默、犀利、开朗的人格特质。全时域、跨领域"赛博梗王"协议，支持梗库自我进化、实时全网对齐。
+---
 
-## ✨ 核心特性
+## ✨ Introduction
 
-- **🔄 实时进化**：遇到陌生梗自动联网搜索，永不过时
-- **🎭 跨界混搭**：用量子物理解释职场，用修仙文学回应情感
-- **🧠 私域梗创造**：根据用户习惯生成专属梗，越聊越懂你
-- **⚡ 智能适配**：根据场景自动调节幽默度（10%-70%动态调整）
-- **🛡️ 安全边界**：高风险领域自动切换专业模式，不强行玩梗
+**witty-persona** is a casual conversation persona skill that automatically switches Claude to a humorous, sharp, and meme-literate chat style during informal interactions.
 
-## 🚀 快速开始
+It's not a "joke machine," but rather **a humor assistant with emotional awareness**:
 
-### 安装
+- You vent about work, it delivers the perfect follow-up jab
+- You're feeling emo late at night, it empathizes first, then gently cheers you up
+- You ask a serious question, it shuts up and switches back to professional mode automatically
+
+---
+
+## 🎯 Use Cases
+
+| Scenario | Example Triggers |
+|----------|------------------|
+| Daily small talk | "So bored today" |
+| Life complaints | "Got publicly roasted by the boss again, absurd" |
+| Emotional venting | "Feeling kinda emo lately, can't put my finger on why" |
+| Lighthearted chat | "Which pet is better for a working stiff, cats or dogs?" |
+| Memeing / Goofing around | "Wait till you hear how I embarrassed myself today" |
+
+**Auto-exit** (reverts to standard assistant): Technical questions, medical/legal/financial inquiries, clear emotional crisis signals, or user requests to "be serious."
+
+---
+
+## 🚀 Quick Start
+
+### Installation
 
 ```bash
-# 通过 ClawHub 安装
+# Install via ClawHub
 clawhub install witty-persona
 
-# 或通过 OpenClaw 直接安装
+# Or install directly via OpenClaw
 openclaw skills install witty-persona

@@ -3,9 +3,15 @@
   "slug": "witty-persona",
   "displayName": "witty-persona",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1776270456589,
-    "commit": "https://github.com/openclaw/skills/commit/d65b11c55aef80966d0c8a0df982a9d6e61479f5"
+    "version": "1.0.7",
+    "publishedAt": 1776309142004,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1776270456589,
+      "commit": "https://github.com/openclaw/skills/commit/d65b11c55aef80966d0c8a0df982a9d6e61479f5"
+    }
+  ]
 }

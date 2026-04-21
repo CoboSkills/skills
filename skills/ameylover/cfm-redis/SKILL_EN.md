@@ -1,6 +1,6 @@
 ---
 name: cfm-redis
-description: CFM Redis Pub/Sub方案 - 跨框架实时通信（事件驱动，大幅减少token消耗）
+description: CFM Redis Pub/Sub Solution - Cross-Framework Real-time Communication (Event-driven, significantly reduces token consumption)
 metadata:
   openclaw:
     requires:
@@ -12,31 +12,31 @@ metadata:
       pip: redis
 ---
 
-# ⚡ CFM Redis - 跨框架实时通信
+# ⚡ CFM Redis - Cross-Framework Real-time Communication
 
-基于Redis Pub/Sub的跨框架Agent通信方案。事件驱动，零轮询，通信通道不消耗LLM token。
+A cross-framework Agent communication solution based on Redis Pub/Sub. Event-driven, zero polling, communication channels don't consume LLM tokens.
 
-## 核心优势
+## Key Advantages
 
-- ⚡ **实时通信** - 消息延迟 < 10ms
-- 💰 **通信零token** - Redis通道本身不消耗LLM token（处理消息时仍需token）
-- 🔄 **双向通信** - 支持任意框架之间通信
-- 💾 **消息持久化** - 自动保存历史记录
-- 🔍 **Agent发现** - 自动发现网络中的Agent
+- ⚡ **Real-time Communication** - Message latency < 10ms
+- 💰 **Zero Token for Channels** - Redis channels don't consume LLM tokens (processing messages still requires tokens)
+- 🔄 **Bidirectional Communication** - Supports communication between any frameworks
+- 💾 **Message Persistence** - Automatic history preservation
+- 🔍 **Agent Discovery** - Automatically discover Agents on the network
 
-> **注意**：CFM的Redis通道通信不消耗token，但Agent处理消息时仍需调用LLM（会消耗token）。相比传统轮询方案，CFM通过事件驱动大幅减少了不必要的token消耗。
+> **Note**: CFM's Redis channel communication doesn't consume tokens, but Agents still need to call LLM when processing messages (which consumes tokens). Compared to traditional polling solutions, CFM significantly reduces unnecessary token consumption through event-driven architecture.
 
-## 工作原理
+## How It Works
 
 ```
 Agent A ──publish──→ Redis Server ──subscribe──→ Agent B
-                    (本地Redis)                          
+                    (Local Redis)
 Agent B ──publish──→ Redis Server ──subscribe──→ Agent A
 ```
 
-## 安装
+## Installation
 
-### 1. 安装Redis
+### 1. Install Redis
 
 ```bash
 # macOS
@@ -47,30 +47,30 @@ brew services start redis
 sudo apt install redis-server
 sudo systemctl start redis
 
-# 验证
-redis-cli ping  # 应返回 PONG
+# Verify
+redis-cli ping  # Should return PONG
 ```
 
-### 2. 安装Python依赖
+### 2. Install Python Dependencies
 
 ```bash
 pip install redis
 ```
 
-### 3. 下载CFM库
+### 3. Download CFM Library
 
 ```bash
 mkdir -p ~/.shared/cfm
-# 将 cfm_messenger.py 和 cfm_cli.py 放入此目录
+# Place cfm_messenger.py and cfm_cli.py in this directory
 ```
 
-## 核心文件
+## Core Files
 
-### cfm_messenger.py - 通信库
+### cfm_messenger.py - Communication Library
 
 ```python
 #!/usr/bin/env python3
-"""CFM Messenger - 跨框架通信库"""
+"""CFM Messenger - Cross-Framework Communication Library"""
 
 import redis
 import json
@@ -81,7 +81,7 @@ from typing import Optional, Dict, Any
 
 
 class CFMMessenger:
-    """跨框架通信器"""
+    """Cross-Framework Messenger"""
     
     def __init__(self, agent_id: str, redis_host: str = "localhost", redis_port: int = 6379):
         self.agent_id = agent_id
@@ -89,7 +89,7 @@ class CFMMessenger:
         self.message_store_key = f"cfm:{agent_id}:messages"
     
     def send(self, to_agent: str, message: str, msg_type: str = "text") -> str:
-        """发送消息"""
+        """Send message"""
         msg_id = str(uuid.uuid4())[:8]
         payload = {
             "id": msg_id,
@@ -100,29 +100,29 @@ class CFMMessenger:
             "timestamp": datetime.now().isoformat()
         }
         
-        # 发布到目标agent频道
+        # Publish to target agent channel
         target_channel = f"cfm:{to_agent}:inbox"
         self.redis_client.publish(target_channel, json.dumps(payload, ensure_ascii=False))
         
-        # 同时存储到双方（便于查询）
+        # Store to both parties (for querying)
         self._store_message(payload, self.agent_id)
         self._store_message(payload, to_agent)
         
         return msg_id
     
     def get_messages(self, limit: int = 50) -> list:
-        """获取消息历史"""
+        """Get message history"""
         messages = self.redis_client.lrange(self.message_store_key, 0, limit - 1)
         return [json.loads(msg) for msg in messages]
     
     def _store_message(self, msg: dict, agent_id: str = None):
-        """持久化消息"""
+        """Persist message"""
         store_key = f"cfm:{agent_id or self.agent_id}:messages"
         self.redis_client.lpush(store_key, json.dumps(msg, ensure_ascii=False))
         self.redis_client.ltrim(store_key, 0, 999)
     
     def discover_agents(self) -> list:
-        """发现其他Agent"""
+        """Discover other Agents"""
         keys = self.redis_client.keys("cfm:*:registered")
         agents = []
         for key in keys:
@@ -133,19 +133,19 @@ class CFMMessenger:
         return agents
     
     def register(self):
-        """注册本Agent"""
+        """Register this Agent"""
         self.redis_client.hset(
             f"cfm:{self.agent_id}:registered",
             mapping={"registered_at": datetime.now().isoformat(), "status": "online"}
         )
     
     def unregister(self):
-        """注销本Agent"""
+        """Unregister this Agent"""
         self.redis_client.delete(f"cfm:{self.agent_id}:registered")
 
 
 def quick_send(to_agent: str, message: str, from_agent: str = "cli") -> str:
-    """快速发送（不保持连接）"""
+    """Quick send (no persistent connection)"""
     r = redis.Redis(decode_responses=True)
     msg_id = str(uuid.uuid4())[:8]
     payload = {
@@ -164,7 +164,7 @@ def quick_send(to_agent: str, message: str, from_agent: str = "cli") -> str:
 
 
 def quick_receive(agent_id: str, timeout: int = 10) -> Optional[Dict]:
-    """快速接收（阻塞等待）"""
+    """Quick receive (blocking wait)"""
     r = redis.Redis(decode_responses=True)
     pubsub = r.pubsub()
     pubsub.subscribe(f"cfm:{agent_id}:inbox")
@@ -186,11 +186,11 @@ def quick_receive(agent_id: str, timeout: int = 10) -> Optional[Dict]:
     return result
 ```
 
-### cfm_cli.py - 命令行工具
+### cfm_cli.py - Command Line Tool
 
 ```python
 #!/usr/bin/env python3
-"""CFM CLI - 命令行工具"""
+"""CFM CLI - Command Line Tool"""
 
 import sys
 import argparse
@@ -198,71 +198,71 @@ from cfm_messenger import quick_send, quick_receive, CFMMessenger
 
 
 def cmd_send(args):
-    """发送消息"""
+    """Send message"""
     msg_id = quick_send(args.to, args.message, args.from_agent)
-    print(f"✅ 消息已发送 (ID: {msg_id})")
+    print(f"✅ Message sent (ID: {msg_id})")
     print(f"   {args.from_agent} → {args.to}: {args.message}")
 
 
 def cmd_listen(args):
-    """监听消息"""
-    print(f"👂 {args.agent_id} 开始监听... (超时: {args.timeout}秒)")
+    """Listen for messages"""
+    print(f"👂 {args.agent_id} listening... (timeout: {args.timeout}s)")
     msg = quick_receive(args.agent_id, args.timeout)
     if msg:
-        print(f"📨 收到消息!")
-        print(f"   发送者: {msg['from']}")
-        print(f"   内容: {msg['content']}")
+        print(f"📨 Message received!")
+        print(f"   Sender: {msg['from']}")
+        print(f"   Content: {msg['content']}")
     else:
-        print("⏰ 超时，未收到消息")
+        print("⏰ Timeout, no message received")
 
 
 def cmd_history(args):
-    """查看历史"""
+    """View history"""
     with CFMMessenger(args.agent_id) as m:
         msgs = m.get_messages(limit=args.limit)
         if msgs:
-            print(f"📚 {args.agent_id} 消息历史 ({len(msgs)} 条):")
+            print(f"📚 {args.agent_id} message history ({len(msgs)} msgs):")
             for msg in msgs:
                 direction = "📤" if msg.get('from') == args.agent_id else "📥"
                 print(f"  {direction} {msg.get('from')} → {msg.get('to')}: {msg.get('content', '?')[:50]}")
         else:
-            print("📚 暂无消息")
+            print("📚 No messages yet")
 
 
 def cmd_discover(args):
-    """发现Agent"""
+    """Discover Agents"""
     with CFMMessenger("discover-cli") as m:
         agents = m.discover_agents()
         if agents:
-            print(f"🔍 发现 {len(agents)} 个Agent:")
+            print(f"🔍 Found {len(agents)} Agents:")
             for agent in agents:
                 print(f"   - {agent.get('id')}: {agent.get('status', 'unknown')}")
         else:
-            print("🔍 未发现其他Agent")
+            print("🔍 No other Agents found")
 
 
 def main():
-    parser = argparse.ArgumentParser(description="CFM CLI - 跨框架通信工具")
+    parser = argparse.ArgumentParser(description="CFM CLI - Cross-Framework Communication Tool")
     subparsers = parser.add_subparsers(dest="command")
     
     # send
-    send_p = subparsers.add_parser("send", help="发送消息")
-    send_p.add_argument("to", help="目标Agent ID")
-    send_p.add_argument("message", help="消息内容")
+    send_p = subparsers.add_parser("send", help="Send message")
+    send_p.add_argument("to", help="Target Agent ID")
+    send_p.add_argument("message", help="Message content")
     send_p.add_argument("--from", dest="from_agent", default="cli")
     
     # listen
-    listen_p = subparsers.add_parser("listen", help="监听消息")
-    listen_p.add_argument("agent_id", help="本Agent ID")
+    listen_p = subparsers.add_parser("listen", help="Listen for messages")
+    listen_p.add_argument("agent_id", help="This Agent ID")
     listen_p.add_argument("--timeout", type=int, default=10)
     
     # history
-    history_p = subparsers.add_parser("history", help="查看历史")
+    history_p = subparsers.add_parser("history", help="View history")
     history_p.add_argument("agent_id", help="Agent ID")
     history_p.add_argument("--limit", type=int, default=20)
     
     # discover
-    subparsers.add_parser("discover", help="发现Agent")
+    subparsers.add_parser("discover", help="Discover Agents")
     
     args = parser.parse_args()
     
@@ -277,11 +277,11 @@ if __name__ == "__main__":
     main()
 ```
 
-### cfm_check.py - 轻量检查脚本（零token）
+### cfm_check.py - Lightweight Check Script (Zero Token)
 
 ```python
 #!/usr/bin/env python3
-"""CFM Check - 零token轻量检查"""
+"""CFM Check - Zero Token Lightweight Check"""
 
 import redis
 import json
@@ -289,11 +289,11 @@ import os
 from pathlib import Path
 
 def check_messages(agent_id: str):
-    """检查新消息并输出"""
+    """Check new messages and output"""
     processed_file = Path.home() / ".cfm" / agent_id / "processed.txt"
     processed_file.parent.mkdir(parents=True, exist_ok=True)
     
-    # 读取已处理ID
+    # Read processed IDs
     processed = set()
     if processed_file.exists():
         processed = set(processed_file.read_text().strip().split("\n"))
@@ -306,21 +306,21 @@ def check_messages(agent_id: str):
     for raw in raw_msgs:
         msg = json.loads(raw)
         msg_id = msg.get("id", "")
-        # 只处理来自其他Agent的消息
+        # Only process messages from other Agents
         if msg.get("from") != agent_id and msg_id not in processed:
             new_messages.append(msg)
             processed.add(msg_id)
     
-    # 保存已处理ID
+    # Save processed IDs
     processed_file.write_text("\n".join(sorted(processed)))
     r.close()
     
-    # 输出结果
+    # Output results
     if new_messages:
         for msg in new_messages:
             print(f"📨 [{msg['from']}]: {msg['content']}")
     else:
-        print("💤 无新消息")
+        print("💤 No new messages")
 
 if __name__ == "__main__":
     import sys
@@ -328,119 +328,110 @@ if __name__ == "__main__":
     check_messages(agent_id)
 ```
 
-## 使用方法
+## Usage
 
-### 发送消息
+### Send Message
 
 ```bash
 cd ~/.shared/cfm
-python3 cfm_cli.py send chanel "你好！" --from hermes
+python3 cfm_cli.py send chanel "Hello!" --from hermes
 ```
 
-### 监听消息
+### Listen for Messages
 
 ```bash
 python3 cfm_cli.py listen chanel --timeout 30
 ```
 
-### 查看历史
+### View History
 
 ```bash
 python3 cfm_cli.py history hermes
 ```
 
-### 发现Agent
+### Discover Agents
 
 ```bash
 python3 cfm_cli.py discover
 ```
 
-### 轻量检查（推荐用于自动化）
+### Lightweight Check (Recommended for Automation)
 
 ```bash
 python3 cfm_check.py hermes
 ```
 
-#### ⚠️ 使用--last-check-file参数（必须！）
+#### Using --last-check-file Parameter (Recommended)
 
-**重要**：在cron job或heartbeat中使用`cfm_check.py`时，**必须**使用`--last-check-file`参数，否则会导致重复汇报问题！
+Use the `--last-check-file` parameter to record the last check time and avoid reprocessing messages:
 
 ```bash
 python3 cfm_check.py chanel --last-check-file /tmp/cfm-last-check.txt
 ```
 
-**踩坑经验（2026-04-18）**：
-- 之前使用`cfm_listener.py`没有去重逻辑，每次运行都会打印最近10条消息
-- 导致用户收到大量重复的旧消息汇报
-- 改用`cfm_check.py` + `--last-check-file`后解决
+**Benefits**:
+- Automatically records check time, only returns new messages on next check
+- Avoids reprocessing the same message
+- More reliable message deduplication
 
-**去重机制原理**：
-1. 首次运行：记录当前时间到`.last_check`文件
-2. 后续运行：读取`.last_check`中的时间，只返回该时间之后的消息
-3. 运行结束后：更新`.last_check`为当前时间
-
-**正确配置（Cron Job）**：
+**Integration in HEARTBEAT**:
 ```bash
-# ❌ 错误：没有去重，会重复汇报
-*/5 * * * * cd ~/.shared/cfm && python3 cfm_listener.py
-
-# ✅ 正确：使用--last-check-file去重
-*/5 * * * * cd ~/.shared/cfm && python3 cfm_check.py chanel --last-check-file ~/.cfm/.last_check_chanel
+python3 /Users/kyle/.shared/cfm/cfm_check.py chanel --last-check-file /tmp/cfm-last-check.txt
 ```
 
-## 辅助工具脚本
+## Utility Scripts
 
-### reply_to_hermes.py - 快速回复脚本
+### reply_to_hermes.py - Quick Reply Script
 
-用于快速回复Hermès的常用消息：
+For quickly replying to Hermès with common messages:
 
 ```bash
 python3 /Users/kyle/.shared/cfm/reply_to_hermes.py
 ```
 
-### mark_reported.py - 标记已报告消息
+### mark_reported.py - Mark Reported Messages
 
-将指定的消息ID标记为已报告，避免重复汇报：
+Mark specified message IDs as reported to avoid duplicate reporting:
 
 ```bash
 python3 /Users/kyle/.shared/cfm/mark_reported.py
 ```
 
-### send_report.py - 发送汇报消息
+### send_report.py - Send Report Message
 
-快速发送预设的汇报消息给Hermès：
+Quickly send preset report messages to Hermès:
 
 ```bash
 python3 /Users/kyle/.shared/cfm/send_report.py
 ```
 
-## Agent集成方式
+## Agent Integration Methods
 
-### 方式1：Cron任务（简单）
+### Method 1: Cron Task (Simple)
 
 ```bash
-# 每5分钟检查一次
+# Check every 5 minutes
 */5 * * * * cd ~/.shared/cfm && python3 cfm_check.py myagent
 ```
 
-### 方式2：守护进程（实时）
+### Method 2: Daemon Process (Real-time)
 
 ```python
-# 在heartbeat或定时任务中调用
+# Call in heartbeat or scheduled task
 import subprocess
 result = subprocess.run(
     ["python3", "~/.shared/cfm/cfm_check.py", "myagent"],
     capture_output=True, text=True
 )
 if "📨" in result.stdout:
-    # 有新消息，触发处理
+    # New messages, trigger processing
     process_new_messages()
 ```
 
-### 方式3：Webhook触发（高级）
+### Method 3: Webhook Trigger (Advanced)
 
 ```python
-# 检测到新消息时触发webhook
+# Trigger webhook when new messages detected
 from cfm_messenger import CFMMessenger
 
 def check_and_trigger(agent_id, webhook_url):
@@ -448,12 +439,12 @@ def check_and_trigger(agent_id, webhook_url):
         msgs = m.get_messages(limit=5)
         new_msgs = [msg for msg in msgs if msg.get("from") != agent_id]
         if new_msgs:
-            # 触发webhook
+            # Trigger webhook
             import requests
             requests.post(webhook_url, json=new_msgs)
 ```
 
-## 消息格式
+## Message Format
 
 ```json
 {
@@ -461,184 +452,173 @@ def check_and_trigger(agent_id, webhook_url):
   "from": "hermes",
   "to": "chanel",
   "type": "text",
-  "content": "消息内容",
+  "content": "Message content",
   "timestamp": "2026-04-15T20:00:00.000000"
 }
 ```
 
-### 消息类型
+### Message Types
 
-- `text` - 普通文本
-- `command` - 命令消息
-- `response` - 响应消息
-- `file` - 文件引用（content为文件路径）
+- `text` - Plain text
+- `command` - Command message
+- `response` - Response message
+- `file` - File reference (content is file path)
 
-## 故障排除
+## Troubleshooting
 
-### Redis连接失败
+### Redis Connection Failed
 
 ```bash
-redis-cli ping  # 检查Redis状态
-brew services restart redis  # 重启Redis
+redis-cli ping  # Check Redis status
+brew services restart redis  # Restart Redis
 ```
 
-### 消息未送达
+### Messages Not Delivered
 
 ```bash
-# 检查Redis中的消息
+# Check messages in Redis
 redis-cli LRANGE cfm:agent-name:messages 0 5
 ```
 
-### Python导入错误
+### Python Import Error
 
 ```bash
 pip install redis
-python3 -c "import redis; print('✅ 导入成功')"
+python3 -c "import redis; print('✅ Import successful')"
 ```
 
-## ⚠️ 重要踩坑经验
+## ⚠️ Important Lessons Learned
 
-### 1. quick_send 不能用 context manager
+### 1. quick_send Cannot Use Context Manager
 
-**错误写法**（会导致进程卡死）：
+**Wrong Way** (causes process to hang):
 ```python
 def quick_send(to_agent, message, from_agent="cli"):
-    with CFMMessenger(from_agent) as messenger:  # ❌ 会启动监听线程
-        return messenger.send(to_agent, message)  # 退出时线程清理卡死
+    with CFMMessenger(from_agent) as messenger:  # ❌ Starts listening thread
+        return messenger.send(to_agent, message)  # Hangs on thread cleanup at exit
 ```
 
-**正确写法**（直接连接，不启动线程）：
+**Correct Way** (direct connection, no thread):
 ```python
 def quick_send(to_agent, message, from_agent="cli"):
-    r = redis.Redis(decode_responses=True)  # ✅ 直接连接
-    # ... 发送消息
-    r.close()  # 立即关闭
+    r = redis.Redis(decode_responses=True)  # ✅ Direct connection
+    # ... send message
+    r.close()  # Close immediately
     return msg_id
 ```
 
-**原因**：`CFMMessenger.__enter__` 会启动监听线程，`__exit__` 时线程清理会导致 `ValueError: I/O operation on closed file`。
+**Reason**: `CFMMessenger.__enter__` starts a listening thread, and `__exit__` thread cleanup causes `ValueError: I/O operation on closed file`.
 
-### 2. 消息必须同时存储到双方
+### 2. Messages Must Be Stored to Both Parties
 
-**错误**：只存到发送者存储
+**Wrong**: Only store to sender
 ```python
-# ❌ 接收者查不到消息
+# ❌ Receiver can't find messages
 self._store_message(payload, self.agent_id)
 ```
 
-**正确**：同时存到双方
+**Correct**: Store to both parties
 ```python
-# ✅ 双方都能查到
-self._store_message(payload, self.agent_id)      # 发送者
-self._store_message(payload, to_agent)           # 接收者
+# ✅ Both can find messages
+self._store_message(payload, self.agent_id)      # Sender
+self._store_message(payload, to_agent)           # Receiver
 ```
 
-**原因**：接收者检查自己的存储找新消息，如果只存到发送者存储，接收者永远查不到。
+**Reason**: Messages are stored to both parties, receiver checks their own store for new messages. If only stored to sender, receiver will never find them.
 
-### 3. 检查脚本的判断逻辑
+### 3. Check Script Logic
 
-**错误**：判断 `to == agent_id`
+**Wrong**: Check `to == agent_id`
 ```python
-# ❌ 消息的 to 字段不一定是本agent
+# ❌ Message's to field isn't necessarily this agent
 if msg.get("to") == agent_id and msg_id not in processed_ids:
 ```
 
-**正确**：判断 `from != agent_id`
+**Correct**: Check `from != agent_id`
 ```python
-# ✅ 来自其他agent的消息就是新消息
+# ✅ Messages from other agents are new messages
 if msg.get("from") != agent_id and msg_id not in processed_ids:
 ```
 
-**原因**：消息同时存储到双方，`to` 字段是目标agent，但存储在双方的存储里，所以应该判断 `from` 是否是自己。
+**Reason**: Messages are stored to both parties, `to` field is target agent, but stored in both stores, so should check if `from` is self.
 
-### 4. execute_code 沙箱没有 redis 库
+### 4. execute_code Sandbox Doesn't Have redis Library
 
-**问题**：在 `execute_code` 中 `import redis` 会报错 `ModuleNotFoundError`。
+**Problem**: `import redis` in `execute_code` throws `ModuleNotFoundError`.
 
-**解决**：使用 `terminal` 工具直接运行Python脚本：
+**Solution**: Use `terminal` tool to run Python script directly:
 ```bash
-cd ~/.shared/cfm && python3 cfm_cli.py send chanel "消息" --from hermes
+cd ~/.shared/cfm && python3 cfm_cli.py send chanel "message" --from hermes
 ```
 
-或者用 `redis-cli` 直接检查：
+Or use `redis-cli` to check directly:
 ```bash
 redis-cli LRANGE cfm:hermes:messages 0 5
 ```
 
-### 5. 飞书命令审批 bug
+### 5. OpenClaw gateway.bind=lan Requires auth
 
-**问题**：通过飞书执行shell命令时，点击"允许"会报错 `code: 200340`。
+**Problem**: Configure `gateway.bind="lan"` but don't set `gateway.auth.token`, OpenClaw refuses to start.
 
-**解决**：使用 `execute_code` 工具运行Python脚本绕过审批：
-```python
-# 用 execute_code 而不是 terminal
-import os
-os.system("redis-cli ping")
-```
-
-### 6. quick_receive 使用 get_message 代替 listen
-
-**错误**（会阻塞，难以超时退出）：
-```python
-for msg in pubsub.listen():  # ❌ 阻塞循环
-    if time.time() - start > timeout:
-        break
-```
-
-**正确**（非阻塞，可控超时）：
-```python
-while time.time() - start < timeout:
-    msg = pubsub.get_message(timeout=1)  # ✅ 非阻塞
-    if msg and msg["type"] == "message":
-        result = json.loads(msg["data"])
-        break
-```
-
-### 7. OpenClaw gateway.bind=lan 需要 auth
-
-**问题**：配置 `gateway.bind="lan"` 但没设置 `gateway.auth.token`，OpenClaw拒绝启动。
-
-**解决**：
+**Solution**:
 ```bash
 openclaw config set gateway.auth.token "your-token"
 openclaw gateway start
 ```
 
----
+### 6. quick_receive Uses get_message Instead of listen
 
-## 性能特点
+**Wrong** (blocks, hard to timeout):
+```python
+for msg in pubsub.listen():  # ❌ Blocking loop
+    if time.time() - start > timeout:
+        break
+```
 
-| 指标 | 值 |
-|------|-----|
-| 消息延迟 | < 10ms |
-| 内存占用 | ~10MB (Redis) |
-| 吞吐量 | 1000+ msg/s |
-| 持久化 | 最近1000条/Agent |
-| 并发 | 支持多Agent同时通信 |
-
-## 适用场景
-
-- ✅ 跨框架实时通信（Hermes ↔ OpenClaw）
-- ✅ 高频消息（>10条/分钟）
-- ✅ 需要消息持久化
-- ✅ 多Agent协作
-
-## 不适用场景
-
-- ❌ 无法安装Redis的环境
-- ❌ 极简需求（用文件信箱）
-- ❌ 需要公网通信（需要额外配置）
-
-## 与文件信箱对比
-
-| 特性 | 文件信箱 | CFM Redis |
-|------|----------|-----------|
-| 实时性 | 🐢 延迟1-5分钟 | ⚡ < 10ms |
-| 依赖 | 无 | Redis |
-| Token消耗 | 按轮询频率（LLM调用） | 仅处理消息时消耗 |
-| 可靠性 | 高 | 高 |
-| 扩展性 | 2个Agent | 多Agent |
+**Correct** (non-blocking, controllable timeout):
+```python
+while time.time() - start < timeout:
+    msg = pubsub.get_message(timeout=1)  # ✅ Non-blocking
+    if msg and msg["type"] == "message":
+        result = json.loads(msg["data"])
+        break
+```
 
 ---
 
-**CFM Redis — 让跨框架Agent通信像本地聊天一样流畅！** ⚡
+## Performance Characteristics
+
+| Metric | Value |
+|--------|-------|
+| Message Latency | < 10ms |
+| Memory Usage | ~10MB (Redis) |
+| Throughput | 1000+ msg/s |
+| Persistence | Last 1000 msgs/Agent |
+| Concurrency | Supports multiple Agents |
+
+## Use Cases
+
+- ✅ Cross-framework real-time communication (Hermes ↔ OpenClaw)
+- ✅ High-frequency messages (>10 msgs/minute)
+- ✅ Message persistence required
+- ✅ Multi-Agent collaboration
+
+## Not Suitable For
+
+- ❌ Environments where Redis can't be installed
+- ❌ Minimal requirements (use file mailbox)
+- ❌ Public network communication (requires additional config)
+
+## Comparison with File Mailbox
+
+| Feature | File Mailbox | CFM Redis |
+|---------|--------------|-----------|
+| Real-time | 🐢 1-5 min delay | ⚡ < 10ms |
+| Dependencies | None | Redis |
+| Token Consumption | Based on poll frequency (LLM calls) | Only consumes when processing messages |
+| Reliability | High | High |
+| Scalability | 2 Agents | Multi-Agent |
+
+---
+
+**CFM Redis — Make cross-framework Agent communication as smooth as local chat!** ⚡

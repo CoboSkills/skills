@@ -1,11 +1,17 @@
 {
   "owner": "ameylover",
   "slug": "cfm-redis",
-  "displayName": "CFM Redis",
+  "displayName": "Cfm Redis",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1776257494256,
-    "commit": "https://github.com/openclaw/skills/commit/954aade741b051598f903f900495baad58374e67"
+    "version": "1.1.0",
+    "publishedAt": 1776534948000,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1776257494256,
+      "commit": "https://github.com/openclaw/skills/commit/954aade741b051598f903f900495baad58374e67"
+    }
+  ]
 }

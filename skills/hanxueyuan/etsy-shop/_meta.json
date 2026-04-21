@@ -3,9 +3,15 @@
   "slug": "etsy-shop",
   "displayName": "Etsy Shop",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775956535420,
-    "commit": "https://github.com/openclaw/skills/commit/7af3a41c2787ed152cc157616f5b83de84e76256"
+    "version": "1.0.6",
+    "publishedAt": 1776238614309,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775956535420,
+      "commit": "https://github.com/openclaw/skills/commit/7af3a41c2787ed152cc157616f5b83de84e76256"
+    }
+  ]
 }

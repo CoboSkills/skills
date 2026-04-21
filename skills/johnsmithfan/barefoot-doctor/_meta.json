@@ -1,11 +1,17 @@
 {
   "owner": "johnsmithfan",
   "slug": "barefoot-doctor",
-  "displayName": "赤脚医生智能助手",
+  "displayName": "Barefoot Doctor (EN)",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1776178931846,
-    "commit": "https://github.com/openclaw/skills/commit/94ba5383b30f3cec29ab6ee847ffaea22c3c533c"
+    "version": "1.0.0-en2",
+    "publishedAt": 1776678585463,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1776178931846,
+      "commit": "https://github.com/openclaw/skills/commit/94ba5383b30f3cec29ab6ee847ffaea22c3c533c"
+    }
+  ]
 }

@@ -714,6 +714,195 @@
   }
 
   /* 响应式 - DESIGN.md 断点规范 */
+  /* ========== 订阅倒计时 Lite ========== */
+  .sub-countdown {
+    background: var(--bg-white);
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    box-shadow: var(--shadow-sm);
+    padding: 14px var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-md);
+  }
+  .sub-countdown .sub-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+  .sub-countdown .sub-icon {
+    font-size: 22px;
+  }
+  .sub-countdown .sub-plan {
+    font-weight: 600;
+  }
+  .sub-countdown .sub-expire {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .sub-countdown .sub-right {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+  }
+  .sub-countdown .sub-days {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+  }
+  .sub-countdown .sub-days-num {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .sub-countdown .sub-days-unit {
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+  }
+  .sub-countdown .sub-hms {
+    display: flex;
+    gap: 4px;
+  }
+  .sub-countdown .sub-hms-block {
+    background: var(--bg-alt);
+    border-radius: 4px;
+    padding: 4px 8px;
+    text-align: center;
+    min-width: 38px;
+  }
+  .sub-countdown .sub-hms-val {
+    font-size: 18px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+  .sub-countdown .sub-hms-label {
+    font-size: 9px;
+    color: var(--text-disabled);
+    text-transform: uppercase;
+  }
+  .sub-countdown .sub-bar {
+    width: 120px;
+    height: 6px;
+    background: var(--bg-alt);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .sub-countdown .sub-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1s;
+  }
+  /* 倒计时颜色阶梯 */
+  .sub-countdown.sub-safe .sub-days-num { color: var(--success); }
+  .sub-countdown.sub-safe .sub-bar-fill { background: var(--success); }
+  .sub-countdown.sub-safe .sub-hms-val { color: var(--success); }
+  .sub-countdown.sub-notice .sub-days-num { color: var(--info); }
+  .sub-countdown.sub-notice .sub-bar-fill { background: var(--info); }
+  .sub-countdown.sub-notice .sub-hms-val { color: var(--info); }
+  .sub-countdown.sub-warn .sub-days-num { color: var(--warning); }
+  .sub-countdown.sub-warn .sub-bar-fill { background: var(--warning); }
+  .sub-countdown.sub-warn .sub-hms-val { color: var(--warning); }
+  .sub-countdown.sub-danger .sub-days-num { color: var(--error); }
+  .sub-countdown.sub-danger .sub-bar-fill { background: var(--error); }
+  .sub-countdown.sub-danger .sub-hms-val { color: var(--error); }
+  .sub-renew-btn {
+    background: var(--primary);
+    color: #fff;
+    border: 1px solid var(--primary);
+    border-radius: 4px;
+    padding: 6px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+  }
+  .sub-renew-btn:hover {
+    background: var(--primary-hover);
+    border-color: var(--primary-hover);
+  }
+  /* 续订弹窗 */
+  .sub-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: subFadeIn 0.2s;
+  }
+  @keyframes subFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  .sub-modal {
+    background: var(--bg-white);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    padding: var(--spacing-xl);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    animation: subSlideUp 0.25s;
+  }
+  @keyframes subSlideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .sub-modal h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+  }
+  .sub-modal p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-lg);
+    line-height: 1.6;
+  }
+  .sub-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+  .sub-modal-actions button {
+    padding: 8px 28px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid var(--border);
+  }
+  .sub-modal-actions .btn-confirm {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .sub-modal-actions .btn-confirm:hover {
+    background: var(--primary-hover);
+  }
+  .sub-modal-actions .btn-cancel {
+    background: var(--bg-white);
+    color: var(--text-primary);
+  }
+  .sub-modal-actions .btn-cancel:hover {
+    background: var(--bg-alt);
+  }
+  @media (max-width: 768px) {
+    .sub-countdown { flex-direction: column; text-align: center; }
+    .sub-countdown .sub-left { flex-direction: column; }
+    .sub-countdown .sub-right { flex-direction: column; }
+  }
+
   @media (max-width: 768px) {
     .main-content { padding: var(--spacing-md); }
     .grid { grid-template-columns: 1fr; }
@@ -742,6 +931,56 @@
 <!-- 主内容 -->
 <div class="main-content">
   <div class="summary" id="summaryBar"></div>
+
+  <!-- 订阅倒计时 Lite -->
+  <div class="sub-countdown sub-safe" id="subCountdown">
+    <div class="sub-left">
+      <span class="sub-icon">🦞</span>
+      <div>
+        <div class="sub-plan">Coding Plan · Lite 订阅</div>
+        <div class="sub-expire" id="subExpireDate">到期日：--</div>
+      </div>
+    </div>
+    <div class="sub-right">
+      <div class="sub-days">
+        <span class="sub-days-num" id="subDaysNum">--</span>
+        <span class="sub-days-unit">天</span>
+      </div>
+      <div class="sub-hms">
+        <div class="sub-hms-block">
+          <div class="sub-hms-val" id="subHours">--</div>
+          <div class="sub-hms-label">时</div>
+        </div>
+        <div class="sub-hms-block">
+          <div class="sub-hms-val" id="subMins">--</div>
+          <div class="sub-hms-label">分</div>
+        </div>
+        <div class="sub-hms-block">
+          <div class="sub-hms-val" id="subSecs">--</div>
+          <div class="sub-hms-label">秒</div>
+        </div>
+      </div>
+      <div>
+        <div class="sub-bar">
+          <div class="sub-bar-fill" id="subBarFill" style="width:0%"></div>
+        </div>
+        <div style="font-size:10px;color:var(--text-disabled);text-align:right;margin-top:2px" id="subBarLabel">剩余 --%</div>
+      </div>
+      <button class="sub-renew-btn" onclick="showRenewModal()">🔄 续订</button>
+    </div>
+  </div>
+
+  <!-- 续订弹窗 -->
+  <div class="sub-modal-overlay" id="subModalOverlay" style="display:none" onclick="closeRenewModal(event)">
+    <div class="sub-modal">
+      <h3>🦞 确认续订</h3>
+      <p>是否确定延长套餐周期 <strong>30 天</strong>？<br>续订后到期日将自动顺延。</p>
+      <div class="sub-modal-actions">
+        <button class="btn-cancel" onclick="closeRenewModal()">取消</button>
+        <button class="btn-confirm" onclick="confirmRenew()">✅ 确认续订</button>
+      </div>
+    </div>
+  </div>
 
   <!-- 额度监控区 -->
   <div class="quota-section" id="quotaSection" style="display:none">
@@ -865,7 +1104,8 @@ async function fetchAgentData() {
 
 async function fetchQuotaData() {
   try {
-    const res = await fetch(CONFIG.apiEndpoint.replace('/agents', '/quota'));
+    // 加时间戳参数，避免浏览器缓存
+    const res = await fetch(CONFIG.apiEndpoint.replace('/agents', '/quota') + '?t=' + Date.now());
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
     if (data.error) return null;
@@ -1040,31 +1280,8 @@ function renderQuota(quota) {
   // 对比表
   renderCompareTable(s, manual);
 
-  // 日用量柱状图 — 有实际值时按比例缩放
-  let dailyData = quota.usage.daily || {};
-  if (manual && s.usedTotal > 0) {
-    const scale = manual.usedTotal / s.usedTotal;
-    const scaled = {};
-    for (const [k, v] of Object.entries(dailyData)) {
-      scaled[k] = Math.round(v * scale);
-    }
-    // 修正舍入误差，让总和 = 实际值
-    const scaledSum = Object.values(scaled).reduce((a, b) => a + b, 0);
-    const diff = manual.usedTotal - scaledSum;
-    const lastKey = Object.keys(scaled).sort().pop();
-    if (lastKey) scaled[lastKey] += diff;
-    dailyData = scaled;
-  }
-  // 如果有手动历史记录，用实际增量替换对应日期
-  if (quota.manualHistory && quota.manualHistory.length > 1) {
-    const sorted = [...quota.manualHistory].sort((a, b) => a.date.localeCompare(b.date));
-    for (let i = 1; i < sorted.length; i++) {
-      const dayDelta = sorted[i].total - sorted[i - 1].total;
-      if (dayDelta >= 0 && dailyData[sorted[i].date] !== undefined) {
-        dailyData[sorted[i].date] = dayDelta;
-      }
-    }
-  }
+  // 日用量柱状图 — 直接使用后端返回的每日数据（已在后端按实际值重新分配）
+  const dailyData = quota.usage.daily || {};
   renderDailyChart(dailyData, safeLimit);
 }
 
@@ -1361,6 +1578,67 @@ async function refreshData() {
   renderCronSection(cronData);
   document.getElementById('lastUpdate').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN');
 }
+
+// ========== 订阅倒计时 Lite ==========
+let subExpire = new Date('2026-06-11T23:59:59+08:00'); // 到期日
+let subTotalDays = 60; // 订阅周期总天数（用于进度条）
+
+function showRenewModal() {
+  document.getElementById('subModalOverlay').style.display = 'flex';
+}
+function closeRenewModal(e) {
+  if (e && e.target !== e.currentTarget) return;
+  document.getElementById('subModalOverlay').style.display = 'none';
+}
+function confirmRenew() {
+  subExpire = new Date(subExpire.getTime() + 30 * 86400000);
+  subTotalDays += 30;
+  document.getElementById('subModalOverlay').style.display = 'none';
+  updateCountdown();
+}
+
+function updateCountdown() {
+  const now = new Date();
+  const diff = subExpire - now;
+  const el = document.getElementById('subCountdown');
+  if (diff <= 0) {
+    document.getElementById('subDaysNum').textContent = '0';
+    document.getElementById('subHours').textContent = '00';
+    document.getElementById('subMins').textContent = '00';
+    document.getElementById('subSecs').textContent = '00';
+    el.className = 'sub-countdown sub-danger';
+    document.getElementById('subBarFill').style.width = '0%';
+    document.getElementById('subBarLabel').textContent = '已到期';
+    return;
+  }
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const mins = Math.floor((diff % 3600000) / 60000);
+  const secs = Math.floor((diff % 60000) / 1000);
+  document.getElementById('subDaysNum').textContent = days;
+  document.getElementById('subHours').textContent = String(hours).padStart(2, '0');
+  document.getElementById('subMins').textContent = String(mins).padStart(2, '0');
+  document.getElementById('subSecs').textContent = String(secs).padStart(2, '0');
+
+  // 颜色阶梯
+  let level = 'sub-safe';
+  if (days <= 3) level = 'sub-danger';
+  else if (days <= 7) level = 'sub-warn';
+  else if (days <= 14) level = 'sub-notice';
+  el.className = 'sub-countdown ' + level;
+
+  // 进度条：剩余占比
+  const totalMs = subTotalDays * 86400000;
+  const remainPct = Math.max(0, Math.min(100, (diff / totalMs) * 100));
+  document.getElementById('subBarFill').style.width = remainPct.toFixed(1) + '%';
+  document.getElementById('subBarLabel').textContent = '剩余 ' + remainPct.toFixed(0) + '%';
+
+  // 到期日
+  document.getElementById('subExpireDate').textContent = '到期日：' + subExpire.toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric' });
+}
+
+updateCountdown();
+setInterval(updateCountdown, 1000);
 
 // Init
 refreshData();

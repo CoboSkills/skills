@@ -53,11 +53,14 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  if (req.url === '/api/agents' && req.method === 'GET') {
+  // 处理带查询参数的 URL（如 /api/quota?t=123）
+  const urlPath = req.url.split('?')[0];
+  
+  if (urlPath === '/api/agents' && req.method === 'GET') {
     const data = getData();
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(data));
-  } else if (req.url === '/api/quota' && req.method === 'GET') {
+  } else if (urlPath === '/api/quota' && req.method === 'GET') {
     try {
       const q = JSON.parse(fs.readFileSync(QUOTA_FILE, 'utf8'));
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -66,7 +69,7 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'no data' }));
     }
-  } else if (req.url === '/api/quota' && req.method === 'POST') {
+  } else if (urlPath === '/api/quota' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
@@ -109,6 +112,67 @@ const server = http.createServer((req, res) => {
           };
           // 触发学习：用实际值校准预测模型
           learnFromManual(q);
+          // 立即更新 stats，让预测值与实际值同步
+          const { updateQuota } = require('./quota-tracker');
+          updateQuota();
+          // 重新分配每日数据，让每日用量趋势图反映实际值
+          if (q.manualHistory && q.manualHistory.length > 0) {
+            const sorted = [...q.manualHistory].sort((a, b) => a.date.localeCompare(b.date));
+            const start = new Date(q.config.billingCycleStart || '2026-04-11');
+            const todayStr = new Date().toISOString().slice(0, 10);
+            
+            const newDaily = {};
+            
+            // 用实际历史记录的增量分配每日数据
+            for (let i = 0; i < sorted.length; i++) {
+              const curr = sorted[i];
+              const prev = i > 0 ? sorted[i - 1] : null;
+              
+              if (!prev) {
+                // 第一次记录：从周期开始日到第一次记录日，平均分摊
+                const firstDate = new Date(curr.date);
+                const daysFromStart = Math.round((firstDate - new Date(start.toISOString().slice(0, 10))) / 86400000) + 1;
+                const dailyAvg = Math.round(curr.total / daysFromStart);
+                
+                for (let j = 0; j < daysFromStart; j++) {
+                  const d = new Date(start.getTime() + j * 86400000);
+                  const dateKey = d.toISOString().slice(0, 10);
+                  newDaily[dateKey] = dailyAvg;
+                }
+                // 修正舍入误差
+                const sum = Object.values(newDaily).reduce((a, b) => a + b, 0);
+                const diff = curr.total - sum;
+                if (diff !== 0 && newDaily[curr.date] != null) {
+                  newDaily[curr.date] += diff;
+                }
+              } else {
+                // 后续记录：按实际增量分配
+                const prevDate = new Date(prev.date);
+                const currDate = new Date(curr.date);
+                const daysBetween = Math.round((currDate - prevDate) / 86400000);
+                const delta = curr.total - prev.total;
+                const dailyAvg = daysBetween > 0 ? Math.round(delta / daysBetween) : delta;
+                
+                for (let j = 1; j <= daysBetween; j++) {
+                  const d = new Date(prevDate.getTime() + j * 86400000);
+                  const dateKey = d.toISOString().slice(0, 10);
+                  newDaily[dateKey] = dailyAvg;
+                }
+                // 修正舍入误差
+                const daysKeys = Object.keys(newDaily).filter(k => k > prev.date && k <= curr.date);
+                if (daysKeys.length > 0) {
+                  const sum = daysKeys.reduce((a, k) => a + newDaily[k], 0);
+                  const diff = delta - sum;
+                  if (diff !== 0) {
+                    newDaily[curr.date] = (newDaily[curr.date] || 0) + diff;
+                  }
+                }
+              }
+            }
+            
+            q.usage.daily = newDaily;
+            q.usage.total = sorted[sorted.length - 1].total;
+          }
         }
         fs.writeFileSync(QUOTA_FILE, JSON.stringify(q, null, 2));
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -118,10 +182,10 @@ const server = http.createServer((req, res) => {
         res.end(JSON.stringify({ error: e.message }));
       }
     });
-  } else if (req.url === '/api/health' && req.method === 'GET') {
+  } else if (urlPath === '/api/health' && req.method === 'GET') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ status: 'ok', cached: !!cachedData, lastFetch }));
-  } else if (req.url === '/api/cron' && req.method === 'GET') {
+  } else if (urlPath === '/api/cron' && req.method === 'GET') {
     // 读取 Cron 任务列表
     try {
       const cronFile = path.join(__dirname, 'cron-cache.json');
@@ -132,7 +196,7 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ jobs: [], lastUpdated: 0 }));
     }
-  } else if (req.url === '/api/cron-update' && req.method === 'POST') {
+  } else if (urlPath === '/api/cron-update' && req.method === 'POST') {
     // 保存 Cron 修改请求
     let body = '';
     req.on('data', chunk => body += chunk);

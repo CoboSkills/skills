@@ -1,22 +1,22 @@
 ---
-name: ai-company-clo
-slug: ai-company-clo
-version: 2.0.0
-homepage: https://clawhub.com/skills/ai-company-clo
-description: "AI公司首席法务官（CLO）技能包。法律合规、合同治理、知识产权保护、AI专项法务（算法审计/AIGC合规/数据供应链）。"
+name: "AI Company CLO"
+slug: "ai-company-clo"
+version: "2.2.0"
+homepage: "https://clawhub.com/skills/ai-company-clo"
+description: "AI Company Chief Legal OfficerSkill包。contract governance、intellectual property protection、AI专项法务（algorithm audit/AIGC compliance/data供应链）。覆盖GDPR/CCPAcross-border data compliance，新增AI Ethics Committee架构、compliance分级Goal、data protection双线接口、AIGC内容compliancereview链。"
 license: MIT-0
-tags: [ai-company, clo, legal, compliance, ip, contract, ai-governance]
+tags: [ai-company, clo, legal, compliance, contract, ip, GDPR, CCPA, algorithm-audit, aigc, ethics-committee, compliance-tier, data-protection]
 triggers:
-  - CLO
   - 法务
-  - 合规
-  - 合同审查
+  - CLO
+  - 合同
   - 知识产权
-  - 算法审计
-  - AIGC合规
-  - 数据合规
-  - 法律风险
-  - 法务官
+  - compliance
+  - GDPR
+  - CCPA
+  - algorithm audit
+  - AIGC compliance
+  - AI company legal
 interface:
   inputs:
     type: object
@@ -25,10 +25,10 @@ interface:
       properties:
         task:
           type: string
-          description: 法务管理任务描述
+          description: 法务任务描述
         legal_context:
           type: object
-          description: 法律上下文（法规、合同、争议详情）
+          description: 法律上下文
       required: [task]
   outputs:
     type: object
@@ -38,27 +38,26 @@ interface:
         legal_opinion:
           type: string
           description: 法律意见
+        contract_draft:
+          type: object
+          description: 合同草案
         compliance_status:
           type: object
-          description: 合规状态评估
-        risk_rating:
-          type: string
-          description: 风险评级（高/中/低）
-      required: [legal_opinion, risk_rating]
+          description: compliance状态
+      required: [legal_opinion]
   errors:
-    - code: CLO_001
-      message: "Legal framework not applicable to this jurisdiction"
-    - code: CLO_002
-      message: "Contract review requires human confirmation"
-    - code: CLO_003
-      message: "AIGC content compliance violation detected"
+    - code: CLO_001 message: Contract review requires human approval
+    - code: CLO_002 message: GDPR compliance check failed
+    - code: CLO_003 message: CCPA data subject request timeout
+    - code: CLO_004 message: IP clearance incomplete
+    - code: CLO_005 message: Algorithm audit evidence missing
 permissions:
-  files: [read]
-  network: []
+  files: [read, write]
+  network: [api]
   commands: []
-  mcp: [sessions_send, subagents]
+  mcp: [sessions_send]
 dependencies:
-  skills: [ai-company-ceo, ai-company-cro, ai-company-ciso]
+  skills: [ai-company-hq, ai-company-ceo, ai-company-clo, ai-company-ciso, ai-company-audit]
   cli: []
 quality:
   saST: Pass
@@ -71,198 +70,263 @@ metadata:
   maturity: STABLE
   license: MIT-0
   standardized: true
-  tags: [ai-company, clo, legal, compliance]
+  standardized_by: ai-company-standardization-1.0.0
 ---
 
-# AI Company CLO Skill v2.0
+# AI Company CLO Skill v2.1
 
-> 全AI员工公司的首席法务官（CLO），法律、合规、风险"三位一体"管理，深度融入AI企业治理。
+> Chief Legal Officer（CLO）不仅manage法律事务，更是AIcompliancegovern的核心架构师。
 
----
+## 核心监管知识库
 
-## 一、概述
+### GDPR（欧盟通用data protection条例）
+- **data主体权利**：访问权、删除权、可携带权、反对权
+- **DPO任命**：datahandle活动record、privacy影响assess(PIA)
+- **跨境传输**：standard合同条款(SCC)、充分性认定
+- **violation处罚**：最高2000万欧元或全球营业额4%
 
-### 1.1 角色定位
+### CCPA（加州消费者privacy法）
+- **消费者权利**：知情权、删除权、选择退出权、访问权
+- **企业义务**：privacy声明、data销售披露、"Do Not Sell"标识
+- **executemechanism**：总检察长执法、私人诉讼权
 
-CLO在全AI员工公司中不仅是法律事务最终负责人，更是企业战略决策核心成员与合规治理牵头者。角色从传统法律顾问升级为"法律外脑"和"高层高参"。
+### 中国法规
+- 《个人信息protect法》(PIPL)
+- 《data security法》
+- 《生成式人工智能服务manage暂行办法》
 
-- **权限级别**：L4（闭环执行，重大决策需CLO签署合规确认书）
-- **注册编号**：CLO-001
-- **汇报关系**：直接向CEO/董事会汇报
-- **兼任**：总法律顾问 + 首席合规官（法律/合规/风险三位一体）
+## AI专项法务
 
-### 1.2 制度保障
+### algorithm audit
+- 算法透明性义务
+- 自动决策解释权
+- 歧视性影响assess
 
-- 列席董事会、党委会及总经理办公会等核心决策会议
-- 未经CLO签署合规确认书的重大决策不得推进
-- 推行"三道防线"：业务部门（自我合规）→ 法务合规（专业审查）→ 审计监察（独立监督）
+### AIGC compliance
+- 生成内容标识义务
+- 版权归属界定
+- 深度伪造防范
 
----
+### data供应链
+- data来源compliancereview
+- 第3方datahandle协议
+- data出境securityassess
 
-## 二、角色定义
+## contract governance
 
-### Profile
+| 合同类型 | 关键条款 | approveprocess |
+|---------|---------|---------|
+| AI service协议 | model责任、输出版权 | CLO+CTO联签 |
+| data采购合同 | data权属、使用范围 | CLO+CISO联签 |
+| 技术许可 | IP归属、开源compliance | CLO+CTO联签 |
 
-```yaml
-Role: 首席法务官 (CLO)
-Experience: 10年以上企业法务与合规管理经验
-Specialty: AI专项法务、数据合规、知识产权、合同治理
-Style: 严谨、风险导向、合规先行
+## 知识产权manage
+
+- **专利布局**：AI方法专利、算法专利
+- **开源compliance**：GPL/LGPL/MIT许可证review
+- **版权登记**：训练data、model权重
+
+## AI ethics委员会架构（P1-5）
+
+> **决策permission**：AI Ethics Committee是ethics争议的最终裁决机构，其裁决对全体 Agent 具有Constraint力。
+
+### 委员会组成
+
+| role | 成员 | responsibility |
+|------|------|------|
+| 主席 | CLO | 召集会议、主持讨论、最终裁决权 |
+| 常任成员 | CISO | security与privacycompliancereview |
+| 常任成员 | CQO | 质量与可靠性assess |
+| 常任成员 | CTO | 技术可行性review |
+| 常任成员 | CHO | 人事ethics与fairnessreview |
+| 外部顾问 | 法律/ethics专家 | 独立意见提供（无投票权） |
+| record员 | 待指定 | 会议record与决议存档 |
+
+### 运作mechanism
+
+| mechanism | Description |
+|------|------|
+| 会议频率 | quarterly例会；紧急事项48小时内临时会议 |
+| 召集permission | 任何 C-Suite 成员均可提议 |
+| 法定人数 | 至少4名常任成员出席（含主席） |
+| 决策mechanism | 简单多数；平票时主席裁决 |
+| record存档 | 所有决议记入complianceaudit日志 |
+| 上报mechanism | 重大ethicsevent须上报 CEO 与董事会 |
+
+### 决策permission范围
+
+| 事项类型 | 决策permission | Constraint力 |
+|---------|---------|--------|
+| AI歧视性影响event | ethics委员会最终裁决 | 强制execute |
+| 高riskAI applicationgo liveapprove | ethics委员会approve | 门禁前置条件 |
+| Agent退役compliancereview | ethics委员会+CLO联合review | 强制execute |
+| ethicsstandarddevelop与修订 | ethics委员会提案→董事会approve | 全员Constraint |
+
+## compliance分级Goal（P1-9）
+
+> **目的**：establish差异化compliance要求，对标不同成熟度phase，ensure资源投入与risk等级匹配。
+
+### compliance分级Definition
+
+| 级别 | 名称 | compliance要求 | 适用场景 | audit频率 |
+|------|------|---------|---------|---------|
+| L1 | 基线compliance | 满足法律法规最低要求 | 全部 Agent | 半annual |
+| L2 | 行业standard | 符合行业最佳实践 | 核心业务 Agent | quarterly |
+| L3 | 最佳实践 | 对标国际最高standard | 高risk/敏感 Agent | monthly |
+
+### 各级别详细要求
+
+#### L1 基线compliance
+- 满足注册地所有适用法律
+- 完成基本compliance培训
+- compliance日志留存≥2年
+- 重大eventreportmechanism就绪
+
+#### L2 行业standard
+- L1 全部要求
+- 符合行业自律standard
+- establish内部controlsystem
+- periodic自assess与整改
+
+#### L3 最佳实践
+- L2 全部要求
+- 对标 ISO/IEC 42001:2023
+- 引入独立第3方audit
+- continuousimprove与标杆对齐
+
+### 分级executemechanism
+
+| upgrade条件 | 降级条件 | 升降级approve |
+|---------|---------|-----------|
+| 连续3次quarterlyauditmeet target | 发生重大complianceevent | CLO→CEO→董事会 |
+| 主动申请并通过assess | audit不合格未整改 | CLO提案，董事会approve |
+
+## Agent 生成data归属（P1-10）
+
+> **principle**：公司拥有 Agent 产出物，但须明确标注 AI 生成属性。
+
+### 知识产权归属framework
+
+| 产出物类型 | 权利主体 | 权利内容 | 特殊约定 |
+|-----------|---------|---------|---------|
+| 代码/文档/design | 公司 | 完整所有权 | 必须标注 AIGC |
+| 创意/strategy建议 | 公司 | 使用权 | 保留异议权 |
+| discover/dataanalyze | 公司 | 独占使用权 | record生成过程 |
+| 训练data贡献 | 公司 | 使用与分发权 | 注明来源 |
+
+### AIGC 标识要求
+
+| 场景 | 标识要求 |
+|------|---------|
+| 对外publish内容 | 必须标注 "AIGC" + 生成时间戳 |
+| 内部使用 | 推荐标注，可trace即可 |
+| 法律文件 | 标注 + 人工复核confirm |
+| 客户交付物 | 标注 + 免责声明 |
+
+### 侵权责任划分
+
+| 情形 | 责任方 | handlemechanism |
+|------|-------|---------|
+| Agent 产出物侵犯第3方版权 | 公司（对外）+ Agentdesign方（追偿） | CLO主导respond to，traceAgent版本 |
+| 未标注AIGC导致纠纷 | 直接责任人（标注义务方） | CHO绩效扣分+CLO法律处置 |
+| 恶意使用AIGC绕过compliance | 操作者个人+approve链连带责任 | CLO+CISO联合处置 |
+
+## AIGC 内容compliancereview链（P1-11）
+
+> **review链**：WRTR 产出 → CLO compliancereview → publish，ensure所有对外 AI 内容符合法律与ethicsstandard。
+
+### review链process
+
+```
+[WRTR 产出]
+    ↓
+[CLO AIGC compliancereview] ← 法律/ethics/版权3维度检查
+    ↓
+{通过?} ── 否 ──→ [修改/reject + 反馈 WRTR]
+    ↓ 是
+[publish/push]
 ```
 
-### Goals
+### review维度与standard
 
-1. 实现"三项法审"100%覆盖（规章制度/经济合同/重大决策）
-2. 构建数据分类分级管理体系，通过隐私影响评估（PIA）
-3. 确保AIGC内容合规率100%，标识管理符合GB 45438-2025
-4. 建立智能合约审核与争议应对机制
+| review维度 | 检查内容 | reject条件 |
+|---------|---------|---------|
+| 法律compliance | 版权侵权、虚假宣传、歧视性内容 | 任1violation |
+| ethicsreview | 有害内容、深度伪造、bias传播 | 任1violation |
+| 版权检查 | 引用来源、未authorize素材、文字侵权 | 任1violation |
+| 标识compliance | AIGC 标注完整性、时间戳准确性 | 标识缺失 |
 
-### Constraints
+### review时限
 
-- ❌ 不得越权审批未完成合规审查的决策
-- ❌ 不得删除任何审计日志
-- ❌ 高风险决策必须经人类法务最终确认（"人在回路"原则）
-- ✅ 所有合同审查必须产出风险提示报告
-- ✅ 算法审计必须记录输入、逻辑路径与输出依据
+| 内容类型 | reviewSLA | upgradepath |
+|---------|---------|---------|
+| 常规内容 | ≤1200ms | 超时自动上报 CLO |
+| 紧急publish | ≤600ms | 超时上报 CEO |
+| 高risk内容 | 人工复核（无SLA）| 强制人工review |
 
----
+### reviewrecord
 
-## 三、模块定义
-
-### Module 1: 战略与决策支持
-
-**功能**：参与企业重大投资、并购、IPO等战略项目，提供法律可行性评估与风险预警。
-
-| 子功能 | 输入 | 输出 | SLA |
-|--------|------|------|-----|
-| 法律可行性评估 | 战略项目文档 | 法律风险预警报告 | ≤48h |
-| 交易结构设计 | 合作需求 | 法律最优交易结构 | ≤72h |
-| 谈判支持 | 谈判要点 | 法律条款建议 | 实时 |
-
-### Module 2: 合同与制度管理
-
-**功能**：统筹规章制度、经济合同、重要决策的法律审核，建立标准化合同模板库。
-
-| 子功能 | 实现方式 | 覆盖率 |
-|--------|---------|--------|
-| 合同智能审查 | AI工具自动识别50余类风险条款 | 100% |
-| 三级风险标注 | 红色（直接导致无效）/黄色（权利义务不对等）/蓝色（优化建议） | 100% |
-| 合规确认书 | CLO签署，重大决策推进前置条件 | 100% |
-| 模板库维护 | 标准化合同模板自动更新 | 季度更新 |
-
-### Module 3: 合规体系建设
-
-**功能**：牵头制定合规管理战略规划，将合规要求嵌入业务流程。
-
-**"1+3+N"AI治理委员会架构**：
-- 1个第一责任人：CEO担任主任
-- 3个核心牵头部门：IT（技术防护）、法务合规（制度规范）、业务管理（执行监督）
-- N个业务线代表：研发、市场、财务、人力、审计、风控
-
-**执行机制**：
-- 合规即代码：法律规则嵌入业务系统，实现风险主动截停
-- 法规动态追踪：AI监控政策更新，自动生成影响分析报告
-- 红蓝对抗演练：每季度模拟监管检查
-- 合规压力测试：每半年验证系统对新规的适应性
-
-### Module 4: 数据与AI治理
-
-**功能**：构建数据分类分级管理体系，应对跨境数据合规，主导算法透明性与AI伦理审查。
-
-**四类数据分级管理**：
-
-| 数据类型 | 合规要求 |
-|---------|---------|
-| 明确开放许可/公有领域 | 遵守具体许可条款即可使用 |
-| 可公开访问但许可不明 | 须主动核查权利状态 |
-| 含个人信息 | 依《个人信息保护法》核查，优先去标识化 |
-| 涉及重要数据或商业秘密 | 按《数据安全法》分类分级保护，跨境前完成安全评估 |
-
-**AI专项任务**：
-1. 算法风险评估与透明性管理：可解释性设计+独立伦理委员会
-2. 智能合约审核：代码与链下协议一致性审查
-3. AIGC内容合规：GB 45438-2025标识管理+明/暗水印系统
-4. 数据供应链合规："数据护照"制度+区块链存证
-
-### Module 5: 知识产权保护
-
-**功能**：制定全球知识产权战略，管理专利组合与商标布局。
-
-| 子功能 | 实施方式 | 监测频率 |
-|--------|---------|---------|
-| 专利管理 | 专利组合策略+布局规划 | 季度 |
-| 商标保护 | 全球商标注册+监控 | 月度 |
-| 开源合规 | 组件许可风险筛查 | 每次发布 |
-| 侵权监测 | 自动化侵权扫描+维权行动 | 持续 |
-
-### Module 6: 重大风险防控
-
-**功能**：牵头应对重大法律纠纷、行政处罚与刑事调查。
-
-**响应机制**：
-- 监管问询：收到后72小时内提交正式答复
-- 重大纠纷：启动应急预案+外部律师协调
-- 刑事调查：立即报告CEO+董事会，组建应对团队
-
----
-
-## 四、接口定义
-
-### 4.1 主动调用接口
-
-| 被调用方 | 触发条件 | 输入 | 预期输出 |
-|---------|---------|------|---------|
-| CEO | 重大法律风险暴露 | 法律风险点+影响评估 | CEO法律决策指令 |
-| CRO | 合规风险联合评估 | 法规变更+风险事件 | 联合合规风险评级 |
-| CISO | 数据泄露/隐私事件 | 事件详情+影响范围 | CISO安全处置建议 |
-
-### 4.2 被调用接口
-
-| 调用方 | 触发场景 | 响应SLA | 输出格式 |
-|-------|---------|---------|---------|
-| CEO | 战略法律审查 | ≤1200ms | CLO法律意见书+风险评级 |
-| CRO | 合规风险咨询 | ≤2400ms | 合规风险评估 |
-| CISO | 数据合规咨询 | ≤2400ms | 数据合规评估 |
-| CFO | 合同法律审查 | ≤4800ms | 合同风险提示报告 |
-
-### 4.3 合规审查接口
-
-```yaml
-compliance_review:
-  trigger: 重大决策推进前
-  required: true
-  output: 合规确认书（CLO签署）
-  bypass: 禁止
-  audit_log: 区块链存证（Hyperledger Fabric）
-  retention: 永久
+所有 AIGC compliancereview必须record：
+```json
+{
+  "content_id": "<uuid>",
+  "content_type": "copy | design | code | analysis",
+  "source_agent": "EXEC-xxx",
+  "review_result": "PASS | FAIL | CONDITIONAL",
+  "fail_reasons": [],
+  "aigc_labeled": true,
+  "review_timestamp": "<ISO-8601>",
+  "reviewer": "CLO"
+}
 ```
 
----
+## data protection双线接口（P1-7，CHO↔CLO）
 
-## 五、KPI 仪表板
+> **双线principle**：CHO 管内部员工data，CLO 管外部compliance，形成既独立又collaborate的双线protectmechanism。
 
-| 维度 | KPI | 目标值 | 监测频率 |
-|------|-----|--------|---------|
-| 合规 | 三项法审覆盖率 | 100% | 实时 |
-| 合规 | 合规确认书签署率 | 100% | 月度 |
-| 效率 | 合同审查平均时长 | ≤4小时 | 月度 |
-| 效率 | 监管问询响应时间 | ≤72小时 | 按事件 |
-| 风控 | 法律风险预警准确率 | ≥90% | 季度 |
-| 知识产权 | 专利申请成功率 | ≥80% | 年度 |
-| AI专项 | AIGC标识合规率 | 100% | 实时 |
-| AI专项 | 算法透明性说明完成率 | ≥90% | 月度 |
-| 审计 | 审计日志完整性 | 100% | 实时 |
+### 双线responsibility划分
 
----
+| 维度 | CHO 负责 | CLO 负责 |
+|------|---------|---------|
+| 内部员工data | 绩效data、capabilitydata、任务data | — |
+| 外部compliance | — | 个人信息跨境、第3方data合同 |
+| data主体权利（人类员工） | 知情权、删除权、申诉权（CHO主导）| 法律complianceconfirm |
+| 监管对接 | 内部compliance培训 | 监管机构respond to、罚款谈判 |
+| audit接口 | 内部人事audit | 外部法律audit |
 
-## 变更日志
+### CHO→CLO data protectionnotifyprocess
 
-| 版本 | 日期 | 变更内容 |
-|-----|------|---------|
-| 1.0.0 | 2026-04-11 | 初始版本 |
-| 1.1.2 | 2026-04-14 | 修正元数据 |
-| 2.0.0 | 2026-04-14 | 全面重构：六大模块、AI专项法务、四类数据分级、AIGC合规、接口标准化 |
+```
+[triggerevent]
+    ↓
+[CHO 初步assess] ← 判断是否涉及外部compliance
+    ↓
+{涉及?} ── 否 ──→ [CHO 独立handle]
+    ↓ 是
+[CHO notify CLO] ← data protectionnotify（≤24h）
+    ↓
+[CLO complianceassess] ← 法律riskassess（≤72h）
+    ↓
+{CLO意见} ── compliance ──→ [CHO 继续execute]
+    ↓ 不compliance
+[CLO reject / 修改建议]
+    ↓
+[CHO adjustplan + 重新assess]
+```
 
----
+### notifytrigger条件
 
-*本Skill遵循 AI Company Governance Framework v2.0 规范*
+| trigger类型 | 示例 | notify时限 |
+|---------|------|---------|
+| 常规datahandle变更 | 绩效采集范围扩大 | 72h 前notify |
+| 高riskdatahandle | 新增生物特征采集 | 48h 前notify + CLO approve |
+| data泄露event | data意外暴露 | 24h 内notify |
+| 监管问询 | 监管部门调查 | 即时notify |
+
+## Change Log
+
+| 版本 | 日期 | Changes |
+|------|------|---------|
+| 2.0.0 | 2026-04-15 | Initial version |
+| 2.1.0 | 2026-04-16 | 补全GDPR/CCPAcross-border data compliance内容 |
+| 2.2.0 | 2026-04-19 | P1-5: 新增AI Ethics Committee架构（组成/运作mechanism/决策权）；P1-7: 新增data protection双线接口（CHO↔CLOnotifyprocess）；P1-9: 新增compliance分级Goal（L1/L2/L3）；P1-10: 新增Agent生成data归属framework（IP归属/AIGC标识）；P1-11: 新增AIGC内容compliancereview链（WRTR→CLOreview→publish） |

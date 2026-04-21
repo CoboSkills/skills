@@ -3,7 +3,7 @@ name: "AI Company Standardization"
 slug: "ai-company-standardization"
 version: "1.0.0"
 homepage: "https://clawhub.com/skills/ai-company-standardization"
-description: "AI Company 标准化流程 Skill — 将任意 Skill 转换为 ClawHub Schema v1.0 合规标准。包含 Frontmatter 审计、内容结构规范、Schema 合规检查、接口标准化、质量门五步流程。"
+description: "AI Company standard化process Skill — 将任意 Skill 转换为 ClawHub Schema v1.0 compliancestandard。包含 Frontmatter audit、内容结构standard、Schema compliance检查、接口standard化、质量门5步process。"
 license: MIT-0
 tags: [standardization, schema, ai-company, clawhub, frontmatter, governance]
 triggers:
@@ -32,7 +32,7 @@ permissions:
   commands: []
   mcp: []
 dependencies:
-  skills: [skill-vetter]
+  skills: [ai-company-hq, skill-vetter]
   cli: []
 quality:
   saST: Pass
@@ -50,56 +50,56 @@ metadata:
 
 # AI Company Standardization — ClawHub Schema v1.0
 
-AI Company 标准化流程 Skill。将任意格式不规范、包含组织特定内容、或结构混乱的 Skill 转换为 ClawHub Schema v1.0 合规的标准化 Skill。
+AI Company standard化process Skill。将任意格式不standard、包含组织特定内容、或结构混乱的 Skill 转换为 ClawHub Schema v1.0 compliance的standard化 Skill。
 
 ---
 
-## 概述
+## Overview
 
-**标准化（Standardization）** 是 AI Company Skill 质量保证的第一道门。它确保所有 Skill 满足统一的格式规范、接口定义和文档结构，使 Skill 可被发现、可被理解、可被安全地安装和执行。
+**standard化（Standardization）** 是 AI Company Skill 质量保证的第1道门。它ensure所有 Skill 满足统1的格式standard、接口Definition和文档结构，使 Skill 可被discover、可被理解、可被security地安装和execute。
 
-### 目标
+### Goal
 
-- 统一 ClawHub 生态中所有 Skill 的格式规范
+- 统1 ClawHub 生态中所有 Skill 的格式standard
 - 消除组织特定的内容（hardcoded references）
-- 确保接口定义完整且类型安全
-- 为后续模块化和通用化流程奠定基础
+- ensure接口Definition完整且类型security
+- 为后续模块化和通用化process奠定基础
 
 ### 适用范围
 
-| Skill 状态 | 是否需要标准化 |
+| Skill 状态 | 是否需要standard化 |
 |------------|-------------|
 | 新建 Skill | ✅ 强制 |
 | 已有 Skill（无 frontmatter）| ✅ 强制 |
-| 已有 Skill（frontmatter 不合规）| ✅ 强制 |
-| ClawHub 发布过的 Skill | ⚠️ 需版本升级 |
-| 已完全合规的 Skill | ❌ 不需要 |
+| 已有 Skill（frontmatter 不compliance）| ✅ 强制 |
+| ClawHub publish过的 Skill | ⚠️ 需版本upgrade |
+| 已完全compliance的 Skill | ❌ 不需要 |
 
 ---
 
-## 标准化五步流程
+## standard化5步process
 
-### Step 1 — Frontmatter 审计
+### Step 1 — Frontmatter audit
 
 检查所有必需字段是否存在且格式正确：
 
-| 字段 | 类型 | 必需 | 说明 |
+| 字段 | 类型 | 必需 | Description |
 |------|------|------|------|
 | `name` | string | ✅ | 人类可读名称 |
-| `slug` | string | ✅ | kebab-case，唯一，与目录名一致 |
+| `slug` | string | ✅ | kebab-case，唯1，与目录名1致 |
 | `version` | semver | ✅ | 格式：`X.Y.Z` |
-| `homepage` | URL | ✅ | ClawHub 发布地址 |
+| `homepage` | URL | ✅ | ClawHub publish地址 |
 | `description` | string | ✅ | 简洁描述（≤200字符）|
 | `license` | string | ✅ | 推荐 MIT-0 |
 | `tags` | string[] | ✅ | 搜索标签 |
-| `triggers` | string[] | ✅ | 触发词（用户说什么会调用此 Skill）|
-| `interface` | object | ✅ | 接口定义 |
-| `permissions` | object | ✅ | 权限显式声明 |
+| `triggers` | string[] | ✅ | trigger词（用户说什么会调用此 Skill）|
+| `interface` | object | ✅ | 接口Definition |
+| `permissions` | object | ✅ | permission显式声明 |
 | `dependencies` | object | ✅ | 依赖声明 |
-| `quality` | object | ✅ | 质量指标 |
+| `quality` | object | ✅ | 质量metric |
 | `metadata` | object | ✅ | 分类、分层、许可证等 |
 
-**审计检查：**
+**audit检查：**
 
 ```python
 def audit_frontmatter(skill_path: str) -> AuditResult:
@@ -114,7 +114,7 @@ def audit_frontmatter(skill_path: str) -> AuditResult:
     if not is_valid_semver(fm.get('version', '')):
         errors.append("STD_002: Version must be valid semver (e.g. 1.0.0)")
     
-    # slug 必须与目录名一致
+    # slug 必须与目录名1致
     dir_name = os.path.basename(os.path.dirname(skill_path))
     if fm.get('slug') != dir_name:
         errors.append(f"STD_004: slug '{fm.get('slug')}' must match directory '{dir_name}'")
@@ -129,17 +129,17 @@ def audit_frontmatter(skill_path: str) -> AuditResult:
     return AuditResult(passed=len(errors)==0, errors=errors)
 ```
 
-### Step 2 — 内容结构规范化
+### Step 2 — 内容结构standard化
 
-将 Skill 正文组织为标准化模块结构：
+将 Skill 正文组织为standard化模块结构：
 
 ```
 ## Module X: [模块名称]
 
-### 功能描述
+### Function描述
 [模块负责什么]
 
-### 接口定义
+### 接口Definition
 [typed inputs/outputs YAML]
 
 ### 错误代码
@@ -149,36 +149,36 @@ def audit_frontmatter(skill_path: str) -> AuditResult:
 [其他模块或外部依赖]
 ```
 
-**标准化章节顺序：**
+**standard化章节顺序：**
 
-1. **概述（Overview）** — Skill 定位、功能摘要
-2. **模块定义（Modules）** — N× 模块详细说明
-3. **接口定义（Interfaces）** — 所有调用接口汇总
-4. **KPI 仪表板（KPI Dashboard）** — 质量指标
-5. **变更日志（Changelog）** — 版本历史
+1. **Overview（Overview）** — Skill 定位、Function摘要
+2. **模块Definition（Modules）** — N× 模块详细Description
+3. **接口Definition（Interfaces）** — 所有调用接口汇总
+4. **KPI 仪表板（KPI Dashboard）** — 质量metric
+5. **Change Log（Changelog）** — 版本历史
 
-**禁止内容：**
+**prohibit内容：**
 
 - ❌ 硬编码组织名称（DELLIGHT.AI、Acme Corp 等）
 - ❌ 硬编码具体金额、日期、ID
-- ❌ 指向特定环境的文件路径（如 `C:\Users\xxx\`）
+- ❌ 指向特定环境的文件path（如 `ABSOLUTE_PATH/`）
 - ❌ 未声明的网络调用
 - ❌ 隐藏的凭据或密钥引用
 
-### Step 3 — Schema 合规检查
+### Step 3 — Schema compliance检查
 
-| 检查项 | 标准 | 错误码 |
+| 检查项 | standard | 错误码 |
 |--------|------|--------|
 | Frontmatter 格式 | YAML 有效，字段完整 | STD_001/003 |
 | Semver 版本号 | `^\\d+\\.\\d+\\.\\d+$` | STD_002 |
-| Slug 命名 | kebab-case，与目录名一致 | STD_004 |
-| Interface 定义 | 有 inputs/outputs/errors | STD_005 |
-| 权限声明 | 不含通配符 `*` | STD_006 |
+| Slug 命名 | kebab-case，与目录名1致 | STD_004 |
+| Interface Definition | 有 inputs/outputs/errors | STD_005 |
+| permission声明 | 不含通配符 `*` | STD_006 |
 | 依赖声明 | 所有依赖已列出 | STD_007 |
 | Idempotency | quality.idempotent 已声明 | STD_008 |
 | License | 已声明（推荐 MIT-0）| STD_009 |
 
-### Step 4 — 接口标准化
+### Step 4 — 接口standard化
 
 所有接口必须包含：
 
@@ -204,36 +204,36 @@ interface_name:
       expected_output: object
 ```
 
-**接口命名规范：**
+**接口命名standard：**
 
 - 使用 kebab-case（`skill-name`）
-- 每个接口独立一个 error code 前缀
+- 每个接口独立1个 error code 前缀
 - 至少包含 2 个示例
 
 ### Step 5 — 质量门
 
-| 质量门 | 条件 | 通过标准 |
+| 质量门 | 条件 | 通过standard |
 |--------|------|---------|
 | Frontmatter | 所有必需字段存在 | 0 errors |
 | YAML 有效性 | 文件可被 YAML 解析器读取 | 解析成功 |
-| Idempotency | 可重复执行不改变结果 | 幂等性验证通过 |
+| Idempotency | 可重复execute不改变结果 | 幂等性verify通过 |
 | 接口完整性 | 所有接口有 inputs/outputs/errors | 100% 覆盖 |
 | 文档完整性 | 每个模块有 description | 无空模块 |
 
 ---
 
-## 接口定义
+## 接口Definition
 
 ### `standardize-skill`
 
-将目标 Skill 目录标准化。
+将Goal Skill 目录standard化。
 
 **Input:**
 
 ```yaml
-target_skill_path: string  # 目标 Skill 目录路径
+target_skill_path: string  # Goal Skill 目录path
 force_rewrite: boolean     # 若 true，即使已有 frontmatter 也重写
-dry_run: boolean           # 若 true，只报告问题不实际修改
+dry_run: boolean           # 若 true，只report问题不实际修改
 ```
 
 **Output:**
@@ -250,25 +250,25 @@ changes_made:
     location: string       # e.g. "frontmatter.line 23"
 errors: string[]           # 未能自动修复的问题
 warnings: string[]         # 警告信息
-manual_review_required: string[]  # 需要人工处理的问题
+manual_review_required: string[]  # 需要人工handle的问题
 ```
 
 ### `audit-skill`
 
-审计 Skill 合规性，不修改文件。
+audit Skill compliance，不修改文件。
 
 **Input:**
 
 ```yaml
 skill_path: string
-strict_mode: boolean  # 若 true，任何问题都报告为失败
+strict_mode: boolean  # 若 true，任何问题都report为失败
 ```
 
 **Output:**
 
 ```yaml
 compliant: boolean
-score: 0-100           # 0-100 分，100 = 完全合规
+score: 0-100           # 0-100 分，100 = 完全compliance
 issues:
   - code: string
     severity: error | warning | info
@@ -291,14 +291,14 @@ compliance_checklist:
 
 ### `batch-standardize`
 
-批量标准化多个 Skills。
+批量standard化多个 Skills。
 
 **Input:**
 
 ```yaml
 skill_paths: string[]
 force_rewrite: boolean
-parallel: boolean  # 若 true，并行处理（max 5）
+parallel: boolean  # 若 true，并行handle（max 5）
 ```
 
 **Output:**
@@ -320,13 +320,13 @@ results:
 
 ## KPI 仪表板
 
-| 指标 | 目标 | 测量方式 |
+| metric | Goal | 测量方式 |
 |------|------|---------|
-| 标准化成功率 | ≥ 95% | 批量标准化结果统计 |
-| Frontmatter 完整率 | 100% | 审计工具自动检测 |
-| Schema 合规率 | ≥ 98% | STD_* 错误统计 |
-| 自动化修复率 | ≥ 80% | 手动修复占比统计 |
-| 批量处理吞吐量 | ≥ 10 skills/min | 计时基准测试 |
+| standard化成功率 | ≥ 95% | 批量standard化结果统计 |
+| Frontmatter 完整率 | 100% | audit工具自动detect |
+| Schema compliance率 | ≥ 98% | STD_* 错误统计 |
+| automation修复率 | ≥ 80% | 手动修复占比统计 |
+| 批量handle吞吐量 | ≥ 10 skills/min | 计时baseline测试 |
 
 ---
 
@@ -377,8 +377,8 @@ metadata:
 
 ---
 
-## 变更日志
+## Change Log
 
-| 版本 | 日期 | 变更内容 |
+| 版本 | 日期 | Changes |
 |------|------|---------|
-| 1.0.0 | 2026-04-14 | 初始版本：五步标准化流程 + 批量处理接口 |
+| 1.0.0 | 2026-04-14 | Initial version：5步standard化process + 批量handle接口 |

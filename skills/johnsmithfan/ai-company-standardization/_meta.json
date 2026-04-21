@@ -1,11 +1,17 @@
 {
   "owner": "johnsmithfan",
   "slug": "ai-company-standardization",
-  "displayName": "Ai Company Standardization",
+  "displayName": "AI Company Standardization (EN)",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1776106645577,
-    "commit": "https://github.com/openclaw/skills/commit/57ae159502481e193b4c22396417463a5900863c"
+    "version": "1.0.0-en2",
+    "publishedAt": 1776678532699,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1776106645577,
+      "commit": "https://github.com/openclaw/skills/commit/57ae159502481e193b4c22396417463a5900863c"
+    }
+  ]
 }

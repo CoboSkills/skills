@@ -85,8 +85,8 @@ DEFAULT_INTERVAL = 30
 
 I2V_MODELS = {
     "LitAI 5":                      {"aspectRatio": None,                                          "resolution": [360, 540, 720, 1080],        "duration": "5,8,12",   "nativeAudio": True,  "inputMode": "first_end"},
-    "Seedance 2.0":                 {"aspectRatio": ["9:16", "3:4", "1:1", "4:3", "16:9"],         "resolution": None,              "duration": "5,10,15",   "nativeAudio": True,  "inputMode": "first_end"},
-    "Seedance 2.0 Fast":            {"aspectRatio": ["9:16", "3:4", "1:1", "4:3", "16:9"],         "resolution": None,              "duration": "5,10,15",   "nativeAudio": True,  "inputMode": "first_end"},
+    "Seedance 2.0":                 {"aspectRatio": ["9:16", "3:4", "1:1", "4:3", "16:9"],         "resolution": [480, 720],              "duration": "5,10,15",   "nativeAudio": True,  "inputMode": "first_end"},
+    "Seedance 2.0 Fast":            {"aspectRatio": ["9:16", "3:4", "1:1", "4:3", "16:9"],         "resolution": [480, 720],              "duration": "5,10,15",   "nativeAudio": True,  "inputMode": "first_end"},
     "Seedance 1.5 Pro":             {"aspectRatio": ["9:16", "3:4", "1:1", "4:3", "16:9"],         "resolution": [480, 720],       "duration": "5",   "nativeAudio": True,  "inputMode": "first_end"},
     "Kling V3":                     {"aspectRatio": None,                                          "resolution": [480, 720],       "duration": "5,10,15",   "nativeAudio": True,  "inputMode": "first_end"},
     "LoveAI 1.0":                   {"aspectRatio": None,                                          "resolution": [480, 720, 1080],       "duration": "5,10","nativeAudio": False, "inputMode": "first_end"},
@@ -94,8 +94,8 @@ I2V_MODELS = {
 
 T2V_MODELS = {
     "LitAI 5":                      {"aspectRatio": ["9:16", "1:1", "4:3", "16:9"],                "resolution": [360, 540, 720, 1080],        "duration": "5,8,12",   "nativeAudio": True},
-    "Seedance 2.0":                 {"aspectRatio": ["9:16", "3:4", "1:1", "4:3", "16:9"],         "resolution": None,              "duration": "5,10,15",   "nativeAudio": True},
-    "Seedance 2.0 Fast":            {"aspectRatio": ["9:16", "3:4", "1:1", "4:3", "16:9"],         "resolution": None,              "duration": "5,10,15",   "nativeAudio": True},
+    "Seedance 2.0":                 {"aspectRatio": ["9:16", "3:4", "1:1", "4:3", "16:9"],         "resolution": [480, 720],              "duration": "5,10,15",   "nativeAudio": True},
+    "Seedance 2.0 Fast":            {"aspectRatio": ["9:16", "3:4", "1:1", "4:3", "16:9"],         "resolution": [480, 720],              "duration": "5,10,15",   "nativeAudio": True},
     "Seedance 1.5 Pro":             {"aspectRatio": ["9:16", "3:4", "1:1", "4:3", "16:9"],         "resolution": [480, 720],        "duration": "5",   "nativeAudio": True},
     "Kling V3":                     {"aspectRatio": ["9:16", "1:1", "16:9"],                       "resolution": [480, 720],        "duration": "5,10,15",   "nativeAudio": True},
     "Wan 2.6":                      {"aspectRatio": ["9:16", "3:4", "1:1", "4:3", "16:9"],         "resolution": [720, 1080],       "duration": "5,10","nativeAudio": True},

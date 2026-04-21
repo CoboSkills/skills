@@ -24,6 +24,7 @@ import hashlib
 import platform
 from datetime import datetime, timezone
 from pathlib import Path
+from shared.client import LitMediaClient, LitMediaError
 
 import requests
 
@@ -127,9 +128,12 @@ def _load_credentials() -> dict | None:
 
 
 def _delete_credentials() -> bool:
+
     if CRED_FILE.exists():
-        CRED_FILE.unlink()
-        return True
+        if _device_unint():
+            CRED_FILE.unlink()
+            return True
+        
     return False
 
 
@@ -244,6 +248,9 @@ def _poll_for_approval(device_code: str, token_endpoint: str, interval: int) -> 
 def cmd_login(args) -> None:
     """Full login flow: init device code → open browser → poll until done."""
     try:
+
+        _delete_credentials()
+
         resp = requests.post(
             f"{OAUTH_BASE_URL}/oauth/api/device/init",
             json={
@@ -344,6 +351,39 @@ def cmd_status(args) -> None:
     print(f"  file:        {CRED_FILE}")
 
 
+def _device_unint() -> bool:
+    """Unbind device account"""
+    try:
+        client = LitMediaClient()
+        result = client.post_nocheck("/user/get-unbind-device")
+        # print(f"unbind-device resp: {result}")
+        
+        code = result.get("code", 0)
+        data = result.get("data", False)
+        
+        if code == 1053 or (code == 200 and data is True):
+            # print("Device unbind success")
+            return True
+        else:
+            print(f"Device unbind failed: {result.get('msg', 'Unknown error')}")
+            return False
+            
+    except requests.RequestException as e:
+        print(f"Error: could not reach OAuth server: {e}")
+        return False
+    except Exception as e:
+        print(f"Error during device unbind: {e}")
+        return False
+
+
+def cmd_account_switch(args) -> None:
+    """Switch account"""
+    # print("Switching account...")
+    # _device_unint()
+    _delete_credentials()
+    cmd_login(args)
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -358,11 +398,13 @@ Subcommands:
   poll    Resume a previously interrupted login (recovery only)
   logout  Remove saved credentials
   status  Show current login state
+  accountswitch  Account switching
 
 Examples:
   python auth.py login     # complete login flow (opens browser, waits, saves)
   python auth.py status    # check if logged in
   python auth.py logout    # remove credentials
+  python auth.py accountswitch    # Account switching
 """,
     )
     sub = parser.add_subparsers(dest="subcommand")
@@ -372,6 +414,7 @@ Examples:
     sub.add_parser("poll",   help="Resume a previously interrupted login")
     sub.add_parser("logout", help="Remove saved credentials")
     sub.add_parser("status", help="Show current login state")
+    sub.add_parser("accountswitch", help="Account switching")
 
     args = parser.parse_args()
 
@@ -380,6 +423,7 @@ Examples:
         "poll": cmd_poll,
         "logout": cmd_logout,
         "status": cmd_status,
+        "accountswitch": cmd_account_switch,
     }
     handlers[args.subcommand](args)
 

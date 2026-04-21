@@ -34,12 +34,13 @@ metadata:
 4. **Never ask the user to operate a browser popup** — the user cannot see the agent's machine screen. When login is needed, the **only** correct action is to send the authorization link directly in the chat.
 5. **Always send the direct login link** — extract `URL: ...` from `auth.py login` output and use the login template below. Never say "browser opened" or similar. **If the URL is not found in the output, re-run `auth.py login` to get a new link. Never skip sending the link.**
 6. **Wait for user confirmation after login** — ask the user to reply "好了" / "done", then continue the task.
-7. **Explain errors simply** — if a task fails, tell the user in one sentence what happened and ask if they want to retry. Never paste error messages or technical details.
-8. **Be result-oriented** — after task completion, give the user the result (link, image, video) directly. Do not describe intermediate steps.
-9. **Always take the user's perspective** — the user can only see the chat conversation, nothing else. Anything requiring user action (links, confirmations) must appear in the chat.
-10. **Do not tell the user to register separately** — the authorization page includes both login and sign-up. New users can register directly on that page. Never say "go to litmedia.ai to register first".
-11. **Act directly, don't ask which method** — when login is needed, just run `auth.py login` and send the link. Don't ask "which method do you prefer?" or present multiple options. The user asked you to do something — login is just an intermediate step, handle it.
-12. **Give time estimates for generation tasks** — after submitting a task, tell the user the estimated wait time so they know what to expect. Use the estimates from the "Estimated Generation Time" table below.
+7. **Handle account switching properly** — when switching accounts, use `auth.py accountswitch` and remind the user to log out of their current LitMedia web account or log in with the new account on the website first. After the switch, wait for user confirmation before proceeding.
+8. **Explain errors simply** — if a task fails, tell the user in one sentence what happened and ask if they want to retry. Never paste error messages or technical details.
+9. **Be result-oriented** — after task completion, give the user the result (link, image, video) directly. Do not describe intermediate steps.
+10. **Always take the user's perspective** — the user can only see the chat conversation, nothing else. Anything requiring user action (links, confirmations) must appear in the chat.
+11. **Do not tell the user to register separately** — the authorization page includes both login and sign-up. New users can register directly on that page. Never say "go to litmedia.ai to register first".
+12. **Act directly, don't ask which method** — when login is needed, just run `auth.py login` and send the link. Don't ask "which method do you prefer?" or present multiple options. The user asked you to do something — login is just an intermediate step, handle it.
+13. **Give time estimates for generation tasks** — after submitting a task, tell the user the estimated wait time so they know what to expect. Use the estimates from the "Estimated Generation Time" table below.
 
 **Estimated Generation Time**
 
@@ -145,7 +146,9 @@ Once you've signed in, just reply "done" and I'll continue right away.
 ## Prerequisites
 
 - **Python 3.8+**
-- Authenticated — see [references/auth.md](references/auth.md) for the direct-link login flow
+- **Authenticated** — see [references/auth.md](references/auth.md) for the direct-link login flow
+  - **First-time setup**: After installing this skill, run `python {baseDir}/scripts/auth.py login` 
+  - Use `python {baseDir}/scripts/auth.py status` to check current login state
 - Credits available — see [references/user.md](references/user.md) to check balance
 - Env vars `LITMEDIA_UID` + `LITMEDIA_API_KEY` are handled automatically after login; manual setup is only for CI/internal use
 
@@ -203,7 +206,7 @@ python scripts/video_gen.py list-models --type <t2v|i2v|extend|anim|a2ls>
 
 | Module | Script | Reference | Description                                                                           |
 |--------|--------|-----------|---------------------------------------------------------------------------------------|
-| Auth | `scripts/auth.py` | [auth.md](references/auth.md) | OAuth 2.0 Device Flow — generate login link, wait for authorization, save credentials |
+| Auth | `scripts/auth.py` | [auth.md](references/auth.md) | OAuth 2.0 Device Flow — generate login link, wait for authorization, save credentials; supports account switching via `accountswitch` command |
 | Avatar4 | `scripts/avatar4.py` | [avatar4.md](references/avatar4.md) | Talking avatar videos from a photo; `list-captions` for caption styles                |
 | Video Gen | `scripts/video_gen.py` | [video_gen.md](references/video_gen.md) | Image-to-video, text-to-video, video extension, ai animation, lip sync                |
 | AI Image | `scripts/ai_image.py` | [ai_image.md](references/ai_image.md) | Text-to-image and AI image editing (10+ models)                                       |

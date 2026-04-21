@@ -131,6 +131,20 @@ class LitMediaClient:
         resp = requests.post(url, headers=self.headers, params=final_params, json=json, **kwargs)
         resp.raise_for_status()
         return self._check(resp.json())
+    
+    def post_nocheck(self, path: str, json: Optional[dict] = None, params: Optional[dict] = None, **kwargs) -> dict:
+        url = f"{BASE_URL}{path}" if path.startswith("/") else path
+
+        final_params = params if params is not None else self.params
+
+        # print(f"[DEBUG]: url={url}")
+        # print(f"[DEBUG]: json={json}")
+        # print(f"[DEBUG]: headers={self.headers}")
+        # print(f"[DEBUG]: params={final_params}")
+        resp = requests.post(url, headers=self.headers, params=final_params, json=json, **kwargs)
+        resp.raise_for_status()
+        # print(f"[DEBUG]: resp={resp.json()}")
+        return resp.json()
 
     def put(self, path: str, json: Optional[dict] = None, **kwargs) -> dict:
         url = f"{BASE_URL}{path}" if path.startswith("/") else path

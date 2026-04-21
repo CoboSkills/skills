@@ -3,9 +3,15 @@
   "slug": "litmedia",
   "displayName": "Litmedia",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1776073458728,
-    "commit": "https://github.com/openclaw/skills/commit/c2a430ab38f7ba395a836dbda3e6d83c4ec9aa2d"
+    "version": "1.0.1",
+    "publishedAt": 1776390591836,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1776073458728,
+      "commit": "https://github.com/openclaw/skills/commit/c2a430ab38f7ba395a836dbda3e6d83c4ec9aa2d"
+    }
+  ]
 }

@@ -11,6 +11,7 @@ Run once — credentials are saved locally and auto-loaded by all other modules.
 | `poll`   | Resume a previously interrupted login (recovery only) |
 | `logout` | Remove saved credentials file |
 | `status` | Show current login state (uid, email, name, masked api_key) |
+| `accountswitch` | Switch to a different account (unbind device + re-login) |
 
 ## Usage
 
@@ -97,6 +98,30 @@ Logged in
 ```bash
 python {baseDir}/scripts/auth.py logout
 ```
+
+## `accountswitch` — Switch Accounts
+
+```bash
+python {baseDir}/scripts/auth.py accountswitch
+```
+
+Use this command when you need to switch to a different LitMedia account on the same device.
+
+### What it does
+1. Calls the server to unbind the current device from the logged-in account
+2. Removes the local credentials file (~/.LitMedia/credentials.json)
+3. Automatically starts a new login flow (same as login)
+4. Opens the authorization page and polls for the new account's approval
+
+### Important Notes
+**Before switching accounts, it is recommended to:**
+- Log out of your LitMedia web account on the website, OR
+- Log in with the new account you want to switch to on the website
+
+This ensures a smooth transition between accounts and prevents potential conflicts.
+
+### When to use
+- User wants to switch from Litmedia Account A to Account B
 
 ## Credential File
 

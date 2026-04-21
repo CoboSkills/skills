@@ -1298,6 +1298,6 @@ curl -X GET "https://api.agntdata.dev/v1/linkedin/get-company-by-domain?param=va
 
 ## Links
 
-- [Documentation](https://agntdata.dev/docs)
-- [API Reference](https://agnt.mintlify.app/api-reference/linkedin/)
+- [Documentation](https://agnt.mintlify.app)
+- [API Reference](https://agnt.mintlify.app/apis/social/linkedin)
 - [Dashboard](https://app.agntdata.dev/dashboard)

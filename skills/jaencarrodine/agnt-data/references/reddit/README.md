@@ -725,6 +725,6 @@ curl -X GET "https://api.agntdata.dev/v1/reddit/getSimilarSubreddits?param=value
 
 ## Links
 
-- [Documentation](https://agntdata.dev/docs)
-- [API Reference](https://agnt.mintlify.app/api-reference/reddit/)
+- [Documentation](https://agnt.mintlify.app)
+- [API Reference](https://agnt.mintlify.app/apis/social/reddit)
 - [Dashboard](https://app.agntdata.dev/dashboard)

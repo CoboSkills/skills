@@ -621,6 +621,6 @@ curl -X GET "https://api.agntdata.dev/v1/instagram/search?param=value" \
 
 ## Links
 
-- [Documentation](https://agntdata.dev/docs)
-- [API Reference](https://agnt.mintlify.app/api-reference/instagram/)
+- [Documentation](https://agnt.mintlify.app)
+- [API Reference](https://agnt.mintlify.app/apis/social/instagram)
 - [Dashboard](https://app.agntdata.dev/dashboard)

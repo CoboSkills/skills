@@ -282,6 +282,6 @@ curl -X GET "https://api.agntdata.dev/v1/tiktok/video/details?param=value" \
 
 ## Links
 
-- [Documentation](https://agntdata.dev/docs)
-- [API Reference](https://agnt.mintlify.app/api-reference/tiktok/)
+- [Documentation](https://agnt.mintlify.app)
+- [API Reference](https://agnt.mintlify.app/apis/social/tiktok)
 - [Dashboard](https://app.agntdata.dev/dashboard)

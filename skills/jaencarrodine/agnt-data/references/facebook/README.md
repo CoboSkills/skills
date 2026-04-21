@@ -1019,6 +1019,6 @@ curl -X GET "https://api.agntdata.dev/v1/facebook/get_facebook_video_post_detail
 
 ## Links
 
-- [Documentation](https://agntdata.dev/docs)
-- [API Reference](https://agnt.mintlify.app/api-reference/facebook/)
+- [Documentation](https://agnt.mintlify.app)
+- [API Reference](https://agnt.mintlify.app/apis/social/facebook)
 - [Dashboard](https://app.agntdata.dev/dashboard)

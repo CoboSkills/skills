@@ -1351,6 +1351,6 @@ curl -X GET "https://api.agntdata.dev/v1/x/user/medias/continuation?param=value"
 
 ## Links
 
-- [Documentation](https://agntdata.dev/docs)
-- [API Reference](https://agnt.mintlify.app/api-reference/x/)
+- [Documentation](https://agnt.mintlify.app)
+- [API Reference](https://agnt.mintlify.app/apis/social/x)
 - [Dashboard](https://app.agntdata.dev/dashboard)

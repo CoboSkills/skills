@@ -2,7 +2,7 @@
 
 **App name:** `youtube`
 **Base URL:** `https://api.agntdata.dev/v1/youtube`
-**Endpoints:** 22
+**Endpoints:** 24
 
 Unified access to video metadata, channel discovery, comments, subtitles, and recommendations. Built for LLMs and automation — not one-off scraping.
 
@@ -42,6 +42,8 @@ Authorization: Bearer $AGNTDATA_API_KEY
 | `GET` | `/search/` | Youtube Search |
 | `GET` | `/trending/` | Trending Videos |
 | `GET` | `/video/comments/continuation` | Video Comments Continuation |
+| `POST` | `/channel/email` | Get Channel Email by URL |
+| `GET` | `/channel/{channel_id}/email` | Get Channel Email by Channel ID |
 
 ## Tool Schemas
 
@@ -535,6 +537,42 @@ The following JSON defines all available tools with their parameters. Each tool 
         "video_id"
       ]
     }
+  },
+  {
+    "name": "agntdata_youtube_Get_Channel_Email_By_URL",
+    "description": "Get Channel Email by URL",
+    "method": "POST",
+    "path": "/channel/email",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Full YouTube channel URL (e.g. https://www.youtube.com/@theAIsearch)."
+        }
+      },
+      "required": [
+        "url"
+      ]
+    }
+  },
+  {
+    "name": "agntdata_youtube_Get_Channel_Email_By_Id",
+    "description": "Get Channel Email by Channel ID",
+    "method": "GET",
+    "path": "/channel/{channel_id}/email",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "channel_id": {
+          "type": "string",
+          "description": "channel_id"
+        }
+      },
+      "required": [
+        "channel_id"
+      ]
+    }
   }
 ]
 ```
@@ -548,6 +586,6 @@ curl -X GET "https://api.agntdata.dev/v1/youtube/video/screenshot?param=value" \
 
 ## Links
 
-- [Documentation](https://agntdata.dev/docs)
-- [API Reference](https://agnt.mintlify.app/api-reference/youtube/)
+- [Documentation](https://agnt.mintlify.app)
+- [API Reference](https://agnt.mintlify.app/apis/social/youtube)
 - [Dashboard](https://app.agntdata.dev/dashboard)

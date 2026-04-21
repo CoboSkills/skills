@@ -1,0 +1,11 @@
+{
+  "owner": "ardentillumina",
+  "slug": "ocr2markdown",
+  "displayName": "PDF to Markdown with OCR",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776365256457,
+    "commit": null
+  },
+  "history": []
+}

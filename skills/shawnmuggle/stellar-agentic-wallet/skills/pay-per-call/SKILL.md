@@ -22,10 +22,18 @@ The "execute" step of the wallet agent. Call a paid HTTP endpoint, handle the 40
 
 ## Prerequisites
 
-Before calling a service, you need to know its request body format.
-The MPP Router **forwards request bodies as-is** — it does not
-transform or validate them.
+Before calling a service, you need TWO things: the HTTP method and
+the request body shape. The MPP Router **forwards both as-is** — it
+does not transform, validate, or guess.
 
+**HTTP method — do NOT default to GET.** Most MPP Router services are
+POST-only. The catalog `method` field is authoritative; pass it via
+`--method`. Calling the wrong method returns 405 with `allowed_methods`
+in the body (older deployments may return 400 "Unknown public service
+route" — same root cause). The script auto-recovers from 405 once,
+but the right move is to read the catalog up front.
+
+**Request body shape:**
 - **If you already know the schema** (e.g. from the user's prompt or
   prior context) → proceed directly.
 - **If you don't** → run `discover` first. The service's `docs` field
@@ -85,24 +93,53 @@ npx tsx skills/pay-per-call/run.ts <url> --body '{...}' --json
 npx tsx skills/pay-per-call/run.ts <url> --receipt-out receipt.json
 ```
 
+## Async jobs (202 responses)
+
+Some services (e.g. StableStudio video generation) are async — the paid
+request returns `202 Accepted` with a `jobId` instead of an immediate
+result. When this happens:
+
+1. The MPP Router stores a job auth record binding the job to your
+   Stellar address and returns headers:
+   - `X-Job-Poll-Url` — the full URL to poll
+   - `X-Job-Id` — the job identifier
+2. This skill automatically polls the `X-Job-Poll-Url` every 5 seconds
+   using the same Stellar credentials for identity verification.
+3. Polling is **free** — no additional USDC is charged.
+4. Job results are available for **24 hours** after creation.
+5. The poll loop times out after 10 minutes. For longer jobs, re-run
+   with the poll URL manually.
+
+If there is no `X-Job-Poll-Url` header, the 202 body is printed as-is.
+
 ## Safety
 
 - ✅ **Credentials are single-use** — if the first retry fails, the credential is burned. Don't blindly re-retry; start fresh.
-- ✅ **Mainnet payments above $0.10 require confirmation** — micropayments up to $0.10 are auto-approved (covers typical MPP Router API calls at $0.001–$0.01). Override with `--max-auto <usd>` or `--yes`.
-- ✅ **Amount validation** — script verifies the 402 challenge amount matches the advertised service price (if known from catalog).
+- ✅ **Every mainnet payment prompts by default.** No silent auto-pay out of the box. After you confirm the first payment, the script offers to save an autopay ceiling (e.g. $0.10) so future payments at or below that amount go through without a prompt. The ceiling is stored as a `# autopay-ceiling-usd:` comment inside the secret file itself, bound to the wallet. Delete the line to revoke.
+  - `--max-auto <usd>` — one-shot override for this call only; does not touch the saved ceiling.
+  - `--no-autopay` — force a prompt for this call even if a ceiling is saved.
+  - `--yes` — skip confirmation entirely (dangerous on mainnet; use only in trusted automation).
+  - Every auto-paid call still logs `[autopay] $X USDC ...` to stderr so there is a trail.
+- ✅ **Challenge validation (opt-in).** Pass `--expect-pay-to <G...>`, `--expect-amount <USDC>`, and/or `--expect-asset <SAC>` — typically piped from `discover --pick-one --json` via its `expect` block — and the script refuses to sign a 402 whose recipient, price, or asset drifts from the catalog. Without these flags, the server's challenge is trusted; a hostile 402 can set any recipient. Treat `--expect-*` as mandatory in production.
+  - `--expect-amount-tolerance <fraction>` — allow small drift (e.g. `0.01` = 1%) for services that quote ranges.
 - ❌ **Don't reuse a credential** — the HMAC binding to amount/currency/recipient is the router's defense against replay.
 
 ## Example: full MPP Router flow
 
 ```bash
-# Discover
+# Discover — capture the service + its catalog-asserted payment
+# expectations so pay-per-call can refuse a hostile 402.
 SERVICE=$(npx tsx skills/discover/run.ts --query "web search" --pick-one --json)
 URL="https://apiserver.mpprouter.dev$(echo "$SERVICE" | jq -r '.public_path')"
+EXPECT_AMT=$(echo "$SERVICE" | jq -r '.expect.amount_usdc // empty')
+EXPECT_TO=$(echo "$SERVICE" | jq -r '.expect.pay_to // empty')
 
 # Call
 npx tsx skills/pay-per-call/run.ts "$URL" \
   --body '{"query": "Summarize https://stripe.com/docs"}' \
-  --method POST
+  --method POST \
+  ${EXPECT_AMT:+--expect-amount "$EXPECT_AMT"} \
+  ${EXPECT_TO:+--expect-pay-to "$EXPECT_TO"}
 ```
 
 ## Env vars used

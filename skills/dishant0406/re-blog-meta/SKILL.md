@@ -17,15 +17,15 @@ If the user did not provide a blog name or slug, ask for one before proceeding.
 
 ## Workflow
 
-1. Open the openclaw managed chrome.
+1. Run `openclaw browser start` to open the openclaw managed browser. CRITICAL NON-NEGOTIABLE: always use this command. Never open a browser any other way.
 2. Locate the blog file.
    - Look in `~/blogs/` for a file matching `BLOG_NAME` (with or without `.md`).
    - Read the full content of the blog to understand topic, angle, and key points.
    - If the file is not found, stop and report which path was checked.
 3. Research before generating anything.
-   - Use the same Chrome window opened in step 1.
+   - Use the same browser window opened in step 1.
    - Search Google, Google Trends, Reddit, and X/Twitter in that window.
-   - Do not close Chrome until all research notes are collected.
+   - Do not close the browser until all research notes are collected.
    - Read [references/meta-research.md](references/meta-research.md) for the exact search order and what to collect.
 4. Generate all five meta fields.
    - Read [references/meta-output.md](references/meta-output.md) for rules and length limits for each field.

@@ -988,4 +988,4 @@ Yes. Create a PREFERENCES.md file or just ask for a different format.
 
 *Built by Jeff J Hunter — https://jeffjhunter.com*
 
-*Part of the SkillBoss ecosystem. Powered by SkillBoss API Hub — https://heybossai.com*
+*Part of the SkillBoss ecosystem. Powered by SkillBoss API Hub — https://skillboss.co*

@@ -3,9 +3,15 @@
   "slug": "x402-market-structure",
   "displayName": "x402 Crypto Market Structure",
   "latest": {
-    "version": "1.0.4",
-    "publishedAt": 1775967767798,
-    "commit": "https://github.com/openclaw/skills/commit/4f8846152110af297e4fd68ce32a1ce6a5f0c36b"
+    "version": "1.2.0",
+    "publishedAt": 1776197205357,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.4",
+      "publishedAt": 1775967767798,
+      "commit": "https://github.com/openclaw/skills/commit/4f8846152110af297e4fd68ce32a1ce6a5f0c36b"
+    }
+  ]
 }

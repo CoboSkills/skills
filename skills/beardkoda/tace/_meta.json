@@ -3,9 +3,15 @@
   "slug": "tace",
   "displayName": "TACE",
   "latest": {
-    "version": "1.0.5",
-    "publishedAt": 1776201570198,
-    "commit": "https://github.com/openclaw/skills/commit/c43451d11d5effbcd806dd2db3ca4a3cca1851c4"
+    "version": "1.0.6",
+    "publishedAt": 1776379254288,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.5",
+      "publishedAt": 1776201570198,
+      "commit": "https://github.com/openclaw/skills/commit/c43451d11d5effbcd806dd2db3ca4a3cca1851c4"
+    }
+  ]
 }

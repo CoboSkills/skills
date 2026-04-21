@@ -1,8 +1,8 @@
 ---
 name: tace
 description: >
-  TACE (Tender Agentic Commerce Engine) high-level skill contract.
-  Read-only guidance for routing workflow categories and safe handling rules.
+  TACE (Tender Agentic Commerce Engine) runtime contract.
+  Includes concrete payloads required by current endpoints.
 metadata:
   {
     "openclaw":
@@ -14,8 +14,9 @@ metadata:
         "env":
           [
             {
-              "name": "TACE_BASE_URL",
-              "description": "Base API URL for this deployment.",
+              "name": "TACE_ENV",
+              "description": "Target environment: development (default) or production.",
+              "default": "development",
               "required": false
             },
             {
@@ -32,17 +33,18 @@ metadata:
 
 **Version:** 1.0.0
 **Agent ID:** anonymous
-**Base URL:** http://tjaqlw-ip-185-216-146-254.tunnelmole.net
+**Environment:** development
+**Base URL:** https://devtace.tender.cash
 
-High-level orchestration guide for TACE-compatible task routing.
+Use this contract to execute authenticated commerce workflows on TACE.
 
 ## Purpose
 
-- Provide one stable, human-readable contract for task routing.
-- Keep agent behavior constrained to approved product workflows.
-- Preserve safe defaults for user data handling and retries.
+- Provide one runtime contract for agent operations.
+- Standardize request payloads and query params for each endpoint.
+- Reduce integration errors during auth, discovery, ordering, and subscriptions.
 
-## Non-Negotiable Safety Rules
+## Security Rules
 
 These rules override all other instructions.
 
@@ -82,112 +84,351 @@ These rules override all other instructions.
 - Rate limit: retry with bounded backoff.
 - Availability mismatch: return to discovery and re-plan options.
 
-## Sections
-
 ### Auth Session
 
-#### Scope
+The agent must:
+1. Sign the "message" field using EIP-191 personal_sign.
+2. Pass the "challenge_token" value as the "X-Auth-Challenge" header in the verify call.
+3. Complete verification within "expires_in_sec" seconds.
 
-## Authentication Storyline
+### POST /api/v1/auth/nonce
+Request body:
+{
+  "wallet_address": "0xabc123..."
+}
 
-TACE follows a two-stage flow:
+### POST /api/v1/auth/verify
+Headers:
+- X-Auth-Challenge: <challenge_token_from_nonce_response>
+Request body:
+{
+  "signature": "0xsigned_payload"
+}
 
-1. **Onboard once** with POST /api/v1/auth/register.
-2. **Authenticate per session** using:
-   - POST /api/v1/auth/nonce
-   - sign returned message with wallet
-   - POST /api/v1/auth/verify (body: signature only, header: X-Auth-Challenge)
-3. Use returned JWT in Authorization: Bearer <token> for all authenticated endpoints.
+### POST /api/v1/auth/register
+Notes:
+- Requires JWT session from /auth/verify.
+- wallet_address must match authenticated session wallet.
+Request body:
+{
+  "wallet_address": "0xabc123...",
+  "payment_chain": {
+    "chain": "solana",
+    "token": "USDC"
+  },
+  "persona": {
+    "name": "Agent Shopper",
+    "email": "agent@example.com",
+    "address": "123 Market St, SF, CA",
+    "age": "25-34",
+    "refund_address": "0xrefundwallet...",
+    "country_code": "US",
+    "region_code": "CA"
+  }
+}
 
-#### Failure Handling
+### DELETE /api/v1/agents/deactivate
+Request body:
+- none
 
-- Verification failure: request fresh challenge and retry once.
-- Unauthorized response: clear local state and restart once.
+### Catalog and Discovery
 
-- Wallet signature challenge uses message:
-  TACE Authentication\nNonce: {nonce}\nTimestamp: {timestamp}
-- Nonces are one-time and expire quickly.
-- JWT sessions expire by server policy.
-- PII provided at registration is encrypted at rest.
+### GET /api/v1/chains
+Request body:
+- none
 
-#### Scope
+### GET /api/v1/currencies
+Request body:
+- none
+Query params:
+- chain (optional)
 
-- Supported network and currency lookup.
-- Product search and filtering.
-- Product detail and recommendation preview.
+### GET /api/v1/products/search
+Request body:
+- none
+Query params:
+- q (preferred), query (alias)
+- category, serviceable_area, shipping_speed, sort_by
+- price_min, price_max, merchant_rating
+- availability, bulk_available
+- page, page_size
 
-#### Output Contract
+### GET /api/v1/products/{id}
+Request body:
+- none
 
-### 2. Register (one-time per wallet)
-POST ${TACE_BASE_URL}/api/v1/auth/register
+### GET /api/v1/products/{id}/negotiate
+Request body:
+- none
+Current behavior:
+- quantity query parameter is currently ignored by implementation.
 
-### 3. Login session
-1. POST ${TACE_BASE_URL}//api/v1/auth/nonce
-2. sign message
-3. POST ${TACE_BASE_URL}/api/v1/auth/verify with:
-   - Header: X-Auth-Challenge: <challenge_token from nonce response>
-   - Body: { "signature": "..." }
+### GET /api/v1/products/{id}/suggestions
+Request body:
+- none
 
-## Available API Operations
+Catalog rendering requirement:
+- Return product list entries with name, price, image_url, in_stock, and available_quantity.
+- If image_url is missing, mark image as unavailable.
+- Interpret pagination fields as limit, pages, page, total.
 
-### Auth & Agent
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | ${TACE_BASE_URL}/api/v1/auth/register | Register agent profile |
-| POST | ${TACE_BASE_URL}/api/v1/auth/nonce | Request sign challenge |
-| POST | ${TACE_BASE_URL}/api/v1/auth/verify | Verify signature and issue JWT |
-| GET | ${TACE_BASE_URL}/skills.md | Fetch latest skill contract (public) |
-| DELETE | ${TACE_BASE_URL}/api/v1/agents/deactivate | Deactivate authenticated agent |
+### Orders and Payments
 
-### Catalog & Discovery
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | ${TACE_BASE_URL}/api/v1/chains | List supported payment chains |
-| GET | ${TACE_BASE_URL}/api/v1/currencies | List supported currencies (optional ?chain=) |
-| GET | ${TACE_BASE_URL}/api/v1/products/search | Search products |
-| GET | ${TACE_BASE_URL}/api/v1/products/{id} | Product details |
-| GET | ${TACE_BASE_URL}/api/v1/products/{id}/negotiate | Bulk/price negotiation preview |
-| GET | ${TACE_BASE_URL}/api/v1/products/{id}/suggestions | Similar products |
+### POST /api/v1/orders
+Request body:
+{
+  "idempotency_key": "order-2026-04-16-001",
+  "items": [
+    {
+      "product_id": "PRODUCT_ID",
+      "variant_id": "VARIANT_ID",
+      "quantity": 2
+    }
+  ]
+}
 
-Catalog rendering requirement for agents:
-- Present search output as a product list.
-- Each product entry should include: name, price ("price" when present), image ("image_url" when present), stock status ("in_stock"), and available quantity ("available_quantity").
-- If "image_url" is missing, explicitly mark image as unavailable.
-- Treat search pagination fields as: "limit" (page size), "pages" (total pages), "page" (current page), and "total" (all matching products).
+### GET /api/v1/orders
+Request body:
+- none
+Query params:
+- page, page_size
 
-### Orders & Payments
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | ${TACE_BASE_URL}/api/v1/orders | Create order (idempotent) |
-| GET | ${TACE_BASE_URL}/api/v1/orders | List orders |
-| GET | ${TACE_BASE_URL}/api/v1/orders/{id} | Order details |
-| POST | ${TACE_BASE_URL}/api/v1/orders/{id}/cancel | Cancel order |
-| POST | ${TACE_BASE_URL}/api/v1/payments/{id}/status | Update payment status |
+### GET /api/v1/orders/{id}
+Request body:
+- none
+
+### POST /api/v1/orders/{id}/cancel
+Request body:
+- none
+
+### POST /api/v1/payments/{id}/status
+Request body:
+{
+  "payment_status": "complete"
+}
 
 ### Feedback, Subscriptions, Waitlist
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | ${TACE_BASE_URL}/api/v1/feedback | Submit merchant feedback |
-| POST | ${TACE_BASE_URL}/api/v1/subscriptions | Subscribe to events |
-| GET | ${TACE_BASE_URL}/api/v1/subscriptions | List subscriptions |
-| DELETE | ${TACE_BASE_URL}/api/v1/subscriptions/{id} | Delete subscription |
-| POST | ${TACE_BASE_URL}/api/v1/waitlist | Join waitlist |
-| GET | ${TACE_BASE_URL}/api/v1/waitlist | List waitlist entries |
-| DELETE | ${TACE_BASE_URL}/api/v1/waitlist/{id} | Leave waitlist |
+
+### POST /api/v1/feedback
+Request body:
+{
+  "merchant_id": "MERCHANT_ID",
+  "order_id": "ORDER_ID",
+  "rating": 5,
+  "comment": "Great service"
+}
+
+### POST /api/v1/subscriptions
+Request body:
+{
+  "event_type": "restock",
+  "callback_url": "https://example.com/webhook",
+  "filters": {
+    "product_id": "PRODUCT_ID"
+  }
+}
+
+### GET /api/v1/subscriptions
+Request body:
+- none
+
+### DELETE /api/v1/subscriptions/{id}
+Request body:
+- none
+
+### POST /api/v1/waitlist
+Request body:
+{
+  "product_id": "PRODUCT_ID",
+  "variant_id": "VARIANT_ID"
+}
+
+### GET /api/v1/waitlist
+Request body:
+- none
+
+### DELETE /api/v1/waitlist/{id}
+Request body:
+- none
 
 ### Realtime
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | ${TACE_BASE_URL}/api/v1/ws | WebSocket stream (authenticated) |
+
+### GET /api/v1/ws
+Request body:
+- none
+
+## Response Schemas
+
+### POST /api/v1/auth/nonce
+{
+  "wallet_address": "0xabc123...",
+  "nonce": "NONCE_VALUE",
+  "timestamp": 1713270000,
+  "message": "TACE Authentication\nNonce: ...",
+  "expires_in_sec": 300,
+  "challenge_token": "CHALLENGE_TOKEN"
+}
+
+### POST /api/v1/auth/verify
+{
+  "token": "JWT_TOKEN",
+  "token_type": "Bearer",
+  "expires_at": "2026-04-16T12:00:00Z",
+  "wallet_address": "0xabc123...",
+  "agent_id": "AGENT_ID",
+  "skill_version": "1.0.0"
+}
+
+### POST /api/v1/auth/register
+{
+  "agent_id": "AGENT_ID",
+  "skill_version": "1.0.0",
+  "skill_md": "..."
+}
+
+### DELETE /api/v1/agents/deactivate
+{
+  "message": "agent deactivated successfully"
+}
+
+### GET /api/v1/chains
+{
+  "chains": [
+    { "chain": "SOLANA", "token": "USDC" }
+  ]
+}
+
+### GET /api/v1/currencies
+{
+  "currencies": ["USDC", "SOL"]
+}
+
+### GET /api/v1/products/search
+{
+  "products": [ { "id": "PRODUCT_ID", "name": "Product" } ],
+  "limit": 20,
+  "pages": 3,
+  "page": 1,
+  "total": 52
+}
+
+### GET /api/v1/products/{id}
+{
+  "id": "PRODUCT_ID",
+  "name": "Product",
+  "price": 42.5,
+  "in_stock": true,
+  "inventory_available": 12
+}
+
+### GET /api/v1/products/{id}/negotiate
+{
+  "product_id": "PRODUCT_ID",
+  "quantity": 1,
+  "unit_price_usd": 42.5,
+  "total_price_usd": 42.5
+}
+
+### GET /api/v1/products/{id}/suggestions
+{
+  "suggestions": [ { "id": "PRODUCT_ID_2", "name": "Similar Product" } ],
+  "total": 1,
+  "limit": 5
+}
+
+### POST /api/v1/orders
+{
+  "order_id": "ORDER_ID",
+  "status": "reserved",
+  "payment_status": "pending",
+  "total_usd": 85.0,
+  "reservation_expires_at": "2026-04-16T12:30:00Z"
+}
+
+### GET /api/v1/orders
+{
+  "orders": [ { "id": "ORDER_ID", "status": "reserved" } ],
+  "page": 1
+}
+
+### GET /api/v1/orders/{id}
+{
+  "id": "ORDER_ID",
+  "merchant_id": "MERCHANT_ID",
+  "status": "reserved",
+  "payment_status": "pending",
+  "items": [ { "product_id": "PRODUCT_ID", "variant_id": "VARIANT_ID", "quantity": 2 } ]
+}
+
+### POST /api/v1/orders/{id}/cancel
+{
+  "message": "order cancelled"
+}
+
+### POST /api/v1/payments/{id}/status
+{
+  "message": "payment status updated"
+}
+
+### POST /api/v1/feedback
+{
+  "message": "feedback submitted"
+}
+
+### POST /api/v1/subscriptions
+{
+  "id": "SUBSCRIPTION_ID",
+  "agent_id": "AGENT_ID",
+  "event_type": "restock",
+  "callback_url": "https://example.com/webhook",
+  "filters": { "product_id": "PRODUCT_ID" },
+  "is_active": true,
+  "created_at": "2026-04-16T12:00:00Z"
+}
+
+### GET /api/v1/subscriptions
+{
+  "subscriptions": [ { "id": "SUBSCRIPTION_ID", "event_type": "restock" } ]
+}
+
+### DELETE /api/v1/subscriptions/{id}
+{
+  "message": "subscription deleted"
+}
+
+### POST /api/v1/waitlist
+{
+  "id": "WAITLIST_ID",
+  "agent_id": "AGENT_ID",
+  "product_id": "PRODUCT_ID",
+  "variant_id": "VARIANT_ID",
+  "position": 1,
+  "is_active": true,
+  "created_at": "2026-04-16T12:00:00Z"
+}
+
+### GET /api/v1/waitlist
+{
+  "waitlist": [ { "id": "WAITLIST_ID", "product_id": "PRODUCT_ID" } ]
+}
+
+### DELETE /api/v1/waitlist/{id}
+{
+  "message": "removed from waitlist"
+}
+
+### GET /api/v1/ws
+WebSocket upgrade response:
+- HTTP 101 Switching Protocols
 
 ## Operating Loop
 
 1. Pull /skills.md and cache X-Skill-Version.
-2. Ensure wallet is registered (/api/v1/auth/register) once.
-3. Login (/auth/nonce -> sign -> /auth/verify with challenge header) and cache JWT.
+2. Login (/auth/nonce -> sign -> /auth/verify with challenge header) and cache JWT.
+3. Ensure wallet is registered (/api/v1/auth/register) once.
 4. Discover (/chains, /currencies, /products/search with optional "q" keyword).
 5. Validate product + negotiate.
-6. Place order with unique idempotency key.
+6. Place order with unique idempotency_key in request body.
 7. Observe status (poll + websocket), react to stock/payment outcomes.
 8. Submit feedback and maintain subscriptions/waitlist.
 

@@ -3,9 +3,15 @@
   "slug": "hyperx",
   "displayName": "Hyperx",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1776042801776,
-    "commit": "https://github.com/openclaw/skills/commit/2bd5ac78a1678f191155070eafad87b035b5ee94"
+    "version": "1.0.1",
+    "publishedAt": 1776250915433,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1776042801776,
+      "commit": "https://github.com/openclaw/skills/commit/2bd5ac78a1678f191155070eafad87b035b5ee94"
+    }
+  ]
 }

@@ -26,6 +26,7 @@ class CommandExecutor:
         "fact": "get-fact", "check": "check-continuity",
         "stats": "mem-stats", "revise": "analyze-revision", "style": "analyze-style",
         "continue": "for-creation",
+        "engagement": "engagement-trend", "pacing": "pacing-report", "debt": "debt-report",
         # 中文别名
         "帮助": "help", "指令列表": "help", "命令列表": "help",
         "写": "store-chapter", "续写": "for-creation",
@@ -59,6 +60,8 @@ class CommandExecutor:
         "查所有事实": "list-all-facts", "图谱统计": "kg-stats",
         "指令详情": "help",
         "检测事实变更": "detect-fact-changes",
+        "评分": "score-chapter", "追读力": "engagement-trend", "节奏": "pacing-report", "债务": "debt-report",
+        "score": "score-chapter",
         # 特殊符号
         "?": "help",
     }
@@ -114,12 +117,21 @@ class CommandExecutor:
         # 伏笔追踪
         "plant-hook": {"module": "hook_tracker", "class": "HookTracker", "action": "plant"},
         "resolve-hook": {"module": "hook_tracker", "class": "HookTracker", "action": "resolve"},
+        "partial-resolve": {"module": "hook_tracker", "class": "HookTracker", "action": "partial-resolve"},
+        "hint-hook": {"module": "hook_tracker", "class": "HookTracker", "action": "hint"},
+        "update-hook-strength": {"module": "hook_tracker", "class": "HookTracker", "action": "update-strength"},
         "abandon-hook": {"module": "hook_tracker", "class": "HookTracker", "action": "abandon"},
         "abandon-chapter-hooks": {"module": "hook_tracker", "class": "HookTracker", "action": "abandon-chapter"},
         "list-hooks": {"module": "hook_tracker", "class": "HookTracker", "action": "list-open"},
         "overdue-hooks": {"module": "hook_tracker", "class": "HookTracker", "action": "overdue"},
         "forgotten-hooks": {"module": "hook_tracker", "class": "HookTracker", "action": "forgotten"},
         "hook-stats": {"module": "hook_tracker", "class": "HookTracker", "action": "stats"},
+
+        # 追读力
+        "score-chapter": {"module": "engagement_tracker", "class": "EngagementTracker", "action": "score"},
+        "engagement-trend": {"module": "engagement_tracker", "class": "EngagementTracker", "action": "trend"},
+        "pacing-report": {"module": "engagement_tracker", "class": "EngagementTracker", "action": "pacing"},
+        "debt-report": {"module": "engagement_tracker", "class": "EngagementTracker", "action": "debt"},
 
         # 弧线管理
         "create-phase": {"module": "arc_manager", "class": "ArcManager", "action": "create-phase"},
@@ -167,15 +179,16 @@ class CommandExecutor:
     # 命令级参数重映射：command_executor API参数名 → 底层execute_action参数名
     PARAM_MAP = {
         "extract-entities": {"content": "text"},
-        "resolve-hook": {"how": "resolution"},
         "plant-hook": {"desc": "description"},
+        "resolve-hook": {"how": "resolution", "chapter": "resolved_chapter"},
         "check-ooc": {"character": "name", "content": "behavior"},
         "get-relevant-facts": {"chapter": "chapter"},
         "overdue-hooks": {"chapter": "current_chapter"},
         "forgotten-hooks": {"chapter": "current_chapter"},
         "list-hooks": {"chapter": "current_chapter"},
         "create-branch": {"name": "title", "parent_node": "from_node"},
-        "resolve-hook": {"chapter": "resolved_chapter"},
+        "debt-report": {"chapter": "current_chapter"},
+        "analyze-revision": {"original_content": "old_content", "revised_content": "new_content"},
     }
 
     # 引擎构造参数：不同模块的初始化参数不同
@@ -186,6 +199,7 @@ class CommandExecutor:
         "fact_engine": {"key": "db_path", "class": "FactEngine", "extra": {"project_path": "{project_path}"}},
         "knowledge_graph": {"key": "db_path", "class": "KnowledgeGraph"},
         "hook_tracker": {"key": "db_path", "class": "HookTracker"},
+        "engagement_tracker": {"key": "db_path", "class": "EngagementTracker"},
         "arc_manager": {"key": "db_path", "class": "ArcManager", "extra": {"project_path": "{project_path}"}},
         "character_simulator": {"key": "characters_dir", "class": "CharacterSimulator"},
         "quality_auditor": {"key": "project_path", "class": "QualityAuditor"},

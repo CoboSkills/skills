@@ -252,8 +252,9 @@ class CharacterSimulator:
                 })
                 continue
             # 关键词包含匹配：将禁止行为拆分为关键词，检查行为中是否包含核心动词
+            # 优先按空格拆分；若拆分后仅一个词（中文无空格场景），则使用2-gram
             fb_keywords = [kw for kw in fb.split() if len(kw) >= 2]
-            if not fb_keywords:
+            if len(fb_keywords) <= 1:
                 fb_keywords = [fb[i:i+2] for i in range(len(fb)-1) if len(fb) >= 4]
             for kw in fb_keywords:
                 if len(kw) >= 2 and kw in action:
@@ -476,16 +477,25 @@ class CharacterSimulator:
             role = params.get("role")
             if not name or not role:
                 raise ValueError("create需要name和role")
+            # 参数别名映射：支持多种参数名变体
+            big_five = _parse_json(params.get("big_five"))
+            core_traits = _parse_json(params.get("core_traits") or params.get("core_values"))
+            speech_style = params.get("speech_style", "") or params.get("speech_pattern", "")
+            forbidden_actions = _parse_json(params.get("forbidden_actions") or params.get("forbidden_behaviors"))
+            typical_behaviors = _parse_json(params.get("typical_behaviors"))
+            background = params.get("background", "") or params.get("backstory", "")
+            goals = _parse_json(params.get("goals"))
+            fears = _parse_json(params.get("fears"))
             char_id = self.create_character(
                 name, role,
-                _parse_json(params.get("big_five")),
-                _parse_json(params.get("core_traits")),
-                params.get("speech_style", ""),
-                _parse_json(params.get("forbidden_actions")),
-                _parse_json(params.get("typical_behaviors")),
-                params.get("background", ""),
-                _parse_json(params.get("goals")),
-                _parse_json(params.get("fears"))
+                big_five,
+                core_traits,
+                speech_style,
+                forbidden_actions,
+                typical_behaviors,
+                background,
+                goals,
+                fears
             )
             return {"char_id": char_id}
 

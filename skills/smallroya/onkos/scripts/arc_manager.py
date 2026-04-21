@@ -228,7 +228,7 @@ class ArcManager:
 
     def suggest_next_arc(self, current_chapter: int = None) -> Optional[Dict[str, Any]]:
         """
-        建议下一个弧线
+        建议下一个弧线（含追读力维度）
 
         Args:
             current_chapter: 当前章节号（可选，未提供时自动推断）
@@ -245,12 +245,58 @@ class ArcManager:
         """, (current_chapter,))
         row = cur.fetchone()
 
+        result = {"current_chapter": current_chapter}
+
         if row:
-            result = dict(row)
-            result["current_chapter"] = current_chapter
-            return result
-        return {"suggestion": None, "current_chapter": current_chapter,
-                "message": "暂无待开始的弧线，可使用 create-arc-am 创建"}
+            result["next_arc"] = dict(row)
+
+        # 追读力维度建议
+        engagement_tips = self._get_engagement_tips(current_chapter)
+        if engagement_tips:
+            result["engagement_tips"] = engagement_tips
+
+        if not row:
+            result["suggestion"] = None
+            result["message"] = "暂无待开始的弧线，可使用 create-arc-am 创建"
+
+        return result
+
+    def _get_engagement_tips(self, current_chapter: int) -> List[str]:
+        """基于追读力数据的创作建议"""
+        tips = []
+        try:
+            from engagement_tracker import EngagementTracker
+            tracker = EngagementTracker(str(self.db_path))
+            try:
+                # 债务报告
+                debt = tracker.get_debt_report(current_chapter)
+                debt_level = debt.get("summary", {}).get("debt_level", "healthy")
+                if debt_level in ("high", "critical"):
+                    overdue = debt.get("overdue_hooks", [])[:3]
+                    if overdue:
+                        descs = [h.get("desc", "")[:20] for h in overdue]
+                        tips.append(f"叙事债务{debt_level}: 建议优先回收伏笔「{'、'.join(descs)}」")
+
+                # 节奏建议
+                pacing = tracker.get_pacing_report(
+                    from_chapter=max(1, current_chapter - 10),
+                    to_chapter=current_chapter
+                )
+                for suggestion in pacing.get("suggestions", []):
+                    tips.append(suggestion.get("msg", ""))
+
+                # 趋势
+                trend_data = tracker.get_trend(
+                    from_chapter=max(1, current_chapter - 10),
+                    to_chapter=current_chapter
+                )
+                if trend_data.get("trend") == "declining":
+                    tips.append("追读力近期下降趋势，建议增加冲突或悬念")
+            finally:
+                tracker.close()
+        except Exception:
+            pass
+        return tips
 
     def execute_action(self, action: str, params: dict) -> dict:
         """统一调度入口"""

@@ -246,47 +246,73 @@ class BertTokenizerLite:
 
 # ==================== 语义模型管理 ====================
 
+_SETTINGS_JSON_EXAMPLE = """\
+{
+  "model_repo": "shibing624/text2vec-base-chinese",
+  "files": {
+    "int8": {"candidate": "onnx/model_qint8_avx512_vnni.onnx", "local_name": "model_qint8_avx512_vnni.onnx"}
+  },
+  "embedding_dim": 768,
+  "max_seq_length": 128,
+  "sha256": {
+    "model_qint8_avx512_vnni.onnx": "<填入SHA256>"
+  },
+  "download_sources": [
+    {"name": "HF-Mirror",   "base_url": "https://hf-mirror.com/shibing624/text2vec-base-chinese/resolve/main",  "path_type": "repo"},
+    {"name": "HuggingFace", "base_url": "https://huggingface.co/shibing624/text2vec-base-chinese/resolve/main",  "path_type": "repo"}
+  ]
+}"""
+
+
+def _load_model_config() -> dict:
+    """从 assets/model/settings.json 加载模型下载配置"""
+    config_path = Path(__file__).parent.parent / "assets" / "model" / "settings.json"
+    if not config_path.exists():
+        print(f"[ERROR] 模型配置文件缺失: {config_path}")
+        print("[解决] 请尝试以下方案:")
+        print("  1. 更新 onkos 技能至最新版，恢复内置配置文件")
+        print(f"  2. 手动创建配置文件，路径: {config_path}")
+        print(f"  配置文件格式示例:\n{_SETTINGS_JSON_EXAMPLE}")
+        return {}
+    try:
+        with open(config_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (json.JSONDecodeError, UnicodeDecodeError) as e:
+        print(f"[ERROR] 模型配置文件损坏: {config_path}")
+        print(f"  解析失败: {e}")
+        print("[解决] 请尝试以下方案:")
+        print("  1. 更新 onkos 技能至最新版，恢复内置配置文件")
+        print(f"  2. 删除损坏文件后手动创建，路径: {config_path}")
+        print(f"  配置文件格式示例:\n{_SETTINGS_JSON_EXAMPLE}")
+        return {}
+
+
+_MODEL_CONFIG = _load_model_config()
+
+
 class SemanticModel:
     """语义向量模型管理器 - 下载、加载、推理"""
 
-    MODEL_REPO = "shibing624/text2vec-base-chinese"
-    # 用户自建 CDN（最高优先级，国内直连稳定）
-    CUSTOM_CDN = "https://mft-1307431188.cos.ap-chongqing.myqcloud.com/model"
-    # 支持多镜像源，按优先级尝试（自定义CDN > hf-mirror > HuggingFace）
-    HF_MIRRORS = [
-        CUSTOM_CDN,
-        f"https://hf-mirror.com/{MODEL_REPO}/resolve/main",
-        f"https://huggingface.co/{MODEL_REPO}/resolve/main",
-    ]
-    # 需要从仓库根目录下载的文件（含 SHA256 完整性校验）
-    REQUIRED_FILES = {
-        "vocab.txt": "45bbac6b341c319adc98a532532882e91a9cefc0329aa57bac9ae761c27b291c",
-        "config.json": "31fedc61f7a714978f9d9849f4818ef905f216dc7791e469b9eceb9b32350b63",
-    }
-    # ONNX 模型文件：自定义CDN直接存放，HF仓库位于 onnx/ 子目录（含 SHA256 校验）
-    ONNX_FILE_CANDIDATES = ["model_O4.onnx", "onnx/model_O4.onnx", "onnx/model.onnx"]
-    # 下载到本地后的文件名映射（统一去掉 onnx/ 前缀）
-    ONNX_LOCAL_NAMES = {
-        "model_O4.onnx": "model_O4.onnx",
-        "onnx/model_O4.onnx": "model_O4.onnx",
-        "onnx/model.onnx": "model.onnx",
-    }
-    # ONNX 模型 SHA256 校验值
-    ONNX_SHA256 = {
-        "model_O4.onnx": "5db146ea8e6ef7d334d754beaf38d6387ddda32f59e995ae1286ef87e4f13640",
-    }
+    # 从 assets/model/settings.json 加载
+    MODEL_CONFIG = _MODEL_CONFIG
+    DOWNLOAD_SOURCES = _MODEL_CONFIG.get("download_sources", [])
+    SHA256 = _MODEL_CONFIG.get("sha256", {})
+    EMBEDDING_DIM = _MODEL_CONFIG.get("embedding_dim", 768)
+    MAX_SEQ_LENGTH = _MODEL_CONFIG.get("max_seq_length", 128)
+    # ONNX 候选文件键（按优先级），int8 优先，fp32 备用
+    ONNX_CANDIDATE_KEYS = [k for k in ["int8", "fp32"] if k in _MODEL_CONFIG.get("files", {})]
 
     def __init__(self, model_dir: str = None):
         """
         初始化语义模型管理器
 
         Args:
-            model_dir: 模型文件存储目录。默认为脚本同级目录下的 assets/models
+            model_dir: 模型文件存储目录。默认为 assets/model
         """
         if model_dir:
             self.model_dir = Path(model_dir)
         else:
-            self.model_dir = Path(__file__).parent.parent / "assets" / "models"
+            self.model_dir = Path(__file__).parent.parent / "assets" / "model"
 
         self._session = None
         self._tokenizer = None
@@ -302,9 +328,10 @@ class SemanticModel:
 
     def _find_onnx_file(self) -> Optional[Path]:
         """查找已下载的 ONNX 模型文件"""
-        # 先检查本地文件名（ONNX_LOCAL_NAMES 映射后的名称）
-        for candidate in self.ONNX_FILE_CANDIDATES:
-            local_name = self.ONNX_LOCAL_NAMES.get(candidate, candidate)
+        files_cfg = self.MODEL_CONFIG.get("files", {})
+        # 按 ONNX 候选优先级查找本地文件
+        for key in self.ONNX_CANDIDATE_KEYS:
+            local_name = files_cfg[key]["local_name"]
             p = self.model_dir / local_name
             if p.exists() and p.stat().st_size > 1000:
                 return p
@@ -320,9 +347,19 @@ class SemanticModel:
             return onnx_file
         return None
 
+    def _build_url(self, source: dict, file_cfg: dict) -> str:
+        """根据源的 path_type 构建下载 URL
+        repo: 用 candidate（含 onnx/ 子目录路径）
+        flat: 用 local_name（平铺路径）
+        """
+        path_type = source.get("path_type", "repo")
+        remote_path = file_cfg["candidate"] if path_type == "repo" else file_cfg["local_name"]
+        return f"{source['base_url']}/{remote_path}"
+
     def download(self, verbose: bool = True) -> bool:
         """
-        下载模型文件到本地（自动尝试多个镜像源）
+        下载 ONNX 模型文件到本地（自动尝试多个镜像源）
+        vocab.txt 和 config.json 已内置在 assets/model/ 中，无需下载
 
         Args:
             verbose: 是否打印下载进度
@@ -336,90 +373,36 @@ class SemanticModel:
             return False
 
         self.model_dir.mkdir(parents=True, exist_ok=True)
+        files_cfg = self.MODEL_CONFIG.get("files", {})
 
-        # 下载 vocab.txt 和 config.json（多镜像尝试 + SHA256 校验）
-        for filename, expected_hash in self.REQUIRED_FILES.items():
-            target = self.model_dir / filename
-            # 已存在的文件也做校验（不直接删除，先下载再替换，防止下载失败导致文件丢失）
-            need_download = False
-            if target.exists():
-                if expected_hash and not self._sha256_verify(target, expected_hash, verbose=False):
-                    if verbose:
-                        print(f"已存在但校验失败，将重新下载: {filename}")
-                    need_download = True
-                else:
-                    if verbose:
-                        print(f"已存在: {filename}")
-                    continue
-            else:
-                need_download = True
-            if not need_download:
-                continue
-            # 下载到临时文件，校验通过后再替换（防止下载失败丢失已有文件）
-            tmp_target = self.model_dir / f"{filename}.downloading"
-            downloaded = False
-            for mirror_base in self.HF_MIRRORS:
-                url = f"{mirror_base}/{filename}"
-                if verbose:
-                    mirror_name = "HuggingFace" if "huggingface.co" in mirror_base else "镜像"
-                    print(f"下载 {filename} ...（{mirror_name}）")
-                if self._download_file(url, tmp_target, verbose):
-                    # 下载后校验完整性
-                    if expected_hash and not self._sha256_verify(tmp_target, expected_hash, verbose):
-                        tmp_target.unlink(missing_ok=True)
-                        if verbose:
-                            print(f"  下载文件校验失败，尝试下一个源")
-                        continue
-                    # 校验通过，替换旧文件
-                    if target.exists():
-                        target.unlink()
-                    tmp_target.rename(target)
-                    downloaded = True
-                    break
-                else:
-                    if tmp_target.exists():
-                        tmp_target.unlink()
-                    if verbose:
-                        mirror_name = "HuggingFace" if "huggingface.co" in mirror_base else "镜像"
-                        print(f"  {mirror_name}下载失败，尝试下一个源")
-            if not downloaded:
-                if tmp_target.exists():
-                    tmp_target.unlink()
-                print(f"下载失败: {filename}（所有镜像源均不可用或校验未通过）")
-                return False
-
-        # 下载 ONNX 模型（按优先顺序尝试，多镜像 + SHA256 校验）
-        # ONNX 文件在仓库的 onnx/ 子目录，下载到本地时去掉 onnx/ 前缀
+        # 下载 ONNX 模型（按候选优先级尝试，任一成功即可）
         onnx_downloaded = self._find_onnx_file()
         onnx_corrupted = False
-        # 已存在的 ONNX 文件也做校验（不直接删除，标记为需要重新下载）
         if onnx_downloaded is not None:
             local_name = onnx_downloaded.name
-            expected_hash = self.ONNX_SHA256.get(local_name)
+            expected_hash = self.SHA256.get(local_name)
             if expected_hash and not self._sha256_verify(onnx_downloaded, expected_hash, verbose=False):
                 if verbose:
                     print(f"已存在模型校验失败，将重新下载: {local_name}")
                 onnx_corrupted = True
                 onnx_downloaded = None
         if onnx_downloaded is None:
-            for candidate in self.ONNX_FILE_CANDIDATES:
-                local_name = self.ONNX_LOCAL_NAMES.get(candidate, candidate)
+            for key in self.ONNX_CANDIDATE_KEYS:
+                file_cfg = files_cfg[key]
+                local_name = file_cfg["local_name"]
                 target = self.model_dir / local_name
                 tmp_target = self.model_dir / f"{local_name}.downloading"
-                for mirror_base in self.HF_MIRRORS:
-                    url = f"{mirror_base}/{candidate}"
+                for source in self.DOWNLOAD_SOURCES:
+                    url = self._build_url(source, file_cfg)
                     if verbose:
-                        mirror_name = "HuggingFace" if "huggingface.co" in mirror_base else "镜像"
-                        print(f"下载 {candidate} ...（{mirror_name}，文件较大，可能需要几分钟）")
+                        print(f"下载 {file_cfg['candidate']} ...（{source['name']}，文件较大，可能需要几分钟）")
                     if self._download_file(url, tmp_target, verbose):
-                        # 下载后校验完整性
-                        expected_hash = self.ONNX_SHA256.get(local_name)
+                        expected_hash = self.SHA256.get(local_name)
                         if expected_hash and not self._sha256_verify(tmp_target, expected_hash, verbose):
                             tmp_target.unlink(missing_ok=True)
                             if verbose:
                                 print(f"  下载模型校验失败，尝试下一个源")
                             continue
-                        # 校验通过，替换旧文件
                         if target.exists():
                             target.unlink()
                         tmp_target.rename(target)
@@ -430,8 +413,7 @@ class SemanticModel:
                         if tmp_target.exists():
                             tmp_target.unlink()
                         if verbose:
-                            mirror_name = "HuggingFace" if "huggingface.co" in mirror_base else "镜像"
-                            print(f"  {mirror_name}下载 {candidate} 失败")
+                            print(f"  {source['name']}下载 {file_cfg['candidate']} 失败")
 
                 if onnx_downloaded:
                     break

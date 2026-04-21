@@ -65,6 +65,10 @@ class QualityAuditor:
         continuity = self._audit_continuity(chapter, content)
         report["dimensions"]["continuity"] = continuity
 
+        # 6. 追读力审计（如果engagement数据存在）
+        engagement = self._audit_engagement(chapter, content)
+        report["dimensions"]["engagement"] = engagement
+
         # 计算总分
         scores = []
         for dim_name, dim_data in report["dimensions"].items():
@@ -353,6 +357,68 @@ class QualityAuditor:
 
         return result
 
+    def _audit_engagement(self, chapter: int, content: str) -> Dict[str, Any]:
+        """追读力审计"""
+        result = {"score": 0, "issues": [], "metrics": {}}
+
+        db_path = self.project_path / "data" / "novel_memory.db"
+        if not db_path.exists():
+            result["score"] = 80
+            result["metrics"]["note"] = "无项目数据，跳过追读力检查"
+            return result
+
+        try:
+            from engagement_tracker import EngagementTracker
+            tracker = EngagementTracker(str(db_path))
+            try:
+                score_data = tracker.get_chapter_score(chapter)
+                if not score_data:
+                    result["score"] = 75
+                    result["metrics"]["note"] = "该章节尚未评分"
+                    return result
+
+                # 基于评分的审计
+                engagement_score = score_data.get("engagement_score", 5.0)
+                hook_strength = score_data.get("hook_strength", 5.0)
+                reader_pull = score_data.get("reader_pull", 5.0)
+                pace_type = score_data.get("pace_type")
+
+                result["metrics"] = {
+                    "engagement_score": engagement_score,
+                    "hook_strength": hook_strength,
+                    "reader_pull": reader_pull,
+                    "pace_type": pace_type
+                }
+
+                score = 80
+
+                # 低投入度
+                if engagement_score is not None and engagement_score < 4.0:
+                    score -= 15
+                    result["issues"].append(f"读者投入度偏低({engagement_score:.1f}/10)")
+                elif engagement_score is not None and engagement_score < 5.0:
+                    score -= 5
+                    result["issues"].append("读者投入度一般，建议增强叙事张力")
+
+                # 伏笔钩力缺失（非relief/transition章节）
+                if hook_strength is not None and hook_strength < 3.0 and pace_type not in ("relief", "transition"):
+                    score -= 10
+                    result["issues"].append("缺少伏笔钩力，非缓冲章节建议种埋伏笔或推进悬念")
+
+                # 综合拉力
+                if reader_pull is not None and reader_pull < 4.0:
+                    score -= 10
+                    result["issues"].append(f"读者拉力不足({reader_pull:.1f}/10)")
+
+                result["score"] = max(0, min(100, score))
+            finally:
+                tracker.close()
+        except Exception as e:
+            result["score"] = 75
+            result["metrics"]["error"] = str(e)
+
+        return result
+
     def generate_improvement_suggestions(self, report: Dict[str, Any]) -> str:
         """生成改进建议文本"""
         lines = [
@@ -367,7 +433,8 @@ class QualityAuditor:
                 "dialogue": "对话",
                 "description": "描写",
                 "repetition": "重复性",
-                "continuity": "连续性"
+                "continuity": "连续性",
+                "engagement": "追读力"
             }
             name = dim_names.get(dim_name, dim_name)
             score = dim_data.get("score", 0)

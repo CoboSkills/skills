@@ -34,8 +34,9 @@ class ContextRetriever:
         "current_chapter_summary": 800,  # 当前章已有内容摘要
         "related_scenes": 2500,    # 相关场景片段
         "relevant_facts": 2500,    # 相关事实
-        "hooks": 800,              # 活跃伏笔
-        "continuity_notes": 500,   # 连续性提示
+        "hooks": 600,              # 活跃伏笔（缩减200给engagement）
+        "continuity_notes": 400,   # 连续性提示（缩减100给engagement）
+        "engagement": 500,         # 追读力上下文
     }
 
     def __init__(self, db_path: str, project_path: str = None):
@@ -213,6 +214,26 @@ class ContextRetriever:
         except Exception:
             return []
 
+    def _get_engagement_context(self, chapter: int) -> Dict[str, Any]:
+        """获取追读力上下文（最近评分+债务摘要+紧迫伏笔）"""
+        try:
+            from engagement_tracker import EngagementTracker
+            tracker = EngagementTracker(str(self.db_path))
+            try:
+                # 最近5章评分
+                recent = tracker.get_recent_metrics(chapter, limit=5)
+                # 债务摘要
+                debt = tracker.get_debt_report(chapter)
+                return {
+                    "recent_metrics": recent,
+                    "debt_summary": debt.get("summary", {}),
+                    "debt_level": debt.get("summary", {}).get("debt_level", "healthy")
+                }
+            finally:
+                tracker.close()
+        except Exception:
+            return {}
+
     # ==================== 上下文组装 ====================
 
     def retrieve_for_creation(self, chapter: int, query: str = "",
@@ -322,6 +343,13 @@ class ContextRetriever:
         context["continuity_notes"] = self._truncate(continuity, self.BUDGET["continuity_notes"])
         total_chars += len(context["continuity_notes"])
 
+        # 追读力上下文
+        engagement_ctx = self._get_engagement_context(chapter)
+        engagement_text = self._format_engagement_text(engagement_ctx)
+        context["engagement"] = self._truncate(engagement_text, self.BUDGET["engagement"])
+        context["engagement_data"] = engagement_ctx
+        total_chars += len(context["engagement"])
+
         context["metadata"] = {
             "chapter": chapter,
             "volume": volume,
@@ -368,6 +396,31 @@ class ContextRetriever:
 
         return "\n".join(notes)
 
+    def _format_engagement_text(self, engagement_ctx: Dict[str, Any]) -> str:
+        """格式化追读力上下文为文本"""
+        if not engagement_ctx:
+            return ""
+
+        parts = []
+        recent = engagement_ctx.get("recent_metrics", [])
+        if recent:
+            pace_list = []
+            for m in recent:
+                ch = m.get("chapter", "?")
+                pt = m.get("pace_type", "-")
+                rp = m.get("reader_pull", "-")
+                pace_list.append(f"第{ch}章({pt},拉力{rp})")
+            parts.append("近期节奏: " + " → ".join(pace_list))
+
+        debt_summary = engagement_ctx.get("debt_summary", {})
+        debt_level = engagement_ctx.get("debt_level", "healthy")
+        if debt_level != "healthy":
+            overdue = debt_summary.get("overdue_count", 0)
+            forgotten = debt_summary.get("forgotten_count", 0)
+            parts.append(f"[债务{debt_level}] 超期{overdue}个,遗忘{forgotten}个")
+
+        return "\n".join(parts)
+
     def format_context(self, context: Dict[str, Any]) -> str:
         """将结构化上下文格式化为可读文本"""
         parts = []
@@ -394,6 +447,8 @@ class ContextRetriever:
             parts.append(f"=== 活跃伏笔 ===\n{context['hooks']}")
         if context.get("continuity_notes"):
             parts.append(f"=== 连续性提示 ===\n{context['continuity_notes']}")
+        if context.get("engagement"):
+            parts.append(f"=== 追读力 ===\n{context['engagement']}")
 
         return "\n\n".join(parts)
 

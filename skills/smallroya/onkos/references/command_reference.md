@@ -1,4 +1,4 @@
-# 58命令速查表
+# 命令参数速查
 
 ## 目录
 
@@ -6,17 +6,18 @@
 2. [事实引擎](#事实引擎-fact_enginepy)
 3. [知识图谱](#知识图谱-knowledge_graphpy)
 4. [伏笔追踪](#伏笔追踪-hook_trackerpy)
-5. [弧线管理](#弧线管理-arc_managerpy)
-6. [角色模拟](#角色模拟-character_simulatorpy)
-7. [质量审计](#质量审计-quality_auditorpy)
-8. [连续性检查](#连续性检查-continuity_checkerpy)
-9. [风格分析](#风格分析-style_learnerpy)
-10. [实体提取](#实体提取-entity_extractorpy)
-11. [情节管理](#情节管理-plot_brancherpy)
-12. [上下文检索](#上下文检索-context_retrieverpy)
-13. [项目管理](#项目管理-project_initializerpy)
-14. [设定导入](#设定导入-settings_importerpy)
-15. [内置命令](#内置命令-command_executorpy)
+5. [追读力追踪](#追读力追踪-engagement_trackerpy)
+6. [弧线管理](#弧线管理-arc_managerpy)
+7. [角色模拟](#角色模拟-character_simulatorpy)
+8. [质量审计](#质量审计-quality_auditorpy)
+9. [连续性检查](#连续性检查-continuity_checkerpy)
+10. [风格分析](#风格分析-style_learnerpy)
+11. [实体提取](#实体提取-entity_extractorpy)
+12. [情节管理](#情节管理-plot_brancherpy)
+13. [上下文检索](#上下文检索-context_retrieverpy)
+14. [项目管理](#项目管理-project_initializerpy)
+15. [设定导入](#设定导入-settings_importerpy)
+16. [内置命令](#内置命令-command_executorpy)
 
 ---
 
@@ -33,7 +34,7 @@
 | `mem-stats` | stats | | 记忆引擎统计 |
 | `create-arc` | create-arc | arc_id, arc_title, start_chapter, arc_type, end_chapter, phase_id | 创建弧线 |
 | `list-arcs` | list-arcs | arc_type | 列出弧线 |
-| `chapter-complete` | store-chapter | chapter, content | 章节完成批量操作 |
+| `chapter-complete` | chapter-complete | chapter, content | 章节完成批量操作(自动replace) |
 
 ### store-summary 参数详解
 
@@ -100,13 +101,17 @@
 
 | 命令 | action | 关键参数 | 说明 |
 |------|--------|----------|------|
-| `plant-hook` | plant | desc, planted_chapter, expected_resolve, priority, hook_id | 种植伏笔 |
+| `plant-hook` | plant | desc, planted_chapter, expected_resolve, priority, hook_id, strength | 种植伏笔(strength=0-1) |
 | `resolve-hook` | resolve | hook_id, resolved_chapter | 回收伏笔 |
+| `partial-resolve` | partial-resolve | hook_id, hint_chapter | 部分回收(partial_count+1) |
+| `hint-hook` | hint | hook_id, hint_chapter | 暗示提及(仅更新last_hint_chapter) |
+| `update-hook-strength` | update-strength | hook_id, strength | 更新伏笔强度(0-1) |
 | `abandon-hook` | abandon | hook_id | 放弃伏笔 |
+| `abandon-chapter-hooks` | abandon-chapter | chapter | 放弃指定章节open伏笔 |
 | `list-hooks` | list-open | | 列出未闭合伏笔 |
-| `overdue-hooks` | overdue | current_chapter | 超期伏笔（超过预期回收章节） |
-| `forgotten-hooks` | forgotten | current_chapter | 遗忘伏笔预警（超100章未提及） |
-| `hook-stats` | stats | | 伏笔统计（各状态数量） |
+| `overdue-hooks` | overdue | current_chapter | 超期伏笔(含urgency衰减值) |
+| `forgotten-hooks` | forgotten | current_chapter | 遗忘伏笔预警(含forget_risk) |
+| `hook-stats` | stats | | 伏笔统计(含urgency/strength均值) |
 
 ### plant-hook 参数详解
 
@@ -115,6 +120,47 @@
 - `expected_resolve`: 预期回收章节
 - `priority`: `critical`/`normal`/`minor`
 - `hook_id`: 自定义ID（可选，不填自动生成）
+- `strength`: 伏笔强度(0-1)，由智能体评估，默认0.5
+
+### urgency衰减公式
+
+- base = strength * (1 + 0.2 * partial_count)
+- 超期: urgency = base * (1 + 0.5 * (elapsed - expected_window) / 10)
+- 未超期: urgency = base * max(0.3, 1.0 - elapsed * 0.02)
+- Clamp [0, 5.0]
+
+---
+
+## 追读力追踪 (engagement_tracker.py)
+
+所有命令需要 `--db-path` 公共参数。
+
+| 命令 | action | 关键参数 | 说明 |
+|------|--------|----------|------|
+| `score-chapter` | score | chapter, engagement_score, hook_strength, tension_level, pace_type, notes | 存储章节追读力评分 |
+| `engagement-trend` | trend | from_chapter, to_chapter | 追读力趋势分析 |
+| `pacing-report` | pacing | from_chapter, to_chapter | 节奏模式检测+建议 |
+| `debt-report` | debt | current_chapter | 叙事债务报告(超期伏笔+紧张度累积) |
+
+### score-chapter 参数详解
+
+- `chapter`: 章节编号（必填）
+- `engagement_score`: 读者投入度(0-10)
+- `hook_strength`: 本章伏笔钩力(0-10)
+- `tension_level`: 紧张度(0-10)
+- `pace_type`: 节奏类型(buildup/climax/relief/transition)
+- `notes`: 智能体备注
+
+### reader_pull计算
+
+综合读者拉力 = 0.4 * engagement + 0.35 * hook + 0.25 * tension（缺失维度以5.0填充）
+
+### 节奏建议规则
+
+- 连续3+章buildup → 建议climax
+- 连续2+章climax → 建议relief
+- 连续3+章relief → 建议buildup
+- 连续2+章transition → 警告节奏拖沓
 
 ---
 
@@ -139,7 +185,7 @@
 | 命令 | action | 关键参数 | 说明 |
 |------|--------|----------|------|
 | `create-character` | create | name, role, big-five(JSON), core-traits(JSON), forbidden-actions(JSON), speech-style, typical-behaviors(JSON) | 创建角色 |
-| `check-ooc` | check-ooc | name, action_desc, context | OOC检测（双层:禁止行为+Big Five分析） |
+| `check-ooc` | check-ooc | name, behavior, context | OOC检测（双层:禁止行为+Big Five分析） |
 | `char-prompt` | generate-prompt | name | 生成角色提示词 |
 | `list-chars` | list | | 列出所有角色 |
 
@@ -256,6 +302,7 @@
   "key_facts": [...],
   "recent_scenes": [...],
   "open_hooks": [...],
+  "engagement": "近期节奏+债务摘要",
   "budget_used": 8500,
   "budget_total": 12000
 }

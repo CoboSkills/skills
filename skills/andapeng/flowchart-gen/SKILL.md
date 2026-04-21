@@ -1,13 +1,18 @@
 ---
 name: flowchart-gen
-version: 1.0.0
+version: 1.1.0
 author: "徒然SadP"
 description: 将自然语言描述转换为流程图图片（Mermaid语法），支持DeepSeek API智能生成、多种图表类型、丰富的模板库和智能错误处理
 metadata:
   openclaw:
     emoji: "📊"
-    requires: 
+    requires:
       bins: ["python3", "mmdc"]
+      env:
+        - DEEPSEEK_API_KEY  # 可选，DeepSeek API密钥
+        - OPENAI_API_KEY    # 可选，OpenAI API密钥
+      config:
+        - ~/.openclaw/openclaw.json  # 可选，用于自动读取DeepSeek配置
     install:
       - id: mermaid-cli
         kind: npm
@@ -34,6 +39,19 @@ metadata:
 ## 🚀 快速开始
 
 ### 安装依赖
+
+#### 方法一：使用安装脚本（推荐）
+
+```bash
+# Windows (PowerShell)
+.\install.ps1
+
+# Linux/macOS
+chmod +x install.sh
+./install.sh
+```
+
+#### 方法二：手动安装
 
 ```bash
 # 1. 安装Mermaid CLI（必需）
@@ -117,36 +135,52 @@ python scripts/generate.py "测试" --verbose
 
 ### 🔧 LLM API配置
 
-本技能支持多种LLM API，按优先级自动选择：
+本技能支持多种LLM API配置方式，按优先级自动选择（从高到低）：
 
-1. **DeepSeek API**（默认）
-   - 自动从OpenClaw配置读取（推荐）
-   - 或设置环境变量：`DEEPSEEK_API_KEY`
+#### 配置方式
 
-2. **OpenAI API**
-   - 设置环境变量：`OPENAI_API_KEY`
-   - 自动使用`gpt-4o`或`gpt-3.5-turbo`模型
+1. **命令行参数**（优先级最高）
+   ```bash
+   python scripts/generate.py "描述" --api-key sk-xxx --api-provider deepseek
+   ```
+   - `--api-key`: 手动指定API密钥
+   - `--api-provider`: 提供商（deepseek 或 openai，默认 deepseek）
+   - `--api-base-url`: 自定义API基础URL
 
-3. **其他API**
-   - 通过`--no-llm`参数禁用LLM，使用模板匹配
-   - 或手动修改`scripts/generate.py`中的配置
+2. **环境变量**（推荐用于持久化配置）
+   ```bash
+   # Windows
+   set DEEPSEEK_API_KEY=sk-xxx
+   # 或
+   set OPENAI_API_KEY=sk-xxx
+   
+   # Linux/macOS
+   export DEEPSEEK_API_KEY=sk-xxx
+   export OPENAI_API_KEY=sk-xxx
+   ```
 
-**环境变量配置示例**：
-```bash
-# Windows
-set DEEPSEEK_API_KEY=sk-xxx
-# 或
-set OPENAI_API_KEY=sk-xxx
+3. **OpenClaw配置文件**（自动读取，适合OpenClaw用户）
+   - 自动从 `~/.openclaw/openclaw.json` 读取 DeepSeek 配置
+   - 无需额外配置，与OpenClaw共享API密钥
 
-# Linux/macOS
-export DEEPSEEK_API_KEY=sk-xxx
-export OPENAI_API_KEY=sk-xxx
-```
+4. **模板匹配**（无API调用）
+   - 使用 `--no-llm` 参数禁用LLM，使用模板匹配
+   - 使用 `--use-template` 指定预置模板
+   - 使用 `--raw` 直接输入Mermaid代码
 
-**优先级说明**：
-1. 如果配置了`DEEPSEEK_API_KEY`，使用DeepSeek API
-2. 否则如果配置了`OPENAI_API_KEY`，使用OpenAI API
-3. 否则使用模板匹配（需添加`--no-llm`参数或自动回退）
+#### 安全说明
+- API密钥优先从命令行参数或环境变量读取，符合最小权限原则
+- OpenClaw配置读取作为辅助选项，需要明确用户授权
+- 所有配置访问已在元数据中声明，透明可审计
+
+#### 配置优先级（从高到低）
+1. 命令行参数 (`--api-key`, `--api-provider`, `--api-base-url`)
+2. 环境变量 (`DEEPSEEK_API_KEY`, `OPENAI_API_KEY`)
+3. OpenClaw配置文件 (`~/.openclaw/openclaw.json`)
+4. 模板匹配（无API调用）
+
+#### 配置向导
+首次运行或缺少配置时，脚本会提供详细的配置指引，帮助用户快速设置。
 
 ### 2. **丰富的模板库（31个模板）**
 - **业务流程类**: 订单处理、客户服务、库存管理、退款流程

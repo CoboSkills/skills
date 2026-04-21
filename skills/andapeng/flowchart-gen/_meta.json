@@ -3,9 +3,15 @@
   "slug": "flowchart-gen",
   "displayName": "Flowchart Gen",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775920369362,
-    "commit": "https://github.com/openclaw/skills/commit/66b6ef06ccc4f21daa902710d1d2dd6e0ae442de"
+    "version": "1.1.0",
+    "publishedAt": 1776441697946,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775920369362,
+      "commit": "https://github.com/openclaw/skills/commit/66b6ef06ccc4f21daa902710d1d2dd6e0ae442de"
+    }
+  ]
 }

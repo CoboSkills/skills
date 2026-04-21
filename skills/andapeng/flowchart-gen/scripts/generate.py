@@ -21,8 +21,8 @@ from pathlib import Path
 import json
 
 # 版本信息
-__version__ = "1.0.0"
-__release_date__ = "2026-03-17"
+__version__ = "1.1.0"
+__release_date__ = "2026-04-17"
 
 # 设置Puppeteer使用系统Chrome
 if 'PUPPETEER_EXECUTABLE_PATH' not in os.environ:
@@ -52,12 +52,54 @@ LLM_CONFIG = {
     "timeout": 30
 }
 
-def load_llm_config():
-    """加载LLM API配置，支持DeepSeek和OpenAI"""
+def load_llm_config(args=None):
+    """
+    加载LLM API配置，支持DeepSeek和OpenAI
+    
+    优先级（从高到低）：
+    1. 命令行参数 (--api-key, --api-provider, --api-base-url)
+    2. 环境变量 (DEEPSEEK_API_KEY, OPENAI_API_KEY)
+    3. OpenClaw配置文件 (~/.openclaw/openclaw.json)
+    
+    参数:
+        args: argparse.Namespace对象，包含命令行参数
+    
+    返回:
+        bool: 是否成功加载配置
+    """
     import json
     import os
     
-    # 1. 检查环境变量（优先级最高）
+    # 重置配置
+    LLM_CONFIG.update({
+        "provider": "deepseek",
+        "api_key": None,
+        "base_url": "https://api.deepseek.com/v1",
+        "model": "deepseek-chat",
+        "timeout": 30
+    })
+    
+    # 1. 检查命令行参数（优先级最高）
+    if args and args.api_key:
+        LLM_CONFIG["api_key"] = args.api_key
+        if args.api_provider:
+            LLM_CONFIG["provider"] = args.api_provider
+        if args.api_base_url:
+            LLM_CONFIG["base_url"] = args.api_base_url
+        
+        # 根据provider设置默认值
+        if LLM_CONFIG["provider"] == "openai":
+            if not args.api_base_url:
+                LLM_CONFIG["base_url"] = "https://api.openai.com/v1"
+            LLM_CONFIG["model"] = "gpt-4o"
+        else:  # deepseek
+            if not args.api_base_url:
+                LLM_CONFIG["base_url"] = "https://api.deepseek.com/v1"
+            LLM_CONFIG["model"] = "deepseek-chat"
+        
+        return True
+    
+    # 2. 检查环境变量
     deepseek_key = os.environ.get("DEEPSEEK_API_KEY")
     openai_key = os.environ.get("OPENAI_API_KEY")
     
@@ -72,10 +114,10 @@ def load_llm_config():
         LLM_CONFIG["provider"] = "openai"
         LLM_CONFIG["api_key"] = openai_key
         LLM_CONFIG["base_url"] = "https://api.openai.com/v1"
-        LLM_CONFIG["model"] = "gpt-4o"  # 默认使用gpt-4o，如果不可用会回退
+        LLM_CONFIG["model"] = "gpt-4o"
         return True
     
-    # 2. 检查OpenClaw配置文件（DeepSeek配置）
+    # 3. 检查OpenClaw配置文件（DeepSeek配置）
     config_paths = [
         os.path.join(os.path.expanduser("~"), ".openclaw", "openclaw.json"),
         "C:\\Users\\AA\\.openclaw\\openclaw.json"  # Windows特定路径
@@ -110,6 +152,7 @@ def load_llm_config():
             except Exception:
                 pass
     
+    # 没有找到任何配置
     return False
 
 # ============================================================================
@@ -1458,6 +1501,23 @@ def main():
     )
     
     parser.add_argument(
+        "--api-key",
+        help="手动指定API密钥（优先级最高）"
+    )
+    
+    parser.add_argument(
+        "--api-provider",
+        choices=["deepseek", "openai"],
+        default="deepseek",
+        help="API提供商：deepseek 或 openai (默认: deepseek)"
+    )
+    
+    parser.add_argument(
+        "--api-base-url",
+        help="自定义API基础URL（通常无需指定）"
+    )
+    
+    parser.add_argument(
         "--raw",
         action="store_true",
         help="直接使用输入作为Mermaid代码（跳过AI转换）"
@@ -1513,6 +1573,42 @@ def main():
         print(f"  - 多格式输出 (PNG/SVG/PDF)")
         print(f"  - 多主题支持")
         return
+    
+    # ======================================================================
+    # 加载LLM API配置（根据优先级：命令行参数 > 环境变量 > OpenClaw配置）
+    # ======================================================================
+    global CONFIG_LOADED  # 声明全局变量以便修改
+    
+    # 调用配置加载函数，传入命令行参数
+    CONFIG_LOADED = load_llm_config(args)
+    
+    # 配置向导：如果API配置失败且需要LLM，提供详细指引
+    need_llm = not (args.no_llm or args.raw or args.use_template)
+    if not CONFIG_LOADED and need_llm:
+        print("⚠️  LLM API配置未找到")
+        print("=" * 60)
+        print("配置指引：以下任一方式配置API密钥")
+        print("=" * 60)
+        print("1. 命令行参数（优先级最高）：")
+        print("   --api-key sk-xxx --api-provider deepseek")
+        print("2. 环境变量（推荐）：")
+        print("   export DEEPSEEK_API_KEY=sk-xxx  # Linux/macOS")
+        print("   set DEEPSEEK_API_KEY=sk-xxx     # Windows")
+        print("3. OpenClaw配置文件（自动读取）：")
+        print("   ~/.openclaw/openclaw.json 中的 DeepSeek 配置")
+        print("4. 使用模板或跳过API（无配置）：")
+        print("   --no-llm              # 禁用LLM，使用模板匹配")
+        print("   --use-template <name> # 使用预置模板")
+        print("   --raw                 # 直接输入Mermaid代码")
+        print("=" * 60)
+        print("\n是否继续使用模板匹配？（选择N将退出）")
+        response = input("继续使用 --no-llm 模式？(Y/n): ").strip().lower()
+        if response in ("", "y", "yes"):
+            args.no_llm = True
+            print("[INFO] 已启用 --no-llm 模式，使用模板匹配")
+        else:
+            print("操作已取消")
+            sys.exit(1)
     
     # 检查是否缺少必要的参数
     # 需要prompt的情况：没有使用--list-templates、--use-template、--version等不需要prompt的操作

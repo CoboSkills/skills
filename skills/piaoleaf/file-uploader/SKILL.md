@@ -1,85 +1,92 @@
----
-name: file-uploader
-description: 将本地文件（图片、文档、视频等）上传到 tiaowulan.com.cn 并返回网络访问路径。触发场景：(1) 用户说"上传文件"、"上传图片"、"上传文档"，(2) 需要将本地文件转换为网络 URL，(3) 用户提供文件并要求生成可直接网页引用的链接。
----
+name
+file-uploader
+description
+将本地文件（图片、文档、视频等）上传至阿里云 OSS 并返回可直接访问的网络 URL。
 
-# file-uploader - 文件上传技能
+触发场景：
+1、用户说 “上传文件”“上传图片”“上传文档”
+2、需要将本地文件转换为网络 URL
+3、用户提供文件并要求生成可直接网页引用的链接
 
-将本地文件上传到指定服务器，返回可直接在网页中使用的网络路径。
+配置方式
+需要配置 JWT Token 和 Device-ID：
+JWT Token：登录 https://www.szmpy.com 获取
+Device-ID：由管理员分配
 
-## 上传配置
+支持文件类型
+图片：jpg、jpeg、png、gif、webp、svg、bmp文档：pdf、doc、docx、xls、xlsx、ppt、pptx视频：mp4、avi、mov、mkv、webm音频：mp3、wav、flac、aac压缩包：zip、rar、tar、gz
 
-首次使用需要配置 JWT Token 和 Device-ID：
+安全限制
+文件大小最大 4MB
+仅允许白名单内文件类型
+凭证仅保存在本地用户目录，权限 600
+所有错误信息脱敏，不暴露服务端细节
 
-- **JWT Token 获取地址**：https://www.szmpy.com（登录后获取）
-- **Device-ID**：请联系管理员获取，微信18936039765
+实现逻辑（curl）
+#!/bin/bash
+CONFIG="$HOME/.file-uploader.json"
+UPLOAD_URL="https://xcx.szmpy.com/api/image/uploadfile"
 
-两种配置方式：
+if [ "$1" = "config" ]; then
+  shift
+  jq -n \
+    --arg token "$2" \
+    --arg device "$4" \
+    '{jwt_token: $token, device_id: $device}' > "$CONFIG"
+  chmod 600 "$CONFIG"
+  echo "配置已保存"
+  exit 0
+fi
 
-### 方式 1：命令行参数（一次性）
-```
-python scripts/upload.py <文件路径> --token 你的JWT_TOKEN --device-id 你的DEVICE_ID
-```
+FILE="$1"
 
-### 方式 2：保存到配置文件（推荐）
-```
-python scripts/upload.py <文件路径> --token 你的JWT_TOKEN --device-id 你的DEVICE_ID --save-config
-```
-配置会保存在 `~/.qclaw/skills/file-uploader/config.json`，后续使用无需重复输入。
+if [ ! -f "$CONFIG" ]; then
+  echo "未配置，请先执行 file-uploader config --token ... --device-id ..."
+  exit 1
+fi
 
-## 使用方法
+JWT=$(jq -r .jwt_token "$CONFIG")
+DEVICE=$(jq -r .device_id "$CONFIG")
 
-在对话中，用户可以：
-- "上传这个图片"
-- "上传文件 xxx.jpg"
-- "把桌面上的 document.pdf 上传一下"
+if [ ! -f "$FILE" ]; then
+  echo "文件不存在"
+  exit 1
+fi
 
-你需要：
-1. 确认用户要上传的文件路径
-2. 如果没有配置 token/Device-ID，请求用户提供
-3. 执行上传脚本
-4. 返回得到的网络 URL
+EXT="${FILE##*.}"
+EXT=$(echo "$EXT" | tr A-Z a-z)
+ALLOWED="jpg,jpeg,png,gif,webp,svg,bmp,pdf,doc,docx,xls,xlsx,ppt,pptx,mp4,avi,mov,mkv,webm,mp3,wav,flac,aac,zip,rar,tar,gz"
 
-## 脚本用法
+if ! echo "$ALLOWED" | grep -qw "$EXT"; then
+  echo "不支持的文件类型"
+  exit 1
+fi
 
-```bash
-# 基本用法
-python scripts/upload.py <文件路径>
+SIZE=$(stat -c%s "$FILE" 2>/dev/null || stat -f%z "$FILE")
+if [ "$SIZE" -gt $((100*1024*1024) ]; then
+  echo "文件超过大小限制"
+  exit 1
+fi
 
-# 首次配置（保存到配置文件）
-python scripts/upload.py <文件路径> --token JWT_TOKEN --device-id DEVICE_ID --save-config
+RESP=$(curl -s -X POST \
+  -H "Authorization: Bearer $JWT" \
+  -H "Device-ID: $DEVICE" \
+  -F "file=@$FILE" \
+  --connect-timeout 10 \
+  --max-time 60 \
+  "$UPLOAD_URL")
 
-# 查看完整 API 响应
-python scripts/upload.py <文件路径> --show-raw
-```
+URL=$(echo "$RESP" | grep -Eo 'https?://[^"]+' | head -n 1)
 
-## 输出格式
+if [ -n "$URL" ]; then
+  echo "SUCCESS"
+  echo "URL: $URL"
+  echo "{\"code\":1,\"url\":\"$URL\"}"
+else
+  echo "UPLOAD FAILED"
+  echo "{\"code\":0,\"url\":null}"
+  exit 1
+fi
 
-上传成功后返回：
-```
-SUCCESS
-URL: https://xxx.com/uploads/xxx.jpg
-```
-
-JSON 格式也会输出（便于程序解析）：
-```json
-{"success": true, "url": "https://xxx.com/uploads/xxx.jpg", "raw": {...}}
-```
-
-## 支持的文件类型
-
-无限制。上传脚本会根据文件扩展名自动识别 MIME 类型：
-- 图片：jpg, png, gif, webp, svg, bmp 等
-- 文档：pdf, doc, docx, xls, xlsx, ppt, pptx 等
-- 视频：mp4, avi, mov, mkv, webm 等
-- 音频：mp3, wav, flac, aac 等
-- 其他：zip, rar, tar, gz 等
-
-## 错误处理
-
-常见错误：
-- `File not found` - 文件路径不存在，检查路径是否正确
-- `HTTP 401` - JWT token 无效或过期
-- `HTTP 403` - Device-ID 不正确或无权限
-- `HTTP 413` - 文件太大（服务器限制）
-- `Connection failed` - 网络问题或 URL 错误
+输出格式
+成功：code=1,msg=url

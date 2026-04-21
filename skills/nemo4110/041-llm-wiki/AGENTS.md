@@ -15,7 +15,7 @@ File Type Recognition
     |     +--> Use Read tool directly
     |
     +-- PDF files (.pdf)
-    |     +-- Check dependency: is pdfplumber>=0.11.8 installed?
+    |     +-- Check dependency: is PyMuPDF (pymupdf) installed?
     |     |     +-- Yes -> Use Python script to read
     |     |     +-- No  -> Install dependency first, then read
     |     +--> Process via scripts/read_pdf.py or Python code
@@ -35,15 +35,14 @@ File Type Recognition
 **步骤 1：检查依赖**
 
 ```bash
-# 检查 pdfplumber 是否已安装
-python -c "import pdfplumber; print(pdfplumber.__version__)"
+# 检查 PyMuPDF 是否已安装
+python -c "import fitz; print(fitz.__doc__[:30])"
 ```
 
 如果失败，需要先安装：
 
 ```bash
-# 安全版本（已修复 CVE-2025-64512）
-pip install pdfplumber>=0.11.8 pdfminer.six>=20251107
+pip install pymupdf>=1.25.0
 ```
 
 **步骤 2：读取 PDF 内容**
@@ -58,23 +57,57 @@ python scripts/read_pdf.py sources/paper.pdf
 python scripts/read_pdf.py sources/paper.pdf 1-10
 ```
 
-**方法 B：使用 Python 代码**
+**方法 B：使用 Python 代码（推荐：PyMuPDF）**
+
+```python
+import fitz  # PyMuPDF
+
+doc = fitz.open("sources/paper.pdf")
+for page in doc:
+    print(page.get_text())
+doc.close()
+```
+
+**回退方案：pdfplumber（表格提取）**
+
+如果 PyMuPDF 在提取复杂表格时效果不佳，可回退使用 `pdfplumber`（注意需安装安全版本 >= 0.11.8 以修复 CVE-2025-64512）：
 
 ```python
 import pdfplumber
 
 with pdfplumber.open("sources/paper.pdf") as pdf:
-    # 读取第 1-10 页
-    for i in range(min(10, len(pdf.pages))):
-        page = pdf.pages[i]
-        text = page.extract_text()
-        print(f"Page {i+1}:\n{text}\n")
+    for page in pdf.pages:
+        print(page.extract_text())
 ```
 
-**重要安全提示**：
-- **必须使用安全版本**：pdfplumber >= 0.11.8，pdfminer.six >= 20251107
-- **原因**：CVE-2025-64512 漏洞可导致任意代码执行
-- **避免**：直接使用 Read 工具读取 PDF（会触发 pdftoppm 依赖错误）
+**OCR 最后手段**
+
+对于扫描版 PDF 或上述方法均失败的情况，可使用 `pdf2image` + `pytesseract` 进行 OCR。
+
+**PDF 提取质量不佳时的回退方案**
+
+如果 pdfplumber 提取的文本出现大量乱码（尤其是包含中文、特殊字体或复杂排版的学术论文），可尝试以下替代方案：
+
+**方法 C：使用 PyMuPDF（fitz）**
+
+PyMuPDF 对 CJK（中日韩）字体和复杂 PDF 的文本提取通常更可靠：
+
+```bash
+# 安装
+pip install pymupdf
+```
+
+```python
+import fitz  # PyMuPDF
+
+doc = fitz.open("sources/paper.pdf")
+for page in doc:
+    print(page.get_text())
+```
+
+**方法 D：转换为图片后 OCR（最后手段）**
+
+对于扫描版 PDF 或上述方法均失败的情况，可使用 `pdf2image` + `pytesseract` 进行 OCR，但速度较慢。
 
 ### 文本文件处理
 
@@ -104,8 +137,11 @@ Read("sources/screenshot.jpg")
 **包含的依赖**：
 - `click>=8.0.0` - CLI 框架
 - `pyyaml>=6.0` - YAML 解析
-- `pdfplumber>=0.11.8` - PDF 处理（安全版本）
-- `pdfminer.six>=20251107` - PDF 处理底层库（安全版本）
+- `pymupdf>=1.25.0` - PDF 处理（PyMuPDF，支持 CJK 字体和复杂排版）
+
+**回退依赖**（仅在 PyMuPDF 提取表格效果不佳时使用）：
+- `pdfplumber>=0.11.8` - PDF 表格提取（需安全版本修复 CVE-2025-64512）
+- `pdfminer.six>=20251107` - PDF 底层库
 
 **安装命令**：
 
@@ -134,6 +170,8 @@ uv pip install -r src/requirements.txt
 2. **根据文件类型选择正确的读取策略**（见上方"文件类型处理策略"）
 3. 直接操作文件（读取、写入、编辑）
 4. 按照 Ingest/Query/Lint 工作流执行
+   - **Ingest 时必须创建 stub 页面**：任何新页面中首次出现的 `[[Concept]]`，如果目标页面不存在，必须同步创建一个 stub（至少包含 frontmatter + 一句话定义）
+   - **双向链接检查**：更新现有页面后，检查是否有新页面应该反向链接过来
 
 **不需要**：调用任何 CLI 命令
 
@@ -142,7 +180,7 @@ uv pip install -r src/requirements.txt
 **适用场景**：用户明确要求使用命令行工具，或需要脚本化操作
 
 **你的行为**：
-1. 检查 CLI 是否可用：`python -m skills.llm_wiki --help`
+1. 检查 CLI 是否可用：`python -m src.llm_wiki --help`
 2. 使用相应命令辅助执行
 
 ## CLI 工具参考
@@ -167,10 +205,10 @@ ls -la .venv/  # 或 venv/
 .venv/Scripts/python -c "from src.llm_wiki.core import WikiManager; print('OK')"
 
 # 或使用系统 Python
-python -c "from skills.llm_wiki.core import WikiManager; print('OK')"
+python -c "from src.llm_wiki.core import WikiManager; print('OK')"
 
-# 命令行入口（暂未实现 __main__，推荐用协议模式）
-# python -m skills.llm_wiki --help
+# 命令行入口
+# python -m src.llm_wiki --help
 ```
 
 ### 可用命令
@@ -247,11 +285,12 @@ User Input
 你（协议模式）：
 1. 读取 sources/paper.pdf
 2. 提取关键洞察
-3. 创建 wiki/Attention-Mechanism.md
-4. 更新 wiki/index.md
-5. 追加 log.md
+3. 创建 wiki/Attention-Mechanism.md（内含 [[Self-Attention]]、[[Transformer]] 等链接）
+4. 检查死链：创建 wiki/Self-Attention.md 和 wiki/Transformer.md 等 stub 页面
+5. 更新 wiki/index.md
+6. 追加 log.md
 
-回复：已摄入 paper.pdf，创建了 [[Attention Mechanism]] 页面...
+回复：已摄入 paper.pdf，创建了 [[Attention Mechanism]] 页面，并同步创建了 [[Self-Attention]]、[[Transformer]] 等关联概念 stub...
 ```
 
 ### 场景 2：明确 CLI 请求
@@ -273,7 +312,7 @@ User Input
 用户：检查 wiki 状态
 
 你：发现项目有 .venv/ 目录，使用虚拟环境
-    .venv/Scripts/python -c "from skills.llm_wiki.core import ..."
+    .venv/Scripts/python -c "from src.llm_wiki.core import ..."
     → 成功获取信息
 
 回复：wiki 目前有 15 个页面，最近活动是...
@@ -382,5 +421,5 @@ def check_dep(module_name, python_path=None):
 
 ---
 
-*Agent 指南版本：1.0.0*
-*最后更新：2026-04-13*
+*Agent 指南版本：1.1.0*
+*最后更新：2026-04-16*

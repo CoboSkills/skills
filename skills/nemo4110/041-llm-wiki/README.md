@@ -78,20 +78,21 @@ python -c "from src.llm_wiki.core import WikiManager; print('✓ 安装成功')"
 
 项目包含以下核心依赖（定义在 `src/requirements.txt`）：
 
-| 依赖 | 版本要求 | 用途 | 安全说明 |
-|-----|---------|------|---------|
+| 依赖 | 版本要求 | 用途 | 备注 |
+|-----|---------|------|------|
 | `click` | >=8.0.0 | CLI 框架 | - |
 | `pyyaml` | >=6.0 | YAML 解析 | - |
-| `pdfplumber` | >=0.11.8 | PDF 处理 | **必须使用安全版本** |
-| `pdfminer.six` | >=20251107 | PDF 底层库 | **必须使用安全版本** |
+| `pymupdf` | >=1.25.0 | PDF 处理 | PyMuPDF，对 CJK 和复杂排版更友好 |
+| `numpy` | >=1.24.0 | 向量运算 | embedding 检索必需 |
+| `httpx` | >=0.27.0 | HTTP 客户端 | Ollama 本地服务通信 |
+| `mcp` | >=1.0.0 | MCP SDK | 通过 MCP 调用远程 embedding |
+| `openai` | >=1.0.0 | OpenAI SDK | OpenAI embedding API |
 
-**PDF 处理安全警告**：
+**回退依赖**（仅在 PyMuPDF 表格提取效果不佳时使用）：
+- `pdfplumber >= 0.11.8` — 表格提取（需安全版本修复 CVE-2025-64512）
+- `pdfminer.six >= 20251107` — PDF 底层库
 
-- **CVE-2025-64512**：旧版本 pdfplumber（<= 0.11.7）存在任意代码执行漏洞
-- **修复版本**：pdfplumber >= 0.11.8，pdfminer.six >= 20251107
-- **安装要求**：必须使用安全版本，避免使用旧版本
-
-**纯协议模式**：如果你只想用 Claude Code 的自然语言指令（如"请摄入资料"），**仍需要安装 PDF 处理依赖**以读取 PDF 文件。纯文本文件可以不安装依赖直接处理。
+**纯协议模式**：如果你只想用 Claude Code 的自然语言指令（如"请摄入资料"）处理纯文本文件，**无需安装任何依赖**。仅当需要读取 PDF 时才需要安装 PyMuPDF。
 
 ### 3. 放入你的第一个资料
 
@@ -140,11 +141,17 @@ python -m src.llm_wiki status
 # 健康检查
 python -m src.llm_wiki lint
 
+# 建立 embedding 索引（需先在 config.yaml 中启用 embedding）
+python -m src.llm_wiki index
+
+# 语义搜索
+python -m src.llm_wiki query "优化方法" --semantic
+
 # 查看帮助
 python -m src.llm_wiki --help
 ```
 
-**注意**：`ingest` 和 `query` 命令在 CLI 中仅提供辅助功能（如列出页面），实际的内容处理需要通过自然语言与 Agent 交互完成。
+**注意**：`ingest` 和 `query` 命令在 CLI 中仅提供辅助功能（如列出页面、语义检索），实际的内容处理需要通过自然语言与 Agent 交互完成。
 
 检查并报告：
 
@@ -206,9 +213,9 @@ llm-wiki/
 
 ## 查询机制详解
 
-### 当前实现：符号导航 + LLM 综合
+### 当前实现：符号导航 + LLM 综合（默认）
 
-本 SKILL **不依赖 Embedding/向量检索**，查询通过以下步骤完成：
+本 SKILL **默认不依赖 Embedding/向量检索**，查询通过以下步骤完成：
 
 ```text
 User asks question
@@ -231,6 +238,8 @@ User asks question
 |     Generate with citations   |  Citation format: [[PageName]]
 +-------------------------------+
 ```
+
+**可选增强**：通过 `config.yaml` 启用 embedding 后，CLI 的 `wiki query --semantic` 将使用 **混合检索**（Keyword Match + Vector Search + Link Traversal）快速定位相关页面，为 Agent 提供更精准的上下文。
 
 **示例流程**：
 
@@ -330,7 +339,7 @@ Claude：已创建 [[LoRA vs Full Fine-tuning]]
 
 ### 自定义页面模板
 
-编辑 `schema/page_template.md`：
+编辑 `assets/page_template.md`：
 
 ```markdown
 ---
@@ -363,7 +372,7 @@ tags:
 
 ### 自定义 Ingest 规则
 
-编辑 `schema/ingest_rules.md`，添加特定领域的处理逻辑。
+编辑 `assets/ingest_rules.md`，添加特定领域的处理逻辑。
 
 ## 对比其他方案
 
@@ -384,7 +393,7 @@ tags:
 
 - [ ] MCP 服务器封装（让其他 Agent 也能用）
 - [ ] Obsidian 插件（一键同步状态）
-- [ ] 增量 embedding 加速检索
+- [x] 增量 embedding 加速检索
 - [ ] 多语言支持
 
 ## 许可

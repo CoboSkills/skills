@@ -1,11 +1,17 @@
 {
   "owner": "shawnpetros",
   "slug": "deaiify",
-  "displayName": "deAIify - Ban LLM Em-Dashes",
+  "displayName": "deaiify",
   "latest": {
-    "version": "3.0.2",
-    "publishedAt": 1776288696343,
-    "commit": "https://github.com/openclaw/skills/commit/dd6ea429c481cb24fd0e09062b4957f19ed7e8c4"
+    "version": "3.4.1",
+    "publishedAt": 1776315803997,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "3.0.2",
+      "publishedAt": 1776288696343,
+      "commit": "https://github.com/openclaw/skills/commit/dd6ea429c481cb24fd0e09062b4957f19ed7e8c4"
+    }
+  ]
 }

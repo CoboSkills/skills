@@ -1,0 +1,11 @@
+{
+  "owner": "hackstoic",
+  "slug": "hkipo-orchestrator",
+  "displayName": "HK IPO Orchestrator",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776355959320,
+    "commit": null
+  },
+  "history": []
+}

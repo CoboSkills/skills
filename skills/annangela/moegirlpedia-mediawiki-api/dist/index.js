@@ -2791,9 +2791,14 @@ var CookieJar = class _CookieJar {
 // package.json
 var package_default = {
   name: "openclaw-skill-moegirlpedia-mediawiki-api",
-  version: "0.6.1",
+  version: "0.7.0",
   description: "OpenClaw skill runtime for authenticated Moegirlpedia MediaWiki API access",
   license: "Apache-2.0",
+  homepage: "https://github.com/AnnAngela/moegirlpedia-mediawiki-api",
+  repository: {
+    type: "git",
+    url: "git+https://github.com/AnnAngela/moegirlpedia-mediawiki-api.git"
+  },
   private: true,
   type: "module",
   bin: {
@@ -2831,7 +2836,7 @@ var package_default = {
 
 // src/module/Api.ts
 var MOEGIRLPEDIA_API_URL = "https://mzh.moegirl.org.cn/api.php";
-var defaultUserAgent = `Node/${process.version} ${package_default.name}/${package_default.version} (https://github.com/AnnAngela/moegirlpedia-mediawiki-api)`;
+var defaultUserAgent = `Node/${process.versions.node} ${package_default.name}/${package_default.version} (${package_default.homepage})`;
 var ApiError = class extends Error {
   constructor(message, cause) {
     super(message);
@@ -2839,36 +2844,15 @@ var ApiError = class extends Error {
   }
   cause;
 };
-var Api = class {
-  parameters = {
-    formatversion: 2
+var Api = class _Api {
+  static isApiLegacyTokenType = (tokenType) => tokenType === "edit" || tokenType === "delete" || tokenType === "protect" || tokenType === "move" || tokenType === "block" || tokenType === "unblock" || tokenType === "email" || tokenType === "import" || tokenType === "options";
+  static normalizeTokenType = (tokenType) => {
+    if (_Api.isApiLegacyTokenType(tokenType)) {
+      return "csrf";
+    }
+    return tokenType;
   };
-  headers = {
-    "Content-Type": "application/x-www-form-urlencoded",
-    "Cache-Control": "no-cache",
-    Pragma: "no-cache",
-    Connection: "keep-alive",
-    "User-Agent": defaultUserAgent,
-    "Api-User-Agent": defaultUserAgent
-  };
-  abortControllers = /* @__PURE__ */ new Set();
-  currentUser = null;
-  queues = /* @__PURE__ */ new Map();
-  #tokens = /* @__PURE__ */ new Map();
-  #cookieJar = new CookieJar();
-  timeout = 6e4;
-  constructor(options) {
-    if (options?.userAgent) {
-      this.headers["User-Agent"] = options.userAgent;
-    }
-    if (options?.parameters) {
-      Object.assign(this.parameters, options.parameters);
-    }
-    if (options?.timeout) {
-      this.timeout = options.timeout;
-    }
-  }
-  parseParameters = (parameters) => {
+  static parseParameters = (parameters) => {
     const params = new URLSearchParams();
     for (const [key, value] of Object.entries(parameters)) {
       if (value === void 0) {
@@ -2884,13 +2868,44 @@ var Api = class {
     }
     return params.toString();
   };
-  isApiLegacyTokenType = (tokenType) => tokenType === "edit" || tokenType === "delete" || tokenType === "protect" || tokenType === "move" || tokenType === "block" || tokenType === "unblock" || tokenType === "email" || tokenType === "import" || tokenType === "options";
-  normalizeTokenType = (tokenType) => {
-    if (this.isApiLegacyTokenType(tokenType)) {
-      return "csrf";
-    }
-    return tokenType;
+  parameters = {
+    formatversion: 2
   };
+  headers = new Headers({
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
+    Connection: "keep-alive",
+    "User-Agent": defaultUserAgent,
+    "Api-User-Agent": defaultUserAgent
+  });
+  abortControllers = /* @__PURE__ */ new Set();
+  currentUser = null;
+  queues = /* @__PURE__ */ new Map();
+  #tokens = /* @__PURE__ */ new Map();
+  #cookieJar = new CookieJar();
+  timeout = 6e4;
+  apiURL = MOEGIRLPEDIA_API_URL;
+  constructor(options) {
+    const {
+      userAgent,
+      parameters,
+      timeout,
+      apiURL
+    } = options ?? {};
+    if (userAgent) {
+      this.headers.set("User-Agent", userAgent);
+    }
+    if (parameters) {
+      Object.assign(this.parameters, parameters);
+    }
+    if (timeout) {
+      this.timeout = timeout;
+    }
+    if (apiURL) {
+      this.apiURL = apiURL;
+    }
+  }
   /**
    * Abort all unfinished requests issued by this Api object.
    */
@@ -2909,7 +2924,7 @@ var Api = class {
    */
   badToken(tokenType) {
     this.#tokens.delete(tokenType);
-    this.#tokens.delete(this.normalizeTokenType(tokenType));
+    this.#tokens.delete(_Api.normalizeTokenType(tokenType));
   }
   /**
    * Perform API get request in POST method. See {@link post()} for details.
@@ -2996,7 +3011,7 @@ var Api = class {
    * @returns Received token.
    */
   async getToken(type, additionalParams) {
-    const normalizedType = this.normalizeTokenType(type);
+    const normalizedType = _Api.normalizeTokenType(type);
     const cachedToken = this.#tokens.get(normalizedType);
     if (cachedToken) {
       return cachedToken;
@@ -3052,10 +3067,10 @@ var Api = class {
     });
     const result = data?.login?.result;
     if (result === "Success") {
-      this.currentUser = username;
+      this.currentUser = username.split("@")[0];
       return result;
     }
-    throw new Error(`Login failed: ${result ?? "unknown error"} (code: ${data?.error?.code ?? "unknown"})`);
+    throw new Error(`Login failed: ${result ?? "unknown error"} (reason: ${data?.login?.reason ?? "unknown"})`);
   }
   /**
    * Post a new section to the page.
@@ -3122,7 +3137,7 @@ var Api = class {
       token = parameters.token;
       Reflect.deleteProperty(parameters, "token");
     }
-    const body = this.parseParameters({
+    const body = _Api.parseParameters({
       ...this.parameters,
       ...parameters,
       token,
@@ -3136,28 +3151,26 @@ var Api = class {
       }
     }, this.timeout);
     try {
-      const cookieString = await this.#cookieJar.getCookieString(MOEGIRLPEDIA_API_URL);
-      const response = await fetch(MOEGIRLPEDIA_API_URL, {
+      const cookieString = await this.#cookieJar.getCookieString(this.apiURL);
+      const headers = new Headers(this.headers);
+      headers.set("Cookie", cookieString);
+      headers.set("Origin", new URL(this.apiURL).origin);
+      const response = await fetch(this.apiURL, {
         method: "POST",
-        headers: {
-          ...this.headers,
-          Cookie: cookieString
-        },
+        headers,
         body,
         signal: controller.signal
       });
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`, {
-          cause: {
-            code: "http",
-            response
-          }
+        throw new ApiError(`HTTP error! status: ${response.status}`, {
+          code: "http",
+          response
         });
       }
       const setCookies = response.headers.getSetCookie();
       if (setCookies.length > 0) {
         for (const cookieStr of setCookies) {
-          await this.#cookieJar.setCookie(cookieStr, MOEGIRLPEDIA_API_URL);
+          await this.#cookieJar.setCookie(cookieStr, this.apiURL);
         }
       }
       const result = await response.json();
@@ -3659,6 +3672,7 @@ var recentChangesBriefOperation = {
     const limit = parseIntegerOption(options, "limit", 100, { max: 500, min: 1 });
     const timeRange = resolveTimeRange(options, 24);
     const continueToken = decodeContinueToken(asString(options["continue-token"]) ?? void 0);
+    const continueParams = continueToken ?? {};
     const namespace = parseDelimitedOption(options, "namespace");
     const changeType = parseDelimitedOption(options, "type");
     const showFilter = parseDelimitedOption(options, "show");
@@ -3697,7 +3711,7 @@ var recentChangesBriefOperation = {
     }
     const response = await client.post({
       ...requestParams,
-      ...continueToken
+      ...continueParams
     });
     const alerts = asArray(response.query?.recentchanges).map((item) => asRecord(item)).filter((item) => item !== null).map((item) => normaliseAlert(item, largeEditThreshold, largeDeleteThreshold, suspiciousKeywords)).filter((item) => item !== null);
     const groupedPages = /* @__PURE__ */ new Map();
@@ -3834,6 +3848,7 @@ var watchlistBriefOperation = {
     const limit = parseIntegerOption(options, "limit", 50, { max: 500, min: 1 });
     const timeRange = resolveTimeRange(options, 24);
     const continueToken = decodeContinueToken(asString(options["continue-token"]) ?? void 0);
+    const continueParams = continueToken ?? {};
     const namespace = parseDelimitedOption(options, "namespace");
     const changeType = parseDelimitedOption(options, "type");
     const showFilter = parseDelimitedOption(options, "show");
@@ -3866,7 +3881,7 @@ var watchlistBriefOperation = {
     }
     const response = await client.post({
       ...requestParams,
-      ...continueToken
+      ...continueParams
     });
     const changes = asArray(response.query?.watchlist).map((item) => asRecord(item)).filter((item) => item !== null).map((item) => normaliseWatchlistChange(item));
     const groupedPages = /* @__PURE__ */ new Map();
@@ -3990,37 +4005,4 @@ if (process3.argv[1] && import.meta.url === pathToFileURL(process3.argv[1]).href
 export {
   runCli
 };
-/*! Bundled license information:
-
-tough-cookie/dist/index.js:
-  (*!
-   * Copyright (c) 2015-2020, Salesforce.com, Inc.
-   * All rights reserved.
-   *
-   * Redistribution and use in source and binary forms, with or without
-   * modification, are permitted provided that the following conditions are met:
-   *
-   * 1. Redistributions of source code must retain the above copyright notice,
-   * this list of conditions and the following disclaimer.
-   *
-   * 2. Redistributions in binary form must reproduce the above copyright notice,
-   * this list of conditions and the following disclaimer in the documentation
-   * and/or other materials provided with the distribution.
-   *
-   * 3. Neither the name of Salesforce.com nor the names of its contributors may
-   * be used to endorse or promote products derived from this software without
-   * specific prior written permission.
-   *
-   * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-   * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-   * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-   * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-   * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-   * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-   * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-   * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-   * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-   * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-   * POSSIBILITY OF SUCH DAMAGE.
-   *)
-*/
+/*! For license information please see index.js.LEGAL.txt */

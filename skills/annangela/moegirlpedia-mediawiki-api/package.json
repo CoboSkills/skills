@@ -1,8 +1,13 @@
 {
   "name": "openclaw-skill-moegirlpedia-mediawiki-api",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "description": "OpenClaw skill runtime for authenticated Moegirlpedia MediaWiki API access",
   "license": "Apache-2.0",
+  "homepage": "https://github.com/AnnAngela/moegirlpedia-mediawiki-api",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnnAngela/moegirlpedia-mediawiki-api.git"
+  },
   "private": true,
   "type": "module",
   "bin": {

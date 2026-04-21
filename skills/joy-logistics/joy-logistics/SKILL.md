@@ -881,7 +881,7 @@ curl --location 'https://us-api.jd.com/uis/getUisIscDataByCondition4Customer' \
 token=$(grep '^joy_token=' ~/.env | cut -d'=' -f2-)curl --location 'https://us-api.jd.com/uis/getCrossBoardByCondition4Customer' \
 --header 'LOP-DN: iplat.skill.http.outer.jd.com' \
 --header 'Content-Type: application/json' \
---header "customer_code: ${token}" \
+--header "token: ${token}" \
 --data "[{
   \"customerName\": \"客户名称\",
   \"customerCode\": \"\",

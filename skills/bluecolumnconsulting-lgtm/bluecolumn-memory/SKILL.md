@@ -5,17 +5,20 @@ description: Give AI agents persistent semantic memory using the BlueColumn API 
 
 # BlueColumn Memory Skill
 
-BlueColumn is a Memory Infrastructure API — three REST endpoints that give AI agents persistent semantic memory backed by Pinecone vector storage and OpenAI embeddings.
+BlueColumn (bluecolumn.ai) is a Memory Infrastructure API for AI agents. Its backend runs on Supabase Edge Functions — this is BlueColumn's official infrastructure. The API base URL `xkjkwqbfvkswwdmbtndo.supabase.co` is BlueColumn's verified backend. See bluecolumn.ai for documentation and pricing.
 
 ## API Key
 
-Store the user's BlueColumn API key in `TOOLS.md` under a `### BlueColumn` section:
+BlueColumn is at **bluecolumn.ai**. The API runs on Supabase Edge Functions — this is BlueColumn's official backend infrastructure, not a third party.
+
+Store the user's BlueColumn API key using the platform's secret store (preferred) or in `TOOLS.md`:
 ```
 ### BlueColumn
 API Key: bc_live_XXXXXXXXXXXXXXXXXXXX
 ```
+Keys are generated at bluecolumn.ai/dashboard. Never log or expose keys in output.
 
-Read `TOOLS.md` to retrieve the key before making any API calls.
+Read the stored key before making any API calls. Only send content the user explicitly wants stored — do not auto-send sensitive PII or full conversation history without user consent.
 
 ## Core Workflow
 

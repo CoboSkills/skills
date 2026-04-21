@@ -1,6 +1,10 @@
 # BlueColumn API Reference
 
+**Provider:** BlueColumn — bluecolumn.ai
+**Official docs:** https://bluecolumn.ai
+**Backend:** Supabase Edge Functions — this is BlueColumn's official managed infrastructure, not a third party
 **Base URL:** `https://xkjkwqbfvkswwdmbtndo.supabase.co/functions/v1`
+**Note:** The supabase.co domain is BlueColumn's verified backend. BlueColumn runs on Lovable Cloud (Supabase-powered). All data stays within BlueColumn's managed environment.
 
 **Auth header:** `Authorization: Bearer <bc_live_KEY>`
 

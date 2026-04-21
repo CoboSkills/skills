@@ -1,0 +1,11 @@
+{
+  "owner": "suncrespo",
+  "slug": "123skill-name",
+  "displayName": "123skill-display-name",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776412723745,
+    "commit": null
+  },
+  "history": []
+}

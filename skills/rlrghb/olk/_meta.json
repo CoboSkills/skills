@@ -1,11 +1,17 @@
 {
   "owner": "rlrghb",
   "slug": "olk",
-  "displayName": "olk",
+  "displayName": "Olk",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1775972531361,
-    "commit": "https://github.com/openclaw/skills/commit/57f587076a0b8b9675992682fa01555ae701a282"
+    "version": "1.5.0",
+    "publishedAt": 1776229275309,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1775972531361,
+      "commit": "https://github.com/openclaw/skills/commit/57f587076a0b8b9675992682fa01555ae701a282"
+    }
+  ]
 }

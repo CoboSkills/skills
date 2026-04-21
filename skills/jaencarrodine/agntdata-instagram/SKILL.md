@@ -1,7 +1,7 @@
 ---
 name: agntdata-instagram
 description: "Instagram API integration with a single agntdata API key (Bearer token). Read user profiles, media, reels, explore feeds, and hashtag data. Use this skill when users want Instagram creator or visual content data. For other social data platforms, use the agnt-data skill (https://clawhub.ai/agntdata/agnt-data)."
-version: 1.0.11
+version: 1.0.13
 metadata:
   openclaw:
     requires:
@@ -11,7 +11,7 @@ metadata:
         - curl
     primaryEnv: AGNTDATA_API_KEY
     emoji: "📷"
-    homepage: https://agnt.mintlify.app/api-reference/instagram/
+    homepage: https://agnt.mintlify.app/apis/social/instagram
 ---
 
 # Instagram API
@@ -700,6 +700,6 @@ Available platforms: LinkedIn, YouTube, TikTok, X, Instagram, Reddit, Facebook. 
 
 ## Links
 
-- [Documentation](https://agntdata.dev/docs)
-- [API Reference](https://agnt.mintlify.app/api-reference/instagram/)
+- [Documentation](https://agnt.mintlify.app)
+- [API Reference](https://agnt.mintlify.app/apis/social/instagram)
 - [ClawHub skill](https://clawhub.ai/agntdata/agntdata-instagram)

@@ -3,9 +3,15 @@
   "slug": "trade-news-summary",
   "displayName": "外贸资讯聚合器 (多源 RSS + 翻译 + 飞书推送)",
   "latest": {
-    "version": "2.3.2",
-    "publishedAt": 1776071934028,
-    "commit": "https://github.com/openclaw/skills/commit/ac6f8a520ffa326729f770806b1dc51cae3209e9"
+    "version": "2.3.3",
+    "publishedAt": 1776326422429,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.3.2",
+      "publishedAt": 1776071934028,
+      "commit": "https://github.com/openclaw/skills/commit/ac6f8a520ffa326729f770806b1dc51cae3209e9"
+    }
+  ]
 }

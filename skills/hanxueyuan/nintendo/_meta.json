@@ -3,11 +3,16 @@
   "slug": "nintendo",
   "displayName": "Nintendo",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776295487020,
-    "commit": "https://github.com/openclaw/skills/commit/5cb1c4fbcb29810134dad2255d9161ba48ef044a"
+    "version": "1.0.3",
+    "publishedAt": 1776533872180,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776295487020,
+      "commit": "https://github.com/openclaw/skills/commit/5cb1c4fbcb29810134dad2255d9161ba48ef044a"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1775912252021,

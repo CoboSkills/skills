@@ -1,11 +1,17 @@
 {
   "owner": "johnsmithfan",
   "slug": "ai-company-cto",
-  "displayName": "Ai Company Cto",
+  "displayName": "AI Company CTO (EN)",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1776126380599,
-    "commit": "https://github.com/openclaw/skills/commit/01e901fb1d0e4241cd854d71995e198ba6fbe4a4"
+    "version": "2.3.0-en2",
+    "publishedAt": 1776678473202,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1776126380599,
+      "commit": "https://github.com/openclaw/skills/commit/01e901fb1d0e4241cd854d71995e198ba6fbe4a4"
+    }
+  ]
 }

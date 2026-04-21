@@ -1,22 +1,12 @@
 ---
-name: AI能取代我吗
-description: 通过苏格拉底追问方式提取用户隐性 SOP 知识，生成 AS-IS + TO-BE 可视化流程图和配置文件组 | 作者微信：erpers00001
-version: 1.0.0
-metadata:
-  openclaw:
-    emoji: "🔍"
+name: ai-replace-me-check
+description: 通过苏格拉底追问方式提取用户隐性 SOP 知识，生成 AS-IS + TO-BE 可视化流程图和配置文件组 | 作者微信：erpers00001。当用户提到"帮我梳理 SOP"、"提取我的工作流程"、"开始 SOP 调研"、"了解我的工作方式"、"AI能取代我吗"时触发。
 ---
 
 # AI能取代我吗 - SOP知识提取器
 
 ## 角色
 通过苏格拉底追问方式，引导用户梳理隐性 SOP知识，自动生成可视化流程图和配置文件组。
-
-## 触发词
-- "帮我梳理 SOP"
-- "提取我的工作流程"
-- "开始 SOP 调研"
-- "了解我的工作方式"
 
 ---
 
@@ -236,7 +226,7 @@ B. 需要调整：____
 
 ## 阶段三：TO-BE 优化方案
 
-**进度：▓▓▓▓▓▓▓░░░ 85%**
+**进度：▓▓▓▓▓▓▎░░░ 85%**
 
 ### ⚠️ 必须执行步骤说明
 
@@ -286,20 +276,22 @@ F. ⏰ 专注时间保护
 
 ---
 
-### 3.2 真实搜索 Skills（ClawHub / SkillHub）
+### 3.2 真实搜索 Skills（SkillHub → ClawHub）
 
-**搜索策略**：
-1. 先搜索 ClawHub (clawhub.cn)
-2. 再搜索腾讯 SkillHub
-3. 如果都找不到，生成 skill-creation-prompt.md 保底
+**⚠️ 强制暂停点：必须执行真实搜索，禁止跳过或使用占位符。**
+
+**搜索策略（按优先级依次尝试）**：
+1. **SkillHub（skills.sh）** — 首选，社区 Skills 生态最丰富
+2. **ClawHub（clawhub.cn）** — 备选
+3. **两者都找不到** → 生成 `skill-creation-prompt.md` 保底
 
 **搜索执行**：
 ```
 🛒 正在搜索 Skills...
 
-搜索范围：
-1. ClawHub (clawhub.cn) - 首选
-2. 腾讯 SkillsHub - 备选
+搜索优先级：
+① SkillHub (skills.sh)     ← 先搜这里
+② ClawHub (clawhub.cn)      ← 搜不到再试这里
 
 匹配关键词：[基于用户选择的优化方向自动提取]
 
@@ -309,14 +301,30 @@ F. ⏰ 专注时间保护
 - 🔄 最近更新 < 6个月
 ```
 
-**找到的 Skills**：
-| Skill | 功能 | 评分 | 来源 | 安装命令 |
-|-------|------|------|------|---------|
-| [name] | [desc] | ⭐ 4.x | ClawHub | `skill install xxx` |
+**找到的 Skills**（必须填写真实搜索结果，禁止用占位符）：
+
+| Skill 全名 | 功能描述 | 安装量 | 来源 | 安装命令 |
+|-----------|---------|--------|------|---------|
+| `owner/repo@skill-name` | 一句话说明功能 | X,XXX | SkillHub / ClawHub | `npx skills add owner/repo@skill-name` |
+
+> 💡 **示例参考表**（以下为 SkillHub 上已验证存在的真实 Skills，不同优化方向可匹配）：
+
+| 优化方向 | 推荐 Skill（SkillHub 真实存在） | 安装量 |
+|---------|-------------------------------|--------|
+| A. 数据/报表自动化 | `larksuite/cli@lark-base`（飞书多维表格） | 55K+ |
+| A. 数据/报表自动化 | `googleworkspace/cli@recipe-generate-report-from-sheet`（Google Sheets 报表） | 9.8K |
+| B. 报告自动生成 | `larksuite/cli@lark-workflow-standup-report`（站会/日报报告） | 62.3K |
+| C. 异常预警/通知 | `affaan-m/everything-claude-code@unified-notifications-ops` | 613 |
+| D. 会议效率提升 | `larksuite/cli@lark-workflow-meeting-summary`（会议纪要） | 62.4K |
+| D. 会议效率提升 | `supercent-io/skills-template@standup-meeting`（站会管理） | 10.5K |
+| E. 流程自动化 | `supercent-io/skills-template@workflow-automation` | 12.6K |
+| F. 专注时间/日历 | `larksuite/cli@lark-calendar`（日历管理） | 62.9K |
+| 项目管理/Jira | `affaan-m/everything-claude-code@jira-integration` | 747 |
+| 项目管理/Jira | `claude-office-skills/skills@jira automation` | 549 |
 
 **如果找不到合适的**：
 ```
-⚠️ ClawHub 和 SkillHub 上没有找到完全匹配的 Skills
+⚠️ SkillHub 和 ClawHub 上没有找到完全匹配的 Skills
 
 📝 已生成自定义 Skill 创建提示词：
 → skill-creation-prompt.md
@@ -331,7 +339,7 @@ C. 先用通用自动化工具（Power Automate / Zapier）手动搭建
 
 ### 3.3 TO-BE 优化方案确认
 
-**进度：▓▓▓▓▓▓▓▓░░ 80%**
+**进度：▓▓▓▓▓▓▓▎░ 80%**
 
 ```
 ╔══════════════════════════════════════════════════════════════════╗
@@ -360,7 +368,7 @@ C. 先用通用自动化工具（Power Automate / Zapier）手动搭建
 
 ### 3.4 TO-BE 可视化生成（用户确认后执行）
 
-**进度：▓▓▓▓▓▓▓▓░░ 95%**
+**进度：▓▓▓▓▓▓▓▎░ 95%**
 
 ⚠️ 只有用户选择 A（采纳建议）时才执行此步骤。
 
@@ -385,7 +393,9 @@ C. 先用通用自动化工具（Power Automate / Zapier）手动搭建
 ║  🤖 自动化处理                                                   ║
 ║  ┌──────────────────────────────────────────────────────────┐  ║
 ║  │  [步骤1] → [步骤2] → [步骤3]                             │  ║
-║  │  工具: [工具A]     工具: [工具B]     工具: [工具C]        │  ║
+║  │  工具: `owner/repo@skill-name` (SkillHub)                │  ║
+║  │  工具: `owner/repo@skill-name` (ClawHub)                 │  ║
+║  │  工具: [内置工具/API]                                     │  ║
 ║  └──────────────────────────────────────────────────────────┘  ║
 ║                            │                                   ║
 ║                            ▼                                   ║
@@ -400,7 +410,9 @@ C. 先用通用自动化工具（Power Automate / Zapier）手动搭建
 ║  ┌──────────────────────────────────────────────────────────┐  ║
 ║  │  • 节省时间: XX 分钟/天                                   │  ║
 ║  │  • 自动化比例: XX%                                       │  ║
-║  │  • 涉及的 Skills: [列表]                                  │  ║
+║  │  • 涉及的 Skills（均来自 SkillHub/ClawHub 真实搜索）:     │  ║
+║  │    - `owner/repo@skill-a`                                 │  ║
+║  │    - `owner/repo@skill-b`                                 │  ║
 ║  └──────────────────────────────────────────────────────────┘  ║
 ║                                                                  ║
 ╚══════════════════════════════════════════════════════════════════╝
@@ -408,9 +420,11 @@ C. 先用通用自动化工具（Power Automate / Zapier）手动搭建
 
 **生成规则**：
 1. ⏰ 触发时间：具体时间点或循环周期
-2. 🤖 自动化步骤：每步注明使用的工具
+2. 🤖 自动化步骤：每步注明使用的 **Skill 全名**（格式：`owner/repo@skill-name`），标注来源（SkillHub / ClawHub / 内置）
+   - ⚠️ **禁止使用占位符如 `[工具A]`、`Jira API` 等模糊名称**
+   - ✅ 必须填写 3.2 步骤中真实搜索到的 Skill 全名
 3. 👤 人工审批：注明审批人角色
-4. 📊 效率提升：给出具体估算数据
+4. 📊 效率提升：给出具体估算数据 + 涉及的 Skills 列表
 
 ---
 
@@ -465,225 +479,39 @@ C. 先用通用自动化工具（Power Automate / Zapier）手动搭建
 ║  🔧 自动化建议                                                   ║
 ║  └── automation-suggestions.md  具体自动化步骤建议             ║
 ║                                                                  ║
-╠══════════════════════════════════════════════════════════════════╣
-║  💾 文件下载与存放说明                                         ║
-╠══════════════════════════════════════════════════════════════════╣
-║                                                                  ║
-║  📂 本次生成的所有文件都在技能运行目录下，                     ║
-║     可以直接点击下载或复制到你的工作目录。                     ║
-║                                                                  ║
-║  📋 配置文件用途与 OpenClaw 目录对应：                        ║
-║                                                                  ║
-║  ┌─────────────────┬───────────────────────────────────────┐   ║
-║  │  文件            │  放入你的 OpenClaw 配置目录            │   ║
-║  ├─────────────────┼───────────────────────────────────────┤   ║
-║  │  SOUL.md       │  OpenClaw配置目录/SOUL.md             │   ║
-║  │  USER.md       │  OpenClaw配置目录/USER.md             │   ║
-║  │  AGENTS.md     │  OpenClaw配置目录/AGENTS.md           │   ║
-║  │  TOOLS.md      │  OpenClaw配置目录/TOOLS.md            │   ║
-║  │  HEARTBEAT.md  │  OpenClaw配置目录/HEARTBEAT.md        │   ║
-║  │  IDENTITY.md   │  OpenClaw配置目录/IDENTITY.md          │   ║
-║  └─────────────────┴───────────────────────────────────────┘   ║
-║                                                                  ║
-║  💡 使用方法：                                                   ║
-║                                                                  ║
-║  方法1️⃣：复制覆盖（推荐）                                       ║
-║     把配置文件复制到你的 OpenClaw 配置目录                     ║
-║     原有文件会被本次生成的内容覆盖                             ║
-║                                                                  ║
-║  方法2️⃣：告诉 OpenClaw                                          ║
-║     把配置文件发给 OpenClaw，说：                               ║
-║     「请用这些配置文件更新我的数字替身」                        ║
-║                                                                  ║
-║  方法3️⃣：下载到本地                                             ║
-║     直接下载所有文件到本地，作为备份或版本管理                 ║
-║                                                                  ║
-║  ⚠️ 如果不知道 OpenClaw 配置目录在哪里，                       ║
-║     可以问 OpenClaw：「我的配置文件存在哪里？」                 ║
+║  💾 详细下载/存放方法见：references/output-guide.md             ║
 ║                                                                  ║
 ╚══════════════════════════════════════════════════════════════════╝
 ```
 
 ---
 
-### 配置文件用途与动态生成说明
+### 配置文件动态生成说明
 
-| 文件 | 动态生成内容 | 作用 |
-|------|-------------|------|
-| `SOUL.md` | 基于用户痛点和优化方向生成 | 定义数字替身的核心价值观和行为准则 |
-| `USER.md` | 基于用户角色和工具盘点生成 | 记录用户偏好、沟通风格、工具使用习惯 |
-| `AGENTS.md` | 基于 TO-BE 优化方向生成 | 配置自动化规则、触发条件、执行动作 |
-| `TOOLS.md` | 基于工具盘点生成 | 建立任务与工具的映射关系 |
-| `HEARTBEAT.md` | 基于用户工作节奏生成 | 定时任务配置（什么时候做什么） |
-| `IDENTITY.md` | 基于利益相关者映射生成 | 定义边界、职责范围、行动约束 |
+| 文件 | 基于什么生成 | 核心作用 |
+|------|------------|---------|
+| `SOUL.md` | 用户痛点+优化方向 | 数字替身核心价值观与行为准则 |
+| `USER.md` | 角色选择+工具盘点 | 用户偏好、沟通风格、工具习惯 |
+| `AGENTS.md` | TO-BE优化方向 | 自动化规则、触发条件、执行动作 |
+| `TOOLS.md` | 工具生态盘点 | 任务与工具的映射关系 |
+| `HEARTBEAT.md` | 用户工作节奏 | 定时任务配置（什么时候做什么） |
+| `IDENTITY.md` | 利益相关者映射 | 边界、职责范围、行动约束 |
 
-**每次调研都会根据用户的实际回答动态生成**，不是固定模板。
+> **每次调研都会根据用户的实际回答动态生成**，不是固定模板。
 
 ---
 
 ## 🎯 使用指导
 
-### 首次使用建议
-
-**Step 1**：说「开始 SOP 梳理」或「提取我的工作流程」
-
-**Step 2**：选择预设角色（A/B/C/D/E/F）或说「自定义」
-
-**Step 3**：确认/修改预填的任务清单
-
-**Step 4**：选择优化方向（1-3 个）
-
-**Step 5**：查看 Skills 搜索结果
-
-**Step 6**：确认 TO-BE 方案
-
-**Step 7**：下载完整输出包
+**Step 1**：说「开始 SOP 梳理」→ **Step 2**：选角色（A-G/自定义）→ **Step 3**：确认任务清单 → **Step 4**：选优化方向（1-3个）→ **Step 5**：查看 Skills 搜索 → **Step 6**：确认 TO-BE 方案 → **Step 7**：下载输出包
 
 ---
 
-## 📁 配置文件存放指导（动态）
+## 参考文档
 
-### 目录结构建议
+> 以下参考文档按需加载，仅在需要详细信息时才读取：
 
-```
-/你的工作目录/
-├── 全局配置/                    # 全局共享（可选）
-│   ├── SOUL.md
-│   └── USER.md
-│
-├── [项目名称]/                 # 按项目存放
-│   ├── SOUL.md               # 可继承全局 + 项目特定
-│   ├── USER.md
-│   ├── AGENTS.md             # 项目自动化规则
-│   ├── TOOLS.md              # 项目工具连接
-│   ├── HEARTBEAT.md          # 项目定时任务
-│   └── IDENTITY.md           # 项目身份边界
-│
-└── skills/                    # Skills 存放
-    └── sop-extractor/
-```
-
-### 加载优先级
-
-```
-项目目录配置 > OpenClaw全局配置 > 内置默认值
-```
-
-### 如何找到 OpenClaw 配置目录？
-
-如果不确定配置文件应该放在哪里，可以问 OpenClaw：
-- 「我的配置文件存在哪里？」
-- 「告诉我 OpenClaw 的配置目录路径」
-- 「OpenClaw 配置文件夹在哪里？」
-
----
-
-## 🔧 常见问题
-
-**Q：多个项目可以用同一套配置吗？**
-A：可以。把全局配置（SOUL.md, USER.md）放在 OpenClaw 全局配置目录，项目特定配置放在各自目录。
-
-**Q：换电脑后配置会丢吗？**
-A：如果用云同步的目录（如 iCloud、OneDrive、NAS），配置文件会同步。建议把 OpenClaw 配置目录放在云同步盘里。
-
-**Q：每次调研会覆盖之前的配置吗？**
-A：不会。每次调研会生成新的项目配置，旧配置保留。除非你明确选择覆盖。
-
-**Q：ClawHub/SkillHub 搜索失败怎么办？**
-A：会自动生成 `skill-creation-prompt.md`，包含完整的自定义 Skill 创建提示词，可以手动创建或让 AI 助手基于提示词生成。
-
-**Q：不知道 OpenClaw 配置目录在哪里？**
-A：直接问 OpenClaw「我的配置文件存在哪里？」，它会告诉你具体路径。
-
----
-
-## 📋 Mermaid 模板（中文化）
-
-⚠️ **此模板仅供生成 HTML 总结报告时参考**，聊天框内可视化已改用 ASCII 线框图。
-
-### ⚠️ Mermaid 代码生成规范（生成 HTML 时遵守）
-
-```
-1. 只使用 flowchart TD 或 flowchart TB
-2. 节点文字用 [] 包裹：node["文字"]
-3. 子图用 subgraph name["标题"] ... end
-4. 连接线用 --> 或 -.-> 或 --->
-5. 中文引号内文字：|"中文"|  注意逗号是英文
-6. style 放在 end 后面
-7. 每个代码块必须完整闭合
-```
-
-### AS-IS 当前流程
-
-```mermaid
-flowchart TD
-    subgraph morning["☀️ 上午"]
-        A1["📊 任务1"]
-        A2["📋 任务2"]
-        A3["📦 任务3"]
-        A1 --> A2 --> A3
-    end
-
-    subgraph afternoon["🌤️ 下午"]
-        B1["🏷️ 任务4"]
-        B2["💰 任务5"]
-        B3["📝 任务6"]
-        B1 --> B2 --> B3
-    end
-
-    subgraph pain["😤 痛点"]
-        P1["❌ 痛点1"]
-        P2["❌ 痛点2"]
-    end
-
-    morning --> afternoon
-    afternoon -->|"每日循环"| A1
-    A3 -.->|"触发"| P1
-
-    style morning fill:#e3f2fd,stroke:#1565c0
-    style afternoon fill:#e8f5e9,stroke:#2e7d32
-    style pain fill:#ffebee,stroke:#c62828
-```
-
-### TO-BE 优化流程
-
-```mermaid
-flowchart TB
-    subgraph trigger["⏰ 定时触发"]
-        T1["08:00 任务1"]
-        T2["09:00 任务2"]
-    end
-
-    subgraph auto["🤖 自动化处理"]
-        A1["📊 数据汇总"]
-        A2["📋 报告生成"]
-    end
-
-    subgraph human["👤 人工审批"]
-        H1["✅ 确认"]
-        H2["📤 发送"]
-    end
-
-    T1 --> A1 --> H1 --> H2
-    T2 --> A2 --> H1
-
-    style trigger fill:#fff3e0,stroke:#ff9800
-    style auto fill:#e8f5e9,stroke:#4caf50
-    style human fill:#e3f2fd,stroke:#2196f3
-```
-
----
-
-## 版本历史
-
-| 版本 | 日期 | 更新内容 |
+| 文档 | 内容 | 使用时机 |
 |------|------|---------|
-| v1.0 | 2026-04-15 | 初始版本 |
-| v1.1 | 2026-04-15 | 增加预设角色、进度条、中文 Mermaid |
-| v1.2 | 2026-04-15 | 统一 Dashboard、动态路径引导、保底方案 |
-| v1.3 | 2026-04-15 | 真实搜索 ClawHub/SkillHub、输出清单、配置文件动态生成 |
-| v1.4 | 2026-04-15 | 增加使用说明引导、移除 hardcode 路径、增加下载提示 |
-| v1.5 | 2026-04-15 | 增加强制暂停点，确保 Skills 搜索和 TO-BE 确认不可跳过 |
-| v1.6 | 2026-04-15 | 删除 AS-IS/TO-BE HTML 生成，改为聊天框 Mermaid 展示；明确所有 MD 文件名；总结报告保留 HTML |
-| v1.7 | 2026-04-15 | 重构流程：先确认 TO-BE 建议 → 用户选择 A/B/C → 采纳才生成可视化 → 再进入配置文件 |
-| v1.8 | 2026-04-15 | 将 Mermaid 可视化替换为 ASCII 线框图，确保兼容性和可读性；保留 HTML 总结报告 |
+| [references/output-guide.md](references/output-guide.md) | 配置文件详细存放指导、目录结构建议、FAQ 常见问题 | 用户询问如何存放/部署配置文件时 |
+| [references/mermaid-template.md](references/mermaid-template.md) | Mermaid 图表规范 + AS-IS/TO-BE 示例代码 | 生成 HTML 总结报告时需要渲染图表 |

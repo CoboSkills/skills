@@ -3,9 +3,15 @@
   "slug": "ai-replace-me-check",
   "displayName": "can-ai-replace-me",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776198624077,
-    "commit": "https://github.com/openclaw/skills/commit/f1470745a425e7fc6ca71776b0bfa21d3d5a3782"
+    "version": "1.0.2",
+    "publishedAt": 1776580384599,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776198624077,
+      "commit": "https://github.com/openclaw/skills/commit/f1470745a425e7fc6ca71776b0bfa21d3d5a3782"
+    }
+  ]
 }

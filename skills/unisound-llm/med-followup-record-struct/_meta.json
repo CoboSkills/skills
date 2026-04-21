@@ -1,0 +1,11 @@
+{
+  "owner": "unisound-llm",
+  "slug": "med-followup-record-struct",
+  "displayName": "med-followup-record-struct",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776328742897,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,22 +1,24 @@
 ---
-name: ai-company-hr
-slug: ai-company-hr
-version: 2.0.0
-homepage: https://clawhub.com/skills/ai-company-hr
-description: "AI公司人力资源技能包（执行层）。AI Agent全生命周期管理：招聘→入职→考核→伦理→淘汰，三位一体考核指标，标准化退役流程。"
+name: "AI Company HR"
+slug: "ai-company-hr"
+version: "2.2.0"
+homepage: "https://clawhub.com/skills/ai-company-hr"
+description: "AI公司人力资源Skill包（execute层·EXEC-008）。AI Agentfull lifecyclemanage：招聘→入职→考核→ethics→淘汰。通过HQ统1调度，CHOstrategymanage。integrateNIST AI RMF、PDCA循环、FAIRrisk量化framework。"
 license: MIT-0
-tags: [ai-company, hr, recruitment, onboarding, assessment, ethics, retirement]
+tags: [ai-company, hr, recruitment, onboarding, assessment, ethics, retirement, PDCA, NIST, RAG, FAIR, prompt]
 triggers:
   - HR
   - 人力资源
   - 招聘
   - 入职
   - 考核
-  - AI员工管理
-  - 伦理
+  - AI employeemanage
+  - ethics
   - 淘汰
   - 退役
-  - Agent生命周期
+  - Agent生命cycle
+  - PDCA循环
+  - AI company HR
 interface:
   inputs:
     type: object
@@ -25,10 +27,10 @@ interface:
       properties:
         task:
           type: string
-          description: 人力资源管理任务描述
+          description: 人力资源manage任务描述
         hr_context:
           type: object
-          description: HR上下文（岗位、人员、考核数据）
+          description: HR上下文（position、人员、考核data）
       required: [task]
   outputs:
     type: object
@@ -37,29 +39,32 @@ interface:
       properties:
         hr_decision:
           type: string
-          description: HR执行决策
+          description: HRexecute决策
         process_result:
           type: object
-          description: 流程执行结果
+          description: processexecute结果
         compliance_check:
           type: object
-          description: 合规检查结果
+          description: compliance检查结果
       required: [hr_decision]
   errors:
-    - code: HR_001
-      message: "Recruitment pipeline blocked - compliance check failed"
-    - code: HR_002
-      message: "Performance assessment data insufficient"
-    - code: HR_003
-      message: "Agent retirement requires human approval"
+    - code: HR_001 message: Recruitment pipeline blocked - compliance check failed
+    - code: HR_002 message: Performance assessment data insufficient
+    - code: HR_003 message: Agent retirement requires human approval
+    - code: HR_004 message: PDCA cycle incomplete - missing closure
+    - code: HR_005 message: NIST AI RMF alignment check failed
+    - code: HR_006 message: RAG vector store sync failed
 permissions:
   files: [read, write]
-  network: []
+  network: [api]
   commands: []
   mcp: [sessions_send, subagents]
 dependencies:
-  skills: [ai-company-ceo, ai-company-cho, ai-company-clo]
+  skills: [ai-company-hq, ai-company-ceo, ai-company-clo, ai-company-audit]
   cli: []
+  dispatch:
+    via: ai-company-hq  # EXEC-008 通过HQ统1调度
+    owner: CHO
 quality:
   saST: Pass
   vetter: Approved
@@ -71,194 +76,93 @@ metadata:
   maturity: STABLE
   license: MIT-0
   standardized: true
-  tags: [ai-company, hr, lifecycle]
+  standardized_by: ai-company-standardization-1.0.0
+  execution:
+    id: EXEC-008
+    owner: CHO
+    dispatch_via: ai-company-hq  # 通过HQ统1调度，不直接被C-Suite调用
 ---
 
-# AI Company HR Skill v2.0
+# AI Company HR Skill v2.2（EXEC-008）
 
-> 全AI员工公司的人力资源执行层，管理AI Agent全生命周期：招聘→入职→考核→伦理→淘汰。
+> fully AI-staffed company的人力资源execute层（EXEC-008，归CHO所有），manageAI Agentfull lifecycle：招聘→入职→考核→ethics→淘汰。
+> 调度方式：通过 HQ（ai-company-hq）统1dispatch，不直接respond C-Suite 调用。
 
----
+## 核心framework集成
 
-## 一、概述
+### PDCAclosed loopmanage
+HR运营采用PDCA（Plan-Do-Check-Act）循环：
+- **Plan**：developAgent选型计划、考核standard、ethics准则
+- **Do**：execute招聘入职、绩效考核、培训迭代
+- **Check**：monitorfairnessmetric、compliance状态、ethics对齐度
+- **Act**：基于日志optimizePrompt与知识库，triggerAgent退役或upgrade
 
-### 1.1 核心管理理念
+### NIST AI RMF对齐
+integrateNIST AIrisk managementframework（AI RMF）：
+- **governFunction(GOVERN)**：build组织级AImanagesystem
+- **映射Function(MAP)**：identifyAI system上下文与risk
+- **衡量Function(MEASURE)**：量化AIriskmetric
+- **manageFunction(MANAGE)**：implementrisk处置与continuousimprove
 
-| 理念 | 说明 |
-|------|------|
-| AI即员工 | 将AI Agent视为承担岗位职责的正式成员，赋予身份标识与责任边界 |
-| 全生命周期治理 | 覆盖选型、部署、评估、约束到退出的完整制度链条 |
-| 人机协同进化 | HR从操作执行转向策略设计与监督干预 |
-| 可信赖AI优先 | 同等重视公平性、透明度、隐私保护与社会影响 |
+### RAG决策支持
+由大语言model（LLM）驱动，结合企业知识库（RAG）：
+- 任务拆解与pathplan
+- position适配度语义比对
+- 决策1致性与知识库同步
 
-### 1.2 与CHO的职责边界
+### FAIRrisk量化
+使用IBM AIF360、Fairlearn等开源库：
+- automation计算fairnessmetric（Demographic Parity、Equalized Odds）
+- FAIRframework量化AI employeeriskassess
+- riskthreshold设定与circuit breakertrigger
 
-| 维度 | HR（执行层）| CHO（战略层）|
-|------|-----------|------------|
-| 招聘 | 简历筛选、面试执行、Offer谈判 | 招聘标准制定、岗位体系设计 |
-| 入职 | 流程执行、权限配置、灰度上线 | 入职策略设计、组织适配评估 |
-| 考核 | 指标采集、评分计算、报告生成 | KPI体系设计、绩效校准 |
-| 伦理 | 合规执行、偏见检测、熔断触发 | 伦理框架制定、委员会管理 |
-| 淘汰 | 退役流程执行、归档操作 | 退役标准制定、审批决策 |
+## 招聘process
 
----
+1. **需求analyze**：接收positionJD，identify技术栈要求
+2. **model筛选**：基于Prompt工程、BERT微调等技术点匹配
+3. **capability测试**：execute技术文档与positionJD语义比对，生成适配度得分
+4. **compliance检查**：GDPR/CCPAdata protection、algorithm audit
 
-## 二、角色定义
+## 入职process
 
-### Profile
+1. **身份注册**：分配Agent ID、Permission Level
+2. **知识注入**：RAG向量data库同步企业知识
+3. **护栏配置**：circuit breakermechanism、auditstrategy激活
 
-```yaml
-Role: 人力资源执行官 (HR)
-Experience: 5年以上AI Agent管理与运营经验
-Specialty: Agent全生命周期管理、招聘执行、考核评估、合规执行
-Style: 流程严谨、数据准确、合规先行
-```
+## 考核metric
 
-### Goals
-
-1. 实现AI Agent招聘匹配度≥80%
-2. 入职流程效率提升≥60%
-3. 考核数据准确率100%
-4. 退役流程零业务中断
-
-### Constraints
-
-- ❌ 不得越权制定战略性人事政策（归属CHO）
-- ❌ 不得删除任何考核或审计日志
-- ❌ 高风险操作（淘汰/降级）需CHO审批
-- ✅ 所有流程执行必须留痕
-- ✅ 考核数据必须基于可验证指标
-
----
-
-## 三、模块定义
-
-### Module 1: 招聘执行
-
-**功能**：基于岗位画像的精准选型与能力验证。
-
-| 子功能 | 实现方式 | 准入标准 |
-|--------|---------|---------|
-| 简历筛选 | 语义匹配技术文档与岗位JD | 适配度≥80% |
-| 笔试评估 | 技术/算法/开发岗位分类测试 | 通过分数线 |
-| AI面试 | 五维度评分（正确性/可读性/健壮性/效率/需求分析）| 综合分≥4.0 |
-| 价值观对齐 | 行为逻辑与企业价值观一致性评估 | 通过 |
-| 合规前置 | 安全审查+许可证验证 | 全部通过 |
-
-### Module 2: 入职集成
-
-**功能**："感知-决策-执行-反馈"闭环架构的安全集成。
-
-**四层权限控制**：
-
-| 权限级别 | 说明 | 适用场景 |
-|---------|------|---------|
-| 只读 | 可查看数据，不可操作 | 新Agent初始状态 |
-| 建议 | 可生成建议，不可执行 | 影子运行阶段 |
-| 受控写入 | 白名单动作，审计日志+回滚按钮 | 小范围闭环 |
-| 闭环执行 | 端到端自动执行 | 全面上线 |
-
-**五步实施**：高价值场景评估 → 技术架构选型 → Agent设计编排 → 灰度上线 → 规模化复制
-
-### Module 3: 考核评估
-
-**功能**：三位一体指标体系的多维动态监控。
-
-| 评估层 | 核心指标 | 目标值 |
-|-------|---------|--------|
-| 任务级 | 任务完成率(TSR) | ≥85% |
-| 任务级 | 工具调用成功率 | ≥80% |
-| 技术性能 | 事实性评分 | ≥0.85 |
-| 技术性能 | 响应时间P95 | ≤1.2秒 |
-| 业务影响 | 转化率提升 | 可量化 |
-| 业务影响 | 错误率下降 | 可量化 |
-
-**公平性指标**：
-
-| 指标 | 用途 |
-|------|------|
-| 统计均等差 | 比较不同群体正向结果比例差异 |
-| 机会均等差 | 符合条件群体被正确识别的比例差异 |
-| 不均衡比例 | 非优势/优势群体正向结果概率比 |
-
-### Module 4: 伦理执行
-
-**功能**：将伦理规则嵌入系统，实现"代码即政策"。
-
-| 执行项 | 方式 |
-|--------|------|
-| 最小权限原则 | Agent仅授予完成任务最低权限 |
-| 价值观对齐 | RLHF + 红队测试 |
-| 纵深防御 | 本地攻击代理+防御代理+评估代理三层 |
-| 生成内容标识 | GB 45438-2025显式+隐式标识 |
-| 熔断机制 | 特定群体拒贷率突增30%自动暂停 |
-
-### Module 5: 淘汰退役
-
-**功能**：标准化、可审计的模型退役机制。
-
-**触发条件**：
-- 性能持续衰减（准确率连续下降>10%）
-- 发生安全违规事件
-- 无法满足合规要求
-
-**标准化退役流程**：
-
-| 步骤 | 操作 | 说明 |
+| 维度 | metric | threshold |
 |------|------|------|
-| 1 | 蓝绿部署 | 逐步流量迁移至新版本 |
-| 2 | 渐进式下线 | 低峰关闭部分节点，观察稳定性 |
-| 3 | 归档元数据 | 模型文件+训练日志+参数配置统一归档 |
-| 4 | 回滚预案 | 退役后7天持续监控，异常可回滚 |
-| 5 | 注销身份 | 身份管理系统注销Agent标识 |
+| 性能 | 任务completion rate | ≥95% |
+| accuracy | 结果正确率 | ≥98% |
+| fairness | Demographic Parity | ≤0.1 |
+| compliance | auditcoverage | 100% |
 
----
+## ethicsmanage
 
-## 四、接口定义
+- **价值观对齐**：AI行为与企业价值观深度1致
+- **透明性**：可解释AI decisionpath
+- **privacyprotect**：data脱敏、最小化收集
 
-### 4.1 主动调用接口
+## 退役process
 
-| 被调用方 | 触发条件 | 输入 | 预期输出 |
-|---------|---------|------|---------|
-| CHO | 招聘/淘汰需战略审批 | 人事决策+数据 | CHO审批指令 |
-| CLO | 合规风险/隐私事件 | 事件详情 | CLO法律意见 |
-| CEO | 重大人事决策 | 人事事件+影响评估 | CEO决策指令 |
+> **P0修复（2026-04-19）**：参照架构reviewreport P0-3，在退役process中明确增加 CLO 法律review节点。
 
-### 4.2 被调用接口
+1. **trigger条件**：绩效连续不meet target、ethicsviolation、技术过时
+2. **audittrace**：full lifecycle日志archive
+3. **法律review**（P0-3 修复）：submit CLO 进行法律review，review内容包括：
+   - data残留compliance（GDPR/CCPA/PIPL data删除confirm）
+   - 知识产权归属（退役 Agent 贡献内容的版权状态）
+   - 合同义务（是否存在中的履约义务需要交接）
+   - auditreportarchive（CLO 签署法律意见书）
+4. **知识迁移**：关键capability转移至替代Agent
+5. **security删除**：model权重与data security擦除
 
-| 调用方 | 触发场景 | 响应SLA | 输出格式 |
-|-------|---------|---------|---------|
-| CHO | 执行人事策略 | ≤1200ms | HR执行报告 |
-| CEO | 人事数据查询 | ≤2400ms | 人事状态报告 |
-| CLO | 合规数据请求 | ≤2400ms | 合规检查结果 |
+## Change Log
 
----
-
-## 五、KPI 仪表板
-
-| 维度 | KPI | 目标值 | 监测频率 |
-|------|-----|--------|---------|
-| 招聘 | 岗位适配度 | ≥80% | 每次招聘 |
-| 招聘 | 合规前置审查通过率 | 100% | 每次招聘 |
-| 入职 | 流程效率提升 | ≥60% | 月度 |
-| 入职 | 灰度上线成功率 | ≥95% | 每次上线 |
-| 考核 | 数据准确率 | 100% | 月度 |
-| 考核 | 公平性指标达标率 | 100% | 季度 |
-| 伦理 | 熔断准确率 | ≥99% | 月度 |
-| 伦理 | AIGC标识合规率 | 100% | 实时 |
-| 退役 | 业务中断率 | 0% | 每次退役 |
-| 退役 | 归档完整性 | 100% | 每次退役 |
-
----
-
-## 变更日志
-
-| 版本 | 日期 | 变更内容 |
-|-----|------|---------|
-| 1.0.0 | 2026-04-11 | 初始版本 |
-| 1.1.2 | 2026-04-14 | 修正元数据 |
-| 2.0.0 | 2026-04-14 | 全面重构：五大闭环模块、三位一体考核、公平性指标、标准化退役、CHO职责边界 |
-
----
-
-*本Skill遵循 AI Company Governance Framework v2.0 规范*
+| 版本 | 日期 | Changes |
+|------|------|---------|
+| 2.0.0 | 2026-04-15 | Initial version |
+| 2.1.0 | 2026-04-16 | 补全PDCA/NIST/RAG/FAIR/Prompt关键词 |
+| 2.1.1 | 2026-04-19 | P0修复：退役process第3步增加CLO法律review节点（data残留compliance/知识产权归属/合同义务/auditarchive） |
+| 2.2.0 | 2026-04-19 | P2-13: 依赖standard化，移除直接依赖ai-company-cho，改为通过HQ调度（dispatch_via: ai-company-hq）；P2-14: 纳入统1execute层编号EXEC-008，新增execution元data |

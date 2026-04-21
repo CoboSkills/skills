@@ -1,11 +1,17 @@
 {
   "owner": "johnsmithfan",
   "slug": "ai-company-hr",
-  "displayName": "Ai Company Hr",
+  "displayName": "AI Company HR (EN)",
   "latest": {
-    "version": "2.0.0",
-    "publishedAt": 1776126373945,
-    "commit": "https://github.com/openclaw/skills/commit/83e1ee8d8a81cb04a2bdf17f4e2b9a5b05e321df"
+    "version": "2.2.0-en2",
+    "publishedAt": 1776678515679,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "2.0.0",
+      "publishedAt": 1776126373945,
+      "commit": "https://github.com/openclaw/skills/commit/83e1ee8d8a81cb04a2bdf17f4e2b9a5b05e321df"
+    }
+  ]
 }

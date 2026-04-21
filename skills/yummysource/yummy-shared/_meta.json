@@ -3,9 +3,15 @@
   "slug": "yummy-shared",
   "displayName": "Yummy Shared",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775965549699,
-    "commit": "https://github.com/openclaw/skills/commit/7791151ee144891a09811981177946014f43ff9c"
+    "version": "1.1.0",
+    "publishedAt": 1776412410464,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775965549699,
+      "commit": "https://github.com/openclaw/skills/commit/7791151ee144891a09811981177946014f43ff9c"
+    }
+  ]
 }

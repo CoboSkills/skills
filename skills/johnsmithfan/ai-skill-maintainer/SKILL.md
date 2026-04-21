@@ -2,25 +2,25 @@
 name: ai-skill-maintainer
 version: 1.1.0
 description: |
-  AI公司 Skill 维护工作流（CTO 版本治理 + CISO 安全运营标准版）。当需要对已发布的 Skill 进行版本更新、bug修复、功能增强、依赖升级、安全补丁、废弃（deprecation）管理时触发。触发关键词：更新技能、更新 Skill、修复 Skill bug、增强 Skill、升级依赖、打安全补丁、废弃技能、Skill 废弃。
-  整合 CTO 版本治理规范（semver + changelog + rollback）+ CISO 安全运营标准（漏洞响应 SLA + 补丁管理）。
+  AI公司 Skill 维护工作流（CTO 版本govern + CISO security运营standard版）。当需要对已publish的 Skill 进行版本update、bug修复、Function增强、依赖upgrade、security补丁、废弃（deprecation）manage时trigger。trigger关键词：updateSkill、update Skill、修复 Skill bug、增强 Skill、upgrade依赖、打security补丁、废弃Skill、Skill 废弃。
+  integrate CTO 版本governstandard（semver + changelog + rollback）+ CISO security运营standard（漏洞respond SLA + 补丁manage）。
 metadata:
   {"openclaw":{"emoji":"🔧","os":["linux","darwin","win32"]}}
 ---
 
-# AI Skill 维护工作流（CTO × CISO 标准）
+# AI Skill 维护工作流（CTO × CISO standard）
 
-> **执行角色**：Skill 维护者（CTO 版本治理 + CISO 安全运营）
-> **版本**：v1.0.0（CTO-001 版本治理 × CISO-001 安全运营）
-> **合规状态**：✅ 维护操作需记录，🚨 安全补丁走紧急通道
+> **executerole**：Skill 维护者（CTO 版本govern + CISO security运营）
+> **版本**：v1.0.0（CTO-001 版本govern × CISO-001 security运营）
+> **compliance状态**：✅ 维护操作需record，🚨 security补丁走紧急通道
 
 ---
 
-## 核心原则
+## 核心principle
 
-1. **变更可追溯**：所有修改必须记录版本历史
-2. **向后兼容**：MINOR/PATCH 变更不得破坏现有功能
-3. **安全优先**：CISO 安全补丁走紧急通道，不受正常发布周期限制
+1. **变更可trace**：所有修改必须record版本历史
+2. **向后兼容**：MINOR/PATCH 变更不得破坏现有Function
+3. **security优先**：CISO security补丁走紧急通道，不受正常publishcyclerestrict
 4. **最小变更**：只改必要的，不要过度工程化
 
 ---
@@ -28,7 +28,7 @@ metadata:
 ## Agent 调用接口（Inter-Agent Interface）
 
 > **版本**：v1.1.0（新增接口层）
-> **安全约束**：接口本身零新增攻击面，所有输入参数均经过验证
+> **securityConstraint**：接口本身零新增攻击面，所有输入参数均经过verify
 
 ---
 
@@ -38,9 +38,9 @@ metadata:
 |------|-----|
 | **接口 ID** | `skill-maintainer-v1` |
 | **调用方式** | `sessions_send` / `sessions_spawn` (isolated) |
-| **会话目标** | `isolated`（强制隔离）|
-| **最低权限** | L3（可读写 skills/ 指定目录） |
-| **CISO 约束** | 🚨 安全补丁任务必须 CISO-001 授权，紧急通道优先 |
+| **会话Goal** | `isolated`（强制隔离）|
+| **最低permission** | L3（可读写 skills/ 指定目录） |
+| **CISO Constraint** | 🚨 security补丁任务必须 CISO-001 authorize，紧急通道优先 |
 
 ---
 
@@ -63,10 +63,10 @@ metadata:
 
 ### 可用 Task 类型
 
-| Task | 参数 | 返回 | 说明 |
+| Task | 参数 | 返回 | Description |
 |------|------|------|------|
 | `diagnose` | `skill-name`, `issue`, `caller` | `{diagnosis, type, severity}` | 诊断问题 |
-| `patch` | `skill-name`, `version`, `changes`, `caller` | `{new-version, status}` | 实施修复 |
+| `patch` | `skill-name`, `version`, `changes`, `caller` | `{new-version, status}` | implement修复 |
 | `security-patch` | `skill-name`, `cve-id`, `authorization`, `caller` | `{fixed, new-version, notification-sent}` | 🚨 CVE 修复 |
 | `deprecate` | `skill-name`, `reason`, `replacement`, `caller` | `{deprecated-version, status}` | 废弃 Skill |
 | `emergency-isolate` | `skill-name`, `reason`, `caller` | `{isolated, affected-versions}` | 🚨 紧急隔离（0-day）|
@@ -94,12 +94,12 @@ metadata:
 
 **CVE 紧急通道 SLA**：
 
-| CVSS | 触发 | SLA | 流程 |
+| CVSS | trigger | SLA | process |
 |------|------|-----|------|
 | 9.0-10.0 | 🚨 紧急隔离 + Patch | ≤ 24h | 紧急通道直通 |
-| 7.0-8.9 | 紧急 Patch | ≤ 7d | 标准通道加速 |
-| 4.0-6.9 | 计划修复 | ≤ 30d | 标准通道 |
-| 0.1-3.9 | 跟踪 | 下个版本 | 常规流程 |
+| 7.0-8.9 | 紧急 Patch | ≤ 7d | standard通道加速 |
+| 4.0-6.9 | 计划修复 | ≤ 30d | standard通道 |
+| 0.1-3.9 | track | 下个版本 | 常规process |
 
 #### `emergency-isolate` 参数
 
@@ -119,7 +119,7 @@ metadata:
 }
 ```
 
-> **健康阈值**（CTO-001 KPI 对齐）：TSR < 92% → `UNHEALTHY`；P95 > 1200ms → `DEGRADED`；CVSS ≥ 7.0 → `HIGH_RISK`
+> **健康threshold**（CTO-001 KPI 对齐）：TSR < 92% → `UNHEALTHY`；P95 > 1200ms → `DEGRADED`；CVSS ≥ 7.0 → `HIGH_RISK`
 
 **返回值示例**：
 ```json
@@ -161,7 +161,7 @@ metadata:
 }
 ```
 
-**隔离决策验证**：
+**隔离决策verify**：
 ```python
 # 伪代码
 authorized = params["caller"] in {"CISO-001", "CTO-001"}
@@ -193,7 +193,7 @@ if not has_reason:
 | Code | Meaning | Action |
 |------|---------|--------|
 | `E_SKILL_NOT_FOUND` | Skill 不存在 | 返回可用版本列表 |
-| `E_UNAUTH_PATCH` | 未授权安全补丁 | 拒绝，通知 CISO |
+| `E_UNAUTH_PATCH` | 未authorizesecurity补丁 | reject，notify CISO |
 | `E_CVE_SLA_BREACH` | CVE SLA 即将/已违约 | 上报 CTO + CISO |
 | `E_ISOLATE_CONFLICT` | 已在隔离状态 | 返回当前状态 |
 | `E_DEPENDENCY_CVE` | 依赖含已知 CVE | 返回 CVE 详情和修复建议 |
@@ -240,43 +240,43 @@ params:
 ")
 ```
 
-### 安全约束（接口层）
+### securityConstraint（接口层）
 
 ```
-🚨 接口安全红线：
-• skill-name 参数仅接受 [a-z0-9-] 字符，拒绝斜杠/点号（防止路径注入）
-• authorization 字段仅接受 CISO-001 签名的安全任务
-• emergency-isolate 仅接受 CISO-001 或 CTO-001 授权
-• 隔离执行：所有 agent 调用必须在 isolated 会话中运行
-• CVE 响应：CVSS ≥ 9.0 必须 15 分钟内响应，否则 SLA 违约告警
-• 日志脱敏：返回结果不得含 caller 私人数据
+🚨 接口security红线：
+• skill-name 参数仅接受 [a-z0-9-] 字符，reject斜杠/点号（防止path注入）
+• authorization 字段仅接受 CISO-001 签名的security任务
+• emergency-isolate 仅接受 CISO-001 或 CTO-001 authorize
+• 隔离execute：所有 agent 调用必须在 isolated 会话中运行
+• CVE respond：CVSS ≥ 9.0 必须 15 分钟内respond，否则 SLA 违约alert
+• 日志脱敏：返回结果不得含 caller 私人data
 ```
 
 ### 与其他 Skill 的接口关系
 
-| 调用方 | Task | 触发条件 |
+| 调用方 | Task | trigger条件 |
 |--------|------|---------|
-| **CTO-001** | `diagnose`, `patch`, `emergency-isolate` | 版本管理/紧急响应 |
-| **CISO-001** | `security-patch`, `emergency-isolate`, `dependency-audit` | CVE 处理/安全事件 |
-| **CQO-001** | `health-check`, `diagnose` | 质量监控 |
-| **ai-skill-creator** | `patch` (子 Skill) | 创作流程中发现 bug |
-| **ai-skill-optimizer** | `dependency-audit` | 优化前基线检查 |
+| **CTO-001** | `diagnose`, `patch`, `emergency-isolate` | 版本manage/紧急respond |
+| **CISO-001** | `security-patch`, `emergency-isolate`, `dependency-audit` | CVE handle/security incident |
+| **CQO-001** | `health-check`, `diagnose` | 质量monitor |
+| **ai-skill-creator** | `patch` (子 Skill) | 创作process中discover bug |
+| **ai-skill-optimizer** | `dependency-audit` | optimize前基线检查 |
 
 ---
 
 ## 维护场景分类
 
-| 场景 | 触发关键词 | 版本升级 | 安全审查 |
+| 场景 | trigger关键词 | 版本upgrade | securityreview |
 |------|-----------|---------|---------|
 | Bug 修复 | "修复 bug"、"修复错误" | PATCH | 正常 |
-| 功能增强 | "增强功能"、"新增功能" | MINOR | 正常 |
+| Function增强 | "增强Function"、"新增Function" | MINOR | 正常 |
 | 不兼容变更 | "Breaking Change"、"重构" | MAJOR | 正常 |
-| 依赖安全补丁 | "安全补丁"、"CVE 修复" | PATCH | 🚨 紧急通道 |
-| 废弃通知 | "废弃技能"、"停用" | PATCH | 正常 |
+| 依赖security补丁 | "security补丁"、"CVE 修复" | PATCH | 🚨 紧急通道 |
+| 废弃notify | "废弃Skill"、"停用" | PATCH | 正常 |
 
 ---
 
-## 标准维护流程（五步）
+## standard维护process（5步）
 
 ### Step 1 — 诊断（Diagnosis）
 
@@ -285,143 +285,143 @@ params:
 **诊断清单**：
 
 ```markdown
-## 诊断记录
+## 诊断record
 
 Skill 名称：<name>
 当前版本：<version>
-问题类型：[Bug / 功能缺失 / 安全漏洞 / 依赖过时 / 其他]
+问题类型：[Bug / Function缺失 / security漏洞 / 依赖过时 / 其他]
 
 ### 问题描述
 <用户描述>
 
-### 复现步骤（如适用）
+### 复现step（如适用）
 1.
 2.
 3.
 
 ### 影响范围
-- 影响的功能：
+- 影响的Function：
 - 影响的用户/Agent：
 
 ### 初步判断
 - 根因：
-- 修复方案：
+- 修复plan：
 - 版本影响：[PATCH / MINOR / MAJOR]
 ```
 
-**CISO 安全场景判断**：
+**CISO security场景判断**：
 
-| 判断条件 | 结论 | 流程 |
+| 判断条件 | 结论 | process |
 |---------|------|------|
-| 涉及 CVE/漏洞 | 🚨 安全紧急 | 跳至安全补丁流程 |
-| 涉及凭证泄露 | 🚨 安全紧急 | 立即通知 + 紧急修复 |
-| 涉及 PII 泄露 | 🚨 安全紧急 | 立即通知 + 紧急修复 |
-| 其他 | ✅ 正常维护 | 继续标准流程 |
+| 涉及 CVE/漏洞 | 🚨 security紧急 | 跳至security补丁process |
+| 涉及凭证泄露 | 🚨 security紧急 | 立即notify + 紧急修复 |
+| 涉及 PII 泄露 | 🚨 security紧急 | 立即notify + 紧急修复 |
+| 其他 | ✅ 正常维护 | 继续standardprocess |
 
 ---
 
-### Step 2 — 分析（Analysis）
+### Step 2 — analyze（Analysis）
 
-**输出**：[references/maintenance-log.md](references/maintenance-log.md) 记录
+**输出**：[references/maintenance-log.md](references/maintenance-log.md) record
 
-#### 2.1 变更范围分析
+#### 2.1 变更范围analyze
 
 ```markdown
 ### 受影响文件
-| 文件 | 变更类型 | 风险评估 |
+| 文件 | 变更类型 | riskassess |
 |------|---------|---------|
 | SKILL.md | [修改/新增/删除] | 🟢 低 |
 | scripts/*.py | ... | ... |
 
 ### 兼容性影响
 - 向后兼容：✅ / ❌
-- 触发关键词变更：✅ / ❌（如有变更需通知用户）
-- 工具权限变更：✅ / ❌
+- trigger关键词变更：✅ / ❌（如有变更需notify用户）
+- 工具permission变更：✅ / ❌
 
 ### 测试计划
 - [ ] 本地测试用例：
 - [ ] 回归测试：
 ```
 
-#### 2.2 安全影响分析（CTO + CISO）
+#### 2.2 security影响analyze（CTO + CISO）
 
-| 分析维度 | 检查项 | 结论 |
+| analyze维度 | 检查项 | 结论 |
 |---------|--------|------|
-| **功能影响** | 修改是否改变核心功能？ | |
-| **权限影响** | 权限是否变更？ | |
-| **依赖影响** | 依赖是否新增/升级/删除？ | |
-| **数据影响** | 是否影响数据处理？ | |
-| **安全影响** | 变更是否影响安全边界？ | |
+| **Function影响** | 修改是否改变核心Function？ | |
+| **permission影响** | permission是否变更？ | |
+| **依赖影响** | 依赖是否新增/upgrade/删除？ | |
+| **data影响** | 是否影响datahandle？ | |
+| **security影响** | 变更是否影响security边界？ | |
 
 ---
 
-### Step 3 — 实施（Implementation）
+### Step 3 — implement（Implementation）
 
-#### 3.1 版本号更新
+#### 3.1 版本号update
 
 ```bash
 # 根据变更类型确定版本
 # Bug 修复          → vX.Y.Z → vX.Y.(Z+1)
-# 功能增强          → vX.Y.Z → vX.(Y+1).0
+# Function增强          → vX.Y.Z → vX.(Y+1).0
 # Breaking Change   → vX.Y.Z → (X+1).0.0
-# 安全补丁          → vX.Y.Z → vX.Y.(Z+1)  （强制）
+# security补丁          → vX.Y.Z → vX.Y.(Z+1)  （强制）
 ```
 
-#### 3.2 SKILL.md 更新
+#### 3.2 SKILL.md update
 
-**更新 Frontmatter 版本**：
+**update Frontmatter 版本**：
 ```yaml
 ---
 name: <skill-name>
-version: X.Y.Z   # ← 更新版本号
-description: |   # ← 如有变更同步更新
+version: X.Y.Z   # ← update版本号
+description: |   # ← 如有变更同步update
   ...
 ---
 ```
 
-**更新版本历史**（在文件顶部或底部）：
+**update版本历史**（在文件顶部或底部）：
 ```markdown
 ## 版本历史
 
-| 版本 | 日期 | 变更内容 |
+| 版本 | 日期 | Changes |
 |------|------|---------|
 | X.Y.Z | YYYY-MM-DD | <变更摘要> |
 | ... | ... | ... |
 ```
 
-#### 3.3 scripts/ 更新
+#### 3.3 scripts/ update
 
-**更新检查清单**：
+**update检查清单**：
 ```markdown
-- [ ] 脚本已更新
-- [ ] 脚本版本号已更新（如有版本机制）
-- [ ] 依赖已更新（如有）
-- [ ] 新增依赖已记录
+- [ ] 脚本已update
+- [ ] 脚本版本号已update（如有版本mechanism）
+- [ ] 依赖已update（如有）
+- [ ] 新增依赖已record
 - [ ] 脚本测试已通过
 ```
 
 ---
 
-### Step 4 — 安全审查（Security Review）
+### Step 4 — securityreview（Security Review）
 
-> ⚠️ **强制门禁**：所有变更必须通过 CISO 安全审查
+> ⚠️ **强制门禁**：所有变更必须通过 CISO securityreview
 
-#### 4.1 变更 diff 审查
+#### 4.1 变更 diff review
 
-**审查变更内容**（对比上一版本）：
+**reviewChanges**（对比上1版本）：
 - 新增的代码是否含 RED FLAGS？
 - 修改的代码是否引入新漏洞？
-- 删除的代码是否影响安全边界？
+- 删除的代码是否影响security边界？
 
-#### 4.2 依赖审查
+#### 4.2 依赖review
 
 **检查依赖变更**：
 ```bash
-# 列出新增/升级的依赖
+# 列出新增/upgrade的依赖
 # 检查 CVE
 ```
 
-**CVE 响应 SLA**：
+**CVE respond SLA**：
 
 | CVSS | 严重性 | 修复 SLA |
 |------|--------|---------|
@@ -430,45 +430,45 @@ description: |   # ← 如有变更同步更新
 | 4.0-6.9 | Medium | 30天 |
 | 0.1-3.9 | Low | 下个版本 |
 
-#### 4.3 安全补丁紧急通道
+#### 4.3 security补丁紧急通道
 
-**触发条件**：发现 Critical/High CVE
+**trigger条件**：discover Critical/High CVE
 
 ```
-🚀 紧急通道流程：
+🚀 紧急通道process：
 
 1. 立即隔离：停止问题版本分发
-2. 评估影响：确定受影响的 Skill 和版本
-3. 紧急修复：最短路径修复漏洞
-4. 快速审查：CISO 紧急审查（可跳过部分正常流程）
-5. 紧急发布：Patch 版本，立即发布
-6. 用户通知：通知所有受影响用户
+2. assess影响：确定受影响的 Skill 和版本
+3. 紧急修复：最短path修复漏洞
+4. 快速review：CISO 紧急review（可跳过部分正常process）
+5. 紧急publish：Patch 版本，立即publish
+6. 用户notify：notify所有受影响用户
 ```
 
 ---
 
-### Step 5 — 验证与发布（Verify & Publish）
+### Step 5 — verify与publish（Verify & Publish）
 
-#### 5.1 验证清单
+#### 5.1 verify清单
 
 ```markdown
-## 发布前验证
+## publish前verify
 
-- [ ] 变更内容与诊断一致
+- [ ] Changes与诊断1致
 - [ ] 版本号符合变更类型
-- [ ] 安全审查通过
+- [ ] securityreview通过
 - [ ] 脚本测试通过
-- [ ] changelog 已更新
-- [ ] SKILL.md 已同步更新
+- [ ] changelog 已update
+- [ ] SKILL.md 已同步update
 ```
 
-#### 5.2 发布命令
+#### 5.2 publish命令
 
 ```bash
 # 打包
 clawhub package ./<skill-name> --output ./dist
 
-# 发布
+# publish
 clawhub publish ./<skill-name> \
   --slug <skill-name> \
   --name "<Skill Name>" \
@@ -476,16 +476,16 @@ clawhub publish ./<skill-name> \
   --changelog "<变更摘要>"
 ```
 
-#### 5.3 通知（如有必要）
+#### 5.3 notify（如有必要）
 
 ```markdown
-## 用户通知
+## 用户notify
 
-如有 Breaking Change 或重要安全修复：
-- 通知方式：在 Skill 描述中注明
-- 通知内容：
+如有 Breaking Change 或重要security修复：
+- notify方式：在 Skill 描述中注明
+- notify内容：
   • 变更摘要
-  • 升级建议
+  • upgrade建议
   • 兼容性问题（如有）
 ```
 
@@ -493,36 +493,36 @@ clawhub publish ./<skill-name> \
 
 ## 版本历史（Changelog）
 
-| 版本 | 日期 | 变更内容 | 审核人 |
+| 版本 | 日期 | Changes | 审核人 |
 |------|------|---------|--------|
-| **1.1.0** | 2026-04-13 | 新增 Agent 调用接口层（Inter-Agent Interface）：7个 Task 类型（diagnose/patch/security-patch/deprecate/emergency-isolate/health-check/dependency-audit）；CVE 紧急通道 SLA 体系；emergency-isolate 授权验证；与 ai-skill-creator / ai-skill-optimizer 接口关系定义 | CTO-001 / CISO-001 |
-| **1.0.0** | 2026-04-11 | 初始版本：CTO 版本治理五步维护流程 + CISO 安全运营标准（漏洞响应 SLA + 补丁管理）+ 废弃管理流程 | CTO-001 / CISO-001 |
+| **1.1.0** | 2026-04-13 | 新增 Agent 调用接口层（Inter-Agent Interface）：7个 Task 类型（diagnose/patch/security-patch/deprecate/emergency-isolate/health-check/dependency-audit）；CVE 紧急通道 SLA system；emergency-isolate authorizeverify；与 ai-skill-creator / ai-skill-optimizer 接口关系Definition | CTO-001 / CISO-001 |
+| **1.0.0** | 2026-04-11 | Initial version：CTO 版本govern5步维护process + CISO security运营standard（漏洞respond SLA + 补丁manage）+ 废弃manageprocess | CTO-001 / CISO-001 |
 
-## 回滚策略（Rollback）
+## rollbackstrategy（Rollback）
 
-> 如维护操作失败，执行以下步骤恢复：
+> 如维护操作失败，execute以下steprecover：
 
 ```bash
-# 恢复到上一个可用版本
-git checkout tags/v<上一版本> -- SKILL.md scripts/ references/
+# recover到上1个可用版本
+git checkout tags/v<上1版本> -- SKILL.md scripts/ references/
 
-# 验证回滚成功
+# verifyrollback成功
 git log --oneline -3
 ```
 
-**回滚触发条件**：
+**rollbacktrigger条件**：
 - `emergency-isolate` 后：满足 CVE 已修复 + CISO-001 复审通过 + CQO-001 验收通过后方可解除隔离
-- `patch` 失败：回滚到隔离前版本，通知 CTO-001
-- `deprecate` 误操作：恢复 `deprecated: false`，通知 CRO-001
+- `patch` 失败：rollback到隔离前版本，notify CTO-001
+- `deprecate` 误操作：recover `deprecated: false`，notify CRO-001
 
 ---
 
-## 废弃（Deprecation）管理
+## 废弃（Deprecation）manage
 
-### 废弃流程
+### 废弃process
 
 ```
-废弃通知（vX.Y.Z）→ 过渡期（建议 30天）→ 正式废弃（vX.Y.Z+1）
+废弃notify（vX.Y.Z）→ 过渡期（建议 30天）→ 正式废弃（vX.Y.Z+1）
 ```
 
 ### 废弃 SKILL.md 模板
@@ -544,19 +544,19 @@ metadata:
 
 # ⚠️ 已废弃：<Skill Name>
 
-## 废弃通知
+## 废弃notify
 
 此 Skill 已于 **YYYY-MM-DD** 正式废弃。
 
 ### 为什么废弃？
 <原因>
 
-### 替代方案
+### 替代plan
 请使用 **<new-skill-name>**：
 - 链接：clawhub install <new-skill>
 
 ### 时间线
-- 废弃通知：YYYY-MM-DD（vX.Y.Z）
+- 废弃notify：YYYY-MM-DD（vX.Y.Z）
 - 最后支持：YYYY-MM-DD（vX.Y.Z+1）
 - 完全移除：待定
 
@@ -566,12 +566,12 @@ metadata:
 
 ---
 
-## 维护记录
+## 维护record
 
-### 记录模板（保存至 `references/maintenance-log.md`）
+### record模板（save至 `references/maintenance-log.md`）
 
 ```markdown
-# Skill 维护记录
+# Skill 维护record
 
 ## Skill 信息
 - 名称：<name>
@@ -582,22 +582,22 @@ metadata:
 
 ### 维护 #N — YYYY-MM-DD
 
-**类型**：[Bug修复/功能增强/安全补丁/废弃/其他]
+**类型**：[Bug修复/Function增强/security补丁/废弃/其他]
 **版本**：<old> → <new>
 **变更摘要**：<summary>
 
 #### 变更详情
 <detailed changes>
 
-#### 安全审查
+#### securityreview
 - CVSS：<score>
-- 结论：[通过/拒绝/条件通过]
+- 结论：[通过/reject/条件通过]
 
 #### 测试结果
 - [ ] 测试通过
 
-#### 发布信息
-- 发布日期：YYYY-MM-DD
+#### publish信息
+- publish日期：YYYY-MM-DD
 - ClawHub 版本：<version>
 ```
 
@@ -605,52 +605,52 @@ metadata:
 
 ## 快速参考
 
-### 触发命令
+### trigger命令
 
-| 用户请求 | 执行动作 |
+| 用户请求 | execute动作 |
 |---------|---------|
-| "修复 Skill XX 的 bug" | 诊断 → 分析 → 实施 → 安全审查 → 发布 |
-| "为 Skill XX 增加 XX 功能" | 需求确认 → 分析 → 实施 → 安全审查 → 发布 |
-| "升级 Skill XX 的依赖" | 依赖检查 → 兼容性分析 → 更新 → 安全审查 → 发布 |
-| "发现 Skill XX 有安全漏洞" | 🚨 紧急通道 → 立即隔离 → 紧急修复 → 紧急发布 |
-| "废弃 Skill XX" | 废弃评估 → 通知用户 → 发布废弃版本 → 保留迁移指南 |
+| "修复 Skill XX 的 bug" | 诊断 → analyze → implement → securityreview → publish |
+| "为 Skill XX 增加 XX Function" | 需求confirm → analyze → implement → securityreview → publish |
+| "upgrade Skill XX 的依赖" | 依赖检查 → 兼容性analyze → update → securityreview → publish |
+| "discover Skill XX 有security漏洞" | 🚨 紧急通道 → 立即隔离 → 紧急修复 → 紧急publish |
+| "废弃 Skill XX" | 废弃assess → notify用户 → publish废弃版本 → 保留迁移指南 |
 
 ### 常见错误
 
-1. **版本号错误**：Bug 修复用 MAJOR 升级 → 应为 PATCH
-2. **跳过安全审查**：紧急修复未做安全审查 → 必须补审
-3. **不更新 changelog**：变更未记录 → 版本历史不完整
-4. **Breaking Change 未通知**：未告知用户 → 用户升级后功能损坏
+1. **版本号错误**：Bug 修复用 MAJOR upgrade → 应为 PATCH
+2. **跳过securityreview**：紧急修复未做securityreview → 必须补审
+3. **不update changelog**：变更未record → 版本历史不完整
+4. **Breaking Change 未notify**：未inform用户 → 用户upgrade后Function损坏
 5. **废弃 Skill 未提供替代**：用户无法迁移 → 影响用户体验
 
 ---
 
 ## 版本历史（Changelog）
 
-| 版本 | 日期 | 变更内容 | 审核人 |
+| 版本 | 日期 | Changes | 审核人 |
 |------|------|---------|--------|
-| **1.1.0** | 2026-04-13 | 新增 Agent 调用接口层（Inter-Agent Interface）：7个 Task 类型（diagnose/patch/security-patch/deprecate/emergency-isolate/health-check/dependency-audit）；CVE 紧急通道 SLA 体系；emergency-isolate 授权验证；与 ai-skill-creator / ai-skill-optimizer 接口关系定义 | CTO-001 / CISO-001 |
-| **1.0.0** | 2026-04-11 | 初始版本：CTO 版本治理五步维护流程 + CISO 安全运营标准（漏洞响应 SLA + 补丁管理）+ 废弃管理流程 | CTO-001 / CISO-001 |
+| **1.1.0** | 2026-04-13 | 新增 Agent 调用接口层（Inter-Agent Interface）：7个 Task 类型（diagnose/patch/security-patch/deprecate/emergency-isolate/health-check/dependency-audit）；CVE 紧急通道 SLA system；emergency-isolate authorizeverify；与 ai-skill-creator / ai-skill-optimizer 接口关系Definition | CTO-001 / CISO-001 |
+| **1.0.0** | 2026-04-11 | Initial version：CTO 版本govern5步维护process + CISO security运营standard（漏洞respond SLA + 补丁manage）+ 废弃manageprocess | CTO-001 / CISO-001 |
 
-## 回滚策略（Rollback）
+## rollbackstrategy（Rollback）
 
-> 如维护操作失败，执行以下步骤恢复：
+> 如维护操作失败，execute以下steprecover：
 
 ```bash
-# 恢复到上一个可用版本
-git checkout tags/v<上一版本> -- SKILL.md scripts/ references/
+# recover到上1个可用版本
+git checkout tags/v<上1版本> -- SKILL.md scripts/ references/
 
-# 验证回滚成功
+# verifyrollback成功
 git log --oneline -3
 ```
 
-**回滚触发条件**：
+**rollbacktrigger条件**：
 - `emergency-isolate` 后：满足 CVE 已修复 + CISO-001 复审通过 + CQO-001 验收通过后方可解除隔离
-- `patch` 失败：回滚到隔离前版本，通知 CTO-001
-- `deprecate` 误操作：恢复 `deprecated: false`，通知 CRO-001
+- `patch` 失败：rollback到隔离前版本，notify CTO-001
+- `deprecate` 误操作：recover `deprecated: false`，notify CRO-001
 
 **解除 emergency-isolate 条件**：
 1. CVE 已修复（CVSS < 7.0）
-2. CISO-001 安全复审通过
+2. CISO-001 security复审通过
 3. CQO-001 质量验收通过
-4. CTO-001 书面授权解除隔离
+4. CTO-001 书面authorize解除隔离

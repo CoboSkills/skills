@@ -3,11 +3,16 @@
   "slug": "wobaka",
   "displayName": "Wobaka",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775165318015,
-    "commit": "https://github.com/openclaw/skills/commit/4544a5be2fcb2320bc4e40064b8ab45cdf72136c"
+    "version": "1.0.3",
+    "publishedAt": 1776865170630,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775165318015,
+      "commit": "https://github.com/openclaw/skills/commit/4544a5be2fcb2320bc4e40064b8ab45cdf72136c"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774000994915,

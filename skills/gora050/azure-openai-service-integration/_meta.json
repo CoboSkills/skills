@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "azure-openai-service-integration",
+  "displayName": "Azure Openai Service",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776784118770,
+    "commit": null
+  },
+  "history": []
+}

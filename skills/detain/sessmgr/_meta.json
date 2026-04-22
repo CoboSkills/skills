@@ -1,0 +1,11 @@
+{
+  "owner": "detain",
+  "slug": "sessmgr",
+  "displayName": "Sessmgr",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776602194646,
+    "commit": null
+  },
+  "history": []
+}

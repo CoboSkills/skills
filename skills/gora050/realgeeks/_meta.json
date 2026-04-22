@@ -3,11 +3,16 @@
   "slug": "realgeeks",
   "displayName": "Realgeeks",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775166884129,
-    "commit": "https://github.com/openclaw/skills/commit/d250f5884eb44590e3dbec339bb5deae15d62ca6"
+    "version": "1.0.3",
+    "publishedAt": 1776860555157,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775166884129,
+      "commit": "https://github.com/openclaw/skills/commit/d250f5884eb44590e3dbec339bb5deae15d62ca6"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774321447925,

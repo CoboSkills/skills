@@ -1,0 +1,11 @@
+{
+  "owner": "olivimic",
+  "slug": "content-pipeline-provisioner",
+  "displayName": "Content Pipeline Provisioner",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776554703527,
+    "commit": null
+  },
+  "history": []
+}

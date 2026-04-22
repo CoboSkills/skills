@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "grafbase-integration",
+  "displayName": "Grafbase",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776805377516,
+    "commit": null
+  },
+  "history": []
+}

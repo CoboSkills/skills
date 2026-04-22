@@ -1,0 +1,11 @@
+{
+  "owner": "wililam",
+  "slug": "beep-skills",
+  "displayName": "Beep - Small speaker",
+  "latest": {
+    "version": "2.1.0-dev",
+    "publishedAt": 1776568026992,
+    "commit": null
+  },
+  "history": []
+}

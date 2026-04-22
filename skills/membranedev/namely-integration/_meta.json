@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "namely-integration",
+  "displayName": "Namely",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776776715026,
+    "commit": null
+  },
+  "history": []
+}

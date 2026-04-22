@@ -1,0 +1,11 @@
+{
+  "owner": "summers-tars",
+  "slug": "canvas-lms-idp-auto-refresh",
+  "displayName": "Canvas LMS IDP Auto Token Refresh",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776583176688,
+    "commit": null
+  },
+  "history": []
+}

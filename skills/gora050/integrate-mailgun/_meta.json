@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "integrate-mailgun",
+  "displayName": "Mailgun",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776784129298,
+    "commit": null
+  },
+  "history": []
+}

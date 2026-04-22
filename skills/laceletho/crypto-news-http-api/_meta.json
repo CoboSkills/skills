@@ -1,0 +1,11 @@
+{
+  "owner": "laceletho",
+  "slug": "crypto-news-http-api",
+  "displayName": "Crypto News HTTP API",
+  "latest": {
+    "version": "0.2.0",
+    "publishedAt": 1776765516528,
+    "commit": null
+  },
+  "history": []
+}

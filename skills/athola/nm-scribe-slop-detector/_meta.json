@@ -1,0 +1,11 @@
+{
+  "owner": "athola",
+  "slug": "nm-scribe-slop-detector",
+  "displayName": "Nm Scribe Slop Detector",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776693716796,
+    "commit": null
+  },
+  "history": []
+}

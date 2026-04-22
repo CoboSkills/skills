@@ -1,0 +1,11 @@
+{
+  "owner": "andrewreid",
+  "slug": "seafile",
+  "displayName": "Seafile",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776556956009,
+    "commit": null
+  },
+  "history": []
+}

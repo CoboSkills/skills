@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "semgrep-integration",
+  "displayName": "Semgrep",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776805412691,
+    "commit": null
+  },
+  "history": []
+}

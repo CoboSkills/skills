@@ -1,0 +1,11 @@
+{
+  "owner": "bgoodwinstudio",
+  "slug": "google-alerts",
+  "displayName": "Google Alerts Monitor",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1776487523837,
+    "commit": null
+  },
+  "history": []
+}

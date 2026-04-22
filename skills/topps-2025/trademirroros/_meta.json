@@ -1,0 +1,11 @@
+{
+  "owner": "topps-2025",
+  "slug": "trademirroros",
+  "displayName": "TradeMirrorOS",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1776526749487,
+    "commit": null
+  },
+  "history": []
+}

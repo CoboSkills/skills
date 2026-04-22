@@ -1,0 +1,11 @@
+{
+  "owner": "snazar-faberlens",
+  "slug": "db-readonly-hardened",
+  "displayName": "Db Readonly Hardened",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776835318256,
+    "commit": null
+  },
+  "history": []
+}

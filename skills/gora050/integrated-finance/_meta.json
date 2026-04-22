@@ -3,9 +3,15 @@
   "slug": "integrated-finance",
   "displayName": "Integrated Finance",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775459179088,
-    "commit": "https://github.com/openclaw/skills/commit/1dc5bdcf9732a181aee8c338ea17aa3271ef7a74"
+    "version": "1.0.1",
+    "publishedAt": 1776892790222,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775459179088,
+      "commit": "https://github.com/openclaw/skills/commit/1dc5bdcf9732a181aee8c338ea17aa3271ef7a74"
+    }
+  ]
 }

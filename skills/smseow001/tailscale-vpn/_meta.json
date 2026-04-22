@@ -1,0 +1,11 @@
+{
+  "owner": "smseow001",
+  "slug": "tailscale-vpn",
+  "displayName": "Tailscale VPN",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776488093438,
+    "commit": null
+  },
+  "history": []
+}

@@ -3,11 +3,16 @@
   "slug": "relavate",
   "displayName": "Relavate",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775167876385,
-    "commit": "https://github.com/openclaw/skills/commit/29e0b8fb27722ee741093c0f78b4768da2fd580c"
+    "version": "1.0.3",
+    "publishedAt": 1776861849608,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775167876385,
+      "commit": "https://github.com/openclaw/skills/commit/29e0b8fb27722ee741093c0f78b4768da2fd580c"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774519417512,

@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "google-gemini-integration",
+  "displayName": "Google Gemini",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776812743118,
+    "commit": null
+  },
+  "history": []
+}

@@ -3,9 +3,15 @@
   "slug": "astronomer",
   "displayName": "Astronomer",
   "latest": {
-    "version": "1.0.0",
-    "publishedAt": 1775405065175,
-    "commit": "https://github.com/openclaw/skills/commit/cb3f3d1156ede3b76ce139e10a8f57ae5f5174bd"
+    "version": "1.0.1",
+    "publishedAt": 1776889319331,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.0",
+      "publishedAt": 1775405065175,
+      "commit": "https://github.com/openclaw/skills/commit/cb3f3d1156ede3b76ce139e10a8f57ae5f5174bd"
+    }
+  ]
 }

@@ -1,0 +1,11 @@
+{
+  "owner": "effort02",
+  "slug": "iam-integration",
+  "displayName": "Iam Integration",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776567997048,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "earlvanze",
+  "slug": "sage-router",
+  "displayName": "Sage Router",
+  "latest": {
+    "version": "3.24.1",
+    "publishedAt": 1776871485906,
+    "commit": null
+  },
+  "history": []
+}

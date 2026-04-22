@@ -29,7 +29,12 @@ metadata:
 
 ## 配套 skill（informational）
 
-本 skill 是 `aws-wechat-article-*` 一条龙公众号套件的选题环节（入口 `aws-wechat-article-main`）。完整套件说明见 [源码仓库](https://github.com/aiworkskills/wechat-article-skills)。
+本 skill 是 `aws-wechat-article-*` 一条龙公众号套件的**选题环节**（入口 `aws-wechat-article-main`）。工作流中的若干步骤会读取同级 `../aws-wechat-article-main/references/*.md` 等共享文档（首次引导、env/config 示例等）。
+
+- **套件完整装齐到同一 `skills/` 根目录**时，跨 skill 引用都能读到。
+- **单独安装本 skill** 时，跨 skill 引用的步骤会在读取阶段遇到 `file not found`；本 skill 内的纯本地步骤仍可用。
+
+完整 9 slug 清单见 [源码仓库](https://github.com/aiworkskills/wechat-article-skills)。
 
 ## 路由
 

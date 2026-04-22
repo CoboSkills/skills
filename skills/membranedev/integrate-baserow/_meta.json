@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "integrate-baserow",
+  "displayName": "Baserow",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1776798184825,
+    "commit": null
+  },
+  "history": []
+}

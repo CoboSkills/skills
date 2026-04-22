@@ -1,0 +1,11 @@
+{
+  "owner": "cyzlmh",
+  "slug": "cmic-skill-scanner-linux-amd64",
+  "displayName": "CMIC Skill Scanner (Linux x64)",
+  "latest": {
+    "version": "0.8.0",
+    "publishedAt": 1776792730938,
+    "commit": null
+  },
+  "history": []
+}

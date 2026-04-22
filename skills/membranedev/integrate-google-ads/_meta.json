@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "integrate-google-ads",
+  "displayName": "Google Ads",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776776725243,
+    "commit": null
+  },
+  "history": []
+}

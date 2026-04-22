@@ -3,11 +3,16 @@
   "slug": "demandware",
   "displayName": "Demandware",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775168881618,
-    "commit": "https://github.com/openclaw/skills/commit/e21b233b7a3d16f9472193e4d9c3a6f6eb10c077"
+    "version": "1.0.3",
+    "publishedAt": 1776864630134,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775168881618,
+      "commit": "https://github.com/openclaw/skills/commit/e21b233b7a3d16f9472193e4d9c3a6f6eb10c077"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774725886497,

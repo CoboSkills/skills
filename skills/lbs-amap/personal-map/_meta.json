@@ -1,0 +1,11 @@
+{
+  "owner": "lbs-amap",
+  "slug": "personal-map",
+  "displayName": "Gaode Map Personal - 高德官方个人专属地图 Skill",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776653056108,
+    "commit": null
+  },
+  "history": []
+}

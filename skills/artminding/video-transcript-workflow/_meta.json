@@ -1,0 +1,11 @@
+{
+  "owner": "artminding",
+  "slug": "video-transcript-workflow",
+  "displayName": "Video Transcript Workflow",
+  "latest": {
+    "version": "2.2.0",
+    "publishedAt": 1776814224953,
+    "commit": null
+  },
+  "history": []
+}

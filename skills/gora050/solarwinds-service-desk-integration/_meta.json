@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "solarwinds-service-desk-integration",
+  "displayName": "Solarwinds Service Desk",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776791126830,
+    "commit": null
+  },
+  "history": []
+}

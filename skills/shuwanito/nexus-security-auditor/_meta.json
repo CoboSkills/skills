@@ -1,0 +1,11 @@
+{
+  "owner": "shuwanito",
+  "slug": "nexus-security-auditor",
+  "displayName": "security, owasp, penetration-testing, compliance, gdpr",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776620391107,
+    "commit": null
+  },
+  "history": []
+}

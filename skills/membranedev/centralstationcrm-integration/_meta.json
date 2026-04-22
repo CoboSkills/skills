@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "centralstationcrm-integration",
+  "displayName": "Centralstationcrm",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776823440850,
+    "commit": null
+  },
+  "history": []
+}

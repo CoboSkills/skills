@@ -1,0 +1,11 @@
+{
+  "owner": "openlark",
+  "slug": "skill-workflow-orchestrator",
+  "displayName": "Skill Workflow Orchestrator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776651221172,
+    "commit": null
+  },
+  "history": []
+}

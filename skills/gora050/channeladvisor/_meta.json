@@ -3,11 +3,16 @@
   "slug": "channeladvisor",
   "displayName": "Channeladvisor",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775166042358,
-    "commit": "https://github.com/openclaw/skills/commit/29bad1ea495d2544d496e7dc459be814d1cce20c"
+    "version": "1.0.3",
+    "publishedAt": 1776859864698,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775166042358,
+      "commit": "https://github.com/openclaw/skills/commit/29bad1ea495d2544d496e7dc459be814d1cce20c"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774137872211,

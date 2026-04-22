@@ -1,0 +1,11 @@
+{
+  "owner": "peand-rover",
+  "slug": "free-free-text",
+  "displayName": "Free Free Text",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776568703283,
+    "commit": null
+  },
+  "history": []
+}

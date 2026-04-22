@@ -1,0 +1,11 @@
+{
+  "owner": "kkellyoffical",
+  "slug": "nvidia-cuda",
+  "displayName": "NVIDIA CUDA",
+  "latest": {
+    "version": "0.4.0",
+    "publishedAt": 1776589915823,
+    "commit": null
+  },
+  "history": []
+}

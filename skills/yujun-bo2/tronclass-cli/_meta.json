@@ -1,0 +1,11 @@
+{
+  "owner": "yujun-bo2",
+  "slug": "tronclass-cli",
+  "displayName": "Tronclass Cli Skill",
+  "latest": {
+    "version": "1.1.0",
+    "publishedAt": 1776642655690,
+    "commit": null
+  },
+  "history": []
+}

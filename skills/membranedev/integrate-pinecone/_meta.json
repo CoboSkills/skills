@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "integrate-pinecone",
+  "displayName": "Pinecone",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776812633331,
+    "commit": null
+  },
+  "history": []
+}

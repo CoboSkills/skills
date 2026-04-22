@@ -1,0 +1,11 @@
+{
+  "owner": "tridefender",
+  "slug": "pandoc-convert",
+  "displayName": "Pandoc Convert",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776548130525,
+    "commit": null
+  },
+  "history": []
+}

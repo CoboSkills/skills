@@ -3,11 +3,16 @@
   "slug": "postalytics",
   "displayName": "Postalytics",
   "latest": {
-    "version": "1.0.2",
-    "publishedAt": 1775165362164,
-    "commit": "https://github.com/openclaw/skills/commit/41f7b1ae7c22533aea77003493bd7ab2b015f8a2"
+    "version": "1.0.3",
+    "publishedAt": 1776859261044,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.2",
+      "publishedAt": 1775165362164,
+      "commit": "https://github.com/openclaw/skills/commit/41f7b1ae7c22533aea77003493bd7ab2b015f8a2"
+    },
     {
       "version": "1.0.0",
       "publishedAt": 1774015437846,

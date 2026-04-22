@@ -1,0 +1,11 @@
+{
+  "owner": "ggettert",
+  "slug": "incident-triage",
+  "displayName": "Incident Triage",
+  "latest": {
+    "version": "0.3.0",
+    "publishedAt": 1776788846821,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "charlie-morrison",
+  "slug": "devcontainer-validator",
+  "displayName": "Devcontainer Validator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776731621397,
+    "commit": null
+  },
+  "history": []
+}

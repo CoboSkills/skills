@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "quickmailio-integration",
+  "displayName": "Quickmailio",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776830697503,
+    "commit": null
+  },
+  "history": []
+}

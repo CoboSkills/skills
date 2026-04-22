@@ -1,0 +1,11 @@
+{
+  "owner": "hanxueyuan",
+  "slug": "fortinet",
+  "displayName": "Fortinet",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776588591580,
+    "commit": null
+  },
+  "history": []
+}

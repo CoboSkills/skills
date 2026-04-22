@@ -1,0 +1,11 @@
+{
+  "owner": "cyzlmh",
+  "slug": "cmic-skill-scanner-darwin-arm64",
+  "displayName": "CMIC Skill Scanner (macOS ARM64)",
+  "latest": {
+    "version": "0.8.0",
+    "publishedAt": 1776792726013,
+    "commit": null
+  },
+  "history": []
+}

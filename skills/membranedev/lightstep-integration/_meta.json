@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "lightstep-integration",
+  "displayName": "Lightstep",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776891902115,
+    "commit": null
+  },
+  "history": []
+}

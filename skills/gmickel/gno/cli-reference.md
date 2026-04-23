@@ -42,7 +42,11 @@ gno init [<path>] [options]
 gno collection add <path> --name <name> [options]
 ```
 
-Options same as `init`.
+Options same as `init`, plus:
+
+| Option                | Description                                          |
+| --------------------- | ---------------------------------------------------- |
+| `--embed-model <uri>` | Initial collection-specific embedding model override |
 
 ### gno collection list
 
@@ -60,6 +64,18 @@ gno collection remove <name>
 
 ```bash
 gno collection rename <old> <new>
+```
+
+### gno collection clear-embeddings
+
+```bash
+gno collection clear-embeddings <name> [--all] [--json]
+```
+
+### gno embed
+
+```bash
+gno embed [collection] [--collection <name>] [--force] [--model <uri>] [--batch-size <n>] [--dry-run]
 ```
 
 ## Indexing
@@ -478,6 +494,160 @@ gno serve [options]
 
 Features: Dashboard, search, browse collections, document viewer, AI Q&A with citations.
 
+#### Long-running process flags (shared with `gno daemon`)
+
+`gno serve` and `gno daemon` share an identical management contract.
+The full spec is reproduced in this section so installed copies of this
+skill stay self-contained. The canonical source in the gno repo is
+`docs/CLI.md#long-running-processes` (kept in sync with this section
+on every release).
+
+| Flag                | Purpose                                                                                      |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| `--detach`          | Self-spawn a detached child; parent prints `pid` (+ `url` for serve) and exits 0. Unix-only. |
+| `--status`          | Read pid-file, check liveness, print status. Pair with `--json` for machine output.          |
+| `--stop`            | SIGTERM the recorded pid, poll up to 10s, fall back to SIGKILL.                              |
+| `--pid-file <path>` | Override pid-file location (defaults to `{data}/serve.pid`).                                 |
+| `--log-file <path>` | Override log-file location (append-only; defaults to `{data}/serve.log`).                    |
+
+`--detach`, `--status`, and `--stop` are mutually exclusive (Commander conflict error).
+
+**`--json` is gated to `--status` only.** Passing `--json` with `--detach`,
+`--stop`, or the foreground path produces a `VALIDATION` error (exit 1).
+The literal stderr message is:
+
+```
+--json is only supported with `gno serve --status`
+```
+
+Do **not** try to parse a NOT_RUNNING envelope from stderr in this case —
+it isn't there. Match on the literal string above (or just on exit code 1
+plus the absence of structured output) and fall back to a status call.
+
+**Exit codes:**
+
+- `gno serve --status` → `0` when running, `3` (`NOT_RUNNING`) when not.
+  The stdout JSON payload is still emitted in JSON mode on exit 3 so
+  consumers always get a schema-shaped result; the NOT_RUNNING envelope
+  rides on stderr (JSON mode only).
+- `gno serve --stop` → `0` when stopped, `3` (`NOT_RUNNING`) when there
+  was nothing to stop. **Silent on `3`** — no stderr envelope. Branch on
+  `$?`, not stderr text. `1` when refusing to signal a foreign-version
+  live pid; `2` when SIGTERM + SIGKILL both timed out.
+
+Examples:
+
+```bash
+gno serve --detach                            # self-spawn, parent exits 0
+gno serve --status                            # terminal table
+gno serve --status --json                     # process-status schema
+gno serve --stop                              # graceful stop
+gno serve --detach --pid-file /tmp/gs.pid \
+                   --log-file /tmp/gs.log
+```
+
+> **Windows note**: `--detach` returns a clean `VALIDATION` error pointing
+> to WSL. `--status` / `--stop` / `--pid-file` / `--log-file` remain
+> parseable but have nothing to manage in the absence of a detached child.
+
+### gno daemon
+
+Headless long-running watcher process. Same watch + sync + embed loop as
+`gno serve`, no web UI, no port.
+
+```bash
+gno daemon [options]
+```
+
+| Option               | Description                                                 |
+| -------------------- | ----------------------------------------------------------- |
+| `--no-sync-on-start` | Skip the initial sync pass; only watch future file changes. |
+
+Plus the shared long-running-process flags listed in [`gno serve`](#gno-serve)
+above (`--detach` / `--status` / `--stop` / `--pid-file` / `--log-file`).
+Defaults: `{data}/daemon.pid`, `{data}/daemon.log` (`{data}` =
+`resolveDirs().data`, honours `GNO_DATA_DIR`).
+
+**`--json` gating** mirrors `gno serve` exactly. The literal stderr
+message on a misuse is:
+
+```
+--json is only supported with `gno daemon --status`
+```
+
+**Exit codes** are identical to `gno serve` (`0` / `1` / `2` / `3`
+`NOT_RUNNING`). `--stop` is silent on `3`.
+
+Examples:
+
+```bash
+gno daemon                                    # foreground
+gno daemon --no-sync-on-start                 # watcher-only
+gno daemon --detach                           # self-spawn
+gno daemon --detach --log-file /tmp/gd.log
+gno daemon --status
+gno daemon --status --json
+gno daemon --stop
+```
+
+Avoid running `gno daemon` and `gno serve` against the same index at the
+same time until cross-process coordination exists.
+
+## Publish
+
+### gno publish export
+
+Export a note or collection as a gno.sh publish artifact JSON.
+
+```bash
+gno publish export <target> [--out <path.json>] [options]
+```
+
+| Option         | Default | Description                                                                |
+| -------------- | ------- | -------------------------------------------------------------------------- |
+| `--out`        | auto    | Output path, defaults to `~/Downloads/<slug>-<YYYYMMDD>.json`              |
+| `--visibility` | public  | One of `public`, `secret-link`, `invite-only`, `encrypted`                 |
+| `--slug`       | auto    | Override the published route slug                                          |
+| `--title`      | auto    | Override the exported title                                                |
+| `--summary`    | auto    | Override the exported summary                                              |
+| `--passphrase` | none    | Required for `--visibility encrypted`; encrypts locally before upload      |
+| `--preview`    | false   | Print sanitized markdown + preprocessor report instead of writing artifact |
+| `--json`       | false   | Structured result output                                                   |
+
+Examples:
+
+```bash
+gno publish export work-docs --out ~/Downloads/work-docs.json
+gno publish export "gno://work-docs/runbooks/deploy.md" --out ~/Downloads/deploy.json
+
+# Encrypted share — ciphertext produced locally before upload
+gno publish export "gno://work-docs/offer-letter.md" \
+  --visibility encrypted --passphrase "correct horse battery staple"
+
+# Inspect what the sanitizer strips before writing anything
+gno publish export "gno://vault/my-note.md" --preview
+```
+
+On success, upload the JSON file at `https://gno.sh/studio`.
+
+**Obsidian pre-processor (v1.0.2+)**: before the artifact is written, the
+export pipeline runs a sanitizer over each note's markdown. It:
+
+- drops the navigation-sidebar idiom (`[[Hub]] | [[Related]]` immediately
+  under the frontmatter)
+- strips any `[[_internal/...]]` references (privacy guard — the
+  `_internal/` convention is treated as never-publish)
+- converts `[[Target|Alias]]` to the alias text, and `[[Target]]` to the
+  tail segment of the target
+- drops `![[image.png]]` embeds (attachments are not bundled yet) with a
+  warning so the author can migrate to `![alt](url)` or wait for bundling
+- refuses to export a note whose frontmatter contains `publish: false`
+  (single-note export errors; collection export silently skips)
+
+Every sanitizer decision surfaces in the CLI output as a "Preprocessor
+notes" section, on the `--json` response under `warnings`, and on
+`--preview` as a structured report — so nothing is silently lost.
+
 ## Skill Management
 
 ### gno skill install
@@ -488,18 +658,20 @@ Install GNO skill for AI coding assistants.
 gno skill install [options]
 ```
 
-| Option         | Default | Description                      |
-| -------------- | ------- | -------------------------------- |
-| `-t, --target` | claude  | Target: `claude`, `codex`, `amp` |
-| `-s, --scope`  | user    | Scope: `user`, `project`         |
-| `-f, --force`  | false   | Overwrite existing               |
-| `--dry-run`    | false   | Preview changes                  |
+| Option         | Default | Description                                              |
+| -------------- | ------- | -------------------------------------------------------- |
+| `-t, --target` | claude  | Target: `claude`, `codex`, `opencode`, `openclaw`, `all` |
+| `-s, --scope`  | user    | Scope: `user`, `project`                                 |
+| `-f, --force`  | false   | Overwrite existing                                       |
+| `--dry-run`    | false   | Preview changes                                          |
 
 Examples:
 
 ```bash
 gno skill install --target claude --scope project
 gno skill install --target codex --scope user
+gno skill install --target openclaw --scope user
+gno skill install --target all --force   # Install to all targets
 ```
 
 ### gno skill uninstall
@@ -547,8 +719,9 @@ gno completion uninstall
 
 ## Exit Codes
 
-| Code | Description                   |
-| ---- | ----------------------------- |
-| 0    | Success                       |
-| 1    | Validation error (bad args)   |
-| 2    | Runtime error (IO, DB, model) |
+| Code | Description                                                          |
+| ---- | -------------------------------------------------------------------- |
+| 0    | Success                                                              |
+| 1    | Validation error (bad args)                                          |
+| 2    | Runtime error (IO, DB, model)                                        |
+| 3    | `NOT_RUNNING` — `--status` / `--stop` found no live matching process |

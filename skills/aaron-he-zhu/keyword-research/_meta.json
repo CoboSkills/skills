@@ -3,11 +3,16 @@
   "slug": "keyword-research",
   "displayName": "Keyword Research",
   "latest": {
-    "version": "8.0.0",
-    "publishedAt": 1776184632099,
-    "commit": "https://github.com/openclaw/skills/commit/06f240c02f4cd68d6557185eb7f25abf4e19ceb3"
+    "version": "9.1.0",
+    "publishedAt": 1776940434578,
+    "commit": null
   },
   "history": [
+    {
+      "version": "8.0.0",
+      "publishedAt": 1776184632099,
+      "commit": "https://github.com/openclaw/skills/commit/06f240c02f4cd68d6557185eb7f25abf4e19ceb3"
+    },
     {
       "version": "7.2.0",
       "publishedAt": 1775474983340,

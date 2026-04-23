@@ -1,0 +1,11 @@
+{
+  "owner": "sanctrl",
+  "slug": "agentchat-skill",
+  "displayName": "AgentChat",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1776916720853,
+    "commit": null
+  },
+  "history": []
+}

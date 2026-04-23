@@ -1,0 +1,11 @@
+{
+  "owner": "sky-lv",
+  "slug": "agent-quality-tester",
+  "displayName": "Agent Quality Tester",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776905646278,
+    "commit": null
+  },
+  "history": []
+}

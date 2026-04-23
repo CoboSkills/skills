@@ -1,0 +1,11 @@
+{
+  "owner": "justoneapi",
+  "slug": "justoneapi-amazon-get-category-products",
+  "displayName": "Amazon Products By Category API",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776924165728,
+    "commit": null
+  },
+  "history": []
+}

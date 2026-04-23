@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "oracle-taleo-integration",
+  "displayName": "Oracle Taleo",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776891813088,
+    "commit": null
+  },
+  "history": []
+}

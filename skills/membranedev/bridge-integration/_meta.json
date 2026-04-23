@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "bridge-integration",
+  "displayName": "Bridge",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776877435062,
+    "commit": null
+  },
+  "history": []
+}

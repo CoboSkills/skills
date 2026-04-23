@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "zoho-invoice-integration",
+  "displayName": "Zoho Invoice",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776877494424,
+    "commit": null
+  },
+  "history": []
+}

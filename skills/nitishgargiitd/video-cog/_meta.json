@@ -3,11 +3,16 @@
   "slug": "video-cog",
   "displayName": "Video Cog",
   "latest": {
-    "version": "1.0.12",
-    "publishedAt": 1776188013969,
-    "commit": "https://github.com/openclaw/skills/commit/f90dab674c2f58455ef68d16dbe75b3a3655a09b"
+    "version": "1.0.13",
+    "publishedAt": 1776925191196,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.12",
+      "publishedAt": 1776188013969,
+      "commit": "https://github.com/openclaw/skills/commit/f90dab674c2f58455ef68d16dbe75b3a3655a09b"
+    },
     {
       "version": "1.0.9",
       "publishedAt": 1775627948632,

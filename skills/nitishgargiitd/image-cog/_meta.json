@@ -3,11 +3,16 @@
   "slug": "image-cog",
   "displayName": "Image Cog",
   "latest": {
-    "version": "1.0.11",
-    "publishedAt": 1776187948816,
-    "commit": "https://github.com/openclaw/skills/commit/18534499744cb2d99addbd7cddc26227db1f2548"
+    "version": "1.0.12",
+    "publishedAt": 1776925138679,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.11",
+      "publishedAt": 1776187948816,
+      "commit": "https://github.com/openclaw/skills/commit/18534499744cb2d99addbd7cddc26227db1f2548"
+    },
     {
       "version": "1.0.8",
       "publishedAt": 1775627887920,

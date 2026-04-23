@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "jitsu-integration",
+  "displayName": "Jitsu",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776858348483,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,15 +1,15 @@
 ---
 name: competitor-analysis
 description: 'Analyze competitor SEO/GEO: keywords, content, backlinks, AI citations, traffic share gaps. 竞品分析/竞争对手'
-version: "8.0.0"
+version: "9.0.0"
 license: Apache-2.0
-compatibility: "Claude Code ≥1.0, skills.sh marketplace, ClawHub marketplace, Vercel Labs skills ecosystem. No system packages required. Optional: MCP network access for SEO tool integrations."
+compatibility: "Claude Code, skills.sh, ClawHub, Vercel Labs, Cursor, Windsurf, Codex CLI, Amp, Gemini CLI, Kimi Code, Qwen Code, CodeBuddy"
 homepage: "https://github.com/aaron-he-zhu/seo-geo-claude-skills"
 when_to_use: "Use when analyzing competitor SEO strategy, comparing domains, benchmarking against competitors, or finding competitor keywords and content gaps."
 argument-hint: "<competitor URL or domain>"
 metadata:
   author: aaron-he-zhu
-  version: "8.0.0"
+  version: "9.0.0"
   geo-relevance: "medium"
   tags:
     - seo
@@ -31,20 +31,15 @@ metadata:
     - "competitor SEO"
     - "competitive analysis"
     - "competitor keywords"
-    - "competitor backlinks"
-    - "market analysis"
     - "competitive intelligence"
     # EN-casual
     - "what are my competitors doing"
-    - "what are they doing differently"
     - "why do they rank higher"
     - "spy on competitor SEO"
-    - "what are they doing better"
     - "why do they outrank me"
     # EN-question
     - "who are my SEO competitors"
     - "how do I beat my competitors"
-    - "why do competitors rank higher"
     # EN-competitor
     - "SpyFu alternative"
     - "Semrush competitor analysis"
@@ -73,45 +68,16 @@ metadata:
     - "análisis competitivo SEO"
     # PT
     - "análise de concorrentes"
-    # Misspellings
-    - "competitve analysis"
-    - "compeditor analysis"
 ---
 
 # Competitor Analysis
 
 
-> **[SEO & GEO Skills Library](https://github.com/aaron-he-zhu/seo-geo-claude-skills)** · 20 skills for SEO + GEO · [ClawHub](https://clawhub.ai/u/aaron-he-zhu) · [skills.sh](https://skills.sh/aaron-he-zhu/seo-geo-claude-skills)
-> **System Mode**: This research skill follows the shared [Skill Contract](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/skill-contract.md) and [State Model](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/state-model.md).
-
-
-This skill provides comprehensive analysis of competitor SEO and GEO strategies, revealing what's working in your market and identifying opportunities to outperform the competition.
-
-**System role**: Research layer skill. It turns market signals into reusable strategic inputs for the rest of the library.
-
-## When This Must Trigger
-
-Use this when the conversation involves any of these situations — even if the user does not use SEO terminology:
-
-Use this whenever the task needs reusable market intelligence that should influence strategy, not just an ad hoc answer.
-
-- Entering a new market or niche
-- Planning content strategy based on competitor success
-- Understanding why competitors rank higher
-- Finding backlink and partnership opportunities
-- Identifying content gaps competitors are missing
-- Analyzing competitor AI citation strategies
-- Benchmarking your SEO performance
+Analyzes competitor SEO and GEO strategies -- keywords, content, backlinks, technical health, AI citations -- to reveal what's working in your market and surface actionable opportunities.
 
 ## What This Skill Does
 
-1. **Keyword Analysis**: Identifies keywords competitors rank for
-2. **Content Audit**: Analyzes competitor content strategies and formats
-3. **Backlink Profiling**: Reviews competitor link-building approaches
-4. **Technical Assessment**: Evaluates competitor site health
-5. **GEO Analysis**: Identifies how competitors appear in AI responses
-6. **Gap Identification**: Finds opportunities competitors miss
-7. **Strategy Extraction**: Reveals actionable insights from competitor success
+Profiles competitor keywords, content, backlinks, technical SEO, and AI citation patterns, then synthesizes gaps and actionable strategies to outperform them.
 
 ## Quick Start
 
@@ -149,27 +115,16 @@ How is [competitor] getting cited in AI responses? What can I learn?
 
 - **Reads**: user goals, target market inputs, available tool data, and prior strategy from [CLAUDE.md](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/CLAUDE.md) and the shared [State Model](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/state-model.md) when available.
 - **Writes**: a user-facing research deliverable plus a reusable summary that can be stored under `memory/research/`.
-- **Promotes**: durable keyword priorities, competitor facts, entity candidates, and strategic decisions to `CLAUDE.md`, `memory/decisions.md`, and `memory/research/`; hand canonical entity work to `entity-optimizer`.
+- **Promotes**: durable keyword priorities, competitor facts, entity candidates, and strategic decisions to `memory/hot-cache.md`, `memory/decisions.md`, and `memory/research/`; hand canonical entity work to `entity-optimizer`.
 - **Next handoff**: use the `Next Best Skill` below when the findings are ready to drive action.
+
+### Handoff Summary
+
+> Emit the standard shape from [skill-contract.md §Handoff Summary Format](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/references/skill-contract.md).
 
 ## Data Sources
 
-> **Note:** All integrations are optional. This skill works without any API keys — users provide data manually when no tools are connected.
-
-> See [CONNECTORS.md](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/CONNECTORS.md) for tool category placeholders.
-
-**With ~~SEO tool + ~~analytics + ~~AI monitor connected:**
-Automatically pull competitor keyword rankings, backlink profiles, top performing content, domain authority metrics from ~~SEO tool. Compare against your site's metrics from ~~analytics and ~~search console. Check AI citation patterns for both your site and competitors using ~~AI monitor.
-
-**With manual data only:**
-Ask the user to provide:
-1. Competitor URLs to analyze (2-5 recommended)
-2. Your own site URL and current metrics (traffic, rankings if known)
-3. Industry or niche context
-4. Specific aspects to focus on (keywords, content, backlinks, etc.)
-5. Any known competitor strengths or weaknesses
-
-Proceed with the full analysis using provided data. Note in the output which metrics are from automated collection vs. user-provided data.
+Optional integrations: ~~SEO tool, ~~analytics, ~~AI monitor. Without tools, users provide competitor URLs, own site metrics, and industry context manually. See [CONNECTORS.md](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/CONNECTORS.md).
 
 ## Instructions
 
@@ -227,21 +182,6 @@ When a user requests competitor analysis:
 
    > **Reference**: See [references/analysis-templates.md](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/research/competitor-analysis/references/analysis-templates.md) for detailed templates for each step.
 
-## Validation Checkpoints
-
-### Input Validation
-- [ ] Competitor URLs verified as relevant to your niche
-- [ ] Analysis scope defined (comprehensive or specific focus area)
-- [ ] Your own site metrics available for comparison
-- [ ] Minimum 2-3 competitors identified for meaningful patterns
-
-### Output Validation
-- [ ] Every recommendation cites specific data points (not generic advice)
-- [ ] Competitor strengths backed by measurable evidence (metrics, rankings)
-- [ ] Opportunities based on identifiable gaps, not assumptions
-- [ ] Action plan items are specific and actionable (not vague strategies)
-- [ ] Source of each data point clearly stated (~~SEO tool data, ~~analytics data, ~~AI monitor data, user-provided, or estimated)
-
 ## Example
 
 > **Reference**: See [references/example-report.md](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/research/competitor-analysis/references/example-report.md) for a complete example analyzing HubSpot's marketing keyword dominance.
@@ -285,17 +225,7 @@ How has [competitor]'s SEO strategy evolved over the past year?
 
 ### Save Results
 
-After delivering findings to the user, ask:
-
-> "Save these results for future sessions?"
-
-If yes, write a dated summary to `memory/research/competitor-analysis/YYYY-MM-DD-<topic>.md` containing:
-- One-line headline finding
-- Top 3-5 actionable items
-- Open loops or blockers
-- Source data references
-
-If any findings should influence ongoing strategy, recommend promoting key conclusions to `memory/hot-cache.md`.
+After delivering, offer to save a dated summary to `memory/research/competitor-analysis/YYYY-MM-DD-<topic>.md`. Promote key conclusions to `memory/hot-cache.md` if they influence ongoing strategy.
 
 ## Reference Materials
 
@@ -306,4 +236,4 @@ If any findings should influence ongoing strategy, recommend promoting key concl
 
 ## Next Best Skill
 
-- **Primary**: [content-gap-analysis](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/research/content-gap-analysis/SKILL.md) — turn competitor findings into a focused opportunity map.
+Primary: [content-gap-analysis](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/research/content-gap-analysis/SKILL.md). Also: [serp-analysis](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/research/serp-analysis/SKILL.md), [backlink-analyzer](https://github.com/aaron-he-zhu/seo-geo-claude-skills/blob/main/monitor/backlink-analyzer/SKILL.md).

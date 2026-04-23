@@ -25,6 +25,8 @@ description: >
   即使用户没有明确提到COS或腾讯云，只要涉及"把文件传到云上"、"生成下载链接"、
   "处理云端图片"、"帮我建个知识库"、"把文档放进知识库"、"从知识库里搜一下"、
   "加密COS凭证"、"COS密钥不安全"、"加密一下COS密钥"、"保护COS密钥"等意图，也应该触发此技能。
+description_zh: "腾讯云 COS 对象存储、数据万象数据智能处理、MetaInsight多模态检索、知识库搭建"
+description_en: "Tencent Cloud COS Object Storage, CI Data Intelligence Processing, MetaInsight Multi-modal Retrieval, Knowledge Base Setup"
 metadata:
   {
     "openclaw":

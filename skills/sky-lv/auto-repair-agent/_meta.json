@@ -1,0 +1,11 @@
+{
+  "owner": "sky-lv",
+  "slug": "auto-repair-agent",
+  "displayName": "Auto Repair Agent",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776920815366,
+    "commit": null
+  },
+  "history": []
+}

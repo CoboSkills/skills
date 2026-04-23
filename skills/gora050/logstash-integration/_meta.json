@@ -1,0 +1,11 @@
+{
+  "owner": "gora050",
+  "slug": "logstash-integration",
+  "displayName": "Logstash",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776866248755,
+    "commit": null
+  },
+  "history": []
+}

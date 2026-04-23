@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "mainstay-integration",
+  "displayName": "Mainstay",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776884590108,
+    "commit": null
+  },
+  "history": []
+}

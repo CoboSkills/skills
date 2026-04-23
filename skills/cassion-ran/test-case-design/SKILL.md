@@ -7,6 +7,35 @@ description: This skill should be used when generating test cases, writing test 
 
 > **逐步披露原则**：先读 SKILL.md 获取全貌，再按场景关键词加载对应 references 文件。无需一次加载全部。
 
+## 工作流程
+
+### Step 1: 理解需求
+1. 明确用户要测试的功能模块
+2. 确认目标平台（移动端/PC Web/小程序等）
+3. 确认测试类型（功能/接口/安全/UI等）
+4. 分析用户提供的文档或具体需求内容，提取功能点、输入输出、业务规则
+
+### Step 2: 确定测试范围
+1. 指明平台 → 通用用例 + 平台专项用例
+2. 未指明平台 → 只生成通用测试用例
+
+### Step 3: 加载对应文件
+根据指令映射表，加载需要的 references 文件
+
+### Step 4: 设计测试用例
+按顺序设计，**每个功能点都自动覆盖**：
+1. 功能测试用例（增删改查、列表、表单）
+   - ✅ 正向功能（基于需求）
+   - ✅ 边界值测试（最大值、最小值、空值、临界值）
+   - ✅ 异常场景（空输入、格式错误、非法字符）
+2. 接口测试用例（如涉及）
+3. 安全测试用例（如涉及）
+4. 平台专项用例（如指明平台）
+
+### Step 5: 按格式输出
+- 默认：Excel 表格
+- 结构：编号 + 标题 + 类型 + 模块 + 级别 + 预置条件 + 步骤 + 预期结果
+
 ## 输出要求
 
 ### 输出规则
@@ -50,11 +79,11 @@ description: This skill should be used when generating test cases, writing test 
 
 ```
 references/
-├── templates/               # 模板规则（已整合）
+├── templates/               # 模板规则
 │   └── common-rules.md       # 用例模板+测试类型+优先级+编号
-├── core-capabilities/       # 通用测试能力（已整合）
+├── core-capabilities/       # 通用测试能力
 │   └── common-testing.md    # 所有通用测试能力
-├── platform/               # 平台专项用例（保持分开）
+├── platform/               # 平台专项用例
 │   ├── mobile-app.md        # 移动端App
 │   ├── mobile-web.md        # 移动端Web
 │   ├── pc-web.md           # PC Web

@@ -3,9 +3,15 @@
   "slug": "test-case-design",
   "displayName": "软件测试用例设计",
   "latest": {
-    "version": "1.0.1",
-    "publishedAt": 1776934138965,
-    "commit": "https://github.com/openclaw/skills/commit/220bc3fb1b46eaf56b223e8645e3bf6174f95e97"
+    "version": "1.0.2",
+    "publishedAt": 1776936417381,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.1",
+      "publishedAt": 1776934138965,
+      "commit": "https://github.com/openclaw/skills/commit/220bc3fb1b46eaf56b223e8645e3bf6174f95e97"
+    }
+  ]
 }

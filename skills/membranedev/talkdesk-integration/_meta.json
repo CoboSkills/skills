@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "talkdesk-integration",
+  "displayName": "Talkdesk",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776870338896,
+    "commit": null
+  },
+  "history": []
+}

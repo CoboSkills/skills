@@ -3,11 +3,16 @@
   "slug": "technical-seo-checker",
   "displayName": "Technical Seo Checker",
   "latest": {
-    "version": "8.0.0",
-    "publishedAt": 1776184669139,
-    "commit": "https://github.com/openclaw/skills/commit/33060eaf409b881c1eec9191d23b1e0e12d40f2b"
+    "version": "9.1.0",
+    "publishedAt": 1776940449525,
+    "commit": null
   },
   "history": [
+    {
+      "version": "8.0.0",
+      "publishedAt": 1776184669139,
+      "commit": "https://github.com/openclaw/skills/commit/33060eaf409b881c1eec9191d23b1e0e12d40f2b"
+    },
     {
       "version": "7.2.0",
       "publishedAt": 1775475024350,

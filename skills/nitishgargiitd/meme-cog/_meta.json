@@ -3,11 +3,16 @@
   "slug": "meme-cog",
   "displayName": "Meme Cog",
   "latest": {
-    "version": "1.0.11",
-    "publishedAt": 1776187961823,
-    "commit": "https://github.com/openclaw/skills/commit/2c566b8475edbbc2497893cc2d6711825b0715a3"
+    "version": "1.0.12",
+    "publishedAt": 1776925150105,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.11",
+      "publishedAt": 1776187961823,
+      "commit": "https://github.com/openclaw/skills/commit/2c566b8475edbbc2497893cc2d6711825b0715a3"
+    },
     {
       "version": "1.0.8",
       "publishedAt": 1775627900323,

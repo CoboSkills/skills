@@ -3,11 +3,16 @@
   "slug": "research-cog",
   "displayName": "Research Cog",
   "latest": {
-    "version": "1.0.13",
-    "publishedAt": 1776187981555,
-    "commit": "https://github.com/openclaw/skills/commit/ce39b757d00fcbbd5504f663b89db21e32f45d21"
+    "version": "1.0.14",
+    "publishedAt": 1776925162818,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.13",
+      "publishedAt": 1776187981555,
+      "commit": "https://github.com/openclaw/skills/commit/ce39b757d00fcbbd5504f663b89db21e32f45d21"
+    },
     {
       "version": "1.0.10",
       "publishedAt": 1775627919040,

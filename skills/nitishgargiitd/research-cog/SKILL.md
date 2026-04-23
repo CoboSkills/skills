@@ -7,6 +7,9 @@ metadata:
   openclaw:
     emoji: "🔬"
     os: [darwin, linux, windows]
+    requires:
+      bins: [python3]
+      env: [CELLCOG_API_KEY]
 dependencies: [cellcog]
 ---
 # Research Cog - Deep Research Powered by CellCog

@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "saleor-integration",
+  "displayName": "Saleor",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776884641458,
+    "commit": null
+  },
+  "history": []
+}

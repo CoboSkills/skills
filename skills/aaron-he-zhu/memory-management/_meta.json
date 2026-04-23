@@ -3,11 +3,16 @@
   "slug": "memory-management",
   "displayName": "Memory Management",
   "latest": {
-    "version": "8.0.0",
-    "publishedAt": 1776184708595,
-    "commit": "https://github.com/openclaw/skills/commit/cf5a73053d7b0508cc60021ff5c0bb6a118da44b"
+    "version": "9.1.0",
+    "publishedAt": 1776940460519,
+    "commit": null
   },
   "history": [
+    {
+      "version": "8.0.0",
+      "publishedAt": 1776184708595,
+      "commit": "https://github.com/openclaw/skills/commit/cf5a73053d7b0508cc60021ff5c0bb6a118da44b"
+    },
     {
       "version": "7.2.0",
       "publishedAt": 1775475072012,

@@ -122,6 +122,75 @@ export interface VaultWalletLinkInfo {
     wallet: string;
     linked_at: number;
 }
+export interface UserStatsInfo {
+    address: string;
+    user: string;
+    /** Lifetime trading volume in SOL */
+    total_volume_sol: number;
+    /** Volume attributed to the current epoch (SOL) */
+    volume_current_epoch_sol: number;
+    /** Volume attributed to the previous epoch — claim eligibility is against this (SOL) */
+    volume_previous_epoch_sol: number;
+    /** Epoch number that was most recently claimed *for* (not *when*). The on-chain
+     *  claim instruction settles the prior epoch's volume, so this is typically
+     *  `ProtocolTreasury.current_epoch - 1` at the time of the claim. */
+    last_epoch_claimed: number;
+    /** Lifetime rewards claimed (SOL) */
+    total_rewards_claimed_sol: number;
+    /** Epoch number at which volume was last recorded */
+    last_volume_epoch: number;
+}
+export interface TreasuryInfo {
+    address: string;
+    /** The bonding curve PDA this treasury is associated with */
+    bonding_curve: string;
+    mint: string;
+    /** Current treasury SOL balance (SOL) */
+    sol_balance_sol: number;
+    /** Raw token balance held by the treasury (token base units) */
+    tokens_held: number;
+    /** Harvested Token-2022 transfer fees swapped to SOL — cumulative (SOL) */
+    harvested_fees_sol: number;
+    /** Baseline pool SOL reserves captured at migration (lamports) */
+    baseline_sol_reserves: number;
+    /** Baseline pool token reserves captured at migration (token base units) */
+    baseline_token_reserves: number;
+    baseline_initialized: boolean;
+    /** Total stars received (sybil-resistant, 0.02 SOL each) */
+    total_stars: number;
+    /** Accumulated SOL from stars (SOL) */
+    star_sol_balance_sol: number;
+    creator_paid_out: boolean;
+    /** Deprecated — buyback mechanism removed in V33. Always 0 for new tokens. */
+    total_bought_back: number;
+    /** Deprecated — buyback mechanism removed in V33. */
+    total_burned_from_buyback: number;
+    /** Deprecated — buyback mechanism removed in V33. */
+    last_buyback_slot: number;
+    /** Deprecated — buyback mechanism removed in V33. Always 0 for new tokens. */
+    buyback_count: number;
+}
+export interface ProtocolTreasuryInfo {
+    address: string;
+    authority: string;
+    /** Current SOL balance in the protocol treasury */
+    current_balance_sol: number;
+    /** Reserve floor kept across epochs (SOL) */
+    reserve_floor_sol: number;
+    /** Lifetime fees received (SOL) */
+    total_fees_received_sol: number;
+    /** Lifetime SOL distributed to claimers */
+    total_distributed_sol: number;
+    current_epoch: number;
+    /** Unix timestamp of the last epoch rollover */
+    last_epoch_ts: number;
+    /** Aggregate trading volume across all users in the current epoch (SOL) */
+    total_volume_current_epoch_sol: number;
+    /** Aggregate volume in the previous epoch — denominator for reward shares (SOL) */
+    total_volume_previous_epoch_sol: number;
+    /** Amount currently available to distribute this epoch (SOL) */
+    distributable_amount_sol: number;
+}
 export interface CreateVaultParams {
     creator: string;
 }
@@ -163,10 +232,7 @@ export interface BuyParams {
     amount_sol: number;
     slippage_bps?: number;
     message?: string;
-    /** Vault creator pubkey. Vault pays for the buy. */
     vault: string;
-    /** Pre-fetched quote from getBuyQuote. If provided, skips internal quote fetch
-     *  and uses quote.source to route bonding vs DEX. */
     quote?: BuyQuoteResult;
 }
 export interface DirectBuyParams {
@@ -175,7 +241,6 @@ export interface DirectBuyParams {
     amount_sol: number;
     slippage_bps?: number;
     message?: string;
-    /** Pre-fetched quote from getBuyQuote. If provided, skips internal quote fetch. */
     quote?: BuyQuoteResult;
 }
 export interface SellParams {
@@ -237,6 +302,10 @@ export interface HarvestFeesParams {
     /** Optional list of token account addresses to harvest from.
      *  If omitted, the SDK auto-discovers accounts with withheld fees. */
     sources?: string[];
+}
+export interface AdvanceProtocolEpochParams {
+    /** Payer wallet (permissionless — anyone can trigger) */
+    payer: string;
 }
 export interface SwapFeesToSolParams {
     /** Token mint address */
@@ -367,7 +436,15 @@ export interface LendingInfo {
 export interface LoanPositionInfo {
     collateral_amount: number;
     borrowed_amount: number;
+    /** Accrued interest projected to the current slot using the on-chain simple-linear formula.
+     *  Interest is only actually written on-chain when an instruction touches the loan; this value
+     *  matches what the program will compute at the next touch. Use `accrued_interest_stored` for
+     *  the raw on-chain value as of `last_update_slot`. */
     accrued_interest: number;
+    /** Raw stored accrued_interest from the LoanPosition account (as of last_update_slot). */
+    accrued_interest_stored: number;
+    /** Slot at which `accrued_interest_stored` was last written. */
+    last_update_slot: number;
     total_owed: number;
     collateral_value_sol: number | null;
     current_ltv_bps: number | null;
@@ -384,7 +461,12 @@ export interface AllLoanPositionsResult {
 export interface ShortPositionInfo {
     sol_collateral: number;
     tokens_borrowed: number;
+    /** Accrued interest (in tokens) projected to the current slot. See `LoanPositionInfo.accrued_interest`. */
     accrued_interest: number;
+    /** Raw stored accrued_interest from the ShortPosition account (as of last_update_slot). */
+    accrued_interest_stored: number;
+    /** Slot at which `accrued_interest_stored` was last written. */
+    last_update_slot: number;
     total_owed_tokens: number;
     /** SOL value of the token debt (null if pool price unavailable) */
     debt_value_sol: number | null;
@@ -414,6 +496,6 @@ export interface SaidVerification {
 }
 export interface ConfirmResult {
     confirmed: boolean;
-    event_type: 'token_launch' | 'trade_complete' | 'governance_vote' | 'unknown';
+    event_type: 'token_launch' | 'trade_complete' | 'unknown';
 }
 //# sourceMappingURL=types.d.ts.map

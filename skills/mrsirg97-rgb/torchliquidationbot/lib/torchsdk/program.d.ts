@@ -108,12 +108,34 @@ export interface ShortConfig {
     total_interest_collected: BN;
     bump: number;
 }
+export interface UserStats {
+    user: PublicKey;
+    total_volume: BN;
+    volume_current_epoch: BN;
+    volume_previous_epoch: BN;
+    last_epoch_claimed: BN;
+    total_rewards_claimed: BN;
+    last_volume_epoch: BN;
+    bump: number;
+}
+export interface ProtocolTreasury {
+    authority: PublicKey;
+    current_balance: BN;
+    reserve_floor: BN;
+    total_fees_received: BN;
+    total_distributed: BN;
+    current_epoch: BN;
+    last_epoch_ts: BN;
+    total_volume_current_epoch: BN;
+    total_volume_previous_epoch: BN;
+    distributable_amount: BN;
+    bump: number;
+}
 export declare const decodeString: (bytes: number[]) => string;
 export declare const getGlobalConfigPda: () => [PublicKey, number];
 export declare const getBondingCurvePda: (mint: PublicKey) => [PublicKey, number];
 export declare const getTreasuryTokenAccount: (mint: PublicKey, treasury: PublicKey) => PublicKey;
 export declare const getUserPositionPda: (bondingCurve: PublicKey, user: PublicKey) => [PublicKey, number];
-export declare const getVoteRecordPda: (bondingCurve: PublicKey, voter: PublicKey) => [PublicKey, number];
 export declare const getTokenTreasuryPda: (mint: PublicKey) => [PublicKey, number];
 export declare const getProtocolTreasuryPda: () => [PublicKey, number];
 export declare const getUserStatsPda: (user: PublicKey) => [PublicKey, number];

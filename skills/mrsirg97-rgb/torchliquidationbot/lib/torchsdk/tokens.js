@@ -41,13 +41,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.fetchTokenRaw = exports.getVaultWalletLink = exports.getVaultForWallet = exports.getVault = exports.getAllLoanPositions = exports.getShortPosition = exports.getLoanPosition = exports.getLendingInfo = exports.getMessages = exports.getHolders = exports.getToken = exports.getTokenMetadata = exports.getTokens = void 0;
+exports.fetchTokenRaw = exports.getTreasuryState = exports.getProtocolTreasuryState = exports.getUserStats = exports.getVaultWalletLink = exports.getVaultForWallet = exports.getVault = exports.getAllLoanPositions = exports.getShortPosition = exports.getLoanPosition = exports.getLendingInfo = exports.getMessages = exports.getHolders = exports.getToken = exports.getTokenMetadata = exports.getTokens = void 0;
 const web3_js_1 = require("@solana/web3.js");
 const anchor_1 = require("@coral-xyz/anchor");
 const spl_token_1 = require("@solana/spl-token");
 const program_1 = require("./program");
 const constants_1 = require("./constants");
-const gateway_1 = require("./gateway");
 const torch_market_json_1 = __importDefault(require("./torch_market.json"));
 const getTokenStatus = (bc) => {
     if (bc.reclaimed)
@@ -145,7 +144,8 @@ const buildTokenDetail = (mint, bc, treasury, metadata, holdersCount, solPriceUs
     if (bc.migrated && poolPrice && poolPrice.tokenReserves > 0) {
         // Use live Raydium pool price for migrated tokens
         // solReserves is in lamports, tokenReserves is in base units (10^6)
-        priceInSol = (poolPrice.solReserves * constants_1.TOKEN_MULTIPLIER) / (poolPrice.tokenReserves * constants_1.LAMPORTS_PER_SOL);
+        priceInSol =
+            (poolPrice.solReserves * constants_1.TOKEN_MULTIPLIER) / (poolPrice.tokenReserves * constants_1.LAMPORTS_PER_SOL);
     }
     else {
         // Use bonding curve virtual reserves for pre-migration tokens
@@ -272,11 +272,13 @@ const getToken = async (connection, mintStr) => {
     const uri = (0, program_1.decodeString)(bondingCurve.uri);
     if (uri) {
         try {
-            const res = await (0, gateway_1.fetchWithFallback)(uri);
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 10000);
+            const res = await fetch(uri, { signal: controller.signal }).finally(() => clearTimeout(timer));
             const data = (await res.json());
             metadata = {
                 description: data.description,
-                image: data.image && (0, gateway_1.isIrysUrl)(data.image) ? (0, gateway_1.irysToUploader)(data.image) : data.image,
+                image: data.image,
                 twitter: data.twitter,
                 telegram: data.telegram,
                 website: data.website,
@@ -386,7 +388,7 @@ const getMessages = async (connection, mintStr, limit = 50, opts) => {
     const extractMemo = async (tx, signature, blockTime) => {
         const allInstructions = [
             ...tx.transaction.message.instructions,
-            ...(tx.meta?.innerInstructions || []).flatMap(inner => inner.instructions),
+            ...(tx.meta?.innerInstructions || []).flatMap((inner) => inner.instructions),
         ];
         for (const ix of allInstructions) {
             const programId = 'programId' in ix ? ix.programId.toString() : '';
@@ -482,7 +484,7 @@ const getMessages = async (connection, mintStr, limit = 50, opts) => {
     // Enrich with SAID verification when opted in
     if (opts?.enrich) {
         const { verifySaid } = await Promise.resolve().then(() => __importStar(require('./said')));
-        const uniqueSenders = [...new Set(trimmed.map(m => m.sender))];
+        const uniqueSenders = [...new Set(trimmed.map((m) => m.sender))];
         const verifications = await Promise.all(uniqueSenders.map(async (sender) => {
             try {
                 const v = await verifySaid(sender);
@@ -511,12 +513,29 @@ exports.getMessages = getMessages;
 // ============================================================================
 // Lending (V2.4)
 // ============================================================================
-// Lending constants (matching the Rust program)
+// Lending constants (matching the Rust program — see programs/torch_market/src/constants.rs)
 const INTEREST_RATE_BPS = 200; // 2% per epoch
 const LIQUIDATION_THRESHOLD_BPS = 6500; // 65%
 const LIQUIDATION_BONUS_BPS = 1000; // 10%
 const LENDING_UTILIZATION_CAP_BPS = 8000; // 80% (V4.0, was 70%)
 const BORROW_SHARE_MULTIPLIER = 23; // Per-user cap: max borrow = 23x collateral share of supply (V10.2.5, was 5x)
+const EPOCH_DURATION_SLOTS = 1512000; // 7 days at 400ms/slot — matches on-chain EPOCH_DURATION_SLOTS
+// Project simple-linear interest forward to the given slot, matching the on-chain
+// accrue_interest() formula exactly:
+//   interest = principal * rate_bps * slots_elapsed / (10000 * EPOCH_DURATION_SLOTS)
+// See programs/torch_market/src/handlers/lending.rs:accrue_interest.
+// Returns total accrued interest (stored + projected pending), not just the delta.
+const projectAccruedInterest = (principal, storedAccrued, lastUpdateSlot, currentSlot, rateBps = INTEREST_RATE_BPS) => {
+    if (principal <= 0)
+        return storedAccrued;
+    const slotsElapsed = Math.max(0, currentSlot - lastUpdateSlot);
+    if (slotsElapsed === 0)
+        return storedAccrued;
+    // Use BigInt to match on-chain u128 math and avoid precision loss at high slot counts.
+    const delta = Number((BigInt(principal) * BigInt(rateBps) * BigInt(slotsElapsed)) /
+        (BigInt(10000) * BigInt(EPOCH_DURATION_SLOTS)));
+    return storedAccrued + delta;
+};
 // Depth-based risk bands (V7): pool SOL depth → max LTV
 const MIN_POOL_SOL_LENDING = 5000000000; // 5 SOL
 const DEPTH_TIER_1 = 50000000000; // 50 SOL
@@ -615,7 +634,7 @@ const getLendingInfo = async (connection, mintStr) => {
         borrow_share_multiplier: BORROW_SHARE_MULTIPLIER,
         total_sol_lent: totalSolLent,
         active_loans: activeLoans,
-        treasury_sol_available: Math.max(0, Math.floor(treasurySol * LENDING_UTILIZATION_CAP_BPS / 10000) - (totalSolLent ?? 0)),
+        treasury_sol_available: Math.max(0, Math.floor((treasurySol * LENDING_UTILIZATION_CAP_BPS) / 10000) - (totalSolLent ?? 0)),
         ...(warnings.length > 0 ? { warnings } : {}),
     };
 };
@@ -631,12 +650,17 @@ const getLoanPosition = async (connection, mintStr, walletStr) => {
     const wallet = new web3_js_1.PublicKey(walletStr);
     const coder = new anchor_1.BorshCoder(torch_market_json_1.default);
     const [loanPositionPda] = (0, program_1.getLoanPositionPda)(mint, wallet);
-    const accountInfo = await connection.getAccountInfo(loanPositionPda);
+    const [accountInfo, currentSlot] = await Promise.all([
+        connection.getAccountInfo(loanPositionPda),
+        connection.getSlot('confirmed'),
+    ]);
     if (!accountInfo) {
         return {
             collateral_amount: 0,
             borrowed_amount: 0,
             accrued_interest: 0,
+            accrued_interest_stored: 0,
+            last_update_slot: 0,
             total_owed: 0,
             collateral_value_sol: 0,
             current_ltv_bps: 0,
@@ -646,7 +670,9 @@ const getLoanPosition = async (connection, mintStr, walletStr) => {
     const loan = coder.accounts.decode('LoanPosition', accountInfo.data);
     const collateral = Number(loan.collateral_amount.toString());
     const borrowed = Number(loan.borrowed_amount.toString());
-    const interest = Number(loan.accrued_interest.toString());
+    const storedInterest = Number(loan.accrued_interest.toString());
+    const lastUpdateSlot = Number(loan.last_update_slot.toString());
+    const interest = projectAccruedInterest(borrowed, storedInterest, lastUpdateSlot, currentSlot);
     const totalOwed = borrowed + interest;
     // Get collateral value from Raydium pool price
     let collateralValueSol = 0;
@@ -711,6 +737,8 @@ const getLoanPosition = async (connection, mintStr, walletStr) => {
         collateral_amount: collateral,
         borrowed_amount: borrowed,
         accrued_interest: interest,
+        accrued_interest_stored: storedInterest,
+        last_update_slot: lastUpdateSlot,
         total_owed: totalOwed,
         collateral_value_sol: collateralValueSol,
         current_ltv_bps: currentLtvBps,
@@ -730,12 +758,17 @@ const getShortPosition = async (connection, mintStr, walletStr) => {
     const wallet = new web3_js_1.PublicKey(walletStr);
     const coder = new anchor_1.BorshCoder(torch_market_json_1.default);
     const [shortPositionPda] = (0, program_1.getShortPositionPda)(mint, wallet);
-    const accountInfo = await connection.getAccountInfo(shortPositionPda);
+    const [accountInfo, currentSlot] = await Promise.all([
+        connection.getAccountInfo(shortPositionPda),
+        connection.getSlot('confirmed'),
+    ]);
     if (!accountInfo) {
         return {
             sol_collateral: 0,
             tokens_borrowed: 0,
             accrued_interest: 0,
+            accrued_interest_stored: 0,
+            last_update_slot: 0,
             total_owed_tokens: 0,
             debt_value_sol: 0,
             current_ltv_bps: 0,
@@ -745,7 +778,9 @@ const getShortPosition = async (connection, mintStr, walletStr) => {
     const short = coder.accounts.decode('ShortPosition', accountInfo.data);
     const solCollateral = Number(short.sol_collateral.toString());
     const tokensBorrowed = Number(short.tokens_borrowed.toString());
-    const interest = Number(short.accrued_interest.toString());
+    const storedInterest = Number(short.accrued_interest.toString());
+    const lastUpdateSlot = Number(short.last_update_slot.toString());
+    const interest = projectAccruedInterest(tokensBorrowed, storedInterest, lastUpdateSlot, currentSlot);
     const totalOwedTokens = tokensBorrowed + interest;
     // Get token debt value from Raydium pool price
     let debtValueSol = 0;
@@ -810,6 +845,8 @@ const getShortPosition = async (connection, mintStr, walletStr) => {
         sol_collateral: solCollateral,
         tokens_borrowed: tokensBorrowed,
         accrued_interest: interest,
+        accrued_interest_stored: storedInterest,
+        last_update_slot: lastUpdateSlot,
         total_owed_tokens: totalOwedTokens,
         debt_value_sol: debtValueSol,
         current_ltv_bps: currentLtvBps,
@@ -853,16 +890,19 @@ const getAllLoanPositions = async (connection, mintStr) => {
             // Skip malformed accounts
         }
     }
-    // 3. Fetch Raydium pool price ONCE
+    // 3. Fetch Raydium pool price + current slot ONCE (interest projection needs currentSlot)
     let poolPriceSol = null;
     let solReserves = 0;
     let tokenReserves = 0;
+    let currentSlot = 0;
     try {
         const raydium = (0, program_1.getRaydiumMigrationAccounts)(mint);
-        const [vault0Info, vault1Info] = await Promise.all([
+        const [vault0Info, vault1Info, slot] = await Promise.all([
             connection.getTokenAccountBalance(raydium.token0Vault),
             connection.getTokenAccountBalance(raydium.token1Vault),
+            connection.getSlot('confirmed'),
         ]);
+        currentSlot = slot;
         const vault0Amount = Number(vault0Info.value.amount);
         const vault1Amount = Number(vault1Info.value.amount);
         if (raydium.isWsolToken0) {
@@ -878,13 +918,21 @@ const getAllLoanPositions = async (connection, mintStr) => {
         }
     }
     catch {
-        // Pool price unavailable
+        // Pool price unavailable — fall back to a plain slot fetch so we can still project interest
+        try {
+            currentSlot = await connection.getSlot('confirmed');
+        }
+        catch {
+            /* ignore */
+        }
     }
-    // 4. Compute health for each position
+    // 4. Compute health for each position (interest projected to currentSlot)
     const positions = activeLoans.map(({ borrower, loan }) => {
         const collateral = Number(loan.collateral_amount.toString());
         const borrowed = Number(loan.borrowed_amount.toString());
-        const interest = Number(loan.accrued_interest.toString());
+        const storedInterest = Number(loan.accrued_interest.toString());
+        const lastUpdateSlot = Number(loan.last_update_slot.toString());
+        const interest = projectAccruedInterest(borrowed, storedInterest, lastUpdateSlot, currentSlot);
         const totalOwed = borrowed + interest;
         let collateralValueSol = null;
         if (poolPriceSol !== null && tokenReserves > 0) {
@@ -922,6 +970,8 @@ const getAllLoanPositions = async (connection, mintStr) => {
             collateral_amount: collateral,
             borrowed_amount: borrowed,
             accrued_interest: interest,
+            accrued_interest_stored: storedInterest,
+            last_update_slot: lastUpdateSlot,
             total_owed: totalOwed,
             collateral_value_sol: collateralValueSol,
             current_ltv_bps: currentLtvBps,
@@ -1019,4 +1069,81 @@ const getVaultWalletLink = async (connection, walletStr) => {
     };
 };
 exports.getVaultWalletLink = getVaultWalletLink;
+// Per-user trading stats (volume, rewards claimed). Returns null if the user has
+// no stats account yet (no trading activity).
+const getUserStats = async (connection, walletStr) => {
+    const wallet = new web3_js_1.PublicKey(walletStr);
+    const coder = new anchor_1.BorshCoder(torch_market_json_1.default);
+    const [userStatsPda] = (0, program_1.getUserStatsPda)(wallet);
+    const accountInfo = await connection.getAccountInfo(userStatsPda);
+    if (!accountInfo)
+        return null;
+    const stats = coder.accounts.decode('UserStats', accountInfo.data);
+    return {
+        address: userStatsPda.toString(),
+        user: stats.user.toString(),
+        total_volume_sol: Number(stats.total_volume.toString()) / constants_1.LAMPORTS_PER_SOL,
+        volume_current_epoch_sol: Number(stats.volume_current_epoch.toString()) / constants_1.LAMPORTS_PER_SOL,
+        volume_previous_epoch_sol: Number(stats.volume_previous_epoch.toString()) / constants_1.LAMPORTS_PER_SOL,
+        last_epoch_claimed: Number(stats.last_epoch_claimed.toString()),
+        total_rewards_claimed_sol: Number(stats.total_rewards_claimed.toString()) / constants_1.LAMPORTS_PER_SOL,
+        last_volume_epoch: Number(stats.last_volume_epoch.toString()),
+    };
+};
+exports.getUserStats = getUserStats;
+// Protocol treasury state (current epoch, balances, distribution accounting).
+// Returns null if the protocol hasn't been initialized yet.
+const getProtocolTreasuryState = async (connection) => {
+    const coder = new anchor_1.BorshCoder(torch_market_json_1.default);
+    const [protocolTreasuryPda] = (0, program_1.getProtocolTreasuryPda)();
+    const accountInfo = await connection.getAccountInfo(protocolTreasuryPda);
+    if (!accountInfo)
+        return null;
+    const t = coder.accounts.decode('ProtocolTreasury', accountInfo.data);
+    return {
+        address: protocolTreasuryPda.toString(),
+        authority: t.authority.toString(),
+        current_balance_sol: Number(t.current_balance.toString()) / constants_1.LAMPORTS_PER_SOL,
+        reserve_floor_sol: Number(t.reserve_floor.toString()) / constants_1.LAMPORTS_PER_SOL,
+        total_fees_received_sol: Number(t.total_fees_received.toString()) / constants_1.LAMPORTS_PER_SOL,
+        total_distributed_sol: Number(t.total_distributed.toString()) / constants_1.LAMPORTS_PER_SOL,
+        current_epoch: Number(t.current_epoch.toString()),
+        last_epoch_ts: Number(t.last_epoch_ts.toString()),
+        total_volume_current_epoch_sol: Number(t.total_volume_current_epoch.toString()) / constants_1.LAMPORTS_PER_SOL,
+        total_volume_previous_epoch_sol: Number(t.total_volume_previous_epoch.toString()) / constants_1.LAMPORTS_PER_SOL,
+        distributable_amount_sol: Number(t.distributable_amount.toString()) / constants_1.LAMPORTS_PER_SOL,
+    };
+};
+exports.getProtocolTreasuryState = getProtocolTreasuryState;
+// Per-token Treasury state: SOL balance, tokens held, harvested fees, stars,
+// and baseline pool reserves captured at migration. Returns null if the token
+// or its treasury hasn't been created yet.
+const getTreasuryState = async (connection, mintStr) => {
+    const mint = new web3_js_1.PublicKey(mintStr);
+    const coder = new anchor_1.BorshCoder(torch_market_json_1.default);
+    const [treasuryPda] = (0, program_1.getTokenTreasuryPda)(mint);
+    const accountInfo = await connection.getAccountInfo(treasuryPda);
+    if (!accountInfo)
+        return null;
+    const t = coder.accounts.decode('Treasury', accountInfo.data);
+    return {
+        address: treasuryPda.toString(),
+        bonding_curve: t.bonding_curve.toString(),
+        mint: t.mint.toString(),
+        sol_balance_sol: Number(t.sol_balance.toString()) / constants_1.LAMPORTS_PER_SOL,
+        tokens_held: Number(t.tokens_held.toString()),
+        harvested_fees_sol: Number(t.harvested_fees.toString()) / constants_1.LAMPORTS_PER_SOL,
+        baseline_sol_reserves: Number(t.baseline_sol_reserves.toString()),
+        baseline_token_reserves: Number(t.baseline_token_reserves.toString()),
+        baseline_initialized: t.baseline_initialized,
+        total_stars: Number(t.total_stars.toString()),
+        star_sol_balance_sol: Number(t.star_sol_balance.toString()) / constants_1.LAMPORTS_PER_SOL,
+        creator_paid_out: t.creator_paid_out,
+        total_bought_back: Number(t.total_bought_back.toString()),
+        total_burned_from_buyback: Number(t.total_burned_from_buyback.toString()),
+        last_buyback_slot: Number(t.last_buyback_slot.toString()),
+        buyback_count: Number(t.buyback_count.toString()),
+    };
+};
+exports.getTreasuryState = getTreasuryState;
 //# sourceMappingURL=tokens.js.map

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.2] - 2026-03-27
+### Changed
+- Version bump for ClawHub registry sync
+
+## [0.7.1] - 2026-03-27
+### Fixed
+- Removed hardcoded `/tmp/chronicle-task.json` path in SKILL.md — replaced with `$TMP_DIR/chronicle-task.json` for portability
+
 ## [0.7.0] - 2026-03-26
 ### Added
 - **"On This Day" Resurfacing**: When generating a new diary entry, checks for entries from 7, 30, and 365 days ago and adds a "Looking Back" section with highlights

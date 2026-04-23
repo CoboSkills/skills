@@ -3,7 +3,7 @@
   "diary_path": "memory/diary/",
   "export_format": "pdf",
   "privacy_level": "private",
-  "auto_generate": false,
+  "auto_generate": true,
   "template": "daily",
   "memory_integration": {
     "enabled": false,
@@ -19,9 +19,9 @@
     "emotional_state": true,
     "interactions": true,
     "tomorrow": true,
-    "quotes": false,
-    "curiosity": false,
-    "decisions": false,
+    "quotes": true,
+    "curiosity": true,
+    "decisions": true,
     "relationship": false
   },
   "features": {

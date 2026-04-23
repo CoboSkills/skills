@@ -1,0 +1,11 @@
+{
+  "owner": "snipercat69",
+  "slug": "edgeiq-xss-scanner-v2",
+  "displayName": "Xss Scanner",
+  "latest": {
+    "version": "1.2.0",
+    "publishedAt": 1776883719329,
+    "commit": null
+  },
+  "history": []
+}

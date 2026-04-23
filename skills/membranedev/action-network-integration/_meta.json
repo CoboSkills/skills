@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "action-network-integration",
+  "displayName": "Action Network",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776837869224,
+    "commit": null
+  },
+  "history": []
+}

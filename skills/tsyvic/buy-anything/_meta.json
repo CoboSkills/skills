@@ -3,11 +3,16 @@
   "slug": "buy-anything",
   "displayName": "Buy Anything",
   "latest": {
-    "version": "3.0.5",
-    "publishedAt": 1776175894041,
-    "commit": "https://github.com/openclaw/skills/commit/0f120c908406e32a7bdbf783dd666b5770899559"
+    "version": "3.0.10",
+    "publishedAt": 1776872913867,
+    "commit": null
   },
   "history": [
+    {
+      "version": "3.0.5",
+      "publishedAt": 1776175894041,
+      "commit": "https://github.com/openclaw/skills/commit/0f120c908406e32a7bdbf783dd666b5770899559"
+    },
     {
       "version": "3.0.3",
       "publishedAt": 1772668549491,

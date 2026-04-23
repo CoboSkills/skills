@@ -1,7 +1,7 @@
 {
   "name": "cooltrade-openclaw-skills",
-  "version": "1.2.1",
-  "description": "CoolTrade Agent Skills for OpenClaw. Fetch deep market quotes, financial fundamentals, global index, futures, financial news, and AI-generated daily A-share market reports.",
+  "version": "1.4.0",
+  "description": "CoolTrade Agent Skills for OpenClaw. A-share/US stock/crypto quotes, financials, global indexes, futures, AI daily report, price alerts, and crypto buy/sell signals.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

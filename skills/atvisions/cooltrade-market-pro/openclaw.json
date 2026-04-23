@@ -88,6 +88,68 @@
         "method": "GET",
         "url": "https://api.cooltrade.xyz/api/market/agent-skills/{{COOLTRADE_API_KEY}}/daily-report/"
       }
+    },
+    {
+      "name": "cooltrade_crypto_quote",
+      "description": "Get real-time crypto market quote, technical indicators (MA5/10/20, RSI, MACD), and AI-generated buy/sell signals for any cryptocurrency. Call this when user asks about BTC, ETH, SOL or any crypto coin price, trend, buy point, or sell point. Provide the coin symbol (e.g. BTC, ETH) or full name (e.g. Bitcoin).",
+      "type": "http",
+      "config": {
+        "method": "GET",
+        "url": "https://api.cooltrade.xyz/api/market/agent-skills/{{COOLTRADE_API_KEY}}/crypto/quote/",
+        "params": {
+          "symbol": "{{symbol}}"
+        }
+      }
+    },
+    {
+      "name": "cooltrade_crypto_screener",
+      "description": "Scan 15+ major cryptocurrencies in real-time, score each one using technical indicators (MA alignment, RSI, MACD), and return the Top 5 buy candidates ranked by signal strength. Call this when user asks: which crypto should I buy, recommend some coins, best crypto to buy now, or any similar screener/recommendation request.",
+      "type": "http",
+      "config": {
+        "method": "GET",
+        "url": "https://api.cooltrade.xyz/api/market/agent-skills/{{COOLTRADE_API_KEY}}/crypto/screener/",
+        "params": {
+          "top": "{{top_n}}"
+        }
+      }
+    },
+    {
+      "name": "cooltrade_alert_create",
+      "description": "Create a stock price alert for any A-share stock. Call this when the user says things like 'notify me when X drops below Y', 'alert me if stock breaks MA60', 'tell me when price rises above Z'. Supported conditions: price_below, price_above, pct_down (daily drop %), pct_up (daily rise %), ma_break_below (breaks below N-day MA), ma_break_above (breaks above N-day MA). Channels: weixin, telegram, both.",
+      "type": "http",
+      "config": {
+        "method": "GET",
+        "url": "https://api.cooltrade.xyz/api/market/agent-skills/{{COOLTRADE_API_KEY}}/alert/create/",
+        "params": {
+          "stock": "{{stock}}",
+          "condition": "{{condition}}",
+          "threshold": "{{threshold}}",
+          "channel": "{{channel}}",
+          "repeat": "{{repeat}}",
+          "note": "{{note}}"
+        }
+      }
+    },
+    {
+      "name": "cooltrade_alert_list",
+      "description": "List all stock price alerts for the current user. Call this when the user asks 'show my alerts', 'what alerts do I have', 'check my watchlist alerts'.",
+      "type": "http",
+      "config": {
+        "method": "GET",
+        "url": "https://api.cooltrade.xyz/api/market/agent-skills/{{COOLTRADE_API_KEY}}/alert/list/"
+      }
+    },
+    {
+      "name": "cooltrade_alert_delete",
+      "description": "Disable or delete a stock price alert by its ID. Call this when the user says 'cancel alert', 'remove my alert', 'stop monitoring'. First use cooltrade_alert_list to get the alert ID.",
+      "type": "http",
+      "config": {
+        "method": "GET",
+        "url": "https://api.cooltrade.xyz/api/market/agent-skills/{{COOLTRADE_API_KEY}}/alert/delete/",
+        "params": {
+          "id": "{{alert_id}}"
+        }
+      }
     }
   ]
 }

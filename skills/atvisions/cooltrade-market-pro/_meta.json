@@ -3,9 +3,15 @@
   "slug": "cooltrade-market-pro",
   "displayName": "CoolTrade 股票行情与分析大师",
   "latest": {
-    "version": "1.0.3",
-    "publishedAt": 1776867299524,
-    "commit": "https://github.com/openclaw/skills/commit/213376192dd13809a8c9f164d829525407cd361b"
+    "version": "1.0.6",
+    "publishedAt": 1776910804939,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.3",
+      "publishedAt": 1776867299524,
+      "commit": "https://github.com/openclaw/skills/commit/213376192dd13809a8c9f164d829525407cd361b"
+    }
+  ]
 }

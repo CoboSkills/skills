@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "zendesk-guide-integration",
+  "displayName": "Zendesk Guide",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776902707425,
+    "commit": null
+  },
+  "history": []
+}

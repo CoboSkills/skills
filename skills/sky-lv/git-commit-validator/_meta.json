@@ -1,0 +1,11 @@
+{
+  "owner": "sky-lv",
+  "slug": "git-commit-validator",
+  "displayName": "Git Commit Validator",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776931887854,
+    "commit": null
+  },
+  "history": []
+}

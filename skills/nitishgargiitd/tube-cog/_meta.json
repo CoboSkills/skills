@@ -3,11 +3,16 @@
   "slug": "tube-cog",
   "displayName": "Tube Cog",
   "latest": {
-    "version": "1.0.11",
-    "publishedAt": 1776188010834,
-    "commit": "https://github.com/openclaw/skills/commit/7477c70eb207ec5dc77cfc08734363b48f38f296"
+    "version": "1.0.12",
+    "publishedAt": 1776925187964,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.11",
+      "publishedAt": 1776188010834,
+      "commit": "https://github.com/openclaw/skills/commit/7477c70eb207ec5dc77cfc08734363b48f38f296"
+    },
     {
       "version": "1.0.8",
       "publishedAt": 1775627944510,

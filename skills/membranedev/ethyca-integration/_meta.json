@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "ethyca-integration",
+  "displayName": "Ethyca",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776858383874,
+    "commit": null
+  },
+  "history": []
+}

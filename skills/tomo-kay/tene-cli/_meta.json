@@ -1,0 +1,11 @@
+{
+  "owner": "tomo-kay",
+  "slug": "tene-cli",
+  "displayName": "Tene CLI — Local-First Secrets",
+  "latest": {
+    "version": "1.0.3",
+    "publishedAt": 1776842539587,
+    "commit": null
+  },
+  "history": []
+}

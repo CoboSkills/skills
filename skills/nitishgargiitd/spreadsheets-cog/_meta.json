@@ -3,9 +3,15 @@
   "slug": "spreadsheets-cog",
   "displayName": "Spreadsheets Cog",
   "latest": {
-    "version": "1.0.12",
-    "publishedAt": 1776187994081,
-    "commit": "https://github.com/openclaw/skills/commit/8665420317d58cd059897731c8911aa1739461d6"
+    "version": "1.0.13",
+    "publishedAt": 1776925172854,
+    "commit": null
   },
-  "history": []
+  "history": [
+    {
+      "version": "1.0.12",
+      "publishedAt": 1776187994081,
+      "commit": "https://github.com/openclaw/skills/commit/8665420317d58cd059897731c8911aa1739461d6"
+    }
+  ]
 }

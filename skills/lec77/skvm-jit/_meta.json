@@ -1,0 +1,11 @@
+{
+  "owner": "lec77",
+  "slug": "skvm-jit",
+  "displayName": "SkVM JIT Optimize Trigger",
+  "latest": {
+    "version": "0.1.0",
+    "publishedAt": 1776875414209,
+    "commit": null
+  },
+  "history": []
+}

@@ -4,17 +4,13 @@ import requests
 import os
 import re
 from datetime import datetime, timedelta
+from typing import Tuple, Dict
+from urllib.parse import urlparse
 
 
-def baidu_search(api_key, requestBody: dict):
+def baidu_search(requestBody: dict):
     url = "https://qianfan.baidubce.com/v2/ai_search/web_search"
-
-    headers = {
-        "Authorization": "Bearer %s" % api_key,
-        "X-Appbuilder-From": "openclaw",
-        "Content-Type": "application/json"
-    }
-
+    url, headers = resolve_sandbox_url(url)
     # 使用POST方法发送JSON数据
     response = requests.post(url, json=requestBody, headers=headers)
     response.raise_for_status()
@@ -29,6 +25,38 @@ def baidu_search(api_key, requestBody: dict):
                 del item[key]
     return datas
 
+
+def resolve_sandbox_url(original_url: str) -> Tuple[str, Dict[str, str]]:
+    """若当前在沙盒环境中，将目标 URL 替换为代理 URL，并返回需要附加的 headers。"""
+    session_id = os.environ.get("DUMATE_SESSION_ID")
+    scheduler_url = os.environ.get("DUMATE_SCHEDULER_URL")
+
+    headers = {
+        "Content-Type": "application/json",
+    }
+    if not session_id or not scheduler_url:
+        # 优先使用传入的 api_key，否则从环境变量读取
+        api_key = os.environ.get("BAIDU_API_KEY")
+        if not api_key:
+            raise ValueError("未设置 API Key，请通过环境变量 BAIDU_API_KEY 设置或使用")
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}",
+            "X-Appbuilder-From": "openclaw",
+        }
+        return original_url, headers
+
+    parsed = urlparse(original_url)
+    proxy_url = f"{scheduler_url}/api/qianfanproxy{parsed.path}"
+    if parsed.query:
+        proxy_url += f"?{parsed.query}"
+
+    headers.update({
+        "Host": parsed.netloc,
+        "X-Dumate-Session-Id": session_id,
+        "X-Appbuilder-From": "desktop",
+    })
+    return proxy_url, headers
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
@@ -76,13 +104,6 @@ if __name__ == "__main__":
             print(f"Error: freshness ({parse_data['freshness']}) must be pd, pw, pm, py, or match {pattern}.")
             sys.exit(1)
 
-    # We will pass these via env vars for security
-    api_key = os.getenv("BAIDU_API_KEY")
-
-    if not api_key:
-        print("Error: BAIDU_API_KEY must be set in environment.")
-        sys.exit(1)
-
     request_body = {
         "messages": [
             {
@@ -95,7 +116,7 @@ if __name__ == "__main__":
         "search_filter": search_filter
     }
     try:
-        results = baidu_search(api_key, request_body)
+        results = baidu_search(request_body)
         print(json.dumps(results, indent=2, ensure_ascii=False))
     except Exception as e:
         print(f"Error: {str(e)}")

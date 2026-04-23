@@ -1,0 +1,11 @@
+{
+  "owner": "hanxueyuan",
+  "slug": "abc-news",
+  "displayName": "Abc News",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776931420653,
+    "commit": null
+  },
+  "history": []
+}

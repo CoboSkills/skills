@@ -1,0 +1,11 @@
+{
+  "owner": "justoneapi",
+  "slug": "justoneapi-amazon-get-product-top-reviews",
+  "displayName": "Amazon Product Top Reviews API",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776924172858,
+    "commit": null
+  },
+  "history": []
+}

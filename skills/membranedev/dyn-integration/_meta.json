@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "dyn-integration",
+  "displayName": "Dyn",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776884604449,
+    "commit": null
+  },
+  "history": []
+}

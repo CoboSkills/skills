@@ -14,13 +14,13 @@ By default, scans all agents in `~/.openclaw/agents/`. Each agent's sessions are
 
 ```bash
 # Summary across all agents
-node scripts/session-cost.js
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js
 
 # Show all session details
-node scripts/session-cost.js --details
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --details
 
 # Show details for a specific session (searches across all agents)
-node scripts/session-cost.js --details abc123
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --details abc123
 ```
 
 ## Options
@@ -39,34 +39,34 @@ node scripts/session-cost.js --details abc123
 
 ```bash
 # Last 24 hours summary
-node scripts/session-cost.js --offset 24h
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --offset 24h
 
 # Only the main agent
-node scripts/session-cost.js --agent main
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --agent main
 
 # Last 7 days, JSON output
-node scripts/session-cost.js --offset 7d --json
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --offset 7d --json
 
 # Discord-friendly format (for bots/chat)
-node scripts/session-cost.js --format discord
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --format discord
 
 # Discord format with filters
-node scripts/session-cost.js --format discord --offset 24h --provider anthropic
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --format discord --offset 24h --provider anthropic
 
 # Filter by provider
-node scripts/session-cost.js --provider anthropic
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --provider anthropic
 
 # All sessions in compact table format
-node scripts/session-cost.js --details --table
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --details --table
 
 # Custom path with details (overrides agent discovery, scans exact directory)
-node scripts/session-cost.js --path /other/dir --details
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --path /other/dir --details
 
 # Single session detail (found automatically across agents)
-node scripts/session-cost.js --details 9df7a399-8254-411b-a875-e7337df73d29
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --details 9df7a399-8254-411b-a875-e7337df73d29
 
 # Anthropic sessions from last 24h in table format
-node scripts/session-cost.js --provider anthropic --offset 24h --details --table
+node /home/claw/.openclaw/workspace/skills/session-cost/scripts/session-cost.js --provider anthropic --offset 24h --details --table
 ```
 
 ## Output Format

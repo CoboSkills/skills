@@ -1,0 +1,11 @@
+{
+  "owner": "snazar-faberlens",
+  "slug": "moltbot-docker-hardened",
+  "displayName": "Moltbot Docker Hardened",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776920447681,
+    "commit": null
+  },
+  "history": []
+}

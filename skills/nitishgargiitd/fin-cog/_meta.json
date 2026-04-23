@@ -3,11 +3,16 @@
   "slug": "fin-cog",
   "displayName": "Fin Cog",
   "latest": {
-    "version": "1.0.11",
-    "publishedAt": 1776187938069,
-    "commit": "https://github.com/openclaw/skills/commit/111949a4c7863d2a886ba75b3cc0e0f60b294e13"
+    "version": "1.0.12",
+    "publishedAt": 1776925133825,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.11",
+      "publishedAt": 1776187938069,
+      "commit": "https://github.com/openclaw/skills/commit/111949a4c7863d2a886ba75b3cc0e0f60b294e13"
+    },
     {
       "version": "1.0.8",
       "publishedAt": 1775627880007,

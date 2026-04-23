@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "cludo-integration",
+  "displayName": "Cludo",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776891889879,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "redis-labs-integration",
+  "displayName": "Redis Labs",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776877471182,
+    "commit": null
+  },
+  "history": []
+}

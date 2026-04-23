@@ -1,0 +1,11 @@
+{
+  "owner": "webkubor",
+  "slug": "snowvoice-tts",
+  "displayName": "Snowvoice Tts",
+  "latest": {
+    "version": "1.0.2",
+    "publishedAt": 1776926658154,
+    "commit": null
+  },
+  "history": []
+}

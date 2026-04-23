@@ -1,148 +1,118 @@
 ---
-name: deepresearch-conversation
-description: Deep ReSearch Conversation is provided by Baidu for multi-round streaming conversations with "Deep Research" agents. "In-depth research" is a long-process task involving multi-step reasoning and execution, which is different from the ordinary "question-and-answer". A dialogue that requires the user to repeatedly verify and correct it until a satisfactory answer is reached.
-metadata: { "openclaw": { "emoji": "📌", "requires": { "bins": ["python3", "curl"], "env": ["BAIDU_API_KEY"] }, "primaryEnv": "BAIDU_API_KEY" } }
+name: deepresearch
+description: >
+  调用百度千帆深度研究（DeepResearch）Agent API，完成从发起研究到获取报告的完整多轮对话流程。
+  当用户需要以下操作时触发本技能：
+  (1) 调用 DeepResearch API 进行深度研究；
+  (2) 实现 DeepResearch Agent 的多轮对话（创建会话→发起查询→处理澄清→确认大纲→获取报告）；
+  (3) 解析 DeepResearch SSE 流式响应；
+  (4) 对 DeepResearch API 进行压测或批量调用；
+  (5) 集成深度研究能力到自己的应用中。
+metadata: { "openclaw": { "emoji": "📌", "requires": { "bins": ["python3", "curl", "requests"], "env": ["BAIDU_API_KEY", "QIANFAN_AGENT_ID"] }, "primaryEnv": "BAIDU_API_KEY" } }
 ---
 
-# Deep Research Conversation
+# DeepResearch Agent API 调用指南
 
-This skill allows OpenClaw agents to conduct in-depth research discussions with users on a given topic. The API Key is automatically loaded from the OpenClaw config — no manual setup is needed.
+## 核心流程（5步）
 
-## API Table
-|    name    |               path              |            description                |
-|------------|---------------------------------|---------------------------------------|
-|DeepresearchConversation|/v2/agent/deepresearch/run|Multi-round streaming deep research conversation (via Python script)|
-|ConversationCreate|/v2/agent/deepresearch/create|Create a new conversation session, returns conversation_id|
-|FileUpload|/v2/agent/file/upload|Upload a file for the conversation|
-|FileParseSubmit|/v2/agent/file/parse/submit|Submit an uploaded file for parsing|
-|FileParseQuery|/v2/agent/file/parse/query|Query the status of a file parsing task|
+```
+Step 1: 创建会话
+        POST /v2/agent/deepresearch/create?agent_id={agent_id}
+        Body: {}
+        → 获得 conversation_id
 
-## Workflow
+Step 2: 发起初始查询
+        POST /v2/agent/deepresearch/run
+        Body: { query, agent_id, conversation_id }
+        → 读取 SSE 流，判断下一阶段
 
-### Path A: Topic discussion without files
-1. Call **DeepresearchConversation** directly with the user's query. A new conversation is created automatically.
+Step 3: [可选] 处理需求澄清
+        判断依据: events 中出现 role=assistant + event.name="/chat/chat_agent"
+        处理方式: 发送 query="跳过" (不带 interrupt_id)
+        → 读取 SSE 流，获取大纲
 
-### Path B: Topic discussion with files
-1. Call **ConversationCreate** to get a `conversation_id`.
-2. Call **FileUpload** with the `conversation_id` to upload files.
-3. Call **FileParseSubmit** with the returned `file_id`.
-4. Poll **FileParseQuery** every few seconds until parsing succeeds.
-5. Call **DeepresearchConversation** with the `query`, `conversation_id`, and `file_ids`.
+Step 4: 提取大纲数据
+        从 SSE 事件中提取：
+        - interrupt_id: status="interrupt" + event.name="/toolcall/interrupt" 中的 text.data (嵌套JSON)
+        - structured_outline: event.name="/toolcall/structured_outline" 中的 text.data (嵌套JSON)
 
-### Multi-round conversation rules
-- The DeepresearchConversation API is a **SSE streaming** interface that returns data incrementally.
-- After the first call, you **must** pass `conversation_id` in all subsequent calls.
-- If the response contains an `interrupt_id` (for "demand clarification" or "outline confirmation"), the next call **must** include that `interrupt_id`.
-- If the response contains a `structured_outline`, present it to the user for confirmation/modification, then pass the final outline in the next call.
-- Keep calling DeepresearchConversation iteratively until the user is satisfied with the result.
+Step 5: 确认大纲，生成报告
+        POST /v2/agent/deepresearch/run
+        Body: { query="确认", agent_id, conversation_id, interrupt_id, structured_outline }
+        → 读取 SSE 流，收到 .html 文件事件后可提前退出
+```
 
-## APIS
+## SSE 流解析要点
 
-### ConversationCreate API
+### 流结束信号（满足任一即可停止读取）
+- `status == "interrupt"` — 大纲/澄清阶段结束，等待用户响应
+- `event.is_end == true && event.is_stop == true` — 整个流程结束
+- `content.type == "files"` 且 filename 以 `.html` 结尾 — 报告已生成
 
-#### Parameters
-no parameters
+### 关键事件识别
+| 阶段 | 识别字段 |
+|------|---------|
+| 需求澄清 | `role=assistant`, `event.name="/chat/chat_agent"` |
+| 大纲生成 | `event.name="/toolcall/structured_outline"`, `status=interrupt` |
+| 中断等待 | `status="interrupt"`, `event.name="/toolcall/interrupt"` |
+| 文件生成 | `content.type="files"`, filename 以 `.md` 或 `.html` 结尾 |
 
-#### Execute shell
+### interrupt_id 提取（注意嵌套JSON）
+`content.text` 是 `{ "data": "<JSON字符串>" }` 结构，需两次 JSON 解析：
+```python
+raw = json.loads(content["text"])          # 得到 {"data": "..."}
+interrupt_data = json.loads(raw["data"])   # 得到 {"interrupt_id": "...", ...}
+interrupt_id = interrupt_data["interrupt_id"]
+```
+
+## HTTP 客户端注意事项
+
+- **禁止设置整体超时**：SSE 是长连接，应使用空闲超时（推荐 10 分钟无数据则断开）
+- **禁用 gzip 压缩**：发送 `Accept-Encoding: identity` 或不发该头，避免流式数据被压缩
+- **禁用 HTTP/2**：强制使用 HTTP/1.1，与 curl 默认行为一致
+- **Authorization 头格式**：`Bearer {api_key}`
+
+## 参数获取规则
+
+执行前**必须确认**以下参数已知：
+
+### api_key
+1. 从对话上下文中提取（用户曾提及或粘贴过）
+2. 读取环境变量 `BAIDU_API_KEY`
+3. 以上均无 → **询问用户**：「请提供千帆 API Key（格式：bce-v3/ALTAK-...）」
+
+### agent_id
+1. 从对话上下文中提取（用户曾提及或粘贴过）
+2. 读取环境变量 `QIANFAN_AGENT_ID`
+3. 以上均无 → **询问用户**：「请提供深度研究 Agent ID（在千帆控制台 → 我的 Agent 页面复制）」
+
+### base_url
+- 固定使用默认值：`https://qianfan.baidubce.com/v2`，无需用户提供，不读取任何配置。
+
+### query（研究问题）
+- 来自用户的自然语言输入，直接使用用户描述的研究主题。
+
+## 参考文件
+
+- **可执行脚本**: `scripts/deepresearch.py` — 完整封装了5步调用流程，可直接运行
+- **API 接口文档**: 参见 [references/api.md](references/api.md)（含完整请求/响应示例）
+- **完整调用工作流**: 参见 [references/workflow.md](references/workflow.md)（含 Python/Go 实现示例）
+
+## 脚本使用方式
+
+需要生成可运行代码时，优先基于 `scripts/deepresearch.py` 修改或直接调用，而非重新生成。
+
 ```bash
-curl -X POST "https://qianfan.baidubce.com/v2/agent/deepresearch/create" \
-  -H "X-Appbuilder-From: openclaw" \
-  -H "Authorization: Bearer $BAIDU_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{}'
+# 直接运行（参数通过命令行传入）
+python3 scripts/deepresearch.py \
+  --query "研究小米汽车发展历程" \
+  --api-key "bce-v3/ALTAK-..." \
+  --agent-id "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# 通过环境变量提供鉴权参数
+export BAIDU_API_KEY="bce-v3/ALTAK-..."
+export QIANFAN_AGENT_ID="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+python3 scripts/deepresearch.py --query "研究小米汽车发展历程"
 ```
 
-### FileUpload API
-
-#### Parameters
-- `agent_code`: Fixed value `"deepresearch"` (required)
-- `conversation_id`: From ConversationCreate response (required)
-- `file`: Local file binary (mutually exclusive with file_url). Max 10 files. Supported formats:
-  - Text: .doc, .docx, .txt, .pdf, .ppt, .pptx (txt ≤ 10MB, pdf ≤ 100MB/3000 pages, doc/docx ≤ 100MB/2500 pages, ppt/pptx ≤ 400 pages)
-  - Table: .xlsx, .xls (≤ 100MB, single Sheet only)
-  - Image: .png, .jpg, .jpeg, .bmp (≤ 10MB each)
-  - Audio: .wav, .pcm (≤ 10MB)
-- `file_url`: Public URL of the file (mutually exclusive with file)
-
-#### Local file upload
-```bash
-curl -X POST "https://qianfan.baidubce.com/v2/agent/file/upload" \
-  -H "Authorization: Bearer $BAIDU_API_KEY" \
-  -H "Content-Type: multipart/form-data" \
-  -H "X-Appbuilder-From: openclaw" \
-  -F "agent_code=deepresearch" \
-  -F "conversation_id=$conversation_id" \
-  -F "file=@local_file_path"
-```
-
-#### File URL upload
-```bash
-curl -X POST "https://qianfan.baidubce.com/v2/agent/file/upload" \
-  -H "Authorization: Bearer $BAIDU_API_KEY" \
-  -H "Content-Type: multipart/form-data" \
-  -H "X-Appbuilder-From: openclaw" \
-  -F "agent_code=deepresearch" \
-  -F "conversation_id=$conversation_id" \
-  -F "file_url=$file_url"
-```
-
-### FileParseSubmit API
-
-#### Parameters
-- `file_id`: From FileUpload response (required)
-
-#### Execute shell
-```bash
-curl -X POST "https://qianfan.baidubce.com/v2/agent/file/parse/submit" \
-  -H "Authorization: Bearer $BAIDU_API_KEY" \
-  -H "Content-Type: application/json" \
-  -H "X-Appbuilder-From: openclaw" \
-  -d '{"file_id": "$file_id"}'
-```
-
-### FileParseQuery API
-
-#### Parameters
-- `task_id`: From FileParseSubmit response (required)
-
-#### Execute shell
-```bash
-curl -X GET "https://qianfan.baidubce.com/v2/agent/file/parse/query?task_id=$task_id" \
-  -H "Authorization: Bearer $BAIDU_API_KEY" \
-  -H "X-Appbuilder-From: openclaw"
-```
-
-### DeepresearchConversation API
-
-#### Parameters
-- `query`: The user's question or research topic (required)
-- `conversation_id`: Optional on first call (auto-generated). Required on subsequent calls.
-- `file_ids`: List of parsed file IDs (optional, only when discussing files)
-- `interrupt_id`: Required when responding to "demand clarification" or "outline confirmation" from previous round. Found in `content.text.data` of the previous SSE response.
-- `structured_outline`: The research report outline. Required on subsequent calls if the previous round generated one. Structure:
-```json
-{
-    "title": "string",
-    "locale": "string",
-    "description": "string",
-    "sub_chapters": [
-        {
-            "title": "string",
-            "locale": "string",
-            "description": "string",
-            "sub_chapters": []
-        }
-    ]
-}
-```
-- `version`: `"Lite"` (faster, within 10 min) or `"Standard"` (deeper, slower). Default: `"Standard"`.
-
-#### Execute shell
-```bash
-python3 scripts/deepresearch_conversation.py '{"query": "your question here", "version": "Standard"}'
-```
-
-#### Example with all parameters
-```bash
-python3 scripts/deepresearch_conversation.py '{"query": "the question", "file_ids": ["file_id_1"], "interrupt_id": "interrupt_id", "conversation_id": "conversation_id", "structured_outline": {"title": "Report Title", "locale": "zh", "description": "desc", "sub_chapters": [{"title": "Chapter 1", "locale": "zh", "description": "chapter desc", "sub_chapters": []}]}, "version": "Standard"}'
-```
+依赖: 仅需标准库 + `requests`（`pip install requests`）

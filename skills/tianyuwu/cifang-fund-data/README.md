@@ -30,6 +30,10 @@ export CIFANG_API_KEY="your-api-key"
 ### 查询基金列表
 
 ```bash
+# 使用 --api-key（推荐）
+python scripts/fetch_fund_data.py --api-key "your-api-key" list --keyword 沪深300
+
+# 或使用环境变量
 python scripts/fetch_fund_data.py list --keyword 沪深300
 ```
 

@@ -1,6 +1,9 @@
 ---
 name: cifang-fund-data
 description: 获取A股场内基金（ETF、LOF）的历史行情、实时行情和收益率排行数据。使用次方量化API（需要API Key）获取基金列表、历史行情、实时行情和场内基金排行数据。当用户需要获取中国场内基金数据、分析ETF/LOF表现、查询基金历史价格、实时行情或进行金融数据分析时，请使用此技能。
+homepage: https://www.cifangquant.com/tool/data-api
+required_env_vars:
+  - CIFANG_API_KEY
 ---
 
 # A股场内基金数据获取技能
@@ -10,8 +13,18 @@ description: 获取A股场内基金（ETF、LOF）的历史行情、实时行情
 ## 快速开始
 
 1. **获取API Key**：访问[次方量化平台](https://www.cifangquant.com/tool/data-api)获取API Key
-2. **设置环境变量**：将API Key设置为环境变量 `CIFANG_API_KEY`
-3. **使用技能**：请求基金数据时，技能会自动使用API Key
+2. **优先安全注入**：优先通过 `--api-key` 参数或短期环境变量注入，避免写入长期共享配置
+3. **设置环境变量（可选）**：将API Key设置为环境变量 `CIFANG_API_KEY`
+4. **使用技能**：请求基金数据时，技能会自动使用API Key
+
+## 安全检查清单
+
+在启用真实 API 前，建议逐项确认：
+
+1. **密钥意愿确认**：本技能运行依赖 `CIFANG_API_KEY`，请先确认你愿意提供该密钥。
+2. **来源验证**：优先确认发行者身份、源码仓库和第三方评价；如信息不足，先在受控环境试运行。
+3. **网络与隐私确认**：技能会将 `x-api-key` 随请求发送至 `https://www.cifangquant.com`，请确认你接受相关隐私与使用条款。
+4. **自动触发策略**：若不希望代理自动执行，请在安装或代理策略中禁用/限制该技能自动触发。
 
 ## API 端点
 

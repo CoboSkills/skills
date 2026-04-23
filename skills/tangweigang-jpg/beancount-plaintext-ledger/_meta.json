@@ -1,0 +1,11 @@
+{
+  "owner": "tangweigang-jpg",
+  "slug": "beancount-plaintext-ledger",
+  "displayName": "beancount-plaintext-ledger",
+  "latest": {
+    "version": "0.3.0",
+    "publishedAt": 1776880622714,
+    "commit": null
+  },
+  "history": []
+}

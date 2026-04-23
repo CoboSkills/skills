@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "stein-integration",
+  "displayName": "Stein",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776870300744,
+    "commit": null
+  },
+  "history": []
+}

@@ -1,0 +1,11 @@
+{
+  "owner": "justoneapi",
+  "slug": "justoneapi-amazon-get-best-sellers",
+  "displayName": "Amazon Best Sellers API",
+  "latest": {
+    "version": "1.0.0",
+    "publishedAt": 1776924161989,
+    "commit": null
+  },
+  "history": []
+}

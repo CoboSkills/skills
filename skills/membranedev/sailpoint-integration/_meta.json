@@ -1,0 +1,11 @@
+{
+  "owner": "membranedev",
+  "slug": "sailpoint-integration",
+  "displayName": "Sailpoint",
+  "latest": {
+    "version": "1.0.1",
+    "publishedAt": 1776877422749,
+    "commit": null
+  },
+  "history": []
+}

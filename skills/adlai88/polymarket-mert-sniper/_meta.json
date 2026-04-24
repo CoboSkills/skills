@@ -3,11 +3,16 @@
   "slug": "polymarket-mert-sniper",
   "displayName": "Polymarket Mert Sniper",
   "latest": {
-    "version": "1.1.2",
-    "publishedAt": 1776333937176,
-    "commit": "https://github.com/openclaw/skills/commit/3570031142db127debfad188d5e1a9d0f6f29d5a"
+    "version": "1.2.1",
+    "publishedAt": 1776923805499,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.1.2",
+      "publishedAt": 1776333937176,
+      "commit": "https://github.com/openclaw/skills/commit/3570031142db127debfad188d5e1a9d0f6f29d5a"
+    },
     {
       "version": "1.1.1",
       "publishedAt": 1775184430058,

@@ -1,13 +1,18 @@
 {
   "owner": "jovancoding",
   "slug": "network-ai",
-  "displayName": "Network AI",
+  "displayName": "Network-AI",
   "latest": {
-    "version": "4.15.3",
-    "publishedAt": 1775259922810,
-    "commit": "https://github.com/openclaw/skills/commit/61c2801412a0a55d47ff7113c20a1ab069a765fc"
+    "version": "5.1.4",
+    "publishedAt": 1776969814368,
+    "commit": null
   },
   "history": [
+    {
+      "version": "4.15.3",
+      "publishedAt": 1775259922810,
+      "commit": "https://github.com/openclaw/skills/commit/61c2801412a0a55d47ff7113c20a1ab069a765fc"
+    },
     {
       "version": "4.14.0",
       "publishedAt": 1775161250437,

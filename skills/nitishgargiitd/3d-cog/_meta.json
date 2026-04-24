@@ -3,11 +3,16 @@
   "slug": "3d-cog",
   "displayName": "3d Cog",
   "latest": {
-    "version": "1.0.9",
-    "publishedAt": 1776187886623,
-    "commit": "https://github.com/openclaw/skills/commit/d59b07697a524ff25f117b0f2babc258a26798e5"
+    "version": "1.0.10",
+    "publishedAt": 1776925100624,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.9",
+      "publishedAt": 1776187886623,
+      "commit": "https://github.com/openclaw/skills/commit/d59b07697a524ff25f117b0f2babc258a26798e5"
+    },
     {
       "version": "1.0.6",
       "publishedAt": 1775627841619,

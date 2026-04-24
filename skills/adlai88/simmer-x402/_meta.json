@@ -1,13 +1,18 @@
 {
   "owner": "adlai88",
   "slug": "simmer-x402",
-  "displayName": "Simmer X402",
+  "displayName": "x402 Payments",
   "latest": {
-    "version": "1.0.6",
-    "publishedAt": 1776333983328,
-    "commit": "https://github.com/openclaw/skills/commit/676ea37d55d140a006fd2b490024f2bca2e1732c"
+    "version": "1.0.8",
+    "publishedAt": 1776849351078,
+    "commit": null
   },
   "history": [
+    {
+      "version": "1.0.6",
+      "publishedAt": 1776333983328,
+      "commit": "https://github.com/openclaw/skills/commit/676ea37d55d140a006fd2b490024f2bca2e1732c"
+    },
     {
       "version": "1.0.5",
       "publishedAt": 1773660736766,

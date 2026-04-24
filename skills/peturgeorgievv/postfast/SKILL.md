@@ -337,7 +337,7 @@ Schedule a retweet — content and media are ignored:
 }
 ```
 
-See [examples/x-retweet.json](examples/x-retweet.json). For quote tweets with your own commentary, use `xQuoteTweetUrl` instead. See [examples/x-quote-tweet.json](examples/x-quote-tweet.json).
+See [examples/x-retweet.json](examples/x-retweet.json).
 
 ### Pattern 10: Batch scheduling (a week of posts)
 
@@ -356,7 +356,7 @@ Pass these in the `controls` object. See [references/platform-controls.md](refer
 | **Facebook** | `facebookContentType` (POST/REEL/STORY), `facebookReelsCollaborators` |
 | **YouTube** | `youtubeIsShort`, `youtubeTitle`, `youtubePrivacy`, `youtubePlaylistId`, `youtubeTags`, `youtubeMadeForKids`, `youtubeCategoryId`, `youtubeThumbnailKey` |
 | **LinkedIn** | `linkedinAttachmentKey`, `linkedinAttachmentTitle` (for document posts) |
-| **X (Twitter)** | `xQuoteTweetUrl` (quote tweet), `xRetweetUrl` (retweet), `xCommunityId` (post to community) |
+| **X (Twitter)** | `xRetweetUrl` (retweet), `xCommunityId` (post to community) |
 | **Pinterest** | `pinterestBoardId` (required), `pinterestLink` |
 | **Google Business Profile** | `gbpLocationId` (required), `gbpTopicType`, `gbpCallToActionType`, `gbpCallToActionUrl`, `gbpEventTitle`, `gbpEventStartDate`, `gbpEventEndDate`, `gbpOfferCouponCode`, `gbpOfferRedeemUrl`, `gbpOfferTerms` |
 | **Bluesky** | No platform-specific controls — text + images only |
@@ -416,7 +416,7 @@ Check `X-RateLimit-Remaining-*` headers. 429 = rate limited, check `Retry-After-
 11. **Cross-posting shares controls** — The `controls` object applies to ALL posts in the batch. Platform-irrelevant controls are ignored.
 12. **X (Twitter) API limit is 5 posts/account/day** — Exceeding this risks account restrictions.
 13. **`firstComment` only works on 5 platforms** — X, Instagram, Facebook, YouTube, Threads. TikTok, Pinterest, Bluesky, LinkedIn return a validation error.
-14. **Cannot use `xQuoteTweetUrl` and `xRetweetUrl` together** — Pick one. Retweets ignore content/media.
+14. **Retweets ignore content/media** — When `xRetweetUrl` is set, the `content` and `mediaItems` fields are ignored.
 15. **LinkedIn documents support PDF, DOC, DOCX, PPT, PPTX** — Max 60MB. Cannot mix with regular media.
 16. **Pagination is 0-based** — `page=0` returns the first page. Response `pageInfo.page` shows 1-based display number.
 17. **Instagram trial reels require `instagramPublishType: "REEL"`** — Setting `instagramTrialReelStrategy` without it returns 400. Also cannot be combined with `instagramCollaborators`.
@@ -490,7 +490,6 @@ You've hit the per-workspace rate limit. Check the `Retry-After-Minute`, `Retry-
 - [examples/youtube-video-thumbnail.json](examples/youtube-video-thumbnail.json) — YouTube video with custom thumbnail
 - [examples/pinterest-pin.json](examples/pinterest-pin.json) — Pinterest with board
 - [examples/linkedin-document.json](examples/linkedin-document.json) — LinkedIn document post
-- [examples/x-quote-tweet.json](examples/x-quote-tweet.json) — X quote tweet
 - [examples/x-retweet.json](examples/x-retweet.json) — X scheduled retweet
 - [examples/x-first-comment.json](examples/x-first-comment.json) — X post with auto first comment
 - [examples/threads-carousel.json](examples/threads-carousel.json) — Threads image carousel

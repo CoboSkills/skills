@@ -22,7 +22,6 @@ Ready-to-use request bodies for common social media scheduling scenarios.
 | [youtube-video-thumbnail.json](youtube-video-thumbnail.json) | YouTube video with custom thumbnail image |
 | [pinterest-pin.json](pinterest-pin.json) | Pinterest pin with board and destination link |
 | [linkedin-document.json](linkedin-document.json) | LinkedIn document/carousel post (PDF) |
-| [x-quote-tweet.json](x-quote-tweet.json) | X quote tweet with commentary and image |
 | [x-retweet.json](x-retweet.json) | X scheduled retweet (content ignored) |
 | [x-first-comment.json](x-first-comment.json) | X post with automatic first comment |
 | [threads-carousel.json](threads-carousel.json) | Threads image carousel (up to 10) |

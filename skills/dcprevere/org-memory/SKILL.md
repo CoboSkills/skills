@@ -1,249 +1,108 @@
 ---
 name: org-memory
-version: 0.5.0
-description: "Structured knowledge base and task management using org-mode files. Query, mutate, link, and search org files and org-roam databases with the `org` CLI."
-metadata: {"openclaw":{"emoji":"🦄","homepage":"https://github.com/dcprevere/org-cli","requires":{"bins":["org"],"env":["ORG_MEMORY_AGENT_DIR","ORG_MEMORY_HUMAN_DIR","ORG_MEMORY_AGENT_DATABASE_LOCATION","ORG_MEMORY_HUMAN_DATABASE_LOCATION","ORG_MEMORY_AGENT_ROAM_DIR","ORG_MEMORY_HUMAN_ROAM_DIR"]},"install":[{"kind":"download","label":"Download from GitHub releases: https://github.com/dcprevere/org-cli/releases"}],"scope":{"reads":["$ORG_MEMORY_AGENT_DIR","$ORG_MEMORY_HUMAN_DIR"],"writes":["$ORG_MEMORY_AGENT_DIR","$ORG_MEMORY_HUMAN_DIR"],"migrationReads":["~/.openclaw/workspace/MEMORY.md","~/.openclaw/workspace/memory/"],"migrationWrites":["~/.openclaw/openclaw.json"]}}}
+version: 1.0.2
+description: "Extends the org-cli skill so the agent also persists its own memory (knowledge, observations, daily notes) to an org workspace."
+metadata: {"openclaw":{"emoji":"🐘","homepage":"https://github.com/dcprevere/org-cli","requires":{"bins":["org"],"env":["ORG_MEMORY_DIR","ORG_MEMORY_ROAM_DIR","ORG_MEMORY_DB","ORG_CLI_BIN"]},"install":[{"kind":"download","label":"Download from GitHub releases: https://github.com/dcprevere/org-cli/releases"}],"scope":{"reads":["$ORG_CLI_DIR","$ORG_CLI_ROAM_DIR","$ORG_CLI_DB","$ORG_MEMORY_DIR","$ORG_MEMORY_ROAM_DIR","$ORG_MEMORY_DB"],"writes":["$ORG_CLI_DIR","$ORG_CLI_ROAM_DIR","$ORG_CLI_DB","$ORG_MEMORY_DIR","$ORG_MEMORY_ROAM_DIR","$ORG_MEMORY_DB"]}}}
 ---
 
 # org-memory
 
-Use the `org` CLI to maintain structured, linked, human-readable knowledge in org-mode files. Org files are plain text with rich structure: headlines, TODO states, tags, properties, timestamps, and links. Combined with org-roam, they form a knowledge graph backed by a SQLite database.
+**This skill extends [`org-cli`](../org-cli/SKILL.md).** You must have the `org-cli` skill installed and loaded — everything about the CLI contract, command safety, identifiers, shortcut grammar, and the user's workspace lives there. This skill only adds what's different.
 
-## Shortcuts
+## What this skill adds
 
-When your human uses these patterns, act on them directly.
+Two things:
 
-### Org mutations
+1. **A second workspace** — yours. Via `@a`-prefixed shortcuts, you can capture your own memory (observations, things you've learned, daily notes, a knowledge graph about the user or their work) into a dedicated org workspace. Bare shortcuts (`t:`, `n:`, `k:`, `d:`, `s:`, `f:`) still target the *user*'s workspace as defined by `org-cli`.
 
-| Prefix | Alias | Action |
+2. **Memory-wiki override.** When this skill is active, graph-structured knowledge routes through org-roam rather than OpenClaw's memory-wiki. See below.
+
+## Memory-wiki override
+
+When `org-memory` is active, **store all persistent graph-structured knowledge in your org workspace, not in memory-wiki.** The auto-memory types (`user`, `feedback`, `project`, `reference`) can still go to `MEMORY.md` as usual — those are flat, typed notes and memory-wiki's graph features don't add much. But anything you'd model as entities + relationships (a person's preferences, a project's stakeholders, the history of a system) goes to `@ak` instead of memory-wiki.
+
+Why: one knowledge graph, not two. The user can browse your memory in the same tooling they use for their own. Your graph can link into their graph when the subject is shared.
+
+## Targeting
+
+`@a` = agent. Append any action letter: `@at:` `@an:` `@ak:` `@ad:` `@as:` `@af:`.
+
+| Bare (user, from org-cli) | Agent extension | What it does |
 |---|---|---|
-| `t:` | `Todo:` | Create TODO in human's org (extracts dates) |
-| `d:` | `Done:` / `Finished:` | Mark a TODO as DONE |
-| `s:` | | Reschedule a TODO |
-| `r:` | `Note:` | Save to human's roam (knowledge/info) |
-| `k:` | `Know:` / `Remember:` | Agent learns it (agent's knowledge base) |
+| `t:` | `@at:` | Create TODO in your inbox |
+| `n:` | `@an:` | Plain headline in your inbox |
+| `k:` | `@ak:` | Knowledge in your roam graph |
+| `d:` | `@ad:` | Mark one of your TODOs DONE |
+| `s:` | `@as:` | Reschedule one of your TODOs |
+| `f:` | `@af:` | Search your org files and roam |
 
-### Behaviour modifiers
+## Action details
 
-These prefixes change how you respond, not what you store.
+The agent-side commands are exact mirrors of the `org-cli` actions, with `$DIR`/`$ROAM`/`$DB` substituted to point at your workspace (`$ORG_MEMORY_DIR`, `$ORG_MEMORY_ROAM_DIR`, `$ORG_MEMORY_DB`). See the `org-cli` skill for the full specs of each action — the commands here are identical, just targeted differently.
 
-| Prefix | Action |
-|---|---|
-| `v:` | Voice reply (TTS) |
-| `?` | Research (web + files) |
-| `@` | Roam lookup |
-| `w:` | Work context (Remundo) |
-| `!` | Urgent — act now |
-| `q:` | Quick answer, no tools |
-
-### Todo — create a task
-
-`t: <text>` or `Todo: <text>` means "create a task." Extract any date or timeframe from the text and schedule it. If the text contains a relative date ("in 3 weeks", "by Friday", "next month"), compute the actual date and add `--scheduled <date>` or `--deadline <date>`.
-
-Action: `org add "$ORG_MEMORY_HUMAN_DIR/inbox.org" '<title>' --todo TODO --scheduled <date> --db "$ORG_MEMORY_HUMAN_DATABASE_LOCATION" -f json`
-
-Use `--deadline` instead of `--scheduled` when the text implies a hard due date ("by Friday", "due March 1st"). Use `--scheduled` for softer timing ("in 3 weeks", "next month", "tomorrow").
-
-Examples:
-- "t: submit taxes in 3 weeks" → `org add .../inbox.org 'Submit taxes' --todo TODO --scheduled 2026-03-18`
-- "Todo: renew passport by June" → `org add .../inbox.org 'Renew passport' --todo TODO --deadline 2026-06-01`
-- "t: call dentist tomorrow" → `org add .../inbox.org 'Call dentist' --todo TODO --scheduled 2026-02-26`
-- "Todo: book flights" → `org add .../inbox.org 'Book flights' --todo TODO` (no date mentioned)
-
-### Note — for the human
-
-`r: <text>` or `Note: <text>` means "add this to MY org files." It is always a task or reminder for the *human*, not for the agent.
-
-Action: `org add "$ORG_MEMORY_HUMAN_DIR/inbox.org" '<text>' --todo TODO -f json`
-
-If the note includes a date or deadline, add `--scheduled <date>` or `--deadline <date>`. If there's no date, add it without one (the human will schedule it themselves, or ask you to).
-
-Examples:
-- "r: Buy groceries" → `org add .../inbox.org 'Buy groceries' --todo TODO`
-- "Note: Review PR #42 by Friday" → `org add .../inbox.org 'Review PR #42' --todo TODO --deadline 2026-02-28`
-- "r: we could add feature X to the app" → `org add .../inbox.org 'Add feature X to the app' --todo TODO`
-- "Note: send email to Donna about safeguarding" → `org add .../inbox.org 'Send email to Donna about safeguarding' --todo TODO`
-
-**Note vs Todo:** Both create TODO headings. The difference is intent — `t:` / `Todo:` signals a concrete task (always try to extract a date), while `r:` / `Note:` is broader (ideas, reminders, observations). When there's no date, add it without one.
-
-**Edge case — ideas and observations:** If the human says "r: we could do X" or "Note: idea for Y", it's still a Note. They're telling you to write it down for them. Add it as a TODO. Don't create a roam node, don't put it in the agent's knowledge base.
-
-### Schedule — reschedule a task
-
-`s: <text>` means "reschedule this task." Search for the matching TODO and update its scheduled date.
-
-Action:
-1. Search: `org todo list --state TODO --search '<text>' -d "$ORG_MEMORY_HUMAN_DIR" -f json`
-2. If exactly one match: `org schedule <custom_id> <date> -d "$ORG_MEMORY_HUMAN_DIR" --db "$ORG_MEMORY_HUMAN_DATABASE_LOCATION" -f json`
-3. If multiple matches: show them to the human and ask which one
-4. If no match: tell the human you couldn't find it
-
-Examples:
-- "s: taxes to next Friday" → find "taxes" TODO, reschedule to next Friday
-- "s: dentist 2026-04-01" → find "dentist" TODO, reschedule to 2026-04-01
-
-### Done — mark complete
-
-`d: <text>`, `Done: <text>`, or `Finished: <text>` means "mark this task as DONE." Search for the matching TODO and set its state.
-
-Action:
-1. Search: `org todo list --state TODO --search '<text>' -d "$ORG_MEMORY_HUMAN_DIR" -f json`
-2. If exactly one match: `org todo set <custom_id> DONE -d "$ORG_MEMORY_HUMAN_DIR" --db "$ORG_MEMORY_HUMAN_DATABASE_LOCATION" -f json`
-3. If multiple matches: show them to the human and ask which one
-4. If no match: tell the human you couldn't find it
-
-Examples:
-- "d: pay Nigel Kerry" → find and mark DONE
-- "Finished: the PR review" → find and mark DONE
-- "Done: groceries" → search for "groceries", mark DONE
-
-### Know — for the agent
-
-`k: <info>`, `Know: <info>`, or `Remember: <info>` means "store this in YOUR knowledge base for future recall." This is information the agent should retain across sessions.
-
-Action: Search for an existing node first (`org roam node find`), then create or update.
-
-Examples:
-- "k: Sarah prefers morning meetings" → Create/update a node for Sarah in `$ORG_MEMORY_AGENT_DIR`
-- "Remember: The API uses OAuth2, not API keys" → Create/update a node for the API in `$ORG_MEMORY_AGENT_DIR`
-
-### After every write — confirm
-
-After every mutation to either directory, print a line in this exact format:
-
-```
-org-memory: <action> <file-path>
-```
-
-Examples: `org-memory: added TODO to ~/org/human/inbox.org`, `org-memory: created node ~/org/agent/sarah.org`, `org-memory: updated ~/org/agent/sarah.org`.
-
-**This is mandatory.** Never silently write to either directory. The human should always see what you did and where.
-
-## Output format
-
-All commands accept `-f json` for structured output with `{"ok":true,"data":...}` envelopes. Errors return `{"ok":false,"error":{"type":"...","message":"..."}}`. Always use `-f json`.
-
-## Command safety
-
-User-provided text (task titles, note content, search terms) must be single-quoted to prevent shell expansion. Double quotes allow `$(…)`, backticks, and variable interpolation — single quotes do not.
+Worked example for `@ak`:
 
 ```bash
-# Correct
-org add "$ORG_MEMORY_HUMAN_DIR/inbox.org" 'User provided text' --todo TODO -f json
+# Find existing node for the subject
+org roam node find '<subject>' -d "$ORG_MEMORY_ROAM_DIR" --db "$ORG_MEMORY_DB" -f json
 
-# Wrong — double quotes allow shell injection
-org add "$ORG_MEMORY_HUMAN_DIR/inbox.org" "User provided text" --todo TODO -f json
+# If it exists, append the fact
+org append <custom_id> '<fact>' -d "$ORG_MEMORY_DIR" --db "$ORG_MEMORY_DB" -f json
+
+# If not, create then append
+org roam node create '<subject>' -d "$ORG_MEMORY_ROAM_DIR" --db "$ORG_MEMORY_DB" -f json
+# then append
 ```
 
-If the text contains a literal single quote, escape it with `'\''`:
+The same substitution pattern applies to every other action.
 
-```bash
-org add "$ORG_MEMORY_HUMAN_DIR/inbox.org" 'Don'\''t forget' --todo TODO -f json
+## Session-start context
+
+When this skill is active, two things get injected into the agent's session-start context from your workspace:
+
+- `$ORG_MEMORY_DIR/memory.org` — your persistent memory file. Read this first; it's the continuity you've built up.
+- `$ORG_MEMORY_DIR/daily/YYYY-MM-DD.org` — today's and yesterday's daily notes, if they exist.
+
+The `org-memory` plugin's `before_agent_start` hook loads these; you don't have to fetch them manually.
+
+## Write-log format
+
+Use `org-memory:` (not `org-cli:`) as the prefix when the write went to *your* workspace. The user reads both prefixes to know which workspace changed:
+
+```
+org-memory: added TODO [k4t] ~/org/agent/inbox.org
+org-memory: created node [3f2a-…] ~/org/agent/roam/self.org
 ```
 
-For multi-line content, pipe via stdin instead of interpolating:
+Bare shortcuts still produce `org-cli:` lines (they're handled by the `org-cli` skill). Only `@a*` shortcuts produce `org-memory:` lines.
 
-```bash
-printf '%s' 'Long text here' | org append k4t --stdin -d "$ORG_MEMORY_AGENT_DIR" --db "$ORG_MEMORY_AGENT_DATABASE_LOCATION" -f json
-```
+## Configuration
 
-Environment variable paths (`$ORG_MEMORY_HUMAN_DIR`, etc.) must always be double-quoted to handle spaces, but never place user text inside double quotes.
-
-## Discovery
-
-Run `org schema` once to get a machine-readable description of all commands, arguments, and flags. Use this to construct valid commands without memorizing the interface.
-
-## Setup
-
-Configuration is via environment variables. Set them in `openclaw.json` so they are injected into every command automatically.
-
-Required — set these to match your directory layout:
+Additional env vars beyond what `org-cli` declares:
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `ORG_MEMORY_AGENT_DIR` | `~/org/alcuin` | Agent's org workspace directory |
-| `ORG_MEMORY_AGENT_ROAM_DIR` | `~/org/alcuin/roam` | Agent's roam node directory |
-| `ORG_MEMORY_AGENT_DATABASE_LOCATION` | `~/org/alcuin/roam/.org.db` | Agent's database |
-| `ORG_MEMORY_HUMAN_DIR` | `~/org/human` | Human's org workspace directory |
-| `ORG_MEMORY_HUMAN_ROAM_DIR` | `~/org/human/roam` | Human's roam node directory |
-| `ORG_MEMORY_HUMAN_DATABASE_LOCATION` | `~/org/human/roam/.org.db` | Human's database |
+| `ORG_MEMORY_DIR` | `~/org/agent` | Your workspace (memory.org, daily/, tasks) |
+| `ORG_MEMORY_DB` | `$ORG_MEMORY_DIR/.org.db` | SQLite database |
+| `ORG_MEMORY_ROAM_DIR` | `$ORG_MEMORY_DIR/roam` | Your roam nodes |
 
-Optional — these have sensible defaults:
+`ORG_CLI_BIN` (the org binary path) is shared — both skills use the same binary. `ORG_CLI_INBOX_FILE` is *not* shared — your inbox is always `inbox.org` in `$ORG_MEMORY_DIR` unless you set a separate plugin config.
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `ORG_MEMORY_USE_FOR_AGENT` | `true` | Enable the agent's own knowledge base |
-| `ORG_MEMORY_USE_FOR_HUMAN` | `true` | Enable task management in the human's org files |
-| `ORG_MEMORY_ORG_BIN` | `org` | Path to the org CLI binary |
-| `ORG_MEMORY_INBOX_FILE` | `inbox.org` | Filename for new tasks (relative to humanDir) |
+## First-time setup
 
-Workspace dirs (`*_DIR`) hold tasks, inbox, and daily files. Roam dirs (`*_ROAM_DIR`) hold knowledge graph nodes. Databases are collocated with roam dirs by default. Roam dirs default to `<workspace>/roam` — roam nodes are never created in the workspace root.
-
-If `ORG_MEMORY_USE_FOR_AGENT` is not `true`, skip the Knowledge management section. If `ORG_MEMORY_USE_FOR_HUMAN` is not `true`, skip the Task management and Batch operations sections.
-
-Always pass `--db` to point at the correct database. The CLI auto-syncs the roam database after every mutation using the `--db` value. Without `--db`, the CLI defaults to `<directory>/.org.db`.
-
-Initialize each enabled directory. If the directories already contain org files, sync them first:
+In addition to the `org-cli` first-time setup for the user's workspace, run:
 
 ```bash
-# Sync existing files into the roam database (skip if starting fresh)
-org roam sync -d "$ORG_MEMORY_AGENT_DIR" --db "$ORG_MEMORY_AGENT_DATABASE_LOCATION"
-org roam sync -d "$ORG_MEMORY_HUMAN_DIR" --db "$ORG_MEMORY_HUMAN_DATABASE_LOCATION"
+# Sync any existing agent files
+org roam sync -d "$ORG_MEMORY_DIR" --db "$ORG_MEMORY_DB"
 
-# Create a seed node for the agent's knowledge base (skip if files already exist)
-org roam node create 'Index' -d "$ORG_MEMORY_AGENT_DIR" --db "$ORG_MEMORY_AGENT_DATABASE_LOCATION" -f json
+# Seed the knowledge base
+org roam node create 'Index' -d "$ORG_MEMORY_ROAM_DIR" --db "$ORG_MEMORY_DB" -f json
 
-# Build the headline index (enables CUSTOM_ID auto-assignment and file-less commands)
-org index -d "$ORG_MEMORY_AGENT_DIR" --db "$ORG_MEMORY_AGENT_DATABASE_LOCATION"
-org index -d "$ORG_MEMORY_HUMAN_DIR" --db "$ORG_MEMORY_HUMAN_DATABASE_LOCATION"
+# Build the headline index
+org index -d "$ORG_MEMORY_DIR" --db "$ORG_MEMORY_DB"
 ```
-
-The roam response includes the node's ID, file path, title, and tags.
-
-## Stable identifiers (CUSTOM_ID)
-
-Every headline created with `org add` is auto-assigned a short CUSTOM_ID (e.g. `k4t`) when an index database exists. This ID appears in the `custom_id` field of all JSON responses and as a column in text output.
-
-Use CUSTOM_IDs to refer to headlines in subsequent commands — they are stable across edits and don't require a file path:
-
-```bash
-org todo set k4t DONE -d "$ORG_MEMORY_HUMAN_DIR" --db "$ORG_MEMORY_HUMAN_DATABASE_LOCATION" -f json
-org schedule k4t 2026-03-15 -d "$ORG_MEMORY_HUMAN_DIR" --db "$ORG_MEMORY_HUMAN_DATABASE_LOCATION" -f json
-org note k4t 'Pushed back per manager request' -d "$ORG_MEMORY_HUMAN_DIR" --db "$ORG_MEMORY_HUMAN_DATABASE_LOCATION" -f json
-org append k4t 'Updated scope per review.' -d "$ORG_MEMORY_HUMAN_DIR" --db "$ORG_MEMORY_HUMAN_DATABASE_LOCATION" -f json
-```
-
-To backfill CUSTOM_IDs on existing headlines that don't have them:
-
-```bash
-org custom-id assign -d "$ORG_MEMORY_HUMAN_DIR" --db "$ORG_MEMORY_HUMAN_DATABASE_LOCATION"
-```
-
-**Never address headlines by position number (`pos`).** Positions change when files are edited — a mutation on one headline shifts the byte positions of everything after it.
-
-Safe identifiers (in order of preference):
-1. **CUSTOM_ID** (e.g. `k4t`) — stable, short, unique
-2. **org-id** (UUID) — stable, unique
-3. **Exact title** — stable as long as the title doesn't change
-
-If you need to mutate multiple headlines in the same file, either:
-- Use `org batch` for atomic multi-step operations (recommended)
-- Use CUSTOM_IDs or titles, never `pos`
-- If you must use `pos`, re-query after each mutation to get fresh positions
-
-## Error handling
-
-Branch on the `ok` field. Handle errors by `type`:
-
-- `file_not_found`: wrong path or deleted file
-- `headline_not_found`: identifier doesn't match; re-query to get current state
-- `parse_error`: file has syntax the parser can't handle; don't retry
-- `invalid_args`: check `org schema` or `org <command> --help`
 
 ## References
 
-Read these on demand when the conversation requires them:
-
-- **Knowledge management** (`{baseDir}/references/knowledge-management.md`): Read when `ORG_MEMORY_USE_FOR_AGENT=true` and you need to create/query/link roam nodes in the agent's knowledge base.
-- **Task management** (`{baseDir}/references/task-management.md`): Read when `ORG_MEMORY_USE_FOR_HUMAN=true` and you need to query or mutate the human's tasks, use batch operations, or map natural-language queries to commands.
-- **Memory architecture** (`{baseDir}/references/memory-architecture.md`): Read at session start (file structure, session routine, ambient capture guidelines). Also contains optional memory migration instructions — only follow those if the user explicitly asks to migrate from MEMORY.md to org-mode. Migration reads/writes files outside the declared directories (see reference for details).
+- **Memory architecture** (`{baseDir}/references/memory-architecture.md`) — why the dual-workspace split exists, how memory.org + daily notes fit in, and the migration from MEMORY.md-only.

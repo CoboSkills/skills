@@ -2,18 +2,22 @@ import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { resolveConfig, formatAddedTodo } from "./index.ts";
+import {
+  resolveConfig,
+  formatAddedTodo,
+  formatAddedNote,
+  formatCreatedNode,
+  formatOrgError,
+  buildAddTodoArgs,
+  buildAddNoteArgs,
+} from "./lib.ts";
+import type { OrgMemoryConfig } from "./lib.ts";
 
-// Save and restore env vars around each test
 const envKeys = [
-  "ORG_MEMORY_AGENT_DIR",
-  "ORG_MEMORY_AGENT_ROAM_DIR",
-  "ORG_MEMORY_HUMAN_DIR",
-  "ORG_MEMORY_HUMAN_ROAM_DIR",
-  "ORG_MEMORY_AGENT_DATABASE_LOCATION",
-  "ORG_MEMORY_HUMAN_DATABASE_LOCATION",
-  "ORG_MEMORY_ORG_BIN",
-  "ORG_MEMORY_INBOX_FILE",
+  "ORG_MEMORY_DIR",
+  "ORG_MEMORY_ROAM_DIR",
+  "ORG_MEMORY_DB",
+  "ORG_CLI_BIN",
 ];
 
 let savedEnv: Record<string, string | undefined>;
@@ -40,22 +44,19 @@ const home = homedir();
 
 describe("resolveConfig", () => {
   describe("defaults", () => {
-    it("uses default directories", () => {
+    it("uses default agent directory", () => {
       const cfg = resolveConfig();
-      assert.equal(cfg.agentDir, join(home, "org/alcuin"));
-      assert.equal(cfg.humanDir, join(home, "org/human"));
+      assert.equal(cfg.dir, join(home, "org/agent"));
     });
 
-    it("roam dirs default to <dir>/roam", () => {
+    it("roam dir defaults to <dir>/roam", () => {
       const cfg = resolveConfig();
-      assert.equal(cfg.agentRoamDir, join(home, "org/alcuin/roam"));
-      assert.equal(cfg.humanRoamDir, join(home, "org/human/roam"));
+      assert.equal(cfg.roamDir, join(home, "org/agent/roam"));
     });
 
-    it("db paths default to <dir>/roam/.org.db", () => {
+    it("db defaults to <dir>/.org.db", () => {
       const cfg = resolveConfig();
-      assert.equal(cfg.agentDb, join(home, "org/alcuin/roam/.org.db"));
-      assert.equal(cfg.humanDb, join(home, "org/human/roam/.org.db"));
+      assert.equal(cfg.db, join(home, "org/agent/.org.db"));
     });
 
     it("orgBin defaults to org", () => {
@@ -70,100 +71,158 @@ describe("resolveConfig", () => {
   });
 
   describe("plugin config overrides", () => {
-    it("overrides workspace dirs from plugin config", () => {
-      const cfg = resolveConfig({ agentDir: "/custom/agent", humanDir: "/custom/human" });
-      assert.equal(cfg.agentDir, "/custom/agent");
-      assert.equal(cfg.humanDir, "/custom/human");
+    it("overrides dir", () => {
+      const cfg = resolveConfig({ dir: "/custom/agent" });
+      assert.equal(cfg.dir, "/custom/agent");
     });
 
-    it("roam dirs derive from overridden workspace dirs", () => {
-      const cfg = resolveConfig({ agentDir: "/custom/agent" });
-      assert.equal(cfg.agentRoamDir, "/custom/agent/roam");
-      assert.equal(cfg.agentDb, "/custom/agent/roam/.org.db");
+    it("roam dir derives from overridden dir", () => {
+      const cfg = resolveConfig({ dir: "/custom/agent" });
+      assert.equal(cfg.roamDir, "/custom/agent/roam");
+      assert.equal(cfg.db, "/custom/agent/.org.db");
     });
 
-    it("roam dirs can be overridden independently", () => {
-      const cfg = resolveConfig({
-        agentDir: "/custom/agent",
-        agentRoamDir: "/custom/agent/notes",
-      });
-      assert.equal(cfg.agentDir, "/custom/agent");
-      assert.equal(cfg.agentRoamDir, "/custom/agent/notes");
-    });
-
-    it("db paths can be overridden independently", () => {
-      const cfg = resolveConfig({ agentDb: "/custom/agent.db" });
-      assert.equal(cfg.agentDb, "/custom/agent.db");
-      // Other defaults still apply
-      assert.equal(cfg.agentDir, join(home, "org/alcuin"));
+    it("roam dir can be overridden independently", () => {
+      const cfg = resolveConfig({ dir: "/custom/agent", roamDir: "/notes" });
+      assert.equal(cfg.roamDir, "/notes");
     });
   });
 
   describe("env var overrides", () => {
     it("env vars take precedence over plugin config", () => {
-      process.env.ORG_MEMORY_AGENT_DIR = "/env/agent";
-      const cfg = resolveConfig({ agentDir: "/config/agent" });
-      assert.equal(cfg.agentDir, "/env/agent");
+      process.env.ORG_MEMORY_DIR = "/env/agent";
+      const cfg = resolveConfig({ dir: "/config" });
+      assert.equal(cfg.dir, "/env/agent");
     });
 
-    it("env roam dir overrides derived default", () => {
-      process.env.ORG_MEMORY_AGENT_ROAM_DIR = "/env/roam";
-      const cfg = resolveConfig({ agentDir: "/config/agent" });
-      assert.equal(cfg.agentRoamDir, "/env/roam");
-    });
-
-    it("roam dir derives from env workspace dir when not set", () => {
-      process.env.ORG_MEMORY_AGENT_DIR = "/env/agent";
+    it("ORG_CLI_BIN is shared with org-cli", () => {
+      process.env.ORG_CLI_BIN = "/usr/local/bin/org";
       const cfg = resolveConfig();
-      assert.equal(cfg.agentRoamDir, "/env/agent/roam");
-      assert.equal(cfg.agentDb, "/env/agent/roam/.org.db");
+      assert.equal(cfg.orgBin, "/usr/local/bin/org");
+    });
+
+    it("roam dir derives from env dir when not set", () => {
+      process.env.ORG_MEMORY_DIR = "/env/agent";
+      const cfg = resolveConfig();
+      assert.equal(cfg.roamDir, "/env/agent/roam");
+      assert.equal(cfg.db, "/env/agent/.org.db");
     });
 
     it("db env var overrides derived default", () => {
-      process.env.ORG_MEMORY_AGENT_DATABASE_LOCATION = "/env/custom.db";
+      process.env.ORG_MEMORY_DB = "/env/custom.db";
       const cfg = resolveConfig();
-      assert.equal(cfg.agentDb, "/env/custom.db");
+      assert.equal(cfg.db, "/env/custom.db");
     });
   });
 
-  describe("roam dir is never the same as workspace dir", () => {
+  describe("roam dir distinct from workspace dir", () => {
     it("default config has distinct dirs", () => {
       const cfg = resolveConfig();
-      assert.notEqual(cfg.agentDir, cfg.agentRoamDir);
-      assert.notEqual(cfg.humanDir, cfg.humanRoamDir);
+      assert.notEqual(cfg.dir, cfg.roamDir);
     });
 
     it("roam dir is a subdirectory of workspace dir by default", () => {
       const cfg = resolveConfig();
-      assert.ok(cfg.agentRoamDir.startsWith(cfg.agentDir + "/"));
-      assert.ok(cfg.humanRoamDir.startsWith(cfg.humanDir + "/"));
+      assert.ok(cfg.roamDir.startsWith(cfg.dir + "/"));
     });
   });
 });
 
 describe("formatAddedTodo", () => {
-  it("prefixes custom_id when present in JSON response", () => {
-    const stdout = JSON.stringify({ ok: true, data: { custom_id: "abc", title: "Fix thing" } });
-    const result = formatAddedTodo(stdout);
-    assert.ok(result.startsWith("TODO created with ID: abc\n\n"));
-    assert.ok(result.includes(stdout));
+  it("prefixes custom_id when present", () => {
+    const stdout = JSON.stringify({ ok: true, data: { custom_id: "abc", title: "X" } });
+    assert.ok(formatAddedTodo(stdout).startsWith("TODO created with ID: abc\n\n"));
   });
 
   it("returns stdout unchanged when custom_id is absent", () => {
-    const stdout = JSON.stringify({ ok: true, data: { title: "Fix thing" } });
-    const result = formatAddedTodo(stdout);
-    assert.equal(result, stdout);
+    const stdout = JSON.stringify({ ok: true, data: { title: "X" } });
+    assert.equal(formatAddedTodo(stdout), stdout);
   });
 
-  it("returns stdout unchanged when response is not JSON", () => {
-    const stdout = "Headline added";
-    const result = formatAddedTodo(stdout);
-    assert.equal(result, stdout);
+  it("returns stdout unchanged for non-JSON", () => {
+    assert.equal(formatAddedTodo("plain"), "plain");
+  });
+});
+
+describe("formatAddedNote", () => {
+  it("prefixes custom_id when present", () => {
+    const stdout = JSON.stringify({ ok: true, data: { custom_id: "abc", title: "Thought" } });
+    assert.ok(formatAddedNote(stdout).startsWith("Note created with ID: abc\n\n"));
+  });
+});
+
+describe("formatCreatedNode", () => {
+  it("prefixes id", () => {
+    const stdout = JSON.stringify({ ok: true, data: { id: "uuid-x", title: "Node" } });
+    assert.ok(formatCreatedNode(stdout).startsWith("Node created with ID: uuid-x\n\n"));
   });
 
-  it("returns stdout unchanged when ok is false", () => {
-    const stdout = JSON.stringify({ ok: false, error: { message: "bad" } });
-    const result = formatAddedTodo(stdout);
-    assert.equal(result, stdout);
+  it("falls back to custom_id", () => {
+    const stdout = JSON.stringify({ ok: true, data: { custom_id: "k4t", title: "Node" } });
+    assert.ok(formatCreatedNode(stdout).startsWith("Node created with ID: k4t\n\n"));
+  });
+});
+
+describe("formatOrgError", () => {
+  it("extracts JSON error.message when -f json is present", () => {
+    const stdout = JSON.stringify({ ok: false, error: { message: "nope" } });
+    const msg = formatOrgError(["todo", "set", "x", "DONE", "-f", "json"], stdout, "", "exit 1");
+    assert.equal(msg, "org todo failed: nope");
+  });
+
+  it("falls back to stderr when JSON parse fails", () => {
+    const msg = formatOrgError(["fts", "q", "-f", "json"], "nope", "stderr msg", "fb");
+    assert.equal(msg, "org fts failed: stderr msg");
+  });
+});
+
+const cfg: OrgMemoryConfig = {
+  dir: "/agent",
+  roamDir: "/agent/roam",
+  db: "/agent/.org.db",
+  orgBin: "org",
+  inboxFile: "inbox.org",
+};
+
+describe("buildAddTodoArgs", () => {
+  it("defaults to agent inbox with TODO state and json output", () => {
+    const args = buildAddTodoArgs(cfg, { title: "Note to self" });
+    assert.deepEqual(args, [
+      "add",
+      "/agent/inbox.org",
+      "Note to self",
+      "--todo",
+      "TODO",
+      "--db",
+      "/agent/.org.db",
+      "-f",
+      "json",
+    ]);
+  });
+
+  it("honors custom file relative to dir", () => {
+    const args = buildAddTodoArgs(cfg, { title: "X", file: "learnings.org" });
+    assert.ok(args.includes("/agent/learnings.org"));
+  });
+
+  it("appends --scheduled when provided", () => {
+    const args = buildAddTodoArgs(cfg, { title: "X", scheduled: "2026-05-01" });
+    assert.equal(args[args.indexOf("--scheduled") + 1], "2026-05-01");
+  });
+
+  it("passes title literally", () => {
+    const title = "Weird: \"quotes\" 'and' $stuff";
+    const args = buildAddTodoArgs(cfg, { title });
+    assert.ok(args.includes(title));
+  });
+});
+
+describe("buildAddNoteArgs", () => {
+  it("omits --todo and date flags", () => {
+    const args = buildAddNoteArgs(cfg, { text: "An observation" });
+    assert.ok(!args.includes("--todo"));
+    assert.ok(!args.includes("--scheduled"));
+    assert.ok(!args.includes("--deadline"));
+    assert.ok(args.includes("/agent/inbox.org"));
   });
 });

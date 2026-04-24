@@ -1,18 +1,33 @@
 ---
 name: polymarket-weather-trader
-description: Trade Polymarket weather markets using NOAA (US) and Open-Meteo (international) forecasts via Simmer API. Inspired by gopfan2's $2M+ strategy. Use when user wants to trade temperature markets, automate weather bets, check forecasts, or run gopfan2-style trading.
+description: Trade Polymarket weather markets using NOAA (US) and Open-Meteo (international) forecasts via Simmer API. Inspired by gopfan2's weather trading approach. Use when user wants to trade temperature markets, automate weather bets, check forecasts, or run weather-based strategies.
 metadata:
   author: Simmer (@simmer_markets)
-  version: "1.17.0"
+  version: "1.19.1"
   displayName: Polymarket Weather Trader
   difficulty: beginner
-  attribution: Strategy inspired by gopfan2
+  attribution: Strategy inspired by gopfan2 (public Polymarket trader — approach referenced, not endorsed).
 ---
 # Polymarket Weather Trader
 
 Trade temperature markets on Polymarket using NOAA forecast data.
 
-> **This is a template.** The default signal is NOAA temperature forecasts — remix it with other weather APIs, different forecast models, or additional market types (precipitation, wind, etc.). The skill handles all the plumbing (market discovery, NOAA parsing, trade execution, safeguards). Your agent provides the alpha.
+> **This is a template.** The default signal is NOAA temperature forecasts — remix it with other weather APIs, different forecast models, or additional market types (precipitation, wind, etc.). The skill handles the plumbing (market discovery, NOAA parsing, trade execution, safeguards). Your agent provides the alpha.
+
+## Risk Management
+
+Weather market outcomes are discrete: a temperature bucket ("34-35°F") either matches the actual high on resolution day or it doesn't. The strategy works when the NOAA forecast is more accurate than what the market has priced in.
+
+**Test before going live.** The skill defaults to paper mode — trades are simulated at real market prices while your USDC stays untouched. Pass `--live` when you're ready. For a fully virtual sandbox, switch the SDK venue to `sim` for $SIM-denominated paper trading.
+
+Simmer's server-side risk monitor handles stop-loss and take-profit automatically. Defaults (editable at `simmer.markets/dashboard → Settings → Auto Risk Monitor`):
+
+- Stop-loss at 20% drawdown from entry
+- Take-profit at 50% price
+
+**External wallet users**: monitors emit alerts via the briefing endpoint — your agent must be running for sells to execute. Managed wallet users: server executes directly.
+
+You can override defaults per-skill in the dashboard.
 
 ## When to Use This Skill
 
@@ -22,6 +37,17 @@ Use this skill when the user wants to:
 - Buy low on weather predictions
 - Check their weather trading positions
 - Configure trading thresholds or locations
+
+## What's New in v1.18.1
+
+- SKILL.md rewrite highlighting paper mode (default) and $SIM venue as first-class ways to test the skill before going live.
+
+## What's New in v1.18.0
+
+- Autotune config defaults aligned with documented defaults (entry 0.15, exit 0.45, max position $2, sizing 5%).
+- `SIMMER_WEATHER_BINARY_ONLY` is now an autotune-exposed tunable — set `true` to trade only binary yes/no weather markets.
+- Autotune ranges for `max_position_usd` and `sizing_pct` tuned to match typical use.
+- Risk management documentation clarified: auto-risk monitor handles stop-loss/take-profit at the user level.
 
 ## What's New in v1.17.0
 
@@ -268,10 +294,10 @@ All trades are tagged with `source: "sdk:weather"`. This means:
 - Fix: `export WALLET_PRIVATE_KEY=0x<your-polymarket-wallet-private-key>`
 - Do NOT attempt to sign orders manually or modify the skill code — the SDK handles it
 
-**"Balance shows $0 but I have USDC on Polygon"**
-- Polymarket uses **USDC.e** (bridged USDC, contract `0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174`) — not native USDC
-- If you bridged USDC to Polygon recently, you likely received native USDC
-- Swap native USDC to USDC.e, then retry
+**"Balance shows $0 but I have funds on Polygon"**
+- Polymarket V2 (live 2026-04-28) uses **pUSD** (PolyUSD, 1:1 backed by USDC.e). If your wallet holds USDC.e, migrate at [simmer.markets/dashboard](https://simmer.markets/dashboard) with one click (~30s)
+- If you bridged native USDC (Circle), swap to USDC.e first, then migrate to pUSD
+- Full migration guide: [docs.simmer.markets/v2-migration](https://docs.simmer.markets/v2-migration)
 
 **"API key invalid"**
 - Get new key from simmer.markets/dashboard → SDK tab
